@@ -80,7 +80,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
     # survival iteration 14's second half (Plan 25 Task 8; survive.py's docstring, Survival 16): each switch off is the
     # rule before it, all of them in `survive.T4_SWITCHES` (the replay tests' `pre_t4`)
     FINISH_FAR = True     # ruling P25-J: the fallen finished out to FINISH_R with no standing zombie within KEEP_R
-                          # (`Fight._finish_reach`, `Doorway._finish_post`), and the `pair` flee yields to that finish
+                          # (`finish.finish_rule`, `Doorway._finish_post`), and the `pair` flee yields to that finish
                           # (`_pair_finish`)
     STAND_WOUND = True    # ruling P25-K: the doorway stand leaves on a part bleeding since it began (`_stand_wound`)
     SHOVE_BREAK = True    # ruling P25-L: after SHOVE_BREAK_N missed shoves at a lone target the Fight breaks away
@@ -221,9 +221,18 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         if health < FLEE_HEALTH:
             return "health"
         if n >= 2 and (health < FLEE_HEALTH_PAIR or self._wounds() > 0):
-            self.pair_yield = self._pair_finish()   # P25-J (3): the stomp of a fallen one goes before the flee
-            if self.pair_yield is None:
+            fallen = self._pair_finish()   # P25-J (3): the finish of a fallen (or knocked) one goes before the flee
+            if fallen is None:
                 return "pair"
+            reason = self._unpaired(held, health)
+            if reason is None:
+                self.pair_yield = fallen   # kept only where the fight answers: never on a `strain` (or any flee) line
+            return reason
+        return self._unpaired(held, health)
+
+    def _unpaired(self, held, health):
+        """The hysteresis past the `pair` rule (`_hysteresis`): `strain`, `unreachable`, `stalled`, `held`, else
+        None."""
         if self.spent is not None and not self._wounded_fight():   # P24-AG, P24-AK: the arms, the endurance or the
             return "strain"                                        # tiredness halve every swing; P24-AP within KEEP_R
         if not self._reachable_held():
@@ -587,6 +596,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
                     # fight, and a stand's Flee its Doorway (P24-AO; one whose stand was left `off` only steers)
                     self.flee = Flee(self.world, self.actions, self.clock, shunned=self.night.shunned)
                     self.flee.skip_heading, self.stuck_heading = self.stuck_heading, None   # fix 2, G2
+                if self.fight is not None:   # P25-J (3), 8 fix 1: the pair flee's finish reads the Fight's refusals
+                    self.fight_refused = self.fight.swing_refused
                 self.fight = None
                 self.stall_flee = reason == "stalled"
             self.mode = want
@@ -611,6 +622,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
                 policy.give_way()   # amendment 6: the group pre-empts a running walk, as the corner does
             if self.group_steer == "drag":
                 policy.drop_stuck_leg()   # P24-A fix 2, I1: never a stalled leg held its FLEE_S under the guard
+            self.pair_yield = None   # P25-J (3): a flee's yield is the `pair` flee's own finish (`_pair_flee_finish`)
             ans = self._flee_drop() or self._flee_finish(reason) or self._answer(policy)
             pick = self._doorway_pick(policy) if reason == "many" and self.PICK_WHY else None   # P24-AX, after the pick
         else:
@@ -624,6 +636,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
             policy.edge_ticks = EDGE_HOLD_TICKS if self.EDGE else 0   # P24-AU, read at the policy's observe
             policy.rules = self._fight_rules()   # P25-A, P25-B, P25-D, P25-F
             ans = self._answer(policy)
+            if self.pair_yield is not None and not self._finishes(self.pair_yield):
+                self.pair_yield = None   # P25-J (3): logged only where the Fight's finish answers it
         self.why.update({"fight": True} if reason is None else {"flee": reason})
         if reason == "strain" or self.corner_yield == "strain":
             self.why["strain"] = self.spent   # P24-AG: the why names the strain
@@ -664,6 +678,11 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         if ride is not None:
             self.why["ride"] = ride.aid   # P24-U: a bandage rides the leg this answer holds or re-aims
         return ans if ans is not None else (policy, None)
+
+    def _finishes(self, zid):
+        """The Fight's answer this tick (its `why`) is the finish of `zid`: its stomp (sent or running) or the knock
+        wait on it (P24-AV), the `pair` yield's two answers (P25-J (3))."""
+        return self.why.get("knocked") == zid or (self.why.get("downed") == zid and self.why.get("stomp") is True)
 
     @staticmethod
     def _walking(flee, ans):

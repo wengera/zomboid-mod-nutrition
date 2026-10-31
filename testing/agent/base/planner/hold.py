@@ -50,7 +50,7 @@ class Hold:
         self.release = None   # P25-M: this tick's release only
         if stiff is None or stiff < STIFF_SOFT:
             if self.strain_hold:
-                self._note_release("arms", "pain", "armPain", pain, self.strain_from)
+                self._note_release("arms", "pain", "armPain", pain, self.strain_from, armStiffness=stiff)
             self.strain_hold = False
         elif stiff >= STIFF_HARD:
             if not self.strain_hold:
@@ -91,17 +91,20 @@ class Hold:
         elif e <= ENDURANCE_T and not self.endurance_hold and (self.hold_floor is None or e < self.hold_floor):
             self.endurance_hold, self.hold_from, self.hold_floor = True, self.world.world_minutes(), None
 
-    def _note_release(self, kind, why, key, value, since):
+    def _note_release(self, kind, why, key, value, since, **more):
         """Ruling P25-M (E12: the grade inferred the hold's releases from the lines' ends; the write-up replayed
         `_read_endurance` to find one timed release, #4433): on the tick a hold releases (with `STRAIN` on, where the
         hold counts), `release` {kind, why: "line" (above ENDURANCE_RELEASE) | "timed" (P25-C's span) | "pain" (the
         arms' hold, its stiffness under STIFF_SOFT), endurance | armPain, held_min: game minutes since it started},
-        which `Survive.assess` puts on the tick's threat why, once."""
+        which `Survive.assess` puts on the tick's threat why, once; `more` adds keys: the arms' release carries
+        `armStiffness` (the reading that released it, beside the pain, which may still read at STRAIN_SOFT or above:
+        review-t8 minor 6). The tired condition (fatigue at TIRED_FIGHT_T) logs no release: it keeps no hold state of
+        its own (each tick reads the fatigue afresh), so it has no start, no span and no tick on which it lets go."""
         if not self.STRAIN:
             return
         wm = self.world.world_minutes()
         held = wm - since if _num(wm) and _num(since) else None
-        self.release = {"kind": kind, "why": why, key: value, "held_min": held}
+        self.release = dict({"kind": kind, "why": why, key: value, "held_min": held}, **more)
 
     def _hold_quiet(self, now):
         """P25-C: the endurance hold has stood HOLD_SPAN_MIN game minutes and no zombie was within DANGER_R for the last

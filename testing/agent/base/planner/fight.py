@@ -81,10 +81,10 @@ one table the gates and the other policies import).
   else the weapon's floor strike (an `attack` of it) when the stomp was refused (`swing_refused`, SWING_SKIP_S) or a
   standing zombie stands within STAND_MIN_R (the engine's call would take that one); a running stance leg gives way
   to it (`busy`). At the swing (`_shove`, `shove.py`'s mixin since Plan 25 Task 8, with `_corner` and P25-L's break):
-  P24-AG, with `body.armPain` at STRAIN_SOFT or above a standing target at point blank is shoved, never swung at; P24-AH, in a standing fight a second standing zombie inside KEEP_R makes the
-  nearer of the two (within SHOVE_R) shoved before the next swing, once a swing (`_shoved`); neither with another
-  standing zombie within STAND_MIN_R. A shove's or stomp's `targetDead` is a kill (SWING_TYPES), a started stomp
-  counts in the no-progress streak.
+  P24-AG, with `body.armPain` at STRAIN_SOFT or above a standing target at point blank is shoved, never swung at;
+  P24-AH, in a standing fight a second standing zombie inside KEEP_R makes the nearer of the two (within SHOVE_R)
+  shoved before the next swing, once a swing (`_shoved`); neither with another standing zombie within STAND_MIN_R.
+  A shove's or stomp's `targetDead` is a kill (SWING_TYPES), a started stomp counts in the no-progress streak.
   Survival 12 (survival iteration 11; Plan 24 Task 32; survive.py's docstring the record): P24-AN, the pull: with
   `pull` set (Survive's sought fights), a lone chaser (`pull_from`: it alone chases within ENGAGE_R, the rest of the
   listing beyond DANGER_R) is pinned first (`_pull_pin`) and, beyond PULL_R (FIGHT_REACH + KEEP_R), its stance legs
@@ -445,7 +445,7 @@ class Fight(FightPull, FightFinish, FightShove, Policy):
         if self.last.type != "aim":
             return True
         if self._finishable():
-            return False   # P24-AL: a downed zombie within reach (P25-J: `_finish_reach`) is finished first
+            return False   # P24-AL: a downed zombie within reach (P25-J: `finish.finish_rule`) is finished first
         t = self._target(pin=False)
         if t is None or t[0] != self.last.args.get("targetId"):
             return False
@@ -727,6 +727,9 @@ class Fight(FightPull, FightFinish, FightShove, Policy):
             return None
         zid, z, d = t
         if self.point_blank and d > CORNERED_R:   # P24-A fix 2, I2a: a cornered Fight never walks to a drifted pin
+            fin = self._drifted_finish()   # P25-J (3), 8 fix 1: the finish of the fallen first
+            if fin is not None:
+                return fin[0]
             self.why = {"target": zid, "pinned": True, "dist": d, "out_of_reach": True}
             return None
         if self._ride_waits():   # P25-D: the riding bandage lands before a held Fight's next send

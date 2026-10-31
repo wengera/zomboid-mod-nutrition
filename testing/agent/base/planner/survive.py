@@ -238,9 +238,10 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   last step, `UNWEAR_WOUND`; `T4_SWITCHES` off is the rule before it), and the corner's third branch logged
   (`fight.Fight._corner`'s `corner` {kind "shove"}).
 - Survival 16 (Plan 25 Task 8, survival iteration 14's second half, E12): rulings P25-J to P25-M in the plan's Task 8:
-  the fallen finished out to FINISH_R with no standing zombie within KEEP_R (`finish.FightFinish._finish_reach`,
+  the fallen finished out to FINISH_R with no standing zombie within KEEP_R (`finish.finish_rule`,
   `_finishable`; the doorway stand bounded by its post, `doorway.Doorway._finish_post`; the `pair` flee yields to the
-  stomp, `finish.ThreatFinish._pair_finish`, logged `pair_yield`; `FINISH_FAR`), the doorway stand's `wound` end (a part
+  stomp, `finish.ThreatFinish._pair_finish` before it and `_pair_flee_finish` inside it, one rule with the Fight's,
+  the knock window included, at Task 8 fix 1; logged `pair_yield`; `FINISH_FAR`), the doorway stand's `wound` end (a part
   bleeding since the stand began, `DoorwayStand._stand_wound`, logged `doorway_left` "wound" and `doorway_wound`;
   `STAND_WOUND`), the break after SHOVE_BREAK_N missed shoves at a lone target (`shove.FightShove._corner`'s `corner`
   {kind "break", misses}; `SHOVE_BREAK`), and the hold's release as a why (`hold.Hold._note_release`, `release` on the
@@ -438,6 +439,7 @@ class Survive(Threat):
         self.release = None       # this tick: {kind, why, endurance | armPain, held_min} of a hold released (P25-M)
         self.stand_wound = None   # this tick: the parts newly bleeding that ended the doorway stand (P25-K), else None
         self.pair_yield = None    # this tick: the fallen zombie's id the `pair` flee yielded to (P25-J), else None
+        self.fight_refused = {}   # the last Fight's `swing_refused`, kept for the `pair` flee's finish (P25-J, 8 fix 1)
         self.hold_near = None     # wall of the last tick a zombie was within DANGER_R (P25-C: HOLD_QUIET_S), else None
         self.hold_floor = None    # the endurance the hold was released at on its span (P25-C), else None
         self.spent = None         # this tick's `_read_spent` (None: fit to fight)

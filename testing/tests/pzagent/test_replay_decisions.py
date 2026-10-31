@@ -88,9 +88,10 @@ def pre_t3(sv, keep=()):
 
 def pre_t4(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 25 Task 7 (survival iteration 14): its switches off
-    (`survive.T4_SWITCHES`: UNWEAR_WOUND, P25-H; Task 8's FINISH_FAR, P25-J, STAND_WOUND, P25-K, and SHOVE_BREAK,
-    P25-L), but those named in `keep`. P25-G (the shun loop: the goal source, the runner's cooling, the view's
-    `shunned` why), P25-I (the corner's third branch's why) and P25-M (the hold's `release` why) move no golden, so
+    (`survive.T4_SWITCHES`: UNWEAR_WOUND, P25-H; Task 8's FINISH_FAR, P25-J, STAND_WOUND, P25-K, SHOVE_BREAK,
+    P25-L, and SHELTER_LEGS, P25-N), but those named in `keep`. P25-G (the shun loop: the goal source, the runner's
+    cooling, the view's `shunned` why), P25-I (the corner's third branch's why), P25-M (the hold's `release` why)
+    and P25-O (the hello's two-number mod version, a defect fix: no golden's hello reads "1.7") move no golden, so
     they have no switch (`test_iteration_14_moves_no_golden`)."""
     for name in S.T4_SWITCHES:
         if name not in keep:
@@ -1399,7 +1400,11 @@ def test_iteration_14_moves_no_golden(key):
     scripted Shelter or LootBuilding fails for a shun (P25-G's cooling), and no record carries a shove's result (P25-I's
     why: PZA/1.7). Plan 25 Task 8: the second half's rules move none either, on and off: P25-J's far finish and P25-L's
     break need the PZA/1.7 `stomp` and `shove`, which no golden's build announces; P25-K's wound end needs a doorway
-    stand reading a part's `bleeding`; and no golden's ring releases a hold (P25-M's `release`)."""
+    stand reading a part's `bleeding`; no golden's ring releases a hold (P25-M's `release`); P25-N's legs
+    (SHELTER_LEGS) send no leg in any golden, on or off, so no golden's Shelter goal or night shelter approach meets a
+    door beyond `leg_len` (`goal_policies.leg_max`); and no golden's hello reads "1.7", the two-number version P25-O
+    reads (their hellos read 1.2 to 1.5.x). Task 8 fix 1's amended P25-J (3) (one finish rule, the knock window, the
+    `pair` flee's own finish) moves none either: it needs the PZA/1.7 `stomp` and `onFloor`, as P25-J does."""
     with open(R.golden_path(key), encoding="utf-8") as f:
         head = json.load(f)
     text = R.golden_text(R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t4)), head["base"],

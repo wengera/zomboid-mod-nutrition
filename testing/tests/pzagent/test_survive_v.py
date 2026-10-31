@@ -4,7 +4,8 @@ The fake mod over PZA/1.7.1.
 - P25-J, the fallen finished out to FINISH_R: with no standing zombie within KEEP_R the Fight's finish reads the downed
   out to FINISH_R (the stomp's own walk in); a standing one within KEEP_R is fought first (at point blank its shove, as
   P24-AL); the doorway stand's finish is bounded by its post (`doorway.off_post_at`); the `pair` flee yields to that
-  stomp.
+  stomp. Task 8 fix 1 (P25-J (3) amended): one finish rule (`finish.finish_rule`) read before a `pair` flee, the
+  Fight's knock window included (E12's a86 order), and inside a running `pair` flee (its own stomp, its refusals).
 - P25-K, the stand leaves on its first wound: a part bleeding that was not when the stand began ends it `wound`.
 - P25-L, the break after SHOVE_BREAK_N missed shoves in a row at a lone target under a divided swing.
 - P25-M, the hold's release logged on the threat why once (`release` {kind, why, endurance | armPain, held_min}).
@@ -26,7 +27,7 @@ from .test_survive_g import care_why, part
 from .test_survive_n import SHIRT, bleed, unwear_rig
 from .test_survive_p import POST, stood
 from .test_survive_p import z as dz
-from .test_survive_q import fr, z
+from .test_survive_q import STIFF, fr, z
 from .test_survive_t import DOWN, MISS, NO_STIFF, WOUND, shoved
 
 
@@ -35,6 +36,7 @@ def test_the_iteration_14_switches_and_constant():
     for name in S.T4_SWITCHES:
         assert getattr(S.Survive, name) is True, name
     assert P.SHOVE_BREAK_N == 3 and not set(S.T4_SWITCHES) & set(T.T3_SWITCHES)
+    assert P.SHOVE_BREAK_N * P.SHOVE_REPEAT_S == BREAK_WINDOW_S
 
 
 # ================================================================ P25-J: the fallen finished out to FINISH_R
@@ -154,6 +156,119 @@ def test_the_pair_flee_stands_with_a_standing_zombie_within_keep_r(tmp_path):
     assert w["flee"] == "pair" and "pair_yield" not in w
 
 
+A86 = z(2, 95.0)   # E12's second zombie of the a86 knock-down (decision.log 337-342): within DANGER_R, beyond KEEP_R
+STOMP_DEAD = {"state": "done", "result": {"hit": True, "attackStarted": True, "targetDead": True}}
+
+
+def test_the_a86_order_the_pair_flee_waits_out_the_knock_window_and_the_fallen_zombie_is_stomped(tmp_path):
+    """P25-J (3) amended (8 fix 1), E12's a86 order: the walk corner's shove at the lone target ends `knockdown` true
+    with a second zombie 5 tiles off; the next frame reads the knocked zombie pushed to 1.8 tiles (the corner ends,
+    beyond CORNERED_R) and not yet `onFloor`, under FLEE_HEALTH_PAIR: the rule lists it in the Fight's knock window, so
+    no `pair` flee: the Fight's knock wait (`knocked`, `pair_yield`); the frame reading it fallen at 2.5 tiles takes the
+    stomp (the walk in) and its `targetDead` reads the kill. At HEAD before the fix the `pair` flee ran from it."""
+    r, sv = shoved(tmp_path, [z(1, 100.49), A86], end=DOWN)
+    fr(r, [z(1, 101.8), A86], WOUND, NO_STIFF, health=50.0)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a is None and w["knocked"] == 1 and w["fight"] is True and w["pair_yield"] == 1 and "flee" not in w
+    r.advance(0.5)
+    fr(r, [z(1, 102.5, floor=True), A86], WOUND, NO_STIFF, health=50.0)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args) == ("stomp", {"targetId": 1}) and w["downed"] == 1 and w["stomp"] is True
+    assert w["pair_yield"] == 1 and "flee" not in w
+    r.answer(STOMP_DEAD)
+    fr(r, [A86], WOUND, NO_STIFF, health=50.0)
+    tick(r, sv)
+    assert r.world.kills == 1 and threat_why(tmp_path)["kill"] == 1
+    all_sends_valid(r)
+
+
+def test_with_finish_far_off_the_a86_order_flees_pair_as_before(tmp_path):
+    """The switch off (`pre_t4`): the same order's tick in the knock window flees `pair`, as E12 did."""
+    r, sv = shoved(tmp_path, [z(1, 100.49), A86], end=DOWN)
+    sv.FINISH_FAR = False
+    fr(r, [z(1, 101.8), A86], WOUND, NO_STIFF, health=50.0)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type in ("steer", "walkTo") and w["flee"] == "pair" and "pair_yield" not in w
+
+
+def _pair_flee(tmp_path):
+    """A `pair` flee running: health 50, zombie 1 standing 3 tiles east (beyond KEEP_R), zombie 2 at 5 tiles west."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[z(1, 103.0), A86], health=50.0)
+    a = tick(r, sv)
+    assert a.type in ("steer", "walkTo") and threat_why(tmp_path)["flee"] == "pair" and sv.mode == "flee"
+    r.advance(0.5)
+    return r, sv
+
+
+@pytest.mark.parametrize("x, stomped", [(102.5, True), (105.5, False)])
+def test_inside_a_running_pair_flee_a_zombie_read_fallen_within_finish_r_is_stomped_and_beyond_it_the_flee_runs(
+        tmp_path, x, stomped):
+    """P25-J (3) amended (c): inside a running `pair` flee the rule is consulted each tick (P24-AQ's finish extended to
+    `pair`, the rule's guards): zombie 1 read fallen 2.5 tiles off takes the flee's finishing `Stomp` (`finish`, kind
+    stomp, `pair_yield`) and its `targetDead` is a kill; read fallen 5.5 tiles off (beyond FINISH_R) the flee runs on."""
+    r, sv = _pair_flee(tmp_path)
+    r.frame(zombies=[z(1, x, floor=True), A86], health=50.0)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert w["flee"] == "pair"
+    if not stomped:
+        assert a is None or a.type not in ("stomp", "attack")
+        assert "pair_yield" not in w and "finish" not in w
+        return
+    assert (a.type, a.args) == ("stomp", {"targetId": 1}) and w["finish"] == 1 and w["kind"] == "stomp"
+    assert w["pair_yield"] == 1
+    r.answer(STOMP_DEAD)
+    r.frame(zombies=[A86], health=50.0)
+    tick(r, sv)
+    assert r.world.kills == 1 and threat_why(tmp_path)["kill"] == 1 and 1 in sv.dead
+    all_sends_valid(r)
+
+
+def test_a_stomp_refused_inside_the_pair_flee_leaves_the_rule_silent_and_the_flee_runs(tmp_path):
+    """The flee's stomp refused (the Lua's `not valid`): the rule is silent at that zombie, no floor strike (a `pair`
+    finish is the stomp alone) and the flee runs, no `pair_yield`."""
+    r, sv = _pair_flee(tmp_path)
+    zs = [z(1, 102.5, floor=True), A86]
+    r.frame(zombies=zs, health=50.0)
+    assert tick(r, sv).type == "stomp"
+    r.answer({"state": "failed", "reason": "not valid"})
+    r.advance(0.5)
+    r.frame(zombies=zs, health=50.0)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert w["flee"] == "pair" and "pair_yield" not in w and "finish" not in w
+    assert a is None or a.type not in ("stomp", "attack")
+
+
+def test_a_stomp_the_fight_had_refused_lets_the_pair_flee_run(tmp_path):
+    """The review's minor 1: the Fight's stomp at the fallen zombie 2.5 tiles off refused (`not valid`, SWING_SKIP_S);
+    the next frame under FLEE_HEALTH_PAIR: the rule reads the Fight's refusal, so no yield: the `pair` flee runs."""
+    r, sv = make(tmp_path)
+    zs = [z(1, 102.5, floor=True), A86]
+    r.frame(zombies=zs, health=70.0)
+    assert tick(r, sv).type == "stomp"
+    r.answer({"state": "failed", "reason": "not valid"})
+    r.advance(0.5)
+    r.frame(zombies=zs, health=50.0)
+    tick(r, sv)
+    w = threat_why(tmp_path)
+    assert w["flee"] == "pair" and "pair_yield" not in w
+
+
+def test_pair_yield_is_never_logged_on_a_strain_line(tmp_path):
+    """The review's minor 1: the yield's conditions (a fallen zombie 3 tiles off, a second at 5, health 50) under the
+    arms' hold with no zombie within KEEP_R: the `strain` flee answers, and `pair_yield` is not on its line."""
+    r, sv = make(tmp_path)
+    fr(r, [z(1, 103.0, floor=True), A86], 25.0, STIFF, health=50.0)
+    tick(r, sv)
+    w = threat_why(tmp_path)
+    assert w["flee"] == "strain" and "pair_yield" not in w
+
+
 # ================================================================ P25-K: the stand leaves on its first wound
 def test_a_part_bleeding_since_the_stand_began_ends_it_wound_and_the_flee_closes_the_door(tmp_path):
     """E12 (#4431: the bleeding parts rose from 1 to 7 at the door, the first bite far above FLEE_HEALTH): the stand's
@@ -255,10 +370,14 @@ def test_a_knock_down_between_the_misses_resets_the_run(tmp_path):
     assert a.type == "shove" and threat_why(tmp_path)["corner"]["kind"] == "shove"
 
 
+BREAK_WINDOW_S = 9.0   # SHOVE_BREAK_N x SHOVE_REPEAT_S, pinned by `test_the_iteration_14_switches_and_constant`
+
+
 def test_misses_older_than_the_window_do_not_count(tmp_path):
     """The window SHOVE_BREAK_N x SHOVE_REPEAT_S (9 s): the first miss (sent at 0), a pause of 7 s, a second shove (no
     corner: past SHOVE_REPEAT_S) and a third, both missed; read at 9.5 s the first lies outside the window, two inside
-    it: the shove again, not the break."""
+    it: the shove again, not the break; that fourth shove missed too, three lie inside the window at 10 s: the break
+    (8 fix 1, review-t8 minor 5: the case fails at the parent on that behaviour, the window read by literal)."""
     r, sv = shoved(tmp_path, [z(1, 100.49)])
     t0 = r.clock() - 0.5
     r.advance(7.0)
@@ -271,9 +390,12 @@ def test_misses_older_than_the_window_do_not_count(tmp_path):
     missed(r)
     r.advance(1.0)
     fr(r, [z(1, 100.49)], WOUND, NO_STIFF, health=70.0)
-    assert r.clock() - t0 > P.SHOVE_BREAK_N * P.SHOVE_REPEAT_S
+    assert r.clock() - t0 > BREAK_WINDOW_S
     a = tick(r, sv)
     assert a.type == "shove" and threat_why(tmp_path)["corner"] == {"kind": "shove", "shoved": 1, "n": 1, "sore": True}
+    missed(r)
+    a = tick(r, sv)
+    assert a.type == "steer" and threat_why(tmp_path)["corner"] == {"kind": "break", "shoved": 1, "n": 1, "misses": 3}
 
 
 def test_with_shove_break_off_the_shoves_go_on(tmp_path):
@@ -333,14 +455,16 @@ def test_a_timed_release_logs_why_timed_with_its_span(tmp_path):
 
 def test_the_arms_hold_released_logs_why_pain_with_the_arms_pain(tmp_path):
     """The arms' hold (a stiffness of 25 at game minute 600), released once both arms read under STIFF_SOFT (game
-    minute 605): `release` {kind arms, why pain, armPain 12.0, held_min 5.0}."""
+    minute 605): `release` {kind arms, why pain, armPain 12.0, armStiffness 3.0 (the reading that released it: 8 fix 1,
+    review-t8 minor 6), held_min 5.0}."""
     r, sv = make(tmp_path)
     fr(r, [z(1, 108.0)], 12.0, {"l": 25.0, "r": 0.0}, game_min=600.0)
     tick(r, sv)
     assert sv.strain_hold
     fr(r, [z(1, 108.0)], 12.0, {"l": 3.0, "r": 0.0}, game_min=605.0)
     tick(r, sv)
-    assert threat_why(tmp_path)["release"] == {"kind": "arms", "why": "pain", "armPain": 12.0, "held_min": 5.0}
+    assert threat_why(tmp_path)["release"] == {"kind": "arms", "why": "pain", "armPain": 12.0, "armStiffness": 3.0,
+                                                 "held_min": 5.0}
 
 
 def test_no_release_is_logged_with_strain_off(tmp_path):

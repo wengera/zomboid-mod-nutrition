@@ -319,7 +319,7 @@ class DoorwayStand:
         policy.threats = held
         policy.spent = self._fight_spent()   # R2: no swing under any hold
         policy.ride = self.care.riding()
-        policy.rules = self._fight_rules()   # P25's Fight rules (the Doorway's own choose reads none of them)
+        policy.rules = self._fight_rules()   # P25's rules: the Doorway reads `finish_far` (`_finish`), no other
         ans = self._answer(policy)
         self.why.update({"fight": True, "doorway": policy.doorway})
         return ans if ans is not None else (policy, None)

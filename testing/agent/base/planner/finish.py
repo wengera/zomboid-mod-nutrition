@@ -1,9 +1,10 @@
 """The finish of the fallen and the stomp: the mixins `ThreatFinish` (`threat.Threat`'s: ruling P24-AQ, the
 `many` flee's finishing stomp, its end and its chaser, P24-AV) and `FightFinish` (`fight.Fight`'s: ruling P24-AL's
 finish, the downed read and P24-AV's stomp wait on a shove's knock-down, P25-B's stomp first and P25-J's reach to
-FINISH_R; and `ThreatFinish`'s P25-J yield of the `pair` flee, `_pair_finish`). Moved out of `threat.py` and `fight.py`
-at Plan 25 Task 2 (a pure move: every rule and constant unchanged; the constants in `policies.py`'s table); the
-state is `Survive`'s and the `Fight`'s own, and `survive.py`'s and `fight.py`'s module docstrings stay the record.
+FINISH_R; and `ThreatFinish`'s P25-J yield of the `pair` flee, `_pair_finish`, and since Task 8 fix 1 the `pair`
+flee's own finish, `_pair_flee_finish`: one rule, `finish_rule`, which the Fight's finish reads too). Moved out of
+`threat.py` and `fight.py` at Plan 25 Task 2 (a pure move: every rule and constant unchanged; the constants in
+`policies.py`'s table); the state is `Survive`'s and the `Fight`'s own, and `survive.py`'s and `fight.py`'s module docstrings stay the record.
 """
 import math
 
@@ -28,6 +29,43 @@ def finish_chaser(world, zid, dead):
     return best
 
 
+def downed_list(world, skip, knocked, now, reach, knock=False, only=None):
+    """(id, zombie, dist) of each downed zombie a Fight may target (`target_id_ok`, not in `skip`, in `only` when it is
+    set) within `reach` whose line is not read blocked, nearest first (ruling P24-AL). Ruling P24-AV (E10's a59: the
+    stomp sent on a shove's `knockdown` before any frame read the target fallen was rejected `not valid`): only the
+    frame's `onFloor` makes a zombie downed; with `knock` the zombies a shove read knocked down (`knocked`: id -> wall
+    until KNOCK_READ_S ends) that no frame reads on the floor yet are listed instead (the finish waits for them)."""
+    out = []
+    for zid, z in world.zombies.items():
+        down = (not on_floor(z) and knocked.get(zid, -math.inf) > now) if knock else on_floor(z)
+        if (not target_id_ok(zid) or zid in skip or not down or z.get("x") is None or z.get("y") is None
+                or (only is not None and zid not in only)):
+            continue
+        d = zdist(world, z)
+        if d <= reach and line_to(world, z) is not False:
+            out.append((d, repr(zid), zid, z))
+    return [(zid, z, d) for d, _, zid, z in sorted(out, key=lambda e: e[:2])]
+
+
+def finish_rule(world, skip, dead, knocked, now, swing_ok, knock=False, only=None, post=None, strike_reach=0.0):
+    """Ruling P25-J (3) as amended at Task 8 fix 1: the one finish rule, which the Fight's finish (`_finishable`: its
+    `_finish`, its knock wait and its legs' give-way) and the threat's (`ThreatFinish._pair_finish` before a `pair` flee
+    is chosen, `_pair_flee_finish` inside a running one) both call. With a standing zombie within KEEP_R of the player
+    (neither `onFloor`, nor in a knock window of `knocked`, nor read dead) the rule is silent: None. Else the zombies
+    downed (`downed_list`: `onFloor`, or with `knock` a shove's knock-down within KNOCK_READ_S no frame reads fallen
+    yet) within FINISH_R on a line not read blocked whose stomp goes, nearest first: `swing_ok("stomp", id)` (announced
+    and not refused at it, by the caller's own record of refusals), no standing chaser within KEEP_R of it
+    (`finish_chaser`, P25-B's guard) and `post(z)` (the doorway stand's post, `Doorway._finish_post`); a zombie within
+    `strike_reach` is kept whatever its stomp reads (the Fight's FIGHT_REACH: its floor strike follows a refused stomp;
+    the `pair` yield's 0: the stomp alone)."""
+    hot = {zid for zid, until in knocked.items() if until > now}
+    if standing(world, KEEP_R, dead | hot):
+        return None
+    out = downed_list(world, skip, knocked, now, FINISH_R, knock, only)
+    return [(zid, z, d) for zid, z, d in out if d <= strike_reach or (
+        swing_ok("stomp", zid) and finish_chaser(world, zid, dead) is None and (post is None or post(z)))]
+
+
 class ThreatFinish:
     """The `many` flee's finish (the module docstring): `Threat`'s mixin."""
 
@@ -48,10 +86,15 @@ class ThreatFinish:
         within DANGER_R the flee runs (no finish); fallen again, one more stomp (`kind` "stomp2"), and that one failed
         `stood` or refused, the floor strike. The deferred minor 5 of review-t32-fix1 (E9's line 334: the 4.62-tile
         stomp walk toward 7474 headed at 7479, standing and chasing 2.16 tiles from it): a chasing standing zombie
-        within KEEP_R of the target refuses the finish (`_finish_chaser`, logged `finish_block`)."""
+        within KEEP_R of the target refuses the finish (`_finish_chaser`, logged `finish_block`). A tick whose reason is
+        `pair` outside a `many` episode takes the `pair` flee's own finish instead (`_pair_flee_finish`, P25-J (3) as
+        amended at Task 8 fix 1)."""
         self.finish_block = None
-        if not (self.flee_many or reason == "many") or (self._finish_a is not None and running(self.actions,
-                                                                                               self._finish_a)):
+        if self._finish_a is not None and running(self.actions, self._finish_a):
+            return None
+        if reason == "pair" and not self.flee_many:
+            return self._pair_flee_finish()
+        if not (self.flee_many or reason == "many"):
             return None
         now = self.clock()
         dead = blocked(self.dead, now)
@@ -92,28 +135,62 @@ class ThreatFinish:
         return self.flee, cmd
 
     def _pair_finish(self):
-        """Ruling P25-J (3), the `pair` flee yields to a finish (E12, #4435: the knocked-down zombies first read fallen
-        2.12 to 2.73 tiles off, and the `pair` flee ran the character from three of the five knock-downs): with
-        `FINISH_FAR` on, outside a flee episode (the standing fight's turn; a flee's own finish is P24-AQ's), the id of
-        the nearest zombie read `onFloor` within FINISH_R the Fight's finish would stomp (`target_id_ok`, not skipped,
-        a line not read blocked, the build announcing the stomp, no standing chaser within KEEP_R of it:
-        `finish_chaser`) while no standing zombie stands within KEEP_R of the player; else None. Logged `pair_yield`."""
-        if not self.FINISH_FAR or self.mode == "flee" or not self.world.can("stomp"):
+        """Ruling P25-J (3) as amended at Task 8 fix 1, consulted before a `pair` flee is chosen (E12, #4435: the
+        knocked-down zombies first read fallen 2.12 to 2.73 tiles off, and the `pair` flee ran the character from three
+        of the five knock-downs; a86 and a69 came on the ticks before the first frame read them fallen): with
+        `FINISH_FAR` on and no flee episode running (inside one the flee's own finish consults the rule,
+        `_pair_flee_finish`), the id of the nearest zombie `finish_rule` lists for a stomp, the fallen first, then those
+        in the knock window; read with the running Fight's own state (its skips, `only`, refusals, post and knock
+        window), so the Fight's finish answers it (its knock wait, then its stomp on the first frame reading it fallen),
+        or with no Fight running the threat's (a new Fight's finish answers it); None when the rule is silent."""
+        if not self.FINISH_FAR or self.mode == "flee":
             return None
-        skip = self._skipped()
-        dead = blocked(self.dead, self.clock())
-        if standing(self.world, KEEP_R, dead):
+        now = self.clock()
+        dead = blocked(self.dead, now)
+        f = self.fight if self.mode == "fight" else None
+        if f is not None:
+            state, extra = (f.blocked(), dead, f.knocked, now, f._swing_ok), {"only": f.only, "post": f._finish_post}
+        else:
+            state, extra = (self._skipped(), dead, {}, now, lambda kind, zid: self.world.can(kind)), {}
+        for knock in (False, True):
+            out = finish_rule(self.world, *state, knock=knock, **extra)
+            if out is None:
+                return None
+            if out:
+                return out[0][0]
+        return None
+
+    def _pair_flee_finish(self):
+        """Ruling P25-J (3) as amended at Task 8 fix 1, inside a running `pair` flee episode (P24-AQ's finish extended
+        to `pair`, under the rule's guards): each tick, with `FINISH_FAR` on and no hit reaction, the nearest zombie
+        read `onFloor` that `finish_rule` lists for a stomp (the flee keeps no knock window: the stomp goes on the frame
+        reading it fallen) takes one `Stomp`, sent as the Flee's own action (its leg superseded, the steer resumed on
+        the next tick), and, failed `stood` and fallen again, one more (`stomp2`, P24-AV). The flee's refusals are its
+        own (`_flee_stomp_ok`): a stomp at the zombie that went or runs, or ended refused (the Lua's `not valid`,
+        STAND_MIN_R), leaves the rule silent at it and the flee runs; no floor strike (the `pair` finish is the stomp
+        alone). Logged `finish` {kind, dist} with `pair_yield`; its end read by `_finish_end` (a `targetDead` is a
+        kill)."""
+        if not self.FINISH_FAR or (self.world.me or {}).get("hitReaction"):
             return None
-        best = None
-        for zid, z in self.world.zombies.items():
-            if (not target_id_ok(zid) or zid in skip or not on_floor(z) or z.get("x") is None
-                    or z.get("y") is None):
-                continue
-            d = zdist(self.world, z)
-            if (d <= FINISH_R and line_to(self.world, z) is not False and finish_chaser(self.world, zid, dead) is None
-                    and (best is None or (d, repr(zid)) < (best[1], repr(best[0])))):
-                best = (zid, d)
-        return None if best is None else best[0]
+        now = self.clock()
+        out = finish_rule(self.world, self._skipped(), blocked(self.dead, now), {}, now, self._flee_stomp_ok)
+        if not out:
+            return None
+        zid, _, d = out[0]
+        kind = "stomp" if self.finishing.get(zid) is None else "stomp2"
+        self.finishing[zid] = kind
+        self.pair_yield = zid
+        self.why = {"finish": zid, "kind": kind, "dist": d}
+        return self.flee, Stomp(zid)
+
+    def _flee_stomp_ok(self, kind, zid):
+        """The flee's finish may send `kind` (the stomp) at `zid`: the build announces it, the Fight the flee replaced
+        did not refuse it there within SWING_SKIP_S (`fight_refused`), and the flee sent none at it yet, or its one
+        stomp failed `stood` (P24-AV: fallen again, one more)."""
+        if not self.world.can(kind) or self.fight_refused.get((kind, zid), -math.inf) > self.clock():
+            return False
+        done = self.finishing.get(zid)
+        return done is None or (done == "stomp" and self._finish_end_read(zid) == "stood")
 
     def _finish_chaser(self, zid, dead):
         """`finish_chaser` over the World (the flee's finish, P24-AV)."""
@@ -151,34 +228,11 @@ class ThreatFinish:
 class FightFinish:
     """The Fight's finish of the fallen and its stomp wait (the module docstring): `Fight`'s mixin."""
 
-    def _downed(self, knocked=False, reach=FIGHT_REACH):
-        """(id, zombie, dist) of each downed zombie (`on_floor`) the Fight may target within `reach` (FIGHT_REACH; P25-J:
-        `_finish_reach`) whose line is not read blocked, nearest first (ruling P24-AL: finished before the Fight turns
-        to a standing one). Ruling P24-AV (E10's a59: the stomp sent on a shove's `knockdown` before any frame read the
-        target fallen was rejected `not valid`): only the frame's `onFloor` makes a zombie downed; with `knocked` the
-        zombies a shove read knocked down within KNOCK_READ_S that no frame reads on the floor yet are listed instead
-        (the finish waits for them)."""
-        skip, now = self.blocked(), self.clock()
-        out = []
-        for zid, z in self.world.zombies.items():
-            down = (not on_floor(z) and self.knocked.get(zid, -math.inf) > now) if knocked else on_floor(z)
-            if (not target_id_ok(zid) or zid in skip or not down or z.get("x") is None or z.get("y") is None
-                    or (self.only is not None and zid not in self.only)):
-                continue
-            d = zdist(self.world, z)
-            if d <= reach and line_to(self.world, z) is not False:
-                out.append((d, repr(zid), zid, z))
-        return [(zid, z, d) for d, _, zid, z in sorted(out, key=lambda e: e[:2])]
-
-    def _finish_reach(self):
-        """Ruling P25-J (E12, #4435: every knocked-down zombie first read fallen 2.12 to 2.73 tiles off, beyond
-        FIGHT_REACH, and with a standing one in reach nothing stomped it): the finish's reach, FINISH_R with the
-        `finish_far` rule on and no standing zombie within KEEP_R of the player (the stomp's own walk covers the
-        distance: the Lua walks to under 0.5 tiles), else FIGHT_REACH (a standing one within KEEP_R is fought first; at
-        point blank its shove goes first, as P24-AL)."""
-        if "finish_far" in self.rules and self._standing_near(KEEP_R) is None:
-            return FINISH_R
-        return FIGHT_REACH
+    def _downed(self, knocked=False):
+        """`downed_list` within FIGHT_REACH over the Fight's own skips (`blocked`), knock window and `only`: the downed
+        it finishes with a standing zombie within KEEP_R or the `finish_far` rule off (ruling P24-AL: finished before
+        the Fight turns to a standing one)."""
+        return downed_list(self.world, self.blocked(), self.knocked, self.clock(), FIGHT_REACH, knocked, self.only)
 
     def _finish_post(self, z):
         """P25-J (2): the stomp's walk to `z` keeps the Fight where it fights (the open-ground Fight: anywhere; the
@@ -186,15 +240,22 @@ class FightFinish:
         return True
 
     def _finishable(self, knocked=False):
-        """`_downed` within `_finish_reach`, less a zombie beyond FIGHT_REACH whose stomp would not go (P25-J: not
-        announced or refused at it, a standing chaser within KEEP_R of it, `finish_chaser`, or a walk off the stand's
-        post, `_finish_post`): what the finish, the knock wait and a running leg's give-way read."""
-        out = self._downed(knocked, self._finish_reach())
-        if not out or out[-1][2] <= FIGHT_REACH:
-            return out
-        dead = blocked(self.dead, self.clock())
-        return [(zid, z, d) for zid, z, d in out if d <= FIGHT_REACH or (
-            self._swing_ok("stomp", zid) and finish_chaser(self.world, zid, dead) is None and self._finish_post(z))]
+        """What the finish, the knock wait and a running leg's give-way read (with `knocked`, the knock window's).
+        Ruling P25-J (E12, #4435: every knocked-down zombie first read fallen 2.12 to 2.73 tiles off, beyond FIGHT_REACH, and
+        with a standing one in reach nothing stomped it): with the `finish_far` rule on, the one finish rule
+        (`finish_rule`, the threat's `pair` yield and the `pair` flee's finish read it too) over the Fight's own skips,
+        knock window, `only`, refusals (`_swing_ok`) and post (`_finish_post`), a zombie within FIGHT_REACH kept
+        whatever its stomp reads (the floor strike follows a refused stomp): the downed out to FINISH_R (the stomp's own
+        walk covers the distance: the Lua walks to under 0.5 tiles), the far one only where its stomp goes; with a
+        standing zombie within KEEP_R (the rule silent: it is fought first, at point blank its shove first, as P24-AL)
+        or the rule off, `_downed` within FIGHT_REACH."""
+        if "finish_far" in self.rules:
+            now = self.clock()
+            out = finish_rule(self.world, self.blocked(), blocked(self.dead, now), self.knocked, now, self._swing_ok,
+                              knocked, self.only, self._finish_post, FIGHT_REACH)
+            if out is not None:
+                return out
+        return self._downed(knocked)
 
     def _finish(self):
         """Ruling P24-AL (finish the fallen; #4372-#4374), with P24-AH's stomp: the nearest downed zombie within
@@ -203,7 +264,7 @@ class FightFinish:
         with another standing zombie within STAND_MIN_R, the stomp's refusal), else the weapon's floor strike (an
         `attack` of the downed zombie, its damage times 5 or more: #4374) when the stomp is refused or not announced;
         `(command,)`, the command None in a hit reaction (the engine starts no swing: #4292); None with no downed
-        zombie. Ruling P25-J: the downed are read within `_finish_reach` (`_finishable`): FINISH_R with no standing
+        zombie. Ruling P25-J: the downed are read through `_finishable` (`finish_rule`): FINISH_R with no standing
         zombie within KEEP_R, the far one taken only where its stomp goes."""
         downed = self._finishable()
         if not downed:
@@ -228,6 +289,16 @@ class FightFinish:
         self._held_before = False
         return (Attack(zid),)
 
+    def _drifted_finish(self):
+        """Ruling P25-J (3) as amended at Task 8 fix 1 (E12's a86: the walk corner's shove knocked its pin to 1.8
+        tiles, beyond CORNERED_R, and no frame read it fallen yet): with the `finish_far` rule on, a cornered Fight
+        (`point_blank`) whose pin drifted beyond CORNERED_R still consults the finish before it holds `out_of_reach`
+        (its knock wait, then its stomp on the first frame reading the zombie fallen), the ride's wait (P25-D) first as
+        before any send; else None."""
+        if "finish_far" not in self.rules or self._ride_waits():
+            return None
+        return self._finish()
+
     def _knock_wait(self):
         """Ruling P24-AV: a zombie a shove knocked down within KNOCK_READ_S (its `knockdown` read at the hit), within
         FIGHT_REACH on a line not read blocked, that no frame reads `onFloor` yet: the Fight sends nothing (`(None,)`,
@@ -246,7 +317,10 @@ class FightFinish:
     def _finish_pick(self):
         """Ruling P25-B: (id, dist) of the nearest zombie read `onFloor` within FINISH_R on a line not read blocked that
         the stomp may take (announced, not refused at it, no standing zombie within STAND_MIN_R of the player, no
-        standing chaser within KEEP_R of it: `finish.finish_chaser`, the flee finish's guard), else None."""
+        standing chaser within KEEP_R of it: `finish.finish_chaser`, the flee finish's guard), else None. With the
+        `finish_far` rule on it refuses while a standing zombie is within KEEP_R (P25-J: it is fought first), and with
+        none there the finish (`_finishable`) has already listed every zombie it would pick, so its pick answers only
+        `_finish_gives_way` (`_finish_first`'s stomp is never reached: its docstring)."""
         if "finish_first" not in self.rules or not self.world.can("stomp") or hit_reaction(self.world) is not None:
             return None
         if "finish_far" in self.rules and self._standing_near(KEEP_R) is not None:
@@ -280,7 +354,11 @@ class FightFinish:
     def _finish_first(self, d):
         """Ruling P25-B: with the target `d` tiles off beyond FIGHT_REACH (the Fight would walk, step or wait toward a
         standing one), the stomp of `_finish_pick`'s zombie first (its walk in, the Lua's), logged `finish_first`
-        {target, dist}; else None."""
+        {target, dist}; else None. With the `finish_far` rule on (P25-J) its stomp is never reached: a standing zombie
+        within KEEP_R makes `_finish_pick` refuse, and with none there the finish's own `downed` step (`_finish`,
+        ahead of it in `_choose`) has already taken every zombie `_finish_pick` would name, so the `downed` why
+        supersedes `finish_first`. It stays the rule with FINISH_FAR off (`pre_t4`), which is why P25-B's tests pin it
+        with that switch off (`test_survive_t`, Task 8's named change)."""
         if d <= FIGHT_REACH:
             return None
         pick = self._finish_pick()
