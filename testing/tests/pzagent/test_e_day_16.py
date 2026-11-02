@@ -449,7 +449,7 @@ def test_a_later_chain_session_holding_the_bat_spawns_none(tmp_path, monkeypatch
 
 # ================================================================ the copy: e_day_15.py's body, its own key
 BASE_SENTENCE = (
-    'the base at `427c0b2d` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 16 (over '
+    'the base at `be5df2ba` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 16 (over '
     'iteration 15: the doorway stand leaving at two attackers instead of three, P25-U; the stand ending when a standing '
     'zombie reads inside its room, P25-V; a stand ended under a group walking out by the way out instead of the close, '
     "P25-W; a known blocked edge not sought across, its target routed through the edge's door or refused or dropped, "
@@ -480,7 +480,7 @@ def test_the_copy_differs_from_e_day_15_only_in_the_expected_lines():
     assert "grade_e12's readings" in new_pass and "iteration 16 readings" in new_pass
     head = b[:b.index(mark)]
     for c in ("e_day_15-20261102-091322", "224.95691299438477", "158 game minutes", "fifteenth", "sixteenth", "PZA/1.7.1",
-              "grade_e13", "73f5ae42", "P25-U", "P25-X", "P24-AM", "427c0b2d", "state.1.log", BASE_SENTENCE,
+              "grade_e13", "73f5ae42", "P25-U", "P25-X", "P24-AM", "be5df2ba", "state.1.log", BASE_SENTENCE,
               "the plan's last session"):
         assert c in head, c
     assert "b5082f14" not in head and "the second chain on iteration 15" not in head
