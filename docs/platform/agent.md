@@ -2,7 +2,7 @@
 Verified against 42.21.0 (4a0e9546ec) · 2026-11-02 · scope: the agent base: PZAgent's PZA/1 link, the Python planner, the chained day sessions and the LLM goal source, read live; every row here was taken through the harness ([harness.md](harness.md)), whose rules, profiles and bus are stated there.
 
 <a id="agent"></a>
-### The agent link (Plans 21, 21b and 22, exploratory)
+### The agent link and its live readings
 
 Plan 21 built the link and ran Stage A's first three passes; Plan 21b ran a fourth Stage A pass, two Stage B passes and two Stage C survival runs, and § 7 of the agent harness report (`docs/superpowers/specs/2026-10-26-agent-harness-report.md`) weighs them. The agent link is a client Lua mod, `testing/PZAgent`, run from one `OnTick` hook: it appends JSON lines to `Lua/pzagent/<user>/state.log` in the client's cachedir and polls `cmd.txt` there, taking a command only when its sequence number exceeds the last one taken, which `ack.txt` keeps so a Lua reset never replays a command [#4173]. At its start it writes a probe file twice and counts the lines, writing `state.log` in append mode when it reads two and one chunk file per flush otherwise [#4174].
 Append held in all three Stage A sessions, with no sequence gap and no unparseable line; the 60 s windows held 121, 301 and 600 frames at 2, 5 and 10 Hz in the first session and 120, 300 and 601 in the second and third, against 120, 300 and 600 expected, and a 30 s window at 60 Hz held 1803 frames against 1800 [#4175/M/n=3].

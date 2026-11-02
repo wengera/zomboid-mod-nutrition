@@ -329,6 +329,7 @@ What a reading costs depends on which of five layers it needs, and every layer's
 
 ## See also
 
+- [`agent.md`](agent.md) — the agent base that drives a player through this instrument: the frames, the planner and the sessions.
 - [`harness-commands.md`](../reference/harness-commands.md) — the generated command inventory.
 - [`experiments.md`](../reference/experiments.md) — the named experiment specs, their owners and the cost roll-up.
 - [`lua-platform.md`](lua-platform.md) — the Kahlua dialect, what a protected call catches and the debug client's modal break.
