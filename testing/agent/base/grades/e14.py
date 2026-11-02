@@ -80,31 +80,38 @@ def _left_room(L, mv, wall_ms):
 
 def _run_origin(L, i):
     """What a run of window-step lines starting at `L.rows[i]` ran from: the stand's end (`doorway_exit.end`, on the
-    run's first line or the line before it, whose `exit` reads "window"), else "trapped" (the trapped flee's why),
-    else "flee:<reason>"."""
+    run's first line or the line before it, whose `exit` reads "window"), else "trapped" (the line before the run is
+    the Flee's trapped hold, whose why carries `trapped`, `flee.py:656`, or a `doorway_exit` reading `exit`
+    "trapped"; the window step's own why, `flee.py:583`, never carries it), else "flee:<reason>"."""
     for j in (i, i - 1):
         ex = L.why(L.rows[j]).get("doorway_exit") if j >= 0 else None
         if isinstance(ex, dict) and ex.get("exit") == "window":
             return str(ex.get("end"))
-    w = L.why(L.rows[i])
-    return "trapped" if "trapped" in w else "flee:%s" % w.get("flee")
+    p = L.why(L.rows[i - 1]) if i > 0 else {}
+    ex = p.get("doorway_exit")
+    if "trapped" in p or (isinstance(ex, dict) and ex.get("exit") == "trapped"):
+        return "trapped"
+    return "flee:%s" % L.why(L.rows[i]).get("flee")
 
 
 def e_window_exit(out, L, lines):
     """The window way out (P26-A, `Threat.WINDOW_EXIT`): {read, planned_lines, planned, windows, runs_from, by_end,
-    sent, sent_lines, smash_sent, done, refused, ends, reasons, smashed, cut, left, stayed, unread}. Reading:
-    `planned_lines` the lines whose threat why reads `step` "window" (the Flee's window step, `flee.Flee._window_step`),
-    `planned` the runs of them (one way out each; a window refused `locked` unsmashed and offered again as a smash,
-    ruling P26-7c, shows two climbs in one run), `windows` the distinct window squares they name; `by_end` the stand's
-    end ticks whose `doorway_exit` reads `exit` "window", by `end`; `sent` the `window` actions of loop.actions the
-    threat branch sent (`sent_lines` the threat lines that sent one, `smash_sent` those sent with `smash` true), `done`
-    those that ended done and `refused` those that failed or were rejected (the exit then refused, or a `locked` try
-    re-offered as a smash), `ends` by state (done | failed | rejected | running) and `reasons` the others by
-    "state:reason" (a timeout included); `smashed` and `cut` the done climbs whose result reads them true, off the state
-    log's act line (else loop.results): the Flee logs neither. Inference: `runs_from` the runs by what they ran from
-    (`_run_origin`: the stand's end, "trapped" or the flee's reason), and per done climb whether a frame within
-    WINDOW_LEFT_S after its end read a square with no room (`left`), every mapped one a room (`stayed`), or none was
-    mapped (`unread`)."""
+    sent, sent_lines, smash_sent, done, refused, superseded, ends, reasons, smashed, cut, left, stayed,
+    unread}. Reading:
+    `planned_lines` the lines whose threat why reads `step` "window" (the Flee's window step,
+    `flee.Flee._window_step`), `planned` the runs of them (one way out each; a window refused `locked` unsmashed and
+    offered again as a smash, ruling P26-7c, shows two climbs in one run), `windows` the distinct window squares
+    they name; `by_end` the stand's end ticks whose `doorway_exit` reads `exit` "window", by `end`; `sent` the
+    `window` actions of loop.actions the threat branch sent (`sent_lines` the threat lines that sent one,
+    `smash_sent` those sent with `smash` true), `done` those that ended done and `refused` those that failed or were
+    rejected (the exit then refused, or a `locked` try re-offered as a smash) other than `superseded` (a climb a
+    later action pre-empted, `policies.PREEMPTED`: not a refusal, the Flee sends it again, `flee.py:380`), which
+    `superseded` counts, `ends` by state (done | failed | rejected | running) and `reasons` the others by
+    "state:reason" (a timeout included); `smashed` and `cut` the done climbs whose result reads them true, off the
+    state log's act line (else loop.results): the Flee logs neither. Inference: `runs_from` the runs by what they
+    ran from (`_run_origin`: the stand's end, "trapped" or the flee's reason), and per done climb whether a frame
+    within WINDOW_LEFT_S after its end read a square with no room (`left`), every mapped one a room (`stayed`), or
+    none was mapped (`unread`)."""
     if L is None:
         return {"read": False}
     planned, windows, runs_from, by_end = 0, set(), {}, {}
@@ -126,12 +133,13 @@ def e_window_exit(out, L, lines):
     acts, mv = _acts(lines, "window"), E._MapView(lines)
     rows = _loop_actions(out, "window", "threat")
     ends, reasons = {"done": 0, "failed": 0, "rejected": 0, "running": 0}, {}
-    smashed = cut = left = stayed = unread = 0
+    smashed = cut = left = stayed = unread = superseded = 0
     for a in rows:
         st = a.get("state") if a.get("state") in TERMINAL else "running"
         ends[st] += 1
         if st in ("failed", "rejected"):
             _inc(reasons, "%s:%s" % (st, a.get("reason")))
+            superseded += 1 if a.get("reason") == "superseded" else 0
         if st != "done":
             continue
         end = acts.get(a.get("aid"), (None, None))[1]
@@ -148,7 +156,8 @@ def e_window_exit(out, L, lines):
             "sent": len(rows), "sent_lines": sum(1 for ln in L.rows if ln.get("branch") == "threat"
                                                  and E._sent(ln, "window")),
             "smash_sent": sum(1 for a in rows if E._d(a.get("args")).get("smash") is True),
-            "done": ends["done"], "refused": ends["failed"] + ends["rejected"], "ends": ends, "reasons": reasons,
+            "done": ends["done"], "refused": ends["failed"] + ends["rejected"] - superseded, "superseded": superseded,
+            "ends": ends, "reasons": reasons,
             "smashed": smashed, "cut": cut, "left": left, "stayed": stayed, "unread": unread}
 
 
@@ -156,10 +165,9 @@ def e_one_exit(L):
     """The stand's second way out (P26-B, `Threat.STAND_SECOND_EXIT`): {read, lines, runs, picks, buildings, unnamed}.
     Reading: `lines` the lines whose threat why flees `many` with `doorway_pick` "one_exit" (`Flee.door_verdicts`'
     verdict the first failing condition, `DoorwayStand._doorway_pick`), `runs` the runs of adjacent ones, `picks` every
-    `many` line's `doorway_pick` by value (the context the count sits in), `buildings` the distinct buildings those
-    lines name (their `shelter` or `exit`) and `unnamed` the lines naming none: the planner logs no building beside the
-    verdict (the refused door's building is the one the Flee did not pick), so `unnamed` is the line count on a correct
-    log."""
+    `many` line's `doorway_pick` by value (the context the count sits in), `buildings` the distinct buildings the
+    lines' `doorway_one_exit` names (the first door the pick refused, {building, door}; sorted by repr) and `unnamed`
+    the lines without that key (0 on a log of iteration 17's build; a log before it names none)."""
     if L is None:
         return {"read": False}
     lines = runs = unnamed = 0
@@ -173,13 +181,13 @@ def e_one_exit(L):
         if one:
             lines += 1
             runs += 0 if prev else 1
-            b = w.get("shelter") if w.get("shelter") is not None else w.get("exit")
+            b = E._d(w.get("doorway_one_exit")).get("building")
             if b is None:
                 unnamed += 1
             else:
-                buildings.add(repr(b))
+                buildings.add(b)
         prev = one
-    return {"read": True, "lines": lines, "runs": runs, "picks": picks, "buildings": sorted(buildings),
+    return {"read": True, "lines": lines, "runs": runs, "picks": picks, "buildings": sorted(buildings, key=repr),
             "unnamed": unnamed}
 
 
@@ -281,29 +289,35 @@ def _skipped_worn(ln):
 
 
 def e_wear_worn(out, L):
-    """The worn wear (P26-E, `Survive.WEAR_WORN`): {read, sends, per_item, rejected_worn, marked, resends,
-    skipped_lines, skipped_max}. Reading: `sends` the `wear` actions of loop.actions, `per_item` them by item id,
-    `rejected_worn` those rejected `worn` (each marks its garment worn, `World.mark_worn`), `marked` the distinct items
-    so marked, `resends` the wears of a marked item sent after its `worn` refusal ended (must read 0 with the switch on:
-    F5 re-sent its jeans every WEAR_RETRY_MIN), `skipped_lines` the care lines whose stock wear why carries
-    `skipped_worn` and `skipped_max` the most it counted."""
+    """The worn wear (P26-E, `Survive.WEAR_WORN`): {read, sends, per_item, rejected_worn, marked, sent_after_mark,
+    resends, skipped_lines, skipped_max}. Reading: `sends` the `wear` actions of loop.actions, `per_item` them by item
+    id,
+    `rejected_worn` those rejected `worn` (each marks its garment worn, `World.mark_worn`), `marked` the distinct
+    items so marked, `sent_after_mark` the wears of a marked item sent after its `worn` refusal ended, `resends`
+    those of them that themselves ended rejected `worn` (F5's loop; must read 0 with the switch on: F5 re-sent its
+    jeans every WEAR_RETRY_MIN; a `rewear` send, the care's re-wear of a garment an exclusive-location wear knocked
+    off, `care.py` `_wear`, is lawful and counts only in `sent_after_mark`), `skipped_lines` the care lines whose
+    stock wear why carries `skipped_worn` and `skipped_max` the most it counted."""
     if L is None:
         return {"read": False}
     rows = _loop_actions(out, "wear")
-    per, marked, resends = {}, {}, 0
+    per, marked, resends, after = {}, {}, 0, 0
     for a in rows:
         iid = E._d(a.get("args")).get("itemId")
         _inc(per, str(iid))
         t = E._n(a.get("sentS"))
+        worn = a.get("state") == "rejected" and a.get("reason") == "worn"
         if iid in marked and t is not None and t >= marked[iid]:
-            resends += 1
-        if a.get("state") == "rejected" and a.get("reason") == "worn":
+            after += 1
+            resends += 1 if worn else 0
+        if worn:
             e = E._n(a.get("endedS"))
             marked.setdefault(iid, e if e is not None else t if t is not None else 0.0)
     counts = [c for c in (_skipped_worn(ln) for ln in L.rows if ln.get("branch") == "care") if c is not None]
     return {"read": True, "sends": len(rows), "per_item": per,
             "rejected_worn": sum(1 for a in rows if a.get("state") == "rejected" and a.get("reason") == "worn"),
-            "marked": len(marked), "resends": resends, "skipped_lines": len(counts),
+            "marked": len(marked), "sent_after_mark": after, "resends": resends,
+            "skipped_lines": len(counts),
             "skipped_max": max(counts) if counts else None}
 
 
@@ -323,11 +337,12 @@ def _lines_e14(g):
     out = []
     out.append(("window way out (P26-A) [reading]: %s window-step lines in %s runs at windows %s, stand ends to a "
                 "window %s; %s climbs sent by the threat branch (%s lines, %s with smash), %s done, %s refused, "
-                "ends %s, reasons %s, %s smashed and %s cut on the act lines; [inference] runs from %s, done climbs "
+                "%s superseded, ends %s, reasons %s, %s smashed and %s cut on the act lines; [inference] runs from %s, "
+                "done climbs "
                 "that left the room squares %s, stayed on them %s, unread %s" % (
                     w.get("planned_lines"), w.get("planned"), w.get("windows"), w.get("by_end"), w.get("sent"),
-                    w.get("sent_lines"), w.get("smash_sent"), w.get("done"), w.get("refused"), w.get("ends"),
-                    w.get("reasons"), w.get("smashed"), w.get("cut"), w.get("runs_from"), w.get("left"),
+                    w.get("sent_lines"), w.get("smash_sent"), w.get("done"), w.get("refused"), w.get("superseded"),
+                    w.get("ends"), w.get("reasons"), w.get("smashed"), w.get("cut"), w.get("runs_from"), w.get("left"),
                     w.get("stayed"), w.get("unread"))) if w.get("read")
                else "window way out (P26-A): no decision log read")
     out.append(("stand second way out (P26-B) [reading]: %s `many` lines with `doorway_pick` one_exit in %s runs, "
@@ -344,10 +359,11 @@ def _lines_e14(g):
                     b.get("yields"), b.get("near"), b.get("rides"), b.get("standing"), b.get("rides_by_leg"),
                     b.get("bleeding_frames"), b.get("bandaging"), b.get("unbandaged"), b.get("threat_run")))
                if b.get("read") else "bleed under the threat (P26-D): no decision log read")
-    out.append(("worn wear (P26-E) [reading]: %s wears per item %s, %s rejected worn (%s items marked), %s re-sends of "
-                "a marked item (must read 0), %s stock lines with skipped_worn (max %s)" % (
-                    ww.get("sends"), ww.get("per_item"), ww.get("rejected_worn"), ww.get("marked"), ww.get("resends"),
-                    ww.get("skipped_lines"), ww.get("skipped_max"))) if ww.get("read")
+    out.append(("worn wear (P26-E) [reading]: %s wears per item %s, %s rejected worn (%s items marked), %s sent after "
+                "a mark, %s of them rejected worn again (must read 0), %s stock lines with skipped_worn (max %s)" % (
+                    ww.get("sends"), ww.get("per_item"), ww.get("rejected_worn"), ww.get("marked"),
+                    ww.get("sent_after_mark"), ww.get("resends"), ww.get("skipped_lines"),
+                    ww.get("skipped_max"))) if ww.get("read")
                else "worn wear (P26-E): no decision log read")
     out.append(("edge out check (P25-X amended) [reading]: only_out %s%s" % (
         ec.get("only_out"), " FLAGGED (must read 0)" if ec.get("flagged") else "")) if ec.get("read")

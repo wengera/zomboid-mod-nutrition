@@ -92,8 +92,10 @@ def f_objects(rows, read):
     text counted by `llm.objects` itself (never `skipped`'s length: `skipped` lists the invalid objects and, with
     nothing taken, every object), `answers` the rows read, `multi` the answers holding two or more and `multi_calls`
     their calls (the row's 1-based place in the log), `skipped_by_why` every `skipped` entry by its `why`,
-    `skipped_invalid` those whose `goal` is None (an object that failed validation) and `taken_after_skip` the rows that
-    took a goal with an earlier object skipped (the rule taking a later object, F7's call 8)."""
+    `skipped_invalid` those whose `goal` is None (an object that failed validation) and `taken_after_skip` the rows
+    that took a goal with an earlier object refused (a `skipped` entry with a `goal`: those before the taken one; an
+    invalid object, `goal` None, counts wherever it stood and is no earlier skip; the rule taking a later object,
+    F7's call 8)."""
     if not read:
         return {"read": False}
     hist, by, invalid, multi, after = {}, {}, 0, [], 0
@@ -105,7 +107,7 @@ def f_objects(rows, read):
         for s in sk:
             by[str(s.get("why"))] = by.get(str(s.get("why")), 0) + 1
             invalid += 1 if s.get("goal") is None else 0
-        after += 1 if r.get("ok") is True and sk else 0
+        after += 1 if r.get("ok") is True and any(s.get("goal") is not None for s in sk) else 0
     return {"read": True, "answers": len(rows), "per_answer": hist, "multi": len(multi), "multi_calls": multi,
             "skipped_by_why": by,
             "skipped_invalid": invalid, "taken_after_skip": after}

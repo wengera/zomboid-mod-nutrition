@@ -109,6 +109,18 @@ def test_the_objects_count_every_object_per_answer_the_skipped_by_why_and_the_ta
     assert (g["skipped_invalid"], g["taken_after_skip"]) == (1, 1)
 
 
+def _taken_with_only_an_invalid_object_skipped():
+    """`{"type":"Rest"} {"type":"Bogus"}`: the Rest taken, the Bogus invalid (`goal` None, wherever it stood)."""
+    rows = [goal_row({"type": "Rest"}, answer='{"type":"Rest"} {"type":"Bogus"}', cycle=1,
+                     skipped=[{"goal": None, "why": "unknown type"}])]
+    return grade(rows)["objects"]
+
+
+def test_an_invalid_object_after_the_taken_one_is_no_earlier_skip():
+    g = _taken_with_only_an_invalid_object_skipped()
+    assert g["per_answer"] == {"2": 1} and (g["skipped_invalid"], g["taken_after_skip"]) == (1, 0)
+
+
 def test_the_objects_read_one_object_per_answer_without_a_second_and_unread_without_a_goals_log():
     g = objects_fixture(flag=False)
     assert g["per_answer"] == {"1": 3, "0": 2} and (g["multi"], g["multi_calls"]) == (0, [])
@@ -180,7 +192,10 @@ MUTANTS = [
     ("f_objects", lambda b: b.replace("if k >= 2 else", "if k > 2 else"), lambda: objects_fixture()["multi"] == 2),
     ("f_objects", lambda b: b.replace('invalid += 1 if s.get("goal") is None else 0', "invalid += 1"),
      lambda: objects_fixture()["skipped_invalid"] == 1),
-    ("f_objects", lambda b: b.replace('after += 1 if r.get("ok") is True and sk else 0', "after += 1 if sk else 0"),
+    ("f_objects", lambda b: b.replace('any(s.get("goal") is not None for s in sk)', "sk"),
+     lambda: objects_fixture()["taken_after_skip"] == 1 and
+     _taken_with_only_an_invalid_object_skipped()["taken_after_skip"] == 0),
+    ("f_objects", lambda b: b.replace('r.get("ok") is True and any', "any"),
      lambda: objects_fixture()["taken_after_skip"] == 1),
     ("f_reasks", lambda b: b.replace("firsts[_cycle_key(i, r)] < i", "True"),
      lambda: _a_reask_before_its_first_is_unpaired()),

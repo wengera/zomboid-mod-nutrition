@@ -61,7 +61,8 @@ def win(flag, **extra):
 
 def window_fixture(flag=True, mapped=True, act_lines=True):
     """The stand's `inside` end takes the window at (3, 0): the walk, the climb (w1) done with `cut`, the frame out of
-    the shed; a trapped flee's second window at (6, 0) refused `locked` unsmashed (w2) and climbed as a smash (w3) with
+    the shed; a trapped flee's second window at (6, 0), after the trapped hold's line (`flee.py:656`, the window step's
+    own why, `flee.py:583`, never carries `trapped`), refused `locked` unsmashed (w2) and climbed as a smash (w3) with
     the frame still in the shed; a doorway flee's third climb (w4) failed by timeout; a goal's window (w5) not
     counted."""
     ex = {"end": "inside", "exit": "window" if flag else "door"}
@@ -71,11 +72,12 @@ def window_fixture(flag=True, mapped=True, act_lines=True):
            aline(1, 1.0, win(flag), climb(3)),
            aline(2, 2.0, win(flag), None, sent=False),
            aline(3, 3.0, {"fight": True, "target": 1}, None, sent=False),
-           aline(4, 4.0, win(flag, flee="many", trapped=1, window=[6, 0]), climb(6)),
-           aline(5, 5.0, win(flag, flee="many", trapped=1, window=[6, 0], smash=True), climb(6, True)),
-           aline(6, 6.0, {"fight": True, "target": 1}, None, sent=False),
-           aline(7, 8.0, win(flag, doorway_exit={"end": "wound", "exit": "door"}), climb(3)),
-           bline(8, 9.0, "goal", {"goal": "LootBuilding"}, _act("window", x=9, y=0))]
+           aline(4, 3.5, {"flee": "many", "trapped": 1, "shelter": None, "refused": []}, None, sent=False),
+           aline(5, 4.0, win(flag, flee="many", window=[6, 0]), climb(6)),
+           aline(6, 5.0, win(flag, flee="many", window=[6, 0], smash=True), climb(6, True)),
+           aline(7, 6.0, {"fight": True, "target": 1}, None, sent=False),
+           aline(8, 8.0, win(flag, doorway_exit={"end": "wound", "exit": "door"}), climb(3)),
+           bline(9, 9.0, "goal", {"goal": "LootBuilding"}, _act("window", x=9, y=0))]
     acts = [row("w0", "walkTo", 0.0, x=3.5, y=0.5)]
     if flag:
         acts += [row("w1", "window", 1.0, ended=2.0, x=3, y=0, smash=False),
@@ -100,6 +102,7 @@ def test_the_window_exit_counts_the_window_steps_their_runs_the_climbs_their_end
     assert g["by_end"] == {"inside": 1}
     assert g["runs_from"] == {"inside": 1, "trapped": 1, "flee:doorway": 1}
     assert (g["sent"], g["sent_lines"], g["smash_sent"], g["done"], g["refused"]) == (4, 4, 1, 2, 2)
+    assert g["superseded"] == 0
     assert g["ends"] == {"done": 2, "failed": 1, "rejected": 1, "running": 0}
     assert g["reasons"] == {"rejected:locked": 1, "failed:timeout": 1}
     assert (g["smashed"], g["cut"]) == (1, 1)
@@ -121,29 +124,59 @@ def test_the_window_exit_reads_zero_without_the_window_step_and_unread_without_a
     assert grade(log=None)["window_exit"] == {"read": False}
 
 
+def _window_run(prev_why, log_extra=()):
+    """A run of window-step lines after one line of `prev_why`: the window_exit reading of that log."""
+    log = [aline(0, 0.0, prev_why, None, sent=False),
+           aline(1, 1.0, win(True, flee="many", window=[6, 0]), _act("window", x=6, y=0)), *log_extra]
+    return grade(log=log)["window_exit"]
+
+
+def test_a_run_ran_from_trapped_when_the_line_before_is_the_trapped_hold_or_its_stand_exit_reads_trapped():
+    assert _window_run({"flee": "many", "trapped": 1, "shelter": None, "refused": []})["runs_from"] == {"trapped": 1}
+    assert _window_run({"flee": "many", "doorway_exit": {"end": "inside", "exit": "trapped"}})["runs_from"] == {
+        "trapped": 1}
+    assert _window_run({"flee": "many"})["runs_from"] == {"flee:many": 1}
+    assert _window_run({"fight": True})["runs_from"] == {"flee:many": 1}
+
+
+def test_the_window_exit_counts_a_superseded_climb_apart_from_the_refused_ones():
+    acts = [row("w1", "window", 1.0, state="failed", reason="superseded", ended=1.5, x=6, y=0, smash=False),
+            row("w2", "window", 3.0, state="rejected", reason="locked", ended=3.2, x=6, y=0, smash=False),
+            row("w3", "window", 5.0, state="failed", reason="timeout", ended=5.5, x=6, y=0, smash=True)]
+    log = [aline(0, 1.0, win(True, flee="many", window=[6, 0]), _act("window", x=6, y=0))]
+    g = grade(acts, [], log)["window_exit"]
+    assert (g["sent"], g["done"], g["refused"], g["superseded"]) == (3, 0, 2, 1)
+    assert g["ends"] == {"done": 0, "failed": 2, "rejected": 1, "running": 0}
+    assert g["reasons"] == {"failed:superseded": 1, "rejected:locked": 1, "failed:timeout": 1}
+
+
 # ================================================================ P26-B, the stand's second way out
 def one_exit_fixture(flag=True):
+    """Five `many` lines refused `one_exit`, four of them naming the refused door's building in `doorway_one_exit`
+    (`doorway.py` `_doorway_pick`; a log of an older build names none): buildings 3 (three lines) and 2."""
     pick = "one_exit" if flag else "ok"
-    many = lambda **kw: dict({"flee": "many", "doorway_pick": pick, "shelter": None}, **kw)
+    named = lambda b: {"doorway_one_exit": {"building": b, "door": [10712, 10596]}} if flag else {}
+    many = lambda b=3, **kw: dict({"flee": "many", "doorway_pick": pick, "shelter": None}, **dict(named(b), **kw))
     log = [aline(0, 0.0, many(), None, sent=False),
            aline(1, 1.0, many(), None, sent=False),
            aline(2, 2.0, dict(many(), doorway_pick="no_door"), None, sent=False),
-           aline(3, 3.0, many(shelter=4), None, sent=False),
+           aline(3, 3.0, many(2, shelter=4), None, sent=False),
            aline(4, 4.0, {"flee": "pair", "doorway_pick": pick}, None, sent=False),      # not a `many` line
-           bline(5, 5.0, "care", {"reason": "bleeding"}, None, sent=False, others={"threat": many()})]
+           bline(5, 5.0, "care", {"reason": "bleeding"}, None, sent=False, others={"threat": many()}),
+           aline(6, 6.0, {"flee": "many", "doorway_pick": pick}, None, sent=False)]      # an older build: no building
     return grade(log=log)["one_exit"]
 
 
 def test_the_one_exit_counts_the_many_lines_refused_one_exit_their_runs_and_the_buildings_named():
     g = one_exit_fixture()
-    assert g["read"] is True and (g["lines"], g["runs"], g["unnamed"]) == (4, 3, 3)
-    assert g["picks"] == {"one_exit": 4, "no_door": 1} and g["buildings"] == ["4"]
+    assert g["read"] is True and (g["lines"], g["runs"], g["unnamed"]) == (5, 3, 1)
+    assert g["picks"] == {"one_exit": 5, "no_door": 1} and g["buildings"] == [2, 3]
 
 
 def test_the_one_exit_reads_zero_where_every_pick_passes_and_unread_without_a_log():
     g = one_exit_fixture(flag=False)
     assert (g["lines"], g["runs"], g["buildings"], g["unnamed"]) == (0, 0, [], 0)
-    assert g["picks"] == {"ok": 4, "no_door": 1}
+    assert g["picks"] == {"ok": 5, "no_door": 1}
     assert grade(log=None)["one_exit"] == {"read": False}
 
 
@@ -247,8 +280,21 @@ def wear_fixture(flag=True):
 def test_the_wear_worn_counts_the_wears_per_item_the_worn_refusals_and_the_re_send_of_a_marked_item():
     g = wear_fixture()
     assert g["read"] is True and g["sends"] == 5 and g["per_item"] == {"21": 4, "33": 1}
-    assert (g["rejected_worn"], g["marked"], g["resends"]) == (2, 1, 1)
+    assert (g["rejected_worn"], g["marked"], g["sent_after_mark"], g["resends"]) == (2, 1, 1, 1)
     assert (g["skipped_lines"], g["skipped_max"]) == (2, 2)
+
+
+def test_the_wear_worn_counts_a_rewear_after_a_mark_as_sent_after_the_mark_and_a_second_worn_refusal_as_a_resend():
+    """A rejected-`worn` wear, then the care's `rewear` of the same item (lawful: a garment an exclusive-location wear
+    knocked off), reads resends 0; a second wear ended rejected `worn` reads resends 1."""
+    log = [aline(0, 0.0, {"fight": True}, None, sent=False)]
+    acts = [row("a1", "wear", 1.0, state="rejected", reason="worn", ended=2.0, branch="care", itemId=21),
+            row("a2", "wear", 15.0, branch="care", itemId=21)]
+    g = grade(acts, [], log)["wear_worn"]
+    assert (g["rejected_worn"], g["marked"], g["sent_after_mark"], g["resends"]) == (1, 1, 1, 0)
+    acts.append(row("a3", "wear", 30.0, state="rejected", reason="worn", ended=31.0, branch="care", itemId=21))
+    g = grade(acts, [], log)["wear_worn"]
+    assert (g["rejected_worn"], g["marked"], g["sent_after_mark"], g["resends"]) == (2, 1, 2, 1)
 
 
 def test_the_wear_worn_reads_zero_without_a_refusal_and_unread_without_a_log():
@@ -341,12 +387,20 @@ MUTANTS = [
      lambda: window_fixture()["cut"] == 1),
     ("_left_room", lambda b: b.replace("if out_ is True:", "if out_ is None:"),
      lambda: window_fixture()["left"] == 1),
-    ("_run_origin", lambda b: b.replace('"trapped" if "trapped" in w else ', ''),
+    ("_run_origin", lambda b: b.replace('"trapped" in p or ', ''),
      lambda: window_fixture()["runs_from"]["trapped"] == 1),
+    ("_run_origin", lambda b: b.replace(' or (isinstance(ex, dict) and ex.get("exit") == "trapped")', ''),
+     lambda: _window_run({"flee": "many", "doorway_exit": {"end": "inside", "exit": "trapped"}})[
+         "runs_from"] == {"trapped": 1}),
+    ("e_window_exit", lambda b: b.replace('"refused": ends["failed"] + ends["rejected"] - superseded',
+                                          '"refused": ends["failed"] + ends["rejected"]'),
+     lambda: _a_superseded_climb_is_no_refusal()),
     ("e_one_exit", lambda b: b.replace('many = w.get("flee") == "many"', 'many = w.get("flee") is not None'),
-     lambda: one_exit_fixture()["lines"] == 4),
+     lambda: one_exit_fixture()["lines"] == 5),
     ("e_one_exit", lambda b: b.replace("runs += 0 if prev else 1", "runs += 1"),
      lambda: one_exit_fixture()["runs"] == 3),
+    ("e_one_exit", lambda b: b.replace('E._d(w.get("doorway_one_exit")).get("building")', 'w.get("shelter")'),
+     lambda: one_exit_fixture()["buildings"] == [2, 3]),
     ("e_inside_send", lambda b: b.replace('c.get("kind") != "inside"', 'c.get("kind") is None'),
      lambda: inside_fixture()["lines"] == 5),
     ("e_inside_send", lambda b: b.replace("n >= INSIDE_CROWD_N", "n > INSIDE_CROWD_N"),
@@ -361,8 +415,11 @@ MUTANTS = [
      lambda: bleed_fixture()["threat_run"] == 2),
     ("e_threat_bleed", lambda b: b.replace('_inc(legs, str(last_flee))', '_inc(legs, "pair")'),
      lambda: bleed_fixture()["rides_by_leg"] == {"pair": 1, "held": 1}),
-    ("e_wear_worn", lambda b: b.replace("t >= marked[iid]", "t >= 0"), lambda: wear_fixture()["resends"] == 1),
-    ("e_wear_worn", lambda b: b.replace('a.get("reason") == "worn":', 'a.get("reason") is not None:'),
+    ("e_wear_worn", lambda b: b.replace("t >= marked[iid]", "t >= 0"),
+     lambda: wear_fixture()["sent_after_mark"] == 1),
+    ("e_wear_worn", lambda b: b.replace("resends += 1 if worn else 0", "resends += 1"),
+     lambda: _a_rewear_is_no_resend()),
+    ("e_wear_worn", lambda b: b.replace('and a.get("reason") == "worn"', 'and a.get("reason") is not None'),
      lambda: wear_fixture()["marked"] == 1 and _a_locked_wear_marks_nothing()),
     ("_skipped_worn", lambda b: b.replace('.get("skipped_worn", c.get("skipped_worn"))', '.get("gain")'),
      lambda: wear_fixture()["skipped_max"] == 2),
@@ -375,6 +432,19 @@ def _p24p_yield_is_no_bleed():
     """A yield with a `care_yield` of another why (none exists today) is no bleed yield."""
     log = [aline(0, 0.0, {"care": True, "nearest": 4.0, "care_yield": {"why": "other", "near": 4.0}}, None, sent=False)]
     return grade(log=log)["threat_bleed"]["yields"] == 0
+
+
+def _a_superseded_climb_is_no_refusal():
+    acts = [row("w1", "window", 1.0, state="failed", reason="superseded", ended=1.5, x=6, y=0, smash=False)]
+    g = grade(acts, [], [aline(0, 1.0, win(True, flee="many", window=[6, 0]), _act("window", x=6, y=0))])
+    return (g["window_exit"]["refused"], g["window_exit"]["superseded"]) == (0, 1)
+
+
+def _a_rewear_is_no_resend():
+    acts = [row("a1", "wear", 1.0, state="rejected", reason="worn", ended=2.0, branch="care", itemId=21),
+            row("a2", "wear", 15.0, branch="care", itemId=21)]
+    g = grade(acts, [], [aline(0, 0.0, {"fight": True}, None, sent=False)])["wear_worn"]
+    return (g["sent_after_mark"], g["resends"]) == (1, 0)
 
 
 def _a_locked_wear_marks_nothing():
