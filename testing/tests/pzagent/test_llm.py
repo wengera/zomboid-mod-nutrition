@@ -358,7 +358,9 @@ def test_each_call_is_one_sorted_json_line_in_goals_log(tmp_path):
     for ln, row in zip(lines, src.calls):
         obj = json.loads(ln)
         assert list(obj) == sorted(obj)
-        assert set(row) == {"wall", "latency_s", "ok", "goal", "error", "prompt_bytes", "answer_bytes", "model"}
+        assert set(row) == {"wall", "latency_s", "ok", "goal", "error", "prompt_bytes", "answer_bytes", "model",
+                            "skipped"}                               # P26-F: the objects passed over
+        assert row["skipped"] == []
         assert {k: obj[k] for k in row} == row
         assert obj["prompt"] == render(v) and obj["answer"] == '{"type": "LootBuilding", "building": 3}'
 
@@ -572,7 +574,8 @@ def test_system_names_no_path_credential_or_planner_internal():
 
 
 def test_system_explains_the_wants_and_the_new_view_keys():
-    assert "want (string, one of weapon)" in SYSTEM and "bag" not in SYSTEM.lower()   # no bag want until its loot filter
+    # no bag want until its loot filter
+    assert "want (string, one of weapon)" in SYSTEM and "bag" not in SYSTEM.lower()
     assert "z:N" in SYSTEM and "tired is true" in SYSTEM and "night is true" in SYSTEM
     assert "then clothing, food, bandages and weapons" not in SYSTEM   # the old want order gave way to the strategy's
 
@@ -659,15 +662,16 @@ def test_system_names_rest_under_the_hold_and_explains_the_hold_and_the_cooled_e
     third = strategy()[2]
     assert third["text"].startswith("With tired true, or night true, choose Shelter in a listed building")
     assert "while hold reads" in third["text"] and "choose Rest" in third["text"] and V.HOLD_KEY in third["reads"]
-    assert third["text"].endswith("at night Shelter first and Rest inside.")   # fix 1 minor 2: the order between the clauses
+    # fix 1 minor 2: the order between the clauses
+    assert third["text"].endswith("at night Shelter first and Rest inside.")
     assert "hold names what keeps you from seeking a fight" in SYSTEM and third["text"] in SYSTEM
     assert "end done, failed, superseded, refused or cooled" in SYSTEM
 
 
 # ---------------------------------------------------------------- P25-G: the Shelter of a shunned building
 def test_place_error_refuses_a_shelter_of_a_shunned_building_and_allows_its_loot():
-    """Ruling P25-G (1): a Shelter of a shown building whose `shunned` reads true is `invalid: shunned`; the LootBuilding
-    of it stays valid (its window route exists), and a Shelter of one not shunned is valid."""
+    """Ruling P25-G (1): a Shelter of a shown building whose `shunned` reads true is `invalid: shunned`; the
+    LootBuilding of it stays valid (its window route exists), and a Shelter of one not shunned is valid."""
     from agent.base.planner.goals import LootBuilding, Shelter
     b = dict(a_view()["buildings"][0], shunned=True, visited=True)
     v = a_view(buildings=[b])
@@ -675,3 +679,107 @@ def test_place_error_refuses_a_shelter_of_a_shunned_building_and_allows_its_loot
     assert L.place_error(LootBuilding(3), v) is None
     assert L.place_error(Shelter(3), a_view()) is None
     assert "shunned" in V.WHYS
+
+
+# ---------------------------------------------------------------- Plan 26 Task 3: the LLM source's fourth round
+# F7's call 8 (`testing/artifacts/f_goals_8-20261102-093241/goals.log` row 8, its `answer` verbatim): the refused loot
+# first, then prose, then the explore the parse never reached (the guide's section 2).
+F7_CALL_8 = ('{"type":"LootBuilding","building":2}\n\nWait—building 2 is listed as "Lv" (looted flag L), so it '
+             "can't be named. Building 3 is also L. Both are looted, so I should explore toward new ground instead."
+             '\n\n{"type":"ExploreToward","x":10704,"y":10640}')
+F7_LOOTED = [{"id": 2, "x": 10720, "y": 10637, "door": [10721, 10638], "dist": 11.9, "containers": 25, "looted": True,
+              "doors": 1, "visited": True, "shunned": False},
+             {"id": 3, "x": 10738, "y": 10634, "door": None, "dist": 30.2, "containers": 10, "looted": True,
+              "doors": 0, "visited": False, "shunned": False}]
+
+
+def f7_view(**k):
+    """F7's call 8 view: its pos, its two `L` buildings, woods_r 40, no `toward`."""
+    return a_view(pos={"x": 10708.5947265625, "y": 10638.4970703125, "z": 0}, buildings=F7_LOOTED, woods_r=40.0,
+                  edge=[10704, 10640], toward=None, **k)
+
+
+def test_objects_returns_every_balanced_object_in_order():
+    """P26-F: `objects` is every balanced `{...}` decoding to an object, in order; `first_object` its first."""
+    assert L.objects(F7_CALL_8) == [{"type": "LootBuilding", "building": 2},
+                                    {"type": "ExploreToward", "x": 10704, "y": 10640}]
+    assert L.first_object(F7_CALL_8) == {"type": "LootBuilding", "building": 2}
+    assert L.objects('a {not json} b {"type": "Rest", "seconds": 5} [1] {"x": [1, {"y": 2}]}') == [
+        {"type": "Rest", "seconds": 5}, {"x": [1, {"y": 2}]}]
+    assert L.objects("no object") == [] and L.first_object("no object") is None
+
+
+def test_objects_stops_at_a_brace_that_never_closes():
+    """The truncated-brace rule (whole-pass triage #16) kept: a `{` that does not close ends the search, so the
+    object nested inside it is never returned, and the objects before it stand."""
+    assert L.objects('{"type": "LootBuilding", "building": {"id": 3}') == []
+    assert L.objects('{"type": "Rest", "seconds": 5} then {"type": "Stock", "kind": {"a": 1}') == [
+        {"type": "Rest", "seconds": 5}]
+
+
+def test_parse_returns_every_valid_goal_and_each_invalid_objects_reason():
+    """P26-F: `_parse` is (goals, text, errors, error): every object `validate` passes, in order; the
+    `invalid: <reason>` of each it fails; `error` None while one passed, else the first reason, or malformed."""
+    goals, text, errors, error = L._parse(envelope(F7_CALL_8))
+    assert [g.TYPE for g in goals] == ["LootBuilding", "ExploreToward"] and text == F7_CALL_8
+    assert errors == [] and error is None
+    goals, _, errors, error = L._parse(envelope('{"type": "Rest", "seconds": 500} {"type": "Stock", "kind": "water"}'))
+    assert [g.TYPE for g in goals] == ["Stock"] and error is None
+    assert errors == ["invalid: Rest.seconds: 500 above the maximum 120"]
+    goals, _, errors, error = L._parse(envelope('{"type": "Rest", "seconds": 500}'))
+    assert goals == [] and error == errors[0] == "invalid: Rest.seconds: 500 above the maximum 120"
+    assert L._parse(envelope("prose only")) == ([], "prose only", [], "malformed")
+    assert L._parse("not json") == ([], None, [], "malformed")
+    assert L._parse(envelope("limit", is_error=True)) == ([], "limit", [], "cli error")
+
+
+def test_f7_call_8_takes_the_explore_and_logs_the_loot_skipped_looted_already(tmp_path):
+    """P26-F: the first object passing validation and the refusal rule is the answer; F7's call 8 answered the refused
+    loot of building 2 first and the explore second (its `edge` square), so the explore is taken and the loot is
+    logged `skipped` with its why."""
+    src, _, _ = make(tmp_path, answer=F7_CALL_8)
+    src.propose(f7_view())
+    settle(src)
+    g = src.propose(f7_view())
+    assert g.TYPE == "ExploreToward" and (g.x, g.y) == (10704, 10640) and src.NAME == "llm"
+    row = src.calls[0]
+    assert row["ok"] is True and row["error"] is None
+    assert row["goal"] == {"type": "ExploreToward", "x": 10704, "y": 10640}
+    assert row["skipped"] == [{"goal": {"type": "LootBuilding", "building": 2}, "why": "looted already"}]
+    assert src.refusal is None and src.fallback.views == []
+    logged = json.loads((tmp_path / "goals.log").read_text(encoding="utf-8").splitlines()[0])
+    assert logged["skipped"] == row["skipped"] and logged["answer"] == F7_CALL_8
+
+
+def test_an_invalid_object_before_a_good_one_is_skipped_with_its_reason():
+    src, _, _ = make(answer='{"type": "Rest", "seconds": 500} {"type": "LootBuilding", "building": 3}')
+    src.propose(a_view())
+    settle(src)
+    g = src.propose(a_view())
+    assert isinstance(g, LootBuilding) and g.building == 3 and src.calls[0]["error"] is None
+    assert src.calls[0]["skipped"] == [{"goal": None, "why": "Rest.seconds: 500 above the maximum 120"}]
+
+
+def test_a_good_first_object_is_taken_and_nothing_after_it_is_checked():
+    src, _, _ = make(answer='{"type": "LootBuilding", "building": 3} {"type": "LootBuilding", "building": 99}')
+    src.propose(a_view())
+    settle(src)
+    assert src.propose(a_view()).building == 3
+    assert src.calls[0]["skipped"] == [] and src.calls[0]["error"] is None
+
+
+def test_every_object_refused_logs_each_and_carries_the_first_refusal():
+    """P26-F: with no object passing, the row's error and the carried refusal are the first refused object's, and
+    every object passed over is logged `skipped`, the refused in order and then the invalid."""
+    answer = ('{"type": "LootBuilding", "building": 2} {"type": "Rest", "seconds": 500} '
+              '{"type": "LootBuilding", "building": 3}')
+    src, _, _ = make(answer=answer)
+    src.propose(f7_view())
+    settle(src)
+    src.propose(f7_view())
+    row = src.calls[0]
+    assert row["ok"] is False and row["goal"] is None and row["error"] == "invalid: looted already"
+    assert row["skipped"] == [{"goal": {"type": "LootBuilding", "building": 2}, "why": "looted already"},
+                              {"goal": {"type": "LootBuilding", "building": 3}, "why": "looted already"},
+                              {"goal": None, "why": "Rest.seconds: 500 above the maximum 120"}]
+    assert src.refusal == {"type": "LootBuilding", "args": {"building": 2}, "end": "refused", "why": "looted already"}

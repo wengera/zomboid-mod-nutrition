@@ -12,10 +12,13 @@ The contract:
   `render(view)` (`planner/view.py`) is the view's text, game state only (principle 8): no path, credential, log or
   planner internals beyond the view's own keys.
 - What it may answer: one JSON object, one of the five goals of `goals.json`. Parsing: the CLI's stdout is its JSON
-  envelope (`{"type": "result", "is_error": …, "result": "<text>", …}`); the `result` text's first balanced `{...}`
-  that decodes as JSON (`first_object`) is the goal, checked by `goals.validate` on the worker, then, when the answer
-  is collected, against the view of the ask that collects it (the current view, ruling P23-AC: a place that vanished
-  since the call is refused): the refusal rule (P24-B 3, stated in `SYSTEM`), its error `invalid: <why>` with `why`
+  envelope (`{"type": "result", "is_error": …, "result": "<text>", …}`); every balanced `{...}` of the `result`
+  text that decodes as a JSON object (`objects`, in order: ruling P26-F, F7's call 8 answered two) is checked by
+  `goals.validate` on the worker (`_parse -> (goals, text, errors, error)`: the objects that pass, in order, the
+  `invalid: <reason>` of each that fails, and the error, None while one passed, else the first reason), then, when
+  the answer is collected, each goal in order against the view of the ask that collects it (the current view, ruling
+  P23-AC: a place that vanished since the call is refused), the first that passes being the answer and those passed
+  over logged `skipped`: the refusal rule (P24-B 3, stated in `SYSTEM`), its error `invalid: <why>` with `why`
   one of `view.WHYS`: a LootBuilding or Shelter naming a building that view's render does not show (`view.shown_ids`,
   the BUILDINGS_SHOWN nearest) is `invalid: refused`; a LootBuilding of a shown building whose `looted` reads true is
   `invalid: looted already`; an ExploreToward whose square's centre lies farther than EXPLORE_MAX_TILES (60) from the
@@ -56,11 +59,13 @@ when it lands, and no new call starts until its thread has ended (the subprocess
 the fallback answers, the stand-in for the timeout already recorded. So at most one CLI call is ever in flight.
 `join(timeout)` waits for the pending and any abandoned worker.
 
-The record: `calls`, one row per collected call, `{wall, latency_s, ok, goal, error, prompt_bytes, answer_bytes,
-model}` (`wall` the call's start, `latency_s` to its answer or its abandonment, `goal` the validated goal as
-`{"type", **args}` else None, `prompt_bytes` the bytes the model reads, the argv's system prompt and the stdin prompt
-together, `answer_bytes` the bytes of the answer's `result` text, 0 with none (P24-B 4), `model` read off the argv's
-`--model`); `totals()` is the record's `llm` summary's byte keys, `{prompt_bytes_total, answer_bytes_total}` over
+The record: `calls`, one row per collected call, `{wall, latency_s, ok, goal, error, skipped, prompt_bytes,
+answer_bytes, model}` (`wall` the call's start, `latency_s` to its answer or its abandonment, `goal` the validated goal
+as `{"type", **args}` else None, `skipped` the answer's objects passed over (ruling P26-F), `[{goal, why}]`: each goal
+refused before the one taken (every one when none is taken: the row's `error` and the carried refusal are then the
+first's), then each object `validate` failed (`goal` None), `why` the error past its `invalid: `; `prompt_bytes`
+the bytes the model reads, the argv's system prompt and the stdin prompt together, `answer_bytes` the bytes of the
+answer's `result` text, 0 with none (P24-B 4), `model` read off the argv's `--model`); `totals()` is the record's `llm` summary's byte keys, `{prompt_bytes_total, answer_bytes_total}` over
 `calls` (the session's bytes, never a price: the cost estimate stays out of the record, P24-B 4); each row is
 appended to `log_path` (the driver's `goals.log` beside `decision.log`) as one JSON line with sorted keys, carrying
 also the `prompt` sent on stdin and the `answer` text (P23-11: the prompt and every answer are logged; the system
@@ -104,9 +109,10 @@ from agent.base.planner.view import render, shown_ids
 LLM_TIMEOUT_S = 20.0          # P23-11: a call answering later than this is a fallback
 EXPLORE_MAX_TILES = 60.0      # P23-V: a model's ExploreToward farther than this from the view's pos is refused
 PLACE_GOALS = ("LootBuilding", "Shelter")   # goals naming a building the view must list
+INVALID = "invalid: "         # the prefix of a validation or refusal error, before its why
 
-__all__ = ["LLMSource", "SYSTEM", "DEFAULT_CLI", "prompt", "first_object", "model_of", "place_error", "LLM_TIMEOUT_S",
-           "EXPLORE_MAX_TILES", "PLACE_GOALS"]
+__all__ = ["LLMSource", "SYSTEM", "DEFAULT_CLI", "prompt", "objects", "first_object", "model_of", "place_error",
+           "LLM_TIMEOUT_S", "EXPLORE_MAX_TILES", "PLACE_GOALS"]
 
 
 # ---------------------------------------------------------------- the system prompt
@@ -116,7 +122,7 @@ SYSTEM = system(EXPLORE_MAX_TILES)   # `planner/goal_prompt.py` (Task 29: lifted
 # against `claude --help` at 2.1.310; the prompt (the rendered view) goes on stdin.
 DEFAULT_CLI = (
     "claude",
-    "-p",                                   # print mode: one answer, then exit (no interactive session, no trust dialog)
+    "-p",                                   # print mode: one answer, then exit (no interactive session or trust dialog)
     "--output-format", "json",              # one JSON envelope on stdout (its `result` is the text)
     "--model", "sonnet",                    # P23-11's model
     "--system-prompt", SYSTEM,              # replaces Claude Code's default system prompt (its tools' prose, env, git)
@@ -134,10 +140,12 @@ def prompt(view):
 
 
 # ---------------------------------------------------------------- the parsing
-def first_object(text):
-    """The first balanced `{...}` in `text` that decodes as a JSON object, else None. A `{` that does not close (a
-    truncated answer) ends the search: the object nested inside it is never returned for it (whole-pass triage #16)."""
+def objects(text):
+    """Every balanced `{...}` in `text` that decodes as a JSON object, in order (ruling P26-F: F7's call 8 answered two,
+    and the second was the one to take). A `{` that does not close (a truncated answer) ends the search: the object
+    nested inside it is never returned for it (whole-pass triage #16), and the objects before it stand."""
     dec = json.JSONDecoder()
+    found = []
     i = text.find("{")
     while i >= 0:
         try:
@@ -146,11 +154,17 @@ def first_object(text):
             if _closes(text, i):
                 i = text.find("{", i + 1)          # prose braces (`{not json}`): balanced, so look on past them
                 continue
-            return None
+            break
         if isinstance(obj, dict):
-            return obj
+            found.append(obj)
         i = text.find("{", end)
-    return None
+    return found
+
+
+def first_object(text):
+    """The first of `objects(text)`, else None."""
+    found = objects(text)
+    return found[0] if found else None
 
 
 def _closes(text, i):
@@ -185,26 +199,40 @@ def model_of(cli, flag="--model"):
 
 
 def _parse(stdout):
-    """(goal, answer text, error) from the CLI's stdout (the module docstring), before the place check."""
+    """(goals, answer text, errors, error) from the CLI's stdout (the module docstring), before the place check:
+    `goals` every object of the text `validate` passes, in order; `errors` the `invalid: <reason>` of each object it
+    fails; `error` None while a goal passed, else the first object's `invalid: <reason>`, `malformed` or `cli error`."""
     try:
         env = json.loads(stdout)
     except (ValueError, TypeError):
-        return None, None, "malformed"
+        return [], None, [], "malformed"
     if not isinstance(env, dict):
-        return None, None, "malformed"
+        return [], None, [], "malformed"
     text = env.get("result")
     if env.get("is_error"):
-        return None, text if isinstance(text, str) else None, "cli error"
+        return [], text if isinstance(text, str) else None, [], "cli error"
     if not isinstance(text, str):
-        return None, None, "malformed"
-    obj = first_object(text)
-    if obj is None:
-        return None, text, "malformed"
-    try:
-        goal = validate(obj)
-    except ValueError as e:
-        return None, text, "invalid: %s" % e
-    return goal, text, None
+        return [], None, [], "malformed"
+    found = objects(text)
+    if not found:
+        return [], text, [], "malformed"
+    goals, errors = [], []
+    for obj in found:
+        try:
+            goals.append(validate(obj))
+        except ValueError as e:
+            errors.append("invalid: %s" % e)
+    return goals, text, errors, (None if goals else errors[0])
+
+
+def _goal_row(goal):
+    """A goal as the record writes it: `{"type", **args}`, else None."""
+    return dict({"type": goal.TYPE}, **goal.args()) if goal is not None else None
+
+
+def _why(error):
+    """An `invalid: <why>` error's why."""
+    return error[len(INVALID):] if error.startswith(INVALID) else error
 
 
 def place_error(goal, view, origin=None):
@@ -342,7 +370,7 @@ class LLMSource:
         if self.refusal is not None:       # the model reads its own last answer's end, once (P24-B 3)
             view, self.refusal = dict(view, last_goal=self.refusal), None
         text = prompt(view)
-        p = {"wall": self.clock(), "prompt": text, "done": threading.Event(), "end": None, "goal": None,
+        p = {"wall": self.clock(), "prompt": text, "done": threading.Event(), "end": None, "goals": [], "errors": [],
              "answer": None, "error": None, "pos": dict(view.get("pos") or {})}   # the range's origin (Task 4)
         p["thread"] = threading.Thread(target=self._work, args=(p,), name="llm-goal", daemon=True)
         self._pending = p
@@ -357,7 +385,7 @@ class LLMSource:
             if proc.returncode != 0:
                 p["error"] = "exit %s" % proc.returncode
             else:
-                p["goal"], p["answer"], p["error"] = _parse(proc.stdout)
+                p["goals"], p["answer"], p["errors"], p["error"] = _parse(proc.stdout)
         except subprocess.TimeoutExpired:
             p["error"] = "timeout"
         except Exception as e:             # the CLI missing, a runner fault: the fallback stands in
@@ -367,7 +395,8 @@ class LLMSource:
 
     def _collect(self, view):
         """("pending", None) while the call runs within timeout_s; else the call is recorded and ("ok", goal) when it
-        answered a valid goal in time whose place `view` holds, ("failed", None) otherwise."""
+        answered in time a valid goal whose place `view` holds (the first such, ruling P26-F), ("failed", None)
+        otherwise."""
         p = self._pending
         if not p["done"].is_set():
             now = self.clock()
@@ -381,21 +410,34 @@ class LLMSource:
         if latency > self.timeout_s:
             self._record(p, latency, None, "timeout")
             return "failed", None
-        goal, error = p["goal"], p["error"]
-        if goal is not None and error is None:
-            error = place_error(goal, view, p["pos"])
-            if error is not None:
-                self.refusal = {"type": goal.TYPE, "args": goal.args(), "end": "refused",
-                                "why": error[len("invalid: "):]}
-                goal = None
-            else:
-                self.refusal = None
-        self._record(p, latency, goal, error)
+        goal, refused = self._first_placed(p["goals"], view, p["pos"])
+        skipped = ([{"goal": _goal_row(g), "why": _why(e)} for g, e in refused]
+                   + [{"goal": None, "why": _why(e)} for e in p["errors"]])
+        if goal is not None:
+            error, self.refusal = None, None
+        elif refused:
+            g, error = refused[0]
+            self.refusal = {"type": g.TYPE, "args": g.args(), "end": "refused", "why": _why(error)}
+        else:
+            error = p["error"]
+        self._record(p, latency, goal, error, skipped)
         return ("ok", goal) if goal is not None else ("failed", None)
 
-    def _record(self, p, latency, goal, error):
+    @staticmethod
+    def _first_placed(goals, view, origin):
+        """(the first of `goals` whose place `view` holds, else None; [(goal, error)] of those refused before it, or
+        of every one when none holds), each checked in order by `place_error` (ruling P26-F)."""
+        refused = []
+        for g in goals:
+            error = place_error(g, view, origin)
+            if error is None:
+                return g, refused
+            refused.append((g, error))
+        return None, refused
+
+    def _record(self, p, latency, goal, error, skipped=()):
         row = {"wall": p["wall"], "latency_s": latency, "ok": goal is not None and error is None,
-               "goal": dict({"type": goal.TYPE}, **goal.args()) if goal is not None else None, "error": error,
+               "goal": _goal_row(goal), "error": error, "skipped": list(skipped),
                "prompt_bytes": len((self._system() + p["prompt"]).encode("utf-8")),
                "answer_bytes": len(p["answer"].encode("utf-8")) if isinstance(p["answer"], str) else 0,
                "model": self.model}
