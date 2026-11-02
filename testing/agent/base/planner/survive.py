@@ -263,6 +263,10 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   SHOVE_REPEAT_S;
   `shove.FightShove._missed_n`, `_lone_break`, logged `corner` {kind "break", misses}; `SHOVE_BREAK_RUN`);
   `T5_SWITCHES` off is the rule before them.
+- Survival 18 (Plan 25 Task 14, survival iteration 16, E14): the rulings in the plan's Task 14: P25-U, the doorway
+  stand's `drag` end at DRAG_DOWN_N - 1 attackers (`doorway.DoorwayStand._stand_drag_n`, read before the drag-down
+  guard on a tick, `_doorway` being the threat plan's first row; logged `doorway_drag`; `STAND_DRAG_EARLY`);
+  `T6_SWITCHES` off is the rule before them.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -361,6 +365,8 @@ T4_SWITCHES = ("UNWEAR_WOUND", "FINISH_FAR", "STAND_WOUND", "SHOVE_BREAK", "SHEL
                          # rule before each
 T5_SWITCHES = ("UNARMED_FIGHT", "TRAPPED_CARE", "LOW_FIGHT", "SHOVE_BREAK_RUN")   # survival iteration 15 (Plan 25
                          # Task 10): the switches of P25-P, P25-Q, P25-S and P25-T; off, the rule before each
+T6_SWITCHES = ("STAND_DRAG_EARLY",)   # survival iteration 16 (Plan 25 Task 14): the switches of P25-U; off, the
+                         # rule before each
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -381,7 +387,7 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "MANY_LISTED_N", "DRAG_DOWN_N", "FINISH_R",
            "NEED_STATS", "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_RETRY_MIN", "FILL_SETTLE_S", "FILL_WANTS",
            "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T4_SWITCHES",
-           "T5_SWITCHES"]
+           "T5_SWITCHES", "T6_SWITCHES"]
 
 
 @dataclass
@@ -460,6 +466,7 @@ class Survive(Threat):
         self.strain_from = None   # world minutes the arms' hold last started (P25-M's `held_min`)
         self.release = None       # this tick: {kind, why, endurance | armPain, held_min} of a hold released (P25-M)
         self.stand_wound = None   # this tick: the parts newly bleeding that ended the doorway stand (P25-K), else None
+        self.stand_drag = None    # this tick: the attackers that ended the doorway stand `drag` (P25-U), else None
         self.pair_yield = None    # this tick: the fallen zombie's id the `pair` flee yielded to (P25-J), else None
         self.fight_refused = {}   # the last Fight's `swing_refused`, kept for the `pair` flee's finish (P25-J, 8 fix 1)
         self.trapped_pass = False  # this tick: the threat's answer was the Flee's trapped hold (P25-Q: the care's tick)

@@ -95,6 +95,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
                           # is fought by the shove and the stomp (`_low_fight`); off, every such tick flees `health`
     SHOVE_BREAK_RUN = True  # ruling P25-T: the break's misses count over the Fight's life, any spacing
                             # (`shove.FightShove._missed_n`, `_lone_break`); off, P25-L's window
+    # survival iteration 16 (Plan 25 Task 14; survive.py's docstring, Survival 18): each switch off is the rule before
+    # it, all of them in `survive.T6_SWITCHES` (the replay tests' `pre_t6`)
+    STAND_DRAG_EARLY = True   # ruling P25-U: the doorway stand's `drag` end at DRAG_DOWN_N - 1 attackers
+                              # (`DoorwayStand._stand_drag_n`); off, at DRAG_DOWN_N
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -425,7 +429,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         the drag-down, health to 0 in one call): the frame's `me.attackers` (PZA/1.4; absent on an older frame, never
         read) at DRAG_DOWN_N - 1 or more, any corner (a `stuck` one too) left for the leg at once; except on a room
         square with no way out and nothing to adopt (`_trapped`): the guard has no leg or exit to take there, so the
-        corner keeps swinging (P24-A fix 1 (4), confirmed)."""
+        corner keeps swinging (P24-A fix 1 (4), confirmed). Never read while a doorway stand stands: its own `drag` end
+        reads first at the same count (P25-U, `DoorwayStand._stand_drag_n`)."""
         if self._attackers() < DRAG_DOWN_N - 1:
             return False
         return not self._trapped(held, inside)
@@ -442,7 +447,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         """The threat branch's one decision (ruling P23-AJ), `(kind, reason)`, the machines only executing it:
         - The doorway stand (ruling P24-AO, `_doorway`): `doorway` while the Flee's stand plan reads `stand`, then
           `flee` (reason `doorway`) while the stand's close runs, ahead of every other row (the stand's premise is the
-          one-tile front the drag-down guard flees: the stand reads its own `drag` end at DRAG_DOWN_N, ruling R1).
+          one-tile front the drag-down guard flees: the stand reads its own `drag` end, at DRAG_DOWN_N - 1 since
+          P25-U, the guard's own count, `_stand_drag_n`).
         - The drag-down guard (ruling P24-A (h), `_drag`): `flee` with the group steer (`group` "drag"), ahead of
           every other row but the doorway's; the Flee steers at a run, or inside walks the exit (P24-A (f), P24-O).
         - `door`: sheltered (a chosen shelter's plan done, the character inside) with a reachable held threat in its
@@ -471,6 +477,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         self.sheltered = self.flee is not None and self.flee.sheltered and inside
         self.broken, self.group_steer, self.corner_yield, self.behind, self.listed = None, None, None, None, None
         self.stand_left, self.stand_end, self.stand_wound, self.pair_yield = None, None, None, None
+        self.stand_drag = None
         door = self._doorway()
         if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
             return door
@@ -715,7 +722,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
             self.why["doorway_pick"] = pick
         for key, v in (("yield", self.corner_yield), ("behind", self.behind), ("listed", self.listed),
                        ("doorway_left", self.stand_end), ("pain", self.wound), ("finish_block", self.finish_block),
-                       ("doorway_wound", self.stand_wound), ("pair_yield", self.pair_yield)):
+                       ("doorway_wound", self.stand_wound), ("doorway_drag", self.stand_drag),
+                       ("pair_yield", self.pair_yield)):
             if v is not None:
                 self.why[key] = v
         if self.broken is not None:

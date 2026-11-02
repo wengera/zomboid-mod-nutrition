@@ -188,8 +188,10 @@ def test_no_stand_and_the_close_as_today(tmp_path, case):
 
 def test_the_drag_down_guard_does_not_leave_the_doorway(tmp_path):
     """The stand's premise is the one-tile front against #4290's three: two attackers read at the doorway keep the
-    stand (the swing), where in the open the guard flees the group."""
+    stand (the swing), where in the open the guard flees the group. Named change, P25-U (Plan 25 Task 14): the stand
+    now ends `drag` at two (`test_survive_x`); this case pins ruling R1's threshold with `STAND_DRAG_EARLY` off."""
     r, sv = stood(tmp_path)
+    sv.STAND_DRAG_EARLY = False
     r.frame(x=POST[0], y=POST[1], zombies=[z(1, 111.3, 201.5)] + group(8.0, POST)[1:], attackers=2)
     a = tick(r, sv)
     assert a.type == "attack" and why(r)["doorway"] == 1 and "group" not in why(r)

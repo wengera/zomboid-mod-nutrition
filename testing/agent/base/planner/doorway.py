@@ -32,8 +32,9 @@ The rule changes the end of a `many` flee's shelter steps (`policies.Flee`, ruli
   review's major 2: E9's replayed walk back held 23 s with the nearest at 0.50 tiles, health 97.5 to 41.6, unswung).
 - **Leaving it** (`Survive._doorway`): only once no zombie has been within DANGER_R for DOOR_HOLD_S wall seconds
   (`quiet`), or the health falls under FLEE_HEALTH (`health`, the existing health flee line), or the frame's
-  `me.attackers` reads DRAG_DOWN_N (`drag`: ruling R1 of review-t32-brief, three attackers mean the one-tile front
-  has failed; at two the stand holds), or the weapon is gone (`unarmed`: the stand swings a weapon). The plan then
+  `me.attackers` reads DRAG_DOWN_N - 1 (`drag`: ruling P25-U, E14's three attackers read 0.101 s before the
+  drag-down, two 3.001 s before; ruling R1 of review-t32-brief read DRAG_DOWN_N, `STAND_DRAG_EARLY` off), or the
+  weapon is gone (`unarmed`: the stand swings a weapon). The plan then
   goes back to its `close` step, sent from inside as today's shelter close (the Lua's `interact`: a close that fails
   reads `passed`, and the sheltered hold, the door fight, the re-close guard and the way out follow,
   `night.shelter_ended`). Off the building's room squares and more than DOOR_OFF_R from the threshold square
@@ -233,8 +234,9 @@ class DoorwayStand:
         `STAND_WOUND` on (E12, #4431: the stand held the door from game minute 694 while the bleeding parts rose from 1
         to 7, the first bite far above FLEE_HEALTH): a part reading `bleeding` that was not when the stand began (the
         start's indices kept on the plan, `bleed0`), logged `doorway_wound` (the new indices); `health` under
-        FLEE_HEALTH, `drag` with the
-        frame's `me.attackers` at DRAG_DOWN_N (ruling R1, Task 32 fix 1: the front has failed), `unarmed`, or `quiet`
+        FLEE_HEALTH, `drag` with the frame's `me.attackers` at DRAG_DOWN_N - 1 (ruling P25-U, `STAND_DRAG_EARLY`;
+        off, at DRAG_DOWN_N: ruling R1, Task 32 fix 1, the front has failed; `_stand_drag_n`), logged `doorway_drag`
+        (the count), `unarmed`, or `quiet`
         once no zombie has been within DANGER_R for DOOR_HOLD_S wall seconds, `plan["quiet"]` the last wall one was)
         puts the plan back on its `close` step, and while that close runs `("flee", "doorway")`: the Flee sends it from
         inside and its end is the shelter's as today. `off` (`doorway.off_post`: off the building's room squares and
@@ -245,16 +247,7 @@ class DoorwayStand:
         if plan is None or not plan.get("stood"):
             return None
         if plan["step"] == "stand":
-            now = self.clock()
-            if self._within(DANGER_R):
-                plan["quiet"] = now
-            new = self._stand_wound(plan)
-            left = ("wound" if new else "health" if self._health() < FLEE_HEALTH
-                    else "drag" if self._attackers() >= DRAG_DOWN_N
-                    else "unarmed" if not self._armed() else "off" if off_post(self.world, plan)
-                    else "quiet" if now - plan["quiet"] >= DOOR_HOLD_S else None)
-            if new:
-                self.stand_wound = new
+            left = self._stand_end(plan)
             if left is None:
                 return "doorway", None
             plan.update(step="close", left=left)
@@ -264,6 +257,40 @@ class DoorwayStand:
                 f._drop(False)   # the episode only steers from here (`picked` kept)
                 return None
         return ("flee", "doorway") if f.closing_stand() else None
+
+    def _stand_end(self, plan):
+        """The stand's end this tick (`_doorway`'s docstring), the first of its table that holds, else None; the quiet
+        clock (`plan["quiet"]`) moved on while a zombie is within DANGER_R, and the wound read every tick (its start's
+        snapshot is taken on the first). `drag` reads the frame's `me.attackers` at `_stand_drag_n` and logs the count
+        (`stand_drag`)."""
+        now = self.clock()
+        if self._within(DANGER_R):
+            plan["quiet"] = now
+        new = self._stand_wound(plan)
+        if new:
+            self.stand_wound = new
+        attackers = self._attackers()
+        ends = (("wound", lambda: new),
+                ("health", lambda: self._health() < FLEE_HEALTH),
+                ("drag", lambda: attackers >= self._stand_drag_n()),
+                ("unarmed", lambda: not self._armed()),
+                ("off", lambda: off_post(self.world, plan)),
+                ("quiet", lambda: now - plan["quiet"] >= DOOR_HOLD_S))
+        left = next((end for end, holds in ends if holds()), None)
+        if left == "drag":
+            self.stand_drag = attackers
+        return left
+
+    def _stand_drag_n(self):
+        """Ruling P25-U (E14, `e_day_14-20261030-235607`: three attackers read at seq 3655, `EndDeath` with `dragDown`
+        0.101 s later, two read 3.001 s before): the attackers at which the stand's `drag` end fires, DRAG_DOWN_N - 1
+        with `STAND_DRAG_EARLY` on (#4290: the drag-down needs DRAG_DOWN_N, so the end at it can never act in time),
+        else DRAG_DOWN_N (ruling R1, Task 32 fix 1). The drag-down guard (`_drag`, P24-A (h)) leaves any fight at the
+        same DRAG_DOWN_N - 1, but the stand's end reads first on a tick: `_doorway` is `_threat_plan`'s first row (the
+        stand's plan holds the Flee and its premise is the one-tile front the guard flees), so while a stand stands the
+        guard is never read; its end names the tick (`doorway_left` "drag"), and the guard reads from the next tick,
+        the plan left."""
+        return DRAG_DOWN_N - 1 if self.STAND_DRAG_EARLY else DRAG_DOWN_N
 
     def _stand_wound(self, plan):
         """Ruling P25-K: with `STAND_WOUND` on, the sorted indices of the parts bleeding now that were not when the

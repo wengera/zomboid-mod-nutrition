@@ -102,8 +102,18 @@ def pre_t4(sv, keep=()):
 
 def pre_t5(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 25 Task 10 (survival iteration 15): its switches off
-    (`survive.T5_SWITCHES`), but those named in `keep` (`test_iteration_15_moves_no_golden`)."""
+    (`survive.T5_SWITCHES`), but those named in `keep` (`test_iteration_15_moves_no_golden`). Plan 25 Task 14:
+    iteration 16's switches (`pre_t6`) off with them, so every seam onto an earlier rule reads them off."""
     for name in S.T5_SWITCHES:
+        if name not in keep:
+            setattr(sv, name, False)
+    pre_t6(sv)
+
+
+def pre_t6(sv, keep=()):
+    """The replay's mutate seam onto the rules before Plan 25 Task 14 (survival iteration 16): its switches off
+    (`survive.T6_SWITCHES`), but those named in `keep` (`test_iteration_16_moves_no_golden`)."""
+    for name in S.T6_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
 
@@ -1434,5 +1444,17 @@ def test_iteration_15_moves_no_golden(key):
     with open(R.golden_path(key), encoding="utf-8") as f:
         head = json.load(f)
     text = R.golden_text(R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t5)), head["base"],
+                         R.RUNS[key], head["recorded"], R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert text.encode("utf-8") == golden(key)
+
+
+# ================================================================ Plan 25 Task 14: iteration 16 on the goldens
+@pytest.mark.parametrize("key", sorted(PRE_T3))
+def test_iteration_16_moves_no_golden(key):
+    """Task 14's rules move no golden: the six are byte-identical with them on (`test_the_golden_is_reproduced_byte_
+    for_byte_from_its_artifact`) and with iteration 16's switches off (`pre_t6`)."""
+    with open(R.golden_path(key), encoding="utf-8") as f:
+        head = json.load(f)
+    text = R.golden_text(R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t6)), head["base"],
                          R.RUNS[key], head["recorded"], R.SPANS.get(key), R.HELLO_CAPS.get(key))
     assert text.encode("utf-8") == golden(key)
