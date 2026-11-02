@@ -18,7 +18,8 @@ mod over PZA/1.7.1, on `test_survive`'s shelter world (building 1's 3 x 3 kitche
 
 Task 14 fix 1 (the review's minors, `review-t14.md`, and two rulings): a marked zombie read across its edge is out of the
 hold (`EDGE_OUT_OF_HOLD`); the refusal's why never overwrites a routed second zombie's `blocked_edge`; a stand's
-`walking_out` clears with its exit; the stand's end table reads `drag` before `health`.
+`walking_out` clears with its exit; the stand's end table reads `drag` before `health`; P25-Y, a dirty rag alone under
+DIRTY_RAG_MIN no longer blocks the rip or the unwear (`DIRTY_RAG_RIP`; F6, `f_goals_7-20261031-000629`).
 """
 from agent.base.planner import doorway as D
 from agent.base.planner import policies as P
@@ -28,14 +29,16 @@ from agent.base.planner import threat as T
 from .test_night import OPEN, house
 from .test_policies import all_sends_valid, grid, square
 from .test_survive import group, last, make, tick
-from .test_survive_g import part
+from .test_survive_g import care_frame, care_why, hold, part
 from .test_survive_p import POST, stood
 from .test_survive_p import why as door_why
 from .test_survive_p import z as dz
+from .test_survive_n import TSHIRT, unwear_rig
 
 
 def test_the_iteration_16_switches():
-    assert S.T6_SWITCHES == ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE", "EDGE_OUT_OF_HOLD")
+    assert S.T6_SWITCHES == ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE", "EDGE_OUT_OF_HOLD",
+                             "DIRTY_RAG_RIP")
     assert D.STAND_EXIT_ENDS == ("wound", "drag", "inside")
     assert all(getattr(T.Threat, name) is True for name in S.T6_SWITCHES)
 
@@ -574,3 +577,62 @@ def test_a_stand_ended_drag_under_flee_health_leaves_by_the_way_out_never_the_cl
     r, sv = run("off", False)
     w = door_why(r)
     assert w["doorway_left"] == "health" and "doorway_exit" not in w and "doorway_drag" not in w
+
+
+# ================================================================ P25-Y: a dirty rag alone does not block the rip
+def _dirty_rig(tmp_path, held, bleeding_time=3.0, garments=None, switch=True, unworn=True):
+    """`test_survive_n.unwear_rig`'s PZA/1.7 world (no worn garment unless `garments`), `held` [(id, fullType)] of
+    bandage items, an unworn cotton T-shirt 30 held (`unworn`); part 9 bleeding at `bleeding_time`; no zombie, one
+    care tick."""
+    r, sv = unwear_rig(tmp_path, garments=garments or [])
+    sv.DIRTY_RAG_RIP = switch
+    for iid, ft in held:
+        hold(r, iid, ft)
+    if unworn:
+        r.event("item_added", itemId=30, fullType="Base.Tshirt_Blue", weight=0.2, use="clothing", rip="cotton",
+                clothing={"loc": TSHIRT, "bite": 1.0, "scratch": 1.0})
+    care_frame(r, [part(9, bleeding=True, bleedingTime=bleeding_time)])
+    tick(r, sv)
+    return r, sv
+
+
+def test_the_iteration_16_care_switch():
+    assert S.T6_SWITCHES[-1] == "DIRTY_RAG_RIP" and T.Threat.DIRTY_RAG_RIP is True
+
+
+def test_a_dirty_rag_alone_under_dirty_rag_min_no_longer_blocks_the_rip_of_an_unworn_garment(tmp_path):
+    """P25-Y (F6: part 3 bled from game minute 701 to 743 with a dirty rag the only dressing and a cotton T-shirt held
+    unworn): bleedingTime 3.0, under DIRTY_RAG_MIN: the garment is ripped, logged `no_rag` with the dirty rag's id
+    (`dirty`); the next care tick the clean rag dresses the part."""
+    r, sv = _dirty_rig(tmp_path, [(12, "Base.RippedSheetsDirty")])
+    assert r.cmd() == ("rip", {"itemId": 30})
+    assert care_why(tmp_path) == {"reason": "no_rag", "part": 9, "item": 30, "dirty": 12}
+
+
+def test_with_a_clean_rag_held_the_part_is_bandaged_with_it_never_the_rip(tmp_path):
+    r, sv = _dirty_rig(tmp_path, [(12, "Base.RippedSheetsDirty"), (11, "Base.RippedSheets")])
+    assert r.cmd() == ("bandage", {"itemId": 11, "part": 9})
+    assert care_why(tmp_path)["kind"] == "rag"
+
+
+def test_past_dirty_rag_min_the_dirty_rag_dresses_the_part_as_before(tmp_path):
+    r, sv = _dirty_rig(tmp_path, [(12, "Base.RippedSheetsDirty")], bleeding_time=12.0)
+    assert r.cmd() == ("bandage", {"itemId": 12, "part": 9}) and care_why(tmp_path)["kind"] == "dirty"
+
+
+def test_a_dirty_rag_alone_with_no_garment_unworn_takes_the_unwear_of_a_worn_cotton_one(tmp_path):
+    """P25-H's unwear behind the same block: no unworn garment, a worn cotton T-shirt, a quiet tick: the unwear, logged
+    with the dirty rag's id."""
+    r, sv = _dirty_rig(tmp_path, [(12, "Base.RippedSheetsDirty")], unworn=False,
+                       garments=[(20, "Base.Tshirt_White", TSHIRT, 1.0, 2.0)])
+    assert r.cmd() == ("unwear", {"itemId": 20})
+    assert care_why(tmp_path) == {"reason": "unwear", "item": 20, "loc": TSHIRT, "cover": 3.0, "part": 9, "dirty": 12}
+
+
+def test_with_dirty_rag_rip_off_a_dirty_rag_held_blocks_the_rip_and_the_unwear_as_in_iteration_15(tmp_path):
+    r, sv = _dirty_rig(tmp_path, [(12, "Base.RippedSheetsDirty")], switch=False)
+    assert last(tmp_path)["branch"] != "care" and not [a for a in r.acts.history if a.type in ("rip", "unwear")]
+    (tmp_path / "w").mkdir()
+    r, sv = _dirty_rig(tmp_path / "w", [(12, "Base.RippedSheetsDirty")], switch=False, unworn=False,
+                       garments=[(20, "Base.Tshirt_White", TSHIRT, 1.0, 2.0)])
+    assert last(tmp_path / "w")["branch"] != "care" and not [a for a in r.acts.history if a.type in ("rip", "unwear")]

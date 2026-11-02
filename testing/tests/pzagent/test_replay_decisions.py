@@ -1563,3 +1563,12 @@ def test_edge_out_of_hold_moves_every_golden_first_the_tick_after_its_first_refu
     line = FIRST_EDGE_OUT[key]
     assert base[line]["why"]["flee"] == "unreachable" and line not in got
     assert base[FIRST_ENGAGE[key][0]] == got[FIRST_ENGAGE[key][0]]
+
+
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_dirty_rag_rip_moves_no_golden(key):
+    """P25-Y reads a bleeding part under a dirty rag with a garment held: no golden ring carries one, so the files
+    are the same with `DIRTY_RAG_RIP` off."""
+    only = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
+                                                       mutate=lambda sv: setattr(sv, "DIRTY_RAG_RIP", False)))}
+    assert only == gold(key)

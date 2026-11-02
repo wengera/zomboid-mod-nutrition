@@ -110,6 +110,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     EDGE_OUT_OF_HOLD = True   # ruling P25-X, amended (Task 14 fix 1): a zombie marked for a blocked edge (`edge_marks`)
                               # and read across it is out of the hold (`Survive._within`: the held set, `_released`, the
                               # DANGER_R count the `unreachable` flee reads); off, it counts as before
+    DIRTY_RAG_RIP = True  # ruling P25-Y (Task 14 fix 1): a dirty rag held with no clean dressing, its part's bleedingTime at
+                          # or under DIRTY_RAG_MIN, no longer blocks the rip of an unworn cotton garment nor P25-H's unwear
+                          # (`care.Care._wound`); off, a dressing of any kind held blocks both
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -581,6 +584,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         breach's closing count (`_breach_now`). Read in `_read` (Plan 25 Task 2, `OBSERVES_IN_READ`), else at the
         threat branch's start in `assess` (the rules before it)."""
         self.care_yield, self.care.ride_now, self.engaging, self.avoid = None, False, False, set()
+        self.care.dirty_rag_rip = self.DIRTY_RAG_RIP   # P25-Y, read by the care's yield reads as well as its choose
         self.finish_block = None   # Task 36 fix 1: this tick's refusal only (`_finish_chaser` sets it)
         self._release_edges()   # P25-X: a zombie refused across a blocked edge, read on the player's side, is free
         self._held, self._breach_now = [], None

@@ -221,6 +221,9 @@ class Care(Policy):
         self.unworn_item = None   # the id the last unwear took off, ripped first once it reads unworn (P24-AJ)
         self.unwear_wound = True  # ruling P25-H: the bleeding step unwears on a quiet tick (Survive sets it each care
                                   # tick from its `UNWEAR_WOUND` switch); off, the idle stock alone unwears (P24-AJ)
+        self.dirty_rag_rip = True  # ruling P25-Y: a dirty rag alone, its part's bleedingTime at or under DIRTY_RAG_MIN, does
+                                   # not block the rip or the unwear (Survive sets it each tick from `DIRTY_RAG_RIP`); off,
+                                   # a dressing of any kind held blocks both (iteration 15)
         self.trapped = False      # ruling P25-Q: the tick is the threat's trapped hold passed on (Survive sets it each
                                   # care tick): the bleeding step's unwear goes as on a quiet tick (never the wash)
 
@@ -358,7 +361,11 @@ class Care(Policy):
         `unwear_wound`) and `quiet` the unwear of the worn cotton garment covering the least (`_unwear_step`, its why
         `{reason "unwear", part, item, loc, cover}`), which the next care tick rips (P24-AJ's `unworn_item`). With
         `ride` (P24-U) the worst bleeding part above the legs (index under LEG_FIRST) is bandaged with keepMoving, never
-        a rip or an unwear (either stops the leg). The yield's reads (`tends_wound`, `rides_wound`) and the want's
+        a rip or an unwear (either stops the leg). Ruling P25-Y (F6, `f_goals_7-20261031-000629`: part 3 bled from game
+        minute 701 to 743 with a dirty rag the only dressing held, the bleedingTime under DIRTY_RAG_MIN, and a cotton
+        T-shirt held unworn): "no rag of any kind held" means no clean bandage or rag (`dirty_rag_rip`); the dirty rag
+        alone, the time rule not allowing it, no longer blocks the rip or the unwear, logged `dirty` (its id). The
+        yield's reads (`tends_wound`, `rides_wound`) and the want's
         (`wants_dressing`) read it without the unwear: a tick whose step is the unwear sends, so it wants no loot."""
         w = self.world
         if ride:
@@ -375,16 +382,19 @@ class Care(Policy):
             if ride:
                 why["ride"] = True
             return Bandage(items[k][0], part=p["i"], keepMoving=ride), why
-        if ride or any(items[k] for k in KINDS):
+        if ride or any(items[k] for k in (("bandage", "rag") if self.dirty_rag_rip else KINDS)):
             return None, None
+        # ruling P25-Y (`dirty_rag_rip`): reaching here with a dirty rag held means its bleedingTime is at or under
+        # DIRTY_RAG_MIN (past it the rag dressed the part above), so the rip or unwear goes; logged `dirty` (its id)
+        passed = {"dirty": items["dirty"][0]} if items["dirty"] else {}
         rip = self._rip_item() if w.can("rip") else None
         if rip is not None:
-            return Rip(rip), {"reason": "no_rag", "part": p["i"], "item": rip}
+            return Rip(rip), dict({"reason": "no_rag", "part": p["i"], "item": rip}, **passed)
         if unwear and (self.quiet or self.trapped):   # P25-H: nothing to rip, so the least-covering worn cotton garment
                                                       # comes off for it (P25-Q: the trapped hold's tick too)
             cmd, why = self._unwear_step()
             if cmd is not None:
-                return cmd, dict(why, part=p["i"])
+                return cmd, dict(why, part=p["i"], **passed)
         return None, None
 
     def stock(self):

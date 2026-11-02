@@ -278,7 +278,10 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   `edge_marks`), the goal ended `failed "blocked edge"` and cooled (`edges.GoalEdge`), the fill's next source taken
   (`water.Water.plan`); logged `blocked_edge` {edge, door, action}; `BLOCKED_EDGE`); P25-X amended by Task 14 fix 1, a
   zombie so marked and read across its edge is out of the hold (`_edge_out`, read by `_within`; `EDGE_OUT_OF_HOLD`); the
-  stand's end table reads `drag` before `health` (`STAND_DRAG_EARLY`); `T6_SWITCHES` off is the rule before them.
+  stand's end table reads `drag` before `health` (`STAND_DRAG_EARLY`); P25-Y (fix 1, F6: part 3 bled 42 game
+  minutes with a dirty rag the only dressing held and a cotton T-shirt unworn), a dirty rag alone, its part's
+  `bleedingTime` at or under DIRTY_RAG_MIN, no longer blocks the rip or P25-H's unwear (`care.Care._wound`, logged
+  `dirty`; `DIRTY_RAG_RIP`); `T6_SWITCHES` off is the rule before them.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -378,9 +381,10 @@ T4_SWITCHES = ("UNWEAR_WOUND", "FINISH_FAR", "STAND_WOUND", "SHOVE_BREAK", "SHEL
                          # rule before each
 T5_SWITCHES = ("UNARMED_FIGHT", "TRAPPED_CARE", "LOW_FIGHT", "SHOVE_BREAK_RUN")   # survival iteration 15 (Plan 25
                          # Task 10): the switches of P25-P, P25-Q, P25-S and P25-T; off, the rule before each
-T6_SWITCHES = ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE", "EDGE_OUT_OF_HOLD")   # survival
-                         # iteration 16 (Plan 25 Task 14): the switches of P25-U, P25-V, P25-W and P25-X (the last two:
-                         # the amendment and its fix 1); off, the rule before each
+T6_SWITCHES = ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE", "EDGE_OUT_OF_HOLD",
+              "DIRTY_RAG_RIP")   # survival
+                         # iteration 16 (Plan 25 Task 14): the switches of P25-U, P25-V, P25-W and P25-X (the amendment
+                         # and its fix 1) and P25-Y (fix 1); off, the rule before each
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
