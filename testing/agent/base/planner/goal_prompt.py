@@ -6,16 +6,16 @@ log or planner internal; a test asserts it).
 types, enums and bounds (`field_text`); the strategy paragraph (Task 29); how the view's building line reads; the
 refusal rule (P24-B 3, the bound `explore_max_tiles`, `llm.EXPLORE_MAX_TILES`, and `goals.WOODS_R`); the loop (P24-Y,
 `goals.BUILDING_R`; ruling P25-R, Plan 25 Task 10: the program fights only while a weapon is held, else flees, and an
-ExploreToward at the view's `toward` square is always accepted, `llm.place_error`); the meaning of the view keys the
-rules read (met, attackers, worn, hit_reaction, tired and night, hold (Plan 25 Task 4: the view's `spent` rendered
-`hold: <kind> <value>`), last_goal with its `cooled` end (Plan 25
-Task 4: the runner's cooled refusal, `GoalRunner._carried`), and its `shunned` why, ruling P25-G); then that the user
-message is the view. Ruling P25-G (Plan 25 Task 7, F4's 67 Shelter answers for its one shunned building): the
-building line's `s` flag says what it means for the choice (not a shelter for SHUN_MIN game minutes; explore along a
-road or Rest instead), the refusal rule names the Shelter of an `s` building, and the strategy's third line never
-names one. The strategy's
-third line names `Rest` while `hold` reads (Plan 25 Task 4, spec 2.2(c), (f): the guides notes' section 8 line 3
-extended by one clause).
+ExploreToward at the view's `toward` square is always accepted, `llm.place_error`); the all-looted line (ruling P26-G,
+Plan 26 Task 3: the view's `open` names the goals still open when every listed building reads `L`); the meaning of
+the view keys the rules read (met, attackers, worn, hit_reaction, tired and night, hold (Plan 25 Task 4: the view's
+`spent` rendered `hold: <kind> <value>`), last_goal with its `cooled` end (Plan 25 Task 4: the runner's cooled
+refusal, `GoalRunner._carried`), and its `shunned` why, ruling P25-G); then that the user message is the view. Ruling
+P25-G (Plan 25 Task 7, F4's 67 Shelter answers for its one shunned building): the building line's `s` flag says what
+it means for the choice (not a shelter for SHUN_MIN game minutes; explore along a road or Rest instead), the refusal
+rule names the Shelter of an `s` building, and the strategy's third line never names one. The strategy's third line
+names `Rest` while `hold` reads (Plan 25 Task 4, spec 2.2(c), (f): the guides notes' section 8 line 3 extended by one
+clause).
 
 The strategy paragraph (Task 29; `docs/superpowers/specs/2026-10-30-plan-24-guides-notes.md` § 8, the written guides'
 rules worded for the prompt): `strategy()` is the schema's `strategy` list, one entry per rule, `{text, pages,
@@ -89,6 +89,8 @@ def system(explore_max_tiles):
                  "is known to hold); walk only toward buildings: toward names the next building to walk to when none "
                  "is near (its door); an ExploreToward at its square is always accepted, and an ExploreToward finds "
                  "the next house at the edge of the known buildings, never out into open ground." % BUILDING_R)
+    lines.append("When the view carries `open`, every listed building is looted: answer one of the goals it names (an "
+                 "ExploreToward at toward's square, or Stock), never a LootBuilding.")   # P26-G: F7's 21 refused loots
     lines.append("met is the ground where zombies were met in the last minutes: dense the centre of the densest "
                  "group, n how many, bearing and dist from pos. Zombies there are still about: prefer ground away "
                  "from met.dense, and never explore toward its bearing while met.n is 3 or more.")

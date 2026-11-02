@@ -327,7 +327,8 @@ def test_a_building_with_no_container_known_is_not_looted(tmp_path):
     assert b["containers"] == 0 and b["looted"] is False and "L" not in V._building(b).split()[-1]
 
 
-# ======================================== Task 29: the keys the strategy lines read (tired, night, a building's zombies)
+# ======================================== Task 29: the keys the strategy lines read (tired, night, a building's
+# zombies)
 def test_tired_and_night_come_off_the_frames_fatigue_and_hour_at_the_nights_lines(tmp_path):
     from agent.base.planner.night import DAWN_HOUR, LATE_HOUR, TIRED_T
     r, sv = make(tmp_path)
@@ -410,7 +411,8 @@ def test_a_building_with_only_capped_clothing_left_reads_looted(tmp_path):
 
 
 def test_the_holds_field_counts_only_the_uses_the_looted_rule_still_wants(tmp_path):
-    """Fix 1 minor 4: a building read `L` for capped clothing no longer renders `h:clothing1`; one garment short it does."""
+    """Fix 1 minor 4: a building read `L` for capped clothing no longer renders `h:clothing1`; one garment short it
+    does."""
     from agent.base.planner.policies import CLOTHING_HELD_N
     r, sv = make(tmp_path)
     sqs = house(1, 110)
@@ -453,3 +455,46 @@ def test_the_survives_view_renders_task_3s_hold_as_the_hold_line(tmp_path):
     tick(r, sv)
     lines = render(sv._view()).splitlines()
     assert "hold: endurance 0.73" in lines and not any(ln.startswith("spent") for ln in lines)
+
+
+# ======================================== Plan 26 Task 3: the all-looted line (ruling P26-G)
+def looted_pair(tmp_path, loot_both=True):
+    """Two houses, a fridge each, building 2's looted and building 1's too when `loot_both`."""
+    r, sv = make(tmp_path)
+    sqs = house(1, 110) + house(2, 120)
+    for s in sqs:
+        if (s["x"], s["y"]) in ((111, 201), (121, 201)):
+            s["containers"] = [FRIDGE]
+    r.scan(sqs)
+    r.frame(x=100.0, y=201.5)
+    r.world.mark_looted((121, 201, 0, 0), "food")
+    if loot_both:
+        r.world.mark_looted((111, 201, 0, 0), "food")
+    return r, sv
+
+
+def test_a_view_whose_listed_buildings_all_read_looted_carries_open(tmp_path):
+    """P26-G (F7: 21 answers of building 2's loot on views listing no unlooted building): with every listed building
+    `L`, the view names the goals still open, rendered as its own line right after the buildings."""
+    r, sv = looted_pair(tmp_path)
+    v = view(r.world, sv)
+    assert [b["looted"] for b in v["buildings"]] == [True, True]
+    assert v["open"] == ["ExploreToward", "Stock"] == list(V.OPEN_GOALS) and V.OPEN_KEY == "open"
+    lines = render(v).splitlines()
+    i = next(i for i, ln in enumerate(lines) if ln.startswith("buildings:"))
+    assert lines[i + 1] == 'open: ["ExploreToward","Stock"]'
+    assert sum(ln.startswith("open:") for ln in lines) == 1
+
+
+def test_one_unlooted_building_or_none_listed_carries_no_open(tmp_path):
+    """P26-G: one building without `L` keeps the loot open, so no `open` key and no line (every view before P26-G
+    renders byte-identical); a view listing no building carries none either."""
+    r, sv = looted_pair(tmp_path, loot_both=False)
+    v = view(r.world, sv)
+    assert [b["looted"] for b in v["buildings"]] == [False, True]
+    assert "open" not in v and "open:" not in render(v)
+    assert [ln.split(":", 1)[0] for ln in render(v).splitlines()] == list(V.KEYS)
+    r2, sv2 = make(tmp_path / "bare")
+    r2.frame()
+    v2 = view(r2.world, sv2)
+    assert v2["buildings"] == [] and "open" not in v2 and set(v2) == set(V.KEYS)

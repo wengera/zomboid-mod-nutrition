@@ -783,3 +783,14 @@ def test_every_object_refused_logs_each_and_carries_the_first_refusal():
                               {"goal": {"type": "LootBuilding", "building": 3}, "why": "looted already"},
                               {"goal": None, "why": "Rest.seconds: 500 above the maximum 120"}]
     assert src.refusal == {"type": "LootBuilding", "args": {"building": 2}, "end": "refused", "why": "looted already"}
+
+
+OPEN_LINE = ("When the view carries `open`, every listed building is looted: answer one of the goals it names (an "
+             "ExploreToward at toward's square, or Stock), never a LootBuilding.")
+
+
+def test_system_says_what_the_open_line_means_right_after_the_loop_sentence():
+    """P26-G: the all-looted line's meaning, the sentence after the loop's (model-facing wording, pinned)."""
+    lines = SYSTEM.splitlines()
+    loop = next(i for i, ln in enumerate(lines) if ln.startswith("Your loop, every goal a building"))
+    assert lines[loop + 1] == OPEN_LINE and SYSTEM.count(OPEN_LINE) == 1

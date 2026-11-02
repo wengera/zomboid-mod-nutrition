@@ -3,9 +3,9 @@
 `view(world, survive) -> dict`, built by `Survive`'s goal branch on a tick that proposes (`survive` supplies the
 planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads empty). Its keys, in `KEYS` order:
 - `pos {x, y, z}` (the frame's `me`), `hour`, `health` (`body.health`), `kills` (`World.kills`: the zombies the
-  fights killed this session, ruling P24-Q, Plan 24 Task 12: the iteration's metric, told to the model), `needs {hunger, thirst, fatigue}` (`stats`),
-  `load {weight, max, level}`, `weapon` (the wielded type, else None), `inventory_by_use` ({use: count} over
-  `items.USES`, by `world.by_use()`).
+  fights killed this session, ruling P24-Q, Plan 24 Task 12: the iteration's metric, told to the model), `needs
+  {hunger, thirst, fatigue}` (`stats`), `load {weight, max, level}`, `weapon` (the wielded type, else None),
+  `inventory_by_use` ({use: count} over `items.USES`, by `world.by_use()`).
 - `night` and `tired` (Plan 24 Task 29: the strategy lines' reads, `goal_prompt.py`): `night` the frame's `me.hour` at
   `night.LATE_HOUR` or later or under `night.DAWN_HOUR` (the hours `Night.late` reads), `tired` the frame's
   `stats.fatigue` above `night.TIRED_T` (the first TIRED moodle, the line `Night.wants` reads); each None when its
@@ -71,23 +71,27 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
   empty vessel, the water chain's want, among them since P24-Y made it a loot's want, while fewer than
   `goals.CONTAINERS_HELD_N` vessels are held, Task 18 fix 1's major 5), `cooled` (the goals
   the runner refuses for now, `GoalRunner.cooling()`: `[{type, args}]`, fix 1 I4).
+- `open` (ruling P26-G, Plan 26 Task 3: F7's model answered building 2's loot 21 times on views listing no unlooted
+  building): OPEN_GOALS, `["ExploreToward", "Stock"]`, the goals still open, only when at least one building is
+  listed and every one reads `looted`; absent otherwise (outside KEYS, so a view without it renders as before).
 
 The view only reads: the kit is bound by its runner's `observe`, never here (fix 1 M5).
 
 `render(view) -> str`: one `key: value` line per key in `KEYS` order (a key of OPTIONAL_KEYS only when the view
 carries it: Task 29; the hold, Plan 25 Task 4, spec 2.2(f): the view's `spent` `{kind, value}` (Task 3's, set while
 a hold is) reads as the line `hold: <kind> <value>`, the value to 0.01, right after `tired`'s place, and no line
-while none is set; `spent` itself is never rendered under its own name), values as compact sorted JSON except
-`buildings`, capped at the BUILDINGS_SHOWN (6, P24-B 3) nearest, each `id @x,y door x,y dist cN flags h:holds z:N`
-(`door -` with none; flags `L` looted, `v` visited, `s` shunned, `x` blocked (P24-Z), `-` none; `holds` its `use count` pairs, sorted, as
+while none is set; `spent` itself is never rendered under its own name; `open` reads as its own line `open: [...]`
+right after `buildings`, P26-G, and no line without it), values as compact sorted JSON except `buildings`, capped at
+the BUILDINGS_SHOWN (6, P24-B 3) nearest, each `id @x,y door x,y dist cN flags h:holds z:N` (`door -` with none;
+flags `L` looted, `v` visited, `s` shunned, `x` blocked (P24-Z), `-` none; `holds` its `use count` pairs, sorted, as
 `food3,water1`, `-` with none: P24-Y; ` z:N` its `zombies_near`, only when the building carries it: Task 29),
-joined by "; "; the whole stays under RENDER_MAX
-(2048) bytes, asserted at return. On overflow the lowest-value line goes first: `events` (the last event kinds, which
-no rule reads) is emptied to `[]`; then the buildings are cut from the farthest; then the longest line is halved (its
-tail replaced by "...") until it fits, so a long string off the game (an event kind, a goal's reason) cannot pass the
-bound (a test asserts every key present and nothing cut on a full fixture: 20 buildings, 50 containers, 30 zombies, a
-met window, a goal ended, the needs and a cooled goal; and the bound on a view of oversized strings). The places a
-model may name are the shown buildings (`shown_ids`) and an ExploreToward within `llm.EXPLORE_MAX_TILES` of `pos`.
+joined by "; "; the whole stays under RENDER_MAX (2048) bytes, asserted at return. On overflow the lowest-value line
+goes first: `events` (the last event kinds, which no rule reads) is emptied to `[]`; then the buildings are cut from
+the farthest; then the longest line is halved (its tail replaced by "...") until it fits, so a long string off the
+game (an event kind, a goal's reason) cannot pass the bound (a test asserts every key present and nothing cut on a
+full fixture: 20 buildings, 50 containers, 30 zombies, a met window, a goal ended, the needs and a cooled goal; and
+the bound on a view of oversized strings). The places a model may name are the shown buildings (`shown_ids`) and an
+ExploreToward within `llm.EXPLORE_MAX_TILES` of `pos`.
 """
 import json
 import math
@@ -109,8 +113,8 @@ BUILDING_ZOMBIE_R = 12.0   # tiles from a building's box within which a held zom
 BUILDINGS_SHOWN = 6
 RENDER_MAX = 2048
 EVENTS_N = 3
-KEYS = ("pos", "hour", "night", "health", "kills", "needs", "tired", "needs_wanted", "load", "weapon", "inventory_by_use",
-        "worn",
+KEYS = ("pos", "hour", "night", "health", "kills", "needs", "tired", "needs_wanted", "load", "weapon",
+        "inventory_by_use", "worn",
         "buildings",
         "zombies_near", "met", "attackers", "hit_reaction", "last_goal", "events", "want_shelter", "woods_r", "edge",
         "toward", "scanned_here", "stock_uses", "cooled")
@@ -119,9 +123,11 @@ WHYS = ("done", "stuck", "superseded by the threat", "superseded by an instinct"
 THREAT_SENDS = ("attack", "steer", "walkTo", "stop", "hold")   # a superseding send read as the threat's (why_of)
 OPTIONAL_KEYS = ("night", "tired")   # rendered only when the view carries them (Task 29)
 HOLD_KEY, HOLD_AFTER = "spent", "tired"   # the hold's view key (Plan 25 Task 3) and the line its `hold:` line follows
+OPEN_KEY, OPEN_AFTER = "open", "buildings"   # P26-G: the all-looted key and the line it follows
+OPEN_GOALS = ("ExploreToward", "Stock")      # P26-G: the goals still open when every listed building reads looted
 
-__all__ = ["view", "render", "why_of", "shown_ids", "KEYS", "OPTIONAL_KEYS", "WHYS", "NEED_MEMORY_S",
-           "ZOMBIE_BANDS", "BUILDING_ZOMBIE_R", "BUILDINGS_SHOWN", "RENDER_MAX", "MET_VIEW_R"]
+__all__ = ["view", "render", "why_of", "shown_ids", "KEYS", "OPTIONAL_KEYS", "WHYS", "OPEN_KEY", "OPEN_GOALS",
+           "NEED_MEMORY_S", "ZOMBIE_BANDS", "BUILDING_ZOMBIE_R", "BUILDINGS_SHOWN", "RENDER_MAX", "MET_VIEW_R"]
 
 
 def _num(v):
@@ -248,7 +254,7 @@ def view(world, survive):
     last = runner.history[-1] if runner is not None and runner.history else None
     buildings = _buildings(world, night, kit, zxy)
     hour, fatigue = me.get("hour"), st.get("fatigue")
-    return {
+    v = {
         "pos": {"x": me.get("x"), "y": me.get("y"), "z": me.get("z")},
         "hour": hour,
         "night": (hour >= LATE_HOUR or hour < DAWN_HOUR) if _num(hour) else None,   # the hours Night.late reads
@@ -278,6 +284,9 @@ def view(world, survive):
                        if kit is not None and kit.loot.target(u) is not None],
         "cooled": runner.cooling() if runner is not None else [],
     }
+    if buildings and all(b["looted"] for b in buildings):   # P26-G: every listed building reads looted
+        v[OPEN_KEY] = list(OPEN_GOALS)
+    return v
 
 
 def shown_ids(v):
@@ -309,6 +318,12 @@ def _hold(v):
     return "hold: %s" % h["kind"] + (" %s" % round(value, 2) if _num(value) else "")
 
 
+def _open(v):
+    """The all-looted line (ruling P26-G): `open: [...]` while the view carries `open`, else None (no line)."""
+    goals = v.get(OPEN_KEY)
+    return "%s: %s" % (OPEN_KEY, json.dumps(goals, separators=(",", ":"))) if goals else None
+
+
 def _line(v, k, shown, events):
     """The line of view key `k`, else None: an optional key the view does not carry, and the hold's key, which reads
     as its own `hold:` line after HOLD_AFTER's (`_lines`)."""
@@ -322,14 +337,14 @@ def _line(v, k, shown, events):
 
 
 def _lines(v, shown, events=True):
-    hold = _hold(v)
+    after = {HOLD_AFTER: _hold(v), OPEN_AFTER: _open(v)}   # the lines of the keys outside KEYS, by the line they follow
     lines = []
     for k in KEYS:
         line = _line(v, k, shown, events)
         if line is not None:
             lines.append(line)
-        if k == HOLD_AFTER and hold is not None:
-            lines.append(hold)
+        if after.get(k) is not None:
+            lines.append(after[k])
     return lines
 
 
