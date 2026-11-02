@@ -477,6 +477,8 @@ class Survive(Threat):
         self.stand_inside = None  # this tick: {id, square} of the zombie that ended the stand `inside` (P25-V), else
                                   # None
         self.stand_exit = None    # this tick: the stand's end its Flee walks out on (P25-W), else None
+        self.one_exit_refused = None  # this tick: {building, door} of the first door a `many` pick refused `one_exit`
+                                      # (P26-B), else None
         self.pair_yield = None    # this tick: the fallen zombie's id the `pair` flee yielded to (P25-J), else None
         self.fight_refused = {}   # the last Fight's `swing_refused`, kept for the `pair` flee's finish (P25-J, 8 fix 1)
         self.trapped_pass = False  # this tick: the threat's answer was the Flee's trapped hold (P25-Q: the care's tick)

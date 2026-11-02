@@ -500,6 +500,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.broken, self.group_steer, self.corner_yield, self.behind, self.listed = None, None, None, None, None
         self.stand_left, self.stand_end, self.stand_wound, self.pair_yield = None, None, None, None
         self.stand_drag, self.stand_inside, self.stand_exit = None, None, None
+        self.one_exit_refused = None
         door = self._doorway()
         if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
             return door
@@ -755,6 +756,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             self.why["unsought"] = sorted(self.avoid, key=repr)
         if want == "flee" and pick is not None:
             self.why["doorway_pick"] = pick
+            if self.one_exit_refused is not None:
+                self.why["doorway_one_exit"] = self.one_exit_refused   # P26-B: the building the pick refused
         for key, v in (("yield", self.corner_yield), ("behind", self.behind), ("listed", self.listed),
                        ("doorway_left", self.stand_end), ("pain", self.wound), ("finish_block", self.finish_block),
                        ("doorway_wound", self.stand_wound), ("doorway_drag", self.stand_drag),

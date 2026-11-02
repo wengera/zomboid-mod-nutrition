@@ -432,13 +432,18 @@ class DoorwayStand:
             return "standing"
         if on_room(self.world):
             return "inside"
-        verdicts = [v[3] for v in flee.door_verdicts(flee._threats())]
+        rows = flee.door_verdicts(flee._threats())
+        verdicts = [v[3] for v in rows]
         if not verdicts:
             return "no_door"
         if "ok" not in verdicts:
             if all(v == "locked" for v in verdicts):
                 return "locked"
-            return "one_exit" if "one_exit" in verdicts else "taken"
+            if "one_exit" in verdicts:
+                _, b, door, _ = next(v for v in rows if v[3] == "one_exit")
+                self.one_exit_refused = {"building": b, "door": [door[0], door[1]]}   # P26-B: the first refused door
+                return "one_exit"
+            return "taken"
         return "picked" if flee.picked or plan is not None else "pending"
 
     def _stand(self, held):

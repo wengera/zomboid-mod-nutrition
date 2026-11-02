@@ -330,6 +330,7 @@ def test_the_shed_with_its_window_has_a_second_way_out_and_its_door_is_taken_for
     plan made at its door."""
     r, sv, w = pick_line(tmp_path)
     assert w["doorway_pick"] == "ok" and sv.flee.plan["stand"] is True and sv.flee.plan["doors"] == [DOOR]
+    assert "doorway_one_exit" not in w
 
 
 def test_a_one_door_shed_with_no_usable_window_is_refused_one_exit_and_no_plan_is_made(tmp_path):
@@ -341,6 +342,7 @@ def test_a_one_door_shed_with_no_usable_window_is_refused_one_exit_and_no_plan_i
         r, sv, w = pick_line(d, **k)
         assert w["doorway_pick"] == "one_exit" and sv.flee.plan is None and not sv.flee.picked, name
         assert [v[3] for v in sv.flee.door_verdicts(sv.flee._threats())] == ["one_exit"]
+        assert w["doorway_one_exit"] == {"building": 1, "door": [DOOR[0], DOOR[1]]}, name   # the refused building
 
 
 def test_a_two_door_building_stands_and_the_switch_off_stands_in_the_one_door_shed(tmp_path):
@@ -352,6 +354,7 @@ def test_a_two_door_building_stands_and_the_switch_off_stands_in_the_one_door_sh
         d.mkdir()
         r, sv, w = pick_line(d, **k)
         assert w["doorway_pick"] == "ok" and sv.flee.plan["stand"] is True, name
+        assert "doorway_one_exit" not in w, name
 
 
 def test_a_shelter_pick_that_is_no_stand_keeps_the_one_door_shed(tmp_path):
