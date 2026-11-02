@@ -71,9 +71,11 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
   empty vessel, the water chain's want, among them since P24-Y made it a loot's want, while fewer than
   `goals.CONTAINERS_HELD_N` vessels are held, Task 18 fix 1's major 5), `cooled` (the goals
   the runner refuses for now, `GoalRunner.cooling()`: `[{type, args}]`, fix 1 I4).
-- `open` (ruling P26-G, Plan 26 Task 3: F7's model answered building 2's loot 21 times on views listing no unlooted
-  building): OPEN_GOALS, `["ExploreToward", "Stock"]`, the goals still open, only when at least one building is
-  listed and every one reads `looted`; absent otherwise (outside KEYS, so a view without it renders as before).
+- `open` (rulings P26-G and P26-5, Plan 26 Task 3: F7's model answered building 2's loot 21 times on views listing no
+  unlooted building): the goals still open, `["ExploreToward"]` plus `"Stock"` only while `stock_uses` is non-empty
+  (F7: it was empty on all 33 such views, and a Stock then ends at once), only when at least one building is shown (the
+  BUILDINGS_SHOWN nearest, the ones the model sees) and every one shown reads `looted`; absent otherwise (outside KEYS,
+  so a view without it renders as before).
 
 The view only reads: the kit is bound by its runner's `observe`, never here (fix 1 M5).
 
@@ -125,12 +127,14 @@ THREAT_SENDS = ("attack", "steer", "walkTo", "stop", "hold")   # a superseding s
 OPTIONAL_KEYS = ("night", "tired")   # rendered only when the view carries them (Task 29)
 HOLD_KEY, HOLD_AFTER = "spent", "tired"   # the hold's view key (Plan 25 Task 3) and the line its `hold:` line follows
 OPEN_KEY, OPEN_AFTER = "open", "buildings"   # P26-G: the all-looted key and the line it follows
-OPEN_GOALS = ("ExploreToward", "Stock")      # P26-G: the goals still open when every listed building reads looted
+OPEN_GOALS = ("ExploreToward",)   # P26-G/P26-5: the goal always open when every shown building reads looted
+OPEN_STOCK = "Stock"              # P26-5: and this one only while the view's `stock_uses` is non-empty
 REASK_KEY = "reask_why"   # P26-H: the LLM source's re-ask, its refusal's why, read as the tail line (`_reask`)
 REASK_LINE = "Your last answer was refused: %s. Answer a different goal."
 
 __all__ = ["view", "render", "why_of", "shown_ids", "KEYS", "OPTIONAL_KEYS", "WHYS", "OPEN_KEY", "OPEN_GOALS",
-           "REASK_KEY", "REASK_LINE", "NEED_MEMORY_S", "ZOMBIE_BANDS", "BUILDING_ZOMBIE_R", "BUILDINGS_SHOWN",
+           "OPEN_STOCK", "REASK_KEY", "REASK_LINE", "NEED_MEMORY_S", "ZOMBIE_BANDS", "BUILDING_ZOMBIE_R",
+           "BUILDINGS_SHOWN",
            "RENDER_MAX", "MET_VIEW_R"]
 
 
@@ -288,8 +292,9 @@ def view(world, survive):
                        if kit is not None and kit.loot.target(u) is not None],
         "cooled": runner.cooling() if runner is not None else [],
     }
-    if buildings and all(b["looted"] for b in buildings):   # P26-G: every listed building reads looted
-        v[OPEN_KEY] = list(OPEN_GOALS)
+    shown = buildings[:BUILDINGS_SHOWN]   # P26-5: the buildings `render` shows, not every known one
+    if shown and all(b["looted"] for b in shown):
+        v[OPEN_KEY] = list(OPEN_GOALS) + ([OPEN_STOCK] if v["stock_uses"] else [])
     return v
 
 

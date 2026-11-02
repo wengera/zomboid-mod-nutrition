@@ -800,8 +800,9 @@ def test_every_object_refused_logs_each_and_carries_the_first_refusal():
                                                   "why": "looted already"}
 
 
-OPEN_LINE = ("When the view carries `open`, every listed building is looted: answer one of the goals it names (an "
-             "ExploreToward at toward's square, or Stock), never a LootBuilding.")
+OPEN_LINE = ("When the view carries open, every listed building is looted: answer an ExploreToward at toward's "
+             "square, or at edge's square when toward is null (edge is the known buildings' unexplored edge; an "
+             "ExploreToward there is always accepted), or a Stock when open names it; never a LootBuilding.")
 
 
 def test_system_says_what_the_open_line_means_right_after_the_loop_sentence():
@@ -809,6 +810,27 @@ def test_system_says_what_the_open_line_means_right_after_the_loop_sentence():
     lines = SYSTEM.splitlines()
     loop = next(i for i, ln in enumerate(lines) if ln.startswith("Your loop, every goal a building"))
     assert lines[loop + 1] == OPEN_LINE and SYSTEM.count(OPEN_LINE) == 1
+
+
+def test_system_names_edge_and_a_stock_only_when_open_names_it():
+    """Ruling P26-5 (F7: `toward` null on 29 of 33 all-looted views, `stock_uses` empty on all 33): the sentence
+    offers the edge's square when toward is null and a Stock only when open names it (model-facing, pinned)."""
+    assert OPEN_LINE in SYSTEM
+    assert "at edge's square when toward is null" in OPEN_LINE and "a Stock when open names it" in OPEN_LINE
+    assert "or Stock)" not in SYSTEM and "one of the goals it names" not in SYSTEM
+
+
+def test_an_explore_toward_at_the_views_edge_is_accepted_as_one_at_toward_is():
+    """Ruling P26-5: an ExploreToward at the square of the view's `edge` passes the refusal rule though it lies beyond
+    EXPLORE_MAX_TILES of pos and beyond woods_r of every building; one tile off the edge is judged as before."""
+    v = a_view(edge=[180, 200], toward=None, woods_r=40.0)
+    assert L.place_error(L.validate({"type": "ExploreToward", "x": 180, "y": 200}), v) is None
+    assert L.place_error(L.validate({"type": "ExploreToward", "x": 179, "y": 200}), v) == "invalid: out of range"
+    assert L.place_error(L.validate({"type": "ExploreToward", "x": 180, "y": 201}), v) == "invalid: out of range"
+    assert L.place_error(L.validate({"type": "ExploreToward", "x": 180, "y": 200}), dict(v, edge=None)) == (
+        "invalid: out of range")
+    assert L.place_error(L.validate({"type": "ExploreToward", "x": 180, "y": 200}), dict(v, edge=[180])) == (
+        "invalid: out of range")
 
 
 # ---------------------------------------------------------------- P26-H: the re-ask once
@@ -905,3 +927,26 @@ def test_an_invalid_or_malformed_answer_is_never_reasked(answer):
     settle(src)
     assert isinstance(src.propose(f7_view()), Rest) and len(runner.calls) == 1 and src.reask is False
     assert (src.calls[0]["cycle"], src.calls[0]["reask"]) == (1, False) and src.totals()["reasks_total"] == 0
+
+
+def test_the_reask_measures_range_from_the_collecting_views_pos_not_the_first_calls(tmp_path):
+    """P26-H, review-t3 minor 3: the first call is on pos A and refused out of range; the re-ask starts on the view
+    that collected it (pos B), and its answer is measured from B: x 200 is 39.5 from B and 99.5 from A (taken), x 50 is
+    50.5 from A and 110.5 from B (refused for good). A mutant carrying the first call's pos into the re-ask fails it."""
+    def at(x):
+        return a_view(buildings=[], pos={"x": x, "y": 200.5, "z": 0})
+
+    far = '{"type":"ExploreToward","x":250,"y":200}'        # 149.5 from A, 89.5 from B: refused either way
+    for second, ok in (('{"type":"ExploreToward","x":200,"y":200}', True),
+                       ('{"type":"ExploreToward","x":50,"y":200}', False)):
+        src, runner = reasking(None, [far, second])
+        assert src.propose(at(100.5)) is None
+        settle(src)
+        assert src.propose(at(160.5)) is None and src.reask is True    # collected on B: refused, the re-ask starts
+        settle(src)
+        g = src.propose(at(100.5))                                      # the final collect on a third view, pos A
+        assert len(runner.calls) == 2
+        if ok:
+            assert g.TYPE == "ExploreToward" and (g.x, g.y) == (200, 200) and src.calls[1]["error"] is None
+        else:
+            assert isinstance(g, Rest) and src.calls[1]["error"] == "invalid: out of range"

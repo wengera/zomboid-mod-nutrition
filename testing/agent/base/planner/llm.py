@@ -30,19 +30,22 @@ The contract:
   fix 1, ruling 3) from every building the view lists (its `box`, else its listed squares), while it lists one, is
   `invalid: in the woods`; except (ruling P25-R, Plan 25 Task 10) an ExploreToward whose square's centre lies within
   WOODS_R of the view's `toward` building's listed square or door, accepted whatever its distance from `pos`
-  (`_at_toward`: the walk the goal layer takes toward it in legs); a LootBuilding or Shelter of a building the view
-  reads `blocked` (every exterior door marked stuck, ruling P24-Z) is `invalid: refused`; a Shelter of a shown building
-  whose `shunned` reads true (its shelter failed within `night.SHUN_MIN`, ruling P25-G, Plan 25 Task 7: F4 answered
-  Shelter for its one shunned building 67 times) is `invalid: shunned` (a LootBuilding of it stays valid: its window
-  route exists).
+  (`_at_toward`: the walk the goal layer takes toward it in legs), or (ruling P26-5, Plan 26 Task 3) whose square is
+  the view's `edge` square (`_at_edge`: the known buildings' unexplored edge, always accepted); a LootBuilding or
+  Shelter of a building the view reads `blocked` (every exterior door marked stuck, ruling P24-Z) is `invalid:
+  refused`; a Shelter of a shown building whose `shunned` reads true (its shelter failed within `night.SHUN_MIN`,
+  ruling P25-G, Plan 25 Task 7: F4 answered Shelter for its one shunned building 67 times) is `invalid: shunned` (a
+  LootBuilding of it stays valid: its window route exists).
 - The refusal's meaning reaches the model (P24-B 3, F1's write-up: the one refused answer named a square past the
   bound and the model never learned why, #4277, #4279): a goal refused by that rule is kept as `refusal`
   `{type, args, end: "refused", why}` and laid over the `last_goal` of the next call's view (once; then cleared), so
   the model reads its own last answer's end rather than the stand-in's; a valid answer clears it. A valid answer the
   goal runner refuses as cooled reaches the next view the same way, `end` "cooled" (`GoalRunner._carried`, Plan 25
   Task 4, spec 2.2(b)).
-- What happens on every failure: the fallback's goal is returned, and the call's row records why. `error` is None on
-  success, else "timeout" (no answer within `timeout_s` on the injected clock, or `subprocess.TimeoutExpired`),
+- What happens on a failure: a cycle's first call whose every goal the refusal rule refused is re-asked once (ruling
+  P26-H, below); every other failure, and a refused re-ask, takes the fallback's goal, and the call's row records why.
+  `error` is None on success, else "timeout" (no answer within `timeout_s` on the injected clock, or
+  `subprocess.TimeoutExpired`),
   "exit <code>" (a non-zero exit), "malformed" (stdout not an envelope, or no object in its text), "invalid: <reason>"
   (`validate`'s one-line reason, or the refusal rule's why), and two values beyond the amendments' list: "cli error" (an
   envelope with `is_error` true and exit 0: a refusal, a rate limit) and "spawn: <Type>: <reason>" (the CLI could not
@@ -69,9 +72,11 @@ abandoned worker.
 
 The record: `calls`, one row per collected call, `{wall, latency_s, ok, goal, error, skipped, cycle, reask,
 prompt_bytes, answer_bytes, model}` (`wall` the call's start, `latency_s` to its answer or its abandonment, `goal` the
-validated goal as `{"type", **args}` else None, `skipped` the answer's objects passed over (ruling P26-F), `[{goal,
-why}]`: each goal refused before the one taken (every one when none is taken: the row's `error` and the carried refusal
-are then the first's), then each object `validate` failed (`goal` None), `why` the error past its `invalid: `; `cycle`
+validated goal as `{"type", **args}` else None, `skipped` every object of the answer not taken, in the answer's order
+(ruling P26-F), `[{goal, why}]`: each goal refused before the one taken (every one when none is taken: the row's
+`error` and the carried refusal are then the first's), then each object `validate` failed wherever it stood (`goal`
+None), `why` the error past its `invalid: `; a valid goal after the taken one is not listed, so `grade_f7` counts an
+answer's objects through `objects(answer)`, never from `skipped`; `cycle`
 the call's cycle (an int counted per first call, equal on a call and its re-ask) and `reask` whether it was the re-ask
 (ruling P26-H); `prompt_bytes` the bytes the model reads, the argv's system prompt and the stdin prompt together,
 `answer_bytes` the bytes of the answer's `result` text, 0 with none (P24-B 4), `model` read off the argv's `--model`);
@@ -249,8 +254,9 @@ def place_error(goal, view, origin=None):
     """`invalid: <why>` when `goal` breaks the refusal rule against `view` (the module docstring), else None; the
     range is measured from `origin` (the calling view's `pos`, Plan 25 Task 4) when given, else from `view`'s."""
     if goal.TYPE == "ExploreToward":
-        if _at_toward(goal, view):
-            return None   # P25-R: the walk toward the view's `toward` building, which the goal layer takes in legs
+        if _at_toward(goal, view) or _at_edge(goal, view):
+            return None   # P25-R: the walk toward the view's `toward` building, which the goal layer takes in legs;
+            # P26-5: the square of the view's `edge`, the unexplored edge the scripted source walks to
         pos = (origin if origin is not None else view.get("pos")) or {}
         px, py = pos.get("x"), pos.get("y")
         if not _num(px) or not _num(py) or math.hypot(goal.x + 0.5 - px, goal.y + 0.5 - py) > EXPLORE_MAX_TILES:
@@ -283,6 +289,13 @@ def _at_toward(goal, view):
     x, y = goal.x + 0.5, goal.y + 0.5
     pts = [p for p in (t.get("square"), t.get("door")) if isinstance(p, (list, tuple)) and len(p) >= 2]
     return any(_num(p[0]) and _num(p[1]) and math.hypot(p[0] + 0.5 - x, p[1] + 0.5 - y) <= WOODS_R for p in pts)
+
+
+def _at_edge(goal, view):
+    """Ruling P26-5 (F7: the all-looted views read `toward` null on 29 of 33, and the answers taken there were the
+    view's `edge`): the ExploreToward's square is the view's `edge` `[x, y]`, accepted as `toward`'s is."""
+    e = view.get("edge")
+    return isinstance(e, (list, tuple)) and len(e) >= 2 and e[0] == goal.x and e[1] == goal.y
 
 
 def _near(b, x, y, r=WOODS_R):

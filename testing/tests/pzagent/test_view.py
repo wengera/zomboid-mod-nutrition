@@ -457,7 +457,7 @@ def test_the_survives_view_renders_task_3s_hold_as_the_hold_line(tmp_path):
     assert "hold: endurance 0.73" in lines and not any(ln.startswith("spent") for ln in lines)
 
 
-# ======================================== Plan 26 Task 3: the all-looted line (ruling P26-G)
+# ======================================== Plan 26 Task 3: the all-looted line (rulings P26-G, P26-5)
 def looted_pair(tmp_path, loot_both=True):
     """Two houses, a fridge each, building 2's looted and building 1's too when `loot_both`."""
     r, sv = make(tmp_path)
@@ -475,15 +475,49 @@ def looted_pair(tmp_path, loot_both=True):
 
 def test_a_view_whose_listed_buildings_all_read_looted_carries_open(tmp_path):
     """P26-G (F7: 21 answers of building 2's loot on views listing no unlooted building): with every listed building
-    `L`, the view names the goals still open, rendered as its own line right after the buildings."""
+    `L`, the view names the goals still open, rendered as its own line right after the buildings; P26-5: with
+    `stock_uses` empty (as on all 33 of F7's such views) the list is the ExploreToward alone."""
     r, sv = looted_pair(tmp_path)
     v = view(r.world, sv)
-    assert [b["looted"] for b in v["buildings"]] == [True, True]
-    assert v["open"] == ["ExploreToward", "Stock"] == list(V.OPEN_GOALS) and V.OPEN_KEY == "open"
+    assert [b["looted"] for b in v["buildings"]] == [True, True] and v["stock_uses"] == []
+    assert v["open"] == ["ExploreToward"] == list(V.OPEN_GOALS) and V.OPEN_KEY == "open"
     lines = render(v).splitlines()
     i = next(i for i, ln in enumerate(lines) if ln.startswith("buildings:"))
-    assert lines[i + 1] == 'open: ["ExploreToward","Stock"]'
+    assert lines[i + 1] == 'open: ["ExploreToward"]'
     assert sum(ln.startswith("open:") for ln in lines) == 1
+
+
+def seven_houses(tmp_path, looted):
+    """Seven houses 10 tiles apart east of the player, a fridge each, the nearest `looted` of them looted."""
+    r, sv = make(tmp_path)
+    sqs = []
+    for i in range(7):
+        sqs += house(i + 1, 110 + 10 * i)
+    for s in sqs:
+        if s["y"] == 201 and (s["x"] - 111) % 10 == 0:
+            s["containers"] = [FRIDGE]
+    r.scan(sqs)
+    r.frame(x=100.0, y=201.5)
+    for i in range(looted):
+        r.world.mark_looted((111 + 10 * i, 201, 0, 0), "food")
+    return r, sv
+
+
+def test_open_reads_the_buildings_the_view_shows_and_names_stock_only_with_stock_uses(tmp_path):
+    """P26-5 (review-t3 minor 2): the six shown buildings all `L` and a seventh, unlooted, not shown: `open` stays on
+    (the model sees only looted buildings), and with `stock_uses` non-empty it names Stock too, the line in that order;
+    the seventh looted as well keeps it on, and one of the six unlooted turns it off."""
+    r, sv = seven_houses(tmp_path, looted=6)
+    v = view(r.world, sv)
+    assert len(v["buildings"]) == 7 and V.BUILDINGS_SHOWN == 6
+    assert [b["looted"] for b in v["buildings"]] == [True] * 6 + [False]
+    assert v["stock_uses"] == ["food"] and v["open"] == ["ExploreToward", "Stock"]
+    assert V.OPEN_STOCK == "Stock" and v["open"] == list(V.OPEN_GOALS) + [V.OPEN_STOCK]
+    assert 'open: ["ExploreToward","Stock"]' in render(v).splitlines()
+    assert len([ln for ln in render(v).splitlines() if ln.startswith("buildings:")][0].split("; ")) == 6
+    r2, sv2 = seven_houses(tmp_path / "five", looted=5)
+    v2 = view(r2.world, sv2)
+    assert [b["looted"] for b in v2["buildings"]][:6] == [True] * 5 + [False] and "open" not in v2
 
 
 def test_one_unlooted_building_or_none_listed_carries_no_open(tmp_path):
