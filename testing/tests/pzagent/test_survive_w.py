@@ -332,11 +332,12 @@ def test_with_trapped_care_off_the_trapped_hold_sends_nothing(tmp_path):
 
 
 # ================================================================ P25-R: the prompt and the `toward` square
-def test_the_loop_sentence_says_the_program_fights_only_with_a_weapon():
+def test_the_loop_sentence_says_how_the_program_fights_armed_and_unarmed():
     """Named change, ruling P25-Z (Plan 25's close fix): unarmed, the program shoves and stomps a lone zombie (P25-P's
     unarmed fight) and flees two or more; the prompt said it fled them all."""
-    assert ("the program fights the zombies near you itself while it holds a weapon; with `weapon` null it shoves and "
-            "stomps a lone zombie and flees two or more, so loot for a weapon first; you loot the nearest building")         in L.SYSTEM
+    want = ("the program fights the zombies near you itself while it holds a weapon; with `weapon` null it shoves and "
+            "stomps a lone zombie and flees two or more, so loot for a weapon first; you loot the nearest building")
+    assert want in L.SYSTEM
     assert "with `weapon` null it flees them" not in L.SYSTEM
     assert "the program clears the zombies near you itself" not in L.SYSTEM
 
