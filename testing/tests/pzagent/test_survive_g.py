@@ -965,9 +965,11 @@ def fenced(hop=True):
     return [square(x, y, blockW=(x == 102), hopW=(x == 102 and hop)) for x in range(98, 113) for y in range(196, 205)]
 
 
-def walk_stuck(r, g, me=(101.5, 200.5)):
+def walk_stuck(r, g, me=(101.5, 200.5), edge=True):
+    """`edge` False: the kit's P25-X read off (`Kit.blocked_edge`, Plan 25 Task 14)."""
     r.frame(x=me[0], y=me[1])
     runner = GoalRunner(Src(g), r.clock)
+    runner.kit.blocked_edge = edge
     runner.kit.bind(r.world, r.acts)
     runner.kit.explore.scanned.add(runner.kit.explore.place())   # the place is scanned already
     runner.send(runner.tick(r.world, r.acts))
@@ -1000,8 +1002,8 @@ def test_a_walk_stuck_at_a_wall_or_far_from_the_fence_never_climbs(tmp_path):
     r = Rig(tmp_path)
     r.scan(fenced(hop=False))
     g = ExploreToward(110, 200)
-    _, cmd = walk_stuck(r, g)
-    assert cmd is None and (g.state, g.reason) == ("failed", "stuck")
+    _, cmd = walk_stuck(r, g, edge=False)   # named change, P25-X (Plan 25 Task 14): the wall spans the known yard, no
+    assert cmd is None and (g.state, g.reason) == ("failed", "stuck")   # way round it read, so with it on no walk
     (tmp_path / "b").mkdir()
     r2 = Rig(tmp_path / "b")
     r2.scan(fenced())
@@ -1417,7 +1419,8 @@ def test_the_shelter_walk_stuck_at_a_wall_shuns_as_before(tmp_path):
     r.frame(x=107.5, y=201.5)
     g = Shelter(1)
     runner = GoalRunner(Src(g), r.clock)
-    runner.send(runner.tick(r.world, r.acts))
+    runner.kit.blocked_edge = False   # named change, P25-X (Plan 25 Task 14): the yard's wall has no way round known,
+    runner.send(runner.tick(r.world, r.acts))   # so with the read on the approach ends `failed "blocked edge"`
     r.answer({"state": "failed", "reason": "stuck"})
     r.frame(x=107.5, y=201.5)
     assert runner.tick(r.world, r.acts) is None and (g.state, g.reason) == ("failed", "shun")

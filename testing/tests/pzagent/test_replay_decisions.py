@@ -920,7 +920,7 @@ def test_p24_x_moves_every_golden_first_at_its_first_engage_where_the_record_s_g
     first where the record's goal ran with a zombie within ENGAGE_R the engage reaches (the faithful line; the episode
     after it is open loop): a fight on it, the approach at a run on the five PZA/1.4 builds, the seek's walk round a
     wall at a walk on the sixth."""
-    g, pre = gold(key), pre_gold(key)
+    g, pre = pre_t6_gold(key), pre_gold(key)   # named change, Task 14 (P25-X): the goldens before its re-record
     first = min(k for k in set(g) | set(pre) if g.get(k) != pre.get(k))
     line, zid = FIRST_ENGAGE[key]
     assert first == line and line not in pre and 1 not in g
@@ -969,13 +969,13 @@ def test_the_sixth_golden_s_seek_walk_round_the_wall_gives_way_at_the_first_tick
     8.25 tiles; line 100 at 9.48 before minor 8's ENGAGE_R 9) holds while its target stays beyond KEEP_R and gives way
     at line 111, the first tick inside it (2.46 tiles): the backpedal, iteration 7's stance. The mutant (the walk never
     gives way) moves the golden first there."""
-    g = gold(SIXTH)
+    g = pre_t6_gold(SIXTH)   # named change, Task 14 (P25-X): the goldens before its re-record
     assert g[102]["action"]["type"] == "walkTo" and g[102]["why"]["seek"] is True
     held = [k for k in range(103, 111) if g[k]["why"].get("holding") == "a12"]
     assert held == list(range(103, 111))
     assert g[111]["why"]["leg"] == "back" and g[111]["why"]["dist"] <= P.KEEP_R
     monkeypatch.setattr(P.Fight, "_walk_gives_way", lambda self: False)
-    moved = {d["line"]: d for d in R.run(run_dir(SIXTH), caps=R.HELLO_CAPS[SIXTH])}
+    moved = {d["line"]: d for d in R.run(run_dir(SIXTH), caps=R.HELLO_CAPS[SIXTH], mutate=pre_t6)}
     diff = [k for k in sorted(set(g) | set(moved)) if g.get(k) != moved.get(k)]
     assert diff[0] == 111 and moved[111]["why"]["holding"] == "a12"
 
@@ -1292,12 +1292,11 @@ def test_iteration_12_moves_each_golden_first_at_its_switch_s_line(key):
       484), and moves no decision: every line it moves differs by the why's `doorway_pick` alone, `no_stance` on the
       five PZA/1.4 builds (no `aim` announced), on the sixth `taken`, `picked`, `no_door`, `pending` or `standing`.
     A golden no switch moves is the file before Task 36 byte for byte."""
-    base, got = pre_t36_gold(key), gold(key)
+    base, got = pre_t36_gold(key), pre_t6_gold(key)   # named change, Task 14 (P25-X): the goldens before its re-record
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
     if key not in FIRST_T36:
         assert diff == []
-        with open(R.golden_path(key), "rb") as f:
-            assert hashlib.sha256(f.read()).hexdigest() == PRE_T36[key][0]
+        assert pre_t6_sha(key) == PRE_T36[key][0]
         return
     assert diff[0] == min(FIRST_T36[key].values())
     for switch in T36_SWITCHES:
@@ -1392,12 +1391,11 @@ def test_iteration_13_moves_e4_alone_at_the_endurance_hold_s_first_walk(key):
       doorway stand, and the fence wait needs the stance's `aim`, which only the sixth announces, where no chaser is
       read across a fence within AIM_R.
     A golden no switch moves is the file before Task 3 byte for byte."""
-    base, got = pre_t3_gold(key), gold(key)
+    base, got = pre_t3_gold(key), pre_t6_gold(key)   # named change, Task 14 (P25-X): the goldens before its re-record
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
     if key not in FIRST_T3:
         assert diff == []
-        with open(R.golden_path(key), "rb") as f:
-            assert hashlib.sha256(f.read()).hexdigest() == PRE_T3[key][0]
+        assert pre_t6_sha(key) == PRE_T3[key][0]
         return
     assert diff[0] == min(FIRST_T3[key].values())
     for switch in T.T3_SWITCHES:
@@ -1425,11 +1423,10 @@ def test_iteration_14_moves_no_golden(key):
     door beyond `leg_len` (`goal_policies.leg_max`); and no golden's hello reads "1.7", the two-number version P25-O
     reads (their hellos read 1.2 to 1.5.x). Task 8 fix 1's amended P25-J (3) (one finish rule, the knock window, the
     `pair` flee's own finish) moves none either: it needs the PZA/1.7 `stomp` and `onFloor`, as P25-J does."""
-    with open(R.golden_path(key), encoding="utf-8") as f:
-        head = json.load(f)
-    text = R.golden_text(R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t4)), head["base"],
-                         R.RUNS[key], head["recorded"], R.SPANS.get(key), R.HELLO_CAPS.get(key))
-    assert text.encode("utf-8") == golden(key)
+    _, base, recorded = PRE_T6[key]   # named change, Task 14 (P25-X): the goldens before its re-record
+    text = R.golden_text(R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t4)), base,
+                         R.RUNS[key], recorded, R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == PRE_T6[key][0]
 
 
 # ================================================================ Plan 25 Task 10: iteration 15 on the goldens
@@ -1441,24 +1438,77 @@ def test_iteration_15_moves_no_golden(key):
     golden tick flees `unarmed` as before; P25-S's low fight needs it too, so every golden tick under FLEE_HEALTH with
     one zombie flees `health` as before. P25-Q (`TRAPPED_CARE`) passes no golden's trapped hold to a care that sends:
     no golden ring decodes a part's `bleeding` (PZA/1.4), nor announces `unwear`."""
-    with open(R.golden_path(key), encoding="utf-8") as f:
-        head = json.load(f)
-    text = R.golden_text(R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t5)), head["base"],
-                         R.RUNS[key], head["recorded"], R.SPANS.get(key), R.HELLO_CAPS.get(key))
-    assert text.encode("utf-8") == golden(key)
+    _, base, recorded = PRE_T6[key]   # named change, Task 14 (P25-X): the goldens before its re-record
+    text = R.golden_text(R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t5)), base,
+                         R.RUNS[key], recorded, R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == PRE_T6[key][0]
 
 
 # ================================================================ Plan 25 Task 14: iteration 16 on the goldens
-@pytest.mark.parametrize("key", sorted(PRE_T3))
-def test_iteration_16_moves_no_golden(key):
-    """Task 14's rules move no golden: the six are byte-identical with them on (`test_the_golden_is_reproduced_byte_
-    for_byte_from_its_artifact`) and with iteration 16's switches off (`pre_t6`). Each of P25-U (the stand's `drag`
-    end at DRAG_DOWN_N - 1), P25-V (its `inside` end) and P25-W (its group ends' walk out) reads a doorway stand that
-    stood, and no golden's stand stands: their `doorway_pick` reads `no_stance`, `taken`, `picked`, `pending`,
-    `no_door` and `standing`, never `ok` (five goldens read `no_stance` on every `many` line, their builds announcing
-    no `aim`; `f1-caps15`, on PZA/1.5's caps, never picks a door free)."""
-    with open(R.golden_path(key), encoding="utf-8") as f:
-        head = json.load(f)
-    text = R.golden_text(R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t6)), head["base"],
-                         R.RUNS[key], head["recorded"], R.SPANS.get(key), R.HELLO_CAPS.get(key))
-    assert text.encode("utf-8") == golden(key)
+# the six goldens as they stood before Task 14's amendment re-recorded them (Task 13's HEAD, `bc2950f8`): sha256, base,
+# recorded
+PRE_T6 = {"e2": ("f2edee8655bb6c6706ce8b2af99daff97445d4a1673ed2799e912fdf0e266cb9", "eaa1c9a3", "2026-10-30"),
+          "e3": ("2585ba89039b0306ee93e814909507afdaccb038936d9dece1171511ec6d5bac", "eaa1c9a3", "2026-10-30"),
+          "e4": ("559e725e3ee48cb88b63cb97d2235d75da6f347479b7c053f4d9d88c7821b5d5", "b12039ba", "2026-10-30"),
+          "e5": ("cba5e2bff3226198dffae52078a1b38269101a6e786cc0199d204adefa0900cf", "eaa1c9a3", "2026-10-30"),
+          "f1": ("599990a3e11d14315e0b9d076bbfa10a49341c503aff4831709fac4d9f7d43d5", "eaa1c9a3", "2026-10-30"),
+          SIXTH: ("200e3621f8de68832d3eb9ba143bb165339b58d22cbacdf54e283b5f47633562", "eaa1c9a3", "2026-10-30")}
+
+
+@functools.lru_cache(maxsize=6)
+def _pre_t6_replayed(key):
+    return json.dumps(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t6), sort_keys=True)
+
+
+def pre_t6_gold(key):
+    """{line: decision} of the replay with iteration 16's switches off: the golden before Task 14's re-record."""
+    return {d["line"]: d for d in R.decisions(json.loads(_pre_t6_replayed(key)))}
+
+
+def pre_t6_sha(key):
+    """The sha256 of the golden file the replay with iteration 16's switches off writes, under the base and the date
+    it stood at before Task 14's re-record (`PRE_T6`)."""
+    _, base, recorded = PRE_T6[key]
+    text = R.golden_text(R.decisions(json.loads(_pre_t6_replayed(key))), base, R.RUNS[key], recorded,
+                         R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+@pytest.mark.parametrize("key", sorted(PRE_T6))
+def test_with_iteration_16_off_the_goldens_are_task_13_s(key):
+    """Iteration 16's golden mover is `BLOCKED_EDGE` (P25-X): with `survive.T6_SWITCHES` off (`pre_t6`) every golden
+    is the file as it stood before Task 14's re-record byte for byte (its sha256 pinned). P25-U, P25-V and P25-W
+    read a doorway stand that stood, and no golden's stand stands: their `doorway_pick` reads `no_stance`, `taken`,
+    `picked`, `pending`, `no_door` and `standing`, never `ok` (five goldens read `no_stance` on every `many` line,
+    their builds announcing no `aim`; `f1-caps15`, on PZA/1.5's caps, never picks a door free)."""
+    assert pre_t6_sha(key) == PRE_T6[key][0]
+
+
+# the first line P25-X moves on each golden (every one at its first engage, `FIRST_ENGAGE`): (line, target, edge)
+FIRST_T6 = {"e2": (68, 12787, [10731, 10642, "N"]), "e3": (69, 14910, [10733, 10642, "N"]),
+            "e4": (247, 19001, [10732, 10642, "N"]), "e5": (69, 19223, [10733, 10642, "N"]),
+            "f1": (102, 15885, [10733, 10642, "N"]), SIXTH: (102, 15885, [10733, 10642, "N"])}
+
+
+@pytest.mark.parametrize("key", sorted(PRE_T6))
+def test_p25_x_moves_every_golden_first_at_its_first_engage_the_gate_zombie_refused(key):
+    """Task 14's attribution: P25-X re-records all six, each first moved at its first engage (`FIRST_ENGAGE`), the
+    fixture's fence row on y 10642 (E15's locked chain-link gate at (10756, 10642), the old locked gate at (10732,
+    10642), #4273, #4282; its unlocked door record at (10747, 10642) beyond DISENGAGE_R of every crossing): before
+    it the Fight walked at the chaser across the fence (E4's 19001 is the zombie the review of Plan 24 Task 18 named,
+    sought every UNREACHABLE_S behind a locked gate); now its line crosses a known blocked edge with no unlocked door
+    on its run within DISENGAGE_R, so the target is refused and marked (`blocked_edge` {action refuse, door None},
+    `marked`), and every later moved line is downstream of it (open loop). Each other iteration-16 switch alone off
+    moves nothing (`BLOCKED_EDGE` alone off is the file before)."""
+    base, got = pre_t6_gold(key), gold(key)
+    first = min(k for k in set(base) | set(got) if base.get(k) != got.get(k))
+    line, zid, edge = FIRST_T6[key]
+    assert first == line == FIRST_ENGAGE[key][0] and base[line]["why"]["target"] == zid
+    assert base[line]["action"]["type"] == "walkTo" and got[line]["action"] is None
+    w = got[line]["why"]
+    assert w["blocked_edge"] == {"action": "refuse", "door": None, "edge": edge} and w["marked"] == zid
+    only = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
+                                                         mutate=lambda sv: pre_t6(sv, keep=("STAND_DRAG_EARLY",
+                                                                                            "STAND_INSIDE",
+                                                                                            "STAND_EXIT"))))}
+    assert only == base

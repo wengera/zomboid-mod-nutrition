@@ -8,6 +8,7 @@ import time
 from dataclasses import dataclass, field, fields
 from typing import ClassVar, Optional
 
+from agent.base.planner.edges import GoalEdge
 from agent.base.planner.goals import (ARRIVE_R, GOAL_MAX_S, LEG_CHUNK, LEG_MAX, LEG_MIN, LEG_SQ_MARGIN, OPTIONAL_FIELDS,
                                       REST_N, RUN_FIELDS, WANT_USES, WINDOW_REPEAT, WOODS_MAX_R, WOODS_R, WOODS_STEP,
                                       held_of, looted, open_uses, wanted_uses, window_pick)
@@ -32,6 +33,7 @@ class Kit:
         self.woods_r, self.rests, self.known = WOODS_R, 0, 0
         self.wants = ()   # the uses a loot takes first (Survive's need marks, `survive.KIT_WANTS`: P24-AB)
         self.shelter_legs = True   # ruling P25-N: a Shelter approaches a far door in legs (Survive's SHELTER_LEGS)
+        self.blocked_edge = True   # ruling P25-X: a target beyond a known blocked edge routed or dropped (`_edge_cmd`)
 
     def rested(self, goal):
         """A goal ended: a Rest ended rested counts one, REST_N in a row widening the woods radius by WOODS_STEP up
@@ -211,7 +213,7 @@ def leg_max(world):
     return max(float(LEG_CHUNK * (w // (2 * LEG_CHUNK)) - LEG_CHUNK), LEG_MIN)
 
 
-class _Legs:
+class _Legs(GoalEdge):
     """Ruling P24-AC (Plan 24 Task 21; E8, `e_day_8-20261029-174023`: from game minute 618 every one of the goal's 278
     walks failed `no square` within 0.53 s, its targets 62 to 234 tiles off, each failure marking the target stuck so
     the edge stepped to the next far square): a goal destination farther than `leg_len` (`leg_max`, P24-AI) is approached in
@@ -221,7 +223,9 @@ class _Legs:
     re-sent shorter; at LEG_MIN a `no square` fails the goal. A leg's `no square` never marks a square stuck
     (`Explore.sent`'s `leg`), so the far target stays the goal's. `_legs()` once at the start; `_leg_cmd(world, x, y)`
     the leg toward (x, y), else None when it lies within `leg_len` (the direct walk is the goal's own); `_leg_ended(
-    action)` "next" (go on), "fail" (the leg's own failure: the goal reads it) or None (not a leg)."""
+    action)` "next" (go on), "fail" (the leg's own failure: the goal reads it) or None (not a leg). Ruling P25-X
+    (`edges.GoalEdge._edge_cmd`, `_edge_leg`): a target beyond a known blocked edge is first routed through its unlocked
+    door, the route a leg, or the goal ends `failed "blocked edge"`, cooled."""
 
     def _legs(self):
         self.leg_len = None      # tiles: the next leg's length, None for the full `leg_max` (P24-AI: read at each leg)
@@ -239,6 +243,10 @@ class _Legs:
         k = (self.leg_len - LEG_SQ_MARGIN) / d
         self.leg = centre((mx + (x - mx) * k, my + (y - my) * k))
         return WalkTo(self.leg[0], self.leg[1], "walk")
+
+    def _edge_leg(self, world, x, y):
+        """P25-X's route toward (x, y) within the leg length (`leg_max`), else None (`_edge_cmd`)."""
+        return self._edge_cmd(world, x, y, leg_max(world))
 
     def _leg_ended(self, action):
         if self.leg is None or action.type != "walkTo" or (action.args.get("x"), action.args.get("y")) != self.leg:
@@ -313,6 +321,9 @@ class ExploreToward(_Legs, _Climbing, Goal):
             self.why = {"toward": [self.x, self.y], "climb": [climb.x, climb.y]}
             return climb
         self.why = {"toward": [self.x, self.y], "dist": self._dist(world)}
+        route = self._edge_leg(world, self.x, self.y)   # P25-X: across a known blocked edge, its door or no walk
+        if route is not None or not self.running:
+            return route
         leg = self._leg_cmd(world, self.x, self.y)   # P24-AC: a far target in legs
         if leg is not None:
             self.why.update(leg=[leg.x, leg.y], legLen=self.leg_len)
@@ -470,6 +481,10 @@ class LootBuilding(_Legs, _Looting, Goal):
                 (u for u in self._uses(world) if loot.target(u) is not None), None)
             if want is not None:
                 key = loot.target(want)
+                self.why = {"building": self.building, "want": want, "container": list(key)}
+                route = self._edge_leg(world, *centre(key))   # P25-X: across a known blocked edge, its door or none
+                if route is not None or not self.running:
+                    return route
                 leg = self._leg_cmd(world, *centre(key))   # P24-AC: a container beyond the leg length is walked to in legs
                 if leg is not None:
                     self.why = {"building": self.building, "want": want, "container": list(key),
@@ -558,6 +573,10 @@ class Shelter(_Legs, _Climbing, Goal):
         if step == "done":
             self.end("done", "inside")
             return None
+        if step == "approach":
+            route = self._edge_leg(world, *centre(door))   # P25-X: across a known blocked edge, its door or none
+            if route is not None or not self.running:
+                return route
         if step == "approach" and self.kit.shelter_legs:
             leg = self._leg_cmd(world, *centre(door))   # P25-N: a door beyond the leg length is walked to in legs
             if leg is not None:

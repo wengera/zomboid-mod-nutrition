@@ -271,7 +271,13 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   `STAND_INSIDE`); P25-W, a stand ended `wound`, `drag` or `inside` walks out by the way out, never the close (the
   plan dropped and the adoption spent, `flee.Flee.walk_out`, the trapped hold with none; the way out runs ahead of
   every row as the close ran, `Flee.stand_exit_running`; logged `doorway_exit` {end, exit: door | opening | trapped |
-  steer | deferred}; `STAND_EXIT`); `T6_SWITCHES` off is the rule before them.
+  steer | deferred}; `STAND_EXIT`); P25-X (the amendment, E15's 158 game minutes at a zombie behind a locked
+  gate), a known blocked outdoor edge (blocked, not hoppable, its door records locked or barricaded) on the straight
+  line to a Fight's target, a goal's or a fill's source is routed through the unlocked door record on its run, else
+  refused: the Fight's target marked until read on the player's side (`edges.FightEdge`, `ThreatEdge`,
+  `edge_marks`), the goal ended `failed "blocked edge"` and cooled (`edges.GoalEdge`), the fill's next source taken
+  (`water.Water.plan`); logged `blocked_edge` {edge, door, action}; `BLOCKED_EDGE`); `T6_SWITCHES` off is the rule
+  before them.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -370,8 +376,8 @@ T4_SWITCHES = ("UNWEAR_WOUND", "FINISH_FAR", "STAND_WOUND", "SHOVE_BREAK", "SHEL
                          # rule before each
 T5_SWITCHES = ("UNARMED_FIGHT", "TRAPPED_CARE", "LOW_FIGHT", "SHOVE_BREAK_RUN")   # survival iteration 15 (Plan 25
                          # Task 10): the switches of P25-P, P25-Q, P25-S and P25-T; off, the rule before each
-T6_SWITCHES = ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT")   # survival iteration 16 (Plan 25 Task 14): the
-                         # switches of P25-U, P25-V and P25-W; off, the rule before each
+T6_SWITCHES = ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE")   # survival iteration 16 (Plan 25
+                         # Task 14): the switches of P25-U, P25-V, P25-W and P25-X; off, the rule before each
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -464,6 +470,7 @@ class Survive(Threat):
         self.avoid = set()        # this tick: the ids within the hold no engage reaches (`_engageable`), else empty
         self._flood = None        # (map version, player square, squares): the engage's bounded flood (`_reach`)
         self.dead = {}            # zombie id -> wall until it is skipped, read dead (policies.Fight, Task 12 fix 1)
+        self.edge_marks = {}      # zombie id -> the blocked edge a Fight refused it across (P25-X, `planner/edges.py`)
         self.strain_hold = False  # the arms' strain hold (P24-AG, P24-AT): set at a stiffness of STIFF_HARD, cleared
                                   # under STIFF_SOFT
         self.wound = None         # this tick: {kind "wounded", armPain, strain} at armPain STRAIN_HARD (P24-AT), else None
@@ -711,6 +718,7 @@ class Survive(Threat):
             inside |= self._retrying() & set(self._by_use()[use])
             pick = self._held_use(use)
             if pick is None and use == "water":
+                self.water.blocked_edge = self.BLOCKED_EDGE   # P25-X
                 fill = self.water.plan(self._by_use())   # P24-G 3: no water held, a vessel filled at a known source
                 self.water.wants(self.need_marks, self.clock())   # no vessel held, or no clean source (P24-L)
             if pick is None and fill is None:
@@ -781,6 +789,7 @@ class Survive(Threat):
         now = self.clock()
         self.goals.kit.wants = tuple(u for u in KIT_WANTS if now - self.need_marks.get(u, -math.inf) <= NEED_MEMORY_S)
         self.goals.kit.shelter_legs = self.SHELTER_LEGS   # P25-N
+        self.goals.kit.blocked_edge = self.BLOCKED_EDGE   # P25-X
         cmd = self.goals.tick(self.world, self.actions, self._view)
         self.why = dict(self.goals.why)
         if cmd is not None:

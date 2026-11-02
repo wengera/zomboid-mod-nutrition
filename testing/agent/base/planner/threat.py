@@ -11,6 +11,7 @@ from (a pure move): the hold and spent reads (`hold.Hold`), the engage (`engage.
 from agent.base.planner.care import CARE_STILL_TICKS
 from agent.base.planner.care_yield import CareYield
 from agent.base.planner.doorway import DoorwayStand, stand_ready
+from agent.base.planner.edges import ThreatEdge
 from agent.base.planner.engage import Engage
 from agent.base.planner.fight import Fight
 from agent.base.planner.finish import ThreatFinish
@@ -34,7 +35,7 @@ __all__ = ["Threat", "FLEE_HEALTH", "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_F
            "GROUP_NEAR_R", "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "LISTED_R"]
 
 
-class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
+class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, ThreatEdge):
     """The threat branch (the module docstring): `Survive`'s mixin, its switches the replay tests' seams."""
 
     ENGAGE = True   # ruling P24-X: one or two within ENGAGE_R are sought, a flee turns to fight at the fight's line
@@ -103,6 +104,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
                           # target, ends the stand `inside` (`DoorwayStand._stand_inside`); off, no such end
     STAND_EXIT = True     # ruling P25-W: a stand ended `wound`, `drag` or `inside` walks out of the building by its way
                           # out (`flee.Flee.walk_out`), never the close; off, every end but `off` closes the door
+    BLOCKED_EDGE = True   # ruling P25-X: a known blocked outdoor edge on the line to a Fight's target, a goal's or a
+                          # fill's is routed through its unlocked door or refused (`planner/edges.py`: the Fight's
+                          # `blocked_edge` rule, the goals' kit, the water chain); off, iteration 15's seek and walks
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -575,6 +579,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         threat branch's start in `assess` (the rules before it)."""
         self.care_yield, self.care.ride_now, self.engaging, self.avoid = None, False, False, set()
         self.finish_block = None   # Task 36 fix 1: this tick's refusal only (`_finish_chaser` sets it)
+        self._release_edges()   # P25-X: a zombie refused across a blocked edge, read on the player's side, is free
         self._held, self._breach_now = [], None
         self._read_spent()
         held = self._within(self._hold_r())
@@ -691,6 +696,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
             policy.threats = held
             policy.edge_ticks = EDGE_HOLD_TICKS if self.EDGE else 0   # P24-AU, read at the policy's observe
             policy.rules = self._fight_rules()   # P25-A, P25-B, P25-D, P25-F
+            policy.edge_marks = self.edge_marks   # P25-X: the refusals across a blocked edge, shared as `unreachable`
             policy.shove_only = self._shove_only(kind)   # P25-P, P25-S: no swing, no seek
             ans = self._answer(policy)
             if self.pair_yield is not None and not self._finishes(self.pair_yield):
@@ -770,11 +776,12 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         return flee.busy() and flee.last.args.get("gait") == "walk"
 
     def _fight_rules(self):
-        """The iterations 13 to 15 Fight rules (`fight.FIGHT_RULES`) whose switch is on: the Fight's `rules`."""
+        """The iterations 13 to 16 Fight rules (`fight.FIGHT_RULES`) whose switch is on: the Fight's `rules`."""
         return frozenset(rule for rule, on in (("corner_break", self.CORNER_BREAK), ("finish_first", self.FINISH_FIRST),
                                                ("ride_wait", self.RIDE_WAIT), ("fence_wait", self.FENCE_WAIT),
                                                ("finish_far", self.FINISH_FAR), ("shove_break", self.SHOVE_BREAK),
-                                               ("shove_break_run", self.SHOVE_BREAK_RUN))
+                                               ("shove_break_run", self.SHOVE_BREAK_RUN),
+                                               ("blocked_edge", self.BLOCKED_EDGE))
                          if on)
 
     def _door_targets(self):

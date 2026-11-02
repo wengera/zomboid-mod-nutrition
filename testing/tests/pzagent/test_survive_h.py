@@ -884,15 +884,17 @@ def test_a_seek_aim_leg_gives_way_to_a_nearer_zombie(tmp_path):
 E7 = "e_day_7-20261029-140813"
 
 
-def _e7_lines(upto, engage_any=False, no_give=False, iteration_10=False):
+def _e7_lines(upto, engage_any=False, no_give=False, iteration_10=False, edge=True):
     """E7 replayed to `upto`: the rows, and per tick {walk: the running stance walk's target id else None, zs:
     {zombie id: tiles}}. `engage_any`: the engage as built at 9c477f80 (every zombie within ENGAGE_R engageable), so
     the review's walk at line 52 is reproduced; `no_give`: the blocker's mutant (the walk never gives way);
-    `iteration_10`: Task 32's switches off (`Survive.PULL`, `DOORWAY`, `TRANS`)."""
+    `iteration_10`: Task 32's switches off (`Survive.PULL`, `DOORWAY`, `TRANS`); `edge` False: P25-X's switch off
+    (`Survive.BLOCKED_EDGE`, Plan 25 Task 14)."""
     from agent.base import replay_decisions as R
     out = {}
 
     def m(sv):
+        sv.BLOCKED_EDGE = edge
         if engage_any or iteration_10:
             sv.PULL = sv.DOORWAY = sv.TRANS = False
         if engage_any:
@@ -945,15 +947,18 @@ def test_e7_lines_52_to_73_the_seek_walk_round_the_wall_gives_way_and_never_runs
     chases alone within ENGAGE_R with 564 and 534 beyond DANGER_R, so the pull's leg goes where the walk round the wall
     went (`test_e7_line_54_pulls_533_where_the_walk_round_the_wall_went`). Named change, Plan 25 Task 3 (ruling P25-F):
     564 chasing from across the fence at line 64 is the fence wait's, its stance leg closing toward the fence's band
-    (`leg` toward, `fence_wait`), still no walk."""
-    rows, out = _e7_lines(73, engage_any=True)
+    (`leg` toward, `fence_wait`), still no walk. Named change, ruling P25-X (Plan 25 Task 14): the walk round the
+    wall is read with `BLOCKED_EDGE` off (`edge=False`): with it on the line to 533 crosses the fence row, whose
+    nearest way is its unlocked door record (10747, 10642), so the seek routes through it
+    (`test_survive_x.test_e7_s_walk_round_the_fence_row_routes_through_its_unlocked_door`)."""
+    rows, out = _e7_lines(73, engage_any=True, edge=False)
     assert rows[48]["action"] == {"type": "walkTo", "args": {"gait": "walk", "x": 10740.5, "y": 10647.5}}
     assert out[49]["walk"] == 533 and out[55]["walk"] == 533 and out[56]["walk"] is None
     assert rows[55]["action"]["type"] == "aim"
     assert _walk_held_wrongly(out, 49, 73) == []
-    _, mut = _e7_lines(73, engage_any=True, no_give=True)
+    _, mut = _e7_lines(73, engage_any=True, no_give=True, edge=False)
     assert all(mut[k]["walk"] == 533 for k in range(49, 74)) and _walk_held_wrongly(mut, 49, 73) != []
-    rows, out = _e7_lines(73, iteration_10=True)
+    rows, out = _e7_lines(73, iteration_10=True, edge=False)
     assert all(rows[k - 1]["branch"] != "threat" for k in range(47, 54))
     assert rows[53]["action"]["type"] == "walkTo" and out[55]["walk"] == 533 and out[56]["walk"] is None
     w = rows[63]["inputs"]["branches"]["threat"]

@@ -10,6 +10,11 @@ mod over PZA/1.7.1, on `test_survive`'s shelter world (building 1's 3 x 3 kitche
 - P25-W, a stand's end under a group (`wound`, `drag`, `inside`) walks out by the way out, never the close (E14's
   close shut the kitchen door with five zombies inside): the trapped hold with no way out (P25-Q's care on its tick);
   `quiet` and `off` keep their close and drop; logged `doorway_exit` {end, exit}.
+- P25-X (the amendment; E15: 158 game minutes cycling at zombie 8064 behind a locked chain-link gate): a known blocked
+  outdoor edge (not hoppable, its door records locked) on the straight line to a Fight's target refuses the seek and
+  marks the target until it is read on the player's side; an unlocked door record on the edge's run routes the walk
+  through it; a goal's or a fill's target beyond it is routed through that door, else dropped (`failed "blocked
+  edge"`, cooled); logged `blocked_edge` {edge, door, action}.
 """
 from agent.base.planner import doorway as D
 from agent.base.planner import policies as P
@@ -18,7 +23,7 @@ from agent.base.planner import threat as T
 
 from .test_night import OPEN, house
 from .test_policies import all_sends_valid, grid, square
-from .test_survive import group, tick
+from .test_survive import group, make, tick
 from .test_survive_g import part
 from .test_survive_p import POST, stood
 from .test_survive_p import why as door_why
@@ -26,7 +31,7 @@ from .test_survive_p import z as dz
 
 
 def test_the_iteration_16_switches():
-    assert S.T6_SWITCHES == ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT")
+    assert S.T6_SWITCHES == ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE")
     assert D.STAND_EXIT_ENDS == ("wound", "drag", "inside")
     assert all(getattr(T.Threat, name) is True for name in S.T6_SWITCHES)
 
@@ -268,3 +273,161 @@ def test_the_exit_kind_reads_a_door_s_edge_and_a_doorless_opening(tmp_path):
     assert P.exit_kind(r.world, door) == "door"
     assert P.exit_kind(r.world, dict(door, inner=(112, 200, 0), outer=(111, 200, 0))) == "opening"
     assert P.exit_kind(r.world, dict(door, door=(112, 201, 0))) == "door"
+
+
+# ================================================================ P25-X: a known blocked edge
+LOCKED = {"open": False, "locked": True, "barricaded": False}
+UNLOCKED = {"open": False, "locked": False, "barricaded": False}
+ME = (100.5, 200.5)
+
+
+def walled(doors=None, hop=False):
+    """`test_survive_g.fenced`'s yard (x 98..112, y 196..204) with its fence on the west edges of x 102 a wall (not
+    hoppable: E15's chain-link) unless `hop`; `doors` {y: door record} on the wall's squares at x 102 (E15's gate
+    (10756, 10642) locked, (10747, 10642) unlocked)."""
+    doors = doors or {}
+    return [square(x, y, blockW=(x == 102), hopW=(x == 102 and hop), edgeW=(x == 102),
+                   door=doors.get(y) if x == 102 else None) for x in range(98, 113) for y in range(196, 205)]
+
+
+def chaser(x, y=200.5):
+    return dict(dz(1, x, y, me=ME), hasTarget=True)
+
+
+def gate_rig(tmp_path, doors=None, hop=False, zx=104.5, edge=True):
+    r, sv = make(tmp_path)
+    sv.BLOCKED_EDGE = edge
+    r.scan(walled(doors, hop))
+    r.frame(x=ME[0], y=ME[1], zombies=[chaser(zx)])
+    return r, sv
+
+
+def walks(r):
+    return [a for a in r.acts.history if a.type == "walkTo"]
+
+
+def test_a_chaser_across_a_locked_gate_is_refused_and_marked_until_it_comes_round(tmp_path):
+    """E15's gate zombie: a chaser 4 tiles off across the wall, the gate on its edge locked: no seek, no walk toward it
+    on any tick, the target marked (`edge_marks`, an unreachable wall that never lapses), logged `blocked_edge`
+    {edge [102, 200, "W"], door None, action refuse}; read on the player's side of the wall it is free again."""
+    r, sv = gate_rig(tmp_path, {200: LOCKED})
+    tick(r, sv)
+    w = door_why(r)
+    assert w["blocked_edge"] == {"edge": [102, 200, "W"], "door": None, "action": "refuse"} and w["marked"] == 1
+    assert sv.edge_marks == {1: ((102, 200, 0), "W")} and sv.unreachable[1] == float("inf")
+    for _ in range(4):
+        r.advance(P.UNREACHABLE_S)
+        r.frame(x=ME[0], y=ME[1], zombies=[chaser(103.5)])
+        tick(r, sv)
+        last_a = r.acts.history[-1] if r.acts.history else None
+        if last_a is not None and last_a.state not in ("done", "failed", "timeout", "rejected"):
+            r.answer()
+    assert not walks(r) and 1 in sv.edge_marks
+    r.frame(x=ME[0], y=ME[1], zombies=[chaser(101.6)])
+    tick(r, sv)
+    assert 1 not in sv.edge_marks and 1 not in sv.unreachable
+
+
+def test_an_unlocked_gate_on_the_crossed_edge_routes_the_seek_through_it(tmp_path):
+    r, sv = gate_rig(tmp_path, {200: UNLOCKED})
+    a = tick(r, sv)
+    w = door_why(r)
+    assert (a.type, a.args) == ("walkTo", {"x": 102.5, "y": 200.5, "gait": "run"})
+    assert w["blocked_edge"] == {"edge": [102, 200, "W"], "door": [102, 200], "action": "route"} and not sv.edge_marks
+
+
+def test_a_locked_gate_with_an_unlocked_one_on_the_wall_s_run_routes_through_the_unlocked_one(tmp_path):
+    """E15's fence row: the gate on the line locked, an unlocked door record 3 squares along the wall: the seek walks
+    to the far side of the unlocked door, never across the locked one; a route walk that fails marks the target."""
+    r, sv = gate_rig(tmp_path, {200: LOCKED, 203: UNLOCKED})
+    a = tick(r, sv)
+    w = door_why(r)
+    assert (a.type, a.args) == ("walkTo", {"x": 102.5, "y": 203.5, "gait": "run"})
+    assert w["blocked_edge"] == {"edge": [102, 200, "W"], "door": [102, 203], "action": "route"}
+    r.answer({"state": "failed", "reason": "stuck"})
+    r.frame(x=ME[0], y=ME[1], zombies=[chaser(104.5)])
+    tick(r, sv)
+    assert sv.edge_marks.get(1) == ((102, 200, 0), "W")
+
+
+def test_a_hoppable_fence_keeps_the_fence_wait(tmp_path):
+    r, sv = gate_rig(tmp_path, hop=True)
+    a = tick(r, sv)
+    w = door_why(r)
+    assert a.type == "aim" and w["fence_wait"]["target"] == 1 and "blocked_edge" not in w and not sv.edge_marks
+
+
+def test_with_blocked_edge_off_the_seek_is_iteration_15_s(tmp_path):
+    r, sv = gate_rig(tmp_path, {200: LOCKED}, edge=False)
+    a = tick(r, sv)
+    w = door_why(r)
+    assert (a.type, a.args["x"]) == ("walkTo", 104.5) and "blocked_edge" not in w and not sv.edge_marks   # across
+
+
+def _goal(tmp_path, doors):
+    from agent.base.planner.goals import ExploreToward, GoalRunner
+    from .test_policies import Rig
+    from .test_survive_g import Src
+    r = Rig(tmp_path)
+    r.scan(walled(doors))
+    r.frame(x=ME[0], y=ME[1])
+    runner = GoalRunner(Src(ExploreToward(x=108, y=200)), r.clock)
+    runner.kit.bind(r.world, r.acts)
+    runner.kit.explore.scanned.add(runner.kit.explore.place())
+    return r, runner
+
+
+def test_a_goal_beyond_the_wall_walks_a_leg_to_the_unlocked_door_then_its_target(tmp_path):
+    r, runner = _goal(tmp_path, {200: LOCKED, 203: UNLOCKED})
+    runner.send(runner.tick(r.world, r.acts))
+    assert r.cmd() == ("walkTo", {"x": 102.5, "y": 203.5, "gait": "walk"})
+    assert runner.current.why["blocked_edge"] == {"edge": [102, 200, "W"], "door": [102, 203], "action": "route"}
+    r.answer()
+    r.frame(x=102.5, y=203.5)
+    runner.kit.explore.scanned.add(runner.kit.explore.place())
+    runner.send(runner.tick(r.world, r.acts))
+    assert r.cmd() == ("walkTo", {"x": 108, "y": 200, "gait": "walk"}) and runner.current.running
+
+
+def test_a_goal_beyond_the_wall_with_no_unlocked_door_fails_blocked_edge_and_is_cooled(tmp_path):
+    from agent.base.planner.goals import goal_key
+    r, runner = _goal(tmp_path, {200: LOCKED})
+    assert runner.tick(r.world, r.acts) is None
+    row = runner.history[-1]
+    assert (row["type"], row["state"], row["reason"]) == ("ExploreToward", "failed", "blocked edge")
+    assert goal_key("ExploreToward", {"x": 108, "y": 200}) in runner.cooled and not walks(r)
+
+
+def test_a_water_source_beyond_the_wall_is_reached_through_its_door_or_passed_over(tmp_path):
+    """The need's fill (E15's 17 fills at building 2's laundry, beyond the gate): a source across the wall is walked
+    to through the unlocked door first; with the door locked it is passed over for a source on the player's side."""
+    from .test_survive_g import hold, need_why, source
+    r, sv = make(tmp_path)
+    r.scan(walled({200: LOCKED, 203: UNLOCKED}) + [source(108, 199)])
+    hold(r, 5, "Base.PopEmpty", use="container")
+    r.frame(x=ME[0], y=ME[1], thirst=0.2)
+    tick(r, sv)
+    assert r.cmd() == ("walkTo", {"x": 102.5, "y": 203.5, "gait": "walk"})
+    assert need_why(tmp_path)["fill"]["blocked_edge"]["action"] == "route"
+    (tmp_path / "b").mkdir()
+    r2, sv2 = make(tmp_path / "b")
+    r2.scan(walled({200: LOCKED}) + [source(108, 199), source(99, 196)])
+    hold(r2, 5, "Base.PopEmpty", use="container")
+    r2.frame(x=ME[0], y=ME[1], thirst=0.2)
+    tick(r2, sv2)
+    assert r2.cmd() == ("fill", {"itemId": 5, "x": 99, "y": 196})
+
+
+def test_e7_s_walk_round_the_fence_row_routes_through_its_unlocked_door():
+    """E7's record (the review's blocker of Plan 24 Task 18): the seek on 533, 8.07 tiles off across the fixture's
+    fence row (its north edges on y 10642), whose nearest way is the unlocked door record at (10747, 10642): at line
+    49 the walk goes to that door's far square at a run, logged `blocked_edge` {route}, where iteration 15 walked
+    round the wall at 533's square (`test_survive_h.test_e7_lines_52_to_73_...`, `edge` False); held from line 50."""
+    from .test_survive_h import _e7_lines
+    rows, _ = _e7_lines(50, engage_any=True)
+    w = rows[48]["inputs"]["branches"]["threat"]
+    assert rows[48]["action"] == {"type": "walkTo", "args": {"gait": "run", "x": 10747.5, "y": 10642.5}}
+    assert w["blocked_edge"] == {"action": "route", "door": [10747, 10642], "edge": [10739, 10642, "N"]}
+    assert w["target"] == 533 and "holding" in rows[49]["inputs"]["branches"]["threat"]
+    rows, _ = _e7_lines(49, engage_any=True, edge=False)
+    assert rows[48]["action"] == {"type": "walkTo", "args": {"gait": "walk", "x": 10740.5, "y": 10647.5}}

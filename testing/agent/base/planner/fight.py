@@ -111,6 +111,7 @@ one table the gates and the other policies import).
 import math
 import time
 
+from agent.base.planner.edges import FightEdge
 from agent.base.planner.finish import FightFinish
 from agent.base.planner.policies import (AIM_HOLD_S, AIM_LEG_S, AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R,
                                          DRAG_DOWN_N, EDGE_HOLD_TICKS, FENCE_BACK_R, FIGHT_MAX_S, FIGHT_REACH,
@@ -129,11 +130,12 @@ from agent.base.world import me_floor, me_xy
 __all__ = ["Fight", "FIGHT_RULES"]
 
 FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finish_far", "shove_break",
-               "shove_break_run")   # survival iterations 13 to 15's Fight rules (P25-A, P25-B, P25-D, P25-F; P25-J,
-                     # P25-L; P25-T), each on in `rules` unless Survive's switch for it is off
+               "shove_break_run", "blocked_edge")   # survival iterations 13 to 16's Fight rules (P25-A, P25-B,
+                     # P25-D, P25-F; P25-J, P25-L; P25-T; P25-X), each on in `rules` unless Survive's switch for it is
+                     # off
 
 
-class Fight(FightPull, FightFinish, FightShove, Policy):
+class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
     def __init__(self, world, actions, clock=time.time, unreachable=None, target=None, dead=None):
         super().__init__(world, actions, clock)
         self.dead = {} if dead is None else dead   # zombie id -> wall until it is skipped: read dead (Task 12 fix 1)
@@ -190,6 +192,11 @@ class Fight(FightPull, FightFinish, FightShove, Policy):
         self._fence_leg = None              # the fence wait's leg kind the last aim was sent for (P25-F), else None
         self._misses = None                 # (zombie id, [send walls]) of the missed shoves in a row at it (P25-L)
         self._miss_run = {}                 # zombie id -> its missed shoves since its last knock-down (P25-T)
+        self.edge_marks = {}                # Survive shares its own: zombie id -> the blocked edge it was refused
+                                            # across (P25-X, `edges.FightEdge`), released by the threat branch
+        self._edge_send = None              # (target id, edge) of the route walk the running choose returns (P25-X)
+        self._edge_walk = None              # (walk, target id, edge) of the last route walk sent, until its end is read
+        self.blocked_edge = None            # this choose's `blocked_edge` why (P25-X), else None
         self.shove_only = None              # Survive sets it each tick: why the Fight is the shove and the stomp
                                             # alone, "unarmed" (P25-P) or "low" (P25-S), else None: no swing, no seek
 
@@ -500,6 +507,7 @@ class Fight(FightPull, FightFinish, FightShove, Policy):
 
     def observe(self):
         self._observe_edge()
+        self._observe_edge_route()
         self._observe_kill()
         self._observe_leg()
         t = self._target(pin=False)
@@ -716,7 +724,7 @@ class Fight(FightPull, FightFinish, FightShove, Policy):
         self.target, self.repositioned = nz[0], False
 
     def _choose(self):
-        self._seek_send, self._walk_kind = False, None
+        self._seek_send, self._walk_kind, self._edge_send = False, None, None
         self._repin_point_blank()
         self._pull_pin()
         switch = self._seek_switch(self._pinned()) if self.seek and self.target is not None else None
@@ -751,6 +759,14 @@ class Fight(FightPull, FightFinish, FightShove, Policy):
             if switch is not None and zid == switch[0]:
                 self.why["seek_switch"] = True
             return fence
+        edge = self._edge_answer(t)   # P25-X: a known blocked edge on the line, routed through its door or refused
+        if edge is not None:
+            if edge[0] == "route":
+                return edge[1]
+            read = self.blocked_edge
+            cmd = self._choose()
+            self.why = dict(self.why, marked=zid, blocked_edge=read)
+            return cmd
         if d <= POINT_BLANK_R:
             self.approach = False   # P24-A (e), the close review's I3 (F1's walkTo at 0.49 tiles): never at point blank
         blank = self.point_blank and d <= POINT_BLANK_R   # P23-AJ fix 1: in reach whatever the map's line says
@@ -860,6 +876,7 @@ class Fight(FightPull, FightFinish, FightShove, Policy):
         elif cmd.TYPE == "walkTo":
             self.approach = False
             self._seek_walk = (action, self.target) if self._seek_send else None
+            self._edge_walk = (action,) + self._edge_send if self._edge_send else None   # P25-X: its end read
             self._stance_walk = (action, self.target, self._walk_kind) if self._walk_kind else None
         elif cmd.TYPE == "shove":
             self._shoved = True

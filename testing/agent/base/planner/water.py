@@ -29,6 +29,11 @@ third steps when no `water` item is held, which `survive.Survive._need` runs aft
   leaves its source out as a fill's walk failure does (`World.mark_dry`). A source beyond the grid is never sent: with
   every clean source out of it the vessel is kept and the need walks a leg toward the nearest (`_leg_toward`: `why`
   `unloaded`, their count, and `walk`; the want is no `water_source`, a source being known: Task 36 fix 1, minor 3).
+- Ruling P25-X (survival iteration 16, Plan 25 Task 14; E15's 17 fills aimed beyond a locked chain-link gate): a
+  loaded source whose straight line crosses a known blocked outdoor edge (`edges.edge_read`) is walked to through the
+  unlocked door record on that edge's run within the leg length (the walk to its far square first, `walk`), else
+  passed over for the next; with every one passed over the vessel is kept and the want is `water_source`. Logged
+  `blocked_edge` in the need's `fill` why.
 - `sent(action)` remembers the need's fill: its action, and the vessel's `item_changed` count at the send; or its walk
   to a source (`walk`).
 - `wants(marks, now)`: the goal layer's wants beside `water` (FILL_WANTS) on a tick the need found no water held: the
@@ -38,6 +43,7 @@ import math
 import time
 
 from agent.base.planner.care import DRY_REASONS
+from agent.base.planner.edges import edge_read, edge_why
 from agent.base.planner.goal_policies import leg_max
 from agent.base.planner.goals import LEG_SQ_MARGIN
 from agent.base.planner.policies import PREEMPTED, STUCK_REASONS, centre, item_id_ok
@@ -74,6 +80,7 @@ class Water:
         self.fills = {}   # vessel id -> {action, read, at, base, done_wall}: the need's fills (P24-G 3)
         self.walk = None  # (walk Action, source square) of the need's walk to a far source until its end is read (P24-AW)
         self.why = None   # this tick: the plan's fill or want, logged in the need's why
+        self.blocked_edge = True   # Survive sets it each tick (its BLOCKED_EDGE switch, ruling P25-X)
 
     def check(self):
         """Each fill's end, once, and the walk's to a far source (the module docstring)."""
@@ -139,14 +146,40 @@ class Water:
         near = [s for s in clean if loaded(self.world, s[1])]   # P24-AW: never a source the client holds no square of
         if not near:
             return self._leg_toward(clean[0], min(vessels), len(clean))
-        d, sq, _ = near[0]
+        pick, blocked = self._past_edges(near)   # P25-X: a source beyond a known blocked edge routed or passed over
+        if pick is None:
+            self.why = {"vessel": min(vessels), "source": None, "want": "water_source", "blocked_edge": blocked}
+            return None
+        (d, sq, _), route = pick
         self.why = {"vessel": min(vessels), "source": [sq[0], sq[1]], "dist": d}
+        if route is not None:
+            self.why.update(walk=[route[0][0], route[0][1]], blocked_edge=route[1])
+            return WalkTo(*centre(route[0]), "walk")
         if d <= FILL_WALK_R:
             return Fill(min(vessels), sq[0], sq[1])
         beside = self.world.reachable_adjacent(centre(sq), sq[2])   # P24-AW: the walk first, beside the source
         to = beside[0] if beside else sq
         self.why["walk"] = [to[0], to[1]]
         return WalkTo(*centre(to), "walk")
+
+    def _past_edges(self, near):
+        """Ruling P25-X: the first of the loaded sources `near` (nearest first) whose straight line crosses no known
+        blocked edge, `(source, None)`, or one crossing an edge an unlocked door record passes within the leg length
+        (`leg_max`), `(source, (the door's far square, its why))`: the walk there goes first (`sent` keeps it as the
+        walk to that source); each one with no such door passed over (`drop`). `(None, the last drop's why)` when every
+        one is; with `blocked_edge` off, `(near[0], None)`."""
+        if not self.blocked_edge:
+            return (near[0], None), None
+        dropped = None
+        me = me_xy(self.world)
+        for src in near:
+            read = edge_read(self.world, me, centre(src[1]), leg_max(self.world))
+            if read is None:
+                return (src, None), None
+            if read["via"] is not None:
+                return (src, (read["via"], edge_why(read, "route"))), None
+            dropped = edge_why(read, "drop")
+        return None, dropped
 
     def _leg_toward(self, src, vessel, n):
         """Task 36 fix 1, minor 3: every clean source known lies beyond the loaded grid, so the want is no
