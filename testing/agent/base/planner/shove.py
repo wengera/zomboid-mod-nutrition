@@ -55,15 +55,18 @@ class FightShove:
         self.why.update({"shove": "second", "shoveTarget": sid, "shoveDist": sd, "second": second[0]})
         return Shove(sid)
 
-    def _crowd_shove(self, zid):
+    def _crowd_shove(self, zid, d):
         """Ruling P26-C (E16, `e_day_16-20261102-125450`: from the doorway stand's `inside` end the corner sent five
         attacks, a105 to a109, at zombies within 1.0472329509892702 tiles, four of which swung and one lowered its
         target, while two zombies stood on the door's inside square): an `inside` corner's Fight whose `crowd`
         (Survive's count at point blank) reads INSIDE_CROWD_N or more sends the shove at its target `zid` in place of
         the swing, every time: its knock-down's chance (#4373), read as every shove's result is (`knocked`, then the
         finish's stomp); the stomp of a fallen zombie in reach has gone first (`_finish`). Logged `shove` "crowd". None
-        with no crowd, or with the shove at `zid` refused within SWING_SKIP_S (`_swing_ok`: the swing then stands)."""
-        if self.crowd is None or self.crowd < INSIDE_CROWD_N or not self._swing_ok("shove", zid):
+        with no crowd, with `zid` not a wire id or beyond SHOVE_R (`d` tiles off: the Lua refuses a shove `too far`,
+        ruling P26-7a; the crowd may be `me.attackers` alone, the target up to FIGHT_REACH), or with the shove at `zid`
+        refused within SWING_SKIP_S (`_swing_ok`): the swing then stands."""
+        if (self.crowd is None or self.crowd < INSIDE_CROWD_N or not target_id_ok(zid) or d > SHOVE_R
+                or not self._swing_ok("shove", zid)):
             return None
         self.why["shove"] = "crowd"
         return Shove(zid)

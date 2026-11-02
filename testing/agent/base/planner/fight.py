@@ -815,7 +815,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         if hit is not None:   # P24-A (i): the engine starts no swing in a hit reaction (#4292, #4293): sent on its end
             self.why["hitReaction"] = hit
             return None
-        crowd = self._crowd_shove(zid)   # P26-C: an `inside` corner under a crowd at point blank shoves, never swings
+        crowd = self._crowd_shove(zid, d)   # P26-C: an `inside` corner under a crowd at point blank shoves
         if crowd is not None:
             return crowd
         shove = self._shove(zid, z, d)   # P24-AG, P24-AH: the shove before (or for) the swing

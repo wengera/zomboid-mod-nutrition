@@ -81,7 +81,7 @@ class CareYield:
         near = self._nearest_seen[-1][1]
         chased = any(z.get("hasTarget") is True for z in held)
         free = self._rides_many(near) if (self.flee_many and chased) else (near > RIDE_R or not chased)
-        bleed = not free and chased and self._bleed_leg() and self._rides_many(near)   # P26-D: the pair or held leg
+        bleed = not free and chased and self._bleed_leg() and near > RIDE_MANY_R   # P26-D: the pair or held leg
         if (free or bleed) and self._ride_leg() is not None:
             self._observe(self.care)
             if self.care.rides_wound():
@@ -107,7 +107,9 @@ class CareYield:
 
     def _bleed_leg(self):
         """Ruling P26-D: the running flee is a `pair` or `held` one (`flee_reason`, its last decision's), with
-        `THREAT_BLEED` on: its leg rides the bleed under `_rides_many`'s rule, as the `many` leg's."""
+        `THREAT_BLEED` on: its leg rides the bleed on the distance rule of `_rides_many` alone, the nearest beyond
+        RIDE_MANY_R (ruling P26-7e; `_rides_many`'s FLEE_CARE_S clause, the long `many` episode with FLEE_CARE_N parts
+        bleeding, is the `many` episode's: `many_since` outlives the `many` flee while a threat is held)."""
         return self.THREAT_BLEED and self.mode == "flee" and self.flee_reason in ("pair", "held")
 
     def _bleed_free(self):

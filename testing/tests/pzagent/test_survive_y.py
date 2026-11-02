@@ -1,5 +1,5 @@
 """Survival 19 (survival iteration 17; Plan 26 Task 2; E16, `e_day_16-20261102-125450`, F7,
-`f_goals_8-20261102-093241`, and F5, `f_goals_6-20261030-192251`; rows #4453, #4499-#4511). The fake mod over
+`f_goals_8-20261102-093241`, and F5, `f_goals_6-20261030-192251`; rows #4453, #4501, #4509-#4511). The fake mod over
 PZA/1.7.1, on E16's building 1 as its kept map read it at line 469 (the guide's § 3: the six `garagestorage` room
 squares x 10710..10711 by y 10595..10597, the door on the west edge of the outdoor square (10712, 10596), the window on
 the west edge of the room square (10710, 10596), the strip x 10709 fenced on its west edges, blocked and hoppable).
@@ -25,6 +25,9 @@ from agent.base.planner import edges as ED
 from agent.base.planner import flee as FL
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
+from agent.base.planner.care import FLEE_CARE_S
+
+from agent.base.pza1 import Shove
 
 from .test_night import CLOSED, OPEN
 from .test_policies import Rig, grid
@@ -51,16 +54,18 @@ def zs(rows, me):
              "crawler": False, "health": 1.0, "onFloor": None} for zid, x, y in rows]
 
 
-def shed(door=OPEN, window=SHUT_W, north_door=None):
+def shed(door=OPEN, window=SHUT_W, north_door=None, extra_windows=()):
     """E16's building 1 (the module docstring): every edge of the six room squares blocked but the door's (open: the
     stand's open a98) and the window's (a shut window blocks its edge); the strip x 10709 fenced; open ground x 10705 to
     10716 by y 10592 to 10600. `north_door` (a door record) puts a second exterior door on the north edge of the room
-    square (10711, 10595)."""
+    square (10711, 10595); `extra_windows` rows `(room square, window record)` more windows on the west edge."""
     at = {}
     for x, y in ROOMS:
         at[(x, y)] = {"room": "garagestorage", "building": 1, "blockN": y == 10595, "edgeN": y == 10595,
                       "blockW": x == 10710, "edgeW": x == 10710}
     at[WIN[:2]]["window"] = dict(window)
+    for sq, rec in extra_windows:
+        at[sq]["window"] = dict(rec)
     if north_door is not None:
         at[(10711, 10595)].update(door=dict(north_door), blockN=not north_door["open"])
     for y in (10595, 10596, 10597):   # the east wall, kept on x 10712's west edges; the door's edge open with the door
@@ -144,6 +149,43 @@ def test_a_door_that_passes_goes_before_a_nearer_window(tmp_path):
     assert P.exit_kind(r.world, e) == "door"
 
 
+def test_an_unlocked_window_goes_before_a_nearer_locked_one(tmp_path):
+    """Ruling P26-7d: on line 469's frame two windows pass, the nearer (10710, 10596) locked (a smash) and a farther
+    shut one one square south (10710, 10597): the farther unlocked one is the way out, as `goals.window_pick` ranks
+    (no noise, no cut); with both unlocked the nearer goes."""
+    south = (10710, 10597)
+    r = e16_rig(tmp_path, window=LOCKED_W, extra_windows=((south, SHUT_W),))
+    e = P.exit_plan(r.world, list(r.world.zombies.values()), windows=True)
+    assert (e["window"], e["smash"]) == (south + (0,), False)
+    d = tmp_path / "both"
+    d.mkdir()
+    r = e16_rig(d, extra_windows=((south, SHUT_W),))
+    e = P.exit_plan(r.world, list(r.world.zombies.values()), windows=True)
+    assert (e["window"], e["smash"]) == (WIN, False)
+
+
+def test_the_window_filter_and_the_failure_leg_are_the_goal_layer_s_for_both_callers(tmp_path):
+    """Ruling P26-7c: `goals.usable_windows` (the one filter of `window_pick` and `night.window_exits`) reads the
+    record's `locked` or a try that ended `locked`, and leaves out a barricaded window and a dead one;
+    `goals.note_window_end` (the one failure leg) notes an unsmashed `locked` end `locked`, a smash's or a second
+    `locked` `failed`, a second WINDOW_REPEAT end `failed`."""
+    from agent.base.actions import Action
+    from agent.base.planner import goals as G
+    r = e16_rig(tmp_path)
+    assert G.usable_windows(r.world, 1, 0) == [(WIN, False)] and G.usable_windows(r.world, 1, 1) == []
+    ends = [Action(aid="a%d" % i, type="window", args=args, deadline_s=30.0, sent_wall=0.0, state=state, reason=reason)
+            for i, (args, state, reason) in enumerate((({"x": 10710, "y": 10596}, "rejected", "locked"),
+                                                       ({"x": 10710, "y": 10596, "smash": True}, "rejected", "locked"),
+                                                       ({"x": 10710, "y": 10596}, "failed", "no path")))]
+    assert G.note_window_end(r.world, WIN, ends[0]) == "locked" and r.world.window_fail(WIN) == "locked"
+    assert G.usable_windows(r.world, 1, 0) == [(WIN, True)]
+    assert G.note_window_end(r.world, WIN, ends[0]) == "failed" and G.usable_windows(r.world, 1, 0) == []
+    r2 = e16_rig(tmp_path / "smash")
+    assert G.note_window_end(r2.world, WIN, ends[1]) == "failed"
+    r3 = e16_rig(tmp_path / "repeat")
+    assert [G.note_window_end(r3.world, WIN, ends[2]) for _ in range(2)] == ["no path", "failed"]
+
+
 def flee_on(r):
     f = FL.Flee(r.world, r.acts, r.clock)
     f.threats = list(r.world.zombies.values())
@@ -208,6 +250,30 @@ def test_a_climb_that_fails_notes_the_window_and_refuses_it_the_next_choose_hold
     f.step()
     assert r.world.window_fail(WIN) == "not valid" and WIN_OUT in f.refused and f.exit is None
     assert f.why["trapped"] == 1 and f.why["refused"] == [[10709, 10596, 0]] and f.adopted and f.plan is None
+
+
+def test_a_window_refused_locked_unsmashed_is_offered_again_as_a_smash_and_a_refused_smash_is_refused(tmp_path):
+    """Ruling P26-7c: the shut window's open (`Window` without `smash`) ended `rejected` `locked`: the World notes the
+    window `locked` and the exit ends with its outside square not refused, so the next choose walks nothing (the player
+    stands on the inside square) and sends `Window(10710, 10596, smash=True)`; that smash ended `rejected` `locked`
+    again is a dead window: the exit refused, the trapped hold."""
+    r = e16_rig(tmp_path, me=(10710.5, 10596.5))
+    f = flee_on(r)
+    f.step()
+    assert r.cmd() == ("window", {"x": 10710, "y": 10596})
+    r.fake.answer({"window": [{"state": "rejected", "reason": "locked"}]})
+    r.pump()
+    r.frame(x=10710.5, y=10596.5, zombies=zs(E16_469, (10710.5, 10596.5)))
+    f.step()
+    assert r.world.window_fail(WIN) == "locked" and WIN_OUT not in f.refused
+    assert r.cmd() == ("window", {"x": 10710, "y": 10596, "smash": True}) and f.exit["smash"] is True
+    assert [a.type for a in r.acts.history] == ["window", "window"]
+    r.fake.answer({"window": [{"state": "rejected", "reason": "locked"}]})
+    r.pump()
+    r.frame(x=10710.5, y=10596.5, zombies=zs(E16_469, (10710.5, 10596.5)))
+    f.step()
+    assert r.world.window_fail(WIN) == "failed" and WIN_OUT in f.refused and f.exit is None
+    assert [a.type for a in r.acts.history] == ["window", "window"] and f.why["trapped"] == 1
 
 
 def test_a_superseded_climb_is_sent_again(tmp_path):
@@ -301,6 +367,49 @@ def test_a_shelter_pick_that_is_no_stand_keeps_the_one_door_shed(tmp_path):
     assert [v[3] for v in f.door_verdicts(f.threats)] == ["one_exit"]
 
 
+def stand_on_shed(tmp_path, window_exit=True):
+    """E16's stand on the shed, run through the shelter steps (the closed door, the approach square, the open, the walk
+    to the post (10710, 10596)) with the stand's aim sent; then line 469's frame (the player on the door's inside
+    square, 24164 and 24134 on it, `me.attackers` 1) ticked with `WINDOW_EXIT` as given: (r, sv, the threat why)."""
+    r, sv, _ = pick_line(tmp_path)
+    r.answer()
+    approach = (DOOR[0] + 0.5, DOOR[1] + 0.5)
+    r.frame(x=approach[0], y=approach[1], zombies=zs(EAST, approach))
+    tick(r, sv)
+    assert r.cmd()[1]["kind"] == "open"
+    r.answer()
+    r.scan(shed(door=OPEN))
+    r.frame(x=approach[0], y=approach[1], zombies=zs(EAST, approach))
+    tick(r, sv)
+    post = (10710.5, 10596.5)
+    assert r.cmd() == ("walkTo", {"x": post[0], "y": post[1], "gait": "run"})
+    r.answer()
+    r.frame(x=post[0], y=post[1], zombies=zs(EAST, post))
+    assert tick(r, sv).type == "aim" and sv.flee.plan["step"] == "stand" and sv.flee.plan["post"] == WIN
+    r.fake.answer({"aim": ["accepted"]})
+    r.pump()
+    sv.WINDOW_EXIT = window_exit
+    r.frame(x=ME[0], y=ME[1], zombies=zs(E16_469, ME), attackers=1)
+    tick(r, sv)
+    return r, sv, threat_why(tmp_path)
+
+
+def test_the_stand_s_inside_end_walks_out_by_the_window_and_with_windows_off_holds_trapped(tmp_path):
+    """E16's `inside` end on line 469's frame (24164 and 24134 on the door's inside square, the stand at the post
+    (10710, 10596)): the stand ends `inside` and, the door's way out taken, walks out by the window (the walk to the
+    centre of its square, `doorway_exit` {end inside, exit window}); with windows off (`WINDOW_EXIT`, as E16 ran) the
+    end reads `trapped`."""
+    r, sv, w = stand_on_shed(tmp_path)
+    assert w["doorway_left"] == "inside" and w["doorway_exit"] == {"end": "inside", "exit": "window"}
+    assert r.cmd() == ("walkTo", {"x": 10710.5, "y": 10596.5, "gait": "run"})
+    assert w["window"] == [10710, 10596] and w["flee"] == "doorway" and sv.flee.walking_out == "inside"
+    d = tmp_path / "off"
+    d.mkdir()
+    r, sv, w = stand_on_shed(d, window_exit=False)
+    assert w["doorway_left"] == "inside" and w["doorway_exit"] == {"end": "inside", "exit": "trapped"}
+    assert w["trapped"] == 1 and "window" not in w
+
+
 # ================================================================ P26-C: the inside corner's shove
 # the corner's attacks from E16's `inside` end: (me, zombies within 1.5 tiles but the third of line 478, 1.63 tiles off,
 # left out so no group reads), each line's frame
@@ -339,6 +448,21 @@ def test_one_at_point_blank_keeps_the_swing(tmp_path):
     r, sv, w = corner_tick(tmp_path, E16_470)
     assert r.cmd() == ("attack", {"targetId": 24134}) and "shove" not in w
     assert w["corner"] == {"kind": "inside", "send": "attack", "near_n": 1}
+
+
+def test_the_crowd_s_shove_is_sent_only_to_a_wire_id_within_the_shove_s_reach(tmp_path):
+    """Ruling P26-7a: the corner's Fight (a109's two at point blank, so a crowd of 2) keeps a pinned target while
+    another zombie holds the corner, and `me.attackers` alone may make the crowd (`_inside_crowd`), so its target may
+    stand anywhere to FIGHT_REACH. At 1.7 tiles (beyond the Lua's SHOVE_R 1.5, which refuses a shove `too far`, and a
+    SWING_SKIP_S cool-down before the swing) `_crowd_shove` answers None and the swing stands; at SHOVE_R it shoves;
+    never at a target whose id is no int (a nil read keys None)."""
+    r, sv, w = corner_tick(tmp_path, E16_478)
+    f = sv.fight
+    assert f.crowd == 2 and w["shove"] == "crowd"
+    f.why = {}
+    assert f._crowd_shove(24160, 1.7) is None and "shove" not in f.why
+    assert f._crowd_shove(24160, P.SHOVE_R) == Shove(24160) and f.why["shove"] == "crowd"
+    assert f._crowd_shove(True, 1.0) is None and f._crowd_shove(None, 1.0) is None
 
 
 def test_attackers_count_toward_the_crowd_and_no_other_corner_reads_one(tmp_path):
@@ -384,9 +508,13 @@ F7_1655 = (10805.5654296875, 10672.421875)   # line 1655's position, where the `
 PART2 = part(2, h=77.04804229736328, bleeding=True, bleedingTime=8.344533920288086, infected=True)
 
 
-def bleed_flee(tmp_path, bleed=True):
+def bleed_flee(tmp_path, bleed=True, kind="pair", at_1660=True):
     """A clean rag held, part 2 bleeding: the `pair` flee from 14192 at 1.8 tiles (within FIGHT_REACH, beyond
-    CORNERED_R) and 14190 (line 1655's), its steer sent and running; then F7's line 1660 frame, ticked."""
+    CORNERED_R) and 14190 (line 1655's), its steer sent and running. For `kind` "held" a second tick follows (F7's
+    line 1658: 14192 at 2.5 tiles, within RIDE_MANY_R, so no ride, and 14190 held beyond DANGER_R): the flee goes on as
+    `held` (the Fight's line not taken on one chaser held with another listed behind it). Then F7's line 1660 frame,
+    ticked (the last decision's `flee_reason` the leg's kind), unless `at_1660` is False (the `held` flee's second tick
+    the last)."""
     r, sv = make(tmp_path)
     sv.THREAT_BLEED = bleed
     hold(r, 10, "Base.RippedSheets")
@@ -396,22 +524,47 @@ def bleed_flee(tmp_path, bleed=True):
     tick(r, sv)
     assert sv.mode == "flee" and threat_why(tmp_path)["flee"] == "pair" and r.cmd()[0] == "steer"
     r.answer("progress")
+    if kind == "held":
+        care_frame(r, [PART2], x=me0[0], y=me0[1],
+                   zombies=zs([(14192, me0[0] - 2.5, me0[1]), (14190, me0[0] - 8.0, me0[1] - 3.0)], me0))
+        tick(r, sv)
+        assert threat_why(tmp_path)["flee"] == "held" and sv.flee_reason == "held"
+        assert not any(a.type == "bandage" for a in r.acts.history)
+        r.answer("progress")
+    if not at_1660:
+        return r, sv
     me, rows = F7_1660
     care_frame(r, [PART2], x=me[0], y=me[1], zombies=zs(rows, me))
     tick(r, sv)
     return r, sv
 
 
-def test_f7_s_line_1660_rides_the_bandage_on_the_pair_flee_s_leg(tmp_path):
+@pytest.mark.parametrize("kind", ["pair", "held"])
+def test_f7_s_line_1660_rides_the_bandage_on_the_pair_and_held_flee_s_leg(tmp_path, kind):
     """F7 line 1660's geometry with a dressing held: the chaser at 5.218586445147157 tiles (under RIDE_R, so P24-U's
-    ride was refused) is beyond RIDE_MANY_R, so the `pair` flee's leg rides the bleed as a `many` leg would: the care
-    sends the rag on part 2 with keepMoving, logged `care_yield` {why bleed, near}."""
-    r, sv = bleed_flee(tmp_path)
+    ride was refused) is beyond RIDE_MANY_R, so a `pair` flee's leg (F7's line 1656 to 1658) or a `held` one (its line
+    1659 to 1661, the decision line 1660 names) rides the bleed as a `many` leg would: the care sends the rag on part
+    2 with keepMoving, logged `care_yield` {why bleed, near}. A bleed leg of `("pair",)` alone fails the `held` case."""
+    r, sv = bleed_flee(tmp_path, kind=kind)
     w = threat_why(tmp_path)
     assert last(tmp_path)["branch"] == "care" and r.cmd() == ("bandage", {"itemId": 10, "part": 2, "keepMoving": True})
     assert w["care"] is True and w["ride"] is True
     assert w["care_yield"] == {"why": "bleed", "near": P.zdist(r.world, r.world.zombies[14192])}
     assert w["care_yield"]["near"] == pytest.approx(5.218586445147157)
+
+
+def test_the_bleed_leg_reads_the_distance_rule_alone_never_the_many_episode_s_clock(tmp_path):
+    """Ruling P26-7e: a `held` leg with `many_since` set long ago (past FLEE_CARE_S) and two parts bleeding
+    (FLEE_CARE_N) does not ride with the nearest within RIDE_MANY_R: `_rides_many`'s clock clause is the `many`
+    episode's. At 2.5 tiles from the nearest (F7's line 1658 geometry) the threat branch answers, no bandage."""
+    r, sv = bleed_flee(tmp_path, kind="held", at_1660=False)
+    sv.many_since = r.clock() - 10 * FLEE_CARE_S
+    me = F7_1655
+    care_frame(r, [PART2, part(5, h=77.0, bleeding=True, bleedingTime=8.0)], x=me[0], y=me[1],
+               zombies=zs([(14192, me[0] - 2.5, me[1]), (14190, me[0] - 8.0, me[1] - 3.0)], me))
+    tick(r, sv)
+    assert sv.flee_reason == "held" and last(tmp_path)["branch"] == "threat"
+    assert not any(a.type == "bandage" for a in r.acts.history)
 
 
 def test_with_the_switch_off_line_1660_holds_the_threat_branch_as_f7_did(tmp_path):

@@ -185,22 +185,18 @@ def window_exits(world, building, z):
     shed, both zombies on the door's inside square, while the window on the far wall lay 2.3458507024507074 tiles from
     the nearest of them, and no exit crossed a window: `World.openings` leaves a window's edge out): the building's
     windows on floor `z` as ways out, `[{inner, outer, door: None, window: (x, y, z), smash}]` sorted by `outer`, with
-    the build announcing `window` (else []). Each window square of `World.windows` whose record is not `barricaded`
-    and whose failed end (`World.window_fail`) is not one of `goals.WINDOW_DEAD`, read as the goal layer's
-    `window_pick` reads it; `inner` and `outer` its room square and its outside square (`World.window_way`); `smash`
-    True for a locked one (the record's `locked`, or a try that ended `locked`), as `window_pick`'s smash."""
+    the build announcing `window` (else []). Each window square `goals.usable_windows` reads (not `barricaded`, no
+    failed end of `goals.WINDOW_DEAD`: the one filter `window_pick` reads too); `inner` and `outer` its room square and
+    its outside square (`World.window_way`); `smash` True for a locked one (the record's `locked`, or a try that ended
+    `locked`), as `window_pick`'s smash."""
     if not world.can("window"):
         return []
-    from agent.base.planner.goals import WINDOW_DEAD   # goals imports this module at its top
+    from agent.base.planner.goals import usable_windows   # goals imports this module at its top
     out = []
-    for w in world.windows(building):
-        rec = (world.map.get(w) or {}).get("window") or {}
-        fail = world.window_fail(w)
-        way = world.window_way(w, building) if w[2] == z else None
-        if way is None or rec.get("barricaded") is True or fail in WINDOW_DEAD:
-            continue
-        out.append({"inner": way[0], "outer": way[1], "door": None, "window": w,
-                    "smash": rec.get("locked") is True or fail == "locked"})
+    for w, locked in usable_windows(world, building, z):
+        way = world.window_way(w, building)
+        if way is not None:
+            out.append({"inner": way[0], "outer": way[1], "door": None, "window": w, "smash": locked})
     return sorted(out, key=lambda e: (e["outer"], e["inner"]))
 
 

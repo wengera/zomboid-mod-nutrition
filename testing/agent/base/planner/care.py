@@ -109,12 +109,15 @@ DIRTY_RAG_MIN = 10.0      # a dirty rag goes on a part only when its bleedingTim
                           # raw wound-time units, #4298 (a plain scratch about 2-9, generateBleeding), never minutes
 WASH_R = 15.0             # tiles: a dirty rag is washed at a known water source this near (P24-G 2)
 CARE_R = 4.0              # tiles: a bleeding part is tended with a threat held while the nearest zombie is beyond this
-                          # (ruling P24-P, Plan 24 Task 12: E6 bled from 100 to 17.6 health before its one bandage)
+                          # (ruling P24-P, Plan 24 Task 12: E6 bled from 100 to 17.6 health before its one bandage);
+                          # a running Fight's tick with a dressing held yields beyond FIGHT_REACH (ruling P26-D)
 CARE_HOLD_R = CARE_R - 1.0   # tiles: a running bandage is superseded only with the nearest zombie inside this (Task
                           # 12 fix 1, the review's ruling: CARE_R the start line, this the supersede line; at CARE_R
-                          # alone a chaser at about 4 tiles alternated the bandage and the steer every tick)
+                          # alone a chaser at about 4 tiles alternated the bandage and the steer every tick); a
+                          # running Fight's bandage holds while nothing is within FIGHT_REACH (ruling P26-D)
 CARE_STILL_TICKS = 2      # threat ticks over which the nearest zombie's distance must not have fallen before a bandage
-                          # starts under a held threat (Task 12 fix 1: the yield's start reads it not closing)
+                          # starts under a held threat (Task 12 fix 1: the yield's start reads it not closing); a
+                          # running Fight's tick with room (nothing within FIGHT_REACH) ignores it (ruling P26-D)
 KINDS = ("bandage", "rag", "dirty")              # care_kind's order of choice
 CLEAN_BANDAGES = ("Bandage", "AlcoholBandage", "Bandaid")
 CLEAN_RAGS = ("RippedSheets", "AlcoholRippedSheets", "DenimStrips", "LeatherStrips")
@@ -127,10 +130,10 @@ LEG_FIRST = 11            # the first leg part (UpperLeg_L; 11-16 the thighs, sh
                           # a walk, so the Lua rejects it `leg part` with keepMoving (PZA/1.5.3, ruling P24-R)
 RIDE_R = 6.0              # tiles: a bandage rides a running flee leg only with the nearest zombie beyond this, or with
                           # no zombie chasing (ruling P24-U, Task 12 fix 1: the ride holds the leg to a walk)
-RIDE_MANY_R = 3.0         # tiles: under a `many` flee with a zombie chasing, a bandage rides the flee's leg with the
-                          # nearest beyond this (ruling P24-AR, Plan 24 Task 32: E9's line 374, game minute 612, the
-                          # nearest at 3.44 tiles with part 5 bleeding and a bandage held; E8's line 409, game minute
-                          # 616, at 3.70 with parts 4 and 9 bleeding)
+RIDE_MANY_R = 3.0         # tiles: under a `many` flee, or a `pair` or `held` one (ruling P26-D), with a zombie chasing,
+                          # a bandage rides the flee's leg with the nearest beyond this (ruling P24-AR, Plan 24
+                          # Task 32: E9's line 374, game minute 612, the nearest at 3.44 tiles with part 5 bleeding
+                          # and a bandage held; E8's line 409, game minute 616, at 3.70 with parts 4 and 9 bleeding)
 FLEE_CARE_S = 20.0        # wall seconds after the threat branch first read `many` (Survive's `many_since`) from which ...
 FLEE_CARE_N = 2           # ... this many bleeding parts or more ride the `many` flee's leg whatever the distance (ruling
                           # P24-AR: E9 bled from 96.39 health to 0 in 13.111 s from four bites; its line 450, game

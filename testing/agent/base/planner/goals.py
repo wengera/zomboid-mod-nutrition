@@ -202,7 +202,9 @@ EXAMPLES = {"ExploreToward": {"x": 120, "y": 205}, "LootBuilding": {"building": 
 __all__ = ["Goal", "ExploreToward", "LootBuilding", "Shelter", "Stock", "Rest", "GoalSource", "ScriptedSource",
            "GoalRunner", "Kit", "validate", "open_uses", "int_id", "goal_key", "GOAL_MAX_S", "GOAL_COOL_S",
            "GOAL_HOLD_SUPERSEDE_TICKS", "COOL_REASONS",
-           "ARRIVE_R", "REST_S", "STOCK_WANTS", "BUILDING_R", "WOODS_R", "WINDOW_REPEAT", "CONTAINERS_HELD_N", "CLOTHING_HELD_N", "SMASH_MIN_HEALTH", "SMASH_ZOMBIE_R", "smash_ok", "window_pick", "REST_N", "WOODS_STEP",
+           "ARRIVE_R", "REST_S", "STOCK_WANTS", "BUILDING_R", "WOODS_R", "WINDOW_REPEAT", "CONTAINERS_HELD_N",
+           "CLOTHING_HELD_N", "SMASH_MIN_HEALTH", "SMASH_ZOMBIE_R", "smash_ok", "window_pick",
+           "usable_windows", "note_window_end", "REST_N", "WOODS_STEP",
            "WOODS_MAX_R", "wanted_uses", "LEG_MAX", "LEG_MIN", "LEG_CHUNK", "leg_max",
            "STOCK_KINDS", "RUN_FIELDS", "STATES", "SCHEMA_PATH", "EXAMPLES", "WANT_USES", "OPTIONAL_FIELDS", "held_of"]
 
@@ -300,11 +302,42 @@ def smash_ok(world, building, shunned=()):
     return _num(health) and health >= SMASH_MIN_HEALTH
 
 
+def usable_windows(world, building, z):
+    """`[(sq, locked)]`, the building's windows on floor `z` a window try may take (ruling P26-7c, one filter for
+    `window_pick` and `night.window_exits`): not barricaded and not left out by a failed end (`WINDOW_DEAD`),
+    `locked` True for a record read locked or a try that ended `locked`; the order of `World.windows`."""
+    out = []
+    for sq in world.windows(building):
+        rec = (world.map.get(sq) or {}).get("window") or {}
+        fail = world.window_fail(sq)
+        if sq[2] != z or rec.get("barricaded") is True or fail in WINDOW_DEAD:
+            continue
+        out.append((sq, rec.get("locked") is True or fail == "locked"))
+    return out
+
+
+def note_window_end(world, sq, action):
+    """The reason a window action's failed end `action` at square `sq` is noted under (`World.note_window_fail`) and
+    returned (ruling P26-7c, one failure leg for the goal layer's `_window_ended` and the Flee's): the end's reason,
+    else its state; review-t24 major 2: a smash try refused `locked` (a barricade or a frame a smash cannot cure), a
+    second `locked`, or a second `WINDOW_REPEAT` end within DOOR_RETRY_MIN leaves the window out for good (`failed`).
+    A `locked` end of an unsmashed try is noted `locked` (the next `usable_windows` reads the window locked, and
+    smashed)."""
+    reason = action.reason or action.state
+    prior = world.window_fail(sq)
+    if reason == "locked" and (action.args.get("smash") is True or prior == "locked"):
+        reason = "failed"
+    elif reason in WINDOW_REPEAT and prior == reason:
+        reason = "failed"
+    world.note_window_fail(sq, reason)
+    return reason
+
+
 def window_pick(world, building, shunned=()):
     """`(x, y, z, smash)` of the building's window to try, else None (Task 24, the route past a stuck door): the
     build announces `window`; windows on the player's floor not barricaded and not left out by a failed end
-    (`WINDOW_DEAD`); an open one first, then a shut unlocked one (opened, then climbed: no noise), then a locked one
-    (the record's `locked`, or a try that ended `locked`) only when `smash_ok`, with `smash` true; each nearest
+    (`usable_windows`); an open one first, then a shut unlocked one (opened, then climbed: no noise), then a locked
+    one (the record's `locked`, or a try that ended `locked`) only when `smash_ok`, with `smash` true; each nearest
     the player."""
     if not world.can("window"):
         return None
@@ -312,12 +345,8 @@ def window_pick(world, building, shunned=()):
     mx, my = me_xy(world)
     smash = None   # smash_ok's answer, read at most once and only for a locked window
     best = None
-    for sq in world.windows(building):
+    for sq, locked in usable_windows(world, building, z):
         rec = (world.map.get(sq) or {}).get("window") or {}
-        fail = world.window_fail(sq)
-        if sq[2] != z or rec.get("barricaded") is True or fail in WINDOW_DEAD:
-            continue
-        locked = rec.get("locked") is True or fail == "locked"
         if locked:
             smash = smash_ok(world, building, shunned) if smash is None else smash
             if not smash:

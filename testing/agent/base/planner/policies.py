@@ -597,8 +597,10 @@ def exit_plan(world, threats, refused=(), trans=True, windows=False):
     `PathFindBehavior2.checkDoorHoppableWindow`, a review reading; the open is the fallback), `opened` False. `trans`:
     `_beyond`'s (ruling P24-AS). Ruling P26-A (`windows`, `Threat.WINDOW_EXIT`): the building's windows are ways out too
     (`night.window_exits`), each passing the same checks on its outside square but `_beyond` (its climb lands on the
-    outside square: no walk ends short of it), ranked after every door and opening that passes (the rank
-    `(door marked, window, distance, outer, inner)`: a window is the way out only when no door or opening is); a
+    outside square: no walk ends short of it, so a window into a closed pocket is taken as a way out, which the next
+    flee's steer answers: ruling P26-7b), ranked after every door and opening that passes (the rank
+    `(door marked, window, smash, distance, outer, inner)`: a window is the way out only when no door or opening is, and
+    an unlocked one goes before a locked one at any distance, ruling P26-7d, as `goals.window_pick` ranks); a
     window's record carries `window` and `smash`, its `target` its inside square (`inner`, the walk's end before the
     climb) and its `step` "window" (`flee.Flee._window_step`), `sent` False."""
     N = _night()
@@ -620,7 +622,8 @@ def exit_plan(world, threats, refused=(), trans=True, windows=False):
         window = e.get("window") is not None
         if not window and _beyond(world, e["inner"], e["outer"], trans) is None:
             continue
-        rank = (e["door"] in marked, window, math.hypot(c[0] - me[0], c[1] - me[1]), e["outer"], e["inner"])
+        rank = (e["door"] in marked, window, e.get("smash", False), math.hypot(c[0] - me[0], c[1] - me[1]), e["outer"],
+                e["inner"])
         if best is None or rank < best[0]:
             best = (rank, e)
     if best is None:

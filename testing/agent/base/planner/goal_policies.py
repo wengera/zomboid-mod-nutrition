@@ -10,8 +10,8 @@ from typing import ClassVar, Optional
 
 from agent.base.planner.edges import GoalEdge
 from agent.base.planner.goals import (ARRIVE_R, GOAL_MAX_S, LEG_CHUNK, LEG_MAX, LEG_MIN, LEG_SQ_MARGIN, OPTIONAL_FIELDS,
-                                      REST_N, RUN_FIELDS, WANT_USES, WINDOW_REPEAT, WOODS_MAX_R, WOODS_R, WOODS_STEP,
-                                      held_of, looted, open_uses, wanted_uses, window_pick)
+                                      REST_N, RUN_FIELDS, WANT_USES, WOODS_MAX_R, WOODS_R, WOODS_STEP,
+                                      held_of, looted, note_window_end, open_uses, wanted_uses, window_pick)
 from agent.base.planner.night import (SHUN_MIN, door_blocked, hop_after, player_square, shelter_ended, shelter_plan,
                                       shelter_step)
 from agent.base.planner.policies import (Explore, LOOT_MAX_LEVEL, LootHouse, PREEMPTED, SCAN_R, centre, me_floor, me_xy,
@@ -428,15 +428,7 @@ class LootBuilding(_Legs, _Looting, Goal):
             self.why = dict(self.why, ended="window", cut=res.get("cut"), wounds=res.get("wounds"))
             return
         if sq is not None:
-            reason = action.reason or action.state
-            prior = world.window_fail(sq)
-            # review-t24 major 2: a smash try refused `locked` (a barricade or a frame a smash cannot cure), a second
-            # `locked`, or a second `no path` / `not adjacent` / `interrupted` leaves the window out for good
-            if reason == "locked" and (action.args.get("smash") is True or prior == "locked"):
-                reason = "failed"
-            elif reason in WINDOW_REPEAT and prior == reason:
-                reason = "failed"
-            world.note_window_fail(sq, reason)
+            note_window_end(world, sq, action)   # review-t24 major 2, P26-7c: the one failure leg
         self.why = dict(self.why, ended="window " + (action.reason or action.state))
 
     def _route(self, world):

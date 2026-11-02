@@ -166,9 +166,9 @@ class Flee(Policy):
         """Ruling P25-W: the doorway stand ended `end` under a group (`wound`, `drag`, `inside`) walks out of the
         building, never the close: the stand's plan dropped (`picked` kept, so no other shelter this episode) and the
         adoption spent (`adopted`: the adopted building's re-close would be the close again), so the next choose takes
-        `exit_plan` on a room square (a door or an opening out, at FLEE_GAIT), else the trapped hold; off a room square,
-        the steer. `walking_out` keeps `end` while the exit runs (`Survive._doorway`: ahead of every row, as the close
-        ran) and is cleared when that exit ends or none is found (`_end_exit`, `choose`)."""
+        `exit_plan` on a room square (a door, an opening or a window (P26-A) out, at FLEE_GAIT), else the trapped
+        hold; off a room square, the steer. `walking_out` keeps `end` while the exit runs (`Survive._doorway`: ahead of
+        every row, as the close ran) and is cleared when that exit ends or none is found (`_end_exit`, `choose`)."""
         self.plan = None
         self.adopted = True
         self.walking_out = end
@@ -397,15 +397,20 @@ class Flee(Policy):
         """Ruling P26-A: the end of a window way out's step `a`. The climb's (`Window`), as the goal layer's
         `_climb_ended` reads one: `done` marks the exit `climbed` (the next `_exit_step` reads the frame off the room
         squares and ends it `left`, or refuses it with the frame still on one); any other end notes the window's failure
-        in the World under its reason (`World.note_window_fail`, else the end's state) and refuses the exit. The walk's
-        to the window's inside square: `done` marks it `walked` (the climb goes next, the Lua's own walk to the near
-        side taking it the rest of the way); a walk that failed or stalled refuses the exit, as a way out's failed
-        walk with no door to open does."""
+        in the World (`goals.note_window_end`, the goal layer's own failure leg: a smash refused `locked`, a second
+        `locked` or a second WINDOW_REPEAT end leaves the window dead) and refuses the exit, except a `locked` end of a
+        try that was no smash (ruling P26-7c): the window is noted `locked`, its outside square is not refused and the
+        exit ends, so the next `exit_plan` offers the same window with `smash` True (one episode tries the open, then
+        the smash). The walk's to the window's inside square: `done` marks it `walked` (the climb goes next, the Lua's
+        own walk to the near side taking it the rest of the way); a walk that failed or stalled refuses the exit, as a
+        way out's failed walk with no door to open does."""
         if a.type == "window":
+            from agent.base.planner.goals import note_window_end   # goals imports night, which imports this module
             if a.state == "done":
                 e["climbed"] = True
+            elif note_window_end(self.world, e["window"], a) == "locked":
+                self._end_exit()   # P26-7c: an unsmashed try refused locked, the next choose offers the smash
             else:
-                self.world.note_window_fail(e["window"], a.reason or a.state)
                 self._refuse_exit()
         elif a is self._dropped or a.state != "done":
             self._refuse_exit()
