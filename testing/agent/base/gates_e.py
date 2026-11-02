@@ -3346,3 +3346,422 @@ def grade_e12(out, prev=None, decision_lines=None, state_dir=None, lines=None):
 def gate_e12(outs):
     """gate_e11 (grade_e12 changes none of what it reads), named gate_e12."""
     return gate_e11(outs)
+
+
+
+# ================================================================ pass 13 (Plan 25 Task 15)
+# grade_e13 is grade_e12 plus four readings of iteration 16's why fields (P25-U to P25-X; Task 14's report names them, the planner
+# at 427c0b2d is where each key is written), each a reading of the decision log's whys, the artifact's goals and actions, or the
+# state log's frames and map lines, except where a clause is marked inference. grade_e4 to grade_e12 are frozen (CLAUDE.md
+# section 5). The whys of a branch tried sit at `inputs.branches[<branch>]` on EVERY line (Survive.assess): the stand's keys
+# (`doorway_left`, `doorway_drag`, `doorway_inside`, `doorway_exit`) are read through `_threat_why` on every line, because the
+# trapped tick the care took under P25-Q (branch "care") carries the threat's why, and `blocked_edge` is read at its three sites
+# (the threat's why, the goal's, the need's `fill`) on every line and counted by the branch that answered.
+from agent.base.planner.doorway import STAND_EXIT_ENDS    # noqa: E402 - P25-W: the ends that walk out
+from agent.base.planner.policies import DRAG_DOWN_N       # noqa: E402 - P25-U: the stand's `drag` end reads at DRAG_DOWN_N - 1
+
+EXIT_WINDOW_LINES = 60              # log lines: a stand's way out is read this far after its end (the close sends, the lines until outside)
+
+
+def _kind_after(L, i):
+    """What the log line after `L.rows[i]` is (the stand's end tick): "walk_out" (a `doorway` flee whose why carries the Flee's
+    `exit`: the way out running), "doorway" (a `doorway` flee without it: the close), "flee" (any other flee), "other" or
+    "open" (the log's last line)."""
+    if i + 1 >= len(L.rows):
+        return "open"
+    w = L.why(L.rows[i + 1])
+    if w.get("flee") == "doorway":
+        return "walk_out" if "exit" in w else "doorway"
+    return "flee" if w.get("flee") is not None else "other"
+
+
+def _end_lines(L, end):
+    """[(index, line)] of the lines, whatever branch answered, whose threat why reads `doorway_left` `end`."""
+    return [(i, ln) for i, ln in enumerate(L.rows) if L.why(ln).get("doorway_left") == end]
+
+
+def _next_counts(L, ends):
+    out = {"walk_out": 0, "doorway": 0, "flee": 0, "other": 0, "open": 0}
+    for i, _ in ends:
+        out[_kind_after(L, i)] += 1
+    return out
+
+
+def _int(v):
+    """The integer `v` reads as (a JSON int or an integral float, never a bool), else None."""
+    n = _n(v)
+    return int(n) if n is not None and n == int(n) else None
+
+
+def e_stand_drag(L):
+    """The stand's early `drag` end (P25-U): {read, lines, attackers, no_count, under, with_exit, next}. `lines` the lines whose
+    threat why reads `doorway_left` "drag" (reading), `attackers` the count the end logged, `doorway_drag`, by value
+    {"2": n, ...}, `no_count` those without an integer count (must read 0), `under` those whose count is under DRAG_DOWN_N - 1
+    (must read 0: the end reads at that count with the switch on), `with_exit` those whose same tick carries a `doorway_exit`
+    (P25-W: the end walks out) and `next` the line after each (an inference off the log's order): "walk_out" (a `doorway` flee
+    whose why carries the Flee's `exit`), "doorway" (the close), "flee", "other", "open". Every key reads 0 on a log of iteration
+    15 or earlier (the field did not exist; E14's drag-down end was the guard's, `group` "drag")."""
+    if L is None:
+        return {"read": False}
+    ends = _end_lines(L, "drag")
+    hist, bad, under = {}, 0, 0
+    for _, ln in ends:
+        c = _int(L.why(ln).get("doorway_drag"))
+        if c is None:
+            bad += 1
+            continue
+        hist[str(c)] = hist.get(str(c), 0) + 1
+        under += 1 if c < DRAG_DOWN_N - 1 else 0
+    return {"read": True, "lines": len(ends), "attackers": hist, "no_count": bad, "under": under,
+            "with_exit": sum(1 for _, ln in ends if isinstance(L.why(ln).get("doorway_exit"), dict)),
+            "next": _next_counts(L, ends)}
+
+
+def e_stand_inside(L):
+    """The stand's `inside` end (P25-V): {read, lines, ids, no_inside, malformed, with_exit, next}. `lines` the lines whose
+    threat why reads `doorway_left` "inside" (reading), `doorway_inside` their {id, square} (`ids` the distinct ids,
+    `no_inside` the lines without the dict, `malformed` those whose dict lacks an id or a two-number square: both must read 0),
+    `with_exit` those whose same tick carries a `doorway_exit` and `next` the line after each (`e_stand_drag`'s classes, an
+    inference). Every key reads 0 on a log of iteration 15 or earlier."""
+    if L is None:
+        return {"read": False}
+    ends = _end_lines(L, "inside")
+    ids, none, bad = set(), 0, 0
+    for _, ln in ends:
+        d = L.why(ln).get("doorway_inside")
+        if not isinstance(d, dict):
+            none += 1
+            continue
+        sq = d.get("square")
+        if d.get("id") is None or not (isinstance(sq, list) and len(sq) == 2 and all(_n(x) is not None for x in sq)):
+            bad += 1
+            continue
+        ids.add(repr(d["id"]))
+    return {"read": True, "lines": len(ends), "ids": len(ids), "no_inside": none, "malformed": bad,
+            "with_exit": sum(1 for _, ln in ends if isinstance(L.why(ln).get("doorway_exit"), dict)),
+            "next": _next_counts(L, ends)}
+
+
+class _MapView:
+    """The kept map of the state lines as of a wall time: the latest record of each square among the `map` lines at or before it
+    (the squares of `_trans_squares`, by wallMs). `at` is cheap for walls that rise and restarts for one that falls."""
+
+    def __init__(self, lines):
+        self.rows = sorted(((w, ln) for ln in _l(lines) if isinstance(ln, dict) and ln.get("kind") == "map"
+                            for w in [_n(ln.get("wallMs"))] if w is not None), key=lambda p: p[0])
+        self.map, self.i = {}, 0
+
+    def at(self, wall):
+        ms = wall * 1000.0 if wall is not None else None
+        if ms is None:
+            return self.map
+        if self.i and self.rows[self.i - 1][0] > ms:
+            self.map, self.i = {}, 0
+        while self.i < len(self.rows) and self.rows[self.i][0] <= ms:
+            for s in _l(_d(self.rows[self.i][1]).get("squares")):
+                if isinstance(s, dict) and s.get("x") is not None and s.get("y") is not None:
+                    self.map[(s["x"], s["y"], s.get("z") or 0)] = s
+            self.i += 1
+        return self.map
+
+
+def _edge_wall(mp, p, q):
+    """The orthogonal step p -> q crosses a known blocked outdoor edge: both squares in the map and neither a room square, the
+    keeping square's `blockN`/`blockW` true and its `hopN`/`hopW` not (the planner's `edges._wall`: blocked, and blocked with
+    `climb` too). The edge as [x, y, "N" or "W"], else None."""
+    sp, sq = mp.get(p), mp.get(q)
+    if sp is None or sq is None or sp.get("room") is not None or sq.get("room") is not None:
+        return None
+    if q[1] != p[1]:
+        holder, side = (p, "N") if q[1] < p[1] else (q, "N")
+    else:
+        holder, side = (p, "W") if q[0] < p[0] else (q, "W")
+    rec = mp[holder]
+    return [holder[0], holder[1], side] if rec.get("block" + side) is True and rec.get("hop" + side) is not True else None
+
+
+def _crossed_edge(mp, z, a, b):
+    """The first known blocked outdoor edge on the straight line from position `a` to `b` ((x, y) floats, floor `z`), else
+    None: Bresenham's on the floored ends as the planner's `edges._crossed`, a diagonal step read through its corner legs."""
+    sqs = [(x, y, z) for x, y in World._bresenham(int(math.floor(a[0])), int(math.floor(a[1])),
+                                                 int(math.floor(b[0])), int(math.floor(b[1])))]
+    for p, q in zip(sqs, sqs[1:]):
+        if p[0] == q[0] or p[1] == q[1]:
+            e = _edge_wall(mp, p, q)
+            if e is not None:
+                return e
+            continue
+        for c in ((q[0], p[1], z), (p[0], q[1], z)):
+            for u, v in ((p, c), (c, q)):
+                e = _edge_wall(mp, u, v) if c in mp else None
+                if e is not None:
+                    return e
+    return None
+
+
+def _frame_me(L, ln):
+    """(x, y, z) of the player at the line: its `inputs` x and y, else the frame's me; None without either."""
+    f = _d(_d(L.frame(ln)).get("me"))
+    x, y = _n(_d(ln.get("inputs")).get("x")), _n(_d(ln.get("inputs")).get("y"))
+    x, y = (x if x is not None else _n(f.get("x"))), (y if y is not None else _n(f.get("y")))
+    return None if x is None or y is None else (x, y, int(_n(f.get("z")) or 0))
+
+
+def _outside(mp, me):
+    """True when the player's square is in the map and reads no room; False in a room; None unmapped."""
+    s = mp.get((int(math.floor(me[0])), int(math.floor(me[1])), me[2]))
+    return None if s is None else s.get("room") is None
+
+
+def e_stand_exit(L, lines):
+    """The stand's way out (P25-W): {read, lines, by_end, by_exit, by_pair, end_mismatch, exit_missing, next, closes,
+    close_sends, outside_lines, outside_s, unread, max_attackers}. `lines` the lines whose threat why carries `doorway_exit`
+    {end, exit} (reading; `by_end` and `by_exit` and `by_pair` ("end:exit") count them, `exit` one of door | opening | trapped
+    | steer | deferred), `end_mismatch` those whose `end` differs from the line's `doorway_left` (must read 0) and
+    `exit_missing` the lines whose `doorway_left` is a STAND_EXIT_ENDS end (wound, drag, inside) with no `doorway_exit` (must
+    read 0 with the switch on). `next` the line after each exit tick (`e_stand_drag`'s classes, inference). `closes` (reading;
+    must read 0) the sent `interact` `close` actions from the end tick on, while the threat why keeps answering a flee (the
+    care's trapped ticks included), to at most EXIT_WINDOW_LINES lines or the next stand end: the close the ruling replaces;
+    `close_sends` every sent close in the log (the `quiet`, `health` and `unarmed` ends keep it). Inference off the frames and
+    the map as of each line (`_MapView`): `outside_lines` per exit tick the log lines until the frame's square reads no room
+    (None: never, within the window), `outside_s` the wall seconds, `unread` those with no frame or no mapped square, and
+    `max_attackers` the most `me.attackers` on a frame from the tick to the outside (the walk out takes the bites a swing
+    would not)."""
+    if L is None:
+        return {"read": False}
+    mv = _MapView(lines)
+    by_end, by_exit, by_pair = {}, {}, {}
+    mismatch = missing = closes = unread = 0
+    outside_lines, outside_s, attackers = [], [], 0
+    nxt = {"walk_out": 0, "doorway": 0, "flee": 0, "other": 0, "open": 0}
+    rows = L.rows
+    for i, ln in enumerate(rows):
+        w = L.why(ln)
+        ex = w.get("doorway_exit")
+        if w.get("doorway_left") in STAND_EXIT_ENDS and not isinstance(ex, dict):
+            missing += 1
+        if not isinstance(ex, dict):
+            continue
+        by_end[str(ex.get("end"))] = by_end.get(str(ex.get("end")), 0) + 1
+        by_exit[str(ex.get("exit"))] = by_exit.get(str(ex.get("exit")), 0) + 1
+        k = "%s:%s" % (ex.get("end"), ex.get("exit"))
+        by_pair[k] = by_pair.get(k, 0) + 1
+        mismatch += 1 if ex.get("end") != w.get("doorway_left") else 0
+        nxt[_kind_after(L, i)] += 1
+        reached, readable, last = None, False, i
+        for j in range(i, min(len(rows), i + EXIT_WINDOW_LINES)):
+            r = rows[j]
+            rw = L.why(r)
+            if j > i and (rw.get("flee") is None or rw.get("doorway_left") is not None) and r.get("branch") != "care":
+                break
+            last = j
+            closes += 1 if _sent(r, "interact") and _d(_d(r.get("action")).get("args")).get("kind") == "close" else 0
+            me = _frame_me(L, r)
+            out_ = None if me is None else _outside(mv.at(_n(r.get("wall"))), me)
+            readable = readable or out_ is not None
+            if reached is None and out_:
+                reached = j
+        unread += 0 if readable else 1
+        outside_lines.append(None if reached is None else reached - i)
+        w0, w1 = _n(ln.get("wall")), _n(rows[reached].get("wall")) if reached is not None else None
+        outside_s.append(None if w0 is None or w1 is None else round(w1 - w0, 3))
+        hi = rows[reached if reached is not None else last]
+        walls, frames = L.index
+        lo_k = bisect.bisect_left(walls, (_n(ln.get("wall")) or 0.0) * 1000.0)
+        hi_k = bisect.bisect_right(walls, (_n(hi.get("wall")) or 0.0) * 1000.0)
+        for f in frames[lo_k:hi_k]:
+            attackers = max(attackers, _n(_d(f.get("me")).get("attackers")) or 0)
+    return {"read": True, "lines": sum(by_end.values()), "by_end": by_end, "by_exit": by_exit, "by_pair": by_pair,
+            "end_mismatch": mismatch, "exit_missing": missing, "next": nxt, "closes": closes,
+            "close_sends": sum(1 for r in rows if _sent(r, "interact") and _d(_d(r.get("action")).get("args")).get("kind") == "close"),
+            "outside_lines": outside_lines, "outside_s": outside_s, "unread": unread, "max_attackers": attackers}
+
+
+def _own_edge(ln):
+    """The `blocked_edge` why of the branch that answered the line (threat's, goal's or the need's `fill`), else None."""
+    br = ln.get("branch")
+    w = _bw(ln, br) if br in ("threat", "goal", "need") else {}
+    return (w.get("fill") if br == "need" and isinstance(w.get("fill"), dict) else w).get("blocked_edge")
+
+
+def _edge_sites(ln):
+    """[(site, blocked_edge why)] at the line's three sites: the threat's why, the goal's, the need's `fill` (each branch's why
+    sits on every line: a site is read whatever branch answered)."""
+    out = []
+    for site, w in (("threat", _bw(ln, "threat")), ("goal", _bw(ln, "goal")),
+                    ("need", _d(_bw(ln, "need").get("fill")))):
+        b = w.get("blocked_edge")
+        if isinstance(b, dict):
+            out.append((site, b))
+    return out
+
+
+def e_blocked_edge(out, L, lines):
+    """The known blocked edges (P25-X): {read, sites, own, doors, refused, refuse_marks, refuse_targets, route_walks,
+    goal_ends, goal_types, cooled_refused, old_marks, cycle_marks, cycles, cycle_target, across, across_by, unread}.
+    Reading: `sites` the lines carrying a `blocked_edge` why by "site:action" (threat | goal | need, action refuse | route |
+    drop; every line, whatever branch answered), `own` the same for the lines the site's own branch answered (a threat-branch
+    line's threat why, a goal line's goal why, a need line's fill), `doors` the distinct door squares the routes name,
+    `refuse_marks` the threat lines with `marked` beside a `blocked_edge` (the infinite mark of P25-X, `edge_marks`) and
+    `refuse_targets` their distinct zombie ids, `route_walks` the sent `walkTo` lines on a threat route by the action's end
+    (done | the failure reason | running), `goal_ends` the artifact's goal rows ended `failed` "blocked edge" (`goal_types`
+    by type). Inference: `cooled_refused` the goal lines whose why `refused` names a goal that ended "blocked edge" (the
+    runner's refusal of a cooled proposal: the only trace of the cooling on the line). Iteration 15's cycle (E15's 158-minute
+    dead stretch, a mark per cycle on the same zombie): `old_marks` the threat lines with `marked` and no `blocked_edge`
+    (the UNREACHABLE_S mark) by zombie id, `cycle_marks` those preceded by a sent `reposition` walk at that zombie that ended
+    `failed` `stuck` since its last mark (reading: the action row) and `cycles` the most such marks at one zombie (E15: 12 at
+    8064; must read 0 on a log where the edge read stands), `cycle_target` that zombie. Inference off the map as of the
+    line (`_MapView`) and the frames: `across` the sent actions that still went across a known blocked outdoor edge with no
+    `blocked_edge` why of their own (the seek the ruling refuses: a fight line's `aim` at its target and `walkTo`, a goal's
+    `walkTo` and container `interact` loot, a need's `fill`), `across_by` them by kind (fight_aim, fight_walk, goal_walk,
+    goal_loot, need_fill), `unread` the candidates with no position to read. Must read 0 with the switch on."""
+    if L is None:
+        return {"read": False}
+    mv = _MapView(lines)
+    sites, own, doors, marks, targets = {}, {}, set(), 0, set()
+    routes = {}
+    old, cycle, pending = {}, {}, {}
+    across, unread = {}, 0
+    ended = set()
+    ends, types = 0, {}
+    for g in (_d(x) for x in _l(_d(_d(out).get("loop")).get("goals"))):
+        if g.get("state") == "failed" and g.get("reason") == "blocked edge":
+            ends += 1
+            types[str(g.get("type"))] = types.get(str(g.get("type")), 0) + 1
+            ended.add(json.dumps([g.get("type"), g.get("args")], sort_keys=True, default=str))
+    cooled = 0
+    for ln in L.rows:
+        for site, b in _edge_sites(ln):
+            k = "%s:%s" % (site, b.get("action"))
+            sites[k] = sites.get(k, 0) + 1
+            if b.get("action") == "route" and isinstance(b.get("door"), list):
+                doors.add(tuple(b["door"]))
+        b = _own_edge(ln)
+        if isinstance(b, dict):
+            k = "%s:%s" % (ln.get("branch"), b.get("action"))
+            own[k] = own.get(k, 0) + 1
+        w = L.why(ln)
+        if w.get("marked") is not None and isinstance(w.get("blocked_edge"), dict):
+            marks += 1
+            targets.add(repr(w["marked"]))
+        if ln.get("branch") == "threat" and isinstance(w.get("blocked_edge"), dict) and w["blocked_edge"].get("action") == "route" \
+                and _sent(ln, "walkTo"):
+            row = L.action(ln)
+            end = "running" if row is None or row.get("state") not in ("done", "failed") else (
+                "done" if row.get("state") == "done" else str(row.get("reason")))
+            routes[end] = routes.get(end, 0) + 1
+        if isinstance(_bw(ln, "goal").get("refused"), dict) and ended:
+            r = _bw(ln, "goal")["refused"]
+            cooled += 1 if json.dumps([r.get("type"), r.get("args")], sort_keys=True, default=str) in ended else 0
+        zid = w.get("target")
+        if ln.get("branch") == "threat" and _sent(ln, "walkTo") and w.get("reposition") is not None and zid is not None:
+            row = L.action(ln)
+            if row is not None and row.get("state") == "failed" and row.get("reason") == "stuck":
+                pending[repr(zid)] = True
+        if ln.get("branch") == "threat" and w.get("marked") is not None and not isinstance(w.get("blocked_edge"), dict):
+            t = repr(w["marked"])
+            old[t] = old.get(t, 0) + 1
+            if pending.pop(t, False):
+                cycle[t] = cycle.get(t, 0) + 1
+        kind, dest = _across_dest(L, ln)
+        if kind is None or isinstance(_own_edge(ln), dict):
+            continue
+        me = _frame_me(L, ln)
+        if me is None or dest is None:
+            unread += 1
+            continue
+        if _crossed_edge(mv.at(_n(ln.get("wall"))), me[2], me, dest) is not None:
+            across[kind] = across.get(kind, 0) + 1
+    top = max(cycle.items(), key=lambda p: (p[1], p[0])) if cycle else (None, 0)
+    return {"read": True, "sites": sites, "own": own, "doors": sorted(doors), "refuse_marks": marks,
+            "refuse_targets": len(targets), "route_walks": routes, "goal_ends": ends, "goal_types": types,
+            "cooled_refused": cooled, "old_marks": old, "cycle_marks": sum(cycle.values()), "cycles": top[1],
+            "cycle_target": top[0], "across": sum(across.values()), "across_by": across, "unread": unread}
+
+
+def _across_dest(L, ln):
+    """(kind, destination (x, y)) of a sent action the P25-X read covers, else (None, None): a threat fight line's `aim` (its
+    target's position in the frame) and `walkTo`, a goal line's `walkTo` and container `interact` loot, a need line's `fill`."""
+    if ln.get("sent") is not True:
+        return None, None
+    a = _d(ln.get("action"))
+    t, args, br = a.get("type"), _d(a.get("args")), ln.get("branch")
+    if br == "threat" and L.is_fight(ln) and t == "aim":
+        zid = args.get("targetId")
+        for z in _l(_d(L.frame(ln)).get("zombies")):
+            if isinstance(z, dict) and z.get("id") == zid and _n(z.get("x")) is not None and _n(z.get("y")) is not None:
+                return "fight_aim", (z["x"], z["y"])
+        return "fight_aim", None
+    xy = (_n(args.get("x")), _n(args.get("y")))
+    xy = None if None in xy else xy
+    if br == "threat" and L.is_fight(ln) and t == "walkTo":
+        return "fight_walk", xy
+    if br == "goal" and t == "walkTo":
+        return "goal_walk", xy
+    if br == "goal" and t == "interact" and args.get("kind") == "loot":
+        return "goal_loot", xy
+    if br == "need" and t == "fill":
+        return "need_fill", xy
+    return None, None
+
+
+def report_lines_e13(g):
+    """report_lines_e12 lines (the gate line naming gate_e13) then the four pass 13 lines, each clause marked reading or
+    inference."""
+    g = _d(g)
+    out = [("gate_e13 " + l[len("gate_e12 "):]) if l.startswith("gate_e12 ") else l for l in report_lines_e12(g)]
+    sd, si, se, be = (_d(g.get(x)) for x in ("stand_drag", "stand_inside", "stand_exit", "blocked_edge"))
+    out.append(("stand drag end (P25-U) [reading]: %s `drag` ends, attackers logged %s (%s without a count, %s under DRAG_DOWN_N - 1: "
+                "both must read 0), %s carrying a `doorway_exit`; the line after each [inference] %s" % (
+                    sd.get("lines"), sd.get("attackers"), sd.get("no_count"), sd.get("under"), sd.get("with_exit"),
+                    sd.get("next"))) if sd.get("read") else "stand drag end (P25-U): no decision log read")
+    out.append(("stand inside end (P25-V) [reading]: %s `inside` ends, %s distinct zombies named (%s without the dict, %s "
+                "malformed: both must read 0), %s carrying a `doorway_exit`; the line after each [inference] %s" % (
+                    si.get("lines"), si.get("ids"), si.get("no_inside"), si.get("malformed"), si.get("with_exit"),
+                    si.get("next"))) if si.get("read") else "stand inside end (P25-V): no decision log read")
+    out.append(("stand way out (P25-W) [reading]: %s `doorway_exit` lines by end %s, by exit %s (end mismatch %s and a "
+                "wound/drag/inside end without one %s: both must read 0); `close` sends from an exit tick on %s (must read "
+                "0; %s close sends in the log, the quiet/health/unarmed ends' own); the line after each [inference] %s; lines "
+                "until the frame reads outside the building [inference] %s (seconds %s, %s unread), most attackers on a frame "
+                "on the way [inference] %s" % (
+                    se.get("lines"), se.get("by_end"), se.get("by_exit"), se.get("end_mismatch"), se.get("exit_missing"),
+                    se.get("closes"), se.get("close_sends"), se.get("next"), se.get("outside_lines"), se.get("outside_s"),
+                    se.get("unread"), se.get("max_attackers"))) if se.get("read") else "stand way out (P25-W): no decision log read")
+    out.append(("blocked edges (P25-X) [reading]: lines carrying a `blocked_edge` by site:action %s (answered by the site's own "
+                "branch %s), route doors %s, %s refusal marks at %s zombies, route walks by end %s, %s goals ended `blocked edge` "
+                "%s, %s cooled-goal refusals of them [inference]; iteration 15's cycle [reading]: marks without a `blocked_edge` "
+                "by zombie %s, %s preceded by a `stuck` reposition, the most at one zombie %s (zombie %s: must read 0 under the "
+                "edge read; E15: 12); sent actions across a known blocked outdoor edge with no `blocked_edge` of their own "
+                "[inference off the map and the frames] %s %s (%s without a position; must read 0 with the switch on)" % (
+                    be.get("sites"), be.get("own"), be.get("doors"), be.get("refuse_marks"), be.get("refuse_targets"),
+                    be.get("route_walks"), be.get("goal_ends"), be.get("goal_types"), be.get("cooled_refused"),
+                    be.get("old_marks"), be.get("cycle_marks"), be.get("cycles"), be.get("cycle_target"), be.get("across"),
+                    be.get("across_by"), be.get("unread"))) if be.get("read") else "blocked edges (P25-X): no decision log read")
+    return out
+
+
+def grade_e13(out, prev=None, decision_lines=None, state_dir=None, lines=None):
+    """grade_e12 under "grade_e13" with the four readings of survival iteration 16: `stand_drag`, `stand_inside`, `stand_exit` and
+    `blocked_edge` (each {"read": False} without a decision log; the last two read the state lines' frames and map)."""
+    out = _d(out)
+    files = []
+    if lines is None:
+        lines, files = session_lines(state_dir) if state_dir is not None else ([], [])
+    g = grade_e12(out, prev, decision_lines, state_dir, lines=lines)
+    g["grade"] = "grade_e13"
+    if files and "frames_files" in g:
+        g["frames_files"] = files
+    L = None
+    if decision_lines is not None:
+        L = _Lines(out, decision_lines, lines)
+    g["stand_drag"] = e_stand_drag(L)
+    g["stand_inside"] = e_stand_inside(L)
+    g["stand_exit"] = e_stand_exit(L, lines)
+    g["blocked_edge"] = e_blocked_edge(out, L, lines)
+    g["report_lines"] = report_lines_e13(g)
+    return g
+
+
+def gate_e13(outs):
+    """gate_e12 (grade_e13 changes none of what it reads), named gate_e13."""
+    return gate_e12(outs)
