@@ -3333,15 +3333,23 @@ def test_the_drag_down_guard_takes_the_running_exit_at_a_sprint_inside(tmp_path)
 
 
 def test_on_a_trapped_room_square_the_drag_down_guard_leaves_the_corner_swinging(tmp_path):
-    """P24-A (h): on a room square with no way out and nothing to adopt there is no leg to take: the corner swings."""
-    r, sv = make(tmp_path)
-    r.scan(closed_room())
-    me = (102.5, 203.5)
-    r.frame(x=me[0], y=me[1], zombies=group_at_melee(me), attackers=2)
-    assert P.on_room(r.world)
-    tick(r, sv)
-    w = threat_why(tmp_path)
-    assert r.cmd()[0] == "attack" and w["corner_kind"] == "inside" and "group" not in w
+    """P24-A (h): on a room square with no way out and nothing to adopt there is no leg to take: the corner fights.
+    Named change, ruling P26-C (Plan 26 Task 2): the two attackers make the `inside` corner's crowd, so its send is the
+    shove, never the swing (`corner` {kind inside, send shove}); with `INSIDE_SHOVE` off the swing, as P24-A (h)
+    pinned it."""
+    for on in (True, False):
+        d = tmp_path / str(on)
+        d.mkdir()
+        r, sv = make(d)
+        sv.INSIDE_SHOVE = on
+        r.scan(closed_room())
+        me = (102.5, 203.5)
+        r.frame(x=me[0], y=me[1], zombies=group_at_melee(me), attackers=2)
+        assert P.on_room(r.world)
+        tick(r, sv)
+        w = threat_why(d)
+        assert r.cmd()[0] == ("shove" if on else "attack") and w["corner_kind"] == "inside" and "group" not in w
+        assert w.get("corner", {}).get("send") == ("shove" if on else None)
 
 
 def test_a_cornered_fight_sends_no_attack_in_a_hit_reaction(tmp_path):

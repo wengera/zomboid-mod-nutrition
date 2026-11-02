@@ -5,8 +5,9 @@ and P24-AH's shove, P25-A's corner, P25-I's logged third branch and P25-L's brea
 """
 import math
 
-from agent.base.planner.policies import (FIGHT_REACH, FLEE_GAIT, FLEE_S, KEEP_R, POINT_BLANK_R, SHOVE_BREAK_N, SHOVE_R,
-                                         SHOVE_REPEAT_S, STAND_MIN_R, STRAIN_SOFT, arm_pain, target_id_ok)
+from agent.base.planner.policies import (FIGHT_REACH, FLEE_GAIT, FLEE_S, INSIDE_CROWD_N, KEEP_R, POINT_BLANK_R,
+                                         SHOVE_BREAK_N, SHOVE_R, SHOVE_REPEAT_S, STAND_MIN_R, STRAIN_SOFT, arm_pain,
+                                         target_id_ok)
 from agent.base.pza1 import Attack, Shove, Steer
 from agent.base.world import me_xy
 
@@ -53,6 +54,19 @@ class FightShove:
             return None
         self.why.update({"shove": "second", "shoveTarget": sid, "shoveDist": sd, "second": second[0]})
         return Shove(sid)
+
+    def _crowd_shove(self, zid):
+        """Ruling P26-C (E16, `e_day_16-20261102-125450`: from the doorway stand's `inside` end the corner sent five
+        attacks, a105 to a109, at zombies within 1.0472329509892702 tiles, four of which swung and one lowered its
+        target, while two zombies stood on the door's inside square): an `inside` corner's Fight whose `crowd`
+        (Survive's count at point blank) reads INSIDE_CROWD_N or more sends the shove at its target `zid` in place of
+        the swing, every time: its knock-down's chance (#4373), read as every shove's result is (`knocked`, then the
+        finish's stomp); the stomp of a fallen zombie in reach has gone first (`_finish`). Logged `shove` "crowd". None
+        with no crowd, or with the shove at `zid` refused within SWING_SKIP_S (`_swing_ok`: the swing then stands)."""
+        if self.crowd is None or self.crowd < INSIDE_CROWD_N or not self._swing_ok("shove", zid):
+            return None
+        self.why["shove"] = "crowd"
+        return Shove(zid)
 
     def _shove_missed(self, zid):
         """Ruling P25-A: the last shove at `zid`, sent within SHOVE_REPEAT_S, ended done with its swing started and

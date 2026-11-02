@@ -279,3 +279,77 @@ def test_a_shelter_pick_that_is_no_stand_keeps_the_one_door_shed(tmp_path):
     assert [v[3] for v in f.door_verdicts(f.threats)] == ["ok"]
     f.stand_ok = True
     assert [v[3] for v in f.door_verdicts(f.threats)] == ["one_exit"]
+
+
+# ================================================================ P26-C: the inside corner's shove
+# the corner's attacks from E16's `inside` end: (me, zombies within 1.5 tiles but the third of line 478, 1.63 tiles off,
+# left out so no group reads), each line's frame
+E16_478 = ((10711.677734375, 10596.525390625),   # a109's line: two within POINT_BLANK_R (0.3875, 0.4582)
+           [(24160, 10711.771484375, 10596.1494140625), (24134, 10712.12890625, 10596.60546875)])
+E16_470 = ((10711.4208984375, 10596.5126953125),   # a105's line: one within it (0.4976), the second at 1.0273
+           [(24134, 10711.8720703125, 10596.72265625), (24164, 10712.4013671875, 10596.2060546875)])
+
+
+def corner_tick(tmp_path, line, inside_shove=True, floor=(), attackers=1):
+    """A Survive on the shed, the player on the door's inside square with `line`'s zombies (`floor`: the ids lying
+    on the floor): one tick, the `inside` corner's Fight. (r, sv, the threat why)."""
+    me, rows = line
+    r, sv = make(tmp_path)
+    sv.INSIDE_SHOVE = inside_shove
+    r.scan(shed())
+    zombies = [dict(z, onFloor=True) if z["id"] in floor else z for z in zs(rows, me)]
+    r.frame(x=me[0], y=me[1], zombies=zombies, attackers=attackers)
+    tick(r, sv)
+    w = threat_why(tmp_path)
+    assert w["corner_kind"] == "inside"
+    return r, sv, w
+
+
+def test_two_at_point_blank_in_the_inside_corner_are_shoved_never_swung_at(tmp_path):
+    """E16's a109 geometry: 24160 at 0.3875 and 24134 at 0.4582 tiles, both on the door's inside square: the corner
+    shoves its target (the nearest) in place of E16's attack, logged `corner` {kind inside, send shove, near_n 2}."""
+    r, sv, w = corner_tick(tmp_path, E16_478)
+    assert r.cmd() == ("shove", {"targetId": 24160}) and w["shove"] == "crowd"
+    assert w["corner"] == {"kind": "inside", "send": "shove", "near_n": 2}
+
+
+def test_one_at_point_blank_keeps_the_swing(tmp_path):
+    """E16's a105 geometry: 24134 at 0.4976, 24164 at 1.0273 (beyond POINT_BLANK_R), `me.attackers` 1: the attack
+    stands, logged with its count."""
+    r, sv, w = corner_tick(tmp_path, E16_470)
+    assert r.cmd() == ("attack", {"targetId": 24134}) and "shove" not in w
+    assert w["corner"] == {"kind": "inside", "send": "attack", "near_n": 1}
+
+
+def test_attackers_count_toward_the_crowd_and_no_other_corner_reads_one(tmp_path):
+    """The count is the zombies within POINT_BLANK_R or the frame's `me.attackers`, the greater (two attackers with one
+    listed at point blank read two); a corner of another kind, the switch off or a build without the shove reads
+    none."""
+    me, rows = E16_470
+    r, sv = make(tmp_path)
+    r.scan(shed())
+    r.frame(x=me[0], y=me[1], zombies=zs(rows, me), attackers=2)
+    sv.corner_kind = "inside"
+    assert sv._inside_crowd() == 2
+    sv.corner_kind = "stuck"
+    assert sv._inside_crowd() is None
+    sv.corner_kind, sv.INSIDE_SHOVE = "inside", False
+    assert sv._inside_crowd() is None
+
+
+def test_a_fallen_one_in_reach_is_stomped_first(tmp_path):
+    """Both of a109's zombies on the floor: the finish rule names the nearest (no standing zombie within KEEP_R), so the
+    stomp goes before any shove, logged `corner` {kind inside, send stomp, near_n 2}. With a standing one at point
+    blank beside the fallen, the finish rule is silent (a standing zombie within KEEP_R) and the shove goes."""
+    r, sv, w = corner_tick(tmp_path, E16_478, floor=(24160, 24134))
+    assert r.cmd() == ("stomp", {"targetId": 24160})
+    assert w["corner"] == {"kind": "inside", "send": "stomp", "near_n": 2}
+    d = tmp_path / "standing"
+    d.mkdir()
+    r, sv, w = corner_tick(d, E16_478, floor=(24134,))
+    assert r.cmd() == ("shove", {"targetId": 24160}) and w["corner"]["send"] == "shove"
+
+
+def test_with_the_switch_off_the_inside_corner_swings_at_two_as_e16_did(tmp_path):
+    r, sv, w = corner_tick(tmp_path, E16_478, inside_shove=False)
+    assert r.cmd() == ("attack", {"targetId": 24160}) and "corner" not in w

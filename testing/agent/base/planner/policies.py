@@ -251,6 +251,10 @@ SHOVE_BREAK_N = 3         # missed shoves in a row at one lone target after whic
                           # doorway stand sent twelve shoves from game minute 694, the eleven done each reading
                           # `knockdown` false, while the bites took the bleeding parts from 1 to 7 (#4431); the window
                           # is SHOVE_BREAK_N x SHOVE_REPEAT_S, a judgment (three rolls of the knock-down, #4373)
+# survival iteration 17 (Plan 26 Task 2, rulings P26-A to P26-E; E16, F7 and F5)
+INSIDE_CROWD_N = 2        # zombies within POINT_BLANK_R (or `me.attackers`, if more) at which an `inside` corner shoves
+                          # and never swings (P26-C: from E16's stand's `inside` end the corner sent five attacks with
+                          # two zombies on the door's inside square, four of which swung, one lowering its target)
 
 
 def place_of(world):

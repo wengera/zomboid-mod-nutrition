@@ -242,8 +242,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     `care.Care._wound`'s `dirty`); `T6_SWITCHES`.
   - Survival 19 (iteration 17, E16): P26-A, a building's windows are ways out after its doors and openings
     (`night.window_exits`, `policies.exit_plan`, `flee.Flee._window_step`); P26-B, the doorway stand's pick refuses a
-    building with no second way out (`flee.Flee.door_verdicts`, `DoorwayStand._doorway_pick`'s `one_exit`);
-    `T7_SWITCHES`.
+    building with no second way out (`flee.Flee.door_verdicts`, `DoorwayStand._doorway_pick`'s `one_exit`); P26-C, the
+    `inside` corner under two or more at point blank shoves, never swings (`threat.Threat._inside_crowd`,
+    `fight.Fight._crowd_shove`); `T7_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -354,8 +355,9 @@ T6_SWITCHES = ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE",
 # survival iteration 16 (Plan 25 Task 14): P25-U, P25-V, P25-W and P25-X (the amendment and its fix 1) on
 # `threat.Threat` (STAND_DRAG_EARLY, STAND_INSIDE, STAND_EXIT, BLOCKED_EDGE, EDGE_OUT_OF_HOLD); P25-Y (fix 1) on
 # `Survive` (DIRTY_RAG_RIP)
-T7_SWITCHES = ("WINDOW_EXIT", "STAND_SECOND_EXIT")
-# survival iteration 17 (Plan 26 Task 2): P26-A and P26-B on `threat.Threat` (WINDOW_EXIT, STAND_SECOND_EXIT)
+T7_SWITCHES = ("WINDOW_EXIT", "STAND_SECOND_EXIT", "INSIDE_SHOVE")
+# survival iteration 17 (Plan 26 Task 2): P26-A to P26-C on `threat.Threat` (WINDOW_EXIT, STAND_SECOND_EXIT,
+# INSIDE_SHOVE)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")

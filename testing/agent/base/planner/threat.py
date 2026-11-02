@@ -115,6 +115,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # crosses a window
     STAND_SECOND_EXIT = True   # ruling P26-B: the doorway stand's pick refuses a free door whose building has no other
                                # way out on its floor (`flee.Flee.door_verdicts` "one_exit"); off, any free door stands
+    INSIDE_SHOVE = True   # ruling P26-C: an `inside` corner with INSIDE_CROWD_N or more at point blank shoves, never
+                          # swings (`_inside_crowd`, `fight.Fight._crowd_shove`); off, the corner's swing as before
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -709,6 +711,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.rules = self._fight_rules()   # P25-A, P25-B, P25-D, P25-F
             policy.edge_marks = self.edge_marks   # P25-X: the refusals across a blocked edge, shared as `unreachable`
             policy.shove_only = self._shove_only(kind)   # P25-P, P25-S: no swing, no seek
+            policy.crowd = self._inside_crowd() if kind == "cornered" else None   # P26-C
             ans = self._answer(policy)
             if self.pair_yield is not None and not self._finishes(self.pair_yield):
                 self.pair_yield = None   # P25-J (3): logged only where the Fight's finish answers it
@@ -767,6 +770,14 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if self._unarmed():
             return "unarmed"
         return "low" if kind == "fight" and self._low_fight(len(self._within(DANGER_R))) else None
+
+    def _inside_crowd(self):
+        """Ruling P26-C: the running corner's count at point blank when it is an `inside` corner (`corner_kind`) with
+        `INSIDE_SHOVE` on and the build announcing `shove`: the zombies within POINT_BLANK_R (`_within`: one read dead
+        left out), or the frame's `me.attackers` if more; else None (no crowd read, nothing logged)."""
+        if not (self.INSIDE_SHOVE and self.corner_kind == "inside" and self.world.can("shove")):
+            return None
+        return max(len(self._within(POINT_BLANK_R)), self._attackers())
 
     def _unarmed(self):
         """Ruling P25-P: no weapon held and `UNARMED_FIGHT` on (the Fight's `unarmed`; the `many` flee's finish sends

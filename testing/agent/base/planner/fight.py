@@ -107,6 +107,11 @@ one table the gates and the other policies import).
   KNOCK_READ_S and no frame reads fallen yet is waited on (`_knock_wait`, logged `knocked`, nothing sent); a stomp
   failed `stood` reads the target again (standing, the shove or the swing; fallen, one more stomp), the STOOD_STOMPS-th
   `stood` taking the floor strike (`stood`, `_observe_swing`).
+  Survival 19 (survival iteration 17; Plan 26 Task 2; survive.py's docstring the record): P26-C, the inside corner's
+  shove: an `inside` corner's Fight (`crowd`, Survive's count of the zombies within POINT_BLANK_R, `me.attackers` if
+  more; None for any other Fight) at INSIDE_CROWD_N or more shoves its target at the swing (`_crowd_shove`), the stomp
+  of a fallen one in reach going first as ever (`_finish`); with one at point blank the swing stands. Every shove,
+  stomp or attack such a Fight sends is logged `corner` {kind "inside", send, near_n} (`choose`).
 """
 import math
 import time
@@ -199,6 +204,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         self.blocked_edge = None            # this choose's `blocked_edge` why (P25-X), else None
         self.shove_only = None              # Survive sets it each tick: why the Fight is the shove and the stomp
                                             # alone, "unarmed" (P25-P) or "low" (P25-S), else None: no swing, no seek
+        self.crowd = None                   # Survive sets it each tick: an `inside` corner's count at point blank
+                                            # (P26-C, `_crowd_shove`), else None
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -687,6 +694,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         for key, ids in (("unreachable", self.marked()), ("dead", blocked(self.dead, self.clock()))):
             if ids:
                 self.why[key] = sorted(ids, key=str)
+        if (self.crowd is not None and cmd is not None and cmd.TYPE in ("shove", "stomp", "attack")
+                and "corner" not in self.why):   # P26-C: an `inside` corner's send, logged
+            self.why["corner"] = {"kind": "inside", "send": cmd.TYPE, "near_n": self.crowd}
         return cmd
 
     def _repin_point_blank(self):
@@ -805,6 +815,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         if hit is not None:   # P24-A (i): the engine starts no swing in a hit reaction (#4292, #4293): sent on its end
             self.why["hitReaction"] = hit
             return None
+        crowd = self._crowd_shove(zid)   # P26-C: an `inside` corner under a crowd at point blank shoves, never swings
+        if crowd is not None:
+            return crowd
         shove = self._shove(zid, z, d)   # P24-AG, P24-AH: the shove before (or for) the swing
         if shove is not None:
             return shove
