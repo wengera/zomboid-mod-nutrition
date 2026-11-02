@@ -108,6 +108,11 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     EDGE_OUT_OF_HOLD = True   # ruling P25-X, amended (Task 14 fix 1): a zombie marked for a blocked edge (`edge_marks`)
                               # and read across it is out of the hold (`Survive._within`: the held set, `_released`, the
                               # DANGER_R count the `unreachable` flee reads); off, it counts as before
+    # survival iteration 17 (Plan 26 Task 2; survive.py's docstring, Survival 19): each switch off is the rule before
+    # it, all of them in `survive.T7_SWITCHES` (the replay tests' `pre_t7`)
+    WINDOW_EXIT = True    # ruling P26-A: a building's windows are ways out after its doors and openings
+                          # (`night.window_exits`, `policies.exit_plan`, `flee.Flee._window_step`); off, no way out
+                          # crosses a window
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -316,7 +321,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         f = self.flee
         if f is not None and f.exit is not None:
             return True
-        return exit_plan(self.world, held, f.refused if f is not None else (), self.TRANS) is not None
+        return exit_plan(self.world, held, f.refused if f is not None else (), self.TRANS,
+                         self.WINDOW_EXIT) is not None
 
     def _cornered(self, held, inside):
         """The zombie id a cornered Fight runs on (ruling P23-AJ 2, its fix rounds, and the coordinator's amendment 6
@@ -675,6 +681,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.hold_ok = breach is None
             policy.steer_now = self.group_steer is not None
             policy.door_walk_on = self.DOOR_WALK   # P25-E
+            policy.window_exit_on = self.WINDOW_EXIT   # P26-A
             walk = self._hold_walk(reason)   # P25-C: the endurance hold's flee walks with nobody within DANGER_R
             policy.gait = "walk" if walk else FLEE_GAIT
             policy.keep_gait()

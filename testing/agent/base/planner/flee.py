@@ -76,6 +76,15 @@ constants and record unchanged; the constants stay in `policies.py`).
   since P24-O), else the adoption or the trapped hold, and `give_way` keeps a running exit (f).
   Survival 18 (ruling P25-W, `planner/doorway.py`): a doorway stand ended under a group hands its Flee `walk_out`:
   the plan dropped and the adoption spent, so the choose walks the way out, else holds trapped; never the close.
+  Survival 19 (ruling P26-A, `window_exit_on`, Survive's `WINDOW_EXIT`): the way out may be a window
+  (`policies.exit_plan`, `night.window_exits`), ranked after every door and opening; its step `window` walks to the
+  centre of the window's inside square at the flee's gait while the player is not on it, then sends `Window(x, y,
+  smash)` once (`_window_step`); the climb's end is read as the goal layer's `_climb_ended` reads one
+  (`_window_ended`): `done` leaves the next choose to read the frame off the room squares (`left`), a frame still on
+  one refusing the exit; `failed`, `rejected` or `timeout` notes the window's failure in the World
+  (`World.note_window_fail`, so a WINDOW_DEAD end leaves it out of the next `exits`) and refuses the exit. Ruling
+  P26-B (`second_exit_on`, `STAND_SECOND_EXIT`): with the pick a doorway stand's (`stand_ok`), a free door whose
+  building has no other way out on its floor is refused `one_exit` (`door_verdicts`).
 """
 import math
 import time
@@ -86,7 +95,7 @@ from agent.base.planner.policies import (AHEAD_CONE, AHEAD_R, DANGER_R, DISENGAG
                                          WALK_STALL_S, WIDE_TURNS, Policy, _night, _rotate, away_vector, centre,
                                          clear_heading, exit_plan, in_building, in_corridor, line_to, on_post, on_room,
                                          running, stand_post, target_id_ok, zdist)
-from agent.base.pza1 import Climb, Interact, Steer, Stop, WalkTo
+from agent.base.pza1 import Climb, Interact, Steer, Stop, WalkTo, Window
 from agent.base.world import me_floor, me_xy
 
 __all__ = ["Flee"]
@@ -127,6 +136,8 @@ class Flee(Policy):
         self.gait = FLEE_GAIT    # Survive sets it each tick: the gait of every leg and walk (P25-C: `walk` under the
                                  # endurance hold with no zombie within DANGER_R)
         self.door_walk_on = True  # Survive sets it each tick (its DOOR_WALK switch, P25-E)
+        self.window_exit_on = True   # Survive sets it each tick (its WINDOW_EXIT switch, P26-A): windows are ways out
+        self.second_exit_on = True   # Survive sets it each tick (its STAND_SECOND_EXIT switch, P26-B)
         self.door_walk = None    # this observe: {stall, end} when a stand's walk stalled (P25-E), else None
         self.walking_out = None  # the doorway stand's end this Flee walks out on (P25-W: `walk_out`), else None
 
@@ -357,17 +368,21 @@ class Flee(Policy):
         if a is None or a is self._exit_read or self.exit is None:
             return
         if not self.actions.done(a):
-            if self.exit["step"] != "walk" or not running(self.actions, a):
+            if a.type != "walkTo" or not running(self.actions, a):
                 return
             self._exit_anchor, still = self._still_for(self._exit_anchor)
             if still < WALK_STALL_S:
                 return
             self._dropped = a
         self._exit_read = a
-        if a.state == "failed" and a.reason == PREEMPTED:
-            return
         e = self.exit
-        if e["step"] == "open":
+        if a.state == "failed" and a.reason == PREEMPTED:
+            if a.type == "window":
+                e["sent"] = False   # P26-A: superseded, the climb is sent again
+            return
+        if e["step"] == "window":
+            self._window_ended(e, a)
+        elif e["step"] == "open":
             if a.state == "done":
                 e["step"], e["opened"] = "walk", True
             else:
@@ -377,6 +392,25 @@ class Flee(Policy):
                 e["step"] = "open"
             else:
                 self._refuse_exit()
+
+    def _window_ended(self, e, a):
+        """Ruling P26-A: the end of a window way out's step `a`. The climb's (`Window`), as the goal layer's
+        `_climb_ended` reads one: `done` marks the exit `climbed` (the next `_exit_step` reads the frame off the room
+        squares and ends it `left`, or refuses it with the frame still on one); any other end notes the window's failure
+        in the World under its reason (`World.note_window_fail`, else the end's state) and refuses the exit. The walk's
+        to the window's inside square: `done` marks it `walked` (the climb goes next, the Lua's own walk to the near
+        side taking it the rest of the way); a walk that failed or stalled refuses the exit, as a way out's failed
+        walk with no door to open does."""
+        if a.type == "window":
+            if a.state == "done":
+                e["climbed"] = True
+            else:
+                self.world.note_window_fail(e["window"], a.reason or a.state)
+                self._refuse_exit()
+        elif a is self._dropped or a.state != "done":
+            self._refuse_exit()
+        else:
+            e["walked"] = True
 
     def _refuse_exit(self):
         self.refused.add(self.exit["outer"])
@@ -507,6 +541,8 @@ class Flee(Policy):
             self.left.add(e["building"])
             self._end_exit()
             return None
+        if e["step"] == "window":
+            return self._window_step(e)
         if e["step"] == "open" and ((self.world.map.get(e["door"]) or {}).get("door") or {}).get("open"):
             e["step"], e["opened"] = "walk", True
         self._chosen = "exit"
@@ -515,6 +551,27 @@ class Flee(Policy):
         if e["step"] == "open":
             return Interact(e["door"][0], e["door"][1], "open")
         return WalkTo(*centre(e["target"]), self.gait)   # P24-A (f)'s group exit, at a run since P24-O
+
+    def _window_step(self, e):
+        """Ruling P26-A, a window way out's next command (`_exit_step`, the player on a room square): a climb that ended
+        `done` with the frame still on a room square refuses the exit (None: the next way out or the trapped hold);
+        else the walk at the flee's gait to the centre of the window's inside square (`inner`) while the player stands
+        off it and no walk there has ended `done`; then `Window(x, y, smash)` once (`sent`, the Lua's climb-through
+        after its own walk to the near side: the open first, or the smash for a locked one); None while it runs. Logged
+        {exit, outer, window: [x, y], smash, step "window", shelter None, refused}."""
+        if e.get("climbed"):
+            self._refuse_exit()
+            return None
+        x, y = e["window"][0], e["window"][1]
+        self.why = {"exit": e["building"], "outer": list(e["outer"]), "window": [x, y], "smash": e["smash"],
+                    "step": "window", "shelter": None, "refused": sorted(map(list, self.refused))}
+        if not e.get("walked") and _night().player_square(self.world) != e["inner"]:
+            self._chosen = "exit"
+            return WalkTo(*centre(e["inner"]), self.gait)
+        if e["sent"]:
+            return None
+        self._chosen = "exit"
+        return Window(x, y, smash=e["smash"])
 
     def _adopt(self, ts):
         """Fix round 1 (concern 1): the building stood in, every way out refused, adopted as sheltered: its plan kept
@@ -553,7 +610,7 @@ class Flee(Policy):
             return self._steer(ts)
         if self.exit is not None:
             cmd = self._exit_step()
-            if cmd is not None:
+            if cmd is not None or self.exit is not None:   # P26-A: a window's climb sent and running holds
                 return cmd
         if not self.picked:
             self.plan = self._pick(ts)
@@ -568,7 +625,7 @@ class Flee(Policy):
             if cmd is not None or self.plan is not None:
                 return cmd
         if on_room(self.world):
-            self.exit = exit_plan(self.world, ts, self.refused, self.trans)
+            self.exit = exit_plan(self.world, ts, self.refused, self.trans, self.window_exit_on)
             if self.exit is not None:
                 return self._exit_step()
             self.walking_out = None   # the stand's way out found none: the trapped hold is no running exit
@@ -693,6 +750,8 @@ class Flee(Policy):
             self.plan["climb"] = None   # sent: the step's walk follows the climb's end
         elif self._chosen == "exit":
             self._exit_a, self._exit_anchor = action, (self.clock(), me_xy(self.world))
+            if cmd.TYPE == "window":
+                self.exit["sent"] = True   # P26-A: the climb goes once
         elif cmd.TYPE == "steer":
             mx, my = me_xy(self.world)
             self._leg = (action, (mx, my), (cmd.vx, cmd.vy), self._aimed)

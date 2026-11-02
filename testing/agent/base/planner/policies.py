@@ -580,7 +580,7 @@ def on_room(world):
     return (world.map.get(_night().player_square(world)) or {}).get("room") is not None
 
 
-def exit_plan(world, threats, refused=(), trans=True):
+def exit_plan(world, threats, refused=(), trans=True, windows=False):
     """The way out of the building the player stands in (ruling P23-AJ 3 as amended, and its fix round 1), else
     None: standing on a room square of a building, of its `night.exits` on the player's floor (an opening, or a
     closed exterior door to open first) whose outside square is not in `refused`, whose outside square's centre is no
@@ -591,7 +591,12 @@ def exit_plan(world, threats, refused=(), trans=True):
     ties by that square; `{building, inner, outer, door, target, step, opened}`, `target` the square the walk goes to,
     `step` "walk" (the review's I2: the jar's path follower opens a closed door on a player's path,
     `PathFindBehavior2.checkDoorHoppableWindow`, a review reading; the open is the fallback), `opened` False. `trans`:
-    `_beyond`'s (ruling P24-AS)."""
+    `_beyond`'s (ruling P24-AS). Ruling P26-A (`windows`, `Threat.WINDOW_EXIT`): the building's windows are ways out too
+    (`night.window_exits`), each passing the same checks on its outside square but `_beyond` (its climb lands on the
+    outside square: no walk ends short of it), ranked after every door and opening that passes (the rank
+    `(door marked, window, distance, outer, inner)`: a window is the way out only when no door or opening is); a
+    window's record carries `window` and `smash`, its `target` its inside square (`inner`, the walk's end before the
+    climb) and its `step` "window" (`flee.Flee._window_step`), `sent` False."""
     N = _night()
     s = world.map.get(N.player_square(world)) or {}
     b = s.get("building")
@@ -601,28 +606,33 @@ def exit_plan(world, threats, refused=(), trans=True):
     me = me_xy(world)
     marked = world.marked_doors()   # Task 18 fix 1, major 4: a marked door stays a way out, ranked after the others
     best = None
-    for e in N.exits(world, b, me_floor(world)):
+    for e in N.exits(world, b, me_floor(world), windows):
         if e["outer"] in refused:
             continue
         c = centre(e["outer"])
         if any(math.hypot(z["x"] - c[0], z["y"] - c[1]) < zdist(world, z)
                or _in_tube(me, c, (z["x"], z["y"]), EXIT_CLEAR_R) for z in ts):
             continue
-        if _beyond(world, e["inner"], e["outer"], trans) is None:
+        window = e.get("window") is not None
+        if not window and _beyond(world, e["inner"], e["outer"], trans) is None:
             continue
-        rank = (e["door"] in marked, math.hypot(c[0] - me[0], c[1] - me[1]), e["outer"], e["inner"])
+        rank = (e["door"] in marked, window, math.hypot(c[0] - me[0], c[1] - me[1]), e["outer"], e["inner"])
         if best is None or rank < best[0]:
             best = (rank, e)
     if best is None:
         return None
     e = best[1]
+    if e.get("window") is not None:   # P26-A: the walk to the window's inside square, then its climb
+        return dict(e, building=b, target=e["inner"], step="window", opened=False, sent=False)
     return dict(e, building=b, target=_beyond(world, e["inner"], e["outer"], trans), step="walk", opened=False)
 
 
 def exit_kind(world, e):
-    """What the way out `e` (an `exit_plan` record) crosses (ruling P25-W's `doorway_exit`): "door" for a closed
-    exterior door to open (`door`) or an opening across a door's edge (an open door, `door_edge`), else "opening" (a
-    step out with no door on it). No exit crosses a window: `World.openings` leaves a window's edge out."""
+    """What the way out `e` (an `exit_plan` record) crosses (ruling P25-W's `doorway_exit`): "window" for a window's
+    (ruling P26-A, `night.window_exits`), "door" for a closed exterior door to open (`door`) or an opening across a
+    door's edge (an open door, `door_edge`), else "opening" (a step out with no door on it)."""
+    if e.get("window") is not None:
+        return "window"
     if e["door"] is not None or door_edge(world, e["inner"], e["outer"]):
         return "door"
     return "opening"

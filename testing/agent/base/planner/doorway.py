@@ -316,8 +316,8 @@ class DoorwayStand:
 
     def _stand_exit_why(self, f):
         """Ruling P25-W's `doorway_exit` on the stand's end tick, read after the Flee answered: {end, exit}, `exit` the
-        way out the choose took ("door" or "opening": `policies.exit_kind`; `exit_plan` routes no window), "trapped"
-        for its trapped hold, "steer" off a room square (an end read within DOOR_OFF_R outside), else "deferred" (the
+        way out the choose took ("door", "opening" or, ruling P26-A, "window": `policies.exit_kind`), "trapped" for
+        its trapped hold, "steer" off a room square (an end read within DOOR_OFF_R outside), else "deferred" (the
         flee's own drop or finish took the tick)."""
         if f.exit is not None:
             kind = exit_kind(self.world, f.exit)

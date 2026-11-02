@@ -240,6 +240,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   - Survival 18 (iteration 16, E14, E15 and F6): P25-U to P25-Y (`doorway.DoorwayStand`, `flee.Flee.walk_out`,
     `planner/edges.py`, `Survive._edge_out`; a dirty rag alone does not block the rip or the unwear,
     `care.Care._wound`'s `dirty`); `T6_SWITCHES`.
+  - Survival 19 (iteration 17, E16): P26-A, a building's windows are ways out after its doors and openings
+    (`night.window_exits`, `policies.exit_plan`, `flee.Flee._window_step`); `T7_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -334,9 +336,9 @@ HUNGER_T = 0.15          # the first HUNGRY moodle fires above 0.15 [#0508]
 BRANCHES = ("threat", "care", "need", "load", "night", "goal")
 STEPS = ("threat", "care", "need", "load", "night", "stock", "goal")   # assess() tries these in order: BRANCHES with the
                          # care's rag stock (P24-AB) before the goal (it logs under `care`, why `stock`)
-# The iteration switches (Plan 25), one home: each switch off is the rule before it, and each tuple off is the replay
-# tests' seam onto the goldens before its iteration (`test_replay_decisions.pre_t3` to `pre_t6`, each turning the later
-# tuples off too). Each comment names the class holding each switch (`Survive` derives from `threat.Threat`).
+# The iteration switches (Plans 25 and 26), one home: each switch off is the rule before it, and each tuple off is the
+# replay tests' seam onto the goldens before its iteration (`test_replay_decisions.pre_t3` to `pre_t7`, each turning
+# the later tuples off too). Each comment names the class holding each switch (`Survive` derives from `threat.Threat`).
 T3_SWITCHES = ("CORNER_BREAK", "FINISH_FIRST", "HOLD_RUN", "RIDE_WAIT", "DOOR_WALK", "FENCE_WAIT")
 # survival iteration 13 (Plan 25 Task 3): P25-A to P25-F, all on `threat.Threat`
 T4_SWITCHES = ("UNWEAR_WOUND", "FINISH_FAR", "STAND_WOUND", "SHOVE_BREAK", "SHELTER_LEGS")
@@ -350,6 +352,8 @@ T6_SWITCHES = ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE",
 # survival iteration 16 (Plan 25 Task 14): P25-U, P25-V, P25-W and P25-X (the amendment and its fix 1) on
 # `threat.Threat` (STAND_DRAG_EARLY, STAND_INSIDE, STAND_EXIT, BLOCKED_EDGE, EDGE_OUT_OF_HOLD); P25-Y (fix 1) on
 # `Survive` (DIRTY_RAG_RIP)
+T7_SWITCHES = ("WINDOW_EXIT",)
+# survival iteration 17 (Plan 26 Task 2): P26-A on `threat.Threat` (WINDOW_EXIT)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -370,7 +374,7 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "MANY_LISTED_N", "DRAG_DOWN_N", "FINISH_R",
            "NEED_STATS", "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_RETRY_MIN", "FILL_SETTLE_S", "FILL_WANTS",
            "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T3_SWITCHES",
-           "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES"]
+           "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES", "T7_SWITCHES"]
 
 
 @dataclass

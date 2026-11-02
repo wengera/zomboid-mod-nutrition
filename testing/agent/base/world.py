@@ -1132,6 +1132,23 @@ class World:
             return sorted(out)
         return self.memo(("windows", building), walk)
 
+    def window_way(self, sq, building):
+        """The step the window at square `sq` (a `windows(building)` square) crosses (ruling P26-A, the window way
+        out): `(room square, outside square)`, the pair `windows` walked, re-derived from `sq` and its four orthogonal
+        neighbours through `_window_edge` (north, west, south, east): of the pairs whose edge is a window's, the first
+        whose room square is one of `building`'s and whose other square is mapped, not solid, with no room; else
+        None."""
+        for dx, dy in ((0, -1), (-1, 0), (0, 1), (1, 0)):
+            n = (sq[0] + dx, sq[1] + dy, sq[2])
+            if not self._window_edge(sq, n):
+                continue
+            for room, out in ((sq, n), (n, sq)):
+                r, o = self.map.get(room) or {}, self.map.get(out)
+                if (r.get("room") is not None and r.get("building") == building and o is not None
+                        and not o.get("solid") and o.get("room") is None):
+                    return room, out
+        return None
+
     # -- the inventory by use and the empties (Plan 23 Task 9, P23-D) -----------------------------------------------
     def mark(self, item_id, reason):
         """Mark a held item with `reason` (one of MARK_REASONS), replacing its mark, at the current world minute: read

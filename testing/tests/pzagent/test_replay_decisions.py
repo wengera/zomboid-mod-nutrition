@@ -112,8 +112,18 @@ def pre_t5(sv, keep=()):
 
 def pre_t6(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 25 Task 14 (survival iteration 16): its switches off
-    (`survive.T6_SWITCHES`), but those named in `keep` (`test_iteration_16_moves_no_golden`)."""
+    (`survive.T6_SWITCHES`), but those named in `keep` (`test_iteration_16_moves_no_golden`). Plan 26 Task 2:
+    iteration 17's switches (`pre_t7`) off with them, so every seam onto an earlier rule reads them off."""
     for name in S.T6_SWITCHES:
+        if name not in keep:
+            setattr(sv, name, False)
+    pre_t7(sv)
+
+
+def pre_t7(sv, keep=()):
+    """The replay's mutate seam onto the rules before Plan 26 Task 2 (survival iteration 17): its switches off
+    (`survive.T7_SWITCHES`), but those named in `keep`."""
+    for name in S.T7_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
 

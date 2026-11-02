@@ -45,7 +45,7 @@ and `explore`). The shelter steps are module functions (`shelter_plan`, `shelter
     square's centre; (d) `close`, `Interact(dx, dy, "close")`. Then the plan reads `done` and Night sends `Sleep()`.
   - `exits(world, building, z)` (ruling P23-AJ 3 as amended, the flee's way out of the building it stands in):
     the building's openings (`world.openings`), then each exterior door read closed and not barricaded at its
-    approach square, the door to open first.
+    approach square, the door to open first; with `windows` (ruling P26-A) its windows after them (`window_exits`).
   - The approach step is kept beside the Lua interact's own walk to the door (`approach` in `PZAgent_SkillsWorld.lua`)
     so a walk that cannot reach the door fails under the walk's own reason (`stuck`, `no path`), which the shun reads,
     rather than inside the open as `not adjacent`.
@@ -162,18 +162,45 @@ def approach_square(world, door):
     return None if way is None else way[1]
 
 
-def exits(world, building, z):
+def exits(world, building, z, windows=False):
     """The ways out of `building` on floor `z` (ruling P23-AJ 3 as amended): `[{inner, outer, door}]`, each opening
     of `world.openings` (`door` None: the step from `inner` to `outer` reads open) on that floor, then each exterior
     door the map reads closed and not barricaded with its `approach_square` as `outer` (`door` the square to open
     first; a locked one included, since the Lua's open unlocks a door that opens from inside; one marked stuck kept,
-    the way out being read from inside: Task 18 fix 1, the review's major 4), sorted by `outer`."""
+    the way out being read from inside: Task 18 fix 1, the review's major 4), sorted by `outer`. With `windows`
+    (ruling P26-A, `Threat.WINDOW_EXIT`) and a build announcing `window`, each exterior window of the building on that
+    floor follows them, sorted by `outer` too (`window_exits`)."""
     out = [{"inner": a, "outer": b, "door": None} for a, b in world.openings(building) if a[2] == z]
     for d in exterior_doors(world, building, z, marked=True):
         rec = world.map[d].get("door") or {}
         if not (rec.get("open") or rec.get("barricaded")):
             inner, outer = world.door_way(d)
             out.append({"inner": inner, "outer": outer, "door": d})
+    out = sorted(out, key=lambda e: (e["outer"], e["inner"]))
+    return out + window_exits(world, building, z) if windows else out
+
+
+def window_exits(world, building, z):
+    """Ruling P26-A (E16, `e_day_16-20261102-125450`: the doorway stand's `inside` end read `trapped` in the one-door
+    shed, both zombies on the door's inside square, while the window on the far wall lay 2.3458507024507074 tiles from
+    the nearest of them, and no exit crossed a window: `World.openings` leaves a window's edge out): the building's
+    windows on floor `z` as ways out, `[{inner, outer, door: None, window: (x, y, z), smash}]` sorted by `outer`, with
+    the build announcing `window` (else []). Each window square of `World.windows` whose record is not `barricaded`
+    and whose failed end (`World.window_fail`) is not one of `goals.WINDOW_DEAD`, read as the goal layer's
+    `window_pick` reads it; `inner` and `outer` its room square and its outside square (`World.window_way`); `smash`
+    True for a locked one (the record's `locked`, or a try that ended `locked`), as `window_pick`'s smash."""
+    if not world.can("window"):
+        return []
+    from agent.base.planner.goals import WINDOW_DEAD   # goals imports this module at its top
+    out = []
+    for w in world.windows(building):
+        rec = (world.map.get(w) or {}).get("window") or {}
+        fail = world.window_fail(w)
+        way = world.window_way(w, building) if w[2] == z else None
+        if way is None or rec.get("barricaded") is True or fail in WINDOW_DEAD:
+            continue
+        out.append({"inner": way[0], "outer": way[1], "door": None, "window": w,
+                    "smash": rec.get("locked") is True or fail == "locked"})
     return sorted(out, key=lambda e: (e["outer"], e["inner"]))
 
 
