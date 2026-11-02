@@ -1288,7 +1288,10 @@ def test_after_rest_n_rests_the_woods_radius_widens_by_woods_step_up_to_its_cap_
             assert v["woods_r"] == 60.0 and v["edge"] == [60, 201]
             g = G.ScriptedSource().propose(v)
             assert g.TYPE == "ExploreToward" and (g.x, g.y) == (60, 201)
-            assert L.place_error(g, v) is None and L.place_error(g, dict(v, woods_r=G.WOODS_R)) is not None
+            # P26-5 (Plan 26 Task 3 fix 1): an ExploreToward at the view's edge square is accepted whatever the
+            # radius, so the narrowed view also drops its edge to read the refusal
+            assert L.place_error(g, v) is None
+            assert L.place_error(g, dict(v, woods_r=G.WOODS_R, edge=None)) is not None
     assert kit.woods_r == G.WOODS_MAX_R
     other = G.ExploreToward(1, 1)
     other.state = "done"
