@@ -102,8 +102,8 @@ def test_the_e_day_driver_shares_the_day_session_through_the_library():
 
 # ================================================================ claude_available, the pre-boot
 class Proc:
-    def __init__(self, stdout="", returncode=0):
-        self.stdout, self.returncode = stdout, returncode
+    def __init__(self, stdout="", returncode=0, stderr=""):
+        self.stdout, self.returncode, self.stderr = stdout, returncode, stderr
 
 
 def test_claude_available_reads_the_cli_and_its_version_once():
@@ -219,7 +219,7 @@ def test_claude_answers_is_ok_only_on_exit_0_with_a_result_text():
     r = F.claude_answers(run=lambda argv, **kw: Proc("", 1))
     assert r["ok"] is False and r["exit"] == 1 and r["error"] == "exit 1" and r["answer"] is None
     r = F.claude_answers(run=lambda argv, **kw: Proc("rate limited", 1))
-    assert r["ok"] is False and r["error"] == "exit 1"
+    assert r["ok"] is False and r["error"] == "exit 1; stdout: rate limited"
 
     def boom(argv, **kw):
         raise subprocess.TimeoutExpired(argv, kw["timeout"])
@@ -236,6 +236,60 @@ def test_claude_answers_is_ok_only_on_exit_0_with_a_result_text():
     for bad in (Proc("not json", 0), Proc("", 0)):
         r = F.claude_answers(run=lambda argv, **kw: bad)
         assert r["ok"] is False and r["error"] == "stdout is not JSON"
+
+
+def test_a_refusal_names_its_cause_from_stderr_and_stdout_cut_to_200_characters():
+    r = F.claude_answers(run=lambda argv, **kw: Proc("", 1, stderr="  Claude AI usage limit reached|1761\n"))
+    assert r["ok"] is False and r["exit"] == 1 and r["answer"] is None
+    assert r["error"] == "exit 1; stderr: Claude AI usage limit reached|1761"
+    r = F.claude_answers(run=lambda argv, **kw: Proc("out text", 1, stderr="err text"))
+    assert r["error"] == "exit 1; stderr: err text; stdout: out text"
+    r = F.claude_answers(run=lambda argv, **kw: Proc("o" * 500, 1, stderr="e" * 500))
+    assert r["error"] == "exit 1; stderr: %s; stdout: %s" % ("e" * 200, "o" * 200) and F.ERR_SNIPPET == 200
+    r = F.claude_answers(run=lambda argv, **kw: Proc("", 7, stderr=None))
+    assert r["error"] == "exit 7"
+    r = F.claude_answers(run=lambda argv, **kw: Proc("", 1, stderr="rate limit"), which=lambda name: "c")
+    assert r["error"].endswith("stderr: rate limit")
+
+
+def test_the_probe_runs_the_cli_without_claudecode_and_through_the_injected_which(monkeypatch):
+    monkeypatch.setenv("CLAUDECODE", "1")
+    monkeypatch.setenv("PZ_PROBE_KEEP", "kept")
+    seen, asked = [], []
+    which = lambda name: asked.append(name) or "C:/injected/claude.exe"          # noqa: E731
+    r = F.claude_answers(run=lambda a, **kw: seen.append((a, kw)) or envelope("ok"), which=which)
+    assert r["ok"] is True and asked == ["claude"]
+    argv, kw = seen[0]
+    assert argv[0] == "C:/injected/claude.exe" and argv[1:] == F.probe_argv()[1:]
+    assert "CLAUDECODE" not in kw["env"] and kw["env"]["PZ_PROBE_KEEP"] == "kept"      # the rest is carried
+    assert kw["env"] is not os.environ and os.environ.get("CLAUDECODE") == "1"        # the host's own is untouched
+    # a which that finds nothing leaves the argv's own name, as the runner does
+    F.claude_answers(run=lambda a, **kw: seen.append((a, kw)) or envelope("ok"), which=lambda name: None)
+    assert seen[1][0][0] == "claude"
+
+
+def test_preboot_passes_its_injected_which_to_the_probe(agent_fixture, monkeypatch):
+    monkeypatch.setattr(S.DL.C, "doctor", lambda: (True, "ok"))
+    monkeypatch.setattr(S.DL.harness, "lint_paths", lambda srcs: [])
+    monkeypatch.setattr(S.DL.C, "git_dirty", lambda rel: (False, ""))
+    real = S.DL.C.git_say
+    monkeypatch.setattr(S.DL.C, "git_say", lambda *a: "" if a[0] == "ls-files" else real(*a))
+    monkeypatch.setenv("CLAUDECODE", "1")
+    calls = []
+    inner = answering_run()
+
+    def run(argv, **kw):
+        calls.append((argv, kw))
+        return inner(argv, **kw)
+
+    pre, ok = F.preboot(F.__file__, F.flags([]), which=lambda name: "D:/injected/claude.exe", run=run)
+    assert ok is True and len(calls) == 2
+    assert [c[0][0] for c in calls] == ["D:/injected/claude.exe"] * 2             # the version call and the probe
+    assert "CLAUDECODE" not in calls[1][1]["env"]
+    # a refusal's stderr reaches the record
+    refusing = answering_run(probe=Proc("", 1, stderr="usage limit reached"))
+    pre, ok = F.preboot(F.__file__, F.flags([]), which=lambda name: "c", run=refusing)
+    assert ok is False and pre["claude_answers"]["error"] == "exit 1; stderr: usage limit reached"
 
 
 def test_the_probe_argv_is_the_goal_sources_own_with_only_the_system_prompt_swapped():
@@ -256,7 +310,7 @@ def test_the_probe_argv_is_the_goal_sources_own_with_only_the_system_prompt_swap
     F.claude_answers(run=lambda a, **kw: seen.append(a) or envelope("ok"))
     assert seen[0][1:] == argv[1:]
     src = open(F.__file__, encoding="utf-8").read()
-    assert "def claude_answers(cli=L.DEFAULT_CLI, run=subprocess.run):" in src and "probe_argv(cli)" in src
+    assert "def claude_answers(cli=L.DEFAULT_CLI, run=subprocess.run, which=shutil.which):" in src and "probe_argv(cli)" in src
 
 
 # ================================================================ the loop on the fake session

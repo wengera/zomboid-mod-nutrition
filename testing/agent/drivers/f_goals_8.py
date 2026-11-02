@@ -79,6 +79,7 @@ GOALS_LOG = "goals.log"              # the LLMSource's log, beside decision.log
 MODEL = L.model_of(L.DEFAULT_CLI)    # "sonnet"
 CLAUDE_VERSION_TIMEOUT_S = 30
 PROBE_SYSTEM = "Reply with the single word ok."     # the probe's whole system prompt
+ERR_SNIPPET = 200                                   # characters of stderr and of stdout a refusal records
 PROBE_INPUT = "ping"                                # a non-empty stdin: `-p` refuses an empty prompt
 CONSTANTS = dict(DY.CONSTANTS, LLM_TIMEOUT_S=LLM_TIMEOUT_S)
 REPO = DS.REPO
@@ -116,16 +117,21 @@ def probe_argv(cli=L.DEFAULT_CLI):
     return argv
 
 
-def claude_answers(cli=L.DEFAULT_CLI, run=subprocess.run):
+def claude_answers(cli=L.DEFAULT_CLI, run=subprocess.run, which=shutil.which):
     """{ok, exit, answer, latency_s, error}: one live `-p` call through the goal source's own argv (probe_argv) with
     PROBE_INPUT on stdin, within LLM_TIMEOUT_S, read once; ok only on exit 0 with a non-empty `result` text in the JSON
-    envelope (an `is_error` envelope is not ok). The executable resolves as the LLMSource's runner resolves it."""
+    envelope (an `is_error` envelope is not ok). The executable resolves through `which` as the LLMSource's runner
+    resolves it, and the call runs in the environment the goal source's worker gives the CLI (`CLAUDECODE` removed: a
+    CLI started from inside a Claude Code session refuses to run nested). A non-zero exit names its cause: the first
+    ERR_SNIPPET characters of stderr and of stdout beside `exit N`."""
     r = {"ok": False, "exit": None, "answer": None, "latency_s": None, "error": None}
     argv = probe_argv(cli)
-    exe = shutil.which(argv[0]) or argv[0]
+    exe = which(argv[0]) or argv[0]
+    env = dict(os.environ)
+    env.pop("CLAUDECODE", None)                          # as llm.py's worker does
     t0 = time.monotonic()
     try:
-        proc = run([exe] + argv[1:], input=PROBE_INPUT, timeout=LLM_TIMEOUT_S, cwd=L._cwd(),
+        proc = run([exe] + argv[1:], input=PROBE_INPUT, timeout=LLM_TIMEOUT_S, cwd=L._cwd(), env=env,
                    capture_output=True, text=True, encoding="utf-8", errors="replace")
     except Exception as e:                               # noqa: BLE001 - a CLI that cannot answer refuses the boot
         r["latency_s"] = round(time.monotonic() - t0, 3)
@@ -134,17 +140,19 @@ def claude_answers(cli=L.DEFAULT_CLI, run=subprocess.run):
     r["latency_s"] = round(time.monotonic() - t0, 3)
     r["exit"] = proc.returncode
     if proc.returncode != 0:
-        r["error"] = "exit %s" % proc.returncode
+        r["error"] = "exit %s" % proc.returncode + "".join(
+            "; %s: %s" % (name, str(text).strip()[:ERR_SNIPPET])
+            for name, text in (("stderr", proc.stderr or ""), ("stdout", proc.stdout or "")) if str(text).strip())
         return r
     try:
-        env = json.loads(proc.stdout or "")
+        body = json.loads(proc.stdout or "")
     except ValueError:
         r["error"] = "stdout is not JSON"
         return r
-    text = env.get("result") if isinstance(env, dict) else None
+    text = body.get("result") if isinstance(body, dict) else None
     if isinstance(text, str):
         r["answer"] = text
-    if isinstance(env, dict) and env.get("is_error"):
+    if isinstance(body, dict) and body.get("is_error"):
         r["error"] = "cli error"
     elif not isinstance(text, str) or not text.strip():
         r["error"] = "no result text"
@@ -161,7 +169,7 @@ def preboot(driver_file, args, repo=REPO, which=shutil.which, run=subprocess.run
     pre["chain_checks"], ok2 = DY.chain_checks(args)
     ca = claude_available(which, run)
     pre["claude_available"], pre["claude_version"] = ca, ca["version"]
-    pre["claude_answers"] = claude_answers(run=run) if ca["ok"] else {"ok": False, "exit": None, "answer": None,
+    pre["claude_answers"] = claude_answers(run=run, which=which) if ca["ok"] else {"ok": False, "exit": None, "answer": None,
                                                                          "latency_s": None, "error": "not probed: no CLI"}
     return pre, bool(ok and ok2 and ca["ok"] and pre["claude_answers"]["ok"])
 
