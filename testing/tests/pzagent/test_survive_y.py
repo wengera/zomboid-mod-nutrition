@@ -9,13 +9,22 @@ the west edge of the room square (10710, 10596), the strip x 10709 fenced on its
   smash)` once, reads the climb's end (`done` and the frame outside: `left`; any failure: the window's failure noted
   and the exit refused); `exit_kind` answers "window". E16's `inside` end read `trapped` with both zombies on the door's
   inside square and the window 2.3458507024507074 tiles from the nearest of them.
+- P26-B, the stand's second way out (`STAND_SECOND_EXIT`): the doorway stand's pick refuses a free door whose building
+  has no other way out on its floor (`one_exit`).
+- P26-C, the inside corner's shove (`INSIDE_SHOVE`): an `inside` corner with two or more at point blank shoves, never
+  swings (E16's a105 to a109), logged `corner` {kind, send, near_n}.
+- P26-D, the bleed under the threat branch (`THREAT_BLEED`; F7's lines 1654 to 1680): a fight's tick with nothing in
+  reach yields to a dressing, and the `pair` and `held` legs ride the bleed as the `many` leg does; `care_yield`.
+- P26-E, the worn wear (`WEAR_WORN`; F5's guide L109): a wear rejected `worn` marks its garment worn.
 """
 import math
 
 import pytest
 
+from agent.base.planner import edges as ED
 from agent.base.planner import flee as FL
 from agent.base.planner import policies as P
+from agent.base.planner import survive as S
 
 from .test_night import CLOSED, OPEN
 from .test_policies import Rig, grid
@@ -69,6 +78,16 @@ def e16_rig(tmp_path, window=SHUT_W, rows=E16_469, me=ME, **shed_k):
     r.scan(shed(window=window, **shed_k))
     r.frame(x=me[0], y=me[1], zombies=zs(rows, me))
     return r
+
+
+def test_the_iteration_17_switches_and_constants():
+    assert S.T7_SWITCHES == ("WINDOW_EXIT", "STAND_SECOND_EXIT", "INSIDE_SHOVE", "THREAT_BLEED", "WEAR_WORN")
+    assert all(getattr(S.Survive, name) is True for name in S.T7_SWITCHES)
+    assert "T7_SWITCHES" in S.__all__ and P.INSIDE_CROWD_N == 2
+
+
+def test_edges_crossed_is_the_public_name_of_the_frozen_grades_crossed():
+    assert ED.crossed is ED._crossed and "crossed" in ED.__all__
 
 
 # ================================================================ P26-A: the window way out
@@ -444,3 +463,84 @@ def test_the_bleed_s_room_takes_a_dressing_never_a_rip(tmp_path):
     r, sv = fight_ticks(tmp_path, 4.5, items=(("Base.Tshirt_WhiteTINT", 11),))
     assert sv.care.tends_wound() and not sv.care.dresses_wound()
     assert last(tmp_path)["branch"] == "threat" and not any(a.type in ("bandage", "rip") for a in r.acts.history)
+
+
+# ================================================================ P26-E: the worn wear
+JEANS = {"bite": 10, "bullet": 0, "cond": 10, "condMax": 10, "holes": 0, "loc": "base:pants", "scratch": 20}   # F5's
+
+
+def wear_rig(tmp_path, worn_on=True):
+    """F5's a85 geometry (its guide's L109): a PZA/1.7 hello ("1.7", as F5's), the looted `Trousers_JeanBaggy` held
+    with its clothing record, the record reading unworn while the character wears them (nothing worn at
+    `base:pants` in `me.worn`, so the pick reads a gain), no zombie: the stock's idle tick sends their wear."""
+    r, sv = make(tmp_path)
+    sv.WEAR_WORN = worn_on
+    r.fake.hello(mod="1.7")
+    r.pump()
+    r.frame(worn=[])
+    r.event("item_added", itemId=21, fullType="Base.Trousers_JeanBaggy", weight=0.6, use="clothing",
+            clothing=dict(JEANS, worn=False))
+    return r, sv
+
+
+def wears(r):
+    return [a for a in r.acts.history if a.type == "wear"]
+
+
+def refuse_or_answer(r):
+    """The running action answered as F5's Lua did: a wear `rejected` `worn`, anything else (the goal's) `done`."""
+    cur = r.acts.current
+    if cur is not None and cur.type == "wear":
+        r.fake.answer({"wear": [{"state": "rejected", "reason": "worn"}]})
+        r.pump()
+    elif cur is not None:
+        r.answer()
+
+
+def test_a_wear_rejected_worn_marks_the_garment_worn_and_is_never_sent_again(tmp_path):
+    """F5: a85, a96, a105, a116 and a124 each re-sent the trousers' wear, each `rejected` `worn`. The first refusal
+    marks the record worn (`World.mark_worn`), so over three WEAR_RETRY_MIN spans the stock sends no second wear; off
+    (`WEAR_WORN`), the wear goes again each WEAR_RETRY_MIN, as F5's did."""
+    from agent.base.planner import care as C
+    for on in (True, False):
+        d = tmp_path / str(on)
+        d.mkdir()
+        r, sv = wear_rig(d, on)
+        tick(r, sv)
+        assert r.cmd() == ("wear", {"itemId": 21}) and last(d)["inputs"]["branches"]["care"]["stock"]["item"] == 21
+        for k in range(1, 3 * int(C.WEAR_RETRY_MIN)):   # a frame a game minute, past the failed send's cooling too
+            refuse_or_answer(r)
+            r.frame(worn=[], game_min=480.0 + k)
+            tick(r, sv)
+        assert len(wears(r)) == (1 if on else 3), on
+        assert (r.world.inventory[21].get("worn") is True) is on
+
+
+def test_the_stock_line_counts_the_marked_garment_it_leaves_out(tmp_path):
+    """A second garment (a hat) held after the refusal: its wear goes, the line counting the marked trousers
+    (`skipped_worn` 1)."""
+    from agent.base.planner import care as C
+    r, sv = wear_rig(tmp_path)
+    tick(r, sv)
+    r.fake.answer({"wear": [{"state": "rejected", "reason": "worn"}]})
+    r.pump()
+    r.event("item_added", itemId=22, fullType="Base.Hat_BaseballCap", weight=0.1, use="clothing",
+            clothing={"bite": 0, "bullet": 0, "cond": 5, "condMax": 5, "holes": 0, "loc": "base:hat", "scratch": 5,
+                      "worn": False})
+    r.frame(worn=[], game_min=480.0 + C.CARE_RETRY_MIN + 1.0)
+    tick(r, sv)
+    stock = last(tmp_path)["inputs"]["branches"]["care"]["stock"]
+    assert r.cmd() == ("wear", {"itemId": 22}) and stock["skipped_worn"] == 1
+
+
+def test_f5_s_cause_a_1_7_hello_s_item_changed_marks_the_worn_garment_and_the_pick_leaves_it(tmp_path):
+    """F5's own cause, read off its record (the task's report): a6's `item_changed` at seq 654 stated `worn` true, but
+    F5's World read the hello's "1.7" as older than PZA/1.5.2 (`item_fields`, the defect ruling P25-O fixed after the
+    session), so the item record never took the `worn` the line stated and the pick read the trousers unworn. At HEAD
+    the line marks the record worn and the stock sends no wear, the P26-E mark aside."""
+    r, sv = wear_rig(tmp_path, worn_on=False)
+    assert r.world.item_fields()
+    r.event("item_changed", itemId=21, use="clothing", worn=True, clothing=dict(JEANS, worn=True))
+    r.frame(worn=[{"loc": "base:pants", "bite": 10, "scratch": 20, "holes": 0, "cond": 10}])
+    tick(r, sv)
+    assert r.world.inventory[21]["worn"] is True and wears(r) == []

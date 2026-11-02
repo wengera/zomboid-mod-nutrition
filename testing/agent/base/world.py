@@ -938,6 +938,17 @@ class World:
         self.door_marks[sq] = (now, reason, side)
         return True
 
+    def mark_worn(self, item_id):
+        """Ruling P26-E (F5, `f_goals_6-20261030-192251`: five wears of trousers worn since a6, each `rejected` `worn`):
+        the held item a wear the Lua rejected `worn` set `worn` True on its record, the refusal read as the garment's
+        state; the next `item_changed` stating `worn` replaces it. True when the item is held. The planner's, never a
+        line's."""
+        it = self.inventory.get(item_id)
+        if it is None:
+            return False
+        it["worn"] = True
+        return True
+
     def note_window_fail(self, sq, reason):
         """The window at square `sq` (x, y, z) failed `reason` (a `window` action's end, Task 24): kept for
         DOOR_RETRY_MIN game minutes (`window_locked`, `windows_failed`). The planner's, never a line's."""

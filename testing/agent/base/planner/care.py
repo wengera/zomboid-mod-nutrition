@@ -79,7 +79,10 @@ whose location the new list lacks (the Lua sends no `item_changed` for a garment
 is put on again, and when
 it held the replaced garment is dropped under a load above level 0. The care branch is the stock's: a wear is a
 50-action-tick stand-still, taken on a quiet idle tick, never the load branch's (a drop under load is the same tick's
-second choice).
+second choice). Ruling P26-E (`wear_worn`, Survive's `WEAR_WORN`; F5, `f_goals_6-20261030-192251`: the stock re-sent
+the wear of trousers worn since a6 five times, each `rejected` `worn`): a wear the Lua rejected `worn` marks its item
+worn in the World (`World.mark_worn`), so the pick, which takes only an item whose record does not read worn, leaves it
+out from then on; the stock's wear line counts the garments so marked and still held (`skipped_worn`).
 An item whose care action ended failed (never `superseded`), timed out or was rejected is left out for
 CARE_RETRY_MIN game minutes (`World.world_minutes`); a wash refused `no source` or `no water` leaves its source out
 (`World.mark_dry`, `world.SOURCE_RETRY_MIN`). A part a bandage ended `done` on is left out until a frame newer than
@@ -226,6 +229,9 @@ class Care(Policy):
                                    # held blocks both (Survive sets it each tick from its `DIRTY_RAG_RIP`)
         self.trapped = False      # ruling P25-Q: the tick is the threat's trapped hold passed on (Survive sets it each
                                   # care tick): the bleeding step's unwear goes as on a quiet tick (never the wash)
+        self.wear_worn = True     # ruling P26-E: a wear rejected `worn` marks its item worn (Survive sets it each tick
+                                  # from its `WEAR_WORN`); off, the item is held out for CARE_RETRY_MIN alone
+        self.worn_marked = set()  # the ids a wear rejected `worn` marked worn (P26-E: the stock line's `skipped_worn`)
 
     def sent(self, cmd, action):
         self.sends[cmd.itemId] = action
@@ -276,6 +282,9 @@ class Care(Policy):
                 self.ride_stopped_at = self.clock()
                 continue   # P24-U: the engine stopped the ride; the item is good
             self.held_out[iid] = self.world.world_minutes()
+            if (self.wear_worn and a.type == "wear" and a.state == "rejected" and a.reason == "worn"
+                    and self.world.mark_worn(iid)):
+                self.worn_marked.add(iid)   # P26-E: the Lua's refusal read as the garment's state
             if a.reason == "in bag" and iid in self.world.inventory:
                 self.world.mark(iid, "in_bag")   # Task 10 fix 2: the move could not be queued, a hard refusal
             elif a.type == "rip" and a.reason in RIP_REFUSALS and iid in self.world.inventory:
@@ -508,13 +517,18 @@ class Care(Policy):
         if pick is None:
             return None, None
         iid, loc, gain = pick
-        return Wear(iid), {"reason": "wear", "item": iid, "loc": loc, "gain": gain}
+        why = {"reason": "wear", "item": iid, "loc": loc, "gain": gain}
+        skipped = sum(1 for i in self.worn_marked if (w.inventory.get(i) or {}).get("worn") is True)
+        if skipped:
+            why["skipped_worn"] = skipped   # P26-E: the garments a `worn` refusal marked, left out
+        return Wear(iid), why
 
     def _wear_pick(self):
         """`(item id, loc, gain)` of the held unworn garment whose clothing record adds the most over what is worn at its
         location (`wear_gain`; ties to the higher bite, then the fuller condition, then the least id), else None. An
-        item marked `in_bag` or `wear_loses`, held out by a refusal (CARE_RETRY_MIN) or worn within WEAR_RETRY_MIN
-        game minutes is left out."""
+        item whose record reads `worn` (the engine's `item_changed`, or a wear rejected `worn`: ruling P26-E), marked
+        `in_bag` or `wear_loses`, held out by a refusal (CARE_RETRY_MIN) or worn within WEAR_RETRY_MIN game minutes is
+        left out."""
         w = self.world
         now = w.world_minutes()
         worn = {e.get("loc"): e for e in w.worn if isinstance(e, dict)}

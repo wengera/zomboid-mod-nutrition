@@ -245,7 +245,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     building with no second way out (`flee.Flee.door_verdicts`, `DoorwayStand._doorway_pick`'s `one_exit`); P26-C, the
     `inside` corner under two or more at point blank shoves, never swings (`threat.Threat._inside_crowd`,
     `fight.Fight._crowd_shove`); P26-D, the bleed under the threat branch (`care_yield.CareYield._bleed_free`,
-    `_bleed_leg`, `care.Care.dresses_wound`); `T7_SWITCHES`.
+    `_bleed_leg`, `care.Care.dresses_wound`); P26-E, a wear rejected `worn` marks its garment worn
+    (`care.Care.observe`, `World.mark_worn`); `T7_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -356,9 +357,9 @@ T6_SWITCHES = ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE",
 # survival iteration 16 (Plan 25 Task 14): P25-U, P25-V, P25-W and P25-X (the amendment and its fix 1) on
 # `threat.Threat` (STAND_DRAG_EARLY, STAND_INSIDE, STAND_EXIT, BLOCKED_EDGE, EDGE_OUT_OF_HOLD); P25-Y (fix 1) on
 # `Survive` (DIRTY_RAG_RIP)
-T7_SWITCHES = ("WINDOW_EXIT", "STAND_SECOND_EXIT", "INSIDE_SHOVE", "THREAT_BLEED")
+T7_SWITCHES = ("WINDOW_EXIT", "STAND_SECOND_EXIT", "INSIDE_SHOVE", "THREAT_BLEED", "WEAR_WORN")
 # survival iteration 17 (Plan 26 Task 2): P26-A to P26-D on `threat.Threat` (WINDOW_EXIT, STAND_SECOND_EXIT,
-# INSIDE_SHOVE, THREAT_BLEED)
+# INSIDE_SHOVE, THREAT_BLEED); P26-E on `Survive` (WEAR_WORN)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -405,6 +406,10 @@ class Survive(Threat):
                           # part's bleedingTime at or under DIRTY_RAG_MIN, does not block the rip of an unworn cotton
                           # garment or P25-H's unwear (`care.Care._wound`); off, a dressing of any kind held blocks
                           # both. Set on the Care each tick (`_read`). In T6_SWITCHES (`pre_t6`)
+
+    WEAR_WORN = True      # ruling P26-E (Plan 26 Task 2): a wear the Lua rejected `worn` marks its item worn
+                          # (`care.Care.observe`, `World.mark_worn`), so the stock never sends it again; off, the item
+                          # is held out for CARE_RETRY_MIN alone. Set on the Care each tick (`_read`). In T7_SWITCHES
 
     SHELTER_LEGS = True   # ruling P25-N (Plan 25 Task 8): a Shelter goal's and the night's approach to a far door in
                           # legs (`goal_policies.Shelter`, `night.Night._leg`); set on the goals' kit and the Night each
@@ -903,6 +908,7 @@ class Survive(Threat):
         self.water.world, self.water.actions = world, actions
         self.care.dirty_rag_rip = self.DIRTY_RAG_RIP   # P25-Y: read by the threat branch's care yield (`tends_wound`,
                                                       # `rides_wound`) before the care branch, so set at the tick's read
+        self.care.wear_worn = self.WEAR_WORN   # P26-E: read by the Care's observe (`_read_observes`)
         self.ticks += 1
         self._observed = []
         self._note_failures()

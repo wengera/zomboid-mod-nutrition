@@ -1582,3 +1582,16 @@ def test_dirty_rag_rip_moves_no_golden(key):
     only = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
                                                        mutate=lambda sv: setattr(sv, "DIRTY_RAG_RIP", False)))}
     assert only == gold(key)
+
+
+# ================================================================ Plan 26 Task 2: iteration 17 on the goldens
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_iteration_17_moves_no_golden(key):
+    """Survival iteration 17 (P26-A to P26-E) moves no golden: the six are byte-identical with its switches on
+    (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off (`pre_t7`). P26-A's window way out needs
+    a build announcing `window`, and P26-C's crowd one announcing `shove` (PZA/1.7), which no golden's hello does;
+    P26-B's `one_exit` reads a doorway stand's pick, for which only `f1-caps15` announces the stance, and the one door
+    it reads free there, building 2's kitchen door (10721, 10638), has another way out on each of its 13 reads; P26-D
+    and P26-E read a part's `bleeding` and a `wear`, which no golden ring carries."""
+    only = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t7))}
+    assert only == gold(key)
