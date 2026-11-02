@@ -34,7 +34,8 @@ The rule changes the end of a `many` flee's shelter steps (`policies.Flee`, ruli
   (`quiet`), or the health falls under FLEE_HEALTH (`health`, the existing health flee line), or the frame's
   `me.attackers` reads DRAG_DOWN_N - 1 (`drag`: ruling P25-U, E14's three attackers read 0.101 s before the
   drag-down, two 3.001 s before; ruling R1 of review-t32-brief read DRAG_DOWN_N, `STAND_DRAG_EARLY` off), or the
-  weapon is gone (`unarmed`: the stand swings a weapon). The plan then
+  weapon is gone (`unarmed`: the stand swings a weapon), or a standing zombie reads on a square of the stand's room
+  off the door square and not its target (`inside`: ruling P25-V, `stand_room`). The plan then
   goes back to its `close` step, sent from inside as today's shelter close (the Lua's `interact`: a close that fails
   reads `passed`, and the sheltered hold, the door fight, the re-close guard and the way out follow,
   `night.shelter_ended`). Off the building's room squares and more than DOOR_OFF_R from the threshold square
@@ -92,6 +93,31 @@ def off_post_at(world, plan, x, y):
         return False
     c = centre(plan["way"][0])
     return math.hypot(c[0] - x, c[1] - y) > DOOR_OFF_R
+
+
+def stand_room(world, plan):
+    """Ruling P25-V's bound, the room the stand's door opens into: the threshold's room square (`way`'s inside square)
+    and every square reached from it by orthogonal steps through mapped squares of the same building whose `room`
+    reads the same name, a frozenset (memoised per map version). `policies.in_building` reads the whole building (any
+    of its room squares, or a door square of it); the scan's `room` is a name, so a room is bounded by its name and
+    its squares' contiguity (two rooms of one name that touch read as one)."""
+    start = plan["way"][0]
+
+    def flood():
+        s0 = world.map.get(start) or {}
+        b, name = s0.get("building"), s0.get("room")
+        if name is None:
+            return frozenset()
+        seen, todo = {start}, [start]
+        while todo:
+            x, y, zf = todo.pop()
+            for n in ((x + 1, y, zf), (x - 1, y, zf), (x, y + 1, zf), (x, y - 1, zf)):
+                s = world.map.get(n)
+                if n not in seen and s is not None and s.get("room") == name and s.get("building") == b:
+                    seen.add(n)
+                    todo.append(n)
+        return frozenset(seen)
+    return world.memo(("stand_room", start), flood)
 
 
 def bleeding_parts(world):
@@ -236,7 +262,9 @@ class DoorwayStand:
         start's indices kept on the plan, `bleed0`), logged `doorway_wound` (the new indices); `health` under
         FLEE_HEALTH, `drag` with the frame's `me.attackers` at DRAG_DOWN_N - 1 (ruling P25-U, `STAND_DRAG_EARLY`;
         off, at DRAG_DOWN_N: ruling R1, Task 32 fix 1, the front has failed; `_stand_drag_n`), logged `doorway_drag`
-        (the count), `unarmed`, or `quiet`
+        (the count), `inside` (ruling P25-V, `STAND_INSIDE`: a standing zombie on the stand's room, off its door
+        square and not its target, `_stand_inside`, read second, after `wound`), logged `doorway_inside` {id,
+        square}, `unarmed`, or `quiet`
         once no zombie has been within DANGER_R for DOOR_HOLD_S wall seconds, `plan["quiet"]` the last wall one was)
         puts the plan back on its `close` step, and while that close runs `("flee", "doorway")`: the Flee sends it from
         inside and its end is the shelter's as today. `off` (`doorway.off_post`: off the building's room squares and
@@ -270,7 +298,9 @@ class DoorwayStand:
         if new:
             self.stand_wound = new
         attackers = self._attackers()
+        inside = self._stand_inside(plan)
         ends = (("wound", lambda: new),
+                ("inside", lambda: inside),
                 ("health", lambda: self._health() < FLEE_HEALTH),
                 ("drag", lambda: attackers >= self._stand_drag_n()),
                 ("unarmed", lambda: not self._armed()),
@@ -279,7 +309,35 @@ class DoorwayStand:
         left = next((end for end, holds in ends if holds()), None)
         if left == "drag":
             self.stand_drag = attackers
+        if left == "inside":
+            self.stand_inside = {"id": inside[0], "square": [inside[1][0], inside[1][1]]}
         return left
+
+    def _stand_inside(self, plan):
+        """Ruling P25-V (E14: the stand faced the door square while five zombies crossed the window square beside the
+        door into the kitchen; its `_in_reach` takes a zombie inside only once within FIGHT_REACH): with `STAND_INSIDE`
+        on, `(id, square)` of the nearest standing zombie (not `onFloor`, not read dead) on a square of the stand's room
+        (`stand_room`: bounded to the room, not `in_building`'s whole building), neither on the door square (the one
+        the stand fights through) nor the Doorway's target; else None. A downed one inside is the stand's stomp."""
+        if not self.STAND_INSIDE:
+            return None
+        room = stand_room(self.world, plan)
+        door = plan["doors"][plan["door_i"]]
+        f = self.fight
+        target = f.target if f is not None and f.doorway is not None else None
+        dead = blocked(self.dead, self.clock())
+        zf, best = me_floor(self.world), None
+        for zid, z in self.world.zombies.items():
+            if (z.get("x") is None or z.get("y") is None or on_floor(z) or zid in dead
+                    or (target is not None and zid == target)):
+                continue
+            sq = (int(math.floor(z["x"])), int(math.floor(z["y"])), zf)
+            if sq == door or sq not in room:
+                continue
+            key = (zdist(self.world, z), repr(zid))
+            if best is None or key < best[0]:
+                best = (key, zid, sq)
+        return None if best is None else (best[1], best[2])
 
     def _stand_drag_n(self):
         """Ruling P25-U (E14, `e_day_14-20261030-235607`: three attackers read at seq 3655, `EndDeath` with `dragDown`

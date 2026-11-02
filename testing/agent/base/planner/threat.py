@@ -99,6 +99,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
     # it, all of them in `survive.T6_SWITCHES` (the replay tests' `pre_t6`)
     STAND_DRAG_EARLY = True   # ruling P25-U: the doorway stand's `drag` end at DRAG_DOWN_N - 1 attackers
                               # (`DoorwayStand._stand_drag_n`); off, at DRAG_DOWN_N
+    STAND_INSIDE = True   # ruling P25-V: a standing zombie on the stand's room squares, off its door square and not its
+                          # target, ends the stand `inside` (`DoorwayStand._stand_inside`); off, no such end
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -477,7 +479,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         self.sheltered = self.flee is not None and self.flee.sheltered and inside
         self.broken, self.group_steer, self.corner_yield, self.behind, self.listed = None, None, None, None, None
         self.stand_left, self.stand_end, self.stand_wound, self.pair_yield = None, None, None, None
-        self.stand_drag = None
+        self.stand_drag, self.stand_inside = None, None
         door = self._doorway()
         if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
             return door
@@ -723,6 +725,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         for key, v in (("yield", self.corner_yield), ("behind", self.behind), ("listed", self.listed),
                        ("doorway_left", self.stand_end), ("pain", self.wound), ("finish_block", self.finish_block),
                        ("doorway_wound", self.stand_wound), ("doorway_drag", self.stand_drag),
+                       ("doorway_inside", self.stand_inside),
                        ("pair_yield", self.pair_yield)):
             if v is not None:
                 self.why[key] = v
