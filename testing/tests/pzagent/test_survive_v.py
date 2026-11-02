@@ -273,8 +273,10 @@ def test_pair_yield_is_never_logged_on_a_strain_line(tmp_path):
 def test_a_part_bleeding_since_the_stand_began_ends_it_wound_and_the_flee_closes_the_door(tmp_path):
     """E12 (#4431: the bleeding parts rose from 1 to 7 at the door, the first bite far above FLEE_HEALTH): the stand's
     frame gains part 4 bleeding, not in its start's snapshot: the stand ends `wound` (`doorway_wound` [4]) and the
-    Flee's close from inside answers the tick (flee `doorway`)."""
+    Flee's close from inside answers the tick (flee `doorway`). Named change, P25-W (Plan 25 Task 14): the `wound` end
+    now walks out by the way out (`test_survive_x`); this case pins the close with `STAND_EXIT` off."""
     r, sv = stood(tmp_path)
+    sv.STAND_EXIT = False
     far = [dz(i, x + 8.0, y) for i, x, y in ((1, 97.0, 201.5), (2, 98.0, 204.0), (3, 98.0, 199.0))]
     _stand_frame(r, far, wounds={"parts": [part(4)]})
     tick(r, sv)
@@ -308,9 +310,10 @@ def test_a_part_bleeding_before_the_stand_does_not_end_it(tmp_path):
 def test_the_wound_end_reads_before_the_health_end_on_the_same_tick(tmp_path):
     """The order chosen (the ruling's: `wound` before `health`): a tick that reads a new bleeding part and the health
     under FLEE_HEALTH logs `wound` (both ends close the door the same way); the health alone logs `health`
-    (`test_survive_p`)."""
+    (`test_survive_p`). Named change, P25-W (Plan 25 Task 14): `STAND_EXIT` off, so both close."""
     r, sv = stood(tmp_path)
-    near = [dz(1, 111.3, 201.5), dz(2, 106.0, 204.0), dz(3, 106.0, 199.0)]
+    sv.STAND_EXIT = False
+    near =[dz(1, 111.3, 201.5), dz(2, 106.0, 204.0), dz(3, 106.0, 199.0)]
     _stand_frame(r, near, wounds={"parts": [part(4, bleeding=True)], "bleeding": 1}, health=S.FLEE_HEALTH - 1.0)
     tick(r, sv)
     w = threat_why(tmp_path)

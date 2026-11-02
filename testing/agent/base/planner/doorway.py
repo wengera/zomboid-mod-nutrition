@@ -35,10 +35,14 @@ The rule changes the end of a `many` flee's shelter steps (`policies.Flee`, ruli
   `me.attackers` reads DRAG_DOWN_N - 1 (`drag`: ruling P25-U, E14's three attackers read 0.101 s before the
   drag-down, two 3.001 s before; ruling R1 of review-t32-brief read DRAG_DOWN_N, `STAND_DRAG_EARLY` off), or the
   weapon is gone (`unarmed`: the stand swings a weapon), or a standing zombie reads on a square of the stand's room
-  off the door square and not its target (`inside`: ruling P25-V, `stand_room`). The plan then
-  goes back to its `close` step, sent from inside as today's shelter close (the Lua's `interact`: a close that fails
-  reads `passed`, and the sheltered hold, the door fight, the re-close guard and the way out follow,
-  `night.shelter_ended`). Off the building's room squares and more than DOOR_OFF_R from the threshold square
+  off the door square and not its target (`inside`: ruling P25-V, `stand_room`), or a part bleeds that did not when
+  the stand began (`wound`: ruling P25-K). After `wound`, `drag` or `inside` (ruling P25-W: the group is at or
+  through the front) the plan is dropped and the Flee walks out of the building by its way out (`Flee.walk_out`,
+  `policies.exit_plan`), else holds trapped; never the close, which in E14 shut the kitchen door with five zombies
+  inside. After `health`, `unarmed` or `quiet` the plan goes back to its `close` step, sent from inside as today's
+  shelter close (the Lua's `interact`: a close that fails reads `passed`, and the sheltered hold, the door fight, the
+  re-close guard and the way out follow, `night.shelter_ended`). Off the building's room squares and more than
+  DOOR_OFF_R from the threshold square
   (`off`: Task 32 fix 1, the review's major 2, E9's replayed stand held at 13 tiles off its post) the plan is
   dropped, no close walked to a door left behind, and the flee steers (logged `doorway_left` "off"). With nothing
   held at all (every zombie dead or gone beyond DISENGAGE_R) the threat branch ends as it always has, the door left
@@ -48,8 +52,9 @@ import math
 
 from agent.base.planner.fight import Fight
 from agent.base.planner.policies import (AIM_LEG_S, AIM_R, DANGER_R, DRAG_DOWN_N, FIGHT_REACH, FLEE_HEALTH,
-                                         POINT_BLANK_R, Policy, STAND_MIN_R, arm_pain, blocked, centre, hit_reaction,
-                                         line_to, on_floor, on_post, on_room, standing, target_id_ok, zdist)
+                                         POINT_BLANK_R, Policy, STAND_MIN_R, arm_pain, blocked, centre, exit_kind,
+                                         hit_reaction, line_to, on_floor, on_post, on_room, standing, target_id_ok,
+                                         zdist)
 from agent.base.pza1 import Aim, Attack, Shove, WalkTo
 from agent.base.world import me_floor, me_xy
 
@@ -58,12 +63,14 @@ DOOR_STAND_N = 3      # standing zombies within DANGER_R at most for a `many` fl
 DOOR_HOLD_S = 10.0    # wall seconds with no zombie within DANGER_R before the stand ends and the door is closed (a
                       # judgment: a shambler of the queue standing off at DANGER_R walks in within a few seconds; ten
                       # planner seconds is twenty ticks, longer than a 3 s flee leg and the stomp's 4 s walk)
+STAND_EXIT_ENDS = ("wound", "drag", "inside")   # the stand's ends under a group that walk out, never the close
+                                                # (ruling P25-W)
 DOOR_OFF_R = 2.0      # tiles from the threshold square's centre beyond which a player off the building's room squares
                       # has left the stand (Task 32 fix 1, the review's major 2: "about 2 tiles"; a stomp's walk out of
                       # the doorway reaches the outside square and the one beyond it)
 
-__all__ = ["Doorway", "DOOR_STAND_N", "DOOR_HOLD_S", "DOOR_OFF_R", "standing", "stand_ready", "off_post", "off_post_at",
-           "bleeding_parts"]
+__all__ = ["Doorway", "DOOR_STAND_N", "DOOR_HOLD_S", "DOOR_OFF_R", "STAND_EXIT_ENDS", "standing", "stand_ready",
+           "off_post", "off_post_at", "stand_room", "bleeding_parts"]
 
 
 def stand_ready(world, skip=()):
@@ -256,35 +263,69 @@ class DoorwayStand:
 
     def _doorway(self):
         """Ruling P24-AO (`planner/doorway.py`'s docstring the record): `("doorway", None)` while the Flee's stand plan
-        reads `stand` and none of its ends holds; the end (`plan["left"]`: ruling P25-K's `wound` first, with
-        `STAND_WOUND` on (E12, #4431: the stand held the door from game minute 694 while the bleeding parts rose from 1
-        to 7, the first bite far above FLEE_HEALTH): a part reading `bleeding` that was not when the stand began (the
-        start's indices kept on the plan, `bleed0`), logged `doorway_wound` (the new indices); `health` under
-        FLEE_HEALTH, `drag` with the frame's `me.attackers` at DRAG_DOWN_N - 1 (ruling P25-U, `STAND_DRAG_EARLY`;
-        off, at DRAG_DOWN_N: ruling R1, Task 32 fix 1, the front has failed; `_stand_drag_n`), logged `doorway_drag`
-        (the count), `inside` (ruling P25-V, `STAND_INSIDE`: a standing zombie on the stand's room, off its door
-        square and not its target, `_stand_inside`, read second, after `wound`), logged `doorway_inside` {id,
-        square}, `unarmed`, or `quiet`
-        once no zombie has been within DANGER_R for DOOR_HOLD_S wall seconds, `plan["quiet"]` the last wall one was)
-        puts the plan back on its `close` step, and while that close runs `("flee", "doorway")`: the Flee sends it from
-        inside and its end is the shelter's as today. `off` (`doorway.off_post`: off the building's room squares and
-        beyond DOOR_OFF_R of the threshold, fix 1's major 2) drops the plan instead, no close walked back to the door,
-        logged `doorway_left` (`stand_end`, set for every end; `stand_left` is `off` alone, the Flee's keep) on the tick. Else None (no stand)."""
+        reads `stand` and none of its ends holds (`_stand_end`, in this order):
+        - `wound` (ruling P25-K, `STAND_WOUND`; E12, #4431: the stand held the door from game minute 694 while the
+          bleeding parts rose from 1 to 7, the first bite far above FLEE_HEALTH): a part reading `bleeding` that was not
+          when the stand began (the start's indices kept on the plan, `bleed0`), logged `doorway_wound` (the indices);
+        - `inside` (ruling P25-V, `STAND_INSIDE`): a standing zombie on a square of the stand's room, off its door
+          square and not its target (`_stand_inside`), logged `doorway_inside` {id, square};
+        - `health` under FLEE_HEALTH;
+        - `drag` with the frame's `me.attackers` at DRAG_DOWN_N - 1 (ruling P25-U, `STAND_DRAG_EARLY`; off, at
+          DRAG_DOWN_N: ruling R1, Task 32 fix 1, the front has failed; `_stand_drag_n`), logged `doorway_drag`;
+        - `unarmed`;
+        - `off` (`off_post`: off the building's room squares and beyond DOOR_OFF_R of the threshold, fix 1's major 2);
+        - `quiet` once no zombie has been within DANGER_R for DOOR_HOLD_S wall seconds (`plan["quiet"]` the last wall
+          one was).
+        Every end is logged `doorway_left` (`stand_end`) and kept as `plan["left"]`; where it goes:
+        - `wound`, `drag` and `inside` (STAND_EXIT_ENDS) under ruling P25-W (`STAND_EXIT`; E14: the `wound` end's close
+          shut the kitchen door with five zombies inside): the plan is dropped and the Flee walks out of the building
+          (`Flee.walk_out`: the way out, else the trapped hold, never the close), `("flee", "doorway")` on the tick and
+          while that way out runs (`Flee.stand_exit_running`), ahead of every row as the close ran; logged
+          `doorway_exit` on the tick (`_stand_exit_why`);
+        - `off` drops the plan, no close walked back to the door; the flee steers from the next row;
+        - `health`, `unarmed` and `quiet` (and every end with `STAND_EXIT` off) put the plan back on its `close` step,
+          and while that close runs `("flee", "doorway")`: the Flee sends it from inside and its end is the shelter's.
+        `stand_left` (the Flee's keep past a dropped plan, `_decide`) is set for `off` and the exit ends. Else None (no
+        stand)."""
         f = self.flee
-        plan = None if f is None else f.plan
+        if f is None:
+            return None
+        if f.stand_exit_running():
+            return "flee", "doorway"
+        plan = f.plan
         if plan is None or not plan.get("stood"):
             return None
         if plan["step"] == "stand":
             left = self._stand_end(plan)
             if left is None:
                 return "doorway", None
-            plan.update(step="close", left=left)
-            self.stand_end = left   # Task 32 fix 2: logged `doorway_left` for every end; `stand_left` (the Flee's keep) is `off` alone
+            plan["left"] = left
+            self.stand_end = left
             if left == "off":
                 self.stand_left = left
                 f._drop(False)   # the episode only steers from here (`picked` kept)
                 return None
+            if self.STAND_EXIT and left in STAND_EXIT_ENDS:
+                self.stand_left = self.stand_exit = left
+                f.walk_out(left)
+                return "flee", "doorway"
+            plan["step"] = "close"
         return ("flee", "doorway") if f.closing_stand() else None
+
+    def _stand_exit_why(self, f):
+        """Ruling P25-W's `doorway_exit` on the stand's end tick, read after the Flee answered: {end, exit}, `exit` the
+        way out the choose took ("door" or "opening": `policies.exit_kind`; `exit_plan` routes no window), "trapped"
+        for its trapped hold, "steer" off a room square (an end read within DOOR_OFF_R outside), else "deferred" (the
+        flee's own drop or finish took the tick)."""
+        if f.exit is not None:
+            kind = exit_kind(self.world, f.exit)
+        elif "trapped" in self.why:
+            kind = "trapped"
+        elif not on_room(self.world):
+            kind = "steer"
+        else:
+            kind = "deferred"
+        return {"end": self.stand_exit, "exit": kind}
 
     def _stand_end(self, plan):
         """The stand's end this tick (`_doorway`'s docstring), the first of its table that holds, else None; the quiet

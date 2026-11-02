@@ -74,6 +74,8 @@ constants and record unchanged; the constants stay in `policies.py`).
   (`hit_reaction`, i); `others_behind` (b), Survive's look past a fight's walk target; the episode's first leg
   repulsed from `World.met_window`'s centre too (a); on a room square `steer_now` never steers: the exit (at a run
   since P24-O), else the adoption or the trapped hold, and `give_way` keeps a running exit (f).
+  Survival 18 (ruling P25-W, `planner/doorway.py`): a doorway stand ended under a group hands its Flee `walk_out`:
+  the plan dropped and the adoption spent, so the choose walks the way out, else holds trapped; never the close.
 """
 import math
 import time
@@ -126,6 +128,7 @@ class Flee(Policy):
                                  # endurance hold with no zombie within DANGER_R)
         self.door_walk_on = True  # Survive sets it each tick (its DOOR_WALK switch, P25-E)
         self.door_walk = None    # this observe: {stall, end} when a stand's walk stalled (P25-E), else None
+        self.walking_out = None  # the doorway stand's end this Flee walks out on (P25-W: `walk_out`), else None
 
     @property
     def sheltered(self):
@@ -147,6 +150,21 @@ class Flee(Policy):
     def running_exit(self):
         """A way out is running (Survive's inside hold waits for it, as for the shelter steps)."""
         return self.exit is not None
+
+    def walk_out(self, end):
+        """Ruling P25-W: the doorway stand ended `end` under a group (`wound`, `drag`, `inside`) walks out of the
+        building, never the close: the stand's plan dropped (`picked` kept, so no other shelter this episode) and the
+        adoption spent (`adopted`: the adopted building's re-close would be the close again), so the next choose takes
+        `exit_plan` on a room square (a door or an opening out, at FLEE_GAIT), else the trapped hold; off a room square,
+        the steer. `walking_out` keeps `end` while the exit runs (`Survive._doorway`: ahead of every row, as the close
+        ran)."""
+        self.plan = None
+        self.adopted = True
+        self.walking_out = end
+
+    def stand_exit_running(self):
+        """The stand's way out (P25-W, `walk_out`) is running: its exit not yet ended, refused or walked out of."""
+        return self.walking_out is not None and self.exit is not None
 
     def door(self):
         """The plan's one door square, else None."""

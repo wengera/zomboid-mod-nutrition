@@ -378,8 +378,10 @@ def test_off_the_post_beyond_door_off_r_the_stand_is_dropped_and_the_flee_steers
 def test_three_attackers_end_the_stand_into_the_close_from_inside(tmp_path):
     """Ruling R1 (the review's major 3): `me.attackers` at DRAG_DOWN_N (3) means the one-tile front has failed: the
     stand ends (`left` "drag") into the close sent from inside, as for `health`; at two it holds
-    (`test_the_drag_down_guard_does_not_leave_the_doorway`)."""
+    (`test_the_drag_down_guard_does_not_leave_the_doorway`). Named change, P25-W (Plan 25 Task 14): a `drag` end now
+    walks out by the way out (`test_survive_x`); this case pins the close with `STAND_EXIT` off."""
     r, sv = stood(tmp_path)
+    sv.STAND_EXIT = False
     r.frame(x=POST[0], y=POST[1], zombies=[z(1, 111.3, 201.5)] + group(8.0, POST)[1:], attackers=S.DRAG_DOWN_N)
     tick(r, sv)
     assert r.cmd()[1]["kind"] == "close" and sv.flee.plan["left"] == "drag" and why(r)["flee"] == "doorway"

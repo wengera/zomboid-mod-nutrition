@@ -1452,7 +1452,11 @@ def test_iteration_15_moves_no_golden(key):
 @pytest.mark.parametrize("key", sorted(PRE_T3))
 def test_iteration_16_moves_no_golden(key):
     """Task 14's rules move no golden: the six are byte-identical with them on (`test_the_golden_is_reproduced_byte_
-    for_byte_from_its_artifact`) and with iteration 16's switches off (`pre_t6`)."""
+    for_byte_from_its_artifact`) and with iteration 16's switches off (`pre_t6`). Each of P25-U (the stand's `drag`
+    end at DRAG_DOWN_N - 1), P25-V (its `inside` end) and P25-W (its group ends' walk out) reads a doorway stand that
+    stood, and no golden's stand stands: their `doorway_pick` reads `no_stance`, `taken`, `picked`, `pending`,
+    `no_door` and `standing`, never `ok` (five goldens read `no_stance` on every `many` line, their builds announcing
+    no `aim`; `f1-caps15`, on PZA/1.5's caps, never picks a door free)."""
     with open(R.golden_path(key), encoding="utf-8") as f:
         head = json.load(f)
     text = R.golden_text(R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t6)), head["base"],

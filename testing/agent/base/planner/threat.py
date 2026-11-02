@@ -101,6 +101,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
                               # (`DoorwayStand._stand_drag_n`); off, at DRAG_DOWN_N
     STAND_INSIDE = True   # ruling P25-V: a standing zombie on the stand's room squares, off its door square and not its
                           # target, ends the stand `inside` (`DoorwayStand._stand_inside`); off, no such end
+    STAND_EXIT = True     # ruling P25-W: a stand ended `wound`, `drag` or `inside` walks out of the building by its way
+                          # out (`flee.Flee.walk_out`), never the close; off, every end but `off` closes the door
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -448,7 +450,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
     def _threat_plan(self, held, breach):
         """The threat branch's one decision (ruling P23-AJ), `(kind, reason)`, the machines only executing it:
         - The doorway stand (ruling P24-AO, `_doorway`): `doorway` while the Flee's stand plan reads `stand`, then
-          `flee` (reason `doorway`) while the stand's close runs, ahead of every other row (the stand's premise is the
+          `flee` (reason `doorway`) while the stand's close, or its way out after an end under a group (P25-W), runs,
+          ahead of every other row (the stand's premise is the
           one-tile front the drag-down guard flees: the stand reads its own `drag` end, at DRAG_DOWN_N - 1 since
           P25-U, the guard's own count, `_stand_drag_n`).
         - The drag-down guard (ruling P24-A (h), `_drag`): `flee` with the group steer (`group` "drag"), ahead of
@@ -479,7 +482,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
         self.sheltered = self.flee is not None and self.flee.sheltered and inside
         self.broken, self.group_steer, self.corner_yield, self.behind, self.listed = None, None, None, None, None
         self.stand_left, self.stand_end, self.stand_wound, self.pair_yield = None, None, None, None
-        self.stand_drag, self.stand_inside = None, None
+        self.stand_drag, self.stand_inside, self.stand_exit = None, None, None
         door = self._doorway()
         if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
             return door
@@ -645,7 +648,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
             else:
                 if self.flee is None or not (self.sheltered or self.flee.closing_stand()
                                              or self.stand_left is not None):   # a sheltered Flee outlives a door
-                    # fight, and a stand's Flee its Doorway (P24-AO; one whose stand was left `off` only steers)
+                    # fight, and a stand's Flee its Doorway (P24-AO; one whose stand was left `off` only steers, one
+                    # left under a group walks out, P25-W)
                     self.flee = Flee(self.world, self.actions, self.clock, shunned=self.night.shunned)
                     self.flee.skip_heading, self.stuck_heading = self.stuck_heading, None   # fix 2, G2
                 if self.fight is not None:   # P25-J (3), 8 fix 1: the pair flee's finish reads the Fight's refusals
@@ -698,6 +702,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish):
             self.why["strain"] = self.spent   # P24-AG: the why names the strain
         if want == "flee" and walk and self._walking(policy, ans):
             self.why["hold_walk"] = True   # P25-C: the flee's leg sent or running at a walk
+        if want == "flee" and self.stand_exit is not None:   # P25-W: the stand's end walks out; the way the Flee took
+            self.why["doorway_exit"] = self._stand_exit_why(policy)
         if want == "flee" and policy.door_walk is not None:   # P25-E: the stand's stalled walk, read at its observe
             self.why["door_walk"] = policy.door_walk
             if policy.door_walk["end"] == "drop":

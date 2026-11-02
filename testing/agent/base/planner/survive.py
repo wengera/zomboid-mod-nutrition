@@ -268,7 +268,10 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   guard on a tick, `_doorway` being the threat plan's first row; logged `doorway_drag`; `STAND_DRAG_EARLY`); P25-V,
   the stand's `inside` end (a standing zombie on a square of the stand's room, `doorway.stand_room`, off the door
   square and not the stand's target; `DoorwayStand._stand_inside`, logged `doorway_inside` {id, square};
-  `STAND_INSIDE`); `T6_SWITCHES` off is the rule before them.
+  `STAND_INSIDE`); P25-W, a stand ended `wound`, `drag` or `inside` walks out by the way out, never the close (the
+  plan dropped and the adoption spent, `flee.Flee.walk_out`, the trapped hold with none; the way out runs ahead of
+  every row as the close ran, `Flee.stand_exit_running`; logged `doorway_exit` {end, exit: door | opening | trapped |
+  steer | deferred}; `STAND_EXIT`); `T6_SWITCHES` off is the rule before them.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -367,8 +370,8 @@ T4_SWITCHES = ("UNWEAR_WOUND", "FINISH_FAR", "STAND_WOUND", "SHOVE_BREAK", "SHEL
                          # rule before each
 T5_SWITCHES = ("UNARMED_FIGHT", "TRAPPED_CARE", "LOW_FIGHT", "SHOVE_BREAK_RUN")   # survival iteration 15 (Plan 25
                          # Task 10): the switches of P25-P, P25-Q, P25-S and P25-T; off, the rule before each
-T6_SWITCHES = ("STAND_DRAG_EARLY", "STAND_INSIDE")   # survival iteration 16 (Plan 25 Task 14): the switches of
-                         # P25-U and P25-V; off, the rule before each
+T6_SWITCHES = ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT")   # survival iteration 16 (Plan 25 Task 14): the
+                         # switches of P25-U, P25-V and P25-W; off, the rule before each
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -449,8 +452,9 @@ class Survive(Threat):
         self.corner_yield = None  # this tick: why a `walk` corner yielded, "health" or "many" (P24-A (c)), else None
         self.behind = None        # this tick: the ids listed behind the fight's walk target (P24-A (b)), else None
         self.listed = None        # this tick: the listed count when it alone made `many` (P24-A (a)), else None
-        self.stand_left = None    # this tick: `off` when the doorway stand was left off its post (P24-AO fix 1)
-        self.stand_end = None     # this tick: any end the doorway stand took (health, drag, unarmed, quiet, off): the why only
+        self.stand_left = None    # this tick: the end the doorway stand's plan was dropped on and its Flee kept: `off`
+                                  # (P24-AO fix 1), or an end that walks out (P25-W)
+        self.stand_end = None     # this tick: any end the doorway stand took (`doorway_left`): the why only
         self.care_yield = None    # this tick: the nearest zombie's tiles when the threat yielded to the care (P24-P)
         self._nearest_seen = []   # (id, tiles) of the nearest listed zombie on the last threat ticks, newest last: the
                                   # care yield's closing read (Task 12 fix 1), CARE_STILL_TICKS + 1 of them
@@ -470,6 +474,7 @@ class Survive(Threat):
         self.stand_wound = None   # this tick: the parts newly bleeding that ended the doorway stand (P25-K), else None
         self.stand_drag = None    # this tick: the attackers that ended the doorway stand `drag` (P25-U), else None
         self.stand_inside = None  # this tick: {id, square} of the zombie that ended the stand `inside` (P25-V), else None
+        self.stand_exit = None    # this tick: the stand's end its Flee walks out on (P25-W), else None
         self.pair_yield = None    # this tick: the fallen zombie's id the `pair` flee yielded to (P25-J), else None
         self.fight_refused = {}   # the last Fight's `swing_refused`, kept for the `pair` flee's finish (P25-J, 8 fix 1)
         self.trapped_pass = False  # this tick: the threat's answer was the Flee's trapped hold (P25-Q: the care's tick)

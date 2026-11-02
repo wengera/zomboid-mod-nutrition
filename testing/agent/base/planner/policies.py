@@ -619,6 +619,27 @@ def exit_plan(world, threats, refused=(), trans=True):
     return dict(e, building=b, target=_beyond(world, e["inner"], e["outer"], trans), step="walk", opened=False)
 
 
+def exit_kind(world, e):
+    """What the way out `e` (an `exit_plan` record) crosses (ruling P25-W's `doorway_exit`): "door" for a closed
+    exterior door to open (`door`) or an opening across a door's edge (an open door, `door_edge`), else "opening" (a
+    step out with no door on it). No exit crosses a window: `World.openings` leaves a window's edge out."""
+    if e["door"] is not None or door_edge(world, e["inner"], e["outer"]):
+        return "door"
+    return "opening"
+
+
+def door_edge(world, a, b):
+    """The edge between two orthogonally adjacent squares `a` and `b` holds a door: the square keeping that edge (a
+    square keeps its own north and west edges, `World._window_edge`'s read) carries a `door` record and that edge's
+    `edgeN`/`edgeW` reads true."""
+    if b[1] != a[1]:
+        holder, field = (a, "edgeN") if b[1] == a[1] - 1 else (b, "edgeN")
+    else:
+        holder, field = (a, "edgeW") if b[0] == a[0] - 1 else (b, "edgeW")
+    s = world.map.get(holder) or {}
+    return s.get("door") is not None and bool(s.get(field))
+
+
 def _in_tube(a, b, p, r):
     """Point `p` lies within `r` of the end `b`, or ahead of `a` (its projection on the segment from `a` to `b` past
     `a`) within `r` of the segment: the exit's own square and its straight line, never the player's back (P24-A fix 1
