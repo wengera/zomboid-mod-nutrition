@@ -37,8 +37,8 @@ class Kit:
 
     def rested(self, goal):
         """A goal ended: a Rest ended rested counts one, REST_N in a row widening the woods radius by WOODS_STEP up
-        to WOODS_MAX_R; any other goal's end restarts the count (a superseded Rest neither counts nor restarts it, nor does a Rest proposed under a hold: it was spent, not
-        nothing to do here: Plan 25 Task 4 fix 1)."""
+        to WOODS_MAX_R; any other goal's end restarts the count (a superseded Rest neither counts nor restarts it, nor
+        does a Rest proposed under a hold: it was spent, not nothing to do here: Plan 25 Task 4 fix 1)."""
         if goal.TYPE != "Rest":
             self.rests = 0
         elif goal.state == "done" and not goal.for_hold:
@@ -90,7 +90,8 @@ class Goal:
     def __post_init__(self):
         self.kit = None        # the runner's Kit, else built on the first step
         self.last = None       # the last Action this goal sent
-        self.for_hold = False  # proposed while the view read a hold (`spent`): the runner sets it, `Kit.rested` reads it
+        self.for_hold = False  # proposed while the view read a hold (`spent`): the runner sets it, `Kit.rested`
+                               # reads it
         self.mark = None       # the last action sent (by anyone) when the runner took this goal
         self.why = {}          # the goal's inputs to its last choice, logged under the goal branch
         self.sent_n = 0        # commands this goal sent

@@ -153,9 +153,9 @@ class FightShove:
         within FIGHT_REACH the steer at a run through the gap the shove opened (the heading away from `zid`'s bearing,
         turned by STEER_TURNS to the first heading `clear_heading` passes); otherwise the swing at it only while the
         swing is undivided (`sore` false, the arms' pain under STRAIN_SOFT, and no endurance or tired hold: the arms'
-        hold alone leaves it whole), logged `corner` {kind: break | swing, shoved, n}; a divided swing is not taken: None,
-        logged `corner` {kind: shove, shoved, n, sore} (ruling P25-I, E12: the branch left no trace), and the lone or
-        boxed-in target is shoved again (review-t3 finding 1; ruling: the swing at E11's armPain 38 to
+        hold alone leaves it whole), logged `corner` {kind: break | swing, shoved, n}; a divided swing is not taken:
+        None, logged `corner` {kind: shove, shoved, n, sore} (ruling P25-I, E12: the branch left no trace), and the
+        lone or boxed-in target is shoved again (review-t3 finding 1; ruling: the swing at E11's armPain 38 to
         270 lands at 1/3.8 to 1/27 of its damage, #4370, and x0.5 again under the endurance hold, #4371, while the
         shove's knock-down is a crit roll pain does not touch, #4373, and the stomp after it is outside the divider,
         #4374: #4404 read five or six full swings before a zombie fell, two stomps finishing a fallen one; cost if

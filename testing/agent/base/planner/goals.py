@@ -141,7 +141,9 @@ log's `goal` reads `{"pending": <source NAME>}`, and the next tick asks again wi
 only when a goal is taken. A superseded goal is gone; the source may propose the same goal again. A goal that ends
 `failed` having sent nothing (a first-step failure: an unknown building, no plan) is cooled per `(type, args)` for
 GOAL_COOL_S (30) wall seconds (fix 1, I4): the view lists the cooled goals (`cooled`), the scripted source passes
-them over, and a cooled goal a source still proposes is refused for that tick (`why.refused`), no row written. A goal whose leg failed for good (`_Legs`: `no path`, `stuck` with no fence, `no square` at LEG_MIN) is cooled too though it sent, and ExploreToward marks its far target stuck (Task 21 fix 1). A goal that failed for a
+them over, and a cooled goal a source still proposes is refused for that tick (`why.refused`), no row written. A goal
+whose leg failed for good (`_Legs`: `no path`, `stuck` with no fence, `no square` at LEG_MIN) is cooled too though it
+sent, and ExploreToward marks its far target stuck (Task 21 fix 1). A goal that failed for a
 shun (COOL_REASONS: `shun`, `shunned`, `no plan`, `no door`; ruling P25-G, Plan 25 Task 7, F4's 57 Shelters failed
 `shun` within 1.5 s, each after a walk) is cooled whatever it sent.
 `send(cmd)` sends the
@@ -275,8 +277,9 @@ def looted(world, building, loot=None, wants=(), waiting=None, keys=None):
 
 def _usable_building(world, b, shunned):
     """Whether building `b` is one the view would send a loot to (review-t24 minor 5): not shunned, its exterior doors
-    not all marked stuck (the window route is left out: it would recurse into `smash_ok`), and not looted out (`looted`, the
-    view's `L`: a building with containers known and no use a loot would still take at any is; one with none known is not)."""
+    not all marked stuck (the window route is left out: it would recurse into `smash_ok`), and not looted out
+    (`looted`, the view's `L`: a building with containers known and no use a loot would still take at any is; one with
+    none known is not)."""
     if b in shunned or door_blocked(world, b, me_floor(world)):
         return False
     return not looted(world, b)

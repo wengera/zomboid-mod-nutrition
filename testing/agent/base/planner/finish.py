@@ -4,7 +4,8 @@ finish, the downed read and P24-AV's stomp wait on a shove's knock-down, P25-B's
 FINISH_R; and `ThreatFinish`'s P25-J yield of the `pair` flee, `_pair_finish`, and since Task 8 fix 1 the `pair`
 flee's own finish, `_pair_flee_finish`: one rule, `finish_rule`, which the Fight's finish reads too). Moved out of
 `threat.py` and `fight.py` at Plan 25 Task 2 (a pure move: every rule and constant unchanged; the constants in
-`policies.py`'s table); the state is `Survive`'s and the `Fight`'s own, and `survive.py`'s and `fight.py`'s module docstrings stay the record.
+`policies.py`'s table); the state is `Survive`'s and the `Fight`'s own, and `survive.py`'s and `fight.py`'s module
+docstrings stay the record.
 """
 import math
 
@@ -242,10 +243,10 @@ class FightFinish:
 
     def _finishable(self, knocked=False):
         """What the finish, the knock wait and a running leg's give-way read (with `knocked`, the knock window's).
-        Ruling P25-J (E12, #4435: every knocked-down zombie first read fallen 2.12 to 2.73 tiles off, beyond FIGHT_REACH, and
-        with a standing one in reach nothing stomped it): with the `finish_far` rule on, the one finish rule
-        (`finish_rule`, the threat's `pair` yield and the `pair` flee's finish read it too) over the Fight's own skips,
-        knock window, `only`, refusals (`_swing_ok`) and post (`_finish_post`), a zombie within FIGHT_REACH kept
+        Ruling P25-J (E12, #4435: every knocked-down zombie first read fallen 2.12 to 2.73 tiles off, beyond
+        FIGHT_REACH, and with a standing one in reach nothing stomped it): with the `finish_far` rule on, the one finish
+        rule (`finish_rule`, the threat's `pair` yield and the `pair` flee's finish read it too) over the Fight's own
+        skips, knock window, `only`, refusals (`_swing_ok`) and post (`_finish_post`), a zombie within FIGHT_REACH kept
         whatever its stomp reads (the floor strike follows a refused stomp): the downed out to FINISH_R (the stomp's own
         walk covers the distance: the Lua walks to under 0.5 tiles), the far one only where its stomp goes; with a
         standing zombie within KEEP_R (the rule silent: it is fought first, at point blank its shove first, as P24-AL)

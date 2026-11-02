@@ -1,8 +1,8 @@
 """The hold and spent reads of the threat branch: the mixin `Hold` that `threat.Threat` derives from (rulings
 P24-AG, P24-AK, P24-AP, P24-AT and R2: the arms', the endurance and the tired holds, the wounded fight, the lone
-target). Moved out of `threat.py` at Plan 25 Task 2 (a pure move: every rule, switch and constant unchanged; the constants
-in `policies.py`'s table); its state is `Survive`'s own, set in `Survive.__init__`, and `survive.py`'s module docstring
-stays the record of every rule here.
+target). Moved out of `threat.py` at Plan 25 Task 2 (a pure move: every rule, switch and constant unchanged; the
+constants in `policies.py`'s table); its state is `Survive`'s own, set in `Survive.__init__`, and `survive.py`'s
+module docstring stays the record of every rule here.
 """
 from agent.base.planner.policies import (DANGER_R, ENDURANCE_RELEASE, ENDURANCE_T, HOLD_QUIET_S, HOLD_SPAN_MIN,
                                          KEEP_R, LISTED_R, STIFF_HARD, STIFF_SOFT, STRAIN_HARD, TIRED_FIGHT_T, arm_pain,

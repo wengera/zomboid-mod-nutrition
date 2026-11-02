@@ -159,7 +159,8 @@ def _buildings(world, night, kit, zxy=()):
                     "dist": round(dist, 1), "containers": len(cs),
                     "looted": looted(world, b, loot, kit.wants if kit is not None else (), waiting, cs),
                     "doors": len(doors), "visited": b in visited, "shunned": b in shunned,
-                    "shelter": shelter_plan(world, b) is not None, "holds": _holds(world, cs, kit.wants if kit is not None else ()),
+                    "shelter": shelter_plan(world, b) is not None,
+                    "holds": _holds(world, cs, kit.wants if kit is not None else ()),
                     "blocked": door_blocked(world, b, z) and window_pick(world, b, shunned) is None,
                     "box": list(boxes[b]) if b in boxes else None,
                     "zombies_near": sum(1 for x, y in zxy if _box_dist(box, x, y) <= BUILDING_ZOMBIE_R)})

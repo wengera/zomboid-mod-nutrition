@@ -27,8 +27,8 @@ The contract:
   fix 1, ruling 3) from every building the view lists (its `box`, else its listed squares), while it lists one, is
   `invalid: in the woods`; except (ruling P25-R, Plan 25 Task 10) an ExploreToward whose square's centre lies within
   WOODS_R of the view's `toward` building's listed square or door, accepted whatever its distance from `pos`
-  (`_at_toward`: the walk the goal layer takes toward it in legs); a LootBuilding or Shelter of a building the view reads
-  `blocked` (every exterior door marked stuck, ruling P24-Z) is `invalid: refused`; a Shelter of a shown building
+  (`_at_toward`: the walk the goal layer takes toward it in legs); a LootBuilding or Shelter of a building the view
+  reads `blocked` (every exterior door marked stuck, ruling P24-Z) is `invalid: refused`; a Shelter of a shown building
   whose `shunned` reads true (its shelter failed within `night.SHUN_MIN`, ruling P25-G, Plan 25 Task 7: F4 answered
   Shelter for its one shunned building 67 times) is `invalid: shunned` (a LootBuilding of it stays valid: its window
   route exists).
