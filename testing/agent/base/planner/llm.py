@@ -49,29 +49,39 @@ The contract:
   be run at all, e.g. not on PATH, or the runner raised).
 
 The threading (ruling P23-AC): `propose(view)` never waits, and returns None (pending: the goal runner holds and asks
-again next tick with a fresh view) while the model has not answered. With no call pending it starts one daemon
-worker thread running the CLI with `timeout_s` and returns None. A later `propose` returns None while the call runs
-within `timeout_s`, then collects it: a valid goal (checked against this ask's view) is returned, once, and no new call
-starts on that propose; a failure (an error, or an answer landing past `timeout_s`) is recorded and the fallback's
-goal returned, so the scripted source stands in only on a recorded failure, and the next ask starts a new call. A
-worker still running past `timeout_s` is abandoned, recorded "timeout" and the fallback answers; its answer is ignored
-when it lands, and no new call starts until its thread has ended (the subprocess's own timeout ends it): meanwhile
-the fallback answers, the stand-in for the timeout already recorded. So at most one CLI call is ever in flight.
-`join(timeout)` waits for the pending and any abandoned worker.
+again next tick with a fresh view) while the model has not answered. With no call pending it starts one daemon worker
+thread running the CLI with `timeout_s` and returns None. A later `propose` returns None while the call runs within
+`timeout_s`, then collects it: a valid goal (checked against this ask's view) is returned, once, and no new call starts
+on that propose; a failure (an error, or an answer landing past `timeout_s`) is recorded and the fallback's goal
+returned, so the scripted source stands in only on a recorded failure, and the next ask starts a new call. A worker
+still running past `timeout_s` is abandoned, recorded "timeout" and the fallback answers; its answer is ignored when it
+lands, and no new call starts until its thread has ended (the subprocess's own timeout ends it): meanwhile the fallback
+answers, the stand-in for the timeout already recorded. So at most one CLI call is ever in flight. The re-ask (ruling
+P26-H, Plan 26 Task 3: F7's model answered building 2's loot 21 times, each refused `looted already`): a cycle's first
+call whose every goal the refusal rule refused is recorded and one more call starts on that propose, in the same cycle,
+its view the collecting one with the refusal laid over `last_goal` and its why as `reask_why` (`view.REASK_KEY`,
+rendered as the prompt's last line, `Your last answer was refused: <why>. Answer a different goal.`), so `propose`
+returns None and nothing stands in; `reask` reads True while it runs. Its answer is taken or refused for good: a
+refusal, a failure or a timeout is the stand-in, and the next ask starts the next cycle. An answer with no valid goal
+(`malformed`, `invalid: <reason>`) or a failed call is never re-asked. The goal runner's cooldown and the refusal's
+carry are unchanged; the cost is one more call per refused cycle. `join(timeout)` waits for the pending and any
+abandoned worker.
 
-The record: `calls`, one row per collected call, `{wall, latency_s, ok, goal, error, skipped, prompt_bytes,
-answer_bytes, model}` (`wall` the call's start, `latency_s` to its answer or its abandonment, `goal` the validated goal
-as `{"type", **args}` else None, `skipped` the answer's objects passed over (ruling P26-F), `[{goal, why}]`: each goal
-refused before the one taken (every one when none is taken: the row's `error` and the carried refusal are then the
-first's), then each object `validate` failed (`goal` None), `why` the error past its `invalid: `; `prompt_bytes`
-the bytes the model reads, the argv's system prompt and the stdin prompt together, `answer_bytes` the bytes of the
-answer's `result` text, 0 with none (P24-B 4), `model` read off the argv's `--model`); `totals()` is the record's `llm` summary's byte keys, `{prompt_bytes_total, answer_bytes_total}` over
-`calls` (the session's bytes, never a price: the cost estimate stays out of the record, P24-B 4); each row is
-appended to `log_path` (the driver's `goals.log` beside `decision.log`) as one JSON line with sorted keys, carrying
-also the `prompt` sent on stdin and the `answer` text (P23-11: the prompt and every answer are logged; the system
-prompt is the constant `SYSTEM`). Rows are recorded on the planner's thread when a call is collected. A write of
-`goals.log` that raises `OSError` is counted in `log_errors` and never raised into `propose` (the planner's tick); the
-row stays in `calls`.
+The record: `calls`, one row per collected call, `{wall, latency_s, ok, goal, error, skipped, cycle, reask,
+prompt_bytes, answer_bytes, model}` (`wall` the call's start, `latency_s` to its answer or its abandonment, `goal` the
+validated goal as `{"type", **args}` else None, `skipped` the answer's objects passed over (ruling P26-F), `[{goal,
+why}]`: each goal refused before the one taken (every one when none is taken: the row's `error` and the carried refusal
+are then the first's), then each object `validate` failed (`goal` None), `why` the error past its `invalid: `; `cycle`
+the call's cycle (an int counted per first call, equal on a call and its re-ask) and `reask` whether it was the re-ask
+(ruling P26-H); `prompt_bytes` the bytes the model reads, the argv's system prompt and the stdin prompt together,
+`answer_bytes` the bytes of the answer's `result` text, 0 with none (P24-B 4), `model` read off the argv's `--model`);
+`totals()` is the record's `llm` summary's byte keys, `{prompt_bytes_total, answer_bytes_total}` over `calls` (the
+session's bytes, never a price: the cost estimate stays out of the record, P24-B 4), and `reasks_total`, the re-asks
+among them (P26-H); each row is appended to `log_path` (the driver's `goals.log` beside `decision.log`) as one JSON line
+with sorted keys, carrying also the `prompt` sent on stdin and the `answer` text (P23-11: the prompt and every answer
+are logged; the system prompt is the constant `SYSTEM`). Rows are recorded on the planner's thread when a call is
+collected. A write of `goals.log` that raises `OSError` is counted in `log_errors` and never raised into `propose` (the
+planner's tick); the row stays in `calls`.
 
 The per-call attribution: the class attribute `LLMSource.NAME` is "llm"; each `propose` sets the instance's `NAME` to
 "llm" for the model's goal and while pending, and to the fallback's `NAME` ("scripted") for a stand-in, so
@@ -104,7 +114,7 @@ import time
 from agent.base.planner.goal_prompt import system
 from agent.base.planner.goal_runner import validate
 from agent.base.planner.goals import WOODS_R
-from agent.base.planner.view import render, shown_ids
+from agent.base.planner.view import REASK_KEY, render, shown_ids
 
 LLM_TIMEOUT_S = 20.0          # P23-11: a call answering later than this is a fallback
 EXPLORE_MAX_TILES = 60.0      # P23-V: a model's ExploreToward farther than this from the view's pos is refused
@@ -321,6 +331,8 @@ class LLMSource:
         self._pending = None       # the call in flight: {thread, wall, prompt, done, end, goal, answer, error}
         self._abandoned = None     # the thread of a call abandoned past timeout_s, until it ends
         self.refusal = None        # the model's last answer refused by the rule, for the next prompt's last_goal
+        self.reask = False         # P26-H: True while the second call of a cycle (the re-ask) runs
+        self._cycle = 0            # P26-H: the cycle of the latest call, counted per first call
 
     # -- the seam -----------------------------------------------------------------------------------------------
     def propose(self, view):
@@ -362,16 +374,25 @@ class LLMSource:
         return self._abandoned is not None
 
     def totals(self):
-        """The record's `llm` summary's byte keys over `calls` (P24-B 4)."""
+        """The record's `llm` summary's byte keys over `calls` (P24-B 4) and its re-asks (P26-H)."""
         return {"prompt_bytes_total": sum(c["prompt_bytes"] for c in self.calls),
-                "answer_bytes_total": sum(c["answer_bytes"] for c in self.calls)}
+                "answer_bytes_total": sum(c["answer_bytes"] for c in self.calls),
+                "reasks_total": sum(1 for c in self.calls if c["reask"])}
 
-    def _start(self, view):
+    def _start(self, view, reask_why=None):
+        """One call on `view`: a cycle's first, or (`reask_why`, ruling P26-H) its re-ask, whose view carries the
+        refusal's why for the prompt's tail line."""
         if self.refusal is not None:       # the model reads its own last answer's end, once (P24-B 3)
             view, self.refusal = dict(view, last_goal=self.refusal), None
+        self.reask = reask_why is not None
+        if self.reask:
+            view = dict(view, **{REASK_KEY: reask_why})
+        else:
+            self._cycle += 1
         text = prompt(view)
         p = {"wall": self.clock(), "prompt": text, "done": threading.Event(), "end": None, "goals": [], "errors": [],
-             "answer": None, "error": None, "pos": dict(view.get("pos") or {})}   # the range's origin (Task 4)
+             "answer": None, "error": None, "pos": dict(view.get("pos") or {}),   # the range's origin (Task 4)
+             "cycle": self._cycle, "reask": self.reask}
         p["thread"] = threading.Thread(target=self._work, args=(p,), name="llm-goal", daemon=True)
         self._pending = p
         p["thread"].start()
@@ -395,17 +416,17 @@ class LLMSource:
 
     def _collect(self, view):
         """("pending", None) while the call runs within timeout_s; else the call is recorded and ("ok", goal) when it
-        answered in time a valid goal whose place `view` holds (the first such, ruling P26-F), ("failed", None)
-        otherwise."""
+        answered in time a valid goal whose place `view` holds (the first such, ruling P26-F); ("pending", None) when
+        a cycle's first call had every goal refused and its re-ask starts (ruling P26-H); ("failed", None) otherwise."""
         p = self._pending
         if not p["done"].is_set():
             now = self.clock()
             if now - p["wall"] <= self.timeout_s:
                 return "pending", None
-            self._abandoned, self._pending = p["thread"], None
+            self._abandoned, self._pending, self.reask = p["thread"], None, False
             self._record(p, now - p["wall"], None, "timeout")
             return "failed", None
-        self._pending = None
+        self._pending, self.reask = None, False
         latency = p["end"] - p["wall"]
         if latency > self.timeout_s:
             self._record(p, latency, None, "timeout")
@@ -421,6 +442,9 @@ class LLMSource:
         else:
             error = p["error"]
         self._record(p, latency, goal, error, skipped)
+        if goal is None and refused and not p["reask"]:   # P26-H: every goal refused, asked once more this cycle
+            self._start(view, reask_why=self.refusal["why"])
+            return "pending", None
         return ("ok", goal) if goal is not None else ("failed", None)
 
     @staticmethod
@@ -437,7 +461,8 @@ class LLMSource:
 
     def _record(self, p, latency, goal, error, skipped=()):
         row = {"wall": p["wall"], "latency_s": latency, "ok": goal is not None and error is None,
-               "goal": _goal_row(goal), "error": error, "skipped": list(skipped),
+               "goal": _goal_row(goal), "error": error, "skipped": list(skipped), "cycle": p["cycle"],
+               "reask": p["reask"],
                "prompt_bytes": len((self._system() + p["prompt"]).encode("utf-8")),
                "answer_bytes": len(p["answer"].encode("utf-8")) if isinstance(p["answer"], str) else 0,
                "model": self.model}

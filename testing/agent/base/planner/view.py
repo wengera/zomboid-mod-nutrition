@@ -77,21 +77,22 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
 
 The view only reads: the kit is bound by its runner's `observe`, never here (fix 1 M5).
 
-`render(view) -> str`: one `key: value` line per key in `KEYS` order (a key of OPTIONAL_KEYS only when the view
-carries it: Task 29; the hold, Plan 25 Task 4, spec 2.2(f): the view's `spent` `{kind, value}` (Task 3's, set while
-a hold is) reads as the line `hold: <kind> <value>`, the value to 0.01, right after `tired`'s place, and no line
-while none is set; `spent` itself is never rendered under its own name; `open` reads as its own line `open: [...]`
-right after `buildings`, P26-G, and no line without it), values as compact sorted JSON except `buildings`, capped at
-the BUILDINGS_SHOWN (6, P24-B 3) nearest, each `id @x,y door x,y dist cN flags h:holds z:N` (`door -` with none;
-flags `L` looted, `v` visited, `s` shunned, `x` blocked (P24-Z), `-` none; `holds` its `use count` pairs, sorted, as
-`food3,water1`, `-` with none: P24-Y; ` z:N` its `zombies_near`, only when the building carries it: Task 29),
-joined by "; "; the whole stays under RENDER_MAX (2048) bytes, asserted at return. On overflow the lowest-value line
-goes first: `events` (the last event kinds, which no rule reads) is emptied to `[]`; then the buildings are cut from
-the farthest; then the longest line is halved (its tail replaced by "...") until it fits, so a long string off the
-game (an event kind, a goal's reason) cannot pass the bound (a test asserts every key present and nothing cut on a
-full fixture: 20 buildings, 50 containers, 30 zombies, a met window, a goal ended, the needs and a cooled goal; and
-the bound on a view of oversized strings). The places a model may name are the shown buildings (`shown_ids`) and an
-ExploreToward within `llm.EXPLORE_MAX_TILES` of `pos`.
+`render(view) -> str`: one `key: value` line per key in `KEYS` order (a key of OPTIONAL_KEYS only when the view carries
+it: Task 29; the hold, Plan 25 Task 4, spec 2.2(f): the view's `spent` `{kind, value}` (Task 3's, set while a hold is)
+reads as the line `hold: <kind> <value>`, the value to 0.01, right after `tired`'s place, and no line while none is set;
+`spent` itself is never rendered under its own name; `open` reads as its own line `open: [...]` right after `buildings`,
+P26-G, and no line without it; the LLM source's re-ask view's `reask_why` as the last line, `Your last answer was
+refused: <why>. Answer a different goal.`, P26-H), values as compact sorted JSON except `buildings`, capped at the
+BUILDINGS_SHOWN (6, P24-B 3) nearest, each `id @x,y door x,y dist cN flags h:holds z:N` (`door -` with none; flags `L`
+looted, `v` visited, `s` shunned, `x` blocked (P24-Z), `-` none; `holds` its `use count` pairs, sorted, as
+`food3,water1`, `-` with none: P24-Y; ` z:N` its `zombies_near`, only when the building carries it: Task 29), joined by
+"; "; the whole stays under RENDER_MAX (2048) bytes, asserted at return. On overflow the lowest-value line goes first:
+`events` (the last event kinds, which no rule reads) is emptied to `[]`; then the buildings are cut from the farthest;
+then the longest line is halved (its tail replaced by "...") until it fits, so a long string off the game (an event
+kind, a goal's reason) cannot pass the bound (a test asserts every key present and nothing cut on a full fixture: 20
+buildings, 50 containers, 30 zombies, a met window, a goal ended, the needs and a cooled goal; and the bound on a view
+of oversized strings). The places a model may name are the shown buildings (`shown_ids`) and an ExploreToward within
+`llm.EXPLORE_MAX_TILES` of `pos`.
 """
 import json
 import math
@@ -125,9 +126,12 @@ OPTIONAL_KEYS = ("night", "tired")   # rendered only when the view carries them 
 HOLD_KEY, HOLD_AFTER = "spent", "tired"   # the hold's view key (Plan 25 Task 3) and the line its `hold:` line follows
 OPEN_KEY, OPEN_AFTER = "open", "buildings"   # P26-G: the all-looted key and the line it follows
 OPEN_GOALS = ("ExploreToward", "Stock")      # P26-G: the goals still open when every listed building reads looted
+REASK_KEY = "reask_why"   # P26-H: the LLM source's re-ask, its refusal's why, read as the tail line (`_reask`)
+REASK_LINE = "Your last answer was refused: %s. Answer a different goal."
 
 __all__ = ["view", "render", "why_of", "shown_ids", "KEYS", "OPTIONAL_KEYS", "WHYS", "OPEN_KEY", "OPEN_GOALS",
-           "NEED_MEMORY_S", "ZOMBIE_BANDS", "BUILDING_ZOMBIE_R", "BUILDINGS_SHOWN", "RENDER_MAX", "MET_VIEW_R"]
+           "REASK_KEY", "REASK_LINE", "NEED_MEMORY_S", "ZOMBIE_BANDS", "BUILDING_ZOMBIE_R", "BUILDINGS_SHOWN",
+           "RENDER_MAX", "MET_VIEW_R"]
 
 
 def _num(v):
@@ -324,6 +328,12 @@ def _open(v):
     return "%s: %s" % (OPEN_KEY, json.dumps(goals, separators=(",", ":"))) if goals else None
 
 
+def _reask(v):
+    """The re-ask's tail line (ruling P26-H) while the view carries `reask_why`, else None (no line)."""
+    why = v.get(REASK_KEY)
+    return REASK_LINE % why if why else None
+
+
 def _line(v, k, shown, events):
     """The line of view key `k`, else None: an optional key the view does not carry, and the hold's key, which reads
     as its own `hold:` line after HOLD_AFTER's (`_lines`)."""
@@ -345,7 +355,8 @@ def _lines(v, shown, events=True):
             lines.append(line)
         if after.get(k) is not None:
             lines.append(after[k])
-    return lines
+    tail = _reask(v)
+    return lines + [tail] if tail is not None else lines
 
 
 def _size(lines):

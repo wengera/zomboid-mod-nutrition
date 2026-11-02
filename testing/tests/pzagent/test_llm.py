@@ -86,6 +86,14 @@ def settle(src):
     assert src.join(5.0)
 
 
+def refused_twice(src, v):
+    """Named change, ruling P26-H: a refused answer collected on `v` starts the cycle's re-ask (None, `reask` True);
+    the same answer refused again on `v` is the stand-in, returned."""
+    assert src.propose(v) is None and src.reask is True
+    settle(src)
+    return src.propose(v)
+
+
 # ---------------------------------------------------------------- the seam and the prompt
 def test_the_source_is_a_goal_source_named_llm_with_the_specs_defaults():
     src = LLMSource(Fallback())
@@ -296,7 +304,7 @@ def test_a_building_the_view_does_not_list_is_refused(answer):
     src, _, _ = make(answer=answer)
     src.propose(a_view())
     settle(src)
-    g = src.propose(a_view())
+    g = refused_twice(src, a_view())
     assert isinstance(g, Rest) and src.calls[0]["error"] == "invalid: refused"
 
 
@@ -306,7 +314,7 @@ def test_the_place_is_read_against_the_current_view():
     src, _, _ = make()
     src.propose(a_view())
     settle(src)
-    assert isinstance(src.propose(a_view(buildings=[])), Rest) and src.calls[0]["error"] == "invalid: refused"
+    assert isinstance(refused_twice(src, a_view(buildings=[])), Rest) and src.calls[0]["error"] == "invalid: refused"
     src2, _, _ = make()
     src2.propose(a_view(buildings=[]))
     settle(src2)
@@ -328,10 +336,11 @@ def test_an_explore_farther_than_explore_max_tiles_from_pos_is_out_of_range(answ
     src, _, _ = make(answer=answer)
     src.propose(a_view(buildings=[]))
     settle(src)
-    g = src.propose(a_view(buildings=[]))
     if ok:
+        g = src.propose(a_view(buildings=[]))
         assert g.TYPE == "ExploreToward" and src.calls[0]["error"] is None
     else:
+        g = refused_twice(src, a_view(buildings=[]))
         assert isinstance(g, Rest) and src.calls[0]["error"] == "invalid: out of range"
 
 
@@ -341,7 +350,7 @@ def test_an_explore_with_no_pos_in_the_view_is_out_of_range():
     src, _, _ = make(answer='{"type": "ExploreToward", "x": 100, "y": 200}')
     src.propose(a_view(pos={"x": None, "y": None, "z": None}))
     settle(src)
-    assert isinstance(src.propose(a_view()), Rest)
+    assert src.propose(a_view()) is None and src.reask is True        # P26-H: re-asked on the collecting view
     assert src.calls[0]["error"] == "invalid: out of range"
 
 
@@ -359,10 +368,11 @@ def test_each_call_is_one_sorted_json_line_in_goals_log(tmp_path):
         obj = json.loads(ln)
         assert list(obj) == sorted(obj)
         assert set(row) == {"wall", "latency_s", "ok", "goal", "error", "prompt_bytes", "answer_bytes", "model",
-                            "skipped"}                               # P26-F: the objects passed over
-        assert row["skipped"] == []
+                            "skipped", "cycle", "reask"}             # P26-F: the objects passed over; P26-H
+        assert row["skipped"] == [] and row["reask"] is False
         assert {k: obj[k] for k in row} == row
         assert obj["prompt"] == render(v) and obj["answer"] == '{"type": "LootBuilding", "building": 3}'
+    assert [row["cycle"] for row in src.calls] == [1, 2]
 
 
 def test_the_model_is_read_off_the_argv():
@@ -467,15 +477,16 @@ def test_a_refused_answer_is_the_next_prompts_last_goal_with_its_meaning(answer,
     src, runner, _ = make(answer=answer)
     src.propose(a_view(**k))
     settle(src)
-    assert isinstance(src.propose(a_view(**k)), Rest)                # the stand-in
-    assert src.calls[0]["error"] == "invalid: " + why and src.calls[0]["ok"] is False
+    assert isinstance(refused_twice(src, a_view(**k)), Rest)         # P26-H: the re-ask refused too, the stand-in
+    assert src.calls[0]["error"] == src.calls[1]["error"] == "invalid: " + why and src.calls[0]["ok"] is False
     obj = json.loads(answer)
     assert src.refusal == {"type": obj.pop("type"), "args": obj, "end": "refused", "why": why}
-    src.propose(a_view(**k))                                         # the next call: the refusal in its prompt
+    want = {"type": json.loads(answer)["type"], "args": obj, "end": "refused", "why": why}
+    src.propose(a_view(**k))                                         # the next cycle: the refusal in its prompt
     settle(src)
-    line = next(ln for ln in runner.calls[1]["input"].splitlines() if ln.startswith("last_goal:"))
-    assert json.loads(line.split(": ", 1)[1]) == {"type": json.loads(answer)["type"], "args": obj, "end": "refused",
-                                                  "why": why}
+    for call in runner.calls[1:]:                                    # the re-ask's prompt and the next cycle's
+        line = next(ln for ln in call["input"].splitlines() if ln.startswith("last_goal:"))
+        assert json.loads(line.split(": ", 1)[1]) == want
     assert src.refusal is None                                       # shown once
 
 
@@ -485,7 +496,8 @@ def test_a_building_beyond_the_shown_six_is_refused():
     src, _, _ = make(answer='{"type": "LootBuilding", "building": 7}')
     src.propose(a_view(buildings=bs))
     settle(src)
-    assert isinstance(src.propose(a_view(buildings=bs)), Rest) and src.calls[0]["error"] == "invalid: refused"
+    g = refused_twice(src, a_view(buildings=bs))
+    assert isinstance(g, Rest) and src.calls[0]["error"] == "invalid: refused"
     src, _, _ = make(answer='{"type": "LootBuilding", "building": 6}')
     src.propose(a_view(buildings=bs))
     settle(src)
@@ -511,13 +523,13 @@ def test_each_row_records_its_answer_bytes_and_the_totals_sum_them():
         src.propose(v)
     assert [c["answer_bytes"] for c in src.calls] == [len(answer.encode("utf-8"))] * 2
     assert src.totals() == {"prompt_bytes_total": sum(c["prompt_bytes"] for c in src.calls),
-                            "answer_bytes_total": 2 * len(answer.encode("utf-8"))}
+                            "answer_bytes_total": 2 * len(answer.encode("utf-8")), "reasks_total": 0}   # P26-H
     src2, _, _ = make(returncode=1)
     src2.propose(v)
     settle(src2)
     src2.propose(v)
     assert src2.calls[0]["answer_bytes"] == 0 and src2.totals()["answer_bytes_total"] == 0
-    assert LLMSource(Fallback()).totals() == {"prompt_bytes_total": 0, "answer_bytes_total": 0}
+    assert LLMSource(Fallback()).totals() == {"prompt_bytes_total": 0, "answer_bytes_total": 0, "reasks_total": 0}
 
 
 
@@ -631,8 +643,8 @@ def test_out_of_range_is_measured_from_the_calling_views_pos(calling, collecting
     g = src.propose(a_view(buildings=[], pos={"x": collecting, "y": 200.5, "z": 0}))
     if ok:
         assert g == L.validate({"type": "ExploreToward", "x": 158, "y": 200}) and src.calls[0]["error"] is None
-    else:
-        assert isinstance(g, Rest) and src.calls[0]["error"] == "invalid: out of range"
+    else:                                                            # P26-H: refused, the re-ask starts
+        assert g is None and src.reask is True and src.calls[0]["error"] == "invalid: out of range"
 
 
 def test_a_cooled_answer_reaches_the_next_prompts_last_goal(tmp_path):
@@ -773,16 +785,19 @@ def test_every_object_refused_logs_each_and_carries_the_first_refusal():
     every object passed over is logged `skipped`, the refused in order and then the invalid."""
     answer = ('{"type": "LootBuilding", "building": 2} {"type": "Rest", "seconds": 500} '
               '{"type": "LootBuilding", "building": 3}')
-    src, _, _ = make(answer=answer)
+    src, runner, _ = make(answer=answer)
     src.propose(f7_view())
     settle(src)
-    src.propose(f7_view())
+    assert src.propose(f7_view()) is None                            # P26-H: the re-ask carries the refusal
+    settle(src)
     row = src.calls[0]
     assert row["ok"] is False and row["goal"] is None and row["error"] == "invalid: looted already"
     assert row["skipped"] == [{"goal": {"type": "LootBuilding", "building": 2}, "why": "looted already"},
                               {"goal": {"type": "LootBuilding", "building": 3}, "why": "looted already"},
                               {"goal": None, "why": "Rest.seconds: 500 above the maximum 120"}]
-    assert src.refusal == {"type": "LootBuilding", "args": {"building": 2}, "end": "refused", "why": "looted already"}
+    line = next(ln for ln in runner.calls[1]["input"].splitlines() if ln.startswith("last_goal:"))
+    assert json.loads(line.split(": ", 1)[1]) == {"type": "LootBuilding", "args": {"building": 2}, "end": "refused",
+                                                  "why": "looted already"}
 
 
 OPEN_LINE = ("When the view carries `open`, every listed building is looted: answer one of the goals it names (an "
@@ -794,3 +809,99 @@ def test_system_says_what_the_open_line_means_right_after_the_loop_sentence():
     lines = SYSTEM.splitlines()
     loop = next(i for i, ln in enumerate(lines) if ln.startswith("Your loop, every goal a building"))
     assert lines[loop + 1] == OPEN_LINE and SYSTEM.count(OPEN_LINE) == 1
+
+
+# ---------------------------------------------------------------- P26-H: the re-ask once
+REASK_TAIL = "Your last answer was refused: looted already. Answer a different goal."
+LOOT_2 = '{"type":"LootBuilding","building":2}'
+EXPLORE = '{"type":"ExploreToward","x":10704,"y":10640}'
+
+
+class Answers(Runner):
+    """A fake runner answering `answers` in turn, the last one again once they run out."""
+
+    def __init__(self, clock, answers, **k):
+        super().__init__(clock, **k)
+        self.answers = list(answers)
+
+    def __call__(self, argv, input, timeout, env):
+        self.stdout = envelope(self.answers[min(len(self.calls), len(self.answers) - 1)])
+        return super().__call__(argv, input, timeout, env)
+
+
+def reasking(tmp_path, answers):
+    clock = Clock()
+    runner = Answers(clock, answers)
+    log = str(tmp_path / "goals.log") if tmp_path is not None else None
+    return LLMSource(Fallback(), log_path=log, clock=clock, runner=runner), runner
+
+
+def test_the_reask_tail_renders_last_and_only_on_a_reask_view():
+    """P26-H: the re-ask's view carries `reask_why` (set by the source, so the prompt stays a pure render), read as one
+    more line after every other; no line without it."""
+    v = a_view()
+    assert V.REASK_KEY == "reask_why" and "Answer a different goal" not in render(v)
+    lines = render(dict(v, reask_why="looted already")).splitlines()
+    assert lines[-1] == REASK_TAIL and lines[:-1] == render(v).splitlines()
+
+
+def test_a_refused_answer_is_reasked_once_in_the_same_cycle_and_the_second_taken(tmp_path):
+    """P26-H: every object refused, the source asks once more in the same cycle (no stand-in between), the refusal laid
+    over `last_goal` and the tail line appended; the second answer is taken; both rows carry the one cycle."""
+    src, runner = reasking(tmp_path, [LOOT_2, EXPLORE])
+    v = f7_view()
+    assert src.propose(v) is None and src.reask is False
+    settle(src)
+    assert src.propose(v) is None and src.reask is True and src.NAME == "llm"   # refused: the re-ask runs
+    settle(src)
+    g = src.propose(v)
+    assert g.TYPE == "ExploreToward" and (g.x, g.y) == (10704, 10640) and src.reask is False
+    assert len(runner.calls) == 2 and src.fallback.views == [] and src.refusal is None
+    second = runner.calls[1]["input"].splitlines()
+    assert second[-1] == REASK_TAIL
+    last = json.loads(next(ln for ln in second if ln.startswith("last_goal:")).split(": ", 1)[1])
+    assert last == {"type": "LootBuilding", "args": {"building": 2}, "end": "refused", "why": "looted already"}
+    assert REASK_TAIL not in runner.calls[0]["input"]
+    rows = src.calls
+    assert [(r["cycle"], r["reask"], r["ok"], r["error"]) for r in rows] == [
+        (1, False, False, "invalid: looted already"), (1, True, True, None)]
+    logged = [json.loads(ln) for ln in (tmp_path / "goals.log").read_text(encoding="utf-8").splitlines()]
+    assert [(r["cycle"], r["reask"]) for r in logged] == [(1, False), (1, True)]
+    assert src.totals()["reasks_total"] == 1
+    assert src.propose(v) is None                                     # the next cycle: a fresh call, no tail
+    settle(src)
+    assert REASK_TAIL not in runner.calls[2]["input"]
+    src.propose(v)
+    assert (src.calls[2]["cycle"], src.calls[2]["reask"]) == (2, False)
+
+
+def test_a_reask_refused_again_is_the_stand_in_and_no_third_call(tmp_path):
+    """P26-H: the re-ask's answer is taken or refused for good: refused twice, the fallback stands in, no third call
+    in the cycle, and the second refusal is the next cycle's `last_goal` (the carry unchanged)."""
+    src, runner = reasking(tmp_path, [LOOT_2])
+    v = f7_view()
+    src.propose(v)
+    settle(src)
+    assert src.propose(v) is None and src.reask is True
+    settle(src)
+    assert isinstance(src.propose(v), Rest) and src.NAME == "scripted" and src.reask is False
+    assert len(runner.calls) == 2 and len(src.fallback.views) == 1
+    assert [(r["cycle"], r["reask"], r["error"]) for r in src.calls] == [
+        (1, False, "invalid: looted already"), (1, True, "invalid: looted already")]
+    assert src.refusal == {"type": "LootBuilding", "args": {"building": 2}, "end": "refused", "why": "looted already"}
+    assert src.totals()["reasks_total"] == 1
+    assert src.propose(v) is None                                     # the next cycle: one fresh call
+    settle(src)
+    assert len(runner.calls) == 3 and REASK_TAIL not in runner.calls[2]["input"]
+    assert '"end":"refused"' in runner.calls[2]["input"] and src.refusal is None
+
+
+@pytest.mark.parametrize("answer", ['{"type": "Rest", "seconds": 500}', "no object"])
+def test_an_invalid_or_malformed_answer_is_never_reasked(answer):
+    """P26-H, the amendments' rule: only an answer whose every goal the refusal rule refused is re-asked; an invalid
+    or malformed one is the stand-in at once, as before."""
+    src, runner = reasking(None, [answer, EXPLORE])
+    src.propose(f7_view())
+    settle(src)
+    assert isinstance(src.propose(f7_view()), Rest) and len(runner.calls) == 1 and src.reask is False
+    assert (src.calls[0]["cycle"], src.calls[0]["reask"]) == (1, False) and src.totals()["reasks_total"] == 0
