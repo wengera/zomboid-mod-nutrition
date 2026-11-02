@@ -1,8 +1,9 @@
-"""e_grade_13 -- the chain sessions' report, pass 13 (Plan 25 Task 15: grade_e13's readings with survival iteration 16's four
-rulings read off the decision log's why fields, the artifact's goals and the state log's frames and map: the stand's early drag
-end, its inside end, the way out and the known blocked edges): e_grade_12.py's command line (that script frozen; CLAUDE.md
-section 5) over grade_e13, gate_e13 and report_lines_e13. What is read beside an artifact, the output and the exit codes are
-e_grade_12.py's.
+"""e_grade_13 -- the chain sessions' report, pass 13 (Plan 25 Task 15 and its fix 1: grade_e13's readings with survival
+iteration 16's four rulings read off the decision log's why fields, the artifact's goals and the state log's frames and map: the
+stand's early drag end, its inside end, the way out and the known blocked edges read through the planner's own edge read; and
+Task 14 fix 1's three: the zombie across its edge out of the hold, the stand's drag before health, the rip under a dirty rag):
+e_grade_12.py's command line (that script frozen; CLAUDE.md section 5) over grade_e13, gate_e13 and report_lines_e13. What is
+read beside an artifact, the output and the exit codes are e_grade_12.py's.
 
     python testing/agent/drivers/e_grade_13.py <artifact.json> [<prev artifact.json>]
     python testing/agent/drivers/e_grade_13.py --chain <a1.json> <a2.json> [...]
