@@ -22,7 +22,6 @@ from agent.base.planner import goals as G
 from agent.base.planner import llm as L
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
-from agent.base.planner import threat as T
 
 from .test_survive import closed_room, last, make, sheltered, shelter_world, threat_why, tick
 from .test_survive_g import care_frame, care_why, hold, part
@@ -41,7 +40,7 @@ def test_the_iteration_15_switches():
     assert "shove_break_run" in F.FIGHT_RULES and P.SHOVE_BREAK_N == 3 and P.SHOVE_REPEAT_S == 3.0
     for name in S.T5_SWITCHES:
         assert getattr(S.Survive, name) is True, name
-    assert not set(S.T5_SWITCHES) & (set(S.T4_SWITCHES) | set(T.T3_SWITCHES))
+    assert not set(S.T5_SWITCHES) & (set(S.T4_SWITCHES) | set(S.T3_SWITCHES))
     assert (P.FLEE_HEALTH_PAIR, P.POINT_BLANK_R, P.DANGER_R, P.FIGHT_REACH) == (60.0, 1.0, 6.0, 2.0)
     assert (P.FLEE_HEALTH, P.FLEE_HEALTH_FLOOR) == (40.0, 20.0)
 
@@ -334,8 +333,11 @@ def test_with_trapped_care_off_the_trapped_hold_sends_nothing(tmp_path):
 
 # ================================================================ P25-R: the prompt and the `toward` square
 def test_the_loop_sentence_says_the_program_fights_only_with_a_weapon():
-    assert ("the program fights the zombies near you itself while it holds a weapon; with `weapon` null it flees "
-            "them, so loot for a weapon first") in L.SYSTEM
+    """Named change, ruling P25-Z (Plan 25's close fix): unarmed, the program shoves and stomps a lone zombie (P25-P's
+    unarmed fight) and flees two or more; the prompt said it fled them all."""
+    assert ("the program fights the zombies near you itself while it holds a weapon; with `weapon` null it shoves and "
+            "stomps a lone zombie and flees two or more, so loot for a weapon first; you loot the nearest building")         in L.SYSTEM
+    assert "with `weapon` null it flees them" not in L.SYSTEM
     assert "the program clears the zombies near you itself" not in L.SYSTEM
 
 

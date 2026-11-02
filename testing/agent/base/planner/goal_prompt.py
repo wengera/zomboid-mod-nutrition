@@ -79,11 +79,12 @@ def system(explore_max_tiles):
                  "%g tiles of it." % (SHUN_MIN, BUILDING_ZOMBIE_R))
     lines.append("The refusal rule: name a building only by an id the view lists; an ExploreToward square within "
                  "%g tiles of pos and, once the view lists a building, within woods_r tiles of one (the view's "
-                 "woods_r, %g at the start; farther is the woods); a LootBuilding only a building listed without the L flag; a "
-                 "Shelter only a building listed without the s flag. An answer breaking it is refused "
+                 "woods_r, %g at the start; farther is the woods); a LootBuilding only a building listed without the "
+                 "L flag; a Shelter only a building listed without the s flag. An answer breaking it is refused "
                  "and the program chooses instead." % (explore_max_tiles, WOODS_R))
     lines.append("Your loop, every goal a building: the program fights the zombies near you itself while it holds a "
-                 "weapon; with `weapon` null it flees them, so loot for a weapon first; you loot the nearest building "
+                 "weapon; with `weapon` null it shoves and stomps a lone zombie and flees two or more, so loot for a "
+                 "weapon first; you loot the nearest building "
                  "listed without L within %g tiles (LootBuilding), then the next nearest (h: lists what each building "
                  "is known to hold); walk only toward buildings: toward names the next building to walk to when none "
                  "is near (its door); an ExploreToward at its square is always accepted, and an ExploreToward finds "

@@ -24,7 +24,6 @@ import pytest
 from agent.base.planner import fight as F
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
-from agent.base.planner import threat as T
 
 from .test_policies import all_sends_valid
 from .test_survive import make, threat_why, tick
@@ -72,9 +71,9 @@ def test_the_spent_view_reads_the_stiffness_for_the_arms_and_the_fatigue_for_tir
 def test_the_iteration_13_constants():
     assert P.SHOVE_REPEAT_S == 3.0 and (P.HOLD_SPAN_MIN, P.HOLD_QUIET_S) == (15.0, 20.0)
     assert P.DOOR_WALK_S == 20.0 and P.FENCE_BACK_R == (1.5, 2.5)
-    for name in T.T3_SWITCHES:
+    for name in S.T3_SWITCHES:
         assert getattr(S.Survive, name) is True, name
-    assert T.T3_SWITCHES == ("CORNER_BREAK", "FINISH_FIRST", "HOLD_RUN", "RIDE_WAIT", "DOOR_WALK", "FENCE_WAIT")
+    assert S.T3_SWITCHES == ("CORNER_BREAK", "FINISH_FIRST", "HOLD_RUN", "RIDE_WAIT", "DOOR_WALK", "FENCE_WAIT")
 
 
 # ================================================================ P25-A: the corner under a hold

@@ -24,7 +24,6 @@ DIRTY_RAG_MIN no longer blocks the rip or the unwear (`DIRTY_RAG_RIP`; F6, `f_go
 from agent.base.planner import doorway as D
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
-from agent.base.planner import threat as T
 
 from .test_night import OPEN, house
 from .test_policies import all_sends_valid, grid, square
@@ -40,7 +39,7 @@ def test_the_iteration_16_switches():
     assert S.T6_SWITCHES == ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE", "EDGE_OUT_OF_HOLD",
                              "DIRTY_RAG_RIP")
     assert D.STAND_EXIT_ENDS == ("wound", "drag", "inside")
-    assert all(getattr(T.Threat, name) is True for name in S.T6_SWITCHES)
+    assert all(getattr(S.Survive, name) is True for name in S.T6_SWITCHES)
 
 
 # ================================================================ P25-U: the stand leaves at two attackers
@@ -597,7 +596,7 @@ def _dirty_rig(tmp_path, held, bleeding_time=3.0, garments=None, switch=True, un
 
 
 def test_the_iteration_16_care_switch():
-    assert S.T6_SWITCHES[-1] == "DIRTY_RAG_RIP" and T.Threat.DIRTY_RAG_RIP is True
+    assert S.T6_SWITCHES[-1] == "DIRTY_RAG_RIP" and vars(S.Survive)["DIRTY_RAG_RIP"] is True
 
 
 def test_a_dirty_rag_alone_under_dirty_rag_min_no_longer_blocks_the_rip_of_an_unworn_garment(tmp_path):

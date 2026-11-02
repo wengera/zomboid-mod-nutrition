@@ -85,7 +85,9 @@ only within DANGER_R) re-recorded all six: `Survive.IDLE` off reproduces the fil
 (`test_replay_decisions.PRE_AD`, `pre_ad`), each moving first where its `many` read first differs
 (`FIRST_IDLE`: e2 146, e3 214, e4 381, e5 215, f1 and the sixth 163), every later moved line downstream of it.
 Ruling P24-AX (Plan 24 survival iteration 12) re-recorded all six (`da9af9b9`; `doorway_pick` on every `many` line;
-`pre_t36`). Ruling P25-X (Plan 25 Task 14, survival iteration 16) re-recorded all six (`427c0b2d`), each moving first at
+`pre_t36`). Ruling P25-C (Plan 25 Task 3, survival iteration 13) re-recorded E4 alone (`56c0dabe`), first moved at line
+431, the strain steer at a walk; `T3_SWITCHES` off reproduces the files before it (`PRE_T3`, `pre_t3`).
+Ruling P25-X (Plan 25 Task 14, survival iteration 16) re-recorded all six (`427c0b2d`), each moving first at
 its first engage, the gate zombie on the fence row at y 10642 refused (`blocked_edge` refuse); `survive.T6_SWITCHES` off
 reproduces the files before it byte for byte (`test_replay_decisions.PRE_T6`, `pre_t6`). Its amendment in Task 14 fix 1
 (`EDGE_OUT_OF_HOLD`: the refused zombie, read across its edge, is out of the hold, so the `unreachable` flee that

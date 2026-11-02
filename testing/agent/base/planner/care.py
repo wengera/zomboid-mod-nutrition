@@ -58,13 +58,13 @@ the least (`_unwear_pick`: the item record's `worn` and `rip` "cotton", its clot
 ties by the least id; never at a shoe or trouser location, UNWEAR_NEVER over the clothing record's `loc`), one per
 item per WEAR_RETRY_MIN game minutes, none while the last one's garment still reads worn within WEAR_SETTLE_MAX frames
 of its done; once its `item_changed` reads it unworn the bleeding step (or the stock) rips that same item first
-(`_rip_item`). Never under a threat held: the stock runs only on Survive's idle tick. The unwear under a goal
-(ruling P25-H, Plan 25 Task 7; F4, `f_goals_5-20261030-180527`: part 8 bled on 904 decision lines from game minute
-1351, every cotton garment worn, and a night of Shelter goals and flees gave the stock no idle tick, health 100 to
-3.4362869262695312): the bleeding step itself takes the same unwear as its last step (`_unwear_step`, logged `{reason "unwear", part,
-item, loc, cover}`) with no dressing of any kind held, nothing unworn to rip, no ride and `quiet`, on any care tick
-(the care branch runs before the goal's, so it pre-empts a running goal); Survive's `UNWEAR_WOUND` off is the rule
-before it.
+(`_rip_item`). Never under a threat held: the stock runs only on Survive's idle tick. The unwear under a goal (ruling
+P25-H, Plan 25 Task 7; F4, `f_goals_5-20261030-180527`: part 8 bled on 904 decision lines from game minute 1351, every
+cotton garment worn, and a night of Shelter goals and flees gave the stock no idle tick, health 100 to
+3.4362869262695312): the bleeding step itself takes the same unwear as its last step (`_unwear_step`, logged
+`{reason "unwear", part, item, loc, cover}`) with no dressing of any kind held, nothing unworn to rip, no ride and
+`quiet`, on any care tick (the care branch runs before the goal's, so it pre-empts a running goal); Survive's
+`UNWEAR_WOUND` off is the rule before it.
 The wear (Plan 24 Task 24, review-t9-fix9's ruling 5; PZA/1.6.1's `me.worn` with each entry's `holes` and `cond`): on
 the same idle tick as the rag stock, after it, `stock()` answers `Wear(itemId)` of the held unworn garment whose
 clothing record beats what is worn at its location (`wear_gain`: `cond` above 0, `holes` 0, bite + scratch above the
@@ -221,9 +221,9 @@ class Care(Policy):
         self.unworn_item = None   # the id the last unwear took off, ripped first once it reads unworn (P24-AJ)
         self.unwear_wound = True  # ruling P25-H: the bleeding step unwears on a quiet tick (Survive sets it each care
                                   # tick from its `UNWEAR_WOUND` switch); off, the idle stock alone unwears (P24-AJ)
-        self.dirty_rag_rip = True  # ruling P25-Y: a dirty rag alone, its part's bleedingTime at or under DIRTY_RAG_MIN, does
-                                   # not block the rip or the unwear (Survive sets it each tick from `DIRTY_RAG_RIP`); off,
-                                   # a dressing of any kind held blocks both (iteration 15)
+        self.dirty_rag_rip = True  # ruling P25-Y: a dirty rag alone held, its part's bleedingTime at or under
+                                   # DIRTY_RAG_MIN, does not block the rip or the unwear; off, a dressing of any kind
+                                   # held blocks both (Survive sets it each tick from its `DIRTY_RAG_RIP`)
         self.trapped = False      # ruling P25-Q: the tick is the threat's trapped hold passed on (Survive sets it each
                                   # care tick): the bleeding step's unwear goes as on a quiet tick (never the wash)
 
@@ -364,7 +364,7 @@ class Care(Policy):
         a rip or an unwear (either stops the leg). Ruling P25-Y (F6, `f_goals_7-20261031-000629`: part 3 bled from game
         minute 701 to 743 with a dirty rag the only dressing held, the bleedingTime under DIRTY_RAG_MIN, and a cotton
         T-shirt held unworn): "no rag of any kind held" means no clean bandage or rag (`dirty_rag_rip`); the dirty rag
-        alone, the time rule not allowing it, no longer blocks the rip or the unwear, logged `dirty` (its id). The
+        alone, the time rule not allowing it, does not block the rip or the unwear, logged `dirty` (its id). The
         yield's reads (`tends_wound`, `rides_wound`) and the want's
         (`wants_dressing`) read it without the unwear: a tick whose step is the unwear sends, so it wants no loot."""
         w = self.world

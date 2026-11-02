@@ -18,7 +18,6 @@ from agent.base.planner import care as C
 from agent.base.planner import doorway as D
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
-from agent.base.planner import threat as T
 from agent.base.planner import view as V
 
 from .test_policies import all_sends_valid
@@ -35,7 +34,7 @@ def test_the_iteration_14_switches_and_constant():
     assert S.T4_SWITCHES == ("UNWEAR_WOUND", "FINISH_FAR", "STAND_WOUND", "SHOVE_BREAK", "SHELTER_LEGS")
     for name in S.T4_SWITCHES:
         assert getattr(S.Survive, name) is True, name
-    assert P.SHOVE_BREAK_N == 3 and not set(S.T4_SWITCHES) & set(T.T3_SWITCHES)
+    assert P.SHOVE_BREAK_N == 3 and not set(S.T4_SWITCHES) & set(S.T3_SWITCHES)
     assert P.SHOVE_BREAK_N * P.SHOVE_REPEAT_S == BREAK_WINDOW_S
 
 

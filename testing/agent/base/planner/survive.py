@@ -224,64 +224,22 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     `TRANS`, `HOLD_WIDE`, `STANCE_LISTED`).
   - Survival 13 (Task 36, E10): item 25: P24-AT to P24-AY (`hold.Hold`, `pull.FightPull`, `finish.py`, `water.py`,
     `doorway.DoorwayStand`; `EDGE`, `PICK_WHY`).
-- Survival 14 (Plan 25 Task 3, survival iteration 13, E11 and F3): `2026-10-30-plan-25-the-kills-design.md` § 2.1
-  (a)-(f), rulings P25-A to P25-F in the plan's Task 3: the missed shove's swing or break (`fight.Fight._corner`,
-  `CORNER_BREAK`), the stomp first (`Fight._finish_first`, `FINISH_FIRST`), the endurance hold's walk and its timed
-  release (`hold.Hold._read_endurance`, `_hold_walk`, `HOLD_RUN`; the goal view's `spent`, `spent_view`), the ride's
-  wait (`Fight._ride_waits`, `RIDE_WAIT`), the stand's stalled walk (`flee.Flee._door_stall`, `DOOR_WALK`) and the
-  fence wait (`Fight._fence_wait`, `FENCE_WAIT`); `threat.T3_SWITCHES` off is the rule before them.
-- Survival 15 (Plan 25 Task 7, survival iteration 14, F4 and E12): rulings P25-G to P25-I in the plan's Task 7: the
-  shelter shun loop closed (`llm.place_error` refuses a Shelter of a building flagged `s`, `invalid: shunned`;
-  `view.why_of` reads a shun, `no plan` or `no door` as `shunned`; `goal_policies.Shelter.start` ends a shunned
-  building's goal `failed "shunned"` before any walk; `GoalRunner._close` cools a goal failed for a shun whatever it
-  sent, `goals.COOL_REASONS`; the prompt's `s` flag and strategy clause), the unwear under a goal (`care.Care._wound`'s
-  last step, `UNWEAR_WOUND`; `T4_SWITCHES` off is the rule before it), and the corner's third branch logged
-  (`fight.Fight._corner`'s `corner` {kind "shove"}).
-- Survival 16 (Plan 25 Task 8, survival iteration 14's second half, E12): rulings P25-J to P25-M in the plan's Task 8:
-  the fallen finished out to FINISH_R with no standing zombie within KEEP_R (`finish.finish_rule`,
-  `_finishable`; the doorway stand bounded by its post, `doorway.Doorway._finish_post`; the `pair` flee yields to the
-  stomp, `finish.ThreatFinish._pair_finish` before it and `_pair_flee_finish` inside it, one rule with the Fight's,
-  the knock window included, at Task 8 fix 1; logged `pair_yield`; `FINISH_FAR`), the doorway stand's `wound` end (a part
-  bleeding since the stand began, `DoorwayStand._stand_wound`, logged `doorway_left` "wound" and `doorway_wound`;
-  `STAND_WOUND`), the break after SHOVE_BREAK_N missed shoves at a lone target (`shove.FightShove._corner`'s `corner`
-  {kind "break", misses}; `SHOVE_BREAK`), and the hold's release as a why (`hold.Hold._note_release`, `release` on the
-  threat why, no switch); `T4_SWITCHES` off is the rule before the three switched. The amendments: P25-O (the hello's
-  two-number mod version, `World.item_fields`: no switch, a defect) and P25-N (a Shelter goal's and the night's
-  approach to a far door in legs, `goal_policies.Shelter`, `night.Night._leg`; `SHELTER_LEGS`).
-- Survival 17 (Plan 25 Task 10, survival iteration 15, F5 and E13): the rulings in the plan's Task 10 and its
-  amendments: P25-P, the unarmed fight (no weapon held, one zombie within DANGER_R and the health at or above
-  FLEE_HEALTH_PAIR on a build announcing `shove`: the Fight's stance, the shove at point blank and the stomp, never a
-  swing or a seek; the trapped fight unarmed within FIGHT_REACH; the doorway stand armed-only;
-  `threat.Threat._unarmed_fight`, `Fight.shove_only` "unarmed", logged `unarmed_fight` and `shove` "unarmed"; `UNARMED_FIGHT`);
-  P25-Q, the trapped hold yields to care (the Flee's trapped hold, no command, passes the tick to the care branch,
-  whose bleeding step bandages, rips or unwears as on a quiet tick, never the wash; `Survive.assess`,
-  `trapped_pass`, `care.Care.trapped`; `TRAPPED_CARE`); P25-S, the low fight (under FLEE_HEALTH, at or above
-  FLEE_HEALTH_FLOOR, one zombie within DANGER_R: the same shove-and-stomp Fight in place of the `health` flee;
-  `threat.Threat._low_fight`, `Fight.shove_only` "low", logged `low_fight` and `shove` "low"; `LOW_FIGHT`); P25-T,
-  the break's misses counted over the Fight's life (any spacing, cleared by a knock-down at the target or the Fight's
-  end; a shove at a target with a miss on record consults the two-zombie and the lone breaks (`_run_break`) outside
-  SHOVE_REPEAT_S;
-  `shove.FightShove._missed_n`, `_lone_break`, logged `corner` {kind "break", misses}; `SHOVE_BREAK_RUN`);
-  `T5_SWITCHES` off is the rule before them.
-- Survival 18 (Plan 25 Task 14, survival iteration 16, E14): the rulings in the plan's Task 14: P25-U, the doorway
-  stand's `drag` end at DRAG_DOWN_N - 1 attackers (`doorway.DoorwayStand._stand_drag_n`, read before the drag-down
-  guard on a tick, `_doorway` being the threat plan's first row; logged `doorway_drag`; `STAND_DRAG_EARLY`); P25-V,
-  the stand's `inside` end (a standing zombie on a square of the stand's room, `doorway.stand_room`, off the door
-  square and not the stand's target; `DoorwayStand._stand_inside`, logged `doorway_inside` {id, square};
-  `STAND_INSIDE`); P25-W, a stand ended `wound`, `drag` or `inside` walks out by the way out, never the close (the
-  plan dropped and the adoption spent, `flee.Flee.walk_out`, the trapped hold with none; the way out runs ahead of
-  every row as the close ran, `Flee.stand_exit_running`; logged `doorway_exit` {end, exit: door | opening | trapped |
-  steer | deferred}; `STAND_EXIT`); P25-X (the amendment, E15's 158 game minutes at a zombie behind a locked
-  gate), a known blocked outdoor edge (blocked, not hoppable, its door records locked or barricaded) on the straight
-  line to a Fight's target, a goal's or a fill's source is routed through the unlocked door record on its run, else
-  refused: the Fight's target marked until read on the player's side (`edges.FightEdge`, `ThreatEdge`,
-  `edge_marks`), the goal ended `failed "blocked edge"` and cooled (`edges.GoalEdge`), the fill's next source taken
-  (`water.Water.plan`); logged `blocked_edge` {edge, door, action}; `BLOCKED_EDGE`); P25-X amended by Task 14 fix 1, a
-  zombie so marked and read across its edge is out of the hold (`_edge_out`, read by `_within`; `EDGE_OUT_OF_HOLD`); the
-  stand's end table reads `drag` before `health` (`STAND_DRAG_EARLY`); P25-Y (fix 1, F6: part 3 bled 42 game
-  minutes with a dirty rag the only dressing held and a cotton T-shirt unworn), a dirty rag alone, its part's
-  `bleedingTime` at or under DIRTY_RAG_MIN, no longer blocks the rip or P25-H's unwear (`care.Care._wound`, logged
-  `dirty`; `DIRTY_RAG_RIP`); `T6_SWITCHES` off is the rule before them.
+- Survivals 14 to 18 (Plan 25's iterations 13 to 16): the record is `docs/reference/research-notes.md#agent-link`'s
+  "Iteration 13" to "Iteration 16" bullets and § 2 of the close report,
+  `docs/superpowers/specs/2026-11-02-plan-25-the-kills-report.md`, one line an iteration, and the module docstrings
+  named:
+  - Survival 14 (iteration 13, E11 and F3): P25-A to P25-F (`shove.FightShove._corner`,
+    `finish.FightFinish._finish_first`, `fight.Fight._ride_waits`, `_fence_wait`, `hold.Hold._read_endurance`,
+    `_hold_walk`, `flee.Flee._door_stall`); `T3_SWITCHES`.
+  - Survival 15 (iteration 14, F4 and E12): P25-G to P25-I (`llm.place_error`'s shun, `goals.COOL_REASONS`,
+    `care.Care._wound`'s unwear, `shove.FightShove._corner`'s why); `UNWEAR_WOUND` in `T4_SWITCHES`.
+  - Survival 16 (iteration 14's second half, E12): P25-J to P25-O (`finish.finish_rule`, `DoorwayStand._stand_wound`,
+    `shove.FightShove._corner`, `hold.Hold._note_release`, `World.item_fields`, `night.Night._leg`); `T4_SWITCHES`.
+  - Survival 17 (iteration 15, F5 and E13): P25-P to P25-T (`threat.Threat._unarmed_fight`, `_low_fight`,
+    `care.Care.trapped`, `goal_prompt.py`'s loop, `shove.FightShove._missed_n`); `T5_SWITCHES`.
+  - Survival 18 (iteration 16, E14, E15 and F6): P25-U to P25-Y (`doorway.DoorwayStand`, `flee.Flee.walk_out`,
+    `planner/edges.py`, `Survive._edge_out`; a dirty rag alone does not block the rip or the unwear,
+    `care.Care._wound`'s `dirty`); `T6_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -376,15 +334,22 @@ HUNGER_T = 0.15          # the first HUNGRY moodle fires above 0.15 [#0508]
 BRANCHES = ("threat", "care", "need", "load", "night", "goal")
 STEPS = ("threat", "care", "need", "load", "night", "stock", "goal")   # assess() tries these in order: BRANCHES with the
                          # care's rag stock (P24-AB) before the goal (it logs under `care`, why `stock`)
-T4_SWITCHES = ("UNWEAR_WOUND", "FINISH_FAR", "STAND_WOUND", "SHOVE_BREAK", "SHELTER_LEGS")   # survival iteration
-                         # 14 (Plan 25 Tasks 7 and 8): the switches of P25-H, P25-J, P25-K, P25-L and P25-N; off, the
-                         # rule before each
-T5_SWITCHES = ("UNARMED_FIGHT", "TRAPPED_CARE", "LOW_FIGHT", "SHOVE_BREAK_RUN")   # survival iteration 15 (Plan 25
-                         # Task 10): the switches of P25-P, P25-Q, P25-S and P25-T; off, the rule before each
+# The iteration switches (Plan 25), one home: each switch off is the rule before it, and each tuple off is the replay
+# tests' seam onto the goldens before its iteration (`test_replay_decisions.pre_t3` to `pre_t6`, each turning the later
+# tuples off too). Each comment names the class holding each switch (`Survive` derives from `threat.Threat`).
+T3_SWITCHES = ("CORNER_BREAK", "FINISH_FIRST", "HOLD_RUN", "RIDE_WAIT", "DOOR_WALK", "FENCE_WAIT")
+# survival iteration 13 (Plan 25 Task 3): P25-A to P25-F, all on `threat.Threat`
+T4_SWITCHES = ("UNWEAR_WOUND", "FINISH_FAR", "STAND_WOUND", "SHOVE_BREAK", "SHELTER_LEGS")
+# survival iteration 14 (Plan 25 Tasks 7 and 8): P25-H and P25-N on `Survive` (UNWEAR_WOUND, SHELTER_LEGS); P25-J,
+# P25-K and P25-L on `threat.Threat` (FINISH_FAR, STAND_WOUND, SHOVE_BREAK)
+T5_SWITCHES = ("UNARMED_FIGHT", "TRAPPED_CARE", "LOW_FIGHT", "SHOVE_BREAK_RUN")
+# survival iteration 15 (Plan 25 Task 10): P25-Q on `Survive` (TRAPPED_CARE); P25-P, P25-S and P25-T on
+# `threat.Threat` (UNARMED_FIGHT, LOW_FIGHT, SHOVE_BREAK_RUN)
 T6_SWITCHES = ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE", "EDGE_OUT_OF_HOLD",
-              "DIRTY_RAG_RIP")   # survival
-                         # iteration 16 (Plan 25 Task 14): the switches of P25-U, P25-V, P25-W and P25-X (the amendment
-                         # and its fix 1) and P25-Y (fix 1); off, the rule before each
+               "DIRTY_RAG_RIP")
+# survival iteration 16 (Plan 25 Task 14): P25-U, P25-V, P25-W and P25-X (the amendment and its fix 1) on
+# `threat.Threat` (STAND_DRAG_EARLY, STAND_INSIDE, STAND_EXIT, BLOCKED_EDGE, EDGE_OUT_OF_HOLD); P25-Y (fix 1) on
+# `Survive` (DIRTY_RAG_RIP)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -404,8 +369,8 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "HOLD_BREAK_R", "CLOSING_TICKS", "CORNERED_R", "CORNER_FREE_R", "FLIP_MIN_S", "GROUP_R_N", "GROUP_NEAR_R",
            "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "MANY_LISTED_N", "DRAG_DOWN_N", "FINISH_R",
            "NEED_STATS", "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_RETRY_MIN", "FILL_SETTLE_S", "FILL_WANTS",
-           "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T4_SWITCHES",
-           "T5_SWITCHES", "T6_SWITCHES"]
+           "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T3_SWITCHES",
+           "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES"]
 
 
 @dataclass
@@ -427,9 +392,14 @@ class Survive(Threat):
     UNWEAR_WOUND = True   # ruling P25-H (Plan 25 Task 7): the care branch's bleeding step unwears a garment to rip on
                           # any quiet care tick (`care.Care._wound`); off, only the idle stock does (P24-AJ). In
                           # T4_SWITCHES, the replay tests' seam onto the goldens before Task 7 (`pre_t4`)
+    DIRTY_RAG_RIP = True  # ruling P25-Y (Plan 25 Task 14 fix 1): a dirty rag alone held, no clean bandage or rag, its
+                          # part's bleedingTime at or under DIRTY_RAG_MIN, does not block the rip of an unworn cotton
+                          # garment or P25-H's unwear (`care.Care._wound`); off, a dressing of any kind held blocks
+                          # both. Set on the Care each tick (`_read`). In T6_SWITCHES (`pre_t6`)
 
-    SHELTER_LEGS = True   # ruling P25-N (Plan 25 Task 8): a Shelter goal's and the night's approach to a far door in legs
-                          # (`goal_policies.Shelter`, `night.Night._leg`); set on the goals' kit and the Night each tick
+    SHELTER_LEGS = True   # ruling P25-N (Plan 25 Task 8): a Shelter goal's and the night's approach to a far door in
+                          # legs (`goal_policies.Shelter`, `night.Night._leg`); set on the goals' kit and the Night each
+                          # tick
 
     TRAPPED_CARE = True   # ruling P25-Q (Plan 25 Task 10): a threat tick whose answer is the Flee's trapped hold passes
                           # the tick to the care branch (`assess`, `trapped_pass`); off, the hold takes it. In
@@ -487,7 +457,8 @@ class Survive(Threat):
         self.release = None       # this tick: {kind, why, endurance | armPain, held_min} of a hold released (P25-M)
         self.stand_wound = None   # this tick: the parts newly bleeding that ended the doorway stand (P25-K), else None
         self.stand_drag = None    # this tick: the attackers that ended the doorway stand `drag` (P25-U), else None
-        self.stand_inside = None  # this tick: {id, square} of the zombie that ended the stand `inside` (P25-V), else None
+        self.stand_inside = None  # this tick: {id, square} of the zombie that ended the stand `inside` (P25-V), else
+                                  # None
         self.stand_exit = None    # this tick: the stand's end its Flee walks out on (P25-W), else None
         self.pair_yield = None    # this tick: the fallen zombie's id the `pair` flee yielded to (P25-J), else None
         self.fight_refused = {}   # the last Fight's `swing_refused`, kept for the `pair` flee's finish (P25-J, 8 fix 1)
@@ -546,9 +517,9 @@ class Survive(Threat):
     def _edge_out(self):
         """The ids counted out of the hold now (ruling P25-X, amended by Task 14 fix 1; E15's gate zombie held the
         threat branch in `unreachable` flees for as long as it stayed within the hold radius across the fence): each
-        zombie marked for a blocked edge (`edge_marks`, a blocked and not hoppable outdoor edge, so it cannot hop it) and
-        read on the far side of that edge from the player (`edges.same_side`). It counts again the tick it reads on the
-        player's side (`_release_edges` frees its mark then). Empty with `EDGE_OUT_OF_HOLD` off or no mark."""
+        zombie marked for a blocked edge (`edge_marks`, a blocked and not hoppable outdoor edge, so it cannot hop it)
+        and read on the far side of that edge from the player (`edges.same_side`). It counts again the tick it reads on
+        the player's side (`_release_edges` frees its mark then). Empty with `EDGE_OUT_OF_HOLD` off or no mark."""
         if not self.EDGE_OUT_OF_HOLD or not self.edge_marks:
             return frozenset()
         me = me_xy(self.world)
@@ -918,6 +889,8 @@ class Survive(Threat):
         for p in self._policies():
             p.world, p.actions = world, actions
         self.water.world, self.water.actions = world, actions
+        self.care.dirty_rag_rip = self.DIRTY_RAG_RIP   # P25-Y: read by the threat branch's care yield (`tends_wound`,
+                                                      # `rides_wound`) before the care branch, so set at the tick's read
         self.ticks += 1
         self._observed = []
         self._note_failures()
@@ -935,12 +908,12 @@ class Survive(Threat):
         return inputs
 
     def _read_observes(self):
-        """Plan 25 Task 2 (`OBSERVES_IN_READ`; Plan 24's close review, minor 8): every observe of a policy the tick holds,
-        in the order `assess` ran them before: the running Fight's (its kill read, `_fight_kill`), the threat branch's
-        bookkeeping (`_threat_read`: the held list, the Flee's observe over it, the breach's count), the Care's and
-        the Night's. Each reads its action ends and marks the World (`unreachable`, `unrippable`, `in_bag`,
-        `mark_dry`, the shuns), so `assess` decides over a World no observe changes after; a policy `assess` makes
-        (a new Fight, Flee or Doorway) takes its first observe at its answer (`_answer`)."""
+        """Plan 25 Task 2 (`OBSERVES_IN_READ`; Plan 24's close review, minor 8): every observe of a policy the tick
+        holds, in the order `assess` ran them before: the running Fight's (its kill read, `_fight_kill`), the threat
+        branch's bookkeeping (`_threat_read`: the held list, the Flee's observe over it, the breach's count), the Care's
+        and the Night's. Each reads its action ends and marks the World (`unreachable`, `unrippable`, `in_bag`,
+        `mark_dry`, the shuns), so `assess` decides over a World no observe changes after; a policy `assess` makes (a
+        new Fight, Flee or Doorway) takes its first observe at its answer (`_answer`)."""
         self._fight_kill = None
         if self.fight is not None:
             self._observe(self.fight)

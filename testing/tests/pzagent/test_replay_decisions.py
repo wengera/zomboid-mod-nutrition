@@ -77,10 +77,10 @@ def pre_t36(sv, keep=()):
 
 def pre_t3(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 25 Task 3 (survival iteration 13): its switches off
-    (`threat.T3_SWITCHES`: CORNER_BREAK, P25-A; FINISH_FIRST, P25-B; HOLD_RUN, P25-C; RIDE_WAIT, P25-D; DOOR_WALK,
+    (`survive.T3_SWITCHES`: CORNER_BREAK, P25-A; FINISH_FIRST, P25-B; HOLD_RUN, P25-C; RIDE_WAIT, P25-D; DOOR_WALK,
     P25-E; FENCE_WAIT, P25-F), but those named in `keep`. Plan 25 Task 7: iteration 14's switch (`pre_t4`) off with
     them, so every seam onto an earlier rule reads it off."""
-    for name in T.T3_SWITCHES:
+    for name in S.T3_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
     pre_t4(sv)
@@ -1364,7 +1364,7 @@ PRE_T3 = {"e2": ("f2edee8655bb6c6706ce8b2af99daff97445d4a1673ed2799e912fdf0e266c
 
 @pytest.mark.parametrize("key", sorted(PRE_T3))
 def test_with_iteration_13_off_the_goldens_are_task_2_s(key):
-    """Iteration 13's golden movers are `threat.T3_SWITCHES`: with them off every golden is the file as it stood
+    """Iteration 13's golden movers are `survive.T3_SWITCHES`: with them off every golden is the file as it stood
     before Task 3 byte for byte (its sha256 pinned), so the rules without a switch (the goal view's `spent`, the
     imports, `World.fence_crossing` under `fence_on_line`, the Fight's `_standing`) move none."""
     sha, base, recorded = PRE_T3[key]
@@ -1398,7 +1398,7 @@ def test_iteration_13_moves_e4_alone_at_the_endurance_hold_s_first_walk(key):
         assert pre_t6_sha(key) == PRE_T3[key][0]
         return
     assert diff[0] == min(FIRST_T3[key].values())
-    for switch in T.T3_SWITCHES:
+    for switch in S.T3_SWITCHES:
         alone = _only_t3(key, switch)
         moved = [k for k in sorted(set(base) | set(alone)) if base.get(k) != alone.get(k)]
         assert (moved[0] if moved else None) == FIRST_T3[key].get(switch), switch

@@ -28,8 +28,6 @@ from agent.base.planner.policies import (AIM_R, CLOSING_TICKS, CORNERED_R, CORNE
 from agent.base.planner.pull import ThreatPull
 from agent.base.pza1 import Drop
 
-T3_SWITCHES = ("CORNER_BREAK", "FINISH_FIRST", "HOLD_RUN", "RIDE_WAIT", "DOOR_WALK", "FENCE_WAIT")   # P25-A..F
-
 __all__ = ["Threat", "FLEE_HEALTH", "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_FIGHT", "HOLD_BREAK_R", "CLOSING_TICKS",
            "CORNERED_R", "CORNER_FREE_R", "MANY_LISTED_N", "FINISH_R", "DRAG_DOWN_N", "FLIP_MIN_S", "GROUP_R_N",
            "GROUP_NEAR_R", "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "LISTED_R"]
@@ -68,7 +66,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                               # tick's read (the Night, the Care, the Fight, the Flee) and the threat's bookkeeping run
                               # in `Survive._read`; off, inside `assess` as before (the replay tests' seam, `pre_t2`)
     # survival iteration 13 (Plan 25 Task 3; survive.py's docstring, Survival 14): each switch off is the rule before
-    # it, and all of them off (`T3_SWITCHES`) the replay tests' seam onto the goldens before Task 3 (`pre_t3`)
+    # it, and all of them off (`survive.T3_SWITCHES`) the replay tests' seam onto the goldens before Task 3 (`pre_t3`)
     CORNER_BREAK = True   # ruling P25-A: after a missed shove the swing (one in reach) or the break (two), never a
                           # second shove within SHOVE_REPEAT_S (`policies.Fight._corner`)
     FINISH_FIRST = True   # ruling P25-B: a fallen zombie within FINISH_R stomped before an attack's walk
@@ -110,9 +108,6 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     EDGE_OUT_OF_HOLD = True   # ruling P25-X, amended (Task 14 fix 1): a zombie marked for a blocked edge (`edge_marks`)
                               # and read across it is out of the hold (`Survive._within`: the held set, `_released`, the
                               # DANGER_R count the `unreachable` flee reads); off, it counts as before
-    DIRTY_RAG_RIP = True  # ruling P25-Y (Task 14 fix 1): a dirty rag held with no clean dressing, its part's bleedingTime at
-                          # or under DIRTY_RAG_MIN, no longer blocks the rip of an unworn cotton garment nor P25-H's unwear
-                          # (`care.Care._wound`); off, a dressing of any kind held blocks both
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -584,7 +579,6 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         breach's closing count (`_breach_now`). Read in `_read` (Plan 25 Task 2, `OBSERVES_IN_READ`), else at the
         threat branch's start in `assess` (the rules before it)."""
         self.care_yield, self.care.ride_now, self.engaging, self.avoid = None, False, False, set()
-        self.care.dirty_rag_rip = self.DIRTY_RAG_RIP   # P25-Y, read by the care's yield reads as well as its choose
         self.finish_block = None   # Task 36 fix 1: this tick's refusal only (`_finish_chaser` sets it)
         self._release_edges()   # P25-X: a zombie refused across a blocked edge, read on the player's side, is free
         self._held, self._breach_now = [], None
