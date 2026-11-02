@@ -219,3 +219,63 @@ def test_e16_s_trapped_group_walks_out_by_the_window_and_with_the_switch_off_hol
             assert w["window"] == [10710, 10596] and w["step"] == "window" and "trapped" not in w
         else:
             assert w.get("trapped") == 1 and "window" not in w
+
+
+# ================================================================ P26-B: the stand's second way out
+EAST = [(1, 10718.5, 10596.5), (2, 10719.0, 10599.0), (3, 10719.0, 10594.0)]   # three east of the shed, within DANGER_R
+
+
+def pick_line(tmp_path, window_exit=True, second_exit=True, **shed_k):
+    """E16's line 440 (the `many` flee's pick from outside, the door closed): the player on open ground two tiles east
+    of the door, three zombies east of it within DANGER_R; one tick: (r, sv, the threat why)."""
+    r, sv = make(tmp_path)
+    sv.WINDOW_EXIT, sv.STAND_SECOND_EXIT = window_exit, second_exit
+    r.scan(shed(door=CLOSED, **shed_k))
+    me = (10714.5, 10596.5)
+    r.frame(x=me[0], y=me[1], zombies=zs(EAST, me))
+    tick(r, sv)
+    w = threat_why(tmp_path)
+    assert w["flee"] == "many"
+    return r, sv, w
+
+
+def test_the_shed_with_its_window_has_a_second_way_out_and_its_door_is_taken_for_the_stand(tmp_path):
+    """A one-door building with a window (E16's shed as its map read it, the window a way out by P26-A): `ok`, the stand
+    plan made at its door."""
+    r, sv, w = pick_line(tmp_path)
+    assert w["doorway_pick"] == "ok" and sv.flee.plan["stand"] is True and sv.flee.plan["doors"] == [DOOR]
+
+
+def test_a_one_door_shed_with_no_usable_window_is_refused_one_exit_and_no_plan_is_made(tmp_path):
+    """The shed's window barricaded (no way out by P26-A), or windows no way out at all (`WINDOW_EXIT` off, as E16 ran):
+    its one door is refused `one_exit`, the Flee picks nothing (the open-ground flee) and the line says why."""
+    for name, k in (("barred", {"window": BARRED_W}), ("windows_off", {"window_exit": False})):
+        d = tmp_path / name
+        d.mkdir()
+        r, sv, w = pick_line(d, **k)
+        assert w["doorway_pick"] == "one_exit" and sv.flee.plan is None and not sv.flee.picked, name
+        assert [v[3] for v in sv.flee.door_verdicts(sv.flee._threats())] == ["one_exit"]
+
+
+def test_a_two_door_building_stands_and_the_switch_off_stands_in_the_one_door_shed(tmp_path):
+    """A second exterior door on the shed's north wall (its window barricaded): `ok`. With `STAND_SECOND_EXIT` off the
+    one-door shed stands as before."""
+    for name, k in (("two_doors", {"window": BARRED_W, "north_door": CLOSED}),
+                    ("off", {"window": BARRED_W, "second_exit": False})):
+        d = tmp_path / name
+        d.mkdir()
+        r, sv, w = pick_line(d, **k)
+        assert w["doorway_pick"] == "ok" and sv.flee.plan["stand"] is True, name
+
+
+def test_a_shelter_pick_that_is_no_stand_keeps_the_one_door_shed(tmp_path):
+    """The rule reads the stand's pick only (`stand_ok`): a flee whose pick is a plain shelter (closed behind it) may
+    take a one-door building."""
+    r = Rig(tmp_path)
+    r.scan(shed(door=CLOSED, window=BARRED_W))
+    me = (10714.5, 10596.5)
+    r.frame(x=me[0], y=me[1], zombies=zs(EAST, me))
+    f = flee_on(r)
+    assert [v[3] for v in f.door_verdicts(f.threats)] == ["ok"]
+    f.stand_ok = True
+    assert [v[3] for v in f.door_verdicts(f.threats)] == ["one_exit"]

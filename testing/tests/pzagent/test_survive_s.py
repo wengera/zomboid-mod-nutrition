@@ -496,6 +496,7 @@ def many_line(tmp_path, door=None, zs=None, caps=None, extra=()):
     from .test_policies import zombie
     from .test_survive import group, shelter_world
     r, sv = make(tmp_path, caps=caps)
+    sv.STAND_SECOND_EXIT = False   # named change, P26-B (Plan 26 Task 2): the kitchen's one door reads `one_exit`
     if door is not None:
         shelter_world(r, door)
     r.frame(x=100.0, y=201.5, zombies=(zs if zs is not None else group())

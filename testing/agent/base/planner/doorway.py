@@ -19,7 +19,10 @@ The rule changes the end of a `many` flee's shelter steps (`policies.Flee`, ruli
   square of the building (`policies.on_post`); else the enter is walked again (`ended` "outside", a retry, the stand
   given up for the close once STEP_RETRIES are spent), and Survive's threat branch runs the `Doorway` fight below.
   DOOR_STAND_N is read at the pick only, never again on arrival (the review's minor 10): the stand's own ends govern
-  from there.
+  from there. Ruling P26-B (`STAND_SECOND_EXIT`; E16: the stand held the one door of a shed until the group came
+  through it, and the `inside` end found no way out): a door whose building has no other way out on its floor (another
+  door, an opening or a window, `night.exits`) is refused `one_exit`, so the stand is only taken where its ends under
+  a group can walk out (P25-W).
 - **The stand** (`Doorway`, a `policies.Fight` that never walks the open-ground stance machine): on the square inside
   the threshold the enter left it on (a room square of the building), the stance held facing out (an `aim` of (0, 0)
   facing the nearest listed zombie within AIM_R, else the bearing to the door's outside square); whatever comes within
@@ -414,8 +417,10 @@ class DoorwayStand:
         standing within DANGER_R), `inside` (on a room square: the flee walks out, never picks), `no_door` (no known
         exterior door's approach square within SHELTER_FLEE_R, `Flee.door_verdicts`), `locked` (every one locked or
         barricaded), `taken` (every free one refused for a zombie: in its building, its corridor, or nearer its
-        approach than the player), `picked` (a door was free, but the episode's one pick was spent: a plan without the
-        stand, its post refused, or a plan dropped), `pending` (a door is free and the pick waits on a running leg)."""
+        approach than the player), `one_exit` (ruling P26-B: no door left free, and one refused only for its
+        building's lack of a second way out), `picked` (a door was free, but the episode's one pick was spent: a plan
+        without the stand, its post refused, or a plan dropped), `pending` (a door is free and the pick waits on a
+        running leg)."""
         plan = flee.plan
         if plan is not None and (plan.get("stand") or plan.get("stood")):
             return "ok"
@@ -431,7 +436,9 @@ class DoorwayStand:
         if not verdicts:
             return "no_door"
         if "ok" not in verdicts:
-            return "locked" if all(v == "locked" for v in verdicts) else "taken"
+            if all(v == "locked" for v in verdicts):
+                return "locked"
+            return "one_exit" if "one_exit" in verdicts else "taken"
         return "picked" if flee.picked or plan is not None else "pending"
 
     def _stand(self, held):

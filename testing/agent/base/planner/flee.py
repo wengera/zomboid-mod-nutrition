@@ -443,7 +443,9 @@ class Flee(Policy):
         within SHELTER_FLEE_R of the player, `rank` (its distance, the building's repr, the door); `verdict` "locked"
         when the map reads it locked or barricaded, "taken" when a known zombie stands on one of the building's squares
         (M4), in the door's corridor (`in_corridor`, I1 and M3) or nearer its approach square than to the player (a
-        held threat of `ts`), else "ok"."""
+        held threat of `ts`), "one_exit" (ruling P26-B, `second_exit_on`: E16's stand in a shed whose one door the group
+        came through, its `inside` end reading no way out) when the pick is a doorway stand's (`stand_ok`) and the
+        door's building has no other way out on the door's floor (`_other_exit`), else "ok"."""
         N = _night()
         mx, my = me_xy(self.world)
         known = self._known()
@@ -468,10 +470,20 @@ class Flee(Policy):
                 elif (occupied or any(in_corridor((mx, my), c, z) for z in known)
                         or any(math.hypot(z["x"] - c[0], z["y"] - c[1]) < zdist(self.world, z) for z in ts)):
                     verdict = "taken"
+                elif self.stand_ok and self.second_exit_on and not self._other_exit(b, door):
+                    verdict = "one_exit"
                 else:
                     verdict = "ok"
                 out.append(((d, repr(b), door), b, door, verdict))
         return out
+
+    def _other_exit(self, building, door):
+        """Ruling P26-B: `building` has a way out on `door`'s floor besides `door` (`night.exits`, its windows with
+        `window_exit_on`): another closed exterior door, an opening that is not the step through `door` itself
+        (`World.door_way`: an open door's step is an opening), or a window."""
+        way = self.world.door_way(door)
+        return any(e["door"] != door and (e["inner"], e["outer"]) != way
+                   for e in _night().exits(self.world, building, door[2], self.window_exit_on))
 
     def _shelter(self, ts):
         """The plan's next step (its walks at FLEE_GAIT); once done inside, a hold while every threat reads

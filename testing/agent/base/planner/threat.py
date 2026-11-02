@@ -113,6 +113,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     WINDOW_EXIT = True    # ruling P26-A: a building's windows are ways out after its doors and openings
                           # (`night.window_exits`, `policies.exit_plan`, `flee.Flee._window_step`); off, no way out
                           # crosses a window
+    STAND_SECOND_EXIT = True   # ruling P26-B: the doorway stand's pick refuses a free door whose building has no other
+                               # way out on its floor (`flee.Flee.door_verdicts` "one_exit"); off, any free door stands
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -682,6 +684,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.steer_now = self.group_steer is not None
             policy.door_walk_on = self.DOOR_WALK   # P25-E
             policy.window_exit_on = self.WINDOW_EXIT   # P26-A
+            policy.second_exit_on = self.STAND_SECOND_EXIT   # P26-B
             walk = self._hold_walk(reason)   # P25-C: the endurance hold's flee walks with nobody within DANGER_R
             policy.gait = "walk" if walk else FLEE_GAIT
             policy.keep_gait()

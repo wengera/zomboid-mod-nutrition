@@ -498,6 +498,7 @@ def stand_walk(r, sv):
     its approach walk to (111.5, 201.5) sent and accepted (11.5 tiles off: E11's walk stood 11.44 from its door)."""
     from .test_night import CLOSED
     from .test_survive import group, shelter_world
+    sv.STAND_SECOND_EXIT = False   # named change, P26-B (Plan 26 Task 2): the kitchen's one door reads `one_exit`
     shelter_world(r, CLOSED)
     r.frame(x=100.0, y=201.5, zombies=group())
     tick(r, sv)
@@ -621,6 +622,7 @@ def test_a_plan_without_the_stand_or_door_walk_off_drops_at_its_stall_as_before(
 def stand_walk_any(r, sv):
     from .test_night import CLOSED
     from .test_survive import group, shelter_world
+    sv.STAND_SECOND_EXIT = False   # named change, P26-B (Plan 26 Task 2): the kitchen's one door reads `one_exit`
     shelter_world(r, CLOSED)
     r.frame(x=100.0, y=201.5, zombies=group())
     tick(r, sv)

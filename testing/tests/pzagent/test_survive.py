@@ -1127,6 +1127,7 @@ def test_a_shelter_beyond_shelter_flee_r_is_never_run_to(tmp_path):
 def test_a_locked_door_falls_back_to_the_steer_and_shuns_the_building(tmp_path):
     from .test_night import CLOSED
     r, sv = make(tmp_path)
+    sv.STAND_SECOND_EXIT = False   # named change, P26-B (Plan 26 Task 2): the kitchen's one door reads `one_exit`
     shelter_world(r, CLOSED)                                 # the map reads it closed; the open finds it locked
     r.frame(x=100.0, y=201.5, zombies=group())
     tick(r, sv)
@@ -2315,8 +2316,10 @@ def test_the_flee_wins_the_tie_a_fight_walk_half_a_second_old_is_superseded_by_t
 
 def stall_shelter(r, sv):
     """`shelter_world` with the closed west door and `group()` at 3 tiles: the `many` flee's approach walk sent and
-    accepted."""
+    accepted. Named change, ruling P26-B (Plan 26 Task 2): the walk is a doorway stand's, whose pick now refuses the
+    one-door kitchen (`one_exit`); these cases pin the walk with `STAND_SECOND_EXIT` off."""
     from .test_night import CLOSED
+    sv.STAND_SECOND_EXIT = False
     shelter_world(r, CLOSED)
     r.frame(x=100.0, y=201.5, zombies=group())
     tick(r, sv)

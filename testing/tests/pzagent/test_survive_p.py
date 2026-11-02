@@ -28,7 +28,10 @@ def why(r):
 
 
 def to_post(r, sv, zs=None, **frame):
-    """Run the `many` flee's shelter steps (approach, open, enter) to the post; return the tick's command."""
+    """Run the `many` flee's shelter steps (approach, open, enter) to the post; return the tick's command. Named
+    change, ruling P26-B (Plan 26 Task 2): the stand's pick refuses a building with no second way out (`one_exit`), and
+    the kitchen has one door; every stand on it is pinned with `STAND_SECOND_EXIT` off."""
+    sv.STAND_SECOND_EXIT = False
     shelter_world(r, CLOSED)
     r.frame(x=100.0, y=201.5, zombies=zs or group(), **frame)
     tick(r, sv)
@@ -266,7 +269,10 @@ def e9_group(me, dx=7.5):
 
 
 def e9_to_enter(r, sv):
-    """The `many` flee's steps at E9's door: the approach to the door square, its open, then the enter's walk."""
+    """The `many` flee's steps at E9's door: the approach to the door square, its open, then the enter's walk. Named
+    change, ruling P26-B (Plan 26 Task 2): E9's map read the shed's one door and no window, which the stand's pick now
+    refuses (`one_exit`); the enter's geometry is pinned with `STAND_SECOND_EXIT` off."""
+    sv.STAND_SECOND_EXIT = False
     e9_house(r, CLOSED)
     me = (10719.5, 10596.5)
     r.frame(x=me[0], y=me[1], zombies=e9_group(me, 4.0))
@@ -405,6 +411,7 @@ def test_a_stand_plan_whose_open_fails_locked_is_shunned_with_no_stand(tmp_path)
     """The stand-marked plan's open ends `failed "locked"` (SHUN_REASONS): the plan moves to the next door, and with
     none (the flee's plan is kept to one door) the building is shunned and the flee steers; no Doorway is made."""
     r, sv = make(tmp_path)
+    sv.STAND_SECOND_EXIT = False   # named change, P26-B (Plan 26 Task 2): the kitchen's one door reads `one_exit`
     shelter_world(r, CLOSED)
     r.frame(x=100.0, y=201.5, zombies=group())
     tick(r, sv)
