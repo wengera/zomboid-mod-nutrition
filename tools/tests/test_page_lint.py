@@ -300,3 +300,8 @@ def test_process_lessons_take_the_reference_profile(tmp_path):
     p.write_text("# Process lessons\n\n## Live runs\n- It was previously built.\n", encoding="utf-8")
     findings, _ = pl.lint(str(p), root=str(root), partial=True)
     assert sorted(f.rule for f in findings) == ["narrative", "stamp"]
+
+
+def test_the_agent_page_is_capped_at_500():
+    assert pl.PAGE_SECTIONS["platform/agent.md"] == ["See also"]
+    assert pl.CAPS["platform/agent.md"] == 500      # Plan 26 Task 1: the agent base has its own page, capped like the layer pages

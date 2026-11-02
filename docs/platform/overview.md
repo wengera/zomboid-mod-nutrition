@@ -95,7 +95,7 @@ Multiplayer character creation is three screens and not the cooperative ones, ea
 
 The remote console's help command throws a format exception inside the server's translator and logs two error lines, so it is never called [#1872].
 The time-speed admin command is under [`## Open`](#open): its only evidence is a run that committed no artifact.
-How a session is driven — the orchestrator, the profile, the sandbox block, the driven client, the bus and a reply — is [`harness.md`](harness.md), with the generated inventory at `reference/harness-commands.md`; what the game does with the mod list at each launch and the join, and the checksum gate that turns a script mismatch into a disconnect, are [`mod-anatomy.md`](mod-anatomy.md) and [`mod-anatomy.md#checksum-gate`](mod-anatomy.md#checksum-gate).
+How a session is driven — the orchestrator, the profile, the sandbox block, the driven client, the bus and a reply — is [`harness.md`](harness.md), with the generated inventory at `reference/harness-commands.md`; the agent base that drives a player through that bus is [`agent.md`](agent.md); what the game does with the mod list at each launch and the join, and the checksum gate that turns a script mismatch into a disconnect, are [`mod-anatomy.md`](mod-anatomy.md) and [`mod-anatomy.md#checksum-gate`](mod-anatomy.md#checksum-gate).
 The admin surface has no page of its own; its boundary row is under the coverage table.
 
 <a id="routing"></a>
@@ -110,6 +110,7 @@ Read this table before anything else: each row names one page, what it owns, and
 | [`lua-platform.md`](lua-platform.md) | the Lua a mod runs inside: the dialect's gaps, what a protected call catches, what an unguarded raise costs, how a Java member is reached, how the script hooks resolve, the event surface, the registries, the removed APIs | `#kahlua-limits`, `#pcall`, `#raises`, `#debug-break`, `#java-members`, `#script-hooks`, `#events`, `#hooks`, `#registries`, `#removed-apis`, `#file-io`, `#dev-loop` |
 | [`mp-model.md`](mp-model.md) | which side owns each quantity, the routes state can travel, when each packet fires, which pushes the server sends and to whom, what the receiver holds in between, and what a client's copy is and is not | `#ownership`, `#shapes`, `#routes-client-to-server`, `#routes-server-to-client`, `#packets`, `#sync-globals`, `#cached-packet`, `#item-moddata`, `#player-moddata`, `#wipe-and-replace`, `#command-bus`, `#what-a-client-copy-is` |
 | [`harness.md`](harness.md) | the instrument every measured row here was taken with: the orchestrator, the profile, the sandbox block, the driven client, the bus and reply reading, probes, the witness, scenarios, cadence, artifact and driver discipline | `#pzt`, `#profiles`, `#sandbox`, `#driven-client`, `#bus`, `#reading-a-reply`, `#probes`, `#witness`, `#scenarios`, `#cadence`, `#time`, `#artifacts-discipline`, `#driver-rules`, `#experiment-contract`, `#procedure` |
+| [`agent.md`](agent.md) | the agent base: PZAgent's PZA/1 link, the Python planner's instincts and the LLM goal source, the chained day sessions and their live readings | `#agent` |
 | [`lessons.md`](lessons.md) | the standing rules this library leaves behind, with the page each rule rests on named beside it | `#rules`, `#anti-patterns`, `#testing-discipline`, `#corpus-drift`, `#measure-the-mechanism` |
 | [`jar-research.md`](jar-research.md) | how a question about the game's Java becomes a citable claim: the disassembler's subcommands, absence, callers, access flags, offsets, the exposer dump | `#reading-the-jar`, `#method`, `#exposed`, `#procedure` |
 | [`server-lifecycle.md`](server-lifecycle.md) | what a dedicated server does and fires when a player joins, is created, dies and leaves, how a player is addressed on the server, where per-player and world state is stored, and the order of the server's time events in a frame | `#join`, `#creation`, `#death`, `#ids`, `#player-store`, `#global-moddata`, `#tick-order`, `#disconnect` |
@@ -181,6 +182,7 @@ Every wall-map row that rests on the live platform sessions took one of three br
 | the Lua platform and its dialect | covered | [`lua-platform.md`](lua-platform.md) |
 | the multiplayer model | covered | [`mp-model.md`](mp-model.md) |
 | the test harness | covered | [`harness.md`](harness.md) |
+| the agent base and its sessions | covered | [`agent.md`](agent.md) |
 | reading the jar | covered | [`jar-research.md`](jar-research.md) |
 | the workshop corpus and its teardowns | covered | [`../facts/other-mods/catalog.md`](../facts/other-mods/catalog.md) |
 | the server's player lifecycle and global modData | covered | [`server-lifecycle.md`](server-lifecycle.md) |

@@ -2,8 +2,8 @@
 """The page lint: the page contract (spec § The page contract) for docs/areas, docs/platform, docs/facts,
 and a reference profile for the two tagged reference pages.
 
-Per page: the stamp line; the section set and order for its layer (two pages carry their own set:
-platform/overview.md, and areas/open-questions.md with Index, Decisions, Experiments, See also); the
+Per page: the stamp line; the section set and order for its layer (three pages carry their own set:
+platform/overview.md, areas/open-questions.md with Index, Decisions, Experiments, See also, and platform/agent.md with See also only); the
 <a id> anchors (every register row owned by the page has its anchor on the page; no duplicate); a
 `## Rules` line has a colon and ends with a tag, a `## Key facts` line ends with a tag; `## Walls and
 bounds` ends with a "Not covered:" line; no narrative marker outside code spans; the prose line count
@@ -50,6 +50,7 @@ SECTIONS = {
 PAGE_SECTIONS = {
     "platform/overview.md": ["Rules", "How it works", "Coverage", "Open", "Worked examples?", "See also"],
     "areas/open-questions.md": ["Index", "Decisions", "Experiments", "See also"],
+    "platform/agent.md": ["See also"],           # the moved agent block is a run of ### write-ups: no rules, walls or open index of its own
 }
 # Tagged owners outside the contract's section shape; wall-map.md is a fragment-checked link target only.
 REFERENCE_PAGES = ("reference/datasets.md", "reference/tools.md", "reference/wall-map.md", "reference/research-notes.md",
@@ -60,7 +61,8 @@ OPEN_INDEX = "areas/open-questions.md"
 # docs/reference/ or an old doc is checked for its page only, except the three tagged reference pages (REFERENCE_PAGES),
 # whose <a id> anchors are checked like a contract page's.
 CONTRACT_LAYERS = ("areas", "platform", "facts")
-CAPS = {"platform/harness.md": 500, "platform/mod-anatomy.md": 500, "platform/lua-platform.md": 500, "platform/mp-model.md": 500}
+CAPS = {"platform/harness.md": 500, "platform/mod-anatomy.md": 500, "platform/lua-platform.md": 500, "platform/mp-model.md": 500,
+        "platform/agent.md": 500}
 DEFAULT_CAP, FLOOR = 400, 150
 WARN_RULES = ("prose-floor",)
 Finding = collections.namedtuple("Finding", "path line rule detail")
