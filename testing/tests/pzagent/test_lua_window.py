@@ -282,3 +282,83 @@ def test_window_is_an_action_of_the_schema_and_a_held_stance_is_released(lua, fs
     lua.execute("PZA.skills.stance.held = true")
     start(lua, p, "window", x=11, y=20)
     assert lua.eval("PZA.skills.stance.held") is False
+
+
+# Plan 26 Task 7c (ruling P26-M): a hit that clears the engine's queue ends an open or a smash interrupted at once. E17's
+# open left the queue at the first bite with the window still shut and the act waited WINDOW_OPEN_MS until the death.
+
+def test_an_open_whose_queue_a_hit_cleared_is_interrupted_on_that_tick(lua, fs):
+    w = window(locked=True)
+    p, _, g = host(lua, w, y=19.5)
+    start(lua, p, "window", aid="now", x=11, y=20, smash=True)
+    tick(lua, p)
+    assert types(g) == ["ISOpenCloseWindow"]
+    leave(g)                                                     # the bite cleared the queue
+    p.combat["hitReaction"] = "Bite"
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("now", "failed", "interrupted")
+    assert types(g) == ["ISOpenCloseWindow"]                     # no smash queued behind the hit
+    p.combat["hitReaction"] = ""
+    start(lua, p, "window", aid="next", x=11, y=20)
+    tick(lua, p)
+    leave(g)
+    tick(lua, p)                                                 # the queue left, no reaction yet
+    assert states(acts(lua, fs))[-1][:2] in (("next", "accepted"), ("next", "progress"))
+    g._clock["ms"] += lua.eval("PZA.skills.WINDOW_HIT_MS") - 1
+    p.combat["hitReaction"] = "HitReaction"                      # the reaction follows within WINDOW_HIT_MS
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("next", "failed", "interrupted")
+
+
+def test_an_open_left_without_a_hit_reaction_waits_its_budget(lua, fs):
+    w = window(locked=True)
+    p, _, g = host(lua, w, y=19.5)
+    start(lua, p, "window", x=11, y=20)
+    tick(lua, p)
+    leave(g)
+    tick(lua, p)
+    g._clock["ms"] += lua.eval("PZA.skills.WINDOW_HIT_MS")
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1][1] in ("accepted", "progress")
+    g._clock["ms"] += lua.eval("PZA.skills.WINDOW_OPEN_MS")
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "locked")
+
+
+def test_a_smash_whose_queue_a_hit_cleared_is_interrupted_at_once_and_waits_without_one(lua, fs):
+    w = window(perma=True)
+    p, _, g = host(lua, w, y=19.5)
+    start(lua, p, "window", aid="hit", x=11, y=20, smash=True)
+    tick(lua, p)
+    assert types(g) == ["ISSmashWindow"]
+    leave(g)
+    p.combat["hitReaction"] = "Bite"
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("hit", "failed", "interrupted")
+    p.combat["hitReaction"] = ""
+    start(lua, p, "window", aid="calm", x=11, y=20, smash=True)
+    tick(lua, p)
+    leave(g)
+    tick(lua, p)
+    g._clock["ms"] += lua.eval("PZA.skills.WINDOW_HIT_MS")
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1][:2] in (("calm", "accepted"), ("calm", "progress"))
+    g._clock["ms"] += lua.eval("PZA.skills.WINDOW_SMASH_MS")
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("calm", "failed", "interrupted")
+
+
+def test_a_hit_read_past_the_hit_window_leaves_the_open_to_its_own_wait(lua, fs):
+    w = window(locked=True)
+    p, _, g = host(lua, w, y=19.5)
+    start(lua, p, "window", x=11, y=20)
+    tick(lua, p)
+    leave(g)
+    tick(lua, p)
+    g._clock["ms"] += lua.eval("PZA.skills.WINDOW_HIT_MS") + 1
+    p.combat["hitReaction"] = "Bite"
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1][1] in ("accepted", "progress")
+    g._clock["ms"] += lua.eval("PZA.skills.WINDOW_OPEN_MS")
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "locked")

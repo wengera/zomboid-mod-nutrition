@@ -423,11 +423,23 @@ K.types.climb = {
 -- character state the queue clear does not obviously end) starts at once (jar-reads-2 section 10, Not read).
 -- The climb is refused (canClimbThrough, see above) also while another character's close succeeds
 -- (getFirstCharacterClosing, CloseWindowOutcome success, @50-@73 L1392-L1394) and on a null square (L1379). WINDOW_MS after the first tick, interrupted.
+-- A hit (Plan 26 ruling P26-M): an open or a smash whose action left the queue with the window still shut (not
+-- climbable, not IsOpen, not isSmashed) fails interrupted at once when getHitReaction() reads a non-empty string (read
+-- as PZAgent_Sense.lua's meCombat reads it: a string, else "") on any tick within WINDOW_HIT_MS of the tick it left;
+-- the engine clears the queue at the hit and the reaction string follows within the frame. Without a hit the open's
+-- WINDOW_OPEN_MS and the smash's WINDOW_SMASH_MS govern as above; the climb is unchanged (its state plays on after its
+-- action leaves the queue, and a hit there ends fell or failed). The incident: E17 (e_day_17-20261102-180459) sent
+-- window {smash true} from a kitchen; frames 3468-3486 read ISWalkToTimedAction n 2 (the walk, the open behind it),
+-- the first Bite at seq 3487 (1.848 s after the accept) emptied the queue for good, and the act waited on an open no
+-- longer queued until the death at seq 3630.
 -- Appended here (the file's climb helpers are its locals); the stance is released by K.start's wrapper above.
 K.WINDOW_OPEN_MS = 15000    -- an open still shut this long after its action left the queue ends the open
 K.WINDOW_SMASH_MS = 6000    -- a smash whose window still reads whole this long after its action left the queue fails
 K.WINDOW_SETTLE_MS = 4000   -- the climb's state plays on after its action leaves the queue; past this, a near side fails
 K.WINDOW_MS = 60000         -- a window not climbed within this wall time of the first tick is interrupted
+-- a hit reaction read within this of an open's or a smash's leaving the queue interrupts it (P26-M): E17's queue
+-- cleared 1.848 s after the accept and 0.4 s before the first wound frame, the reaction following within the frame
+K.WINDOW_HIT_MS = 1500
 local FALLS = { fall = true, fallback = true, fallfront = true }
 
 -- the square's window: its IsoWindow, else a thumpable window or an IsoWindowFrame, and which ("window" or "other")
@@ -519,6 +531,13 @@ local function thenStep(p, st, step)
     return nil
 end
 
+-- a hit cleared the step's action from the queue: a hit reaction read within WINDOW_HIT_MS of its leaving (P26-M)
+local function hitCleared(p, st, now)
+    if now - st.leftAt > K.WINDOW_HIT_MS then return false end
+    local _, hr = PZA.call(p, "getHitReaction")
+    return type(hr) == "string" and hr ~= ""
+end
+
 -- an open or a smash step after its action left the queue: nil while it waits, else the skill's end
 local function shutTick(p, st, now)
     if st.step == "smash" then
@@ -526,6 +545,7 @@ local function shutTick(p, st, now)
             st.smashed = true
             return thenStep(p, st, "climb")
         end
+        if hitCleared(p, st, now) then return "failed", "interrupted" end
         if now - st.leftAt >= K.WINDOW_SMASH_MS then return "failed", "interrupted" end
         return nil
     end
@@ -534,6 +554,7 @@ local function shutTick(p, st, now)
         return thenStep(p, st, "climb")
     end
     if reads(st.win, "IsOpen") then return "failed", "not valid" end
+    if hitCleared(p, st, now) then return "failed", "interrupted" end
     if reads(st.win, "isPermaLocked") or now - st.leftAt >= K.WINDOW_OPEN_MS then
         local step = shutStep(st)
         if step == nil then return "failed", "locked" end
