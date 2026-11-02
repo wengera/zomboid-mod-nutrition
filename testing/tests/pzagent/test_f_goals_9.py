@@ -460,10 +460,10 @@ def test_the_totals_reach_the_llm_record(tmp_path, monkeypatch):
 
 
 BASE_SENTENCE = (
-    "the base at `a20a4a82` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 17 (over iteration 16: "
+    "the base at `6df43e92` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 17 (over iteration 16: "
     "the window way out, P26-A; the stand's second way out, P26-B; the inside corner's shove, P26-C; the bleed under the "
-    "threat branch, P26-D; the worn wear, P26-E), the goal source with the fourth round's readings (P26-H: the open views, "
-    "the objects and the re-asks, read by `grade_f7`); the controller re-bases this sentence to the commit the session boots on")
+    "threat branch, P26-D; the worn wear, P26-E), the goal source with the fourth round's readings (P26-F the objects, "
+    "P26-G the open views, P26-H the re-asks, read by `grade_f7`); the controller re-bases this sentence to the commit the session boots on")
 
 
 def test_the_driver_is_f_goals_8_py_copied_under_its_own_key_with_the_probe_and_the_new_grade():
