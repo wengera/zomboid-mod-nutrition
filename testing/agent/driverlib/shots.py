@@ -42,6 +42,8 @@ grab the foreground window must be the client's (`find` gives `hwnd`), else the 
 area (the Z-order walked above the client), else `skipped: "occluded"`. The skipped line carries the usual fields minus
 file, bytes and sha256, plus `skipped` and `other_class` (the other window's class name only, never its title, which
 may carry personal text); it takes the next n, and the record's `skipped` counts them (n counts the written shots).
+A shot the guard passed carries `guard` {`foreground_class`, `passed`} on its index line: the class name of the client
+window the guard verified foreground (never a title) and `passed` true; a skip or a window grab carries no `guard`.
 A found window without `hwnd`, or none found, is `skipped: "no window"` (class "") and no grab: the guard fails closed;
 only `guard=None` (the tests) grabs unguarded, the primary screen when no window is found. The first skip of each
 reason in a session is printed once to stdout. A guard that raises is a failure and no grab. `cited_ok(index_path, numbers)` refuses a cited shot that was skipped or
@@ -277,7 +279,8 @@ def screen_guard(hwnd, rect, pid, user32=None):
 
 
 def foreground_class(hwnd, user32=None):
-    """The class name of the window `hwnd` (the guard's foreground read on a pass; never a title)."""
+    """The class name of the window `hwnd`, the client window the guard verified foreground, read on the guard's pass
+    (the verified window's class, not a fresh `GetForegroundWindow()` read; never a title)."""
     u = user32 if user32 is not None else _User32()
     return u.class_name(hwnd)
 
