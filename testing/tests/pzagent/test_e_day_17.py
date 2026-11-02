@@ -451,7 +451,7 @@ def test_a_later_chain_session_holding_the_bat_spawns_none(tmp_path, monkeypatch
 
 # ================================================================ the copy: e_day_16.py's body, its own key
 BASE_SENTENCE = (
-    'the base at `a20a4a82` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 17 (over '
+    'the base at `6df43e92` carries PZA/1.7.1 (the hello reads `mod` `1.7`) and survival iteration 17 (over '
     "iteration 16: the window way out, P26-A; the stand's second way out, P26-B; the inside corner's shove, P26-C; "
     "the bleed under the threat branch, P26-D; the worn wear, P26-E; the controller re-bases this sentence to the "
     "commit the chain boots on)"
@@ -483,7 +483,7 @@ def test_the_copy_differs_from_e_day_16_only_in_the_expected_lines():
     assert new_grade.startswith('GRADE_KEY = "grade_e14"') and 'return grade_e14(out, state_dir=out.get("state_dir"))' in new_grade
     assert "iteration 17 readings" in new_pass and "grade_e13" not in new_pass
     head = b[:b.index(mark)]
-    for c in ("e_day_16.py", "seventeenth", "PZA/1.7.1", "grade_e14", "a20a4a82", "P26-A", "P26-E", "window_exit", "one_exit",
+    for c in ("e_day_16.py", "seventeenth", "PZA/1.7.1", "grade_e14", "6df43e92", "P26-A", "P26-E", "window_exit", "one_exit",
               "inside_send", "threat_bleed", "wear_worn", "edge_out_check", "state.1.log", BASE_SENTENCE):
         assert c in head, c
     assert "be5df2ba" not in head and "e_day_15" not in head
