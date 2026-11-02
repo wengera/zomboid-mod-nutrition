@@ -338,16 +338,16 @@ def test_attackers_count_toward_the_crowd_and_no_other_corner_reads_one(tmp_path
 
 
 def test_a_fallen_one_in_reach_is_stomped_first(tmp_path):
-    """Both of a109's zombies on the floor: the finish rule names the nearest (no standing zombie within KEEP_R), so the
-    stomp goes before any shove, logged `corner` {kind inside, send stomp, near_n 2}. With a standing one at point
-    blank beside the fallen, the finish rule is silent (a standing zombie within KEEP_R) and the shove goes."""
+    """Both of a109's zombies on the floor: the finish names the nearest, so the stomp goes before any shove, logged
+    `corner` {kind inside, send stomp, near_n 2}. With a standing one at point blank beside the fallen, the finish's own
+    order shoves the standing one first (P24-AL's `shove` "first"), the send logged a shove."""
     r, sv, w = corner_tick(tmp_path, E16_478, floor=(24160, 24134))
     assert r.cmd() == ("stomp", {"targetId": 24160})
     assert w["corner"] == {"kind": "inside", "send": "stomp", "near_n": 2}
     d = tmp_path / "standing"
     d.mkdir()
     r, sv, w = corner_tick(d, E16_478, floor=(24134,))
-    assert r.cmd() == ("shove", {"targetId": 24160}) and w["corner"]["send"] == "shove"
+    assert r.cmd() == ("shove", {"targetId": 24160}) and w["shove"] == "first" and w["corner"]["send"] == "shove"
 
 
 def test_with_the_switch_off_the_inside_corner_swings_at_two_as_e16_did(tmp_path):
