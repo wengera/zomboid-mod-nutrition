@@ -1209,19 +1209,31 @@ class World:
         read, from `a`'s end), else None: a west edge's at (x, y + 0.5) of its holder square, a north edge's at
         (x + 0.5, y); a diagonal step's on the first of its two legs that holds one (Plan 25 Task 3, ruling P25-F: the
         fence wait stands back from it)."""
+        for u, v in self.edge_steps(a, b):
+            h = self._hop(u, v)
+            if h is not None:
+                return (float(h[0]), h[1] + 0.5) if u[0] != v[0] else (h[0] + 0.5, float(h[1]))
+        return None
+
+    def edge_steps(self, a, b):
+        """The orthogonal steps (u, v) of the straight line from position `a` to `b` ((x, y) floats, on the player's
+        floor; Bresenham's on the floored ends), in order from `a`'s end: an orthogonal step itself, a diagonal step
+        through its corner squares' legs ((p, c) then (c, q), the corner (q.x, p.y) first, an unmapped corner left
+        out); a step to or from a square the map does not hold is skipped. `fence_crossing` and `edges._crossed` each
+        read it under their own predicate."""
         z = me_floor(self)
         sqs = [(x, y, z) for x, y in self._bresenham(int(math.floor(a[0])), int(math.floor(a[1])),
                                                      int(math.floor(b[0])), int(math.floor(b[1])))]
         for p, q in zip(sqs, sqs[1:]):
             if p not in self.map or q not in self.map:
                 continue
-            legs = [(p, q)] if p[0] == q[0] or p[1] == q[1] else [
-                leg for c in ((q[0], p[1], z), (p[0], q[1], z)) if c in self.map for leg in ((p, c), (c, q))]
-            for u, v in legs:
-                h = self._hop(u, v)
-                if h is not None:
-                    return (float(h[0]), h[1] + 0.5) if u[0] != v[0] else (h[0] + 0.5, float(h[1]))
-        return None
+            if p[0] == q[0] or p[1] == q[1]:
+                yield p, q
+                continue
+            for c in ((q[0], p[1], z), (p[0], q[1], z)):
+                if c in self.map:
+                    yield p, c
+                    yield c, q
 
     def _hop(self, a, b):
         """The fence square of the orthogonal step a -> b when it is blocked but climbable, else None."""

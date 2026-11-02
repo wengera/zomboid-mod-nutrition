@@ -32,9 +32,9 @@ Fight's why, the goal's, the need's `fill`).
 """
 import math
 
-from agent.base.planner.policies import DISENGAGE_R, PREEMPTED, centre, door_edge
+from agent.base.planner.policies import DISENGAGE_R, PREEMPTED, centre
 from agent.base.pza1 import WalkTo
-from agent.base.world import me_floor, me_xy
+from agent.base.world import me_xy
 
 __all__ = ["edge_read", "edge_why", "same_side", "FightEdge", "ThreatEdge", "GoalEdge"]
 
@@ -59,25 +59,15 @@ def _wall(world, p, q):
     return world.blocked(p, q) and world.blocked(p, q, climb=True)
 
 
+# The name is held by the frozen grades (`gates_e.grade_e13` imports `_edges._crossed`); the next imports a public one.
 def _crossed(world, a, b):
-    """The first known blocked outdoor edge (holder, side) on the straight line from position `a` to `b`, else None.
-    A diagonal step that reads blocked is read through its corner squares' legs, the first such edge on either."""
-    z = me_floor(world)
-    sqs = [(x, y, z) for x, y in world._bresenham(int(math.floor(a[0])), int(math.floor(a[1])),
-                                                 int(math.floor(b[0])), int(math.floor(b[1])))]
-    for p, q in zip(sqs, sqs[1:]):
-        if p not in world.map or q not in world.map:
-            continue
-        if p[0] == q[0] or p[1] == q[1]:
-            if _wall(world, p, q):
-                return _edge_of(p, q)
-            continue
-        if not world.blocked(p, q):
-            continue
-        for c in ((q[0], p[1], z), (p[0], q[1], z)):
-            for u, v in ((p, c), (c, q)):
-                if c in world.map and _wall(world, u, v):
-                    return _edge_of(u, v)
+    """The first known blocked outdoor edge (holder, side) on the straight line from position `a` to `b`, else None:
+    the first of `World.edge_steps` (a diagonal step through its corner squares' legs) that is a wall (`_wall`). A
+    diagonal with a wall on a leg reads blocked (`World.blocked`'s diagonal reads both legs of each corner), so the
+    diagonal's own blocked read is not needed."""
+    for u, v in world.edge_steps(a, b):
+        if _wall(world, u, v):
+            return _edge_of(u, v)
     return None
 
 
