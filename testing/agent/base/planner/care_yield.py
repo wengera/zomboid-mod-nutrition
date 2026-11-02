@@ -5,7 +5,7 @@ in `policies.py`'s table); its state is `Survive`'s own, set in `Survive.__init_
 stays the record of every rule here.
 """
 from agent.base.planner.care import CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, FLEE_CARE_N, FLEE_CARE_S, RIDE_MANY_R, RIDE_R
-from agent.base.planner.policies import DANGER_R, DRAG_DOWN_N, blocked, zdist
+from agent.base.planner.policies import DANGER_R, DRAG_DOWN_N, FIGHT_REACH, POINT_BLANK_R, blocked, zdist
 from agent.base.world import me_xy
 
 
@@ -67,28 +67,61 @@ class CareYield:
         legs bleeding (`Care.rides_wound`), the care's `ride_now` set; a ride running yields nothing (the threat
         answers, the Flee's leg held by the ride: `policies.running`). Ruling P24-AR (`_rides_many`): under a `many`
         flee with a zombie chasing the ride goes with the nearest beyond RIDE_MANY_R, or, whatever the distance, once
-        FLEE_CARE_S have passed since the first `many` (`many_since`) with FLEE_CARE_N or more parts bleeding."""
+        FLEE_CARE_S have passed since the first `many` (`many_since`) with FLEE_CARE_N or more parts bleeding.
+        Ruling P26-D (`THREAT_BLEED`; F7, `f_goals_8-20261102-093241`: part 2 bled on all 157 frames from seq 18234 to
+        the log's end while every decision line was the threat branch's, the yield refused on each by the nearest within
+        CARE_R, the chased flee, the closing read or a bleeding step with nothing to send): a `pair` or `held` flee's
+        leg rides the bleed as the `many` leg does (`_bleed_leg`, `_rides_many`); and a fight's tick that the closing
+        read or CARE_R would refuse yields all the same when the bleed leaves room (`_bleed_free`: no zombie within
+        FIGHT_REACH, the nearest listed beyond POINT_BLANK_R) and the bleeding step's send is a dressing
+        (`Care.dresses_wound`, never a rip or an unwear), the running bandage held while the room lasts. A yield only
+        this rule made is kept in `bleed_yield` (the threat why's `care_yield` {why "bleed", near})."""
         if not self.world.can("bandage") or not self._nearest_seen or self.care.riding() is not None:
             return None
         near = self._nearest_seen[-1][1]
         chased = any(z.get("hasTarget") is True for z in held)
         free = self._rides_many(near) if (self.flee_many and chased) else (near > RIDE_R or not chased)
-        if free and self._ride_leg() is not None:
+        bleed = not free and chased and self._bleed_leg() and self._rides_many(near)   # P26-D: the pair or held leg
+        if (free or bleed) and self._ride_leg() is not None:
             self._observe(self.care)
             if self.care.rides_wound():
                 self.care.ride_now = True
+                self.bleed_yield = near if bleed else None
                 return near
         if self.flee_many:
             return None
         running = self.care.busy() and self.care.last.type == "bandage"
-        if near <= (CARE_HOLD_R if running else CARE_R):
-            return None
-        if not running and (self._closing() or (self.mode == "flee" and chased)):
+        refused = (near <= (CARE_HOLD_R if running else CARE_R)
+                   or (not running and (self._closing() or (self.mode == "flee" and chased))))
+        if refused and not self._bleed_free():
             return None
         if self._many_read(held, len(self._within(DANGER_R)))[0]:
             return None
         self._observe(self.care)
-        return near if self.care.tends_wound() else None
+        if not refused:
+            return near if self.care.tends_wound() else None
+        if not self.care.dresses_wound():
+            return None
+        self.bleed_yield = near   # P26-D: the yield the bleed's room made
+        return near
+
+    def _bleed_leg(self):
+        """Ruling P26-D: the running flee is a `pair` or `held` one (`flee_reason`, its last decision's), with
+        `THREAT_BLEED` on: its leg rides the bleed under `_rides_many`'s rule, as the `many` leg's."""
+        return self.THREAT_BLEED and self.mode == "flee" and self.flee_reason in ("pair", "held")
+
+    def _bleed_free(self):
+        """Ruling P26-D, the room the bleed takes on a threat tick (`THREAT_BLEED` on): a Fight runs (`mode` fight;
+        never the doorway stand's, whose new bleeding part is its `wound` end, nor a flee's, whose bleed rides its leg,
+        P24-P's fix 2: a standing bandage stops the run), no zombie within FIGHT_REACH (`_within`: the Fight has no
+        target in reach, nor any other zombie there, one read dead or held out across a blocked edge aside) and the
+        nearest listed zombie beyond POINT_BLANK_R: the fight line between swings. F7's read (the task's report) asks
+        for no radius of its own: its undressed fight lines lay 2.27 to 7.71 tiles from their nearest zombie."""
+        if not self.THREAT_BLEED or self.mode != "fight" or self.fight is None or self.fight.doorway is not None:
+            return False
+        if self._nearest_seen[-1][1] <= POINT_BLANK_R:
+            return False
+        return not self._within(FIGHT_REACH)
 
     def _rides_many(self, near):
         """Ruling P24-AR, the care tick inside a long flee (E9: four bites bled the health from 96.39065551757812 to 0

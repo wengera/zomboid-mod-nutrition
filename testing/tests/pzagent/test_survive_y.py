@@ -12,14 +12,15 @@ the west edge of the room square (10710, 10596), the strip x 10709 fenced on its
 """
 import math
 
+import pytest
+
 from agent.base.planner import flee as FL
 from agent.base.planner import policies as P
-from agent.base.planner import survive as S
-from agent.base.pza1 import Window
 
 from .test_night import CLOSED, OPEN
 from .test_policies import Rig, grid
 from .test_survive import last, make, threat_why, tick
+from .test_survive_g import care_frame, hold, part
 
 LOCKED_W = {"open": False, "locked": True, "barricaded": False}
 SHUT_W = {"open": False, "locked": False, "barricaded": False}   # the window's record from seq 3632 to the log's end
@@ -353,3 +354,93 @@ def test_a_fallen_one_in_reach_is_stomped_first(tmp_path):
 def test_with_the_switch_off_the_inside_corner_swings_at_two_as_e16_did(tmp_path):
     r, sv, w = corner_tick(tmp_path, E16_478, inside_shove=False)
     assert r.cmd() == ("attack", {"targetId": 24160}) and "corner" not in w
+
+
+# ================================================================ P26-D: the bleed under the threat branch
+# F7's line 1660 (seq 18310): the `held` flee's steer leg running from 14192 (5.218586445147157 tiles, chasing) and
+# 14190 (8.611335877250424), part 2 bleeding since the bite at seq 18234
+F7_1660 = ((10809.80078125, 10676.4365234375),
+           [(14192, 10806.0029296875, 10672.857421875), (14190, 10803.58984375, 10670.4716796875)])
+F7_1655 = (10805.5654296875, 10672.421875)   # line 1655's position, where the `pair` flee's steer went
+PART2 = part(2, h=77.04804229736328, bleeding=True, bleedingTime=8.344533920288086, infected=True)
+
+
+def bleed_flee(tmp_path, bleed=True):
+    """A clean rag held, part 2 bleeding: the `pair` flee from 14192 at 1.8 tiles (within FIGHT_REACH, beyond
+    CORNERED_R) and 14190 (line 1655's), its steer sent and running; then F7's line 1660 frame, ticked."""
+    r, sv = make(tmp_path)
+    sv.THREAT_BLEED = bleed
+    hold(r, 10, "Base.RippedSheets")
+    me0 = F7_1655
+    care_frame(r, [PART2], x=me0[0], y=me0[1],
+               zombies=zs([(14192, me0[0] - 1.8, me0[1]), (14190, 10801.361328125, 10668.34765625)], me0))
+    tick(r, sv)
+    assert sv.mode == "flee" and threat_why(tmp_path)["flee"] == "pair" and r.cmd()[0] == "steer"
+    r.answer("progress")
+    me, rows = F7_1660
+    care_frame(r, [PART2], x=me[0], y=me[1], zombies=zs(rows, me))
+    tick(r, sv)
+    return r, sv
+
+
+def test_f7_s_line_1660_rides_the_bandage_on_the_pair_flee_s_leg(tmp_path):
+    """F7 line 1660's geometry with a dressing held: the chaser at 5.218586445147157 tiles (under RIDE_R, so P24-U's
+    ride was refused) is beyond RIDE_MANY_R, so the `pair` flee's leg rides the bleed as a `many` leg would: the care
+    sends the rag on part 2 with keepMoving, logged `care_yield` {why bleed, near}."""
+    r, sv = bleed_flee(tmp_path)
+    w = threat_why(tmp_path)
+    assert last(tmp_path)["branch"] == "care" and r.cmd() == ("bandage", {"itemId": 10, "part": 2, "keepMoving": True})
+    assert w["care"] is True and w["ride"] is True
+    assert w["care_yield"] == {"why": "bleed", "near": P.zdist(r.world, r.world.zombies[14192])}
+    assert w["care_yield"]["near"] == pytest.approx(5.218586445147157)
+
+
+def test_with_the_switch_off_line_1660_holds_the_threat_branch_as_f7_did(tmp_path):
+    r, sv = bleed_flee(tmp_path, bleed=False)
+    assert last(tmp_path)["branch"] == "threat" and not any(a.type == "bandage" for a in r.acts.history)
+
+
+def fight_ticks(tmp_path, dist, items=(("Base.RippedSheets", 10),), bleed=True, ticks=2):
+    """A fresh Survive, `items` held (added after the first frame), part 2 bleeding, one chasing zombie `dist` tiles
+    east, closing a tenth of a tile a tick: `ticks` ticks, the first making the Fight (P24-P's closing read refuses
+    the yield on every one)."""
+    r, sv = make(tmp_path)
+    sv.THREAT_BLEED = bleed
+    r.frame()
+    for ft, iid in items:
+        hold(r, iid, ft, use="other")
+    for k in range(ticks):
+        care_frame(r, [PART2], zombies=zs([(1, 100.0 + dist - 0.1 * k, 200.0)], (100.0, 200.0)))
+        tick(r, sv)
+        if k == 0:
+            assert sv.mode == "fight" and last(tmp_path)["branch"] == "threat"
+    return r, sv
+
+
+def test_a_zombie_within_fight_reach_keeps_the_threat_branch(tmp_path):
+    """The Fight has a target in reach (1.7 then 1.6 tiles, beyond POINT_BLANK_R): no bandage mid-fight."""
+    r, sv = fight_ticks(tmp_path, 1.7)
+    assert last(tmp_path)["branch"] == "threat" and not any(a.type == "bandage" for a in r.acts.history)
+    assert "care_yield" not in threat_why(tmp_path)
+
+
+def test_a_closing_chaser_beyond_fight_reach_leaves_room_for_the_bandage(tmp_path):
+    """One chaser closing from 4.5 tiles (P24-P's closing read refuses it): on the Fight's second tick nothing within
+    FIGHT_REACH, the nearest beyond POINT_BLANK_R, a dressing held: the bandage (standing), logged `care_yield`; with
+    the switch off the threat branch as before."""
+    r, sv = fight_ticks(tmp_path, 4.5)
+    assert last(tmp_path)["branch"] == "care" and r.cmd() == ("bandage", {"itemId": 10, "part": 2})
+    assert threat_why(tmp_path)["care_yield"] == {"why": "bleed", "near": pytest.approx(4.4)}
+    d = tmp_path / "off"
+    d.mkdir()
+    r, sv = fight_ticks(d, 4.5, bleed=False)
+    assert last(d)["branch"] == "threat" and not any(a.type == "bandage" for a in r.acts.history)
+
+
+def test_the_bleed_s_room_takes_a_dressing_never_a_rip(tmp_path):
+    """F7's own state: no clean dressing held (its rags dirty under DIRTY_RAG_MIN), a cotton garment to rip: the
+    bleeding step's send would be the rip (`tends_wound`), which the bleed's yield never takes on a tick P24-P
+    refuses."""
+    r, sv = fight_ticks(tmp_path, 4.5, items=(("Base.Tshirt_WhiteTINT", 11),))
+    assert sv.care.tends_wound() and not sv.care.dresses_wound()
+    assert last(tmp_path)["branch"] == "threat" and not any(a.type in ("bandage", "rip") for a in r.acts.history)

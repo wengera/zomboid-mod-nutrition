@@ -555,6 +555,12 @@ class Care(Policy):
         """The bleeding step would send now (ruling P24-P: Survive's threat branch yields to it beyond CARE_R)."""
         return self._wound(self._items(), self._bleeding())[0] is not None
 
+    def dresses_wound(self):
+        """The bleeding step would send a bandage now, a dressing held for the worst bleeding part (ruling P26-D: the
+        bleed's yield under a threat takes a dressing, never a rip or an unwear)."""
+        cmd = self._wound(self._items(), self._bleeding())[0]
+        return cmd is not None and cmd.TYPE == "bandage"
+
     def rides_wound(self):
         """The bleeding step would ride now (P24-U): a part above the legs bleeds and a bandage item is held, and no
         ride was stopped by the engine within RIDE_RETRY_S (Task 12 fix 2)."""

@@ -117,6 +117,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                # way out on its floor (`flee.Flee.door_verdicts` "one_exit"); off, any free door stands
     INSIDE_SHOVE = True   # ruling P26-C: an `inside` corner with INSIDE_CROWD_N or more at point blank shoves, never
                           # swings (`_inside_crowd`, `fight.Fight._crowd_shove`); off, the corner's swing as before
+    THREAT_BLEED = True   # ruling P26-D: the bleed's yield under the threat branch (`care_yield.CareYield._bleed_free`,
+                          # `_bleed_leg`); off, the yield's reads of P24-P, P24-U and P24-AR alone
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -580,15 +582,17 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         return ("fight", None) if near <= FIGHT_REACH and self._unarmed_fight(len(self._within(DANGER_R))) else None
 
     def _end_flee_episode(self):
-        """A flee episode's own flags cleared: its stall origin, its one load drop, its `many` (P23-AM 1) and its
-        `health` (P24-X)."""
+        """A flee episode's own flags cleared: its stall origin, its one load drop, its `many` (P23-AM 1), its `health`
+        (P24-X) and its last reason (P26-D)."""
         self.stall_flee, self.flee_dropped, self.flee_many, self.flee_health = False, False, False, False
+        self.flee_reason = None
 
     def _threat_read(self):
         """The tick's threat bookkeeping, once (ruling P24-A (g)): the held list (`_held`), the Flee's observe and the
         breach's closing count (`_breach_now`). Read in `_read` (Plan 25 Task 2, `OBSERVES_IN_READ`), else at the
         threat branch's start in `assess` (the rules before it)."""
         self.care_yield, self.care.ride_now, self.engaging, self.avoid = None, False, False, set()
+        self.bleed_yield = None   # P26-D: this tick's yield the bleed's rule made
         self.finish_block = None   # Task 36 fix 1: this tick's refusal only (`_finish_chaser` sets it)
         self._release_edges()   # P25-X: a zombie refused across a blocked edge, read on the player's side, is free
         self._held, self._breach_now = [], None
@@ -629,6 +633,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             self.why = {"care": True, "nearest": self.care_yield, "held": len(held)}
             if self.care.ride_now:
                 self.why["ride"] = True
+            if self.bleed_yield is not None:
+                self.why["care_yield"] = {"why": "bleed", "near": self.bleed_yield}   # P26-D
             return None
         return self._decide(held, breach)
 
@@ -676,6 +682,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if want == "fight" and door is None:
             self.flee = None   # a door fight that left the room: the stale shelter plan goes (the next flee re-picks)
         policy = self.fight if want == "fight" else self.flee
+        self.flee_reason = reason if want == "flee" else None   # P26-D: the leg's reason, read by the next yield
         if want == "flee":
             self.flee_many = self.flee_many or reason == "many"
             self.flee_health = self.flee_health or reason == "health"

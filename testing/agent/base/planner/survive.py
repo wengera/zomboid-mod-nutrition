@@ -244,7 +244,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     (`night.window_exits`, `policies.exit_plan`, `flee.Flee._window_step`); P26-B, the doorway stand's pick refuses a
     building with no second way out (`flee.Flee.door_verdicts`, `DoorwayStand._doorway_pick`'s `one_exit`); P26-C, the
     `inside` corner under two or more at point blank shoves, never swings (`threat.Threat._inside_crowd`,
-    `fight.Fight._crowd_shove`); `T7_SWITCHES`.
+    `fight.Fight._crowd_shove`); P26-D, the bleed under the threat branch (`care_yield.CareYield._bleed_free`,
+    `_bleed_leg`, `care.Care.dresses_wound`); `T7_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -355,9 +356,9 @@ T6_SWITCHES = ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE",
 # survival iteration 16 (Plan 25 Task 14): P25-U, P25-V, P25-W and P25-X (the amendment and its fix 1) on
 # `threat.Threat` (STAND_DRAG_EARLY, STAND_INSIDE, STAND_EXIT, BLOCKED_EDGE, EDGE_OUT_OF_HOLD); P25-Y (fix 1) on
 # `Survive` (DIRTY_RAG_RIP)
-T7_SWITCHES = ("WINDOW_EXIT", "STAND_SECOND_EXIT", "INSIDE_SHOVE")
-# survival iteration 17 (Plan 26 Task 2): P26-A to P26-C on `threat.Threat` (WINDOW_EXIT, STAND_SECOND_EXIT,
-# INSIDE_SHOVE)
+T7_SWITCHES = ("WINDOW_EXIT", "STAND_SECOND_EXIT", "INSIDE_SHOVE", "THREAT_BLEED")
+# survival iteration 17 (Plan 26 Task 2): P26-A to P26-D on `threat.Threat` (WINDOW_EXIT, STAND_SECOND_EXIT,
+# INSIDE_SHOVE, THREAT_BLEED)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -447,6 +448,9 @@ class Survive(Threat):
                                   # (P24-AO fix 1), or an end that walks out (P25-W)
         self.stand_end = None     # this tick: any end the doorway stand took (`doorway_left`): the why only
         self.care_yield = None    # this tick: the nearest zombie's tiles when the threat yielded to the care (P24-P)
+        self.bleed_yield = None   # this tick: those tiles when the yield was the bleed's rule's alone (P26-D)
+        self.flee_reason = None   # the running flee's reason at its last decision, else None (P26-D's `pair` and
+                                  # `held` legs)
         self._nearest_seen = []   # (id, tiles) of the nearest listed zombie on the last threat ticks, newest last: the
                                   # care yield's closing read (Task 12 fix 1), CARE_STILL_TICKS + 1 of them
         self._observed = []       # the policies observed this tick (each once: P24-A (g))

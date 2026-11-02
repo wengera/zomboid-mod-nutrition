@@ -1736,8 +1736,11 @@ def test_a_bleeding_part_is_bandaged_with_a_zombie_held_beyond_care_r_and_not_in
     """Ruling P24-P: a fight running on one zombie (held), a part bleeding, a bandage held: with the zombie at 5 or
     4.01 tiles the threat branch yields (`care` on its why) and the care branch bandages; at 4 or 3 tiles the threat
     answers (the stance). Named change (Task 12 fix 1, the review's major 2): the zombie stands at `x` for
-    CARE_STILL_TICKS ticks before the yield's start reads it not closing (it came from 6 tiles before)."""
+    CARE_STILL_TICKS ticks before the yield's start reads it not closing (it came from 6 tiles before). Named change,
+    ruling P26-D (Plan 26 Task 2): beyond FIGHT_REACH the bleed's own rule yields at once; these cases pin P24-P's
+    lines with `THREAT_BLEED` off."""
     r, sv = make(tmp_path)
+    sv.THREAT_BLEED = False   # named change, P26-D (Plan 26 Task 2): the bleed's room yields a fight's tick
     r.frame(zombies=[zd(1, 106.0, 200.0)])
     tick(r, sv)
     assert sv.mode == "fight" and r.cmd()[0] == "aim"
@@ -1954,6 +1957,7 @@ def test_a_chaser_closing_half_a_tile_a_tick_from_4_6_starts_no_bandage(tmp_path
     """The review's major 2, its first test: a zombie closing 0.5 tiles a tick (5.6, 5.1, 4.6, 4.1, then 3.6) under
     a running fight starts no bandage: each read beyond CARE_R is a fall since the read two ticks before."""
     r, sv = make(tmp_path)
+    sv.THREAT_BLEED = False   # named change, P26-D (Plan 26 Task 2): the bleed's room yields a fight's tick
     hold(r, 10, "Base.Bandage")
     for x in (105.6, 105.1, 104.6, 104.1, 103.6):
         care_frame(r, [part(5, bleeding=True, bleedingTime=5.0)], zombies=[zd(1, x, 200.0)])
@@ -1968,6 +1972,7 @@ def test_a_still_zombie_at_4_5_is_bandaged_held_at_3_5_and_superseded_at_2_9(tmp
     the bandage starts; once it runs, the zombie at 3.5 (inside CARE_R) holds it, and at 2.9 (inside CARE_HOLD_R) the
     threat takes the tick back: the stance leg supersedes the bandage."""
     r, sv = make(tmp_path)
+    sv.THREAT_BLEED = False   # named change, P26-D (Plan 26 Task 2): the bleed's room yields a fight's tick
     hold(r, 10, "Base.Bandage")
     bleed = [part(5, bleeding=True, bleedingTime=5.0)]
     for _ in range(C.CARE_STILL_TICKS):
