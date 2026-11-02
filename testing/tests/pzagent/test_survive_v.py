@@ -313,7 +313,7 @@ def test_the_wound_end_reads_before_the_health_end_on_the_same_tick(tmp_path):
     (`test_survive_p`). Named change, P25-W (Plan 25 Task 14): `STAND_EXIT` off, so both close."""
     r, sv = stood(tmp_path)
     sv.STAND_EXIT = False
-    near =[dz(1, 111.3, 201.5), dz(2, 106.0, 204.0), dz(3, 106.0, 199.0)]
+    near = [dz(1, 111.3, 201.5), dz(2, 106.0, 204.0), dz(3, 106.0, 199.0)]
     _stand_frame(r, near, wounds={"parts": [part(4, bleeding=True)], "bleeding": 1}, health=S.FLEE_HEALTH - 1.0)
     tick(r, sv)
     w = threat_why(tmp_path)

@@ -21,9 +21,12 @@ the shelter and loot routes own them, and the engage leaves a zombie inside a bu
   door (`WalkTo` of `via`) or, with none within DISENGAGE_R, refused: marked unreachable until a frame reads it on the
   player's side of the edge or the player crosses to its side (`edge_marks`; never the UNREACHABLE_S mark), so no seek
   nor reposition is tried across it again. A route walk that fails marks it the same way.
-- `ThreatEdge` (the threat branch's mixin): the marks' release, every tick.
+- `ThreatEdge` (the threat branch's mixin): the marks' release, every tick. A marked zombie read on the far side of its
+  edge is out of the hold (`EDGE_OUT_OF_HOLD`, Task 14 fix 1; `Survive._edge_out`, read by `_within`): the threat
+  branch neither flees `unreachable` from it nor holds for it while it stays across, and it counts again the tick it
+  reads on the player's side. The mark is only for a blocked, non-hoppable edge, so it cannot hop it.
 - `GoalEdge` (the goal legs' mixin): a goal's target beyond such an edge is routed through the door (a leg to `via`,
-  then the target) or the goal ends `failed "blocked edge"` (cooled: `goals.COOL_REASONS`).
+  then the target) or the goal ends `failed "blocked edge"` (cooled: `cool`, as a leg's final failure).
 Logged `blocked_edge` {edge: [x, y, side], door: [x, y] | None, action: refuse | route | drop} on the line (the
 Fight's why, the goal's, the need's `fill`).
 """
@@ -242,7 +245,12 @@ class GoalEdge:
         """With the kit's `blocked_edge` on: the goal's target (x, y) beyond a known blocked edge is routed through
         the unlocked door record that passes it within `reach` (the goal's leg length) of the crossing, a leg (`leg`, so
         its end reads as one) at a walk to the door's far square, returned; with none the goal ends `failed "blocked
-        edge"`, cooled, and None is returned (the caller reads `running`). None with no such edge."""
+        edge"`, cooled, and None is returned (the caller reads `running`). None with no such edge. The read is of the
+        whole straight line to the goal's target, not the leg (`edge_read` walks Bresenham's to (x, y), 150 tiles off
+        if need be): a blocked edge anywhere on it routes or drops the goal now, a far crossing dropping it early
+        (judged acceptable in Task 14's review, minor 5: the goal would meet the same wall on its way; a crossing read
+        within the leg only would route round it later, at the cost of the retries a `via` beyond the loaded grid
+        takes down to LEG_MIN)."""
         if not self.kit.blocked_edge:
             return None
         read = edge_read(world, me_xy(world), (x, y), reach)

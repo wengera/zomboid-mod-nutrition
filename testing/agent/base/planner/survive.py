@@ -276,8 +276,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   line to a Fight's target, a goal's or a fill's source is routed through the unlocked door record on its run, else
   refused: the Fight's target marked until read on the player's side (`edges.FightEdge`, `ThreatEdge`,
   `edge_marks`), the goal ended `failed "blocked edge"` and cooled (`edges.GoalEdge`), the fill's next source taken
-  (`water.Water.plan`); logged `blocked_edge` {edge, door, action}; `BLOCKED_EDGE`); `T6_SWITCHES` off is the rule
-  before them.
+  (`water.Water.plan`); logged `blocked_edge` {edge, door, action}; `BLOCKED_EDGE`); P25-X amended by Task 14 fix 1, a
+  zombie so marked and read across its edge is out of the hold (`_edge_out`, read by `_within`; `EDGE_OUT_OF_HOLD`); the
+  stand's end table reads `drag` before `health` (`STAND_DRAG_EARLY`); `T6_SWITCHES` off is the rule before them.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -353,6 +354,7 @@ from typing import Optional
 
 from agent.base.items import days_fresh
 from agent.base.planner.care import RIDE_FREE, Care
+from agent.base.planner.edges import same_side
 from agent.base.planner.goal_runner import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
 from agent.base.planner.policies import (CLOSING_TICKS, CORNER_FREE_R, CORNERED_R, DANGER_R, DISENGAGE_R, DRAG_DOWN_N,
@@ -376,8 +378,9 @@ T4_SWITCHES = ("UNWEAR_WOUND", "FINISH_FAR", "STAND_WOUND", "SHOVE_BREAK", "SHEL
                          # rule before each
 T5_SWITCHES = ("UNARMED_FIGHT", "TRAPPED_CARE", "LOW_FIGHT", "SHOVE_BREAK_RUN")   # survival iteration 15 (Plan 25
                          # Task 10): the switches of P25-P, P25-Q, P25-S and P25-T; off, the rule before each
-T6_SWITCHES = ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE")   # survival iteration 16 (Plan 25
-                         # Task 14): the switches of P25-U, P25-V, P25-W and P25-X; off, the rule before each
+T6_SWITCHES = ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE", "EDGE_OUT_OF_HOLD")   # survival
+                         # iteration 16 (Plan 25 Task 14): the switches of P25-U, P25-V, P25-W and P25-X (the last two:
+                         # the amendment and its fix 1); off, the rule before each
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -529,10 +532,29 @@ class Survive(Threat):
     def _within(self, r, raw=False):
         """The listed zombies within `r` tiles, less those read dead within UNREACHABLE_S (`dead`, Task 12 fix 1: a
         zombie still listed on its kill tick is no threat; F1's line 333 fled 15937's corpse, `unreachable`); `raw`
-        keeps them (the decision line's `threats` and `held`, the record's own readings of the frame)."""
-        dead = () if raw else blocked(self.dead, self.clock())
+        keeps them (the decision line's `threats` and `held`, the record's own readings of the frame). With
+        `EDGE_OUT_OF_HOLD` on (ruling P25-X, amended) a zombie out of the hold across its blocked edge is left out
+        too (`_edge_out`)."""
+        dead = () if raw else blocked(self.dead, self.clock()) | self._edge_out()
         return [z for zid, z in self.world.zombies.items() if zid not in dead
                 and z.get("x") is not None and z.get("y") is not None and zdist(self.world, z) <= r]
+
+    def _edge_out(self):
+        """The ids counted out of the hold now (ruling P25-X, amended by Task 14 fix 1; E15's gate zombie held the
+        threat branch in `unreachable` flees for as long as it stayed within the hold radius across the fence): each
+        zombie marked for a blocked edge (`edge_marks`, a blocked and not hoppable outdoor edge, so it cannot hop it) and
+        read on the far side of that edge from the player (`edges.same_side`). It counts again the tick it reads on the
+        player's side (`_release_edges` frees its mark then). Empty with `EDGE_OUT_OF_HOLD` off or no mark."""
+        if not self.EDGE_OUT_OF_HOLD or not self.edge_marks:
+            return frozenset()
+        me = me_xy(self.world)
+        out = set()
+        for zid, edge in self.edge_marks.items():
+            z = self.world.zombies.get(zid)
+            if z is not None and z.get("x") is not None and z.get("y") is not None and not same_side(
+                    edge, me, (z["x"], z["y"])):
+                out.add(zid)
+        return out
 
     def _health(self):
         h = (self.world.body or {}).get("health")

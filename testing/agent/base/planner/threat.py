@@ -107,6 +107,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     BLOCKED_EDGE = True   # ruling P25-X: a known blocked outdoor edge on the line to a Fight's target, a goal's or a
                           # fill's is routed through its unlocked door or refused (`planner/edges.py`: the Fight's
                           # `blocked_edge` rule, the goals' kit, the water chain); off, iteration 15's seek and walks
+    EDGE_OUT_OF_HOLD = True   # ruling P25-X, amended (Task 14 fix 1): a zombie marked for a blocked edge (`edge_marks`)
+                              # and read across it is out of the hold (`Survive._within`: the held set, `_released`, the
+                              # DANGER_R count the `unreachable` flee reads); off, it counts as before
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the

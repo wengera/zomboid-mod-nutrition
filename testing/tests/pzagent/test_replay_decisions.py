@@ -1512,3 +1512,54 @@ def test_p25_x_moves_every_golden_first_at_its_first_engage_the_gate_zombie_refu
                                                                                             "STAND_INSIDE",
                                                                                             "STAND_EXIT"))))}
     assert only == base
+
+
+# ---------------------------------------------------------------- Task 14 fix 1: P25-X's amendment and P25-Y
+# the six goldens as they stood at `427c0b2d`'s re-record (base `bc2950f8`), before `EDGE_OUT_OF_HOLD` re-recorded them
+PRE_EDGE_OUT = {"e2": ("f7f52aa9855f484aa40caf841a4656c14304b582c19df4e9ea4ba64d16db41ca", "bc2950f8", "2026-11-02"),
+                "e3": ("798305a247dc992bc8edde0222b03bc6663213042bbb593f45db6610cbe6d611", "bc2950f8", "2026-11-02"),
+                "e4": ("f63bc9225d9ff8d0e00fee9f25eb7bcad8a0a24daf6c089be04a4142d136a1e7", "bc2950f8", "2026-11-02"),
+                "e5": ("e96579ba458b4c8265c37e8bf26cf1f8e182483b67ea2c64a5404c1b45e359f9", "bc2950f8", "2026-11-02"),
+                "f1": ("addf870b774fd64b8f7b94dfde089eceeae58ace05b9a8e43a39b5d3d234cd46", "bc2950f8", "2026-11-02"),
+                SIXTH: ("da59a6747702ee3ee1ef59e709c2e9055bea15983cc8fdd085f2379c9833860b", "bc2950f8", "2026-11-02")}
+# the first line `EDGE_OUT_OF_HOLD` moves on each golden: the tick after the refusal at the first engage
+# (`FIRST_ENGAGE`), where the file before fled `unreachable` from the refused zombie across the fence row
+FIRST_EDGE_OUT = {"e2": 70, "e3": 85, "e4": 250, "e5": 75, "f1": 106, SIXTH: 106}
+
+
+def pre_edge_out(sv):
+    sv.EDGE_OUT_OF_HOLD = False
+
+
+@functools.lru_cache(maxsize=6)
+def _pre_edge_out_replayed(key):
+    return json.dumps(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_edge_out), sort_keys=True)
+
+
+def pre_edge_out_decisions(key):
+    return R.decisions(json.loads(_pre_edge_out_replayed(key)))
+
+
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_with_edge_out_of_hold_off_the_goldens_are_the_p25_x_files(key):
+    """`EDGE_OUT_OF_HOLD` (P25-X amended, Task 14 fix 1) is the only mover of the re-record: with it off every golden
+    is the file of `427c0b2d` byte for byte (its sha256 pinned)."""
+    _, base, recorded = PRE_EDGE_OUT[key]
+    text = R.golden_text(pre_edge_out_decisions(key), base, R.RUNS[key], recorded, R.SPANS.get(key),
+                         R.HELLO_CAPS.get(key))
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == PRE_EDGE_OUT[key][0]
+
+
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_edge_out_of_hold_moves_every_golden_first_the_tick_after_its_first_refusal(key):
+    """Task 14 fix 1's attribution: all six move, each first at `FIRST_EDGE_OUT`, the line after the first engage's
+    refusal (`FIRST_ENGAGE`, P25-X): the file before fled `unreachable` from the refused zombie held across the fence
+    row (the shelter approach walk of its building); now the zombie is out of the hold, the threat branch passes and
+    the goal runs, so the line leaves the golden (which holds no goal line). Every later moved line is downstream of it
+    (open loop)."""
+    base, got = {d["line"]: d for d in pre_edge_out_decisions(key)}, gold(key)
+    moved = sorted(k for k in set(base) | set(got) if base.get(k) != got.get(k))
+    assert moved[0] == FIRST_EDGE_OUT[key] > FIRST_ENGAGE[key][0]
+    line = FIRST_EDGE_OUT[key]
+    assert base[line]["why"]["flee"] == "unreachable" and line not in got
+    assert base[FIRST_ENGAGE[key][0]] == got[FIRST_ENGAGE[key][0]]

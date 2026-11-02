@@ -15,6 +15,10 @@ mod over PZA/1.7.1, on `test_survive`'s shelter world (building 1's 3 x 3 kitche
   marks the target until it is read on the player's side; an unlocked door record on the edge's run routes the walk
   through it; a goal's or a fill's target beyond it is routed through that door, else dropped (`failed "blocked
   edge"`, cooled); logged `blocked_edge` {edge, door, action}.
+
+Task 14 fix 1 (the review's minors, `review-t14.md`, and two rulings): a marked zombie read across its edge is out of the
+hold (`EDGE_OUT_OF_HOLD`); the refusal's why never overwrites a routed second zombie's `blocked_edge`; a stand's
+`walking_out` clears with its exit; the stand's end table reads `drag` before `health`.
 """
 from agent.base.planner import doorway as D
 from agent.base.planner import policies as P
@@ -23,7 +27,7 @@ from agent.base.planner import threat as T
 
 from .test_night import OPEN, house
 from .test_policies import all_sends_valid, grid, square
-from .test_survive import group, make, tick
+from .test_survive import group, last, make, tick
 from .test_survive_g import part
 from .test_survive_p import POST, stood
 from .test_survive_p import why as door_why
@@ -31,7 +35,7 @@ from .test_survive_p import z as dz
 
 
 def test_the_iteration_16_switches():
-    assert S.T6_SWITCHES == ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE")
+    assert S.T6_SWITCHES == ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE", "EDGE_OUT_OF_HOLD")
     assert D.STAND_EXIT_ENDS == ("wound", "drag", "inside")
     assert all(getattr(T.Threat, name) is True for name in S.T6_SWITCHES)
 
@@ -322,7 +326,7 @@ def test_a_chaser_across_a_locked_gate_is_refused_and_marked_until_it_comes_roun
         last_a = r.acts.history[-1] if r.acts.history else None
         if last_a is not None and last_a.state not in ("done", "failed", "timeout", "rejected"):
             r.answer()
-    assert not walks(r) and 1 in sv.edge_marks
+    assert not [a for a in walks(r) if a.args["x"] > ME[0]] and 1 in sv.edge_marks   # the goal's walks go elsewhere
     r.frame(x=ME[0], y=ME[1], zombies=[chaser(101.6)])
     tick(r, sv)
     assert 1 not in sv.edge_marks and 1 not in sv.unreachable
@@ -431,3 +435,142 @@ def test_e7_s_walk_round_the_fence_row_routes_through_its_unlocked_door():
     assert w["target"] == 533 and "holding" in rows[49]["inputs"]["branches"]["threat"]
     rows, _ = _e7_lines(49, engage_any=True, edge=False)
     assert rows[48]["action"] == {"type": "walkTo", "args": {"gait": "walk", "x": 10740.5, "y": 10647.5}}
+
+
+# ================================================================ Task 14 fix 1: the review's minors
+def _out_ticks(tmp_path, on):
+    """The gate rig (the gate on the chaser's edge locked), the refusal tick, then three ticks with the chaser 3 tiles
+    off across the wall, the decision line and the mode of each; then one with it read on the player's side."""
+    r, sv = gate_rig(tmp_path, {200: LOCKED})
+    sv.EDGE_OUT_OF_HOLD = on
+    tick(r, sv)
+    lines = []
+    for _ in range(3):
+        r.advance(1.0)
+        r.frame(x=ME[0], y=ME[1], zombies=[chaser(103.5)])
+        tick(r, sv)
+        lines.append((last(tmp_path), sv.mode))
+    r.frame(x=ME[0], y=ME[1], zombies=[chaser(101.6)])
+    tick(r, sv)
+    return r, sv, lines, (last(tmp_path), sv.mode)
+
+
+def test_a_zombie_marked_for_a_blocked_edge_and_read_across_it_is_out_of_the_hold_and_counts_again_on_this_side(tmp_path):
+    """Minor 1, the controller's ruling (P25-X amended; `EDGE_OUT_OF_HOLD`): E15's gate zombie within DANGER_R across
+    the fence neither flees `unreachable` nor holds the threat branch: the goal runs (branch `goal`, no mode, the
+    threat why empty) on every tick it stays across; the tick it reads on the player's side it counts again (the
+    Fight on it)."""
+    r, sv, lines, back = _out_ticks(tmp_path, True)
+    assert sv.edge_marks == {} and 1 not in sv.unreachable
+    for line, mode in lines:
+        assert line["branch"] == "goal" and mode is None and line["inputs"]["branches"]["threat"] == {}
+    line, mode = back
+    assert line["branch"] == "threat" and mode == "fight" and line["inputs"]["branches"]["threat"]["target"] == 1
+
+
+def test_with_edge_out_of_hold_off_the_marked_zombie_across_the_edge_flees_unreachable_as_before(tmp_path):
+    r, sv, lines, back = _out_ticks(tmp_path, False)
+    for line, mode in lines:
+        w = line["inputs"]["branches"]["threat"]
+        assert line["branch"] == "threat" and mode == "flee" and w["flee"] == "unreachable"
+    assert back[1] == "fight"
+
+
+def test_the_marked_zombie_across_the_edge_is_left_out_of_the_listing_and_the_dangerr_count_only_while_across(tmp_path):
+    """`_within` (the held set, the DANGER_R count the pair rule and the hysteresis read) leaves out the marked ids
+    read across their edge, `raw` keeps them (the decision line's own readings); a second zombie on the player's side
+    counts."""
+    r, sv = gate_rig(tmp_path, {200: LOCKED})
+    tick(r, sv)
+    r.frame(x=ME[0], y=ME[1], zombies=[chaser(103.5), dict(dz(2, 99.0, 200.5, me=ME), hasTarget=True)])
+    tick(r, sv)
+    assert len(sv._within(P.DANGER_R)) == 1 and sv._edge_out() == {1}
+    assert len(sv._within(P.DANGER_R, raw=True)) == 2
+    sv.EDGE_OUT_OF_HOLD = False
+    assert len(sv._within(P.DANGER_R)) == 2 and sv._edge_out() == frozenset()
+
+
+def _two_walls(tmp_path):
+    """A wall on the west edges of x 102 over y 190..215 whose one unlocked door record is at y 210: a chaser at
+    (103.5, 196.5) crosses at y 199 (11 squares from the door, beyond DISENGAGE_R: refused), a second at (104.5, 205.5)
+    crosses nearer it (routed)."""
+    r, sv = make(tmp_path)
+    r.scan([square(x, y, blockW=(x == 102), edgeW=(x == 102), door=UNLOCKED if (x, y) == (102, 210) else None)
+            for x in range(98, 113) for y in range(190, 216)])
+    r.frame(x=ME[0], y=ME[1], zombies=[chaser(103.5, 196.5), dict(chaser(104.5, 205.5), id=2)])
+    return r, sv
+
+
+def test_the_refusal_s_why_never_overwrites_the_routed_second_zombie_s_blocked_edge(tmp_path):
+    """Minor 2: the nearer zombie is refused (marked, the choose re-run), the second routed through the unlocked door:
+    the tick's action is the route walk and the logged `blocked_edge` is the route's own (door [102, 210]),
+    `marked` the refused id; not the first zombie's refusal over a route walk."""
+    r, sv = _two_walls(tmp_path)
+    a = tick(r, sv)
+    w = door_why(r)
+    assert (a.type, a.args) == ("walkTo", {"x": 102.5, "y": 210.5, "gait": "run"})
+    assert w["marked"] == 1 and 1 in sv.edge_marks and 2 not in sv.edge_marks
+    assert w["blocked_edge"]["action"] == "route" and w["blocked_edge"]["door"] == [102, 210]
+    assert w["target"] == 2
+
+
+def test_a_lone_refusal_still_logs_its_own_blocked_edge(tmp_path):
+    r, sv = gate_rig(tmp_path, {200: LOCKED})
+    tick(r, sv)
+    w = door_why(r)
+    assert w["blocked_edge"]["action"] == "refuse" and w["marked"] == 1
+
+
+def test_a_stand_s_way_out_that_ended_is_no_longer_the_stand_s_for_a_later_exit_of_the_same_flee(tmp_path):
+    """Minor 3 (`Flee.walking_out`): the `inside` end walks out (the walk to the square beyond the approach square);
+    once the player stands outside the exit ends and `walking_out` clears; a later exit the same Flee takes (the exit
+    record of the first, standing in for the next room's) is not `stand_exit_running`, so the threat plan reads its rows
+    (here the `many` flee's hold, the group episode kept), never the stale row (`("flee", "doorway")` ahead of the
+    corner and the drag guard)."""
+    zs = [dz(4, 113.5, 200.5)] + EAST
+    r, sv = stood(tmp_path)
+    r.frame(x=POST[0], y=POST[1], zombies=zs)
+    tick(r, sv)
+    first = sv.flee.exit
+    assert sv.flee.walking_out == "inside" and sv.flee.stand_exit_running() and first is not None
+    r.fake.answer({"walkTo": ["accepted", "done"]})
+    r.pump()
+    r.frame(x=110.5, y=201.5, zombies=EAST)
+    tick(r, sv)
+    assert sv.flee.exit is None and sv.flee.walking_out is None
+    sv.flee.exit = dict(first, step="walk")   # a later way out of the same Flee
+    assert not sv.flee.stand_exit_running()
+    r.frame(x=POST[0], y=POST[1], zombies=[dz(6, 113.5, 201.5)])
+    tick(r, sv)
+    w = door_why(r)
+    assert w["flee"] != "doorway" and "doorway_exit" not in w and "doorway_left" not in w
+
+
+def test_a_trapped_stand_end_leaves_no_way_out_running(tmp_path):
+    """Minor 3: the stand's `drag` end with no way out (the trapped hold) leaves no `walking_out`, so a way out the Flee
+    takes later is no stand's."""
+    r, sv = stood(tmp_path)
+    r.frame(x=POST[0], y=POST[1], zombies=[dz(1, 112.2, 201.8), dz(2, 111.4, 201.5)], attackers=2)
+    tick(r, sv)
+    assert door_why(r)["doorway_exit"] == {"end": "drag", "exit": "trapped"}
+    assert sv.flee.walking_out is None and not sv.flee.stand_exit_running()
+
+
+def test_a_stand_ended_drag_under_flee_health_leaves_by_the_way_out_never_the_close(tmp_path):
+    """Minor 4, the controller's ruling (`STAND_DRAG_EARLY`): the end table reads `drag` before `health`, so two
+    attackers with the health under FLEE_HEALTH end `drag` and walk out (logged `doorway_exit`), never the `health`
+    close with the group at the front; off, `health` first and the close."""
+    def run(sub, early):
+        (tmp_path / sub).mkdir()
+        r, sv = stood(tmp_path / sub)
+        sv.STAND_DRAG_EARLY = early
+        r.frame(x=POST[0], y=POST[1], zombies=[dz(1, 111.3, 201.5)] + group(8.0, POST)[1:], attackers=2,
+                health=S.FLEE_HEALTH - 1.0)
+        tick(r, sv)
+        return r, sv
+    r, sv = run("on", True)
+    w = door_why(r)
+    assert w["doorway_left"] == "drag" and w["doorway_drag"] == 2 and "doorway_exit" in w and not closes(r)
+    r, sv = run("off", False)
+    w = door_why(r)
+    assert w["doorway_left"] == "health" and "doorway_exit" not in w and "doorway_drag" not in w

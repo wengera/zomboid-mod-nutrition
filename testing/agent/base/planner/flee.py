@@ -157,7 +157,7 @@ class Flee(Policy):
         adoption spent (`adopted`: the adopted building's re-close would be the close again), so the next choose takes
         `exit_plan` on a room square (a door or an opening out, at FLEE_GAIT), else the trapped hold; off a room square,
         the steer. `walking_out` keeps `end` while the exit runs (`Survive._doorway`: ahead of every row, as the close
-        ran)."""
+        ran) and is cleared when that exit ends or none is found (`_end_exit`, `choose`)."""
         self.plan = None
         self.adopted = True
         self.walking_out = end
@@ -380,7 +380,14 @@ class Flee(Policy):
 
     def _refuse_exit(self):
         self.refused.add(self.exit["outer"])
+        self._end_exit()
+
+    def _end_exit(self):
+        """The running way out ended (walked out of, or refused): `exit` and the stand's `walking_out` cleared, so a
+        later way out of this Flee (another room's, after a steer) is no stand's and never runs ahead of the corner
+        and the drag guard (`stand_exit_running`; Task 14 fix 1, the review's minor 3)."""
         self.exit = None
+        self.walking_out = None
 
     def _pick(self, ts):
         """The shelter plan to run (ruling P23-AG and its fix rounds), else None: never from a room square (P23-AJ
@@ -498,7 +505,7 @@ class Flee(Policy):
         e = self.exit
         if not on_room(self.world):
             self.left.add(e["building"])
-            self.exit = None
+            self._end_exit()
             return None
         if e["step"] == "open" and ((self.world.map.get(e["door"]) or {}).get("door") or {}).get("open"):
             e["step"], e["opened"] = "walk", True
@@ -536,6 +543,8 @@ class Flee(Policy):
         steer ran inside a room with a way out, E2's death mode) the steer is never sent: the running exit, else a new
         one, walked at a run (P24-O), else the adoption, else the trapped hold."""
         self._chosen = None
+        if self.exit is None and not on_room(self.world):
+            self.walking_out = None   # the stand's end read off a room square: the steer is the way out (`walk_out`)
         ts = self._threats()
         if not ts:
             self.why = {"centroid": None, "shelter": None}
@@ -562,6 +571,7 @@ class Flee(Policy):
             self.exit = exit_plan(self.world, ts, self.refused, self.trans)
             if self.exit is not None:
                 return self._exit_step()
+            self.walking_out = None   # the stand's way out found none: the trapped hold is no running exit
             if not self.adopted:
                 self.adopted = True
                 self.plan = self._adopt(ts)

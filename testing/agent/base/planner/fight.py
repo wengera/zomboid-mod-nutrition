@@ -765,7 +765,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
                 return edge[1]
             read = self.blocked_edge
             cmd = self._choose()
-            self.why = dict(self.why, marked=zid, blocked_edge=read)
+            self.why = dict(self.why, marked=zid)
+            if "blocked_edge" not in self.why:   # the re-run's own (the routed or the refused second zombie's) stands
+                self.why["blocked_edge"] = read
             return cmd
         if d <= POINT_BLANK_R:
             self.approach = False   # P24-A (e), the close review's I3 (F1's walkTo at 0.49 tiles): never at point blank

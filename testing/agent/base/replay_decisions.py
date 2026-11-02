@@ -84,6 +84,14 @@ and P24-AC's (legs: the goal is not replayed). Ruling P24-AD (an idle zombie, `h
 only within DANGER_R) re-recorded all six: `Survive.IDLE` off reproduces the files before it byte for byte
 (`test_replay_decisions.PRE_AD`, `pre_ad`), each moving first where its `many` read first differs
 (`FIRST_IDLE`: e2 146, e3 214, e4 381, e5 215, f1 and the sixth 163), every later moved line downstream of it.
+Ruling P24-AX (Plan 24 survival iteration 12) re-recorded all six (`da9af9b9`; `doorway_pick` on every `many` line;
+`pre_t36`). Ruling P25-X (Plan 25 Task 14, survival iteration 16) re-recorded all six (`427c0b2d`), each moving first at
+its first engage, the gate zombie on the fence row at y 10642 refused (`blocked_edge` refuse); `survive.T6_SWITCHES` off
+reproduces the files before it byte for byte (`test_replay_decisions.PRE_T6`, `pre_t6`). Its amendment in Task 14 fix 1
+(`EDGE_OUT_OF_HOLD`: the refused zombie, read across its edge, is out of the hold, so the `unreachable` flee that
+followed the refusal on every later tick is the goal's run) re-recorded all six again, each first moved at the tick
+after its refusal (`test_replay_decisions.FIRST_EDGE_OUT`); `EDGE_OUT_OF_HOLD` alone off reproduces the files of
+`427c0b2d` (`PRE_EDGE_OUT`).
 
 `agreement(artifact_dir, replayed)` compares the replayed log with the record's own decision.log at every line where
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat

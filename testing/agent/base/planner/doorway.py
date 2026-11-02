@@ -269,9 +269,11 @@ class DoorwayStand:
           when the stand began (the start's indices kept on the plan, `bleed0`), logged `doorway_wound` (the indices);
         - `inside` (ruling P25-V, `STAND_INSIDE`): a standing zombie on a square of the stand's room, off its door
           square and not its target (`_stand_inside`), logged `doorway_inside` {id, square};
-        - `health` under FLEE_HEALTH;
         - `drag` with the frame's `me.attackers` at DRAG_DOWN_N - 1 (ruling P25-U, `STAND_DRAG_EARLY`; off, at
-          DRAG_DOWN_N: ruling R1, Task 32 fix 1, the front has failed; `_stand_drag_n`), logged `doorway_drag`;
+          DRAG_DOWN_N: ruling R1, Task 32 fix 1, the front has failed; `_stand_drag_n`), logged `doorway_drag`; read
+          before `health` since Task 14 fix 1 (`STAND_DRAG_EARLY`; off, after it), so a two-attacker tick under
+          FLEE_HEALTH leaves by the way out, never the close;
+        - `health` under FLEE_HEALTH;
         - `unarmed`;
         - `off` (`off_post`: off the building's room squares and beyond DOOR_OFF_R of the threshold, fix 1's major 2);
         - `quiet` once no zombie has been within DANGER_R for DOOR_HOLD_S wall seconds (`plan["quiet"]` the last wall
@@ -340,10 +342,11 @@ class DoorwayStand:
             self.stand_wound = new
         attackers = self._attackers()
         inside = self._stand_inside(plan)
+        health = ("health", lambda: self._health() < FLEE_HEALTH)
+        drag = ("drag", lambda: attackers >= self._stand_drag_n())
         ends = (("wound", lambda: new),
                 ("inside", lambda: inside),
-                ("health", lambda: self._health() < FLEE_HEALTH),
-                ("drag", lambda: attackers >= self._stand_drag_n()),
+                *((drag, health) if self.STAND_DRAG_EARLY else (health, drag)),
                 ("unarmed", lambda: not self._armed()),
                 ("off", lambda: off_post(self.world, plan)),
                 ("quiet", lambda: now - plan["quiet"] >= DOOR_HOLD_S))
@@ -387,8 +390,8 @@ class DoorwayStand:
         else DRAG_DOWN_N (ruling R1, Task 32 fix 1). The drag-down guard (`_drag`, P24-A (h)) leaves any fight at the
         same DRAG_DOWN_N - 1, but the stand's end reads first on a tick: `_doorway` is `_threat_plan`'s first row (the
         stand's plan holds the Flee and its premise is the one-tile front the guard flees), so while a stand stands the
-        guard is never read; its end names the tick (`doorway_left` "drag"), and the guard reads from the next tick,
-        the plan left."""
+        guard is never read; its end names the tick (`doorway_left` "drag"), and the guard reads once the stand's close
+        (`STAND_EXIT` off) or its way out has ended (both run ahead of every row)."""
         return DRAG_DOWN_N - 1 if self.STAND_DRAG_EARLY else DRAG_DOWN_N
 
     def _stand_wound(self, plan):
