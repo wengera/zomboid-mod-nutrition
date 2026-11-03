@@ -29,6 +29,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 TESTING = os.path.dirname(os.path.dirname(HERE))
 E18 = os.path.join(TESTING, "artifacts", "e_day_18-20261102-224036")
 E19 = os.path.join(TESTING, "artifacts", "e_day_19-20261103-072904")
+E20 = os.path.join(TESTING, "artifacts", "e_day_20-20261103-121340")
 NEW = G.NEW
 NEW16 = G16.NEW
 TAGS = ("P27-F", "P27-G", "P27-H", "P27-I", "P27-J", "P27-K1", "P27-K2", "P27-K3", "P27-L")
@@ -688,6 +689,20 @@ def test_e_grade_17_prints_the_committed_e_grade_txt_s_lines_then_the_new_ones(p
     got["grade"] = old
     got["report_lines"] = got["report_lines"][:-added]
     assert got == want
+
+
+def test_e_grade_17_on_e20_reproduces_the_committed_e_grade_txt_byte_for_byte():
+    """Ruling P26-Q: `e_grade_17.py` on the committed E20 artifact (the first session graded through `grade_e17`)
+    reproduces its committed `e_grade.txt` byte for byte (CRLF folded), so a drift in any live name read through the
+    grade chain (`grade_e16`, `grade_e15`, `grade_e14`) fails here."""
+    p = os.path.join(E20, "e_day_20.json")
+    if not os.path.isfile(p):
+        pytest.skip("%s is not checked out" % E20)
+    script = os.path.join(TESTING, "agent", "drivers", "e_grade_17.py")
+    r = subprocess.run([sys.executable, script, p], capture_output=True, cwd=TESTING)
+    assert r.returncode == 0
+    want = open(os.path.join(E20, "e_grade.txt"), "rb").read().replace(b"\r\n", b"\n")
+    assert r.stdout.replace(b"\r\n", b"\n") == want
 
 
 def test_e_grade_17_refuses_an_argument_it_does_not_define():
