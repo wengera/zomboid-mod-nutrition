@@ -27,6 +27,9 @@ from agent.base.planner.policies import (AIM_R, CLOSING_TICKS, CORNERED_R, CORNE
 from agent.base.planner.pull import ThreatPull
 from agent.base.pza1 import Drop
 
+SHOVE_ONLY_WHY = {"unarmed": "unarmed_fight", "low": "low_fight", "hold": "hold_fight"}   # the why of each
+                         # shove-and-stomp Fight (`Fight.shove_only`: P25-P, P25-S, P27-C)
+
 __all__ = ["Threat", "FLEE_HEALTH", "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_FIGHT", "HOLD_BREAK_R", "CLOSING_TICKS",
            "CORNERED_R", "CORNER_FREE_R", "MANY_LISTED_N", "FINISH_R", "DRAG_DOWN_N", "FLIP_MIN_S", "GROUP_R_N",
            "GROUP_NEAR_R", "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "LISTED_R"]
@@ -143,6 +146,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     MANY_TAIL = True      # ruling P27-B: a `many` flee episode ends after MANY_TAIL_TICKS ticks with at most one
                           # standing zombie within DANGER_R and at most one of the listed pressing (`_many_tail_read`);
                           # off, it ends only when no held threat is within DANGER_R (P23-AM 1)
+    HOLD_LONE = True      # ruling P27-C: under the endurance hold one zombie standing within DANGER_R and no other
+                          # chaser listed is fought by the shove and the stomp (`hold.Hold._hold_lone`,
+                          # `Fight.shove_only` "hold"); off, every such tick flees `strain`
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -314,8 +320,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     def _unpaired(self, held, health, n):
         """The hysteresis past the `pair` rule (`_hysteresis`; `n` the DANGER_R count): `strain`, `unreachable`,
         `stalled`, `held`, else None."""
-        if self.spent is not None and not self._wounded_fight():   # P24-AG, P24-AK: the arms, the endurance or the
-            return "strain"                                        # tiredness halve every swing; P24-AP within KEEP_R
+        if self.spent is not None and not self._wounded_fight() and not self._hold_lone():   # P24-AG, P24-AK: the
+            return "strain"   # arms, the endurance or the tiredness halve every swing; P24-AP within KEEP_R; P27-C
         if not self._reachable_held():
             return "unreachable"
         near = min(zdist(self.world, z) for z in held)
@@ -324,8 +330,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                 return "stalled"
             if not self.ENGAGE:   # before P24-X: one held, at the refight margin
                 return "held" if len(held) > 1 or health < FLEE_HEALTH + REFIGHT_MARGIN else None
-            if not (self._takes_on(len(held)) or self._unarmed_fight(n) or self._low_fight(n)):   # P24-X: the flee
-                return "held"   # turns to fight one or two at the fight's line; P25-P unarmed, P25-S under FLEE_HEALTH
+            if not (self._takes_on(len(held)) or self._unarmed_fight(n) or self._low_fight(n)
+                    or self._hold_lone()):   # P24-X: the flee turns to fight one or two at the fight's line; P25-P
+                return "held"   # unarmed, P25-S under FLEE_HEALTH, P27-C the hold's lone zombie
             if self.flee_health and health < FLEE_HEALTH + REFIGHT_MARGIN and not self._low_fight(n):
                 return "held"   # the health flee stays, its margin kept (P25-S: but for the low fight)
             return None
@@ -651,12 +658,12 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         DANGER_R, F9's 105 of 169; the guides' notes § 4: draw a group out and turn on the lead one once it strings
         out), the `many` episode's tail, read once a tick before the decision: while a flee episode whose reason was
         `many` runs (`mode` "flee", `flee_many`) with `MANY_TAIL` on, a tick with at most one standing zombie (not
-        `onFloor`) within DANGER_R and at most one of the listed pressing (`_pressing` of the zombies the listing counts,
-        `_counts_listed`) adds one to `many_tail_n`, and any other tick resets it (two or more standing within DANGER_R
-        never end the episode, so P23-AM 1's flips do not return); at MANY_TAIL_TICKS the episode ends (`flee_many`
-        cleared, the count reset, logged `many_tail` {ticks, standing, pressing} on that tick's threat why) and the
-        tick decides by the ordinary rules, the lone one fought where they allow it (the hold's if spent); a `many` read
-        after it starts a new episode as today. Else the count is 0."""
+        `onFloor`) within DANGER_R and at most one of the listed pressing (`_pressing` of the zombies the listing
+        counts, `_counts_listed`) adds one to `many_tail_n`, and any other tick resets it (two or more standing within
+        DANGER_R never end the episode, so P23-AM 1's flips do not return); at MANY_TAIL_TICKS the episode ends
+        (`flee_many` cleared, the count reset, logged `many_tail` {ticks, standing, pressing} on that tick's threat why)
+        and the tick decides by the ordinary rules, the lone one fought where they allow it (the hold's if spent); a
+        `many` read after it starts a new episode as today. Else the count is 0."""
         self.many_tail = None
         if not (self.MANY_TAIL and self.mode == "flee" and self.flee_many):
             self.many_tail_n = 0
@@ -779,8 +786,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             if self.pair_yield is not None and not self._finishes(self.pair_yield):
                 self.pair_yield = None   # P25-J (3): logged only where the Fight's finish answers it
         self.why.update({"fight": True} if reason is None else {"flee": reason})
-        if want == "fight" and policy.shove_only is not None:   # P25-P, P25-S: the Fight's shove and stomp
-            self.why["unarmed_fight" if policy.shove_only == "unarmed" else "low_fight"] = True
+        if want == "fight" and policy.shove_only is not None:   # P25-P, P25-S, P27-C: the Fight's shove and stomp
+            self.why[SHOVE_ONLY_WHY[policy.shove_only]] = True
         if reason == "strain" or self.corner_yield == "strain":
             self.why["strain"] = self.spent   # P24-AG: the why names the strain
         if want == "flee" and walk and self._walking(policy, ans):
@@ -831,11 +838,16 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
 
     def _shove_only(self, kind):
         """Why this tick's Fight is the shove and the stomp alone (`Fight.shove_only`), else None: "unarmed" with no
-        weapon held (`_unarmed`, P25-P), "low" for the open-ground Fight (`kind` "fight": no corner nor door fight)
-        under FLEE_HEALTH the low fight admits (`_low_fight`, P25-S)."""
+        weapon held (`_unarmed`, P25-P); for the open-ground Fight (`kind` "fight": no corner nor door fight) "hold"
+        for the endurance hold's lone zombie (`_hold_lone`, P27-C) and "low" under FLEE_HEALTH the low fight admits
+        (`_low_fight`, P25-S)."""
         if self._unarmed():
             return "unarmed"
-        return "low" if kind == "fight" and self._low_fight(len(self._within(DANGER_R))) else None
+        if kind != "fight":
+            return None
+        if self._hold_lone():
+            return "hold"
+        return "low" if self._low_fight(len(self._within(DANGER_R))) else None
 
     def _inside_crowd(self):
         """Ruling P26-C: the running corner's count at point blank when it is an `inside` corner (`corner_kind`) with

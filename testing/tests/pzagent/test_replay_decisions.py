@@ -1675,7 +1675,8 @@ def test_iteration_19_moves_e4_alone_at_the_many_tail(key):
       unmoved; at line 441 the listing's four make `many` again (`listed` 4, a new episode as P24-A (a) reads it),
       the decision unmoved. No other line moves.
     - FLEE_FINISH (P27-A) moves no golden: its finish reads a zombie the frame reads `onFloor`, which no golden's frames
-      carry.
+      carry. HOLD_LONE (P27-C) moves none: the hold fight needs a build announcing the PZA/1.7 `shove`, which no
+      golden's hello does.
     A golden no switch moves is its file before iteration 19 byte for byte."""
     base, got = pre_t9_gold(key), gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]

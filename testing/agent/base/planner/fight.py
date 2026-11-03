@@ -207,7 +207,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         self._edge_walk = None              # (walk, target id, edge) of the last route walk sent, until its end is read
         self.blocked_edge = None            # this choose's `blocked_edge` why (P25-X), else None
         self.shove_only = None              # Survive sets it each tick: why the Fight is the shove and the stomp
-                                            # alone, "unarmed" (P25-P) or "low" (P25-S), else None: no swing, no seek
+                                            # alone, "unarmed" (P25-P), "low" (P25-S) or "hold" (P27-C), else None:
+                                            # no swing, no seek
         self.crowd = None                   # Survive sets it each tick: an `inside` corner's count at point blank
                                             # (P26-C, `_crowd_shove`), else None
 
@@ -604,7 +605,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         (`arms_hurt`), any hold Survive read this tick (`spent`: the arms', the endurance or the tired hold, each
         halving a swing, #4370, #4371), or a shove-and-stomp Fight (`shove_only`: "unarmed", ruling P25-P, the
         shove and the stomp need no weapon, the Lua's K.STAND_R; "low", ruling P25-S, under FLEE_HEALTH the kill with
-        the least exposure)."""
+        the least exposure; "hold", ruling P27-C, the endurance hold's lone zombie)."""
         return arms_hurt(self.world) or bool(self.spent) or self.shove_only is not None
 
     def _wounded_leg(self, zid, z, d):

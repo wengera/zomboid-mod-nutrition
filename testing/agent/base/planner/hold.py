@@ -4,9 +4,9 @@ target). Moved out of `threat.py` at Plan 25 Task 2 (a pure move: every rule, sw
 constants in `policies.py`'s table); its state is `Survive`'s own, set in `Survive.__init__`, and `survive.py`'s
 module docstring stays the record of every rule here.
 """
-from agent.base.planner.policies import (DANGER_R, ENDURANCE_RELEASE, ENDURANCE_T, HOLD_QUIET_S, HOLD_SPAN_MIN,
-                                         KEEP_R, LISTED_R, STIFF_HARD, STIFF_SOFT, STRAIN_HARD, TIRED_FIGHT_T, arm_pain,
-                                         arm_stiffness, chasing, on_floor, zdist)
+from agent.base.planner.policies import (DANGER_R, ENDURANCE_RELEASE, ENDURANCE_T, FLEE_HEALTH_PAIR, HOLD_QUIET_S,
+                                         HOLD_SPAN_MIN, KEEP_R, LISTED_R, STIFF_HARD, STIFF_SOFT, STRAIN_HARD,
+                                         TIRED_FIGHT_T, arm_pain, arm_stiffness, chasing, on_floor, zdist)
 
 
 def _num(v):
@@ -118,6 +118,25 @@ class Hold:
         is within DANGER_R (`HOLD_RUN` on), else runs (FLEE_GAIT)."""
         return (self.HOLD_RUN and reason == "strain" and "endurance" in self.spent_kinds
                 and not self._within(DANGER_R))
+
+    def _hold_lone(self):
+        """Ruling P27-C (`HOLD_LONE`; E18, `e_day_18-20261102-224036`: from game minute 708 to the cap the endurance
+        hold named all 271 `strain` lines, `inputs.threats` 1 on 57 of them, and fights 21 to 39 each fled `strain`; the
+        guides' notes § 2: when exhausted re-engage only one on one): under the endurance hold alone (`spent_kinds`
+        ("endurance",): not the arms' nor the tired hold), with exactly one zombie standing (not `onFloor`) within
+        DANGER_R, no other listed zombie within LISTED_R chasing (`hasTarget`), the health at or above FLEE_HEALTH_PAIR
+        and the build announcing `shove`, the lone zombie is fought, not fled: `_unpaired` reads no `strain` flee, and
+        the Fight is the shove-and-stomp fight (`Fight.shove_only` "hold", `Threat._shove_only`: the stance, the shove
+        at point blank, the stomp of the fallen, no swing, no seek), logged `hold_fight`. Two or more within DANGER_R,
+        or a second chaser listed, flee `strain` as before. Cost if wrong: the tired fight the hold was ruled against
+        (F3, #4415), bounded to one zombie and no swing."""
+        if not (self.HOLD_LONE and self.spent_kinds == ("endurance",) and self.world.can("shove")
+                and self._health() >= FLEE_HEALTH_PAIR):
+            return False
+        stand = [z for z in self._within(DANGER_R) if not on_floor(z)]
+        if len(stand) != 1:
+            return False
+        return not any(z is not stand[0] and chasing(z) for z in self._within(LISTED_R))
 
     def spent_view(self):
         """The goal view's `spent` (Plan 25 Task 3, P25-C; spec § 2.2(f): the model reads the hold to choose `Rest`):

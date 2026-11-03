@@ -268,8 +268,11 @@ def test_no_stomp_first_by_a_chaser_beyond_finish_r_without_the_stomp_or_switche
 # ================================================================ P25-C: the endurance hold on the run
 def strain_flee(tmp_path, endurance=0.7267035841941833):
     """F3's hold (#4415): the endurance first read under ENDURANCE_T, a zombie 5 tiles off (within DANGER_R, beyond
-    KEEP_R): the `strain` flee at a run; its leg ends."""
+    KEEP_R): the `strain` flee at a run; its leg ends. Named change, ruling P27-C (Plan 27 Task 1): the lone zombie
+    within DANGER_R is the endurance hold's lone fight (`test_survive_aa`); pinned with `HOLD_LONE` off, the rule
+    before it."""
     r, sv = make(tmp_path)
+    sv.HOLD_LONE = False
     r.frame(zombies=[z(1, 105.0)], endurance=endurance)
     a = tick(r, sv)
     w = threat_why(tmp_path)
@@ -375,7 +378,9 @@ def test_the_release_above_endurance_release_stands_as_before(tmp_path):
 def test_a_shelter_step_sent_at_a_walk_runs_once_a_zombie_comes_within_danger_r(tmp_path):
     """Review-t3 finding 3 (every flee reason may take a shelter, and `gait` is the gait of every leg and walk): under the
     endurance hold with the nearest 6.5 tiles off the strain flee's shelter step (the enter) goes at a walk; with the
-    zombie at 4.5 the running walk is dropped and sent again at a run (not only the steer leg)."""
+    zombie at 4.5 the running walk is dropped and sent again at a run (not only the steer leg). Named change, ruling
+    P27-C (Plan 27 Task 1): the lone zombie within DANGER_R is the endurance hold's lone fight (`test_survive_aa`);
+    pinned with `HOLD_LONE` off, the rule before it."""
     from .test_night import CLOSED, OPEN
     from .test_survive import shelter_world
 
@@ -389,6 +394,7 @@ def test_a_shelter_step_sent_at_a_walk_runs_once_a_zombie_comes_within_danger_r(
         return a
     r, sv = make(tmp_path)
     sv.DOORWAY = False
+    sv.HOLD_LONE = False
     shelter_world(r, CLOSED)
     assert frames(r, sv, 96.0).args["gait"] == "run"            # the flee starts at a run, a zombie at 4
     r.answer()

@@ -127,8 +127,11 @@ def test_the_endurance_or_tired_hold_fights_within_keep_r_shove_then_stomp_never
     point blank every time, the stomp of a fallen one, never the floor strike; logged `spent`. With HOLD_WIDE off
     (the rule Task 32 landed) the endurance or tired hold flees `strain`. Named change, Plan 25 Task 3 (ruling P25-A):
     Plan 25 Task 3 fix 1: a shove that read no knock-down is shoved again, never swung at (the divided swing); named
-    change, ruling P25-I (Plan 25 Task 7): logged `corner` {kind shove, sore: the arms' pain read}."""
+    change, ruling P25-I (Plan 25 Task 7): logged `corner` {kind shove, sore: the arms' pain read}. Named change,
+    ruling P27-C (Plan 27 Task 1): the endurance hold's lone zombie is the hold fight (`shove` "hold",
+    `test_survive_aa`); pinned with `HOLD_LONE` off, the rule before it."""
     r, sv = make(tmp_path)
+    sv.HOLD_LONE = False
     fr(r, [z(1, 102.0)], arm, **k)
     a = tick(r, sv)
     w = threat_why(tmp_path)
@@ -154,6 +157,7 @@ def test_the_endurance_or_tired_hold_fights_within_keep_r_shove_then_stomp_never
     (tmp_path / "off").mkdir()
     r2, sv2 = make(tmp_path / "off")
     sv2.HOLD_WIDE = False
+    sv2.HOLD_LONE = False
     fr(r2, [z(1, 102.0)], arm, **k)
     tick(r2, sv2)
     assert sv2.mode == "flee" and threat_why(tmp_path / "off")["flee"] == "strain"
@@ -162,8 +166,10 @@ def test_the_endurance_or_tired_hold_fights_within_keep_r_shove_then_stomp_never
 @pytest.mark.parametrize("k", [{"endurance": 0.7}, {"fatigue": 0.7}])
 def test_beyond_keep_r_the_endurance_or_tired_hold_still_flees_strain(tmp_path, k):
     """R2's exemption is within KEEP_R only: at 4 tiles the hold flees `strain` as before (the release lines govern the
-    seeking, never a zombie at point blank)."""
+    seeking, never a zombie at point blank). Named change, ruling P27-C (Plan 27 Task 1): the endurance hold's lone
+    zombie is the hold fight (`test_survive_aa`); pinned with `HOLD_LONE` off, the rule before it."""
     r, sv = make(tmp_path)
+    sv.HOLD_LONE = False
     fr(r, [z(1, 104.0)], None, **k)
     tick(r, sv)
     assert sv.mode == "flee" and threat_why(tmp_path)["flee"] == "strain"

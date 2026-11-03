@@ -257,7 +257,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     FIGHT_REACH is not closing (`care_yield.CareYield._bleed_holds`); `T8_SWITCHES`.
   - Survival 21 (iteration 19, E18, F9 and F8): P27-A, the finish under the `strain`, `pair` and `many` flees on any
     fallen zombie, cleared to FINISH_CLEAR_R (`finish.ThreatFinish._flee_finish`, `_fallen_wide`); P27-B, the `many`
-    episode ends on its strung-out tail (`threat.Threat._many_tail_read`); `T9_SWITCHES`.
+    episode ends on its strung-out tail (`threat.Threat._many_tail_read`); P27-C, the endurance hold's lone zombie
+    fought by the shove and the stomp (`hold.Hold._hold_lone`, `Fight.shove_only` "hold"); `T9_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -374,8 +375,8 @@ T7_SWITCHES = ("WINDOW_EXIT", "STAND_SECOND_EXIT", "INSIDE_SHOVE", "THREAT_BLEED
 T8_SWITCHES = ("WINDOW_INNER", "WINDOW_STALL", "STAND_CROWD", "WOUNDED_SWING", "BLEED_HOLD")
 # survival iteration 18 (Plan 26 Tasks 7 and 7d): P26-I to P26-K on `threat.Threat` (WINDOW_INNER, WINDOW_STALL,
 # STAND_CROWD); P26-L1 and P26-L2 on `threat.Threat` (WOUNDED_SWING, BLEED_HOLD)
-T9_SWITCHES = ("FLEE_FINISH", "MANY_TAIL")
-# survival iteration 19 (Plan 27 Task 1): P27-A and P27-B on `threat.Threat` (FLEE_FINISH, MANY_TAIL)
+T9_SWITCHES = ("FLEE_FINISH", "MANY_TAIL", "HOLD_LONE")
+# survival iteration 19 (Plan 27 Task 1): P27-A to P27-C on `threat.Threat` (FLEE_FINISH, MANY_TAIL, HOLD_LONE)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")

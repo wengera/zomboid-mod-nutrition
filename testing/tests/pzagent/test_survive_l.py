@@ -91,8 +91,11 @@ def test_no_new_engage_while_the_strain_hold_runs(tmp_path):
 @pytest.mark.parametrize("endurance,spent", [(0.75, True), (0.7, True), (0.76, False)])
 def test_the_endurance_moodle_starts_no_fight_and_disengages(tmp_path, endurance, spent):
     """P24-AG (#4371: the first ENDURANCE level halves every swing): at endurance 0.75 or under a zombie at 4 tiles is
-    fled `strain` (kind `endurance`), none at 7 engaged; over it, fought."""
+    fled `strain` (kind `endurance`), none at 7 engaged; over it, fought. Named change, ruling P27-C (Plan 27 Task 1):
+    the lone zombie at 4 tiles is the endurance hold's lone fight (`test_survive_aa`); pinned with `HOLD_LONE` off, the
+    rule before it."""
     r, sv = make(tmp_path)
+    sv.HOLD_LONE = False
     fr(r, None, [zombie(1, 104.0, 200.0)], endurance=endurance)
     tick(r, sv)
     w = threat_why(tmp_path)
@@ -108,7 +111,10 @@ def test_the_endurance_moodle_starts_no_fight_and_disengages(tmp_path, endurance
 
 
 def test_a_running_fight_disengages_at_the_endurance_moodle(tmp_path):
+    """Named change, ruling P27-C (Plan 27 Task 1): the lone zombie at 4 tiles is the endurance hold's lone fight
+    (`test_survive_aa`); pinned with `HOLD_LONE` off, the rule before it."""
     r, sv = fight_on(tmp_path)
+    sv.HOLD_LONE = False
     fr(r, None, [zombie(1, 104.0, 200.0)], endurance=0.74)
     tick(r, sv)
     assert sv.mode == "flee" and threat_why(tmp_path)["strain"]["kind"] == "endurance"
@@ -156,8 +162,11 @@ def test_the_endurance_hold_is_released_only_above_0_80(tmp_path):
 
 def test_the_f1_sequence_holds_the_flee_through_gm_637(tmp_path):
     """The F1 record's three readings through the machine: a fight at 0.76, 0.747 flees `strain`, 0.753 keeps fleeing
-    (no turn back for a swing), 0.740 still flees; 0.81 turns to fight again."""
+    (no turn back for a swing), 0.740 still flees; 0.81 turns to fight again. Named change, ruling P27-C (Plan 27
+    Task 1): the lone zombie at 4 tiles is the endurance hold's lone fight (`test_survive_aa`); pinned with
+    `HOLD_LONE` off, the rule before it."""
     r, sv = fight_on(tmp_path, endurance=0.76)
+    sv.HOLD_LONE = False
     for e, mode in ((0.747, "flee"), (0.753, "flee"), (0.740, "flee"), (0.81, "fight")):
         r.answer()
         fr(r, None, [zombie(1, 104.0, 200.0)], endurance=e)

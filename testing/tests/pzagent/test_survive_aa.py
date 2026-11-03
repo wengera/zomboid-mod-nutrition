@@ -40,7 +40,7 @@ def sends(r):
 
 
 def test_the_iteration_19_switches_and_constants():
-    assert S.T9_SWITCHES == ("FLEE_FINISH", "MANY_TAIL")
+    assert S.T9_SWITCHES == ("FLEE_FINISH", "MANY_TAIL", "HOLD_LONE")
     assert "T9_SWITCHES" in S.__all__
     assert all(getattr(S.Survive, name) is True for name in S.T9_SWITCHES)
     assert not set(S.T9_SWITCHES) & set(S.T8_SWITCHES + S.T7_SWITCHES + S.T6_SWITCHES)
@@ -219,3 +219,52 @@ def test_with_many_tail_off_the_strung_out_episode_holds(tmp_path):
     for _ in range(6):
         w = strung_tick(r, sv, tmp_path)
         assert w["flee"] == "many" and "many_tail" not in w
+
+
+# ================================================================ P27-C: the hold's lone zombie
+def test_e18_s_hold_with_one_zombie_at_4_tiles_is_the_hold_fight(tmp_path):
+    """E18's endurance hold (fights 21 to 39 each fled `strain`; `inputs.threats` 1 on 57 of its 271 lines) with one
+    zombie 4 tiles off and no other listed: the Fight (`shove_only` "hold"), logged `hold_fight`, no `strain` flee; at
+    point blank the shove (`shove` "hold"), never an attack."""
+    r, sv = make(tmp_path)
+    fr(r, [z(1, 104.0)], endurance=HOLD_E)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "aim" and sv.mode == "fight" and sv.fight.shove_only == "hold"
+    assert w["hold_fight"] is True and "flee" not in w and "low_fight" not in w and not w.get("seek")
+    r.advance(0.5)
+    fr(r, [z(1, 100.8)], endurance=HOLD_E)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args) == ("shove", {"targetId": 1}) and w["shove"] == "hold" and w["hold_fight"] is True
+    assert "attack" not in sends(r)
+
+
+@pytest.mark.parametrize("second", [z(2, 91.0), z(2, 100.0, 205.0, has_target=False)])
+def test_a_second_chaser_listed_or_a_second_within_danger_r_flees_strain(tmp_path, second):
+    """A second chaser 9 tiles off (listed within LISTED_R), or a second zombie standing within DANGER_R: the `strain`
+    flee as before."""
+    r, sv = make(tmp_path)
+    fr(r, [z(1, 104.0), second], endurance=HOLD_E)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "steer" and w["flee"] == "strain" and "hold_fight" not in w
+
+
+def test_the_arms_hold_and_the_endurance_hold_under_flee_health_pair_flee_strain(tmp_path):
+    """The arms' hold (a stiffness of 25) with the same lone zombie: `strain`; the endurance hold at health 55 (under
+    FLEE_HEALTH_PAIR): `strain`."""
+    r, sv = make(tmp_path)
+    fr(r, [z(1, 104.0)], 25.0, STIFF)
+    assert tick(r, sv).type == "steer" and threat_why(tmp_path)["flee"] == "strain"
+    (tmp_path / "low").mkdir()
+    r2, sv2 = make(tmp_path / "low")
+    fr(r2, [z(1, 104.0)], endurance=HOLD_E, health=55.0)
+    assert tick(r2, sv2).type == "steer" and threat_why(tmp_path / "low")["flee"] == "strain"
+
+
+def test_with_hold_lone_off_the_lone_zombie_is_fled_strain(tmp_path):
+    r, sv = make(tmp_path)
+    sv.HOLD_LONE = False
+    fr(r, [z(1, 104.0)], endurance=HOLD_E)
+    assert tick(r, sv).type == "steer" and threat_why(tmp_path)["flee"] == "strain"
