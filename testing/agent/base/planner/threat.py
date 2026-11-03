@@ -125,7 +125,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # `solidTrans` (`night.window_exits`' `walkable`); off, P26-A's windows whatever stands inside
     WINDOW_STALL = True   # ruling P26-J: a window way out's act holding the player within STUCK_MOVE for WINDOW_STALL_S
                           # is dropped and refused `stalled`, a first `interrupted` end sent again
-                          # (`flee.Flee._stall_limit`, `_window_ended`); off, the act runs to its end, a failure refuses
+                          # (`flee.Flee._stall_limit`, `_window_ended`), a stalled mark a WINDOW_DEAD end for
+                          # DOOR_RETRY_MIN (P26-J2); off, the act runs to its end, a failure refuses
     STAND_CROWD = True    # ruling P26-K: the doorway stand ends `crowd` at STAND_CROWD_N standing held within DANGER_R,
                           # read after `wound` and before `inside` (`DoorwayStand._stand_crowd`); it takes the close
                           # with nobody inside, else walks out (P26-K2, `_stand_occupied`); off, no such end
@@ -133,7 +134,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # SHOVE_FAIL_N missed shoves on record is swung at in the shove's place, ahead of the corner
                           # and the breaks (`shove.FightShove._wounded_swing`); off, the shove, the corner, the breaks
     BLEED_HOLD = True     # ruling P26-L2: the dressing P26-D's yield sent is held while the zombie within FIGHT_REACH
-                          # is not closing (`care_yield.CareYield._bleed_holds`); off, any zombie there supersedes it
+                          # is not closing (`care_yield.CareYield._bleed_holds`), the hold applying only with one zombie
+                          # within FIGHT_REACH (P26-L2a; `care_yield.py`); off, any zombie there supersedes it
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the

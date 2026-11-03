@@ -64,15 +64,15 @@ def _crossed(world, a, b):
     the first of `World.edge_steps` (a diagonal step through its corner squares' legs) that is a wall (`_wall`). A
     diagonal with a wall on a leg reads blocked (`World.blocked`'s diagonal reads both legs of each corner), so the
     diagonal's own blocked read is not needed. Public as `crossed` (Plan 26, ruling CF-1 of Plan 25's close): the
-    frozen grades (`gates_e.grade_e13`) import `_crossed`, which keeps its name for them; new grades import
-    `crossed`."""
+    frozen grades read `_crossed` through `gates_e` (`grade_e13`, which `grade_e14` and `grade_e15` call), which keeps
+    its name for them; the public name waits for the next grade module, which imports `crossed`."""
     for u, v in world.edge_steps(a, b):
         if _wall(world, u, v):
             return _edge_of(u, v)
     return None
 
 
-crossed = _crossed   # the public name (Plan 26, ruling CF-1): the grades package imports it
+crossed = _crossed   # the public name (Plan 26, ruling CF-1): no importer yet; the next grade module takes it
 
 
 def _door_on(world, holder, side):

@@ -257,14 +257,14 @@ SHOVE_BREAK_N = 3         # missed shoves in a row at one lone target after whic
                           # `knockdown` false, while the bites took the bleeding parts from 1 to 7 (#4431); the window
                           # is SHOVE_BREAK_N x SHOVE_REPEAT_S, a judgment (three rolls of the knock-down, #4373)
 # survival iteration 17 (Plan 26 Task 2, rulings P26-A to P26-E; E16, F7 and F5)
-STAND_CROWD_N = 4         # standing held zombies within DANGER_R at which the stand ends `crowd` (P26-K, P26-K2):
-                          # E17's stand held six within DANGER_R from its line 370, none inside, ended `inside` at 380
-                          # and the first bite came 2 game minutes later; E16's held five, then six; E14's five came in
-                          # through the window square beside its door; the pick takes at most DOOR_STAND_N standing)
 INSIDE_CROWD_N = 2        # zombies within POINT_BLANK_R (or `me.attackers`, if more) at which an `inside` corner shoves
                           # and never swings (P26-C: from E16's stand's `inside` end the corner sent five attacks with
                           # two zombies on the door's inside square, four of which swung, one lowering its target)
 # survival iteration 18 (Plan 26 Task 7d, ruling P26-L; F8)
+STAND_CROWD_N = 4         # standing held zombies within DANGER_R at which the stand ends `crowd` (P26-K, P26-K2):
+                          # E17's stand held six within DANGER_R from its line 370, none inside, ended `inside` at 380
+                          # and the first bite came 2 game minutes later; E16's held five, then six; E14's five came in
+                          # through the window square beside its door; the pick takes at most DOOR_STAND_N standing
 SHOVE_FAIL_N = 3          # missed shoves at one lone standing target (`shove.FightShove._missed_n`) after which a Fight
                           # under the `wounded` reason swings in the shove's place (P26-L1, which amends P25-I: a lone
                           # standing zombie that resisted SHOVE_FAIL_N shoves takes the divided swing, #4370, #4373,

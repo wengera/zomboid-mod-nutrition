@@ -350,7 +350,7 @@ BRANCHES = ("threat", "care", "need", "load", "night", "goal")
 STEPS = ("threat", "care", "need", "load", "night", "stock", "goal")   # assess() tries these in order: BRANCHES with the
                          # care's rag stock (P24-AB) before the goal (it logs under `care`, why `stock`)
 # The iteration switches (Plans 25 and 26), one home: each switch off is the rule before it, and each tuple off is the
-# replay tests' seam onto the goldens before its iteration (`test_replay_decisions.pre_t3` to `pre_t7`, each turning
+# replay tests' seam onto the goldens before its iteration (`test_replay_decisions.pre_t3` to `pre_t8`, each turning
 # the later tuples off too). Each comment names the class holding each switch (`Survive` derives from `threat.Threat`).
 T3_SWITCHES = ("CORNER_BREAK", "FINISH_FIRST", "HOLD_RUN", "RIDE_WAIT", "DOOR_WALK", "FENCE_WAIT")
 # survival iteration 13 (Plan 25 Task 3): P25-A to P25-F, all on `threat.Threat`
@@ -490,7 +490,8 @@ class Survive(Threat):
         self.stand_crowd = None   # this tick: {n} of the held within DANGER_R that ended the stand `crowd` (P26-K)
         self.stand_inside = None  # this tick: {id, square} of the zombie that ended the stand `inside` (P25-V), else
                                   # None
-        self.stand_exit = None    # this tick: the stand's end its Flee walks out on (P25-W), else None
+        self.stand_exit = None    # this tick: the stand's end its Flee walks out on (P25-W) or, at a `crowd` end with
+                                  # nobody inside, the close it keeps (P26-K2), else None
         self.one_exit_refused = None  # this tick: {building, door} of the first door a `many` pick refused `one_exit`
                                       # (P26-B), else None
         self.pair_yield = None    # this tick: the fallen zombie's id the `pair` flee yielded to (P25-J), else None

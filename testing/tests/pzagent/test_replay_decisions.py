@@ -122,8 +122,9 @@ def pre_t6(sv, keep=()):
 
 def pre_t7(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 26 Task 2 (survival iteration 17): its switches off
-    (`survive.T7_SWITCHES`), but those named in `keep`. Plan 26 Task 7: iteration 18's switches (`pre_t8`) off with
-    them, so every seam onto an earlier rule reads them off."""
+    (`survive.T7_SWITCHES`), but those named in `keep` (the one-switch form `pre_t3`'s tests use; no test passes it
+    here). Plan 26 Task 7: iteration 18's switches (`pre_t8`) off with them, so every seam onto an earlier rule reads
+    them off."""
     for name in S.T7_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
@@ -132,7 +133,8 @@ def pre_t7(sv, keep=()):
 
 def pre_t8(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 26 Task 7 (survival iteration 18): its switches off
-    (`survive.T8_SWITCHES`), but those named in `keep` (`test_iteration_18_moves_no_golden`)."""
+    (`survive.T8_SWITCHES`), but those named in `keep` (the one-switch form `pre_t3`'s tests use; no test passes it
+    here)."""
     for name in S.T8_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)

@@ -93,7 +93,9 @@ reproduces the files before it byte for byte (`test_replay_decisions.PRE_T6`, `p
 (`EDGE_OUT_OF_HOLD`: the refused zombie, read across its edge, is out of the hold, so the `unreachable` flee that
 followed the refusal on every later tick is the goal's run) re-recorded all six again, each first moved at the tick
 after its refusal (`test_replay_decisions.FIRST_EDGE_OUT`); `EDGE_OUT_OF_HOLD` alone off reproduces the files of
-`427c0b2d` (`PRE_EDGE_OUT`).
+`427c0b2d` (`PRE_EDGE_OUT`). Plan 26's iterations 17 and 18 moved no golden: `T7_SWITCHES` and `T8_SWITCHES` off
+(`pre_t7`, `pre_t8`) and on are byte-identical (`test_iteration_17_moves_no_golden`,
+`test_iteration_18_moves_no_golden`).
 
 `agreement(artifact_dir, replayed)` compares the replayed log with the record's own decision.log at every line where
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat

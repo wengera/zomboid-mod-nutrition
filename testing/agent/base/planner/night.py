@@ -188,7 +188,8 @@ def window_exits(world, building, z, walkable=True):
     the build announcing `window` (else []). Each window square `goals.usable_windows` reads (not `barricaded`, no
     failed end of `goals.WINDOW_DEAD`: the one filter `window_pick` reads too); `inner` and `outer` its room square and
     its outside square (`World.window_way`); `smash` True for a locked one (the record's `locked`, or a try that ended
-    `locked`), as `window_pick`'s smash.
+    `locked`), without `smash_ok`'s health and noise checks (ruling P26-6: a way out under a group takes the cut;
+    `window_pick` smashes only under `smash_ok`).
 
     Ruling P26-I (`walkable`, `Threat.WINDOW_INNER`; E17, `e_day_17-20261102-180459`: the stand's `inside` end walked
     out by building 2's kitchen window (10720, 10634), whose inside square read `solidTrans` with a `counter` on it;

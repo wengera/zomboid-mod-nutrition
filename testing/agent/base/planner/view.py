@@ -134,8 +134,7 @@ REASK_LINE = "Your last answer was refused: %s. Answer a different goal."
 
 __all__ = ["view", "render", "why_of", "shown_ids", "KEYS", "OPTIONAL_KEYS", "WHYS", "OPEN_KEY", "OPEN_GOALS",
            "OPEN_STOCK", "REASK_KEY", "REASK_LINE", "NEED_MEMORY_S", "ZOMBIE_BANDS", "BUILDING_ZOMBIE_R",
-           "BUILDINGS_SHOWN",
-           "RENDER_MAX", "MET_VIEW_R"]
+           "BUILDINGS_SHOWN", "RENDER_MAX", "MET_VIEW_R"]
 
 
 def _num(v):
