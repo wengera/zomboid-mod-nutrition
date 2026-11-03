@@ -366,7 +366,8 @@ def e_window_still(L, lines):
     from its `accepted` line (else its first) to its terminal line (None while it runs) and `state` that line's state
     ("running" without one). Inference off the frames: `still_s` the seconds from the accept on which the player's
     square did not change (`_still_s`: the longest such run, the walk to the window apart) and `over` the climbs whose
-    still time reads WINDOW_STALL_S or more (a climb the stall read would have dropped as it stood)."""
+    still time reads WINDOW_STALL_S or more (the square proxy of the stall read: the planner's is `flee._still_for`'s
+    STUCK_MOVE anchor, which a move under 0.5 tiles across a square edge does not reset)."""
     if L is None:
         return {"read": False}
     by = {}
@@ -432,7 +433,7 @@ def _rise_text(r):
     r = E._d(r)
     return ("%s a game minute over %s game minutes (%s frames, %s pairs)" % (
         r.get("rise_per_min"), r.get("minutes"), r.get("frames"), r.get("pairs")) if r.get("read")
-        else "not read (fewer than two frames)")
+        else "not read (fewer than two frames or no game minute passed)")
 
 
 def lines_e16(g):
