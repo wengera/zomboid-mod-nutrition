@@ -212,7 +212,7 @@ class FightEdge:
         self._marked_now.add(zid)
         self.unreachable[zid] = math.inf
         self.edge_marks[zid] = edge
-        self._free = None   # the tick's `_pin_free` leaves the refused zombie out (fix 3, minor 4)
+        self._drop_pin_read()   # the tick's `_pin_free` leaves the refused zombie out (fix 3, minor 4)
         if zid == self.target:
             self._unpin()
 

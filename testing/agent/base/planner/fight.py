@@ -125,33 +125,36 @@ one table the gates and the other policies import).
   blocked leaves it (`shove.FightShove._shove_close`); P27-K2, the low fight leaves its lone target after SHOVE_FAIL_N
   missed shoves where its full swing is barred or has gone (`shove.FightShove._low_exit`).
   Its fix 2 (Plan 27 Task 5 fix 2; E20): P27-M, the attack within reach: the standing fight's attack at a standing
-  zombie goes only within the frame's `weapon.reach` plus ATTACK_MARGIN (`reach_r`, logged `attack` {dist, reach});
-  beyond it within FIGHT_REACH the stance stands facing it and lets it come (`_attack_hold`, logged `attack_held`
-  {target, dist, reach}), and the advance walks at a walk to the reach (`_reach_walk`, the stance walk `reach`, logged
-  `reach_walk`) where the `toward` legs went; the finish of a fallen zombie keeps FIGHT_REACH. P27-N, a zombie at point
-  blank is never dropped: one within POINT_BLANK_R, or the nearest listed on a frame reading it attacking (kept while
-  within FIGHT_REACH), is left out by no mark (`_pin_free`, `blocked`); a marked one takes the pin (`_pin_first`) and
-  is shoved, then swung at, on every tick that may send (`_pin_send`, logged `pinned` {why}).
+  zombie goes only within the frame's `weapon.reach` plus ATTACK_MARGIN (`reach_r`, logged `attack` {dist, reach};
+  `reach.FightReach`); beyond it within FIGHT_REACH the stance stands facing it and lets it come (`_attack_hold`,
+  logged `attack_held` {target, dist, reach}), and the advance walks at a walk to the reach (`_reach_walk`, the stance
+  walk `reach`, logged `reach_walk`) where the `toward` legs went; the finish of a fallen zombie keeps FIGHT_REACH.
+  P27-N, a zombie at point blank is never dropped: one within POINT_BLANK_R, or the nearest listed on a frame reading
+  it attacking (kept while within FIGHT_REACH), is left out by no mark (`_pin_free`, `blocked`; `pin.FightPin`); a
+  marked one takes the pin (`_pin_first`) and is shoved, then swung at, on every tick that may send (`_pin_send`,
+  logged `pinned` {why}).
 """
 import math
 import time
 
 from agent.base.planner.edges import FightEdge
 from agent.base.planner.finish import FightFinish
-from agent.base.planner.policies import (AIM_HOLD_S, AIM_LEG_S, AIM_R, ATTACK_MARGIN, CORNERED_R, DANGER_R,
+from agent.base.planner.policies import (AIM_HOLD_S, AIM_LEG_S, AIM_R, CORNERED_R, DANGER_R,
                                          DISENGAGE_R, DRAG_DOWN_N, EDGE_HOLD_TICKS, FENCE_BACK_R, FIGHT_MAX_S,
                                          FIGHT_REACH, FINISH_R, KEEP_MARGIN, KEEP_R, KNOCK_READ_S, MISSES_TO_APPROACH,
                                          NO_TARGET, POINT_BLANK_R, PREEMPTED, PULL_R, Policy, REPIN_MARGIN,
-                                         REPOSITION_MIN, REPOSITION_R, SEEK_SKIP_S, SEEK_SWITCH_R, SHOVE_R,
-                                         STALL_SWINGS, STAND_MAX_S, STAND_MIN_R, STEER_PROBE, STEER_TURNS,
+                                         REPOSITION_MIN, REPOSITION_R, SEEK_SKIP_S, SEEK_SWITCH_R,
+                                         STALL_SWINGS, STAND_MAX_S, STEER_PROBE, STEER_TURNS,
                                          STOOD_STOMPS, STUCK_REASONS,
-                                         SWING_SKIP_S, SWING_TYPES, UNREACHABLE_S, WALK_DONE_R, _rotate, arm_pain,
+                                         SWING_SKIP_S, SWING_TYPES, UNREACHABLE_S, _rotate, arm_pain,
                                          arms_hurt, away_vector, blocked, centre, chasing, clear_heading, hit_reaction,
                                          in_reach, line_to, on_floor, seek_allowed, stance_leg_kind, target_id_ok,
                                          zdist)
+from agent.base.planner.pin import FightPin
 from agent.base.planner.pull import FightPull
+from agent.base.planner.reach import FightReach
 from agent.base.planner.shove import FightShove
-from agent.base.pza1 import Aim, Attack, Shove, WalkTo
+from agent.base.pza1 import Aim, Attack, WalkTo
 from agent.base.world import me_floor, me_xy
 
 __all__ = ["Fight", "FIGHT_RULES"]
@@ -164,7 +167,16 @@ FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finis
                      # P27-N), each on in `rules` unless Survive's switch for it is off
 
 
-class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
+class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach, Policy):
+    """The Fight (the module docstring), with its rules in mixins, the state the Fight's own:
+    - `FightPull` (`pull.py`): the pull of a lone chaser and the listing's edge hold (P24-AN, P24-AU);
+    - `FightFinish` (`finish.py`): the finish of the fallen and the stomp (P24-AL, P24-AV, P25-B, P25-J, P27-G, P27-H);
+    - `FightShove` (`shove.py`): the shove at the swing and the corner after a missed shove (P24-AG to P25-L, P26-L1,
+      P27-E, P27-J);
+    - `FightEdge` (`edges.py`): the route round a blocked edge (P25-X);
+    - `FightPin` (`pin.py`): the point-blank pin, a zombie at point blank or attacking never dropped (P27-N, fix 3);
+    - `FightReach` (`reach.py`): the attack within the weapon's reach and the walk to it (P27-M)."""
+
     def __init__(self, world, actions, clock=time.time, unreachable=None, target=None, dead=None):
         super().__init__(world, actions, clock)
         self.dead = {} if dead is None else dead   # zombie id -> wall until it is skipped: read dead (Task 12 fix 1)
@@ -236,14 +248,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         self._low_swung = set()             # the ids the low fight's full swing went at (P27-E), its exit's (P27-K2)
         self.close_left = {}                # Survive shares its own: zombie id -> wall until a close refused for its
                                             # blocked line leaves it out of the hold's reads (P27-J)
-        self._attackers = set()             # the ids read attacking (`me.attackers` with a hit reaction, the nearest
-                                            # listed within FIGHT_REACH), kept while within it: no mark leaves them out
-                                            # (P27-N)
-        self._free = None                   # the tick's `_pin_free`, read once after `observe`'s edge and kill reads
-                                            # (fix 3, minor 4); None: read on each call (no observe yet)
-        self._free_n = -1                   # the `world.frame_n` of that read: a newer frame reads afresh (fix 3's
-                                            # residual R1: the threat's finish reads `blocked` before this tick's
-                                            # observe)
+        self._init_pin()   # P27-N: the attacker latch and the tick's pin read (`pin.FightPin`)
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -265,101 +270,6 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         if free:
             out = (out - set(free)) | self._marked_now
         return out | blocked(self.dead, self.clock())
-
-    def _observe_attackers(self):
-        """Ruling P27-N's attacker read, every observe: with the `point_blank_pin` rule on, the frame reading
-        `me.attackers` above 0 with a hit reaction (`hit_reaction`: the bite's or any attack's) adds the nearest listed
-        zombie (a wire id, with a position, not read dead) to `_attackers` where it stands within FIGHT_REACH, and each
-        one there is kept while it stands within FIGHT_REACH (so the pin outlasts its reaction to the next allowed
-        tick); off, none."""
-        if "point_blank_pin" not in self.rules:
-            self._attackers = set()
-            return
-        zs, dead = self.world.zombies, blocked(self.dead, self.clock())
-        near = [(zdist(self.world, z), repr(zid), zid) for zid, z in zs.items() if target_id_ok(zid)
-                and zid not in dead and z.get("x") is not None and z.get("y") is not None]
-        self._attackers = {zid for d, _, zid in near if zid in self._attackers and d <= FIGHT_REACH}
-        n = (self.world.me or {}).get("attackers")
-        if (near and min(near)[0] <= FIGHT_REACH and isinstance(n, int) and not isinstance(n, bool) and n > 0
-                and hit_reaction(self.world) is not None):
-            self._attackers.add(min(near)[2])
-
-    def _pin_free(self):
-        """The tick's `_pin_read` (`observe` takes it once, after its edge and kill reads; a new edge mark drops it),
-        else a fresh read; a read taken on an older frame (`_free_n` behind `world.frame_n`: the threat's finish
-        rules call `blocked` before the tick's `observe`, fix 3's residual R1) is dropped and read afresh."""
-        if self._free is not None and self._free_n == self.world.frame_n:
-            return self._free
-        return self._pin_read()
-
-    def _pin_read(self):
-        """Ruling P27-N (E20, `e_day_20-20261103-121340`: from line 722 to line 747, 26 lines and 12.603 s, the why read
-        `target` null and `unreachable` [3189], the no-progress stall's mark, and the Fight sent nothing while 3189 bit
-        from 0.507 to 1.576 tiles): {id: why} of the zombies no mark leaves out of the Fight's targets, with the
-        `point_blank_pin` rule on: each listed within POINT_BLANK_R ("point_blank"), and each read attacking
-        (`_attackers`, "attacker"); never a zombie read dead, one outside `only`, one refused across a known blocked
-        edge (`edge_marks`, P25-X: the sixth golden's gate zombie 15885 stood 0.9282266374931059 tiles off across the
-        fence row at its line 228) nor one whose line reads blocked (`line_to` False: P23-K's zombie behind a locked
-        door, which run 1 swung at 103 times); {} with the rule off."""
-        if "point_blank_pin" not in self.rules:
-            return {}
-        zs, dead = self.world.zombies, blocked(self.dead, self.clock())
-        out = {zid: "attacker" for zid in self._attackers if zid in zs}
-        for zid, z in zs.items():
-            if (target_id_ok(zid) and z.get("x") is not None and z.get("y") is not None
-                    and zdist(self.world, z) <= POINT_BLANK_R):
-                out[zid] = "point_blank"
-        return {zid: w for zid, w in out.items() if zid not in dead and zid not in self.edge_marks
-                and (self.only is None or zid in self.only) and line_to(self.world, zs[zid]) is not False}
-
-    def _pin_marked(self):
-        """Ruling P27-N: the `_pin_free` zombies a mark (`unreachable`: the no-progress stall's, a failed walk's, the
-        seek's skip) would have left out, {id: why}: the case the rule exists for. An unmarked zombie at point blank
-        keeps the Fight's own rules (its shove, its corner, its breaks)."""
-        free = self._pin_free()
-        if not free:
-            return {}
-        marks = blocked(self.unreachable, self.clock())
-        return {zid: why for zid, why in free.items() if zid in marks}
-
-    def _pin_first(self):
-        """Ruling P27-N: with a marked `_pin_free` zombie listed (`_pin_marked`) and the pin on no `_pin_free` one,
-        the nearest marked one is pinned."""
-        pins = self._pin_marked()
-        if not pins or self.target in self._pin_free():
-            return
-        zs = self.world.zombies
-        self.target = min(pins, key=lambda zid: (zdist(self.world, zs[zid]), repr(zid)))
-        self.repositioned = False
-
-    def _pin_send(self, zid, z, d):
-        """Ruling P27-N's send at the pinned target `zid` (`d` tiles off) when it is `_pin_marked` and standing:
-        `(command,)`, logged `pinned` {why}: in a hit reaction nothing (the engine starts no swing in one: the next
-        allowed tick sends); else the shove (the knock-down's chance, #4373) within SHOVE_R where the last swing-like
-        send was no shove, the build announcing it and no other standing zombie within STAND_MIN_R; else the swing
-        (`Attack`), where it is allowed (`no_swing` false; within the reach and its margin in the stance, P27-M), or,
-        the swing barred, the shove again. None where neither goes: the Fight's own path then (its stance, its
-        wounded backpedal), the target still pinned."""
-        why = self._pin_marked().get(zid)
-        if why is None or on_floor(z):
-            return None
-        self.why = {"target": zid, "pinned": {"why": why}, "dist": d}
-        hit = hit_reaction(self.world)
-        if hit is not None:
-            self.why["hitReaction"] = hit
-            return (None,)
-        shove = (d <= SHOVE_R and target_id_ok(zid) and self._swing_ok("shove", zid)
-                 and self._standing_near(STAND_MIN_R, (zid,)) is None)
-        if shove and (not self._shoved or self.no_swing()):
-            self.why["shove"] = "pin"
-            return (Shove(zid),)
-        r = self.reach_r()
-        if self.no_swing() or (r is not None and self.stance_at(d) and d > r):
-            return None
-        self._held_before = self.stance_at(d) and self.in_stance()
-        if r is not None and self.stance_at(d):
-            self.why["attack"] = {"dist": d, "reach": self.world.weapon["reach"]}   # P27-M, as the stance's attack logs
-        return (Attack(zid),)
 
     def _target_health(self, zid):
         z = self.world.zombies.get(zid)
@@ -643,60 +553,6 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
             return False
         return not self.actions.done(a) or (a.ended_wall is not None and self.clock() - a.ended_wall < AIM_HOLD_S)
 
-    def reach_r(self):
-        """Ruling P27-M: the tiles within which the standing fight's attack goes at a standing zombie, the frame's
-        `weapon.reach` (the Lua's own `K.reachOf`, inside which its attack swings at once) plus ATTACK_MARGIN, with the
-        `attack_reach` rule on and a positive reach read; else None (the attack within FIGHT_REACH, the rule before
-        it)."""
-        r = (self.world.weapon or {}).get("reach") if "attack_reach" in self.rules else None
-        ok = isinstance(r, (int, float)) and not isinstance(r, bool) and r > 0.0
-        return r + ATTACK_MARGIN if ok else None
-
-    def _reach_walk_due(self, z, d):
-        """Ruling P27-M: the advance (`advance`, P24-N and the seek's fix) closes on its standing target `z`, `d` tiles
-        off beyond `reach_r`, by the walk to the reach (`_reach_walk`): beyond FIGHT_REACH whatever it reads, within it
-        only while the target reads no target of its own (a chaser within FIGHT_REACH is let come, the stance
-        standing)."""
-        r = self.reach_r()
-        return (r is not None and self.advance and self.stance_at(d) and d > r and not on_floor(z)
-                and (d > FIGHT_REACH or not chasing(z)))
-
-    def _reach_walk(self, zid, z, d):
-        """Ruling P27-M (E20, `e_day_20-20261103-121340`: the advance's `toward` leg held to FIGHT_REACH at the idle
-        3189 and the attack a190 went at 1.8161174585612616 tiles, its own approach running the character 1.76 tiles
-        into the zombie, which bit): the advance's walk at a walk to the point on the line to the target WALK_DONE_R
-        short of `reach_r` from it (the Lua's walk ends `done` within WALK_DONE_R of its target, so it ends at
-        `reach_r`; a walk to the point at `reach_r` would end WALK_DONE_R short and, re-sent from there, end on its
-        accept tick unmoved, P23-AJ 5), the stance walk `reach` (`_walk_gives_way`: it gives way within `reach_r`, or
-        as the target comes within FIGHT_REACH), the stance's standing leg then, and the attack from it. Logged
-        `reach_walk` {target, dist, to}."""
-        r = self.reach_r()
-        mx, my = me_xy(self.world)
-        k = max(r - WALK_DONE_R, 0.0) / d
-        self.why.update({"stance": True, "leg": "walk", "advance": True, "stand_s": self.stand_s(),
-                         "reach_walk": {"target": zid, "dist": d, "to": r}})
-        self._seek_send, self._walk_kind = False, "reach"
-        return WalkTo(z["x"] + (mx - z["x"]) * k, z["y"] + (my - z["y"]) * k, "walk")
-
-    def _attack_hold(self, zid, z, d):
-        """Ruling P27-M at the swing: the standing fight's target `zid` standing `d` tiles off beyond `reach_r` (within
-        FIGHT_REACH: the Lua's attack would approach it at a run, its own skill's walk) takes no attack, logged
-        `attack_held` {target, dist, reach}: the advance's walk to the reach where it is due (`_reach_walk_due`), else
-        the stance holding its ground facing the target and letting it come, its running standing leg kept (`(None,)`)
-        or a new one sent (`enter`, (0, 0)). None where the attack goes (within `reach_r`, the rule off, no reach read,
-        no stance)."""
-        r = self.reach_r()
-        if r is None or not self.stance_at(d) or d <= r or on_floor(z):
-            return None
-        self.why["attack_held"] = {"target": zid, "dist": d, "reach": self.world.weapon["reach"]}
-        if self._reach_walk_due(z, d):
-            return (self._reach_walk(zid, z, d),)
-        a = self.last
-        if (a is not None and a.type == "aim" and not self.actions.done(a) and self.in_stance()
-                and a.args.get("targetId") == zid and a.args.get("vx") == 0.0 and a.args.get("vy") == 0.0):
-            return (None,)
-        return (self._stance_leg(zid, z, d, kind="enter"),)
-
     def _observe_kill(self):
         """Ruling P24-Q (zombies killed, the iteration's metric): the Fight's last attack or aim that ended with
         `targetDead` true in its result is a kill, read once: `kill` names its target for this observe (Survive logs
@@ -715,13 +571,12 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
                 self._unpin()
 
     def observe(self):
-        self._free = None
+        self._drop_pin_read()
         self._observe_attackers()   # P27-N
         self._observe_edge()
         self._observe_edge_route()
         self._observe_kill()
-        self._free = self._pin_read()   # once a tick: `blocked` and the pin read it on every call (fix 3, minor 4)
-        self._free_n = self.world.frame_n
+        self._take_pin_read()   # once a tick: `blocked` and the pin read it on every call (fix 3, minor 4)
         self._observe_leg()
         t = self._target(pin=False)
         self._observe_stand(t)
