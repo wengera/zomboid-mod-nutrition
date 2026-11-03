@@ -87,8 +87,10 @@ def threat(row):
 
 
 def test_the_iteration_18_switches():
+    """Named change, ruling P27-L (Plan 27 Task 5): `WOUNDED_SWING` (P26-L1) stays in T8_SWITCHES with its default
+    off; every other iteration-18 switch is on."""
     assert S.T8_SWITCHES[0] == "WINDOW_INNER" and "T8_SWITCHES" in S.__all__
-    assert all(getattr(S.Survive, name) is True for name in S.T8_SWITCHES)
+    assert all(getattr(S.Survive, name) is (name != "WOUNDED_SWING") for name in S.T8_SWITCHES)
 
 
 # ================================================ P26-I: a window way out needs a walkable inside square
@@ -527,9 +529,11 @@ def sent(row):
 
 
 def test_the_wounded_swing_s_constant_switch_and_rule():
+    """Named change, ruling P27-L (Plan 27 Task 5): P26-L1 withdrawn, `WOUNDED_SWING` off by default (the cases below
+    set it on to pin the rule)."""
     from agent.base.planner import fight as F
     assert P.SHOVE_FAIL_N == 3 and P.SHOVE_FAIL_N <= P.SHOVE_BREAK_N and "wounded_swing" in F.FIGHT_RULES
-    assert "WOUNDED_SWING" in S.T8_SWITCHES and S.Survive.WOUNDED_SWING is True
+    assert "WOUNDED_SWING" in S.T8_SWITCHES and S.Survive.WOUNDED_SWING is False
 
 
 def test_f8_s_last_fight_shoved_its_lone_standing_zombie_six_times_and_never_swung():

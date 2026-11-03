@@ -83,7 +83,9 @@ class FightShove:
         not taken while the swing is, and a second zombie within DANGER_R gives the shove and the corner's reading back.
         Logged `wounded_swing` (the misses). Beyond point blank the backpedal holds as P24-AP's (`_wounded_leg`). Cost
         if wrong: a divided swing (a third to a twenty-seventh of its damage under heavy arm pain, #4370) spent where a
-        shove might have knocked down. None otherwise."""
+        shove might have knocked down. None otherwise. Ruling P27-L (Plan 27 Task 5): withdrawn, `WOUNDED_SWING` off
+        by default (F10's six swings lowered nothing at the arms' pain 118.6 to 120.8; with E18's three, nine divided
+        swings lowered no target), the rule kept behind its switch."""
         if ("wounded_swing" not in self.rules or not arms_hurt(self.world) or self.spent
                 or self.shove_only is not None or on_floor(z)):
             return None

@@ -1768,7 +1768,11 @@ def test_iteration_20_moves_the_six_goldens_at_the_listing_s_across_clause_and_e
       moves none. E2 lists no zombie across the row beyond its hold.
     - STUCK_LEAVE (P27-F) moves none: its mark reads a goal walk the goal runner sent, and the replay's goals are the
       record's (`RecordedGoals`). FLOOR_FINISH (P27-G) and FALLEN_SEEK (P27-H) move none: both read a zombie the
-      frame reads `onFloor`.
+      frame reads `onFloor`. SHOVE_CLOSE (P27-J) moves none: a shove-only Fight and the hold's lone fight need a build
+      announcing the PZA/1.7 `shove`, which no golden's hello does. STOCK_EARLY (P27-K1) moves none: no replayed
+      golden tick sends the stock's rip (the replays above, each switch alone). REPLACE_QUIET (P27-K3) moves none: no
+      golden ring decodes a bandaged part. P27-L (WOUNDED_SWING's default off) moves none: no golden frame carries
+      `body.armPain`.
     A golden no switch moves is its file before iteration 20 byte for byte."""
     base, got = pre_t10_gold(key), gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]

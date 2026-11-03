@@ -275,7 +275,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     yield taking the wound's rip as a dressing (`_care_stock`, `care.Care.early_rip`, `care_yield.CareYield`); P27-K2,
     the low fight leaves its lone target after SHOVE_FAIL_N missed shoves for the `health` flee, and the inside corner
     yields to that flee's way out under FLEE_HEALTH_FLOOR (`shove.FightShove._low_exit`, `threat.Threat._corner_exit`);
-    P27-K3, a spent dressing's replace held while a listed zombie chases (`care.Care.choose`); `T10_SWITCHES`.
+    P27-K3, a spent dressing's replace held while a listed zombie chases (`care.Care.choose`); `T10_SWITCHES`; and
+    P27-L, P26-L1's divided swing withdrawn (`threat.Threat.WOUNDED_SWING` off by default, kept in `T8_SWITCHES`).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already

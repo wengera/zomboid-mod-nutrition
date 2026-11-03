@@ -11,6 +11,22 @@ geometry is simplified from the line its docstring names.
 - P27-G, the floor swing as the finish (`FLOOR_FINISH`): with a weapon held and the swing allowed, the Fight's finish
   and the flee's swing at a fallen zombie within FIGHT_REACH ahead of the stomp (logged `floor_finish`); no stomp while
   a strike at the same zombie runs.
+- P27-H, the stance at a fallen zombie out of reach (`FALLEN_SEEK`): a target fallen beyond FINISH_R for
+  FALLEN_SEEK_TICKS is walked to, or left with a standing zombie within DANGER_R or its line blocked (logged
+  `fallen_seek`).
+- P27-I, the listing's count (`LISTING_FALLEN`): the `many` counts leave out a fallen zombie and one across a known
+  blocked edge out of the hold radius (logged `listing`).
+- P27-J, the shove-only fight's close (`SHOVE_CLOSE`): the hold's lone fight only at a chaser, the rest kept at an idle
+  one (logged `rest` {idle}); a chaser holding beyond point blank for SHOVE_CLOSE_TICKS walked to (logged
+  `shove_close`), or left for a blocked line.
+- P27-K1, the rag stock ahead of the bleed (`STOCK_EARLY`): the stock's rip on any tick with no zombie within DANGER_R
+  under RAG_STOCK, a goal walk superseded, and the care yield taking the wound's rip (logged `stock_early`).
+- P27-K2, the low fight's exit (`LOW_EXIT`): after SHOVE_FAIL_N missed shoves the low fight leaves its target for the
+  `health` flee (logged `low_exit`), and the inside corner yields to that flee under FLEE_HEALTH_FLOOR (logged
+  `corner` {yield health}).
+- P27-K3, the replace held off under a chaser (`REPLACE_QUIET`): no replace while a listed zombie chases (logged
+  `spent_held`).
+- P27-L, P26-L1's divided swing withdrawn: `WOUNDED_SWING` off by default.
 """
 import pytest
 
@@ -774,3 +790,41 @@ def test_f10_s_spent_replace_is_held_while_a_listed_zombie_chases(tmp_path):
         (tmp_path / name).mkdir()
         r, sv = spent_part4(tmp_path / name, zs, on)
         assert r.cmd() == ("bandage", {"itemId": 11, "part": 4}) and "spent_held" not in care_why(tmp_path / name)
+
+
+# ================================================================ P27-L: P26-L1's divided swing withdrawn
+def test_f10_s_divided_swings_withdrawn_three_missed_shoves_take_the_break_by_default(tmp_path):
+    """F10's six swings under the `wounded` reason after three failed shoves landed five times and lowered the target's
+    listed health not at all (1.0190000534057617 before and after each), the arms' pain at 118.6 to 120.8 dividing it
+    (#4370), where E19's undivided swings killed a fallen zombie in one; with E18's three, nine divided swings lowered
+    no target: `WOUNDED_SWING` is off by default, so F8's last fight's geometry (three missed shoves at the lone
+    standing zombie at point blank) takes P25-L's lone break, never the swing."""
+    from .test_survive_z import LONE_AT, MISSED, wounded
+    r, sv = make(tmp_path)
+    assert sv.WOUNDED_SWING is False and S.Survive.WOUNDED_SWING is False
+    for _ in range(3):
+        wounded(r, LONE_AT)
+        assert tick(r, sv).type == "shove"
+        r.fake.answer({"shove": ["accepted", MISSED]})
+        r.pump()
+        r.advance(5.0)
+    wounded(r, LONE_AT)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "steer" and w["corner"]["kind"] == "break" and "wounded_swing" not in w
+    assert "attack" not in sends(r)
+
+
+# ================================================================ iteration 20's switches and constants
+def test_the_iteration_20_switches_and_constants():
+    """`survive.T10_SWITCHES`, each on by default (P27-L's withdrawal is `WOUNDED_SWING`'s default, in T8_SWITCHES),
+    the Fight's rules they hand down and policies.py's three new constants (the controller's numbers) and the leave's
+    distance."""
+    from agent.base.planner import fight as F
+    assert S.T10_SWITCHES == ("STUCK_LEAVE", "FLOOR_FINISH", "FALLEN_SEEK", "LISTING_FALLEN", "SHOVE_CLOSE",
+                              "STOCK_EARLY", "LOW_EXIT", "REPLACE_QUIET")
+    assert "T10_SWITCHES" in S.__all__ and all(getattr(S.Survive, name) is True for name in S.T10_SWITCHES)
+    assert not set(S.T10_SWITCHES) & set(S.T9_SWITCHES + S.T8_SWITCHES + S.T7_SWITCHES)
+    assert {"floor_finish", "fallen_seek", "shove_close", "low_exit"} <= set(F.FIGHT_RULES)
+    assert "WOUNDED_SWING" in S.T8_SWITCHES and S.Survive.WOUNDED_SWING is False
+    assert (P.STUCK_MARK_MIN, P.FALLEN_SEEK_TICKS, P.SHOVE_CLOSE_TICKS, P.STUCK_LEAVE_R) == (30.0, 4, 6, 10.0)

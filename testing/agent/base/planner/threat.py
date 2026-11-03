@@ -133,9 +133,13 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     STAND_CROWD = True    # ruling P26-K: the doorway stand ends `crowd` at STAND_CROWD_N standing held within DANGER_R,
                           # read after `wound` and before `inside` (`DoorwayStand._stand_crowd`); it takes the close
                           # with nobody inside, else walks out (P26-K2, `_stand_occupied`); off, no such end
-    WOUNDED_SWING = True  # ruling P26-L1: under the `wounded` reason a lone standing target at point blank with
-                          # SHOVE_FAIL_N missed shoves on record is swung at in the shove's place, ahead of the corner
-                          # and the breaks (`shove.FightShove._wounded_swing`); off, the shove, the corner, the breaks
+    WOUNDED_SWING = False  # ruling P26-L1: under the `wounded` reason a lone standing target at point blank with
+                           # SHOVE_FAIL_N missed shoves on record is swung at in the shove's place, ahead of the corner
+                           # and the breaks (`shove.FightShove._wounded_swing`); off, the shove, the corner, the breaks.
+                           # Ruling P27-L (Plan 27 Task 5): withdrawn, off by default (F10's six divided swings after
+                           # three failed shoves landed five times and lowered the target's listed health not at all,
+                           # 1.0190000534057617 before and after each, the arms' pain at 118.6 to 120.8 dividing them,
+                           # #4370; with E18's three, nine lowered no target; F8's one case was its only support)
     BLEED_HOLD = True     # ruling P26-L2: the dressing P26-D's yield sent is held while the zombie within FIGHT_REACH
                           # is not closing (`care_yield.CareYield._bleed_holds`), the hold applying only with one zombie
                           # within FIGHT_REACH (P26-L2a; `care_yield.py`); off, any zombie there supersedes it
