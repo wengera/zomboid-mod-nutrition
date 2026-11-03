@@ -51,7 +51,7 @@ goal, with no action running (so it never supersedes a drink, a fill or a goal's
 its line the care branch's (`why` `stock`). `wants_dressing()`: a part bleeds, no item the bleeding step may put on
 it is held (nor a dirty rag to wash) and no garment can be ripped: Survive then marks the want `bandage`, which the
 view lists and the goal layer's loot takes first (`goals.wanted_uses`). Unwear then rip (ruling P24-AJ, Plan 24 Task
-27; PZA/1.7's `unwear`, #4376, #4377: vanilla's Unequip leaves the garment in the main inventory, where the rip recipe,
+27; PZA/1.7's `unwear`, #4376, #4551: vanilla's Unequip leaves the garment in the main inventory, where the rip recipe,
 which refuses a worn item, takes it): on the same idle tick, after the rag stock's rip found nothing unworn to rip, a
 bleeding part with nothing to dress it (`wants_dressing`) takes `Unwear(itemId)` of the worn cotton garment covering
 the least (`_unwear_pick`: the item record's `worn` and `rip` "cotton", its clothing record's bite + scratch the least,

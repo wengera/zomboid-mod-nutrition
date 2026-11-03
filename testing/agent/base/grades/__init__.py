@@ -6,4 +6,4 @@ A new grade imports the previous grade function and the readers it needs, never 
 (`_Lines`, `session_lines`, `_MapView`, `_outside`, `_d`, `_l`, `_n` and the rest) stay in `gates_e` and `gates_f`.
 A grade module copies every live planner constant, tuple, function or method it reads, or a byte-for-byte regrade
 test of every artifact it graded pins it, as the four regrade tests of `e14`, `e15` and `f7` (E17, E18, F8 and F9)
-do (ruling P26-Q)."""
+do (ruling P26-Q; a later module that imports one of these grade functions copies its own live names, and every artifact graded through it takes its byte-for-byte regrade test)."""
