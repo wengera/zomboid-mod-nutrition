@@ -122,7 +122,8 @@ one table the gates and the other policies import).
   `_finish_gives_way`); P27-H, the stance at a fallen target beyond FINISH_R for FALLEN_SEEK_TICKS walks to it, or with
   a standing zombie within DANGER_R or its line blocked leaves it (`finish.FightFinish._fallen_seek`); P27-J, a
   shove-and-stomp Fight whose lone chaser holds beyond point blank for SHOVE_CLOSE_TICKS walks to it, or with its line
-  blocked leaves it (`shove.FightShove._shove_close`).
+  blocked leaves it (`shove.FightShove._shove_close`); P27-K2, the low fight leaves its lone target after SHOVE_FAIL_N
+  missed shoves where its full swing is barred or has gone (`shove.FightShove._low_exit`).
 """
 import math
 import time
@@ -147,9 +148,9 @@ __all__ = ["Fight", "FIGHT_RULES"]
 
 FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finish_far", "shove_break",
                "shove_break_run", "blocked_edge", "wounded_swing", "low_swing",
-               "floor_finish", "fallen_seek", "shove_close")   # survival iterations 13 to 20's Fight rules (P25-A,
-                     # P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H, P27-J), each on in
-                     # `rules` unless Survive's switch for it is off
+               "floor_finish", "fallen_seek", "shove_close", "low_exit")   # survival iterations 13 to 20's Fight
+                     # rules (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H,
+                     # P27-J, P27-K2), each on in `rules` unless Survive's switch for it is off
 
 
 class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
@@ -221,6 +222,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
                                             # (P26-C, `_crowd_shove`), else None
         self._fallen = None                 # (target id, consecutive observes it read fallen beyond FINISH_R) (P27-H)
         self._close = None                  # (target id, consecutive observes it held beyond point blank) (P27-J)
+        self._low_swung = set()             # the ids the low fight's full swing went at (P27-E), its exit's (P27-K2)
         self.close_left = {}                # Survive shares its own: zombie id -> wall until a close refused for its
                                             # blocked line leaves it out of the hold's reads (P27-J)
 
@@ -849,6 +851,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         hit = hit_reaction(self.world)
         if hit is not None:   # P24-A (i): the engine starts no swing in a hit reaction (#4292, #4293): sent on its end
             self.why["hitReaction"] = hit
+            return None
+        if self._low_exit(zid):   # P27-K2: the low fight leaves a lone target its shoves cannot knock down
             return None
         crowd = self._crowd_shove(zid, d)   # P26-C: an `inside` corner under a crowd at point blank shoves
         if crowd is not None:

@@ -1724,15 +1724,18 @@ def pre_t10_gold(key):
 
 
 # the goldens as they stood before iteration 20 re-recorded them (Plan 27 Task 1's close): sha256, base, recorded
-PRE_T10 = {"e3": ("c28c6a4b263f7399e48e2b1d429b755509500b5b930839ee96dd94f98c751ad8", "88fd464e", "2026-11-02"),
+PRE_T10 = {"e2": ("1dd65da34adb1e64aaa7ddc6dea56e1b2fba0fb608487501279789e34fcc9f2e", "88fd464e", "2026-11-02"),
+           "e3": ("c28c6a4b263f7399e48e2b1d429b755509500b5b930839ee96dd94f98c751ad8", "88fd464e", "2026-11-02"),
            "e4": ("63b2443b33ff7f6647c4581d6681c8c8c24943756d182378bf1025d515f3821a", "c1e04d78", "2026-11-03"),
            "e5": ("21d0e31baf772699707c95db81371550096493242ddefc53b11f32f8ba38fd7e", "88fd464e", "2026-11-02"),
            "f1": ("c093db79eaf3606348b3e4f18fd591093c7fac5e065ce22624229e27b3cf1870", "88fd464e", "2026-11-02"),
            SIXTH: ("9d0883924706f94c64a38d9090cba145f52a229a767db36925a859b5c4065a12", "88fd464e", "2026-11-02")}
 # the first line each iteration-20 switch moves, alone on, on each golden it moves (P27-I's across clause: the zombie
-# across the fence row listed beyond the hold radius)
-FIRST_T10 = {"e3": {"LISTING_FALLEN": 165}, "e4": {"LISTING_FALLEN": 381}, "e5": {"LISTING_FALLEN": 217},
-             "f1": {"LISTING_FALLEN": 247}, SIXTH: {"LISTING_FALLEN": 247}}
+# across the fence row listed beyond the hold radius; P27-K2's corner yield: E2's inside corner under FLEE_HEALTH_FLOOR)
+FIRST_T10 = {"e2": {"LOW_EXIT": 222}, "e3": {"LISTING_FALLEN": 165}, "e4": {"LISTING_FALLEN": 381},
+             "e5": {"LISTING_FALLEN": 217}, "f1": {"LISTING_FALLEN": 247}, SIXTH: {"LISTING_FALLEN": 247}}
+# the first line on each golden whose decision (branch or action) iteration 20 moves, else None (whys alone)
+ACTED_T10 = {"e2": 222, "e4": 441}
 
 
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
@@ -1750,8 +1753,11 @@ def test_with_iteration_20_off_the_goldens_are_iteration_19_s(key):
 
 
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
-def test_iteration_20_moves_five_goldens_at_the_listing_s_across_clause_alone(key):
+def test_iteration_20_moves_the_six_goldens_at_the_listing_s_across_clause_and_e2_s_corner_yield(key):
     """Survival iteration 20's attribution, each switch alone on against the goldens before it (`pre_t10_gold`):
+    - LOW_EXIT (P27-K2) moves E2 alone, first at line 222 (health under FLEE_HEALTH_FLOOR): the inside corner on 12839
+      at 1.22 tiles, the record's, yields to the `health` flee's way out (logged `corner` {yield health}), the flee's
+      walk to its exit 3 sent where the corner held its swing; the later moved lines are downstream (open loop).
     - LISTING_FALLEN (P27-I) moves E3, E4, E5, F1 and the sixth, each first where a zombie across the fence row (a
       known blocked edge, P25-X's) is listed beyond the hold radius on a threat line: its `listing` {fallen 0, across
       1 or 2} why (E3 165, E4 381, E5 217, F1 and the sixth 247), the decision unmoved; E3's, E5's, F1's and the
@@ -1776,8 +1782,12 @@ def test_iteration_20_moves_five_goldens_at_the_listing_s_across_clause_alone(ke
         moved = [k for k in sorted(set(base) | set(alone)) if base.get(k) != alone.get(k)]
         assert (moved[0] if moved else None) == FIRST_T10[key].get(switch), switch
     first = diff[0]
-    assert got[first]["why"]["listing"]["fallen"] == 0 and got[first]["why"]["listing"]["across"] >= 1
-    assert "listing" not in base[first]["why"]
+    if "LISTING_FALLEN" in FIRST_T10[key]:
+        assert got[first]["why"]["listing"]["fallen"] == 0 and got[first]["why"]["listing"]["across"] >= 1
+        assert "listing" not in base[first]["why"]
+    else:
+        assert base[first]["why"]["corner_kind"] == "inside" and got[first]["why"]["corner"] == {"yield": "health"}
+        assert got[first]["why"]["flee"] == "health" and got[first]["action"]["type"] == "walkTo"
     acted = [k for k in diff if (base.get(k) or {}).get("action") != (got.get(k) or {}).get("action")
              or (base.get(k) or {}).get("branch") != (got.get(k) or {}).get("branch")]
-    assert (acted[0] if acted else None) == (441 if key == "e4" else None)
+    assert (acted[0] if acted else None) == ACTED_T10.get(key)

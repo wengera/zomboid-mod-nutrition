@@ -102,7 +102,9 @@ Ruling P27-I (Plan 27 Task 5, survival iteration 20: the `many` counts leave out
 blocked edge out of the hold radius) re-recorded E3, E4, E5, F1 and the sixth (base `2625cb96`), each first moved
 where a zombie across the fence row is listed beyond the hold radius (the `listing` why: E3 at line 165, E4 381, E5
 217, F1 and the sixth 247), E4's decisions moving from line 441 (the `many` re-entry its listing no longer makes);
-`T10_SWITCHES` off reproduces the files before it (`test_replay_decisions.PRE_T10`, `pre_t10`).
+`T10_SWITCHES` off reproduces the files before it (`test_replay_decisions.PRE_T10`, `pre_t10`). Ruling P27-K2 (the
+inside corner yields to the `health` flee's way out under FLEE_HEALTH_FLOOR) re-recorded E2 (base `d96f9318`), first
+moved at line 222, the corner on 12839 at 1.22 tiles left for the flee's walk to its exit.
 
 `agreement(artifact_dir, replayed)` compares the replayed log with the record's own decision.log at every line where
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat

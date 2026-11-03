@@ -527,9 +527,12 @@ def test_the_unarmed_and_the_hold_fights_keep_no_swing_after_three_missed_shoves
 
 
 def test_with_low_swing_off_the_low_fight_never_swings(tmp_path):
-    """The same geometry after SHOVE_FAIL_N missed shoves with `LOW_SWING` off: no `attack` is ever sent."""
+    """The same geometry after SHOVE_FAIL_N missed shoves with `LOW_SWING` off: no `attack` is ever sent. Named change,
+    ruling P27-K2 (Plan 27 Task 5): pinned with `LOW_EXIT` off (on, the low fight leaves its target there, nothing
+    sent: `test_survive_ab`)."""
     r, sv = make(tmp_path)
     sv.LOW_SWING = False
+    sv.LOW_EXIT = False
     shoves(r, sv, P.SHOVE_FAIL_N)
     lone(r)
     a = tick(r, sv)

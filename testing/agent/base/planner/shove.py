@@ -120,7 +120,23 @@ class FightShove:
         self._misses = None
         self._miss_run.pop(zid, None)
         self._held_before = False
+        self._low_swung.add(zid)   # P27-K2: the next SHOVE_FAIL_N misses at it leave it (`_low_exit`)
         return Attack(zid)
+
+    def _low_exit(self, zid):
+        """Ruling P27-K2 (`low_exit`, Survive's LOW_EXIT; F10, `f_goals_11-20261103-075140`: in building 3's hall eight
+        shoves knocked nothing down and two divided swings lowered nothing while eight bites took the health from
+        36.35115051269531 to 5.18145751953125): the low fight (`shove_only` "low") leaves its lone target `zid` once
+        SHOVE_FAIL_N or more missed shoves at it are on record (`_missed_n`, no knock-down read) where its full swing
+        (P27-E) is not due or has gone at it already (`_low_swung`: the swing first, then the exit after SHOVE_FAIL_N
+        more): True, logged `low_exit` {target, missed}, the Fight sending nothing; Survive leaves the zombie out of the
+        low fight for the threat episode (`Threat.low_left`), so the next tick's `health` flee takes its way out. Else
+        False. Cost if wrong: turning from a zombie at point blank."""
+        if ("low_exit" not in self.rules or self.shove_only != "low" or self._missed_n(zid) < SHOVE_FAIL_N
+                or (zid not in self._low_swung and self._low_swing_due(zid))):
+            return False
+        self.why["low_exit"] = {"target": zid, "missed": self._missed_n(zid)}
+        return True
 
     def _observe_close(self, t):
         """Ruling P27-J (b)'s count, every observe: `_close` (target id, consecutive observes) while the `shove_close`

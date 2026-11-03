@@ -170,6 +170,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # (`hold.Hold._hold_idle`), and a shove-only Fight's lone chaser holding beyond point blank
                           # for SHOVE_CLOSE_TICKS walked to, or left for a blocked line
                           # (`shove.FightShove._shove_close`); off, the stance stands at it (P25-P, P25-S, P27-C)
+    LOW_EXIT = True       # ruling P27-K2: the low fight leaves its lone target after SHOVE_FAIL_N missed shoves for the
+                          # `health` flee (`shove.FightShove._low_exit`, `_low_left`), and the inside corner yields to
+                          # that flee's way out under FLEE_HEALTH_FLOOR (`_corner_exit`); off, the shoves go on
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -376,7 +379,24 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         logged `low_fight`; the doorway stand's own `health` end is unchanged."""
         health = self._health()
         return (self.LOW_FIGHT and health < FLEE_HEALTH and self.world.can("shove") and n == 1
-                and health >= FLEE_HEALTH_FLOOR)
+                and health >= FLEE_HEALTH_FLOOR and not self._low_left())
+
+    def _low_left(self):
+        """Ruling P27-K2 (`LOW_EXIT`): every zombie within DANGER_R is one the low fight left this threat episode
+        (`low_left`, `shove.FightShove._low_exit`): the low fight is not allowed, so the `health` flee runs."""
+        if not (self.LOW_EXIT and self.low_left):
+            return False
+        near = self._within(DANGER_R)
+        ids = [zid for zid, z in self.world.zombies.items() if any(z is w for w in near)]
+        return bool(ids) and all(zid in self.low_left for zid in ids)
+
+    def _corner_exit(self, held, inside):
+        """Ruling P27-K2 (`LOW_EXIT`; F10, `f_goals_11-20261103-075140`: on line 1442, health 11.3414306640625, the
+        `health` flee chose the bedroom's window and sent its walk, superseded on the next line by the inside corner's
+        shove at point blank, with three zombies within DANGER_R): on a room square (`inside`) under FLEE_HEALTH_FLOOR
+        with a way out known (`_exit_known`), the inside corner yields to the `health` flee's way out (logged `corner`
+        {yield "health"} on the flee's line). Cost if wrong: turning from a zombie at point blank."""
+        return self.LOW_EXIT and inside and self._health() < FLEE_HEALTH_FLOOR and self._exit_known(held)
 
     def _unpaired(self, held, health, n):
         """The hysteresis past the `pair` rule (`_hysteresis`; `n` the DANGER_R count): `strain`, `unreachable`,
@@ -481,6 +501,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             if self.corner_kind == "walk" and self._walk_yields():   # P24-A (c): a leg can move, the flee reads first
                 self.cornered, self._corner_fight, self.corner_yield = None, None, self._walk_yields()
                 return None
+            if self.corner_kind == "inside" and self._corner_exit(held, inside):   # P27-K2: the health flee's way out
+                self.cornered, self._corner_fight, self.corner_exit = None, None, {"yield": "health"}
+                return None
             z = self.world.zombies.get(self.cornered)
             if (z is not None and z.get("x") is not None and z.get("y") is not None and nearest <= self.corner_free
                     and self.cornered not in dead and (self.cornered not in skip
@@ -505,6 +528,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             return None
         if not (stuck or inside) and self._walk_yields():   # P24-A (c): no `walk` corner under the health or many flee
             self.corner_yield = self._walk_yields()
+            return None
+        if inside and not stuck and self._corner_exit(held, inside):   # P27-K2: no inside corner over the way out
+            self.corner_exit = {"yield": "health"}
             return None
         self.corner_kind = "stuck" if stuck else ("inside" if inside else "walk")
         self.corner_free = CORNER_FREE_R if stuck else CORNERED_R
@@ -595,7 +621,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.broken, self.group_steer, self.corner_yield, self.behind, self.listed = None, None, None, None, None
         self.stand_left, self.stand_end, self.stand_wound, self.pair_yield = None, None, None, None
         self.stand_drag, self.stand_inside, self.stand_exit, self.stand_crowd = None, None, None, None
-        self.one_exit_refused, self.listing = None, None
+        self.one_exit_refused, self.listing, self.corner_exit = None, None, None
         door = self._doorway()
         if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
             return door
@@ -705,6 +731,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             self.mode, self.fight, self.flee = None, None, None
             self.many_since = None   # P24-AR: the long flee's clock ends with the threat
             self.rest_from = None    # P27-C2: and the hold's rest
+            self.low_left = set()    # P27-K2: and the low fight's exits
             self._end_flee_episode()
             self.sheltered, self.cornered, self.closing = False, None, (0, None)
             self.stuck_heading, self._nearest_seen = None, []
@@ -855,6 +882,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.crowd = self._inside_crowd() if kind == "cornered" else None   # P26-C
             ans = self._answer(policy)
             self.rest_from = None
+            if self.why.get("low_exit") is not None:   # P27-K2: the low fight left its lone target, the flee next
+                self.low_left.add(self.why["low_exit"]["target"])
             if self.pair_yield is not None and not self._finishes(self.pair_yield):
                 self.pair_yield = None   # P25-J (3): logged only where the Fight's finish answers it
         self.why.update({"fight": True} if reason is None else {"flee": reason})
@@ -897,7 +926,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                        ("doorway_wound", self.stand_wound), ("doorway_crowd", self.stand_crowd),
                        ("doorway_drag", self.stand_drag),
                        ("doorway_inside", self.stand_inside),
-                       ("pair_yield", self.pair_yield), ("listing", self.listing)):
+                       ("pair_yield", self.pair_yield), ("listing", self.listing), ("corner", self.corner_exit)):
             if v is not None:
                 self.why[key] = v
         if self.broken is not None:
@@ -956,7 +985,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("blocked_edge", self.BLOCKED_EDGE),
                                                ("wounded_swing", self.WOUNDED_SWING),
                                                ("low_swing", self.LOW_SWING), ("floor_finish", self.FLOOR_FINISH),
-                                               ("fallen_seek", self.FALLEN_SEEK), ("shove_close", self.SHOVE_CLOSE))
+                                               ("fallen_seek", self.FALLEN_SEEK), ("shove_close", self.SHOVE_CLOSE),
+                                               ("low_exit", self.LOW_EXIT))
                          if on)
 
     def _flee_rules(self):

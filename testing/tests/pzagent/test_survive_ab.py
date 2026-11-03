@@ -673,3 +673,75 @@ def test_the_bleed_s_yield_under_a_fight_takes_the_wound_s_rip(tmp_path):
                                                                              "branch": "yield"}
         else:
             assert a is None or a.type != "rip"
+
+
+# ================================================================ P27-K2: the low fight's exit
+from .test_survive_aa import ATTACK_DONE, lone, shoves                             # noqa: E402
+
+PAINED = {"arm": 25.0, "strain": {"l": 0.0, "r": 0.0}}   # the arms' pain at STRAIN_HARD, no stiffness: no hold, the
+# low fight's full swing barred (F10's hall: the arms' summed pain 113 to 241.3, #T82.7)
+
+
+def test_f10_s_low_fight_leaves_its_lone_target_after_shove_fail_n_missed_shoves(tmp_path):
+    """F10's hall (building 3, lines 1389-1456: eight shoves knocked nothing down, the swings divided, eight bites took
+    the health from 36.35115051269531 to 5.18145751953125): the low fight (health 35) at its lone zombie at point blank
+    with the arms' pain barring the swing: after SHOVE_FAIL_N missed shoves the Fight sends nothing, logged `low_exit`
+    {target, missed 3}; the next tick the `health` flee's leg goes; with `LOW_EXIT` off the shove or a break follows,
+    never the flee."""
+    for on in (True, False):
+        d = tmp_path / str(on)
+        d.mkdir()
+        r, sv = make(d)
+        sv.LOW_EXIT = on
+        shoves(r, sv, P.SHOVE_FAIL_N, **PAINED)
+        lone(r, **PAINED)
+        a = tick(r, sv)
+        w = threat_why(d)
+        if on:
+            assert a is None and w["low_exit"] == {"target": 1, "missed": 3} and w["low_fight"] is True
+            r.advance(0.5)
+            lone(r, **PAINED)
+            a = tick(r, sv)
+            assert a.type in ("steer", "walkTo") and threat_why(d)["flee"] == "health" and 1 in sv.low_left
+        else:
+            assert a is not None and "low_exit" not in w and "flee" not in w
+
+
+def test_with_the_full_swing_due_the_low_fight_swings_once_and_leaves_after_three_more_misses(tmp_path):
+    """The arms whole (P27-E's full swing due): three missed shoves take the swing (`low_swing`); three more missed
+    shoves at the same zombie take the exit (`low_exit`), not a second swing."""
+    r, sv = make(tmp_path)
+    shoves(r, sv, P.SHOVE_FAIL_N)
+    lone(r)
+    assert tick(r, sv).type == "attack" and "low_swing" in threat_why(tmp_path)
+    r.fake.answer({"attack": ["accepted", ATTACK_DONE]})
+    r.pump()
+    r.advance(1.0)
+    shoves(r, sv, P.SHOVE_FAIL_N)
+    lone(r)
+    assert tick(r, sv) is None and threat_why(tmp_path)["low_exit"]["missed"] == 3
+    assert sends(r).count("attack") == 1
+
+
+def test_f10_s_inside_corner_yields_to_the_health_flee_under_flee_health_floor(tmp_path):
+    """F10's line 1442 (health 11.3414306640625: the `health` flee's window step superseded on the next line by the
+    inside corner's shove at point blank): E16's shed with a109's zombies at the door (one within POINT_BLANK_R), a way
+    out known, health 15: no corner, the `health` flee's leg goes, logged `corner` {yield health}; at health 25 (at or
+    above FLEE_HEALTH_FLOOR), or with `LOW_EXIT` off, the inside corner as before."""
+    from .test_survive_y import E16_470, shed
+    from .test_survive_y import zs as yzs
+    me, rows = E16_470
+    for health, on, corner in ((15.0, True, False), (25.0, True, True), (15.0, False, True)):
+        d = tmp_path / ("%s-%s" % (health, on))
+        d.mkdir()
+        r, sv = make(d)
+        sv.LOW_EXIT = on
+        r.scan(shed())
+        r.frame(x=me[0], y=me[1], zombies=yzs(rows, me), health=health, attackers=1)
+        a = tick(r, sv)
+        w = threat_why(d)
+        if corner:
+            assert w["corner_kind"] == "inside" and "corner" in w and w["corner"].get("yield") is None, (health, on)
+        else:
+            assert "cornered" not in w and w["flee"] == "health" and w["corner"] == {"yield": "health"}
+            assert a is not None and a.type in ("walkTo", "steer", "window", "interact")
