@@ -278,7 +278,7 @@ def test_the_many_flee_s_finish_swings_at_a_fallen_zombie_within_reach(tmp_path)
     a zombie fallen 1.8 tiles off (beyond CORNERED_R, within FIGHT_REACH) never struck, GROUP3 chasing 7.5 off: the
     flee's finish is the attack (kind `floor_finish`, logged `floor_finish`); fallen 3.5 off, the stomp."""
     r, sv = make(tmp_path)
-    sv.LISTING_FALLEN = False if hasattr(sv, "LISTING_FALLEN") else None
+    sv.LISTING_FALLEN = False   # P27-I off: GROUP3 makes `many` with the fallen one counted
     fr(r, [fallen(101.8)] + GROUP3)
     a = tick(r, sv)
     w = threat_why(tmp_path)
@@ -286,7 +286,7 @@ def test_the_many_flee_s_finish_swings_at_a_fallen_zombie_within_reach(tmp_path)
     assert w["kind"] == "floor_finish" and w["floor_finish"] == {"target": 1, "health": FALLEN_H}
     (tmp_path / "far").mkdir()
     r2, sv2 = make(tmp_path / "far")
-    sv2.LISTING_FALLEN = False if hasattr(sv2, "LISTING_FALLEN") else None
+    sv2.LISTING_FALLEN = False
     fr(r2, [fallen(103.5)] + GROUP3)
     assert tick(r2, sv2).type == "stomp"
 
@@ -300,7 +300,7 @@ def test_the_flee_finish_holds_while_a_strike_at_its_fallen_zombie_runs(tmp_path
         d.mkdir()
         r, sv = make(d)
         sv.FLOOR_FINISH = on
-        sv.LISTING_FALLEN = False if hasattr(sv, "LISTING_FALLEN") else None
+        sv.LISTING_FALLEN = False   # P27-I off: GROUP3 makes `many` with the fallen one counted
         a = striking(r, sv)
         fr(r, [fallen()] + GROUP3)
         got = tick(r, sv)
@@ -387,3 +387,71 @@ def test_with_fallen_seek_off_the_stance_stands_at_the_fallen_target(tmp_path):
         fallen_tick(r, sv)
         assert "fallen_seek" not in threat_why(tmp_path)
     assert "walkTo" not in sends(r)
+
+
+# ================================================================ P27-I: the listing's count
+TARGET = z(1, 104.0)   # the fight's standing chaser 4 tiles east (held, within DANGER_R)
+FALLEN_TWO = [z(2, 100.0, 207.0, floor=True), z(3, 100.0, 192.0, floor=True)]   # E19 line 386's 20937 and 20974:
+# fallen, read chasing, 7 and 8 tiles off (listed, beyond DANGER_R)
+STANDING_FAR = z(4, 110.538954093041877)   # E19's 20944, standing and chasing 10.538954093041877 tiles off
+
+
+def test_e19_s_line_386_two_fallen_in_the_listing_make_no_many(tmp_path):
+    """E19's line 386 (the listing's count of four began a new `many` episode: two of the four it counted read fallen):
+    the target 4 tiles off, two fallen 7 and 8 off, a standing chaser 10.54 off: the fallen are left out, two counted,
+    no `many`: the fight, logged `listing` {fallen 2, across 0}; with `LISTING_FALLEN` off, `many` on the listing."""
+    r, sv = make(tmp_path)
+    fr(r, [TARGET] + FALLEN_TWO + [STANDING_FAR])
+    tick(r, sv)
+    w = threat_why(tmp_path)
+    assert w.get("flee") != "many" and w["listing"] == {"fallen": 2, "across": 0} and "listed" not in w
+    (tmp_path / "off").mkdir()
+    r2, sv2 = make(tmp_path / "off")
+    sv2.LISTING_FALLEN = False
+    fr(r2, [TARGET] + FALLEN_TWO + [STANDING_FAR])
+    tick(r2, sv2)
+    w = threat_why(tmp_path / "off")
+    assert w["flee"] == "many" and w["listed"] == 4 and "listing" not in w
+
+
+def fence_row(r):
+    """An outdoor strip y 200, x 99 to 112, its square 106's west edge a blocked, unhoppable fence (P25-X's known
+    blocked edge, as E19's fence row at y 10642 with its locked gate)."""
+    r.scan([square(x, 200, blockW=x == 106) for x in range(99, 113)])
+
+
+def test_e19_s_gate_zombie_across_the_fence_out_of_the_hold_is_left_out_of_the_listing(tmp_path):
+    """E19's 20923, the gate zombie across the fence row, counted at line 386: here a chaser 11 tiles east across the
+    fence (beyond the hold radius), the target 4 off and two chasers 9.5 north and south: three counted, no `many`,
+    logged `listing` {fallen 0, across 1}; within the hold radius (8 tiles east, with a fight's DISENGAGE_R hold, or the
+    target's own side) it counts."""
+    r, sv = make(tmp_path)
+    fence_row(r)
+    far = [z(5, 100.0, 209.5), z(6, 100.0, 190.5)]
+    fr(r, [TARGET, z(7, 111.0)] + far)
+    tick(r, sv)
+    w = threat_why(tmp_path)
+    assert w.get("flee") != "many" and w["listing"] == {"fallen": 0, "across": 1}
+    (tmp_path / "off").mkdir()
+    r2, sv2 = make(tmp_path / "off")
+    sv2.LISTING_FALLEN = False
+    fence_row(r2)
+    fr(r2, [TARGET, z(7, 111.0)] + far)
+    tick(r2, sv2)
+    assert threat_why(tmp_path / "off")["flee"] == "many"
+
+
+def test_the_held_count_leaves_the_fallen_out_during_a_fight(tmp_path):
+    """A running fight (mode fight, the hold radius DISENGAGE_R): its standing target 2.4 tiles off and two fallen
+    chasers 7 and 8 off: the held count reads one, not three over MAX_FIGHT: no `many`; with the switch off, `many`."""
+    for on in (True, False):
+        d = tmp_path / str(on)
+        d.mkdir()
+        r, sv = make(d)
+        sv.LISTING_FALLEN = on
+        fr(r, [z(1, 102.4)])
+        assert tick(r, sv).type == "aim" and sv.mode == "fight"
+        r.advance(0.5)
+        fr(r, [z(1, 102.4)] + FALLEN_TWO)
+        tick(r, sv)
+        assert (threat_why(d).get("flee") == "many") is (not on), on

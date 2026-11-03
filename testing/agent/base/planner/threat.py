@@ -11,7 +11,7 @@ from (a pure move): the hold and spent reads (`hold.Hold`), the engage (`engage.
 from agent.base.planner.care import CARE_STILL_TICKS
 from agent.base.planner.care_yield import CareYield
 from agent.base.planner.doorway import DoorwayStand, stand_ready
-from agent.base.planner.edges import ThreatEdge
+from agent.base.planner.edges import ThreatEdge, crossed
 from agent.base.planner.engage import Engage
 from agent.base.planner.fight import Fight
 from agent.base.planner.finish import ThreatFinish
@@ -26,6 +26,7 @@ from agent.base.planner.policies import (AIM_R, CLOSING_TICKS, CORNERED_R, CORNE
                                          line_to, on_floor, others_behind, seek_allowed, spare, target_id_ok, zdist)
 from agent.base.planner.pull import ThreatPull
 from agent.base.pza1 import Drop
+from agent.base.world import me_xy
 
 SHOVE_ONLY_WHY = {"unarmed": "unarmed_fight", "low": "low_fight", "hold": "hold_fight"}   # the why of each
                          # shove-and-stomp Fight (`Fight.shove_only`: P25-P, P25-S, P27-C)
@@ -162,6 +163,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     FALLEN_SEEK = True    # ruling P27-H: a standing fight whose target reads fallen beyond FINISH_R on
                           # FALLEN_SEEK_TICKS ticks walks to it, or with a standing zombie within DANGER_R or its line
                           # blocked leaves it (`finish.FightFinish._fallen_seek`); off, the stance stands at it
+    LISTING_FALLEN = True  # ruling P27-I: the `many` counts (the listing's and the held one's) leave out a zombie read
+                           # fallen and one across a known blocked edge out of the hold radius (`_left_out`); off, they
+                           # count as P24-AD and P24-AN read them
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -203,7 +207,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         the listing counts a zombie only within DANGER_R or chasing (`_counts_listed`: `hasTarget` true; one whose
         frame carries no `hasTarget` no longer counts beyond DANGER_R), so no idle or unread zombie past DANGER_R ever
         makes `many` by MANY_LISTED_N. Ruling P27-B (`MANY_TAIL`): the episode's tail, read once a tick in
-        `_threat_read` (`_many_tail_read`), clears `flee_many`, so this clause no longer holds the flee after it."""
+        `_threat_read` (`_many_tail_read`), clears `flee_many`, so this clause no longer holds the flee after it.
+        Ruling P27-I (`LISTING_FALLEN`): neither count takes a zombie `_left_out` names (fallen, or across a known
+        blocked edge out of the hold radius)."""
         counted = [z for z in held if self._counts_many(z)]
         if self.mode == "flee" and self.flee_many:
             near = len(counted) > MAX_FIGHT or min(zdist(self.world, z) for z in held) <= DANGER_R
@@ -218,13 +224,48 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
 
     def _counts_many(self, z):
         """Ruling P24-AD: zombie `z` counts toward `many`: within DANGER_R, or not idle (`hasTarget` not read false: a
-        chaser, or a frame that does not carry the field); with `IDLE` off every zombie counts."""
+        chaser, or a frame that does not carry the field); with `IDLE` off every zombie counts. Ruling P27-I: never one
+        `_left_out` names."""
+        return self._counts_many_p24(z) and self._left_out(z) is None
+
+    def _counts_many_p24(self, z):
         return not self.IDLE or z.get("hasTarget") is not False or zdist(self.world, z) <= DANGER_R
 
     def _counts_listed(self, z):
         """Ruling P24-AN: zombie `z` counts toward `many` by the listing: within DANGER_R or chasing (`hasTarget`
-        true); with `IDLE` off every zombie counts (the rules before P24-AD)."""
+        true); with `IDLE` off every zombie counts (the rules before P24-AD). Ruling P27-I: never one `_left_out`
+        names."""
+        return self._counts_listed_p24(z) and self._left_out(z) is None
+
+    def _counts_listed_p24(self, z):
         return not self.IDLE or chasing(z) or zdist(self.world, z) <= DANGER_R
+
+    def _left_out(self, z):
+        """Ruling P27-I (`LISTING_FALLEN`; E19, `e_day_19-20261103-072904`: on line 386's frame three of the five listed
+        read fallen, one was the gate zombie across the fence row and one stood chasing 10.538954093041877 tiles off,
+        and the listing's count of four began a new `many` episode, #4555): why zombie `z` is left out of the `many`
+        counts, else None: "fallen" when the frame reads it `onFloor`; "across" when it stands beyond the hold radius
+        (`_hold_r`) and the straight line to it crosses a known blocked edge (`edges.crossed`, P25-X's read: a
+        blocked, unhoppable outdoor edge). None with `LISTING_FALLEN` off. Cost if wrong: a group that rises together
+        (the fallen counted again the tick they stand)."""
+        if not self.LISTING_FALLEN:
+            return None
+        if on_floor(z):
+            return "fallen"
+        if zdist(self.world, z) > self._hold_r() and crossed(self.world, me_xy(self.world), (z["x"], z["y"])):
+            return "across"
+        return None
+
+    def _listing_out(self):
+        """P27-I's why: {fallen, across} of the listed zombies within LISTED_R the counts before it took (P24-AD's or
+        P24-AN's reading) and `_left_out` leaves out, when any is, else None."""
+        out = {"fallen": 0, "across": 0}
+        for z in self._within(LISTED_R):
+            if self._counts_listed_p24(z) or self._counts_many_p24(z):
+                kind = self._left_out(z)
+                if kind is not None:
+                    out[kind] += 1
+        return out if out["fallen"] or out["across"] else None
 
     def _pressing(self, zs):
         """Of `zs`, the zombies within DISENGAGE_R (10: ENGAGE_R's value at P24-X, kept when Task 18 fix 1's minor 8
@@ -239,6 +280,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         many, listed = self._many_read(held, n)
         if listed is not None:
             self.listed = listed
+        out = self._listing_out() if self.LISTING_FALLEN else None
+        if out is not None:
+            self.listing = out   # P27-I: the zombies the counts left out, on the decision's why
         return many
 
     def _flee_reason(self, held, n):
@@ -547,7 +591,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.broken, self.group_steer, self.corner_yield, self.behind, self.listed = None, None, None, None, None
         self.stand_left, self.stand_end, self.stand_wound, self.pair_yield = None, None, None, None
         self.stand_drag, self.stand_inside, self.stand_exit, self.stand_crowd = None, None, None, None
-        self.one_exit_refused = None
+        self.one_exit_refused, self.listing = None, None
         door = self._doorway()
         if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
             return door
@@ -847,7 +891,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                        ("doorway_wound", self.stand_wound), ("doorway_crowd", self.stand_crowd),
                        ("doorway_drag", self.stand_drag),
                        ("doorway_inside", self.stand_inside),
-                       ("pair_yield", self.pair_yield)):
+                       ("pair_yield", self.pair_yield), ("listing", self.listing)):
             if v is not None:
                 self.why[key] = v
         if self.broken is not None:

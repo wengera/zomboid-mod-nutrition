@@ -1666,9 +1666,10 @@ def pre_t9_gold(key):
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
 def test_with_iteration_19_off_the_goldens_are_plan_26_s(key):
     """Iteration 19's golden movers are `survive.T9_SWITCHES`: with them off (`pre_t9`) a golden it re-recorded is the
-    file as it stood before byte for byte (its sha256 pinned, `PRE_T9`), and every other golden is its file now."""
+    file as it stood before byte for byte (its sha256 pinned, `PRE_T9`), and every other golden is its file as
+    iteration 20 left it off (named change, Plan 27 Task 5: P27-I re-recorded five, `pre_t10_gold`)."""
     if key not in PRE_T9:
-        assert pre_t9_gold(key) == gold(key)
+        assert pre_t9_gold(key) == pre_t10_gold(key)
         return
     sha, base, recorded = PRE_T9[key]
     text = R.golden_text(R.decisions(json.loads(_pre_t9_replayed(key))), base, R.RUNS[key], recorded,
@@ -1690,8 +1691,9 @@ def test_iteration_19_moves_e4_alone_at_the_many_tail(key):
       `hold_walk`) reads a chaser listed on every line, its record reading no `hasTarget` false at all. SPENT_KEEP
       (P27-D) moves none: no golden ring decodes a bandaged part (PZA/1.4's parts carry no dressing). LOW_SWING (P27-E)
       moves none: the low fight needs the PZA/1.7 `shove`, as HOLD_LONE does.
-    A golden no switch moves is its file before iteration 19 byte for byte."""
-    base, got = pre_t9_gold(key), gold(key)
+    A golden no switch moves is its file before iteration 19 byte for byte. Named change, Plan 27 Task 5: read against
+    the goldens with iteration 20 off (`pre_t10_gold`), whose P27-I re-recorded five."""
+    base, got = pre_t9_gold(key), pre_t10_gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
     if key not in FIRST_T9:
         assert diff == []
@@ -1716,11 +1718,66 @@ def _pre_t10_replayed(key):
     return json.dumps(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t10), sort_keys=True)
 
 
+def pre_t10_gold(key):
+    """{line: decision} of the replay with iteration 20's switches off: the golden before its re-record."""
+    return {d["line"]: d for d in R.decisions(json.loads(_pre_t10_replayed(key)))}
+
+
+# the goldens as they stood before iteration 20 re-recorded them (Plan 27 Task 1's close): sha256, base, recorded
+PRE_T10 = {"e3": ("c28c6a4b263f7399e48e2b1d429b755509500b5b930839ee96dd94f98c751ad8", "88fd464e", "2026-11-02"),
+           "e4": ("63b2443b33ff7f6647c4581d6681c8c8c24943756d182378bf1025d515f3821a", "c1e04d78", "2026-11-03"),
+           "e5": ("21d0e31baf772699707c95db81371550096493242ddefc53b11f32f8ba38fd7e", "88fd464e", "2026-11-02"),
+           "f1": ("c093db79eaf3606348b3e4f18fd591093c7fac5e065ce22624229e27b3cf1870", "88fd464e", "2026-11-02"),
+           SIXTH: ("9d0883924706f94c64a38d9090cba145f52a229a767db36925a859b5c4065a12", "88fd464e", "2026-11-02")}
+# the first line each iteration-20 switch moves, alone on, on each golden it moves (P27-I's across clause: the zombie
+# across the fence row listed beyond the hold radius)
+FIRST_T10 = {"e3": {"LISTING_FALLEN": 165}, "e4": {"LISTING_FALLEN": 381}, "e5": {"LISTING_FALLEN": 217},
+             "f1": {"LISTING_FALLEN": 247}, SIXTH: {"LISTING_FALLEN": 247}}
+
+
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
-def test_iteration_20_moves_no_golden(key):
-    """Survival iteration 20 (Plan 27 Task 5) moves no golden: the six are byte-identical with its switches on
-    (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off (`pre_t10`). P27-F's stuck mark reads a
-    goal walk the goal runner sent, and the replay's goals are the record's (`RecordedGoals`), so no golden tick marks
-    a square."""
-    only = {d["line"]: d for d in R.decisions(json.loads(_pre_t10_replayed(key)))}
-    assert only == gold(key)
+def test_with_iteration_20_off_the_goldens_are_iteration_19_s(key):
+    """Iteration 20's golden movers are `survive.T10_SWITCHES`: with them off (`pre_t10`) a golden it re-recorded is
+    the file as it stood before byte for byte (its sha256 pinned, `PRE_T10`), and every other golden is its file
+    now."""
+    if key not in PRE_T10:
+        assert pre_t10_gold(key) == gold(key)
+        return
+    sha, base, recorded = PRE_T10[key]
+    text = R.golden_text(R.decisions(json.loads(_pre_t10_replayed(key))), base, R.RUNS[key], recorded,
+                         R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == sha
+
+
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_iteration_20_moves_five_goldens_at_the_listing_s_across_clause_alone(key):
+    """Survival iteration 20's attribution, each switch alone on against the goldens before it (`pre_t10_gold`):
+    - LISTING_FALLEN (P27-I) moves E3, E4, E5, F1 and the sixth, each first where a zombie across the fence row (a
+      known blocked edge, P25-X's) is listed beyond the hold radius on a threat line: its `listing` {fallen 0, across
+      1 or 2} why (E3 165, E4 381, E5 217, F1 and the sixth 247), the decision unmoved; E3's, E5's, F1's and the
+      sixth's moved lines are whys alone, and E4's decisions move from line 441, where the listing's four made `many`
+      again before (`listed` 4, Task 1's P27-B re-entry) and now one of them, across the fence, is left out (`listing`
+      {fallen 0, across 1}): the endurance hold's `strain` flee holds its running leg where the `many` steer went, and
+      every later moved line is downstream of it (open loop). No golden frame reads `onFloor`, so the fallen clause
+      moves none. E2 lists no zombie across the row beyond its hold.
+    - STUCK_LEAVE (P27-F) moves none: its mark reads a goal walk the goal runner sent, and the replay's goals are the
+      record's (`RecordedGoals`). FLOOR_FINISH (P27-G) and FALLEN_SEEK (P27-H) move none: both read a zombie the
+      frame reads `onFloor`.
+    A golden no switch moves is its file before iteration 20 byte for byte."""
+    base, got = pre_t10_gold(key), gold(key)
+    diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
+    if key not in FIRST_T10:
+        assert diff == []
+        return
+    assert diff[0] == min(FIRST_T10[key].values())
+    for switch in S.T10_SWITCHES:
+        alone = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
+                                                             mutate=lambda sv: pre_t10(sv, keep=(switch,))))}
+        moved = [k for k in sorted(set(base) | set(alone)) if base.get(k) != alone.get(k)]
+        assert (moved[0] if moved else None) == FIRST_T10[key].get(switch), switch
+    first = diff[0]
+    assert got[first]["why"]["listing"]["fallen"] == 0 and got[first]["why"]["listing"]["across"] >= 1
+    assert "listing" not in base[first]["why"]
+    acted = [k for k in diff if (base.get(k) or {}).get("action") != (got.get(k) or {}).get("action")
+             or (base.get(k) or {}).get("branch") != (got.get(k) or {}).get("branch")]
+    assert (acted[0] if acted else None) == (441 if key == "e4" else None)

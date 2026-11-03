@@ -2061,6 +2061,19 @@ def trans_off(r, sv, w):
     sv.TRANS = False
 
 
+def listing_off(r, sv, w):
+    """`run_replay`'s setup onto the rules before ruling P27-I (Plan 27 Task 5: `Survive.LISTING_FALLEN` off, a zombie
+    across a known blocked edge out of the hold radius counted toward `many` as before): E3's, E4's and F1's frames
+    list a zombie across the fence row on the lines the tests below pin, so a test pinning an earlier ruling there reads
+    it with the switch off."""
+    sv.LISTING_FALLEN = False
+
+
+def _idle_listing_off(r, sv, w):
+    idle_off(r, sv, w)
+    listing_off(r, sv, w)
+
+
 def strain_off(r, sv, w):
     """`run_replay`'s setup onto the rules before rulings P24-AG and P24-AK (Plan 24 Task 27: `Survive.STRAIN` off, no
     spent read): E4's frames from game minute 455 and F1's last fight read the endurance at or under ENDURANCE_T (the
@@ -2071,10 +2084,11 @@ def strain_off(r, sv, w):
 @functools.lru_cache(maxsize=2)
 def _e3_sequential(idle=True):
     """E3's lines 230-284 through one Survive (`e3_replay`), shared by the sequential tests; `idle` False reads them
-    with P24-AD off (`idle_off`)."""
+    with P24-AD off (`idle_off`) and, a named change of Plan 27 Task 5 (ruling P27-I), P27-I off with it
+    (`listing_off`: line 234's listing holds a zombie across the fence row)."""
     d = tempfile.mkdtemp()
     import pathlib
-    r, sv, out = e3_replay(pathlib.Path(d), 230, 284, setup=None if idle else idle_off)
+    r, sv, out = e3_replay(pathlib.Path(d), 230, 284, setup=None if idle else _idle_listing_off)
     return [a for a in r.acts.history], {ln: (row, a) for ln, (row, a) in out.items()}
 
 
@@ -2089,7 +2103,9 @@ def test_e3_after_the_first_many_flee_no_fight_walk_supersedes_it_while_the_grou
     ruling P24-A (a): at line 230 four zombies are listed within LISTED_R (one held within DANGER_R), so the `many`
     flee and its approach walk go there (`listed` 4), with no fight walk first. Named change, ruling P24-AD (Task 21):
     read with P24-AD off (`idle_off`): an idle zombie of that listing stands beyond DANGER_R, so with P24-AD on line
-    230's flee reads `held`, not `many`."""
+    230's flee reads `held`, not `many`. Named change, ruling P27-I (Plan 27 Task 5): read with P27-I off too
+    (`listing_off`): with it on, line 234's listing leaves out a zombie across the fence row and the flee reads
+    `held`, not `steps`."""
     sent, out = _e3_sequential(idle=False)
     why230 = out[230][0]["inputs"]["branches"]["threat"]
     assert why230["flee"] == "many" and why230["listed"] == 4 and "fight" not in why230
@@ -2729,7 +2745,8 @@ def test_e4_lines_438_to_442_the_leg_is_cut_where_19032_is_first_listed(tmp_path
     (Task 21): read with P24-AD off (`idle_off`): with it on, idle zombies beyond DANGER_R leave the episode's count
     and line 438 sends a walk, not the leg. Named change, ruling P24-AS (Task 32 amendment 1): read with the
     transparent solid off (`trans_off`): the record's heading at 438 crossed a `solidTrans` square the heading read
-    now refuses."""
+    now refuses. Named change, ruling P27-I (Plan 27 Task 5): read with P27-I off (`listing_off`): with it on, the
+    zombies across the fence row leave the episode's listing and the leg is not the one pinned."""
     from agent.base.world import World
     monkeypatch.setattr(World, "met_window", lambda self, r=None: None)
 
@@ -2737,6 +2754,7 @@ def test_e4_lines_438_to_442_the_leg_is_cut_where_19032_is_first_listed(tmp_path
         e4_flee(r, sv, w)
         idle_off(r, sv, w)
         trans_off(r, sv, w)
+        listing_off(r, sv, w)
     r, sv, out = run_replay(E4, tmp_path, 438, 442, setup=setup)
     d, leg = out[438]
     assert leg.type == "steer" and (round(leg.args["vx"], 3), round(leg.args["vy"], 3)) == (-0.893, -0.451)
@@ -3236,10 +3254,12 @@ def test_f1_s_last_fight_the_walk_corner_yields_to_health_at_the_first_line_unde
     `health`): the shelter approach walk to building 2 (the episode's shelter pick), which stands and is dropped
     at 610 (`stalled`) for a sprint steer. The record swung on to health 0.9. Named change, ruling P24-AD (Task 21):
     read with P24-AD off (`idle_off`); with it on, the listing of four holds idle zombies beyond DANGER_R, so 607's
-    flee reads `health`, a walk sent there too."""
+    flee reads `health`, a walk sent there too. Named change, ruling P27-I (Plan 27 Task 5): read with P27-I off
+    (`listing_off`): with it on, 607's listing leaves out a zombie across the fence row and the flee reads `health`."""
     def setup(r, sv, w):
         f1_walk_corner(r, sv, w)
         idle_off(r, sv, w)
+        listing_off(r, sv, w)
         strain_off(r, sv, w)   # named change, Task 27: F1's last fight reads the endurance moodle (P24-AG)
     r, sv, out = run_replay(F1, tmp_path, 600, 612, setup=setup)
     for line in range(600, 607):

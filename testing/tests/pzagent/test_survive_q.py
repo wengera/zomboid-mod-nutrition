@@ -255,9 +255,11 @@ def test_a_standing_zombie_within_danger_r_keeps_the_flee_as_today(tmp_path):
 def test_a_fallen_zombie_never_struck_is_left(tmp_path):
     """At 1.9 tiles (beyond CORNERED_R, whose `walk` corner would take a zombie at 1.5 first, struck or not). Named
     change, ruling P27-A (Plan 27 Task 1): the struck test is dropped, so a fallen zombie never struck is stomped
-    (`test_survive_aa`); pinned with `FLEE_FINISH` off, the rule before it."""
+    (`test_survive_aa`); pinned with `FLEE_FINISH` off, the rule before it. Named change, ruling P27-I (Plan 27 Task
+    5): `LISTING_FALLEN` off too (GROUP3's three and the fallen one make `many` only with the fallen counted)."""
     r, sv = make(tmp_path, caps=CAPS_14)
     sv.FLEE_FINISH = False
+    sv.LISTING_FALLEN = False
     fr(r, [z(1, 101.9, floor=True)] + GROUP3)
     assert tick(r, sv).type == "steer" and threat_why(tmp_path)["flee"] == "many"
     (tmp_path / "b").mkdir()

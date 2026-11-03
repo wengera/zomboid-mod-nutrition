@@ -98,6 +98,11 @@ after its refusal (`test_replay_decisions.FIRST_EDGE_OUT`); `EDGE_OUT_OF_HOLD` a
 `test_iteration_18_moves_no_golden`). Ruling P27-B (Plan 27 Task 1, survival iteration 19) re-recorded E4 alone (base
 `c1e04d78`), first moved at line 434, the `many_tail` why on a `strain` flee line whose `many` episode its tail ended,
 the decisions unmoved; `T9_SWITCHES` off reproduces the file before it (`test_replay_decisions.PRE_T9`, `pre_t9`).
+Ruling P27-I (Plan 27 Task 5, survival iteration 20: the `many` counts leave out a fallen zombie and one across a known
+blocked edge out of the hold radius) re-recorded E3, E4, E5, F1 and the sixth (base `2625cb96`), each first moved
+where a zombie across the fence row is listed beyond the hold radius (the `listing` why: E3 at line 165, E4 381, E5
+217, F1 and the sixth 247), E4's decisions moving from line 441 (the `many` re-entry its listing no longer makes);
+`T10_SWITCHES` off reproduces the files before it (`test_replay_decisions.PRE_T10`, `pre_t10`).
 
 `agreement(artifact_dir, replayed)` compares the replayed log with the record's own decision.log at every line where
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat

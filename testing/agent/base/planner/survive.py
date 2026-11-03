@@ -267,7 +267,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     `ScriptedSource._ways_out`, the view's `stuck`); P27-G, the swing at a fallen zombie within FIGHT_REACH ahead of
     the stomp, no stomp while a strike at it runs (`finish.FightFinish._floor_finish`, `ThreatFinish._flee_finish`);
     P27-H, the stance at a target fallen beyond FINISH_R walks to it after FALLEN_SEEK_TICKS, else leaves it
-    (`finish.FightFinish._fallen_seek`); `T10_SWITCHES`.
+    (`finish.FightFinish._fallen_seek`); P27-I, the `many` counts leave out a fallen zombie and one across a known
+    blocked edge out of the hold radius (`threat.Threat._left_out`); `T10_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -387,9 +388,9 @@ T8_SWITCHES = ("WINDOW_INNER", "WINDOW_STALL", "STAND_CROWD", "WOUNDED_SWING", "
 T9_SWITCHES = ("FLEE_FINISH", "MANY_TAIL", "HOLD_LONE", "HOLD_REST", "SPENT_KEEP", "LOW_SWING")
 # survival iteration 19 (Plan 27 Task 1): P27-A to P27-C2 and P27-E on `threat.Threat` (FLEE_FINISH, MANY_TAIL,
 # HOLD_LONE, HOLD_REST, LOW_SWING); P27-D on `Survive` (SPENT_KEEP)
-T10_SWITCHES = ("STUCK_LEAVE", "FLOOR_FINISH", "FALLEN_SEEK")
-# survival iteration 20 (Plan 27 Task 5): P27-F on `Survive` (STUCK_LEAVE, read by the goal runner); P27-G and P27-H on
-# `threat.Threat` (FLOOR_FINISH, FALLEN_SEEK)
+T10_SWITCHES = ("STUCK_LEAVE", "FLOOR_FINISH", "FALLEN_SEEK", "LISTING_FALLEN")
+# survival iteration 20 (Plan 27 Task 5): P27-F on `Survive` (STUCK_LEAVE, read by the goal runner); P27-G to P27-I on
+# `threat.Threat` (FLOOR_FINISH, FALLEN_SEEK, LISTING_FALLEN)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -488,6 +489,7 @@ class Survive(Threat):
         self.corner_yield = None  # this tick: why a `walk` corner yielded, "health" or "many" (P24-A (c)), else None
         self.behind = None        # this tick: the ids listed behind the fight's walk target (P24-A (b)), else None
         self.listed = None        # this tick: the listed count when it alone made `many` (P24-A (a)), else None
+        self.listing = None       # this tick: {fallen, across} of the zombies the `many` counts left out (P27-I)
         self.stand_left = None    # this tick: the end the doorway stand's plan was dropped on and its Flee kept: `off`
                                   # (P24-AO fix 1), or an end that walks out (P25-W)
         self.stand_end = None     # this tick: any end the doorway stand took (`doorway_left`): the why only

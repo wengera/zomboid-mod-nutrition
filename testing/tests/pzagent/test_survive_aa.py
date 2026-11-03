@@ -120,8 +120,11 @@ def test_the_many_case_of_p24_aq_still_stomps_and_logs_the_struck_read(tmp_path)
 
 def test_a_fallen_zombie_never_struck_under_the_many_flee_is_stomped_and_with_the_switch_off_left(tmp_path):
     """E18's line 939 (30452 fallen off its window climb 2.053499872133796 tiles off under the `many` flee, never
-    struck, no stomp sent): the struck test dropped, it is stomped; with `FLEE_FINISH` off, P24-AQ leaves it."""
+    struck, no stomp sent): the struck test dropped, it is stomped; with `FLEE_FINISH` off, P24-AQ leaves it. Named
+    change, ruling P27-I (Plan 27 Task 5): pinned with `LISTING_FALLEN` off (GROUP3's three and the fallen one make
+    `many` only with the fallen counted)."""
     r, sv = make(tmp_path)
+    sv.LISTING_FALLEN = False
     fr(r, [z(30452, 102.053499872133796, floor=True)] + GROUP3)
     a = tick(r, sv)
     w = threat_why(tmp_path)
@@ -130,6 +133,7 @@ def test_a_fallen_zombie_never_struck_under_the_many_flee_is_stomped_and_with_th
     (tmp_path / "off").mkdir()
     r2, sv2 = make(tmp_path / "off")
     sv2.FLEE_FINISH = False
+    sv2.LISTING_FALLEN = False
     fr(r2, [z(30452, 102.053499872133796, floor=True)] + GROUP3)
     assert tick(r2, sv2).type == "steer" and "finish" not in threat_why(tmp_path / "off")
 
@@ -189,14 +193,16 @@ def test_the_pair_flee_s_finish_is_the_flee_finish_logged_pair(tmp_path):
 def test_the_old_sessions_replays_stomp_the_fallen_their_flees_left():
     """The replays at HEAD of the old sessions the rule reaches (open loop): E9's stomps 7479 at line 274 (fallen 4.42
     tiles off, the nearest standing 10.25) and 7481 at line 363 (4.45, the nearest standing 7.42) under the `many`
-    flee, neither struck; with `FLEE_FINISH` off neither goes (P24-AQ: no finish on E9's replay at all)."""
+    flee, neither struck; with `FLEE_FINISH` off neither goes (P24-AQ: no finish on E9's replay at all). Named change,
+    ruling P27-I (Plan 27 Task 5): read with `LISTING_FALLEN` off (with it on, E9's fallen leave the listing and the
+    `many` episodes these finishes ran under move)."""
     from .test_survive_o import e9_lines
-    got = e9_lines()
+    got = e9_lines(("LISTING_FALLEN",))
     fin = {k: (d["why"]["finish"], d["why"]["flee_finish"]) for k, d in got.items() if d["why"].get("finish")}
     assert sorted(fin) == [274, 363] and (fin[274][0], fin[363][0]) == (7479, 7481)
     assert all(f["reason"] == "many" and f["struck"] is False for _, f in fin.values())
     assert got[274]["action"] == {"type": "stomp", "args": {"targetId": 7479}}
-    assert not any(d["why"].get("finish") for d in e9_lines(("FLEE_FINISH",)).values())
+    assert not any(d["why"].get("finish") for d in e9_lines(("FLEE_FINISH", "LISTING_FALLEN")).values())
 
 # ================================================================ P27-B: the `many` episode's tail
 START = [z(1, 103.0), z(2, 103.0, 201.0), z(3, 104.0)]   # three chasing within 4 tiles: the `many` episode
