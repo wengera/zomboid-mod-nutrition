@@ -3,8 +3,8 @@ false in place (every other byte kept, CRLF kept); Server.seed() blanks ServerWe
 P23-AN: prepare() also closes the saved character-info window in the per-run Lua/layout.ini, moves
 the chat window to the screen's bottom-left at its smallest height, and
 starts a -debug client's debug console hidden (UI.DebugConsole.StartVisible=false).
-Plan 27 Task 3b (ruling P27-4a): prepare() also writes texture2x=false and textureCompression=true,
-cutting the client's texture memory."""
+Plan 27 (ruling P27-4a, withdrawn 2026-11-03): texture2x=false and textureCompression=true were written for one
+boot and taken out again, the compression having stalled the client's load (E19's first boot); no texture key here."""
 import os, sys, tempfile
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 import pytest
@@ -12,7 +12,6 @@ from pzt import client as cl
 from pzt import server as sv
 
 KEYS = ("showSurvivalGuide", "showFirstTimeSearchTutorial", "showFirstAnimalZoneInfo")
-TEXTURES = {"texture2x": "false", "textureCompression": "true"}   # P27-4a
 
 
 def _client(tmp, debug=False):
@@ -44,27 +43,7 @@ def test_three_keys_false_other_lines_and_crlf_kept(tmp_path, monkeypatch, debug
     open(_opts(tmp_path), "wb").write(GAME)
     _prepare(_client(tmp_path, debug), monkeypatch)
     assert _read(tmp_path) == (b"showFirstAnimalZoneInfo=false\r\nshowFirstTimeSearchTutorial=false\r\n"
-                               b"showFirstTimeSneakTutorial=true\r\nshowSurvivalGuide=false\r\nzzz=1 \r\n"
-                               b"texture2x=false\r\ntextureCompression=true\r\n")
-
-
-@pytest.mark.parametrize("debug", [False, True])
-def test_the_texture_keys_are_written_and_an_existing_line_is_rewritten_not_duplicated(tmp_path, monkeypatch, debug):
-    # P27-4a: texture2x=true / textureCompression=false in the game's file become false / true in place
-    open(_opts(tmp_path), "wb").write(b"texture2x=true\r\nzzz=1\r\ntextureCompression=false\r\n")
-    _prepare(_client(tmp_path, debug), monkeypatch)
-    lines = _read(tmp_path).decode().split("\r\n")
-    assert lines[:3] == ["texture2x=false", "zzz=1", "textureCompression=true"]
-    for k, v in TEXTURES.items():
-        assert [ln for ln in lines if ln.startswith(k + "=")] == [f"{k}={v}"]
-
-
-def test_the_texture_keys_are_appended_to_a_file_without_them(tmp_path, monkeypatch):
-    open(_opts(tmp_path), "wb").write(b"a=1\r\n")
-    _prepare(_client(tmp_path), monkeypatch)
-    data = _read(tmp_path).decode()
-    for k, v in TEXTURES.items():
-        assert f"{k}={v}\r\n" in data
+                               b"showFirstTimeSneakTutorial=true\r\nshowSurvivalGuide=false\r\nzzz=1 \r\n")
 
 
 def test_missing_key_appended_with_file_ending(tmp_path, monkeypatch):

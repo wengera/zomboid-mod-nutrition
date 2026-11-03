@@ -258,8 +258,10 @@ class Client:
 
 
 HELPER_OPTIONS = {"showSurvivalGuide": "false", "showFirstTimeSearchTutorial": "false",
-                  "showFirstAnimalZoneInfo": "false",   # the game's helper dialogs, off on every client
-                  "texture2x": "false", "textureCompression": "true"}   # single-size, compressed textures cut the client's texture memory (P27-4a)
+                  "showFirstAnimalZoneInfo": "false"}   # the game's helper dialogs, off on every client
+# No texture key: ruling P27-4a (2026-11-03) wrote texture2x=false and textureCompression=true here for one boot, and
+# E19's first boot stalled in the client's load (LoadTileDefinitions 38 s against E18's 4.7 s, loadAnimalDefinitions
+# past 63 s against 50 ms) until the 120 s ready timeout; the compression costs the load, so the keys were withdrawn.
 
 
 HIDDEN_WINDOWS = ("charinfowindow", "charinfowindow.info", "charinfowindow.skills", "charinfowindow.health",
