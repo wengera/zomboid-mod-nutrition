@@ -471,7 +471,7 @@ def test_the_totals_reach_the_llm_record(tmp_path, monkeypatch):
 
 
 BASE_SENTENCE = (
-    "the base at `3280167c` (the planner: iteration 18 with its fix rounds P26-K2, P26-N2 and P26-J2 and Task 7d's P26-L1 and P26-L2) and `54489fe5` (the Lua's window action) carries PZA/1.7.1 (the hello reads "
+    "the base at `b7c60bbd` (the planner: iteration 18 with its fix rounds P26-K2, P26-N2, P26-J2 and P26-L2a and Task 7d's P26-L1 and P26-L2) and `54489fe5` (the Lua's window action) carries PZA/1.7.1 (the hello reads "
     "`mod` `1.7`) and survival iteration 18 (over iteration 17: a window way out needs an inside square that can be "
     "stood on, P26-I; the window step stall-read at WINDOW_STALL_S and an interrupted end sent once more, P26-J; the "
     "doorway stand ending crowd at STAND_CROWD_N standing zombies within DANGER_R, P26-K; a crowd end with nobody "

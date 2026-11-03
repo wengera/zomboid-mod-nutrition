@@ -451,7 +451,7 @@ def test_a_later_chain_session_holding_the_bat_spawns_none(tmp_path, monkeypatch
 
 # ================================================================ the copy: e_day_17.py's body, its own key
 BASE_SENTENCE = (
-    "the base at `3280167c` (the planner: iteration 18 with its fix rounds P26-K2, P26-N2 and P26-J2 and Task 7d's P26-L1 and P26-L2) and `54489fe5` (the Lua's window action) carries PZA/1.7.1 (the hello reads "
+    "the base at `b7c60bbd` (the planner: iteration 18 with its fix rounds P26-K2, P26-N2, P26-J2 and P26-L2a and Task 7d's P26-L1 and P26-L2) and `54489fe5` (the Lua's window action) carries PZA/1.7.1 (the hello reads "
     "`mod` `1.7`) and survival iteration 18 (over iteration 17: a window way out needs an inside square that can be "
     "stood on, P26-I; the window step stall-read at WINDOW_STALL_S and an interrupted end sent once more, P26-J; the "
     "doorway stand ending crowd at STAND_CROWD_N standing zombies within DANGER_R, P26-K; a crowd end with nobody "
@@ -486,7 +486,7 @@ def test_the_copy_differs_from_e_day_17_only_in_the_expected_lines():
     assert new_grade.startswith('GRADE_KEY = "grade_e15"') and 'return grade_e15(out, state_dir=out.get("state_dir"))' in new_grade
     assert "iteration 18 readings" in new_pass and "grade_e14" not in new_pass
     head = b[:b.index(mark)]
-    for c in ("e_day_17.py", "eighteenth", "PZA/1.7.1", "grade_e15", "3280167c", "54489fe5", "P26-I", "P26-J", "P26-K",
+    for c in ("e_day_17.py", "eighteenth", "PZA/1.7.1", "grade_e15", "b7c60bbd", "54489fe5", "P26-I", "P26-J", "P26-K",
               "P26-K2", "P26-M", "window_inner", "window_stall", "stand_crowd", "state.1.log", BASE_SENTENCE):
         assert c in head, c
     assert "6df43e92" not in head and "e_day_16" not in head
