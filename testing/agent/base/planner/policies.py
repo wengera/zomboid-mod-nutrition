@@ -283,6 +283,11 @@ MANY_TAIL_TICKS = 4       # consecutive ticks with at most one standing zombie w
                           # lines and 105 of F9's 169 one zombie or none stood within DANGER_R; four ticks (two seconds
                           # at the drivers' PLANNER_HZ 2) rule out one knock-back's or one frame's dip, a judgment
                           # beside CLOSING_TICKS' three
+SPENT_REDRESS_BT = 10.0   # a spent dressing on a part reading `bleeding` false is replaced only at a `bleedingTime` at
+                          # or under this (P27-D; the engine's raw wound-time units, DIRTY_RAG_MIN's): E18's neck read
+                          # bleeding false under its spent dressing at 15.462026596069336 and 13.89616870880127, and its
+                          # two re-dressings each took health (82.34173583984375 to 67.09330749511719 and
+                          # 62.200069427490234 to 54.371578216552734)
 
 
 def place_of(world):

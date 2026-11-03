@@ -19,7 +19,15 @@ Its choose, the first that answers (`why` names the `reason`, the `part`, the `i
    `unrippable`, a rip refused `worn`, `not cotton` or `needs tool`, `World.mark`: `Rip(itemId)`); a dirty rag held
    under the time rule falls through to the wash.
 2. `replace`: a bandaged part whose `bandageLife` reached 0 or that reads `bandageDirty`, with a clean bandage or rag
-   held: bandaged again with it (the Lua takes the old one off first).
+   held: bandaged again with it (the Lua takes the old one off first). Ruling P27-D (`spent_keep`, Survive's
+   `SPENT_KEEP`; E18, `e_day_18-20261102-224036`: the neck read bleeding false under its spent dressing at
+   bleedingTime 15.462026596069336 and 13.89616870880127, and its two re-dressings each took health, 82.34173583984375
+   to 67.09330749511719 and 62.200069427490234 to 54.371578216552734, the part bleeding from the frame after the old
+   dressing came off): only a part reading `bleeding` true or a `bleedingTime` at or under SPENT_REDRESS_BT (the
+   engine's raw wound-time units, DIRTY_RAG_MIN's) is replaced (`_redresses`; a part whose frame carries no
+   `bleedingTime` as before); the first spent part left is logged `spent_kept` {part, bleedingTime, dirty} on the
+   care line whenever the step would have sent before. Cost if wrong: a dirty dressing's infection odds (#4299) on a
+   part the engine would have re-bled.
 3. `wash`: a dirty rag held, no zombie within DISENGAGE_R (Survive sets `quiet` each tick), and a known water source
    (`World.water_sources`: the map's square `water` record with water in it, on the player's floor, not refused
    lately) within WASH_R: `Wash(itemId, x, y)`, the Lua walking next to it (a wash does not test the water's taint,
@@ -100,7 +108,7 @@ import math
 import re
 import time
 
-from agent.base.planner.policies import Policy, PREEMPTED, item_id_ok
+from agent.base.planner.policies import SPENT_REDRESS_BT, Policy, PREEMPTED, item_id_ok
 from agent.base.pza1 import Bandage, Drop, Rip, Unwear, Wash, Wear
 from agent.base.world import me_floor
 
@@ -235,6 +243,9 @@ class Care(Policy):
         self.wear_worn = True     # ruling P26-E: a wear rejected `worn` marks its item worn (Survive sets it each tick
                                   # from its `WEAR_WORN`); off, the item is held out for CARE_RETRY_MIN alone
         self.worn_marked = set()  # the ids a wear rejected `worn` marked worn (P26-E: the stock line's `skipped_worn`)
+        self.spent_keep = True    # ruling P27-D: a spent dressing on a part not bleeding is replaced only at a
+                                  # bleedingTime at or under SPENT_REDRESS_BT (Survive sets it each tick from its
+                                  # `SPENT_KEEP`); off, every spent dressing is replaced
 
     def sent(self, cmd, action):
         self.sends[cmd.itemId] = action
@@ -349,6 +360,12 @@ class Care(Policy):
         """The bandaged parts whose bandage is spent: `bandageLife` at or under 0, or `bandageDirty`."""
         return [p for p in self._parts() if p.get("bandaged") is True
                 and ((_num(p.get("bandageLife")) and p["bandageLife"] <= 0) or p.get("bandageDirty") is True)]
+
+    def _redresses(self, p):
+        """Ruling P27-D: spent part `p`'s dressing is replaced: `spent_keep` off, the part reading `bleeding` true, or
+        its `bleedingTime` at or under SPENT_REDRESS_BT (a frame carrying none: the rule before it)."""
+        bt = p.get("bleedingTime")
+        return not self.spent_keep or p.get("bleeding") is True or not _num(bt) or bt <= SPENT_REDRESS_BT
 
     def _rip_item(self):
         """The least held id that can be ripped, never one marked `unrippable` or `in_bag`, or held out. On a PZA/1.5.2
@@ -598,19 +615,28 @@ class Care(Policy):
             return cmd
         clean = items["bandage"] + items["rag"]
         spent = self._spent()
+        kept = None
         if spent and clean and w.can("bandage"):
-            p = spent[0]
-            self.why = {"reason": "spent", "part": p["i"], "item": clean[0],
-                        "kind": "bandage" if items["bandage"] else "rag", "life": p.get("bandageLife"),
-                        "dirty": p.get("bandageDirty")}
-            return Bandage(clean[0], part=p["i"])
+            take = [p for p in spent if self._redresses(p)]   # P27-D: a long bleed's spent dressing kept on
+            if take:
+                p = take[0]
+                self.why = {"reason": "spent", "part": p["i"], "item": clean[0],
+                            "kind": "bandage" if items["bandage"] else "rag", "life": p.get("bandageLife"),
+                            "dirty": p.get("bandageDirty")}
+                return Bandage(clean[0], part=p["i"])
+            kept = {"part": spent[0]["i"], "bleedingTime": spent[0].get("bleedingTime"),
+                    "dirty": spent[0].get("bandageDirty")}
+        cmd = None
         if items["dirty"] and self.quiet and w.can("wash"):
             src = w.water_sources(WASH_R)
             if src:
                 d, sq, rec = src[0]
                 self.why = {"reason": "dirty_rag", "item": items["dirty"][0], "source": [sq[0], sq[1]], "dist": d,
                             "tainted": rec.get("tainted")}
-                return Wash(items["dirty"][0], sq[0], sq[1])
-        self.why = {"bleeding": [p["i"] for p in bleeding], "spent": [p["i"] for p in spent],
-                    "held": {k: len(v) for k, v in items.items()}} if (bleeding or spent or any_rag) else {}
-        return None
+                cmd = Wash(items["dirty"][0], sq[0], sq[1])
+        if cmd is None:
+            self.why = {"bleeding": [p["i"] for p in bleeding], "spent": [p["i"] for p in spent],
+                        "held": {k: len(v) for k, v in items.items()}} if (bleeding or spent or any_rag) else {}
+        if kept is not None:
+            self.why["spent_kept"] = kept   # P27-D: the step would have sent before it
+        return cmd

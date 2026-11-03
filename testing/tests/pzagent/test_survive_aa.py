@@ -40,11 +40,11 @@ def sends(r):
 
 
 def test_the_iteration_19_switches_and_constants():
-    assert S.T9_SWITCHES == ("FLEE_FINISH", "MANY_TAIL", "HOLD_LONE", "HOLD_REST")
+    assert S.T9_SWITCHES == ("FLEE_FINISH", "MANY_TAIL", "HOLD_LONE", "HOLD_REST", "SPENT_KEEP")
     assert "T9_SWITCHES" in S.__all__
     assert all(getattr(S.Survive, name) is True for name in S.T9_SWITCHES)
     assert not set(S.T9_SWITCHES) & set(S.T8_SWITCHES + S.T7_SWITCHES + S.T6_SWITCHES)
-    assert (P.FINISH_CLEAR_R, P.MANY_TAIL_TICKS) == (3.0, 4)
+    assert (P.FINISH_CLEAR_R, P.MANY_TAIL_TICKS, P.SPENT_REDRESS_BT) == (3.0, 4, 10.0)
 
 
 # ================================================================ P27-A: the finish under a flee
@@ -326,3 +326,48 @@ def test_with_hold_rest_off_the_hold_walks(tmp_path):
     fr(r, [z(1, 108.0, has_target=False), IDLE2], endurance=HOLD_E)
     a = tick(r, sv)
     assert a.type == "steer" and a.args["gait"] == "walk" and "rest" not in threat_why(tmp_path)
+
+
+# ================================================================ P27-D: the spent dressing kept
+def neck(r, bt=NECK_BT, bleeding=False, items=((11, "Base.Bandage"),)):
+    r.frame()
+    for iid, full in items:
+        hold(r, iid, full)
+    care_frame(r, [part(9, bandaged=True, bandageLife=0.0, bandageDirty=True, bleeding=bleeding, bleedingTime=bt)])
+
+
+def test_e18_s_neck_under_its_spent_dressing_is_kept(tmp_path):
+    """E18's part 9 at its first re-dressing (GUIDE § 7: `bandaged` true, `bandageDirty` true, `bandageLife` 0, bleeding
+    false, bleedingTime 15.462026596069336; the re-dressing took the health from 82.34173583984375 to
+    67.09330749511719): no bandage, logged `spent_kept` {part 9, bleedingTime, dirty true}."""
+    r, sv = make(tmp_path)
+    neck(r)
+    tick(r, sv)
+    assert "bandage" not in sends(r)
+    assert care_why(tmp_path)["spent_kept"] == {"part": 9, "bleedingTime": NECK_BT, "dirty": True}
+
+
+@pytest.mark.parametrize("bt, bleeding", [(9.0, False), (NECK_BT, True), (P.SPENT_REDRESS_BT, False)])
+def test_a_spent_dressing_is_replaced_at_a_short_bleed_or_a_bleeding_part(tmp_path, bt, bleeding):
+    """bleedingTime 9.0 or at SPENT_REDRESS_BT, or the part bleeding under the dressing whatever the time: the clean
+    bandage (`reason` spent), no `spent_kept`."""
+    r, sv = make(tmp_path)
+    neck(r, bt, bleeding)
+    tick(r, sv)
+    w = care_why(tmp_path)
+    assert r.cmd() == ("bandage", {"itemId": 11, "part": 9}) and w["reason"] == "spent" and "spent_kept" not in w
+
+
+def test_the_replace_still_prefers_a_clean_bandage_to_a_rag(tmp_path):
+    r, sv = make(tmp_path)
+    neck(r, 9.0, items=((12, "Base.RippedSheets"), (13, "Base.Bandage")))
+    tick(r, sv)
+    assert r.cmd() == ("bandage", {"itemId": 13, "part": 9}) and care_why(tmp_path)["kind"] == "bandage"
+
+
+def test_with_spent_keep_off_the_long_bleed_is_redressed(tmp_path):
+    r, sv = make(tmp_path)
+    sv.SPENT_KEEP = False
+    neck(r)
+    tick(r, sv)
+    assert r.cmd() == ("bandage", {"itemId": 11, "part": 9})
