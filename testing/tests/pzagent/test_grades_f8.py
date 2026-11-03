@@ -25,6 +25,7 @@ TESTING = os.path.dirname(os.path.dirname(HERE))
 F3 = os.path.join(TESTING, "artifacts", "f_goals_4-20261030-114742")
 F9 = os.path.join(TESTING, "artifacts", "f_goals_10-20261102-231705")
 F10 = os.path.join(TESTING, "artifacts", "f_goals_11-20261103-075140")
+F11 = os.path.join(TESTING, "artifacts", "f_goals_12-20261103-144240")
 NEW = G16.NEW
 
 
@@ -149,6 +150,19 @@ def test_f_grade_8_on_f10_reproduces_the_committed_f_grade_txt_byte_for_byte():
     r = subprocess.run([sys.executable, script, p], capture_output=True, cwd=TESTING)
     assert r.returncode == 0
     want = open(os.path.join(F10, "f_grade.txt"), "rb").read().replace(b"\r\n", b"\n")
+    assert r.stdout.replace(b"\r\n", b"\n") == want
+
+
+def test_f_grade_8_on_f11_reproduces_the_committed_f_grade_txt_byte_for_byte():
+    """Ruling P26-Q: `f_grade_8.py` on the committed F11 artifact (the second LLM session graded through `grade_f8`)
+    reproduces its committed `f_grade.txt` byte for byte (CRLF folded)."""
+    p = os.path.join(F11, "f_goals_12.json")
+    if not os.path.isfile(p):
+        pytest.skip("%s is not checked out" % F11)
+    script = os.path.join(TESTING, "agent", "drivers", "f_grade_8.py")
+    r = subprocess.run([sys.executable, script, p], capture_output=True, cwd=TESTING)
+    assert r.returncode == 0
+    want = open(os.path.join(F11, "f_grade.txt"), "rb").read().replace(b"\r\n", b"\n")
     assert r.stdout.replace(b"\r\n", b"\n") == want
 
 
