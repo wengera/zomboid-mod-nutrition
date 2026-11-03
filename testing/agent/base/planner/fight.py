@@ -132,7 +132,7 @@ one table the gates and the other policies import).
   P27-N, a zombie at point blank is never dropped: one within POINT_BLANK_R, or the nearest listed on a frame reading
   it attacking (kept while within FIGHT_REACH), is left out by no mark (`_pin_free`, `blocked`; `pin.FightPin`); a
   marked one takes the pin (`_pin_first`) and is shoved, then swung at, on every tick that may send (`_pin_send`,
-  logged `pinned` {why}).
+  logged `pin` {why}, apart from the target flag `pinned`).
 """
 import math
 import time

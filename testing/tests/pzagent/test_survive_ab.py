@@ -32,7 +32,7 @@ and none sent. The fake mod over PZA/1.7.1; each test's geometry is simplified f
 - Fix 2 (P27-M, P27-N, P27-O): the bullets of P27-M, the attack within reach, sit under its section below; fix 3
   (review-t5-fix2's minors) has the last section.
 - Fix 2, P27-N, a zombie at point blank never dropped (`POINT_BLANK_PIN`): a marked zombie within POINT_BLANK_R, or the
-  one read attacking, is pinned, shoved, then swung at (logged `pinned` {why}); never one across a wall or a refused
+  one read attacking, is pinned, shoved, then swung at (logged `pin` {why}); never one across a wall or a refused
   edge.
 - Fix 2, P27-O, the `health` flee rides the bleed (`HEALTH_RIDE`): the bandage rides that flee's leg whatever the
   distance once FLEE_CARE_S have passed since it began with a part bleeding (logged `ride` {flee "health"}).
@@ -1108,30 +1108,30 @@ def marked_at(tmp_path, x, on=True, reach=True, **k):
 
 def test_e20_s_marked_zombie_at_point_blank_is_pinned_shoved_then_swung_at(tmp_path):
     """E20's lines 722-747 (26 lines, 12.603 s: the why `target` null, `unreachable` [3189], nothing sent, 3189 0.507 to
-    1.576 tiles off and biting): the marked zombie at 0.106 tiles is pinned, logged `pinned` {why "point_blank"}, and
+    1.576 tiles off and biting): the marked zombie at 0.106 tiles is pinned, logged `pin` {why "point_blank"}, and
     shoved (the knock-down's chance); on the next tick the swing."""
     r, sv, a = marked_at(tmp_path, BITER)
     w = threat_why(tmp_path)
-    assert (a.type, a.args) == ("shove", {"targetId": 1}) and w["pinned"] == {"why": "point_blank"}
+    assert (a.type, a.args) == ("shove", {"targetId": 1}) and w["pin"] == {"why": "point_blank"}
     assert w["target"] == 1 and w["unreachable"] == [1]
     r.answer({"state": "done", "result": {"knockdown": False, "attackStarted": True, "targetDead": False}})
     fr(r, [z(1, BITER), OTHER], weapon=E20_BAT, attackers=1, health=64.84652709960938)
     b = tick(r, sv)
-    assert (b.type, b.args) == ("attack", {"targetId": 1}) and threat_why(tmp_path)["pinned"] == {"why": "point_blank"}
+    assert (b.type, b.args) == ("attack", {"targetId": 1}) and threat_why(tmp_path)["pin"] == {"why": "point_blank"}
     assert threat_why(tmp_path)["attack"] == {"dist": pytest.approx(BITER - 100.0), "reach": 1.125}   # fix 3, minor 3
 
 
 def test_the_attacker_is_pinned_through_its_hit_reaction_and_shoved_on_the_next_allowed_tick(tmp_path):
     """A marked zombie 1.3 tiles off (beyond point blank) on a frame reading `me.attackers` 1 with the `Bite` reaction,
-    the nearest listed: pinned, logged `pinned` {why "attacker"}, nothing sent while the reaction lasts (the engine
+    the nearest listed: pinned, logged `pin` {why "attacker"}, nothing sent while the reaction lasts (the engine
     starts no swing in it); on the next frame, the reaction over, the shove, then the swing."""
     r, sv, a = marked_at(tmp_path, 101.3, hit_reaction="Bite")
     w = threat_why(tmp_path)
-    assert a is None and w["pinned"] == {"why": "attacker"} and w["hitReaction"] == "Bite"
+    assert a is None and w["pin"] == {"why": "attacker"} and w["hitReaction"] == "Bite"
     r.advance(0.5)
     fr(r, [z(1, 101.3), OTHER], weapon=E20_BAT, attackers=1)
     b = tick(r, sv)
-    assert (b.type, b.args) == ("shove", {"targetId": 1}) and threat_why(tmp_path)["pinned"] == {"why": "attacker"}
+    assert (b.type, b.args) == ("shove", {"targetId": 1}) and threat_why(tmp_path)["pin"] == {"why": "attacker"}
     r.answer({"state": "done", "result": {"knockdown": False, "attackStarted": True, "targetDead": False}})
     fr(r, [z(1, 101.3), OTHER], weapon=E20_BAT, attackers=0)
     assert tick(r, sv).args == {"targetId": 1} and r.acts.history[-1].type == "attack"
@@ -1139,7 +1139,7 @@ def test_the_attacker_is_pinned_through_its_hit_reaction_and_shoved_on_the_next_
 
 def test_a_marked_zombie_at_3_tiles_stays_left_out(tmp_path):
     """The mark stands beyond point blank with no attack read: zombie 1 marked 3 tiles off, 3188's stand-in idle at
-    7.7: the Fight's target is the other one, never 1, no `pinned` {why}."""
+    7.7: the Fight's target is the other one, never 1, no `pin` {why}."""
     r, sv, a = marked_at(tmp_path, 103.0)
     w = threat_why(tmp_path)
     assert w.get("target") != 1 and not isinstance(w.get("pinned"), dict)
@@ -1307,12 +1307,12 @@ def test_the_low_fight_s_full_swing_goes_only_within_the_reach_and_its_margin(tm
 def test_the_pin_swings_from_the_stance_only_within_the_reach_and_its_margin(tmp_path):
     """P27-M at the pin (`_pin_send`): a marked, latched attacker 1.6 tiles off (beyond SHOVE_R, so no shove, and beyond
     1.125 + ATTACK_MARGIN), the hit reaction over: no attack from the stance (the stance's `attack_held` answers); with
-    `ATTACK_REACH` off the pin swings at it, logged `pinned` {why "attacker"}."""
+    `ATTACK_REACH` off the pin swings at it, logged `pin` {why "attacker"}."""
     for reach in (True, False):
         d = tmp_path / str(reach)
         d.mkdir()
         r, sv, a = marked_at(d, 101.3, reach=reach, hit_reaction="Bite")
-        assert a is None and threat_why(d)["pinned"] == {"why": "attacker"}
+        assert a is None and threat_why(d)["pin"] == {"why": "attacker"}
         r.advance(0.5)
         fr(r, [z(1, 101.6), OTHER], weapon=E20_BAT, attackers=1)
         b = tick(r, sv)
@@ -1320,7 +1320,7 @@ def test_the_pin_swings_from_the_stance_only_within_the_reach_and_its_margin(tmp
         if reach:
             assert "attack" not in sends(r) and "attack_held" in w and w["target"] == 1
         else:
-            assert (b.type, b.args) == ("attack", {"targetId": 1}) and w["pinned"] == {"why": "attacker"}
+            assert (b.type, b.args) == ("attack", {"targetId": 1}) and w["pin"] == {"why": "attacker"}
 
 
 def test_the_pin_free_read_is_taken_once_per_tick_not_once_per_blocked_call(tmp_path, monkeypatch):

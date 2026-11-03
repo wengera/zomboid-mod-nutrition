@@ -104,7 +104,7 @@ class FightPin:
 
     def _pin_send(self, zid, z, d):
         """Ruling P27-N's send at the pinned target `zid` (`d` tiles off) when it is `_pin_marked` and standing:
-        `(command,)`, logged `pinned` {why}: in a hit reaction nothing (the engine starts no swing in one: the next
+        `(command,)`, logged `pin` {why}: in a hit reaction nothing (the engine starts no swing in one: the next
         allowed tick sends); else the shove (the knock-down's chance, #4373) within SHOVE_R where the last swing-like
         send was no shove, the build announcing it and no other standing zombie within STAND_MIN_R; else the swing
         (`Attack`), where it is allowed (`no_swing` false; within the reach and its margin in the stance, P27-M), or,
@@ -113,7 +113,7 @@ class FightPin:
         why = self._pin_marked().get(zid)
         if why is None or on_floor(z):
             return None
-        self.why = {"target": zid, "pinned": {"why": why}, "dist": d}
+        self.why = {"target": zid, "pin": {"why": why}, "dist": d}
         hit = hit_reaction(self.world)
         if hit is not None:
             self.why["hitReaction"] = hit
