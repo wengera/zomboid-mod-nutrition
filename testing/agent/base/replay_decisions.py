@@ -105,7 +105,12 @@ where a zombie across the fence row is listed beyond the hold radius (the `listi
 its decisions from line 441 (the `many` re-entry its listing no longer makes);
 `T10_SWITCHES` off reproduces the files before it (`test_replay_decisions.PRE_T10`, `pre_t10`). Ruling P27-K2 (the
 inside corner yields to the `health` flee's way out under FLEE_HEALTH_FLOOR) re-recorded E2 (base `d96f9318`), first
-moved at line 222, the corner on 12839 at 1.22 tiles left for the flee's walk to its exit.
+moved at line 222, the corner on 12839 at 1.22 tiles left for the flee's walk to its exit. Ruling P27-M (Plan 27
+Task 5 fix 2, the attack within the weapon's reach plus ATTACK_MARGIN) re-recorded the sixth alone (base `e4cf5b40`,
+the one golden whose hello announces the stance), first moved at line 246, the `attack` {dist, reach} why on the
+stance's attack at 15911 from 0.8922789090925147 tiles, and its decisions from line 320, the attack at 15937 from
+1.9071235531258082 tiles held for the stance's standing leg (`attack_held`), the attack going on line 321 from
+0.37365609000281447.
 
 `agreement(artifact_dir, replayed)` compares the replayed log with the record's own decision.log at every line where
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat

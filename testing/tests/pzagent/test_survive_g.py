@@ -95,8 +95,11 @@ def test_the_fights_first_action_is_aim_even_within_reach_then_the_swing_from_it
     """Ruling P24-N 1: the stance opens every fight: a target already within FIGHT_REACH (2.0, 1.6 tiles) at the
     fight's first choose is met with an `enter` leg, (0, 0) (the stance is not held: `in_stance`), and the next tick
     the swing goes from it (the running leg gives way within reach). Within CORNERED_R (1.5) of a character with no
-    fight running the corner rules stand (P24-G 1: a cornered Fight never stands): its swing goes at once."""
+    fight running the corner rules stand (P24-G 1: a cornered Fight never stands): its swing goes at once. Named change,
+    Plan 27 Task 5 fix 2: P27-M (`ATTACK_REACH`) off, the rule before it (the swing at 2.0 and 1.6 tiles, beyond the
+    rig's reach 1.2 and ATTACK_MARGIN: `test_survive_ab`)."""
     r, sv = make(tmp_path)
+    sv.ATTACK_REACH = False
     r.frame(zombies=[zd(1, x, 200.0)])
     tick(r, sv)
     a = stance_args(r)
@@ -272,8 +275,10 @@ def test_a_stand_with_no_progress_in_stand_max_s_closes_in_the_stance_never_a_wa
     """Ruling P24-N 1 (named change of the P24-G fallback to the approach and swing): a stand-off (the zombie standing
     6 tiles off, never coming) after STAND_MAX_S without its health falling is closed on in the stance: an `aim` with
     the unit vector toward it (`advance`), never a `walkTo` at a run; the stall clock (FIGHT_MAX_S, the stalled flee)
-    starts only then."""
+    starts only then. Named change, Plan 27 Task 5 fix 2: P27-M (`ATTACK_REACH`) off, the rule before it (the advance's
+    walk to the reach: `test_survive_ab`)."""
     r, sv = make(tmp_path)
+    sv.ATTACK_REACH = False
     r.frame(zombies=[zd(1, 106.0, 200.0, has_target=False)])
     tick(r, sv)
     assert r.cmd()[0] == "aim"
@@ -319,8 +324,10 @@ def test_the_advance_with_its_line_blocked_walks_round_the_wall_at_a_walk(tmp_pa
 
 def test_a_falling_target_health_restarts_the_stand_clock_and_ends_the_advance(tmp_path, unsought):
     """Named change (P24-N): the clock restarts on a hit; at STAND_MAX_S without one the advance (an aim toward,
-    never a walk); a hit then ends the advance and the stand begins again."""
+    never a walk); a hit then ends the advance and the stand begins again. Named change, Plan 27 Task 5 fix 2: P27-M
+    (`ATTACK_REACH`) off, the rule before it (the advance's walk to the reach)."""
     r, sv = make(tmp_path)
+    sv.ATTACK_REACH = False
     r.frame(zombies=[zd(1, 104.0, 200.0, has_target=False)])
     tick(r, sv)
     stand_legs(r, sv, 8)                                                    # 16 s
@@ -1932,10 +1939,13 @@ def test_an_enter_leg_whose_target_is_knocked_out_of_reach_gives_way_to_the_back
 
 def test_the_advance_s_toward_leg_holds_until_reach(tmp_path):
     """Only the advance's `toward` leg is held whatever the distance reads, until its target is within reach: even
-    once the advance ended (a hit restarts the stand) and the distance calls for a backpedal."""
+    once the advance ended (a hit restarts the stand) and the distance calls for a backpedal. Named change, Plan 27 Task
+    5 fix 2: P27-M (`ATTACK_REACH`) off, the rule before it (the advance's walk to the reach replaces the `toward`
+    leg)."""
     r = Rig(tmp_path)
     r.frame(zombies=[zd(1, 106.0, 200.0, has_target=False)])
     f = stance_fight(r)
+    f.rules = f.rules - {"attack_reach"}
     f.observe()
     f.advance = True
     leg = f.step()
@@ -2192,8 +2202,10 @@ def test_a_target_read_dead_is_unpinned_and_skipped_for_unreachable_s_logged_dea
     """The controller's ruling on concern 6 (F1's line 254 swung at 15911 on its kill tick, the zombie still
     listed): an attack ends done with `targetDead` on zombie 1 at 1.6 tiles, and the next frame still lists 1 at 1.6
     and 2 at 4.0: the next command is no `attack 1` but a stance leg on 2; the why logs `dead` [1], never
-    `unreachable`; the skip is time-bounded (UNREACHABLE_S), the World's `killed` the only permanent record."""
+    `unreachable`; the skip is time-bounded (UNREACHABLE_S), the World's `killed` the only permanent record. Named
+    change, Plan 27 Task 5 fix 2: P27-M (`ATTACK_REACH`) off, the rule before it (the attack at 1.6 tiles)."""
     r, sv = make(tmp_path)
+    sv.ATTACK_REACH = False
     r.frame(zombies=[zd(1, 101.6, 200.0)])
     tick(r, sv)
     assert threat_why(tmp_path)["leg"] == "enter"

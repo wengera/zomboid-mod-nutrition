@@ -208,8 +208,10 @@ def test_with_corner_break_off_the_missed_shove_is_shoved_again(tmp_path):
 # ================================================================ P25-B: the stomp before a running attack
 def attack_running(tmp_path, zs, caps=None):
     """E11's third target (#4405): zombie 1 standing 1.74 tiles off; the stance's enter leg, then the attack, accepted
-    and running (the Lua walks in to the bat's reach)."""
+    and running (the Lua walks in to the bat's reach). Named change, Plan 27 Task 5 fix 2: P27-M (`ATTACK_REACH`) off,
+    the rule before it (the attack at 1.74 tiles, beyond the rig's reach 1.2 and ATTACK_MARGIN)."""
     r, sv = make(tmp_path, caps=caps)
+    sv.ATTACK_REACH = False
     r.frame(zombies=zs)
     a = tick(r, sv)
     if a.type == "aim":

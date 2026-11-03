@@ -37,7 +37,7 @@ from agent.base.planner import view as V
 from agent.base.planner.goals import ExploreToward, GoalRunner, LootBuilding, Rest, ScriptedSource
 
 from .test_goals import Src
-from .test_policies import Rig, square
+from .test_policies import BAT, Rig, square
 from .test_survive import last, make, threat_why, tick
 from .test_survive_q import GROUP3, fr, z
 
@@ -901,10 +901,10 @@ def test_the_care_carries_stock_early_and_the_yield_reads_it_there(tmp_path):
 def test_the_iteration_20_switches_and_constants():
     """`survive.T10_SWITCHES`, each on by default (P27-L's withdrawal is `WOUNDED_SWING`'s default, in T8_SWITCHES),
     the Fight's rules they hand down and policies.py's three new constants (the controller's numbers) and the leave's
-    distance."""
+    distance. Named change, Plan 27 Task 5 fix 2: the tuple ends with fix 2's switches (P27-M's ATTACK_REACH)."""
     from agent.base.planner import fight as F
     assert S.T10_SWITCHES == ("STUCK_LEAVE", "FLOOR_FINISH", "FALLEN_SEEK", "LISTING_FALLEN", "SHOVE_CLOSE",
-                              "STOCK_EARLY", "LOW_EXIT", "REPLACE_QUIET")
+                              "STOCK_EARLY", "LOW_EXIT", "REPLACE_QUIET", "ATTACK_REACH")
     assert "T10_SWITCHES" in S.__all__ and all(getattr(S.Survive, name) is True for name in S.T10_SWITCHES)
     assert not set(S.T10_SWITCHES) & set(S.T9_SWITCHES + S.T8_SWITCHES + S.T7_SWITCHES)
     assert {"floor_finish", "fallen_seek", "shove_close", "low_exit"} <= set(F.FIGHT_RULES)
@@ -928,3 +928,124 @@ def test_a_switch_turned_off_mid_count_sends_no_walk(tmp_path):
     sv2.SHOVE_CLOSE = False
     held_off(r2, sv2)
     assert "walkTo" not in sends(r2) and "shove_close" not in threat_why(tmp_path / "close")
+
+
+# ================================================================ P27-M: the attack within reach (fix 2, E20)
+E20_BAT = dict(BAT, reach=1.125)   # E20's frames: the bat's `weapon.reach` 1.125 (the Lua's K.reachOf, 1.25 x 0.9)
+E20_AT = 1.8161174585612616        # E20's line 711: a190 sent at 3189 1.8161174585612616 tiles off (GUIDE § 3)
+
+
+def swing_r():
+    return E20_BAT["reach"] + P.ATTACK_MARGIN
+
+
+def accept(r, a):
+    r.fake.act(a.aid, "accepted", a.type)
+    r.pump()
+    r.advance(0.5)
+
+
+def stance_at(tmp_path, x, chases=True, on=True):
+    """The standing fight at zombie 1 `x - 100` tiles east (chasing, or idle), E20's bat held: the first tick's send
+    (the stance's `enter` leg within FIGHT_REACH, or the advance's walk at an idle one), accepted."""
+    r, sv = make(tmp_path)
+    sv.ATTACK_REACH = on
+    fr(r, [z(1, x, has_target=chases)], weapon=E20_BAT)
+    a = tick(r, sv)
+    accept(r, a)
+    return r, sv, a
+
+
+def test_e20_s_line_711_chaser_beyond_the_reach_and_its_margin_takes_no_attack_the_stance_standing(tmp_path):
+    """E20's line 711 (a190 sent at 1.8161174585612616 tiles, the bat's reach 1.125: the Lua's attack ran 1.76 tiles
+    into 3189, which bit): a chaser at that distance, in the stance (its `enter` leg running): no attack, the standing
+    leg kept (nothing sent), logged `attack_held` {target, dist, reach}; the stance faces it while it comes."""
+    r, sv, a = stance_at(tmp_path, 100.0 + E20_AT)
+    assert (a.type, a.args["vx"], a.args["vy"], a.args["targetId"]) == ("aim", 0.0, 0.0, 1)
+    fr(r, [z(1, 100.0 + E20_AT)], weapon=E20_BAT)
+    assert tick(r, sv) is None
+    w = threat_why(tmp_path)
+    assert w["attack_held"] == {"target": 1, "dist": pytest.approx(E20_AT), "reach": 1.125}
+    assert "attack" not in sends(r)
+    r.fake.act(a.aid, "done", "aim", result={})
+    r.pump()
+    r.advance(0.5)
+    fr(r, [z(1, 100.0 + E20_AT)], weapon=E20_BAT)
+    b = tick(r, sv)
+    assert (b.type, b.args["vx"], b.args["vy"]) == ("aim", 0.0, 0.0) and "attack" not in sends(r)
+
+
+def test_within_the_reach_and_its_margin_the_attack_goes_from_the_stance(tmp_path):
+    """The same chaser come on to 1.4 tiles (within 1.125 + ATTACK_MARGIN; the stance taken at 1.816, beyond
+    CORNERED_R, so no corner): the attack from the stance, logged `attack` {dist, reach}."""
+    r, sv, a = stance_at(tmp_path, 100.0 + E20_AT)
+    fr(r, [z(1, 101.4)], weapon=E20_BAT)
+    b = tick(r, sv)
+    assert (b.type, b.args) == ("attack", {"targetId": 1})
+    assert threat_why(tmp_path)["attack"] == {"dist": pytest.approx(1.4), "reach": 1.125}
+
+
+def test_with_attack_reach_off_the_chaser_at_1_816_is_swung_at(tmp_path):
+    """`test_e20_s_line_711_...`'s geometry with `ATTACK_REACH` off: the attack from the stance at 1.816 tiles, as
+    a190 went."""
+    r, sv, a = stance_at(tmp_path, 100.0 + E20_AT, on=False)
+    fr(r, [z(1, 100.0 + E20_AT)], weapon=E20_BAT)
+    b = tick(r, sv)
+    assert b.type == "attack" and "attack_held" not in threat_why(tmp_path)
+
+
+def test_e20_s_advance_on_the_idle_zombie_walks_to_the_reach_and_its_margin_then_stands(tmp_path):
+    """E20's fight 12 (3189 idle on every frame before the attack, the advance set at KEEP_R): the advance at the
+    idle zombie 2.4 tiles off and again at 5 tiles is a walk at a walk to the point on the line WALK_DONE_R short of
+    reach + ATTACK_MARGIN from it (the Lua's walk ends `done` within WALK_DONE_R of its target: so at 1.475 tiles),
+    never an attack whose own approach would run; at 1.4 tiles the walk gives way to the stance's standing leg, and
+    the attack follows from it."""
+    r, sv, a = stance_at(tmp_path, 102.4, chases=False)
+    assert sv.fight.advance is True and (a.type, a.args["gait"]) == ("walkTo", "walk")
+    assert a.args["y"] == pytest.approx(200.0) and 102.4 - a.args["x"] + P.WALK_DONE_R == pytest.approx(swing_r())
+    assert threat_why(tmp_path)["reach_walk"] == {"target": 1, "dist": pytest.approx(2.4), "to": swing_r()}
+    r.fake.act(a.aid, "done", "walkTo", result={"d": 1.0})
+    r.pump()
+    fr(r, [z(1, 105.0, has_target=False)], weapon=E20_BAT)
+    b = tick(r, sv)
+    assert (b.type, b.args["gait"]) == ("walkTo", "walk") and "attack" not in sends(r)
+    assert 105.0 - b.args["x"] + P.WALK_DONE_R == pytest.approx(swing_r())
+    accept(r, b)
+    fr(r, [z(1, 105.0, has_target=False)], x=102.0, weapon=E20_BAT)
+    assert tick(r, sv) is None   # the walk holds beyond the reach and its margin
+    fr(r, [z(1, 105.0, has_target=False)], x=103.6, weapon=E20_BAT)
+    c = tick(r, sv)
+    assert (c.type, c.args["vx"], c.args["vy"], c.args["targetId"]) == ("aim", 0.0, 0.0, 1)
+    accept(r, c)
+    fr(r, [z(1, 105.0, has_target=False)], x=103.6, weapon=E20_BAT)
+    assert tick(r, sv).type == "attack"
+
+
+def test_the_idle_zombie_at_1_816_in_the_advance_takes_the_walk_not_the_attack(tmp_path):
+    """E20's own case (3189 idle at line 711's 1.8161174585612616 tiles, the advance on): the walk to the reach, no
+    attack; with `ATTACK_REACH` off the advance's `toward` leg, then the attack from it."""
+    r, sv, a = stance_at(tmp_path, 100.0 + E20_AT, chases=False)
+    assert (a.type, a.args["gait"]) == ("walkTo", "walk") and "attack" not in sends(r)
+    (tmp_path / "off").mkdir()
+    r2, sv2, a2 = stance_at(tmp_path / "off", 100.0 + E20_AT, chases=False, on=False)
+    assert a2.type == "aim"
+    fr(r2, [z(1, 100.0 + E20_AT, has_target=False)], weapon=E20_BAT)
+    assert tick(r2, sv2).type == "attack"
+
+
+def test_a_fallen_zombie_at_1_9_tiles_still_takes_the_floor_swing(tmp_path):
+    """P27-G's floor swing keeps FIGHT_REACH: the lone zombie fallen 1.9 tiles off (beyond 1.125 + ATTACK_MARGIN),
+    E20's bat held: the attack, logged `floor_finish`."""
+    r, sv = make(tmp_path)
+    fr(r, [fallen(101.9)], weapon=E20_BAT)
+    a = tick(r, sv)
+    assert (a.type, a.args) == ("attack", {"targetId": 1}) and "floor_finish" in threat_why(tmp_path)
+
+
+def test_the_fix_2_switches_and_constants():
+    """Iteration 20's fix 2: its switches in `T10_SWITCHES`, on by default, the Fight's rules they hand down, and its
+    constants (ATTACK_MARGIN the controller's number; WALK_DONE_R the Lua walk's K.DONE_R)."""
+    from agent.base.planner import fight as F
+    assert S.T10_SWITCHES[-1:] == ("ATTACK_REACH",) and S.Survive.ATTACK_REACH is True
+    assert "attack_reach" in F.FIGHT_RULES
+    assert (P.ATTACK_MARGIN, P.WALK_DONE_R) == (0.35, 1.0)

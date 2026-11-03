@@ -306,6 +306,13 @@ SHOVE_CLOSE_TICKS = 6     # consecutive ticks a shove-only Fight's lone chaser h
                           # at 2.815809041061751, then 3.1712611313783534 to 3.393632390072648 tiles for twenty lines
                           # while five aim legs went; three seconds at the drivers' PLANNER_HZ 2, past a stance leg's
                           # AIM_LEG_S, the controller's number
+# survival iteration 20, fix 2 (Plan 27 Task 5 fix 2, rulings P27-M to P27-O; E20 `e_day_20-20261103-121340`)
+ATTACK_MARGIN = 0.35      # tiles past the frame's `weapon.reach` within which the standing fight's attack goes at a
+                          # standing zombie (P27-M): E20's a190 went at 1.8161174585612616 tiles, 0.6911174585612616
+                          # beyond the bat's reach 1.125, and the Lua's attack ran the character 1.762922801715824 tiles
+                          # into zombie 3189, which bit 1.799 s after the line's frame; the controller's number
+WALK_DONE_R = 1.0         # tiles: the Lua's walkTo ends `done` within this of its target (PZAgent_Skills.lua K.DONE_R),
+                          # so the advance's walk to the reach (P27-M) targets the point this much nearer the zombie
 
 
 def place_of(world):

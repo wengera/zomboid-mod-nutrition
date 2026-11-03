@@ -843,9 +843,12 @@ def test_the_advance_walk_round_a_wall_holds_for_its_own_target_until_reach(tmp_
 
 
 def test_the_advance_aim_leg_gives_way_to_a_zombie_inside_keep_r(tmp_path):
+    """Named change, Plan 27 Task 5 fix 2: P27-M (`ATTACK_REACH`) off, the rule before it (the advance's walk to the
+    reach replaces the `toward` leg: `test_survive_ab`)."""
     r = Rig(tmp_path)
     r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 106.5, 200.5)])
     f = stance_fight(r, sought={1})
+    f.rules = f.rules - {"attack_reach"}
     f._stand, f.advance = (1, r.clock(), 1.0), True
     cmd = f.choose()
     assert cmd.TYPE == "aim" and f.why["leg"] == "toward"
@@ -1380,11 +1383,13 @@ def test_an_idle_target_sought_to_keep_r_is_advanced_on_at_once(tmp_path, chases
     """The review's minor 10 (a non-chasing target sought to 2.5 tiles: back, then stand, until STAND_MAX_S from the
     seek's start runs the advance, a 10 to 20 s dither in front of an idle zombie): a sought target inside KEEP_R
     that reads no target of its own takes the advance at once (`toward` to reach); a chasing one is backpedalled
-    from, iteration 7's stance."""
+    from, iteration 7's stance. Named change, Plan 27 Task 5 fix 2: P27-M (`ATTACK_REACH`) off, the rule before it (the
+    advance at the idle one is the walk to the reach: `test_survive_ab`)."""
     r = Rig(tmp_path)
     r.scan(grid(90, 120, 190, 212))
     r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 105.5, 200.5, has_target=chases)])
     f = stance_fight(r)
+    f.rules = f.rules - {"attack_reach"}
     f.observe()
     cmd = f.choose()
     assert cmd.TYPE == "aim" and f.why["leg"] == "seek"

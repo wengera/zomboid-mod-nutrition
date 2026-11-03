@@ -104,13 +104,16 @@ class FightShove:
         swing), no hold read (`spent`) nor the arms' pain at STRAIN_HARD (`arms_hurt`: the swing is the full one), the
         target standing within FIGHT_REACH with SHOVE_FAIL_N or more missed shoves at it on record (`_missed_n`, P25-T's
         count) and no other zombie within DANGER_R (`_alone`). `no_swing` reads it (the swing's exception, so the
-        wounded backpedal gives way to it within reach), and so does `_ride_waits` (a riding bandage still holds it)."""
+        wounded backpedal gives way to it within reach), and so does `_ride_waits` (a riding bandage still holds it).
+        Ruling P27-M: in the stance the swing's distance is the weapon's reach plus ATTACK_MARGIN (`reach_r`)."""
         zid = self.target if zid is None else zid
         z = self.world.zombies.get(zid) if zid is not None else None
         if ("low_swing" not in self.rules or self.shove_only != "low" or self.spent or arms_hurt(self.world)
                 or z is None or z.get("x") is None or z.get("y") is None or on_floor(z)):
             return False
-        return zdist(self.world, z) <= FIGHT_REACH and self._missed_n(zid) >= SHOVE_FAIL_N and self._alone(zid)
+        d = zdist(self.world, z)
+        r = self.reach_r() if self.stance_at(d) else None
+        return d <= (FIGHT_REACH if r is None else r) and self._missed_n(zid) >= SHOVE_FAIL_N and self._alone(zid)
 
     def _low_swing(self, zid):
         """Ruling P27-E's send (`_low_swing_due`): one `Attack` at `zid` from where the player stands, logged

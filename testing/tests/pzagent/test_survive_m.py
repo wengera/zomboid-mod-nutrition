@@ -98,9 +98,12 @@ def stance_in(tmp_path, zs, arm=None):
 @pytest.mark.parametrize("pin_x,second_x,shoved", [(101.2, 102.0, 1), (101.8, 101.0, 2)])
 def test_a_second_zombie_inside_keep_r_with_the_pin_in_reach_shoves_the_nearer(tmp_path, pin_x, second_x, shoved):
     """P24-AH: the stance held on pin 1 within FIGHT_REACH, zombie 2 inside KEEP_R: the nearer of the two is shoved
-    before the next swing (`why` `shove` "second"); after the shove the swing goes, then the shove again."""
+    before the next swing (`why` `shove` "second"); after the shove the swing goes, then the shove again. Named change,
+    Plan 27 Task 5 fix 2: P27-M (`ATTACK_REACH`) off, the rule before it (the pin at 1.8 tiles, beyond the rig's reach
+    1.2 and ATTACK_MARGIN)."""
     zs = [z(1, pin_x), z(2, second_x)]
     r, f = stance_in(tmp_path, zs)
+    f.rules = f.rules - {"attack_reach"}
     a = f.step()
     assert (a.type, a.args) == ("shove", {"targetId": shoved}) and f.why["shove"] == "second"
     r.answer({"state": "done", "result": {"knockdown": False, "attackStarted": True, "targetDead": False}})

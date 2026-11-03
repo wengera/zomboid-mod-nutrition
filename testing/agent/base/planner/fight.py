@@ -124,21 +124,27 @@ one table the gates and the other policies import).
   shove-and-stomp Fight whose lone chaser holds beyond point blank for SHOVE_CLOSE_TICKS walks to it, or with its line
   blocked leaves it (`shove.FightShove._shove_close`); P27-K2, the low fight leaves its lone target after SHOVE_FAIL_N
   missed shoves where its full swing is barred or has gone (`shove.FightShove._low_exit`).
+  Its fix 2 (Plan 27 Task 5 fix 2; E20): P27-M, the attack within reach: the standing fight's attack at a standing
+  zombie goes only within the frame's `weapon.reach` plus ATTACK_MARGIN (`reach_r`, logged `attack` {dist, reach});
+  beyond it within FIGHT_REACH the stance stands facing it and lets it come (`_attack_hold`, logged `attack_held`
+  {target, dist, reach}), and the advance walks at a walk to the reach (`_reach_walk`, the stance walk `reach`, logged
+  `reach_walk`) where the `toward` legs went; the finish of a fallen zombie keeps FIGHT_REACH.
 """
 import math
 import time
 
 from agent.base.planner.edges import FightEdge
 from agent.base.planner.finish import FightFinish
-from agent.base.planner.policies import (AIM_HOLD_S, AIM_LEG_S, AIM_R, CORNERED_R, DANGER_R, DISENGAGE_R,
-                                         DRAG_DOWN_N, EDGE_HOLD_TICKS, FENCE_BACK_R, FIGHT_MAX_S, FIGHT_REACH,
-                                         FINISH_R, KEEP_MARGIN, KEEP_R, KNOCK_READ_S, MISSES_TO_APPROACH, NO_TARGET,
-                                         POINT_BLANK_R, PREEMPTED, PULL_R, Policy, REPIN_MARGIN, REPOSITION_MIN,
-                                         REPOSITION_R, SEEK_SKIP_S, SEEK_SWITCH_R, STALL_SWINGS, STAND_MAX_S,
-                                         STEER_PROBE, STEER_TURNS, STOOD_STOMPS, STUCK_REASONS, SWING_SKIP_S,
-                                         SWING_TYPES, UNREACHABLE_S, _rotate, arm_pain, arms_hurt, away_vector,
-                                         blocked, centre, chasing, clear_heading, hit_reaction, in_reach, line_to,
-                                         on_floor, seek_allowed, stance_leg_kind, target_id_ok, zdist)
+from agent.base.planner.policies import (AIM_HOLD_S, AIM_LEG_S, AIM_R, ATTACK_MARGIN, CORNERED_R, DANGER_R,
+                                         DISENGAGE_R, DRAG_DOWN_N, EDGE_HOLD_TICKS, FENCE_BACK_R, FIGHT_MAX_S,
+                                         FIGHT_REACH, FINISH_R, KEEP_MARGIN, KEEP_R, KNOCK_READ_S, MISSES_TO_APPROACH,
+                                         NO_TARGET, POINT_BLANK_R, PREEMPTED, PULL_R, Policy, REPIN_MARGIN,
+                                         REPOSITION_MIN, REPOSITION_R, SEEK_SKIP_S, SEEK_SWITCH_R, STALL_SWINGS,
+                                         STAND_MAX_S, STEER_PROBE, STEER_TURNS, STOOD_STOMPS, STUCK_REASONS,
+                                         SWING_SKIP_S, SWING_TYPES, UNREACHABLE_S, WALK_DONE_R, _rotate, arm_pain,
+                                         arms_hurt, away_vector, blocked, centre, chasing, clear_heading, hit_reaction,
+                                         in_reach, line_to, on_floor, seek_allowed, stance_leg_kind, target_id_ok,
+                                         zdist)
 from agent.base.planner.pull import FightPull
 from agent.base.planner.shove import FightShove
 from agent.base.pza1 import Aim, Attack, WalkTo
@@ -148,9 +154,10 @@ __all__ = ["Fight", "FIGHT_RULES"]
 
 FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finish_far", "shove_break",
                "shove_break_run", "blocked_edge", "wounded_swing", "low_swing",
-               "floor_finish", "fallen_seek", "shove_close", "low_exit")   # survival iterations 13 to 20's Fight
-                     # rules (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H,
-                     # P27-J, P27-K2), each on in `rules` unless Survive's switch for it is off
+               "floor_finish", "fallen_seek", "shove_close", "low_exit", "attack_reach")   # survival iterations 13
+                     # to 20's Fight rules (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E;
+                     # P27-G, P27-H, P27-J, P27-K2; fix 2's P27-M), each on in `rules` unless Survive's switch for it
+                     # is off
 
 
 class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
@@ -447,8 +454,12 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         t = self._target(pin=False)
         if t is None or t[0] != zid:
             return True
-        if (self._advance_switch(t) if kind == "advance" else self._seek_switch(t)) is not None:
+        if (self._advance_switch(t) if kind in ("advance", "reach") else self._seek_switch(t)) is not None:
             return True   # fix 2: the advance's walk gives way to a closing zombie as the seek's does
+        if kind == "reach":   # P27-M: the advance's walk ends within the reach and its margin, or as the target comes
+            r = self.reach_r()
+            return (r is None or t[2] <= r or not self.advance or not self.stance_at(t[2])
+                    or (t[2] <= FIGHT_REACH and chasing(t[1])))
         if kind == "far":
             return t[2] <= AIM_R
         if kind == "fallen":   # P27-H: the walk to a fallen target ends within FINISH_R (the finish's) or as it stands
@@ -519,6 +530,60 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         if a.type != "attack" or not self._attack_held:
             return False
         return not self.actions.done(a) or (a.ended_wall is not None and self.clock() - a.ended_wall < AIM_HOLD_S)
+
+    def reach_r(self):
+        """Ruling P27-M: the tiles within which the standing fight's attack goes at a standing zombie, the frame's
+        `weapon.reach` (the Lua's own `K.reachOf`, inside which its attack swings at once) plus ATTACK_MARGIN, with the
+        `attack_reach` rule on and a positive reach read; else None (the attack within FIGHT_REACH, the rule before
+        it)."""
+        r = (self.world.weapon or {}).get("reach") if "attack_reach" in self.rules else None
+        ok = isinstance(r, (int, float)) and not isinstance(r, bool) and r > 0.0
+        return r + ATTACK_MARGIN if ok else None
+
+    def _reach_walk_due(self, z, d):
+        """Ruling P27-M: the advance (`advance`, P24-N and the seek's fix) closes on its standing target `z`, `d` tiles
+        off beyond `reach_r`, by the walk to the reach (`_reach_walk`): beyond FIGHT_REACH whatever it reads, within it
+        only while the target reads no target of its own (a chaser within FIGHT_REACH is let come, the stance
+        standing)."""
+        r = self.reach_r()
+        return (r is not None and self.advance and self.stance_at(d) and d > r and not on_floor(z)
+                and (d > FIGHT_REACH or not chasing(z)))
+
+    def _reach_walk(self, zid, z, d):
+        """Ruling P27-M (E20, `e_day_20-20261103-121340`: the advance's `toward` leg held to FIGHT_REACH at the idle
+        3189 and the attack a190 went at 1.8161174585612616 tiles, its own approach running the character 1.76 tiles
+        into the zombie, which bit): the advance's walk at a walk to the point on the line to the target WALK_DONE_R
+        short of `reach_r` from it (the Lua's walk ends `done` within WALK_DONE_R of its target, so it ends at
+        `reach_r`; a walk to the point at `reach_r` would end WALK_DONE_R short and, re-sent from there, end on its
+        accept tick unmoved, P23-AJ 5), the stance walk `reach` (`_walk_gives_way`: it gives way within `reach_r`, or
+        as the target comes within FIGHT_REACH), the stance's standing leg then, and the attack from it. Logged
+        `reach_walk` {target, dist, to}."""
+        r = self.reach_r()
+        mx, my = me_xy(self.world)
+        k = max(r - WALK_DONE_R, 0.0) / d
+        self.why.update({"stance": True, "leg": "walk", "advance": True, "stand_s": self.stand_s(),
+                         "reach_walk": {"target": zid, "dist": d, "to": r}})
+        self._seek_send, self._walk_kind = False, "reach"
+        return WalkTo(z["x"] + (mx - z["x"]) * k, z["y"] + (my - z["y"]) * k, "walk")
+
+    def _attack_hold(self, zid, z, d):
+        """Ruling P27-M at the swing: the standing fight's target `zid` standing `d` tiles off beyond `reach_r` (within
+        FIGHT_REACH: the Lua's attack would approach it at a run, its own skill's walk) takes no attack, logged
+        `attack_held` {target, dist, reach}: the advance's walk to the reach where it is due (`_reach_walk_due`), else
+        the stance holding its ground facing the target and letting it come, its running standing leg kept (`(None,)`)
+        or a new one sent (`enter`, (0, 0)). None where the attack goes (within `reach_r`, the rule off, no reach read,
+        no stance)."""
+        r = self.reach_r()
+        if r is None or not self.stance_at(d) or d <= r or on_floor(z):
+            return None
+        self.why["attack_held"] = {"target": zid, "dist": d, "reach": self.world.weapon["reach"]}
+        if self._reach_walk_due(z, d):
+            return (self._reach_walk(zid, z, d),)
+        a = self.last
+        if (a is not None and a.type == "aim" and not self.actions.done(a) and self.in_stance()
+                and a.args.get("targetId") == zid and a.args.get("vx") == 0.0 and a.args.get("vy") == 0.0):
+            return (None,)
+        return (self._stance_leg(zid, z, d, kind="enter"),)
 
     def _observe_kill(self):
         """Ruling P24-Q (zombies killed, the iteration's metric): the Fight's last attack or aim that ended with
@@ -862,9 +927,14 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
             return shove
         if self.no_swing():   # P24-AP, R2: never the swing at STRAIN_HARD or under a hold; the backpedal between
             return self._wounded_leg(zid, z, d)
+        held = self._attack_hold(zid, z, d)   # P27-M: no attack beyond the weapon's reach and ATTACK_MARGIN
+        if held is not None:
+            return held[0]
         self._held_before = self.stance_at(d) and self.in_stance()
         if self.stance_at(d):
             self.why["stance"] = True   # the swing from the stance (Task 9's hand-over keeps it)
+            if self.reach_r() is not None:
+                self.why["attack"] = {"dist": d, "reach": self.world.weapon["reach"]}   # P27-M
         return Attack(zid)   # nearest_zombie yields int ids only (M7)
 
     def _stance_leg(self, zid, z, d, kind=None):
@@ -884,7 +954,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
           `clear_heading` passes, else standing; the chaser faced while it follows, the group left behind;
         - `stand` (0, 0): the target beyond KEEP_R, faced while it comes.
         `kind` names the leg instead of the target's distance (P24-AP's wounded backpedal within reach)."""
-        t = (zid, z, d)
+        t, named = (zid, z, d), kind is not None
         v, kind = None, kind or stance_leg_kind(d, self.advance, self.seeking(t), self.pulling(t))
         if kind in ("toward", "seek"):
             mx, my = me_xy(self.world)
@@ -894,7 +964,11 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
                 self.why["advance" if kind == "toward" else "seek"] = True
                 self._seek_send, self._walk_kind = kind == "seek", "seek" if kind == "seek" else "advance"   # fix 1
                 return WalkTo(*centre((z["x"], z["y"])), "walk")
+            if kind == "toward" and self._reach_walk_due(z, d):
+                return self._reach_walk(zid, z, d)   # P27-M: the advance walks to the reach, never `toward` legs
             v = u
+        elif kind == "enter" and not named and self._reach_walk_due(z, d):
+            return self._reach_walk(zid, z, d)   # P27-M: the advance on an idle target within FIGHT_REACH
         elif kind == "back":
             ts = [q for q in (self.threats or [z]) if q.get("x") is not None and q.get("y") is not None]
             v = self._clear_turn(away_vector(self.world, [(q["x"], q["y"]) for q in ts]))

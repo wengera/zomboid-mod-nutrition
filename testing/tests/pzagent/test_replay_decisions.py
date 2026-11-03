@@ -1731,11 +1731,13 @@ PRE_T10 = {"e2": ("1dd65da34adb1e64aaa7ddc6dea56e1b2fba0fb608487501279789e34fcc9
            "f1": ("c093db79eaf3606348b3e4f18fd591093c7fac5e065ce22624229e27b3cf1870", "88fd464e", "2026-11-02"),
            SIXTH: ("9d0883924706f94c64a38d9090cba145f52a229a767db36925a859b5c4065a12", "88fd464e", "2026-11-02")}
 # the first line each iteration-20 switch moves, alone on, on each golden it moves (P27-I's across clause: the zombie
-# across the fence row listed beyond the hold radius; P27-K2's corner yield: E2's inside corner under FLEE_HEALTH_FLOOR)
+# across the fence row listed beyond the hold radius; P27-K2's corner yield: E2's inside corner under FLEE_HEALTH_FLOOR;
+# fix 2's P27-M: the sixth's first stance attack, its `attack` why)
 FIRST_T10 = {"e2": {"LOW_EXIT": 222}, "e3": {"LISTING_FALLEN": 165}, "e4": {"LISTING_FALLEN": 381},
-             "e5": {"LISTING_FALLEN": 217}, "f1": {"LISTING_FALLEN": 247}, SIXTH: {"LISTING_FALLEN": 247}}
+             "e5": {"LISTING_FALLEN": 217}, "f1": {"LISTING_FALLEN": 247},
+             SIXTH: {"LISTING_FALLEN": 247, "ATTACK_REACH": 246}}
 # the first line on each golden whose decision (branch or action) iteration 20 moves, else None (whys alone)
-ACTED_T10 = {"e2": 222, "e4": 441}
+ACTED_T10 = {"e2": 222, "e4": 441, SIXTH: 320}
 
 
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
@@ -1775,7 +1777,14 @@ def test_iteration_20_moves_the_six_goldens_at_the_listing_s_across_clause_and_e
       golden tick sends the stock's rip (the replays above, each switch alone). REPLACE_QUIET (P27-K3) moves none: no
       golden ring decodes a bandaged part. P27-L (WOUNDED_SWING's default off) moves none: no golden frame carries
       `body.armPain`.
-    A golden no switch moves is its file before iteration 20 byte for byte."""
+    - ATTACK_REACH (fix 2's P27-M) moves the sixth alone (the one golden whose hello announces the stance), first at
+      line 246, the `attack` {dist, reach} why on the stance's attack at 15911 from 0.8922789090925147 tiles (the
+      record's bat reads `weapon.reach` 1.125), the decision unmoved; its decisions move from line 320, where the
+      attack at 15937 from 1.9071235531258082 tiles is held (`attack_held`) for the stance's standing leg, the attack
+      going on line 321 from 0.37365609000281447; the later moved lines are downstream (open loop). The other goldens'
+      hellos announce no `aim`, so their Fights are the approach and swing, which the rule leaves.
+    A golden no switch moves is its file before iteration 20 byte for byte. Named change, Plan 27 Task 5 fix 2: each
+    switch's own first line is read at that line (`FIRST_T10`), the sixth's first moved line now P27-M's."""
     base, got = pre_t10_gold(key), gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
     if key not in FIRST_T10:
@@ -1787,13 +1796,21 @@ def test_iteration_20_moves_the_six_goldens_at_the_listing_s_across_clause_and_e
                                                              mutate=lambda sv: pre_t10(sv, keep=(switch,))))}
         moved = [k for k in sorted(set(base) | set(alone)) if base.get(k) != alone.get(k)]
         assert (moved[0] if moved else None) == FIRST_T10[key].get(switch), switch
-    first = diff[0]
     if "LISTING_FALLEN" in FIRST_T10[key]:
+        first = FIRST_T10[key]["LISTING_FALLEN"]
         assert got[first]["why"]["listing"]["fallen"] == 0 and got[first]["why"]["listing"]["across"] >= 1
         assert "listing" not in base[first]["why"]
-    else:
+    if "LOW_EXIT" in FIRST_T10[key]:
+        first = FIRST_T10[key]["LOW_EXIT"]
         assert base[first]["why"]["corner_kind"] == "inside" and got[first]["why"]["corner"] == {"yield": "health"}
         assert got[first]["why"]["flee"] == "health" and got[first]["action"]["type"] == "walkTo"
+    if "ATTACK_REACH" in FIRST_T10[key]:
+        first = FIRST_T10[key]["ATTACK_REACH"]
+        assert got[first]["why"]["attack"] == {"dist": 0.8922789090925147, "reach": 1.125}
+        assert "attack" not in base[first]["why"] and got[first]["action"] == base[first]["action"]
+        held = got[ACTED_T10[key]]
+        assert held["why"]["attack_held"] == {"target": 15937, "dist": 1.9071235531258082, "reach": 1.125}
+        assert held["action"]["type"] == "aim" and base[ACTED_T10[key]]["action"]["type"] == "attack"
     acted = [k for k in diff if (base.get(k) or {}).get("action") != (got.get(k) or {}).get("action")
              or (base.get(k) or {}).get("branch") != (got.get(k) or {}).get("branch")]
     assert (acted[0] if acted else None) == ACTED_T10.get(key)
