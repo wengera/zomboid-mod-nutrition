@@ -485,13 +485,14 @@ class Care(Policy):
                 best = ((cover, iid), iid, loc, cover)
         return None if best is None else best[1:]
 
-    def _rags(self):
+    def _rags(self, dirty_ok=False):
         """The rag stock's rip (ruling P24-AB, the module docstring): fewer than RAG_STOCK clean dressings held, an
-        unworn cotton garment held, `rip` announced."""
+        unworn cotton garment held, `rip` announced; a dirty rag held refuses it unless `dirty_ok` (P27-K1's early
+        rip, `early_rip`)."""
         if not self.world.can("rip"):
             return None, None
         items = self._items()
-        if items["dirty"]:   # review-t21 minor 5: a dirty rag is washed first, never another garment ripped for it
+        if items["dirty"] and not dirty_ok:   # review-t21 minor 5: a dirty rag is washed first, no garment ripped
             return None, None
         held = len(items["bandage"]) + len(items["rag"])
         if held >= RAG_STOCK:
@@ -500,6 +501,22 @@ class Care(Policy):
         if rip is None:
             return None, None
         return Rip(rip), {"reason": "stock", "item": rip, "dressings": held, "stock": RAG_STOCK}
+
+    def early_rip(self):
+        """Ruling P27-K1 (`STOCK_EARLY`, Survive's; F10, `f_goals_11-20261103-075140`: the health fell from
+        62.85700988769531 to 36.4251594543457 while parts 1 and 7 bled undressed for 25.158348083496094 game minutes
+        with a cotton T-shirt held and no clean dressing, the last rag gone on at game minute 656 and the stock's rip
+        never sent before the bites at 665; the care's why read {bandage 0, dirty 1, rag 0} from seq 7638): the rag
+        stock's rip (`_rags`) on the clean dressings alone, `bandage` and `rag` items under RAG_STOCK whatever dirty
+        rag is held, its why `stock` as the stock's; Survive sends it on any tick with no zombie within DANGER_R
+        (`Survive._care_stock`), never `quiet`'s DISENGAGE_R. (None, None) otherwise. Cost if wrong: a garment ripped
+        while a dirty rag waits for water (review-t21 minor 5's guard, kept by the idle stock)."""
+        return self._rags(dirty_ok=True)
+
+    def dressings_held(self):
+        """`{rags, bandages}`: the clean rags and bandages held (`_items`), P27-K1's `stock_early` why."""
+        items = self._items()
+        return {"rags": len(items["rag"]), "bandages": len(items["bandage"])}
 
     def _wear_quiet(self):
         """A wear (50 action ticks, `stopOnRun`) starts with no attacker, no hit reaction and no listed zombie within
@@ -589,11 +606,12 @@ class Care(Policy):
         """The bleeding step would send now (ruling P24-P: Survive's threat branch yields to it beyond CARE_R)."""
         return self._wound(self._items(), self._bleeding())[0] is not None
 
-    def dresses_wound(self):
+    def dresses_wound(self, rip=False):
         """The bleeding step would send a bandage now, a dressing held for the worst bleeding part (ruling P26-D: the
-        bleed's yield under a threat takes a dressing, never a rip or an unwear)."""
+        bleed's yield under a threat takes a dressing, never an unwear); with `rip` (ruling P27-K1, Survive's
+        `STOCK_EARLY`) also the rip of a held cotton garment for a bleeding part with nothing to dress it."""
         cmd = self._wound(self._items(), self._bleeding())[0]
-        return cmd is not None and cmd.TYPE == "bandage"
+        return cmd is not None and (cmd.TYPE == "bandage" or (rip and cmd.TYPE == "rip"))
 
     def rides_wound(self):
         """The bleeding step would ride now (P24-U): a part above the legs bleeds and a bandage item is held, and no

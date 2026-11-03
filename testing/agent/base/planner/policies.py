@@ -302,9 +302,9 @@ FALLEN_SEEK_TICKS = 4     # consecutive ticks a standing fight's target reads fa
                           # lying 8.683652011883524 to 11.861148063389683 tiles off; MANY_TAIL_TICKS' four (two seconds
                           # at the drivers' PLANNER_HZ 2) rule out one frame's fall, the controller's number
 SHOVE_CLOSE_TICKS = 6     # consecutive ticks a shove-only Fight's lone chaser holds beyond POINT_BLANK_R within
-                          # DANGER_R before it is walked to (P27-J): F10's hold fight at 27031 (lines 656-681) faced it at 2.86,
-                          # then 3.2 to 3.4 tiles for twenty lines while five aim legs went; three seconds at the
-                          # drivers' PLANNER_HZ 2, past a stance leg's AIM_LEG_S, the controller's number
+                          # DANGER_R before it is walked to (P27-J): F10's hold fight at 27031 (lines 656-681) faced
+                          # it at 2.86, then 3.2 to 3.4 tiles for twenty lines while five aim legs went; three seconds
+                          # at the drivers' PLANNER_HZ 2, past a stance leg's AIM_LEG_S, the controller's number
 
 
 def place_of(world):

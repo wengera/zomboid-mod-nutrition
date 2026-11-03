@@ -580,12 +580,13 @@ def test_with_the_switch_off_line_1660_holds_the_threat_branch_as_f7_did(tmp_pat
     assert last(tmp_path)["branch"] == "threat" and not any(a.type == "bandage" for a in r.acts.history)
 
 
-def fight_ticks(tmp_path, dist, items=(("Base.RippedSheets", 10),), bleed=True, ticks=2):
+def fight_ticks(tmp_path, dist, items=(("Base.RippedSheets", 10),), bleed=True, ticks=2, stock_early=True):
     """A fresh Survive, `items` held (added after the first frame), part 2 bleeding, one chasing zombie `dist` tiles
     east, closing a tenth of a tile a tick: `ticks` ticks, the first making the Fight (P24-P's closing read refuses
-    the yield on every one)."""
+    the yield on every one). `stock_early` is Survive's `STOCK_EARLY` (ruling P27-K1, Plan 27 Task 5)."""
     r, sv = make(tmp_path)
     sv.THREAT_BLEED = bleed
+    sv.STOCK_EARLY = stock_early
     r.frame()
     for ft, iid in items:
         hold(r, iid, ft, use="other")
@@ -620,8 +621,9 @@ def test_a_closing_chaser_beyond_fight_reach_leaves_room_for_the_bandage(tmp_pat
 def test_the_bleed_s_room_takes_a_dressing_never_a_rip(tmp_path):
     """F7's own state: no clean dressing held (its rags dirty under DIRTY_RAG_MIN), a cotton garment to rip: the
     bleeding step's send would be the rip (`tends_wound`), which the bleed's yield never takes on a tick P24-P
-    refuses."""
-    r, sv = fight_ticks(tmp_path, 4.5, items=(("Base.Tshirt_WhiteTINT", 11),))
+    refuses. Named change, ruling P27-K1 (Plan 27 Task 5): pinned with `STOCK_EARLY` off (on, the yield takes the
+    wound's rip as a dressing: `test_survive_ab`)."""
+    r, sv = fight_ticks(tmp_path, 4.5, items=(("Base.Tshirt_WhiteTINT", 11),), stock_early=False)
     assert sv.care.tends_wound() and not sv.care.dresses_wound()
     assert last(tmp_path)["branch"] == "threat" and not any(a.type in ("bandage", "rip") for a in r.acts.history)
 

@@ -61,8 +61,11 @@ from .test_policies import all_sends_valid, zombie   # noqa: E402
 
 def stock_rig(tmp_path, *dressings):
     """A PZA/1.5.2 build (the item record's `worn` and `rip`), a looted unworn cotton shirt (22) and a worn T-shirt
-    (20) held, and `dressings` [(id, fullType)] held; no part bleeding, no zombie."""
+    (20) held, and `dressings` [(id, fullType)] held; no part bleeding, no zombie. Named change, ruling P27-K1 (Plan 27
+    Task 5): `STOCK_EARLY` off, so P24-AB's idle stock is pinned as the rule before it (on, the stock's rip goes on any
+    tick with no zombie within DANGER_R whatever dirty rag is held, a goal walk superseded: `test_survive_ab`)."""
     r, sv = make(tmp_path)
+    sv.STOCK_EARLY = False
     hello152(r)
     garment(r, 20, ft="Base.Tshirt_WhiteLongSleeveTINT", rip="cotton", worn=True)
     r.frame()
@@ -145,8 +148,10 @@ def test_the_stock_never_supersedes_a_running_drink(tmp_path):
 
 def test_the_stock_never_supersedes_a_running_goal_walk(tmp_path):
     """P24-AB: the goal's walk running (accepted, not ended), the shirt looted meanwhile: the goal branch holds,
-    nothing ripped; once the walk ended the idle tick rips (before the goal's next step)."""
+    nothing ripped; once the walk ended the idle tick rips (before the goal's next step). Named change, ruling P27-K1
+    (Plan 27 Task 5): pinned with `STOCK_EARLY` off (on, the walk is superseded for the rip: `test_survive_ab`)."""
     r, sv = make(tmp_path)
+    sv.STOCK_EARLY = False
     hello152(r)
     r.frame()
     walk = goal_walking(r, sv)

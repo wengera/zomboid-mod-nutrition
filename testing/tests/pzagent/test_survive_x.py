@@ -583,12 +583,13 @@ def test_a_stand_ended_drag_under_flee_health_leaves_by_the_way_out_never_the_cl
 
 
 # ================================================================ P25-Y: a dirty rag alone does not block the rip
-def _dirty_rig(tmp_path, held, bleeding_time=3.0, garments=None, switch=True, unworn=True):
+def _dirty_rig(tmp_path, held, bleeding_time=3.0, garments=None, switch=True, unworn=True, stock_early=True):
     """`test_survive_n.unwear_rig`'s PZA/1.7 world (no worn garment unless `garments`), `held` [(id, fullType)] of
     bandage items, an unworn cotton T-shirt 30 held (`unworn`); part 9 bleeding at `bleeding_time`; no zombie, one
-    care tick."""
+    care tick. `stock_early` is Survive's `STOCK_EARLY` (ruling P27-K1, Plan 27 Task 5)."""
     r, sv = unwear_rig(tmp_path, garments=garments or [])
     sv.DIRTY_RAG_RIP = switch
+    sv.STOCK_EARLY = stock_early
     for iid, ft in held:
         hold(r, iid, ft)
     if unworn:
@@ -633,9 +634,11 @@ def test_a_dirty_rag_alone_with_no_garment_unworn_takes_the_unwear_of_a_worn_cot
 
 
 def test_with_dirty_rag_rip_off_a_dirty_rag_held_blocks_the_rip_and_the_unwear_as_in_iteration_15(tmp_path):
-    r, sv = _dirty_rig(tmp_path, [(12, "Base.RippedSheetsDirty")], switch=False)
+    """Named change, ruling P27-K1 (Plan 27 Task 5): pinned with `STOCK_EARLY` off (on, the stock's early rip counts
+    the clean dressings alone, so the unworn T-shirt is ripped whatever the dirty rag: `test_survive_ab`)."""
+    r, sv = _dirty_rig(tmp_path, [(12, "Base.RippedSheetsDirty")], switch=False, stock_early=False)
     assert last(tmp_path)["branch"] != "care" and not [a for a in r.acts.history if a.type in ("rip", "unwear")]
     (tmp_path / "w").mkdir()
     r, sv = _dirty_rig(tmp_path / "w", [(12, "Base.RippedSheetsDirty")], switch=False, unworn=False,
-                       garments=[(20, "Base.Tshirt_White", TSHIRT, 1.0, 2.0)])
+                       garments=[(20, "Base.Tshirt_White", TSHIRT, 1.0, 2.0)], stock_early=False)
     assert last(tmp_path / "w")["branch"] != "care" and not [a for a in r.acts.history if a.type in ("rip", "unwear")]

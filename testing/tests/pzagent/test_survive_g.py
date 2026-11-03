@@ -713,9 +713,12 @@ def test_no_garment_is_ripped_while_a_rag_is_held(tmp_path):
     on) and no source to wash it: the garment is still not ripped while any rag is held. Ruling P24-AB's stock rips
     nothing either while a dirty rag is held (Task 21 fix 1, review-t21 minor 5: washing it is the care's job).
     Named change, ruling P25-Y (Plan 25 Task 14 fix 1): `DIRTY_RAG_RIP` off, the rule this pins; on, a dirty rag alone
-    under DIRTY_RAG_MIN no longer blocks the bleeding step's rip (`test_survive_x`)."""
+    under DIRTY_RAG_MIN no longer blocks the bleeding step's rip (`test_survive_x`). Named change, ruling P27-K1 (Plan
+    27 Task 5): `STOCK_EARLY` off too (on, the stock's early rip counts the clean dressings alone, the dirty rag
+    aside: `test_survive_ab`)."""
     r, sv = make(tmp_path)
     sv.DIRTY_RAG_RIP = False
+    sv.STOCK_EARLY = False
     r.frame()
     hold(r, 21, "Base.Shirt_FormalWhite", use="other")
     hold(r, 11, "Base.RippedSheetsDirty")

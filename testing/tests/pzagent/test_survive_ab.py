@@ -550,3 +550,126 @@ def test_with_shove_close_off_the_hold_fight_stands_at_the_chaser(tmp_path):
     sv.SHOVE_CLOSE = False
     held_off(r, sv, ticks=8)
     assert "walkTo" not in sends(r) and "shove_close" not in threat_why(tmp_path)
+
+
+# ================================================================ P27-K1: the rag stock ahead of the bleed
+from agent.base import pza1                                                          # noqa: E402
+
+from .test_survive_g import care_frame, garment, hello152, hold, part              # noqa: E402
+
+
+def shirt_rig(tmp_path, source=None, dressings=()):
+    """F10's undressed bleed, ahead of it: a PZA/1.5.2 build (the item record's `worn` and `rip`), the looted unworn
+    cotton T-shirt 22 held (F10's 1034854646), the clean dressings `dressings` [(id, fullType)] held, no part
+    bleeding."""
+    r = Rig(tmp_path)
+    sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=source)
+    hello152(r)
+    r.frame()
+    garment(r, 22, ft="Base.Tshirt_WhiteTINT", rip="cotton")
+    for iid, ft in dressings:
+        hold(r, iid, ft)
+    care_frame(r, [part(5)])
+    return r, sv
+
+
+def test_f10_s_last_rag_gone_the_stock_rips_over_a_running_goal_walk(tmp_path):
+    """F10's game minutes 656 to 665 (the last clean rag on at 656, the T-shirt held, no stock rip before the bites):
+    a goal walk runs with two dressings held; the dressings gone (under RAG_STOCK), the next tick's stock rips the
+    T-shirt over the running walk (a rip is a few seconds standing), logged `stock_early` {rags 0, bandages 0, branch
+    goal}; with `STOCK_EARLY` off the walk runs on and nothing is ripped."""
+    for on in (True, False):
+        d = tmp_path / str(on)
+        d.mkdir()
+        r, sv = shirt_rig(d, Src(ExploreToward(110, 200)), ((10, "Base.Bandage"), (12, "Base.RippedSheets")))
+        sv.STOCK_EARLY = on
+        sv.goals.kit.bind(r.world, r.acts)
+        sv.goals.kit.explore.scanned.add(sv.goals.kit.explore.place())
+        walk = tick(r, sv)
+        assert walk.type == "walkTo"
+        r.fake.act(walk.aid, "accepted", "walkTo")
+        r.pump()
+        for iid in (10, 12):
+            r.event("item_removed", itemId=iid)
+        care_frame(r, [part(5)])
+        a = tick(r, sv)
+        if on:
+            assert (a.type, a.args) == ("rip", {"itemId": 22}) and last(d)["branch"] == "care"
+            stock = last(d)["inputs"]["branches"]["care"]["stock"]
+            assert stock["stock_early"] == {"rags": 0, "bandages": 0, "branch": "goal"}
+        else:
+            assert a is None and r.acts.current is walk and "rip" not in sends(r)
+
+
+@pytest.mark.parametrize("extra", ["idle_at_9_5", "dirty_rag"])
+def test_the_early_stock_rips_with_an_idle_zombie_beyond_danger_r_or_a_dirty_rag_held(tmp_path, extra):
+    """No zombie within DANGER_R (one idle 9.5 tiles off, within DISENGAGE_R: the old stock's quiet refused it), or a
+    dirty rag held (no clean dressing: the clean dressings under RAG_STOCK, F10's {bandage 0, dirty 1, rag 0}): the
+    T-shirt is ripped, logged `stock_early` {branch stock}."""
+    dressings = ((11, "Base.RippedSheetsDirty"),) if extra == "dirty_rag" else ()
+    r, sv = shirt_rig(tmp_path, dressings=dressings)
+    zs = [z(1, 109.5, has_target=False)] if extra == "idle_at_9_5" else []
+    r.frame(zombies=zs)
+    care_frame(r, [part(5)], zombies=zs)
+    tick(r, sv)
+    assert r.cmd() == ("rip", {"itemId": 22})
+    assert last(tmp_path)["inputs"]["branches"]["care"]["stock"]["stock_early"]["branch"] == "stock"
+
+
+def bleeding_shirt(tmp_path, zs, **k):
+    """F10's bites at game minutes 665 and 667 (parts 1 and 7 bleeding undressed, the T-shirt held): part 7 bleeding,
+    no dressing, zombies `zs`."""
+    r, sv = shirt_rig(tmp_path)
+    care_frame(r, [part(7, bleeding=True, bleedingTime=12.0)], zombies=zs, **k)
+    return r, sv
+
+
+def test_f10_s_wound_rip_under_the_flee_is_held_while_the_nearest_stays_beyond_care_hold_r(tmp_path):
+    """F10's lines 817, 832 and 847 (the wound's rip superseded each time by the threat branch's flee legs, a167, a169,
+    a171): the endurance hold's `strain` flee from a chaser 5 tiles off (a second chaser listed 9 tiles west refusing
+    the hold's lone fight), the care's rip of the T-shirt running: the yield holds it (nothing sent, the rip still
+    current) as it holds a running bandage; with `STOCK_EARLY` off the flee's leg supersedes it."""
+    two = [z(1, 105.0), z(2, 91.0)]
+    for on in (True, False):
+        d = tmp_path / str(on)
+        d.mkdir()
+        r, sv = bleeding_shirt(d, two, endurance=HOLD_E)
+        sv.STOCK_EARLY = on
+        assert tick(r, sv).type == "steer" and threat_why(d)["flee"] == "strain"
+        r.answer()
+        rip = sv.care.send(pza1.Rip(22))   # the care's own rip of the T-shirt for part 7 (F10's a166), running
+        r.fake.act(rip.aid, "accepted", "rip")
+        r.pump()
+        r.advance(0.5)
+        care_frame(r, [part(7, bleeding=True, bleedingTime=12.0)], zombies=two, endurance=HOLD_E)
+        a = tick(r, sv)
+        if on:
+            assert a is None and r.acts.current is rip and last(d)["branch"] == "care"
+        else:
+            assert a.type == "steer" and r.acts.history[-1] is a
+
+
+def test_the_bleed_s_yield_under_a_fight_takes_the_wound_s_rip(tmp_path):
+    """P26-D's yield (a Fight's tick with no zombie within FIGHT_REACH, the nearest within CARE_R) with nothing to
+    dress part 7 but the T-shirt: the rip goes (the threat why's `care_yield` {why bleed}, the care line's
+    `stock_early` {branch yield}); with `STOCK_EARLY` off the yield takes a dressing only and the Fight answers."""
+    one = [z(1, 103.0)]
+    for on in (True, False):
+        d = tmp_path / str(on)
+        d.mkdir()
+        r, sv = bleeding_shirt(d, one)
+        sv.STOCK_EARLY = on
+        first = tick(r, sv)
+        assert sv.mode == "fight" and first.type != "rip"
+        r.fake.act(first.aid, "accepted", first.type)
+        r.pump()
+        r.advance(0.5)
+        care_frame(r, [part(7, bleeding=True, bleedingTime=12.0)], zombies=one)
+        a = tick(r, sv)
+        if on:
+            assert (a.type, a.args) == ("rip", {"itemId": 22})
+            assert threat_why(d)["care_yield"]["why"] == "bleed"
+            assert last(d)["inputs"]["branches"]["care"]["stock_early"] == {"rags": 0, "bandages": 0,
+                                                                             "branch": "yield"}
+        else:
+            assert a is None or a.type != "rip"

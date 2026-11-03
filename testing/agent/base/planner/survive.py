@@ -270,7 +270,10 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     (`finish.FightFinish._fallen_seek`); P27-I, the `many` counts leave out a fallen zombie and one across a known
     blocked edge out of the hold radius (`threat.Threat._left_out`); P27-J, the hold's lone fight only at a chaser, the
     rest kept at an idle one (`hold.Hold._hold_idle`), and a shove-only Fight's lone chaser holding beyond point blank
-    walked to, or left for a blocked line (`shove.FightShove._shove_close`); `T10_SWITCHES`.
+    walked to, or left for a blocked line (`shove.FightShove._shove_close`); P27-K1, the stock's rip on any tick with no
+    zombie within DANGER_R once the clean dressings fall under RAG_STOCK, a goal walk superseded for it, and the care
+    yield taking the wound's rip as a dressing (`_care_stock`, `care.Care.early_rip`, `care_yield.CareYield`);
+    `T10_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -390,9 +393,9 @@ T8_SWITCHES = ("WINDOW_INNER", "WINDOW_STALL", "STAND_CROWD", "WOUNDED_SWING", "
 T9_SWITCHES = ("FLEE_FINISH", "MANY_TAIL", "HOLD_LONE", "HOLD_REST", "SPENT_KEEP", "LOW_SWING")
 # survival iteration 19 (Plan 27 Task 1): P27-A to P27-C2 and P27-E on `threat.Threat` (FLEE_FINISH, MANY_TAIL,
 # HOLD_LONE, HOLD_REST, LOW_SWING); P27-D on `Survive` (SPENT_KEEP)
-T10_SWITCHES = ("STUCK_LEAVE", "FLOOR_FINISH", "FALLEN_SEEK", "LISTING_FALLEN", "SHOVE_CLOSE")
-# survival iteration 20 (Plan 27 Task 5): P27-F on `Survive` (STUCK_LEAVE, read by the goal runner); P27-G to P27-J on
-# `threat.Threat` (FLOOR_FINISH, FALLEN_SEEK, LISTING_FALLEN, SHOVE_CLOSE)
+T10_SWITCHES = ("STUCK_LEAVE", "FLOOR_FINISH", "FALLEN_SEEK", "LISTING_FALLEN", "SHOVE_CLOSE", "STOCK_EARLY")
+# survival iteration 20 (Plan 27 Task 5): P27-F and P27-K1 on `Survive` (STUCK_LEAVE, read by the goal runner;
+# STOCK_EARLY); P27-G to P27-J on `threat.Threat` (FLOOR_FINISH, FALLEN_SEEK, LISTING_FALLEN, SHOVE_CLOSE)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -452,6 +455,10 @@ class Survive(Threat):
                           # route's first edge, the scripted source then leaving the square by a known way, never a Rest
                           # (`goal_runner.GoalRunner._read_walks`, `ScriptedSource._ways_out`); off, no mark. Set on the
                           # goal runner each tick (`_read`). In T10_SWITCHES
+    STOCK_EARLY = True    # ruling P27-K1 (Plan 27 Task 5): the rag stock's rip on any tick with no zombie within
+                          # DANGER_R once the clean dressings fall under RAG_STOCK, a running goal walk superseded for
+                          # it (`_care_stock`, `care.Care.early_rip`), and the care yield taking the wound's rip as a
+                          # dressing (`care_yield.CareYield._care_yields`); off, the idle stock alone. In T10_SWITCHES
 
     SHELTER_LEGS = True   # ruling P25-N (Plan 25 Task 8): a Shelter goal's and the night's approach to a far door in
                           # legs (`goal_policies.Shelter`, `night.Night._leg`); set on the goals' kit and the Night each
@@ -734,6 +741,8 @@ class Survive(Threat):
         c.trapped = self.TRAPPED_CARE and self.trapped_pass   # P25-Q: the trapped hold's tick unwears as a quiet one
         cmd = c.choose()
         self.why = dict(c.why)
+        if self.STOCK_EARLY and cmd is not None and cmd.TYPE == "rip" and self.care_yield is not None:
+            self.why["stock_early"] = dict(c.dressings_held(), branch="yield")   # P27-K1: the yield's wound rip
         self._dressing_want(cmd is None and c.wants_dressing())
         return None if cmd is None else (c, cmd)
 
@@ -751,8 +760,22 @@ class Survive(Threat):
         """Ruling P24-AB, the rag stock (`Care.stock`), tried behind the need, the load and the night and before the
         goal: only on an idle tick, no threat policy running and no action running (a drink, a fill, a goal's walk or
         loot is never superseded: Task 10's objection), no zombie within DISENGAGE_R; its line is the care branch's,
-        the stock's why under the care's `stock`. Else None."""
+        the stock's why under the care's `stock`. Else None. Ruling P27-K1 (`STOCK_EARLY`; F10,
+        `f_goals_11-20261103-075140`: parts 1 and 7 bled undressed for 25.158348083496094 game minutes with a cotton
+        T-shirt held, the last rag gone on at game minute 656 and no stock rip before the bites at 665): first, with no
+        threat policy running and no zombie within DANGER_R, the stock's rip on the clean dressings alone
+        (`Care.early_rip`) goes whether nothing runs or a goal's walk runs (the walk superseded: a rip is a few seconds
+        standing; a drink, a fill or a sleep is never, their branches holding above this step), logged `stock_early`
+        {rags, bandages, branch "stock" or "goal"} on the stock's why. Cost if wrong: a rip's seconds standing where a
+        walk was running."""
         cur = self.actions.current
+        if self.STOCK_EARLY and self.mode is None and (cur is None or self._goal_walk(cur)) and not self._within(
+                DANGER_R):
+            cmd, why = self.care.early_rip()
+            if cmd is not None:
+                self.why = dict(why, stock_early=dict(self.care.dressings_held(),
+                                                      branch="stock" if cur is None else "goal"))
+                return self.care, cmd
         if self.mode is not None or cur is not None:
             return None
         c = self.care
@@ -762,6 +785,11 @@ class Survive(Threat):
             return None
         self.why = why
         return c, cmd
+
+    def _goal_walk(self, action):
+        """P27-K1: `action` is the running goal's own walk (`GoalRunner.current.last`)."""
+        g = getattr(self.goals, "current", None)
+        return action.type == "walkTo" and getattr(g, "last", None) is action
 
     def _need(self):
         if self.need_last is not None and self.actions.current is self.need_last:

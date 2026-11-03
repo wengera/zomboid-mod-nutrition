@@ -79,7 +79,11 @@ class CareYield:
         this rule made is kept in `bleed_yield` (the threat why's `care_yield` {why "bleed", near}). Ruling P26-L2
         (`BLEED_HOLD`): the dressing that yield sent keeps the room with a zombie within FIGHT_REACH while none closes
         (`_bleed_holds`), a tick so held kept in `bleed_held` (the why's `care_yield` {why "bleed", near, held
-        true})."""
+        true}). Ruling P27-K1 (`STOCK_EARLY`; F10, `f_goals_11-20261103-075140`: the care's rip of the T-shirt for part
+        7, why `no_rag`, went on lines 817, 832, 847 and 862, the first three superseded by the threat branch's flee
+        legs): the yield takes the wound's rip (a held cotton garment ripped for a bleeding part with nothing to dress it) as
+        it takes a dressing: a running rip holds the yield as a running bandage does (the nearest beyond CARE_HOLD_R),
+        and the bleed's room takes the rip as well as a dressing (`Care.dresses_wound`)."""
         if not self.world.can("bandage") or not self._nearest_seen or self.care.riding() is not None:
             return None
         near = self._nearest_seen[-1][1]
@@ -94,7 +98,8 @@ class CareYield:
                 return near
         if self.flee_many:
             return None
-        running = self.care.busy() and self.care.last.type == "bandage"
+        rip = self.STOCK_EARLY   # P27-K1: the wound's rip is taken as a dressing is
+        running = self.care.busy() and (self.care.last.type == "bandage" or (rip and self.care.last.type == "rip"))
         refused = (near <= (CARE_HOLD_R if running else CARE_R)
                    or (not running and (self._closing() or (self.mode == "flee" and chased))))
         if refused and not self._bleed_free():
@@ -104,7 +109,7 @@ class CareYield:
         self._observe(self.care)
         if not refused:
             return near if self.care.tends_wound() else None
-        if not self.care.dresses_wound():
+        if not self.care.dresses_wound(rip=rip):
             return None
         self.bleed_yield = near   # P26-D: the yield the bleed's room made
         self.bleed_held = bool(self._within(FIGHT_REACH))   # P26-L2: the room only the dressing's hold made
