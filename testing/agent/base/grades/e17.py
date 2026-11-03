@@ -45,9 +45,9 @@ STUCK_LEAVE_R = 10.0           # planner/policies.py:297: tiles from a marked sq
 FALLEN_SEEK_TICKS = 4          # planner/policies.py:300: ticks a fallen target out of reach reads before its walk
 SHOVE_CLOSE_TICKS = 6          # planner/policies.py:304: ticks a shove-only fight's chaser holds before its walk
 RAG_STOCK = 2                  # planner/care.py:157: clean dressings the care keeps (the early rip's ceiling)
-REST_GOAL = "Rest"             # planner/goal_policies.py: Rest.TYPE, the goal the scripted source answers idle
-LOOT_GOAL = "LootBuilding"     # planner/goal_policies.py: LootBuilding.TYPE, a `leave` way
-EXPLORE_GOAL = "ExploreToward"  # planner/goal_policies.py: ExploreToward.TYPE, the walk back or the walk away
+REST_GOAL = "Rest"             # planner/goal_policies.py:611: Rest.TYPE, the goal the scripted source answers idle
+LOOT_GOAL = "LootBuilding"     # planner/goal_policies.py:360: LootBuilding.TYPE, a `leave` way
+EXPLORE_GOAL = "ExploreToward"  # planner/goal_policies.py:279: ExploreToward.TYPE, the walk back or the walk away
 
 FOLLOW_LINES = 20              # log lines: a send's follow-up (a stomp, a shove, a kill, a flee) is read this far on
                                # (ten seconds at the drivers' PLANNER_HZ 2, e16's TAIL_AFTER_LINES)
@@ -122,25 +122,31 @@ def _away(mark):
     return ((x, y - r), (x, y + r)) if e[2] == "N" else ((x - r, y), (x + r, y))
 
 
-def _way(leave, mark):
-    """A `leave` pick's way: "loot" for a LootBuilding, "explore" for an ExploreToward at one of the last mark's
-    `_away` targets (an inference off the targets), "walk" for any other ExploreToward (the walk back to a building on
-    the square's side of the edge, the brief's cluster walk)."""
+def _way(leave, live):
+    """A `leave` pick's way: "loot" for a LootBuilding, "explore" for an ExploreToward at one of the `_away` targets of
+    a mark in `live` (the marks live on the square the line stands on, `_live_marks`; an inference off the targets),
+    "walk" for any other ExploreToward (the walk back to a building on the square's side of the edge, the brief's
+    cluster walk)."""
     t = E._d(E._d(leave).get("target"))
     if t.get("type") == LOOT_GOAL:
         return "loot"
     a = E._d(t.get("args"))
     to = (E._n(a.get("x")), E._n(a.get("y")))
-    if t.get("type") == EXPLORE_GOAL and mark is not None and to in _away(mark):
+    if t.get("type") == EXPLORE_GOAL and any(to in _away(mk) for mk in live):
         return "explore"
     return "walk"
 
 
+def _live_marks(marks, sq, m, upto=None):
+    """The marks of square `sq` logged at or before line `upto` (any line when None) whose game minute is within
+    STUCK_MARK_MIN of `m` and not after it (`GoalRunner.stuck_at`'s window)."""
+    return [mk for mk in marks if mk[1] == sq and mk[4] is not None and m is not None
+            and mk[4] <= m < mk[4] + STUCK_MARK_MIN and (upto is None or mk[0] <= upto)]
+
+
 def _live(marks, sq, m, upto=None):
-    """Whether square `sq` carries a mark logged at or before line `upto` (any line when None) whose game minute is
-    within STUCK_MARK_MIN of `m` and not after it (`GoalRunner.stuck_at`'s window)."""
-    return any(s == sq and t is not None and m is not None and t <= m < t + STUCK_MARK_MIN
-               and (upto is None or i <= upto) for i, s, _, _, t in marks)
+    """Whether square `sq` carries a mark live at game minute `m` (`_live_marks`)."""
+    return bool(_live_marks(marks, sq, m, upto))
 
 
 def _marked_minutes(L, marks):
@@ -165,10 +171,12 @@ def e_stuck_leave(L):
     rests_on_marked, minutes_on_marked_square}. Reading: `marks` the lines whose goal why carries `stuck_mark` by the
     marked walk's goal type, `edged` those naming a first edge, `leaves` the goal lines whose why carries `leave`
     {why "stuck", target} (`ScriptedSource.last_leave`, logged on the pick) by way (`_way`: "loot", "walk" the walk back
-    to a building, "explore" the walk away from the edge, told apart by its target: an inference). Inference off the
+    to a building, "explore" the walk away from the edge of a mark live on the line's square, told apart by its
+    target: an inference). Inference off the
     line's position and the frames: `rests_on_marked` the goal lines proposing a Rest with the line's square
-    (`inputs.x`, `inputs.y`) marked within STUCK_MARK_MIN game minutes before (must read 0: the source leaves there),
-    `minutes_on_marked_square` the game minutes the frames stood on a live mark (`_marked_minutes`)."""
+    (`inputs.x`, `inputs.y`) marked within STUCK_MARK_MIN game minutes before (a reading, not a gate: the source rests
+    on a marked square when every way out is cooled, `ScriptedSource.propose`), `minutes_on_marked_square` the game
+    minutes the frames stood on a live mark (`_marked_minutes`)."""
     if L is None:
         return {"read": False}
     marks = _marks(L)
@@ -178,8 +186,7 @@ def e_stuck_leave(L):
     for i, ln in enumerate(L.rows):
         gw = _gw(ln)
         if isinstance(gw.get("leave"), dict):
-            last = next((m for m in reversed(marks) if m[0] <= i), None)
-            ways[_way(gw["leave"], last)] += 1
+            ways[_way(gw["leave"], _live_marks(marks, _line_square(ln), _line_min(L, ln), upto=i))] += 1
         if gw.get("proposed") == REST_GOAL and _live(marks, _line_square(ln), _line_min(L, ln), upto=i):
             rests += 1
     return {"read": True, "marks": by, "edged": sum(1 for m in marks if m[2]), "leaves": ways,
@@ -492,7 +499,7 @@ def e_wounded_swing_off(L):
     swing's place: `gates_e.e_corner_kinds`' `miss_breaks`)."""
     if L is None:
         return {"read": False}
-    lines = swings = breaks = 0
+    lines = swings = 0
     for ln in L.rows:
         if ln.get("branch") != "threat":
             continue
@@ -500,9 +507,7 @@ def e_wounded_swing_off(L):
         if w.get("wounded_swing") is not None:
             lines += 1
             swings += 1 if E._sent(ln, "attack") else 0
-        c = w.get("corner")
-        breaks += 1 if isinstance(c, dict) and c.get("kind") == "break" and c.get("misses") is not None else 0
-    return {"read": True, "lines": lines, "swings": swings, "breaks": breaks}
+    return {"read": True, "lines": lines, "swings": swings, "breaks": E.e_corner_kinds(L)["miss_breaks"]}
 
 
 def readings_e17(out, decision_lines, lines):
@@ -521,7 +526,8 @@ def lines_e17(g):
     out = []
     out.append(("stuck leave (P27-F) [reading]: %s `stuck_mark` lines by goal %s (%s naming an edge), `leave` picks by "
                 "way %s ([inference] the walk away told from the walk back by its target); [inference] %s rests "
-                "proposed on a marked square (must read 0), %s game minutes on a marked square" % (
+                "proposed on a marked square (a reading: the planner may rest there when every way out is cooled), %s "
+                "game minutes on a marked square" % (
                     sum(E._d(sl.get("marks")).values()), sl.get("marks"), sl.get("edged"), sl.get("leaves"),
                     sl.get("rests_on_marked"), sl.get("minutes_on_marked_square"))) if sl.get("read")
                else "stuck leave (P27-F): no decision log read")

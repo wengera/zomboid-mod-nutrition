@@ -84,8 +84,9 @@ def stuck_fixture(flag=True):
     """A walk stuck on square (10, 10) with its first edge north (game minute 0), the leaves after it (the walk away
     north at (10, 0), a loot, a walk back to a building at (30, 5)), a Rest proposed on the square at minute 10
     (counted), at minute 40 (beyond STUCK_MARK_MIN) and on another square, and a second mark with no edge at (50, 50)
-    (minute 42). The frames stand on (10, 10) from minute 0 to 10 and from 40, on (11, 10) at 12, on (50, 50) from 42
-    to 45: 15 game minutes on a live mark."""
+    (minute 42) with a Rest on (50, 50) logged just before that mark (its frame reads minute 42, but the mark is not
+    yet logged: not counted). The frames stand on (10, 10) from minute 0 to 10 and from 40, on (11, 10) at 12, on
+    (50, 50) from 42 to 45: 15 game minutes on a live mark."""
     mark = (lambda sq, edge, goal: {"stuck_mark": {"edge": edge, "square": sq, "goal": {"type": goal, "args": {}}}}) \
         if flag else (lambda *a: {})
     leave = (lambda t, args: {"leave": {"why": "stuck", "target": {"type": t, "args": args}}}) if flag \
@@ -100,7 +101,8 @@ def stuck_fixture(flag=True):
            gline(4, 4.0, {"goal": "Rest", "proposed": "Rest"}),
            gline(5, 5.0, {"goal": "Rest", "proposed": "Rest"}),
            gline(6, 6.0, {"goal": "Rest", "proposed": "Rest"}, x=12.5),
-           gline(7, 7.0, dict({"goal": "LootBuilding"}, **mark([50, 50], None, "LootBuilding")), x=50.5, y=50.5)]
+           gline(7, 6.98, {"goal": "Rest", "proposed": "Rest"}, x=50.5, y=50.5),
+           gline(8, 7.0, dict({"goal": "LootBuilding"}, **mark([50, 50], None, "LootBuilding")), x=50.5, y=50.5)]
     frames = [frame(t, minute=m, x=x, y=y) for t, m, x, y in
               ((-0.05, 0, 10.5, 10.5), (0.95, 1, 10.5, 10.5), (1.95, 2, 10.5, 10.5), (2.95, 3, 10.5, 10.5),
                (3.95, 10, 10.5, 10.5), (4.5, 12, 11.5, 10.5), (4.95, 40, 10.5, 10.5), (5.95, 41, 12.5, 10.5),
@@ -126,9 +128,26 @@ def test_the_stuck_leave_reads_zero_without_the_why_and_unread_without_a_log():
 def test_the_walk_away_reads_its_edge_s_axis():
     mark = (0, (10, 10), [11, 10, "W"], "ExploreToward", 0.0)
     assert G._away(mark) == ((0, 10), (20, 10)) and G._away((0, (10, 10), None, "x", 0.0)) == ()
-    assert G._way({"target": {"type": "ExploreToward", "args": {"x": 20, "y": 10}}}, mark) == "explore"
-    assert G._way({"target": {"type": "ExploreToward", "args": {"x": 10, "y": 20}}}, mark) == "walk"
-    assert G._way({"target": {"type": "ExploreToward", "args": {"x": 20, "y": 10}}}, None) == "walk"
+    assert G._way({"target": {"type": "ExploreToward", "args": {"x": 20, "y": 10}}}, [mark]) == "explore"
+    assert G._way({"target": {"type": "ExploreToward", "args": {"x": 10, "y": 20}}}, [mark]) == "walk"
+    assert G._way({"target": {"type": "ExploreToward", "args": {"x": 20, "y": 10}}}, []) == "walk"
+
+
+def _leave_log():
+    edge = lambda x, y: {"stuck_mark": {"edge": [x, y + 1, "N"], "square": [x, y], "goal": {"type": "ExploreToward"}}}
+    leave = {"leave": {"why": "stuck", "target": {"type": "ExploreToward", "args": {"x": 10, "y": 0}}}}
+    log = [gline(0, 0.0, edge(10, 10)), gline(1, 1.0, edge(50, 50), x=50.5, y=50.5),
+           gline(2, 2.0, leave), gline(3, 3.0, leave, x=30.5, y=30.5), gline(4, 4.0, leave)]
+    frames = [frame(t, minute=m) for t, m in ((-0.05, 0), (0.95, 1), (1.95, 2), (2.95, 3), (3.95, 31))]
+    return log, frames
+
+
+def test_a_leave_is_told_by_the_mark_live_on_the_square_the_line_stands_on_not_the_latest_mark():
+    """Mark A at (10, 10) (edge north) and the later mark B at (50, 50); a walk to (10, 0) from (10, 10) is A's walk
+    away ("explore"), the same walk from the unmarked (30, 30) is a "walk", and one from (10, 10) after A's window
+    ran out is a "walk"."""
+    log, frames = _leave_log()
+    assert grade(log=log, frames=frames)["stuck_leave"]["leaves"] == {"walk": 2, "loot": 0, "explore": 1}
 
 
 # ================================================================ P27-G, the floor finish
@@ -175,7 +194,8 @@ def test_the_floor_finish_reads_zero_without_the_why_and_unread_without_a_log():
 # ================================================================ P27-H, the fallen target sought
 def fallen_fixture(flag=True):
     """A walk to 9 (four ticks) killed two lines on, one left (10, five ticks), a walk to 12 after two ticks (`short`)
-    killed beyond FOLLOW_LINES (another zombie, 14, killed within them), and a care line carrying the why."""
+    killed beyond FOLLOW_LINES (another zombie, 14, killed within them), a care line carrying the why and a walk to 15
+    logged and not sent."""
     fs = (lambda zid, t, **kw: {"fallen_seek": dict({"target": zid, "dist": 7.5, "ticks": t}, **kw)}) if flag \
         else (lambda *a, **kw: {})
     w = lambda zid, t, **kw: dict({"target": zid, "pinned": True, "dist": 7.5}, **fs(zid, t, **kw))
@@ -187,7 +207,8 @@ def fallen_fixture(flag=True):
            aline(5, 5.5, w(13, 4), _act("walkTo", x=23.5, y=10.5), branch="care"),
            aline(6, 6.0, {"fight": True, "target": 14}, _act("stomp", targetId=14))]
     log += filler(7, G.FOLLOW_LINES)
-    log += [aline(40, 40.0, {"fight": True, "target": 12}, _act("stomp", targetId=12))]
+    log += [aline(40, 40.0, {"fight": True, "target": 12}, _act("stomp", targetId=12)),
+            aline(41, 41.0, w(15, 4), _act("walkTo", x=24.5, y=10.5), sent=False)]
     acts = [row("w1", "walkTo", 1.0, x=20.5, y=10.5), row("k1", "stomp", 3.0, targetId=9),
             row("a1", "attack", 4.0, targetId=11), row("w2", "walkTo", 5.0, x=22.5, y=10.5),
             row("w3", "walkTo", 5.5, branch="care", x=23.5, y=10.5), row("k3", "stomp", 6.0, targetId=14),
@@ -199,7 +220,7 @@ def fallen_fixture(flag=True):
 
 def test_the_fallen_seek_counts_the_walks_the_left_the_ticks_and_the_kills_after():
     g = fallen_fixture()
-    assert g == {"read": True, "lines": 3, "walks": 2, "left": 1, "ticks": {"4": 1, "5": 1, "2": 1}, "short": 1,
+    assert g == {"read": True, "lines": 4, "walks": 2, "left": 1, "ticks": {"4": 2, "5": 1, "2": 1}, "short": 1,
                  "kills_after": 1}
 
 
@@ -246,7 +267,7 @@ def test_the_listing_reads_zero_without_the_why_and_unread_without_a_log():
 # ================================================================ P27-J, the shove-only fight's close
 def close_fixture(flag=True):
     """A walk to 3 (six ticks) shoved on the next line, one left (4), a walk to 5 after three ticks (`short`) with a
-    shove at another zombie after it, a rest at an idle zombie and a plain rest."""
+    shove at another zombie after it, a rest at an idle zombie, a plain rest and a walk to 7 logged and not sent."""
     sc = (lambda zid, t, **kw: {"shove_close": dict({"target": zid, "dist": 3.2, "ticks": t}, **kw)}) if flag \
         else (lambda *a, **kw: {})
     w = lambda zid, t, **kw: dict({"target": zid, "pinned": True, "dist": 3.2}, **sc(zid, t, **kw))
@@ -258,14 +279,15 @@ def close_fixture(flag=True):
            aline(4, 5.0, {"fight": True, "target": 6}, _act("shove", targetId=6)),
            aline(5, 6.0, {"flee": "strain", "rest": dict(rest, **({"idle": 27031} if flag else {}))}, None,
                  sent=False),
-           aline(6, 7.0, {"flee": "strain", "rest": dict(rest)}, None, sent=False)]
+           aline(6, 7.0, {"flee": "strain", "rest": dict(rest)}, None, sent=False),
+           aline(7, 8.0, w(7, 6), _act("walkTo", x=14.5, y=10.5), sent=False)]
     acts = [row("w1", "walkTo", 1.0, x=12.5, y=10.5), row("s1", "shove", 2.0, targetId=3),
             row("w2", "walkTo", 4.0, x=13.5, y=10.5), row("s2", "shove", 5.0, targetId=6)]
     return grade(acts, [], log)["shove_close"]
 
 
 def test_the_shove_close_counts_the_walks_the_left_the_idle_rests_and_the_shoves_after():
-    assert close_fixture() == {"read": True, "lines": 3, "walks": 2, "left": 1, "short": 1, "idle_rests": 1,
+    assert close_fixture() == {"read": True, "lines": 4, "walks": 2, "left": 1, "short": 1, "idle_rests": 1,
                                "shoves_after": 1}
 
 
@@ -279,7 +301,8 @@ def test_the_shove_close_reads_zero_without_the_why_and_unread_without_a_log():
 def stock_fixture(flag=True):
     """The stock's early rip with no clean dressing (ended at 4.0; the care's `held` reads 0 rags at 2.0 and 3 at 5.0:
     `rags_after`), the goal walk's with one rag (rejected; 1 read after), the care yield's with two held (`full`) and
-    one logged and not sent."""
+    one logged and not sent, and a last rip (ended at 12.0) whose next `held` reads a bandage and no rag (`rags_after`:
+    a bandage is a clean dressing)."""
     se = (lambda r, b, br: {"stock_early": {"rags": r, "bandages": b, "branch": br}}) if flag else (lambda *a: {})
     stock = lambda r, b, br: {"stock": dict({"reason": "stock", "item": 50, "dressings": r + b, "stock": 2},
                                            **se(r, b, br))}
@@ -291,16 +314,20 @@ def stock_fixture(flag=True):
            aline(4, 7.0, {}, None, sent=False, branch="care", care=held(1)),
            aline(5, 8.0, {}, _act("rip", itemId=52), branch="care",
                  care=dict({"bleeding": [7]}, **se(1, 1, "yield"))),
-           aline(6, 10.0, {}, _act("rip", itemId=53), sent=False, branch="care", care=stock(0, 1, "stock"))]
+           aline(6, 10.0, {}, _act("rip", itemId=53), sent=False, branch="care", care=stock(0, 1, "stock")),
+           aline(7, 11.0, {}, _act("rip", itemId=54), branch="care", care=stock(0, 0, "stock")),
+           aline(8, 13.0, {}, None, sent=False, branch="care",
+                 care={"bleeding": [], "spent": [], "held": {"bandage": 1, "dirty": 0, "rag": 0}})]
     acts = [row("r1", "rip", 1.0, ended=4.0, branch="care", itemId=50),
             row("r2", "rip", 6.0, state="rejected", reason="busy", ended=6.5, branch="care", itemId=51),
-            row("r3", "rip", 8.0, ended=9.0, branch="care", itemId=52)]
+            row("r3", "rip", 8.0, ended=9.0, branch="care", itemId=52),
+            row("r4", "rip", 11.0, ended=12.0, branch="care", itemId=54)]
     return grade(acts, [], log)["stock_early"]
 
 
 def test_the_stock_early_counts_the_rips_by_branch_the_yields_the_full_ones_and_the_rags_after():
-    assert stock_fixture() == {"read": True, "lines": 4, "rips": {"stock": 1, "goal": 1, "yield": 1}, "yields": 1,
-                               "full": 1, "rags_after": 1}
+    assert stock_fixture() == {"read": True, "lines": 5, "rips": {"stock": 2, "goal": 1, "yield": 1}, "yields": 1,
+                               "full": 1, "rags_after": 2}
 
 
 def test_the_stock_early_reads_zero_without_the_why_and_unread_without_a_log():
@@ -314,7 +341,8 @@ def low_fixture(flag=True):
     """An exit after three misses followed by the `health` flee and a bite 4 s on; the corner's yield on the flee's
     own line (health 15) with its bite 15 s on (beyond BITE_AFTER_S); an exit after two misses (`short`) with the
     flee only beyond FOLLOW_LINES; a yield at health 25 (`above_floor`) with a bite 5 s on; a break corner (no
-    yield)."""
+    yield), then a `low_exit` why on a care-branch line (not read) and a corner yielding something other than
+    `health`."""
     le = (lambda m: {"low_exit": {"target": 4, "missed": m}}) if flag else (lambda m: {})
     cy = {"corner": {"yield": "health"}} if flag else {}
     log = [aline(0, 1.0, dict({"fight": True, "low_fight": True, "target": 4}, **le(3)), None, sent=False),
@@ -324,7 +352,10 @@ def low_fixture(flag=True):
     log += filler(4, G.FOLLOW_LINES)
     log += [aline(30, 62.0, {"flee": "health"}, None, sent=False),
             inputs(aline(31, 80.0, dict({"flee": "held"}, **cy), None, sent=False), health=25.0),
-            aline(32, 81.0, {"fight": True, "corner": {"kind": "break", "shoved": 4, "n": 2}}, None, sent=False)]
+            aline(32, 81.0, {"fight": True, "corner": {"kind": "break", "shoved": 4, "n": 2}}, None, sent=False),
+            aline(33, 90.0, dict({"fight": True, "low_fight": True, "target": 4}, **le(3)), None, sent=False,
+                  branch="care"),
+            inputs(aline(34, 91.0, {"flee": "held", "corner": {"yield": "fight"}}, None, sent=False), health=10.0)]
     frames = [frame(t, bitten=b) for t, b in ((0.9, 0), (5.0, 1), (19.9, 1), (35.0, 2), (39.9, 2), (45.0, 2),
                                               (79.9, 2), (85.0, 3))]
     return grade(log=log, frames=frames)["low_exit"]
@@ -348,7 +379,7 @@ BLED7 = [{"i": 7, "bleeding": True, "bleedingTime": 12.0}]
 def spent_fixture(flag=True):
     """Two holds on part 7 (the first on a frame reading it bleeding, the second on one reading part 3 bleeding), its
     replace after them and a second replace with no hold between, a hold on part 4 reading no chaser (`unchased`) and
-    a replace of part 9, never held."""
+    a replace of part 9, never held, and an unsent spent replace of part 4, held and not yet replaced."""
     sh = (lambda p, c: {"spent_held": {"part": p, "chasing": c}}) if flag else (lambda *a: {})
     care = lambda p, c: dict({"bleeding": [], "spent": [p], "held": {"bandage": 1, "dirty": 0, "rag": 0}}, **sh(p, c))
     spent = lambda p: {"reason": "spent", "part": p, "item": 5, "kind": "bandage", "life": 0, "dirty": False}
@@ -357,7 +388,8 @@ def spent_fixture(flag=True):
            aline(2, 3.0, {}, _act("bandage", itemId=5, part=7), branch="care", care=spent(7)),
            aline(3, 4.0, {}, _act("bandage", itemId=6, part=7), branch="care", care=spent(7)),
            aline(4, 5.0, {}, None, sent=False, branch="care", care=care(4, 0)),
-           aline(5, 6.0, {}, _act("bandage", itemId=8, part=9), branch="care", care=spent(9))]
+           aline(5, 6.0, {}, _act("bandage", itemId=8, part=9), branch="care", care=spent(9)),
+           aline(6, 7.0, {}, _act("bandage", itemId=9, part=4), sent=False, branch="care", care=spent(4))]
     frames = [zf(0.9, parts=BLED7), zf(1.9, parts=[{"i": 3, "bleeding": True}]), zf(4.9)]
     return grade(log=log, frames=frames)["spent_held"]
 
@@ -475,16 +507,20 @@ def _mutated(fn_name, edit):
 
 MUTANTS = [
     # P27-F
-    ("_live", lambda b: b.replace("t <= m < t + STUCK_MARK_MIN", "t <= m"),
+    ("_live_marks", lambda b: b.replace("mk[4] <= m < mk[4] + STUCK_MARK_MIN", "mk[4] <= m"),
      lambda: stuck_fixture()["rests_on_marked"] == 1),
-    ("_way", lambda b: b.replace("and to in _away(mark)", "and False"),
+    ("_way", lambda b: b.replace("any(to in _away(mk) for mk in live)", "False"),
      lambda: stuck_fixture()["leaves"] == {"walk": 1, "loot": 1, "explore": 1}),
+    ("e_stuck_leave", lambda b: b.replace("_live_marks(marks, _line_square(ln), _line_min(L, ln), upto=i)",
+                                          "[m for m in marks if m[0] <= i][-1:]"),
+     lambda: grade(log=_leave_log()[0], frames=_leave_log()[1])["stuck_leave"]["leaves"]["explore"] == 1),
     ("_away", lambda b: b.replace('e[2] == "N"', 'e[2] == "W"'),
      lambda: stuck_fixture()["leaves"] == {"walk": 1, "loot": 1, "explore": 1}),
     ("_marked_minutes", lambda b: b.replace(" or not _live(marks, sq[:2], _frame_min(f0))", ""),
      lambda: stuck_fixture()["minutes_on_marked_square"] == pytest.approx(15.0)),
     ("e_stuck_leave", lambda b: b.replace('gw.get("proposed") == REST_GOAL', 'gw.get("goal") is not None'),
      lambda: stuck_fixture()["rests_on_marked"] == 1),
+    ("e_stuck_leave", lambda b: b.replace(", upto=i)", ")"), lambda: stuck_fixture()["rests_on_marked"] == 1),
     # P27-G
     ("_swung", lambda b: b.replace("hi = end if end is not None else w + SWING_WINDOW_S * 1000.0", "hi = w + 1e9"),
      lambda: floor_fixture()["landed"] == 3),
@@ -499,6 +535,8 @@ MUTANTS = [
     ("e_fallen_seek", lambda b: b.replace('if fs.get("left") is True:', "if False:"),
      lambda: fallen_fixture()["left"] == 1),
     ("e_fallen_seek", lambda b: b.replace("t < FALLEN_SEEK_TICKS", "t < 0"), lambda: fallen_fixture()["short"] == 1),
+    ("e_fallen_seek", lambda b: b.replace('if not E._sent(ln, "walkTo"):', "if False:"),
+     lambda: fallen_fixture()["walks"] == 2),
     ("e_fallen_seek", lambda b: b.replace("L.killed(r) == zid", "L.killed(r) is not None"),
      lambda: fallen_fixture()["kills_after"] == 1),
     # P27-I
@@ -514,12 +552,16 @@ MUTANTS = [
      lambda: close_fixture()["shoves_after"] == 1),
     ("e_shove_close", lambda b: b.replace('and "idle" in w["rest"]', ""), lambda: close_fixture()["idle_rests"] == 1),
     ("e_shove_close", lambda b: b.replace("t < SHOVE_CLOSE_TICKS", "t < 0"), lambda: close_fixture()["short"] == 1),
+    ("e_shove_close", lambda b: b.replace('if not E._sent(ln, "walkTo"):', "if False:"),
+     lambda: close_fixture()["walks"] == 2),
     # P27-K1
     ("e_stock_early", lambda b: b.replace("had >= RAG_STOCK", "had > 100"), lambda: stock_fixture()["full"] == 1),
     ("e_stock_early", lambda b: b.replace(" if (E._n(r.get(\"wall\")) or 0.0) * 1000.0 >= end", ""),
-     lambda: stock_fixture()["rags_after"] == 1),
+     lambda: stock_fixture()["rags_after"] == 2),
     ("_stock_early", lambda b: b.replace('s = E._d(c.get("stock")).get("stock_early")', "s = None"),
-     lambda: stock_fixture()["lines"] == 4),
+     lambda: stock_fixture()["lines"] == 5),
+    ("_held_clean", lambda b: b.replace(' + (E._n(h.get("bandage")) or 0)', ""),
+     lambda: stock_fixture()["rags_after"] == 2),
     # P27-K2
     ("e_low_exit", lambda b: b.replace("m < SHOVE_FAIL_N", "m < 0"), lambda: low_fixture()["short"] == 1),
     ("e_low_exit", lambda b: b.replace("h >= FLEE_HEALTH_FLOOR", "h > 1000"),
@@ -527,13 +569,19 @@ MUTANTS = [
     ("e_low_exit", lambda b: b.replace("health(ln) or ", ""), lambda: low_fixture()["flee_after"] == 2),
     ("_bitten_after", lambda b: b.replace("w + BITE_AFTER_S * 1000.0", "w + 1e9"),
      lambda: low_fixture()["bites_after"] == 2),
+    ("e_low_exit", lambda b: b.replace('w.get("low_exit") if ln.get("branch") == "threat" else None',
+                                       'w.get("low_exit")'), lambda: low_fixture()["exits"] == 2),
+    ("e_low_exit", lambda b: b.replace('c.get("yield") == "health"', 'c.get("yield") is not None'),
+     lambda: low_fixture()["corner_yields"] == 2),
     # P27-K3
     ("e_spent_held", lambda b: b.replace("pending.discard(p)", "pass"), lambda: spent_fixture()["replaces_after"] == 1),
     ("e_spent_held", lambda b: b.replace("ch <= 0", "ch < 0"), lambda: spent_fixture()["unchased"] == 1),
+    ("e_spent_held", lambda b: b.replace(' and E._sent(ln, "bandage")', ""),
+     lambda: spent_fixture()["replaces_after"] == 1),
     ("_bleeding", lambda b: b.replace('p.get("i") == part and ', ""),
      lambda: spent_fixture()["bleeding_while_held"] == 1),
     # P27-L
-    ("e_wounded_swing_off", lambda b: b.replace(' and c.get("misses") is not None', ""),
+    ("e_wounded_swing_off", lambda b: b.replace('["miss_breaks"]', '["break"]'),
      lambda: wounded_fixture()["breaks"] == 1),
     ("e_wounded_swing_off", lambda b: b.replace('E._sent(ln, "attack")', "True"),
      lambda: wounded_fixture()["swings"] == 1),

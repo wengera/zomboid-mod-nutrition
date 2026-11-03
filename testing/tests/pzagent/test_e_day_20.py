@@ -464,8 +464,8 @@ BASE_SENTENCE = (
     "P26-L1's divided swing withdrawn, WOUNDED_SWING off, P27-L; the controller re-bases this sentence to the commit "
     "the chain boots on)"
 )
-NEW17 = ("stuck_leave", "floor_finish", "fallen_seek", "listing", "shove_close", "stock_early", "low_exit", "spent_held",
-         "wounded_swing_off")
+NEW17 = ("stuck_leave", "floor_finish", "fallen_seek", "listing", "shove_close", "stock_early", "low_exit",
+         "spent_held", "wounded_swing_off")
 
 
 def test_the_copy_differs_from_e_day_19_only_in_the_expected_lines():
@@ -508,7 +508,8 @@ def test_the_copy_differs_from_e_day_19_only_in_the_expected_lines():
 def test_the_base_sentence_names_the_planner_s_head_at_the_copy():
     """The base sentence's commit is the planner's head the copy was made at (`git log -1 -- testing/agent/base/planner`
     at Task 6: b6ebd954, survival iteration 20 with its mutant pass); the controller re-bases it before the boot."""
-    assert "the base at `b6ebd954` (the planner: survival iteration 20 with its mutant pass)" in E.__doc__.splitlines()[0]
+    first = E.__doc__.splitlines()[0]
+    assert "the base at `b6ebd954` (the planner: survival iteration 20 with its mutant pass)" in first
 
 
 def test_the_grade_wired_is_grade_e17_of_the_grades_module():
