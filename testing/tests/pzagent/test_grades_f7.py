@@ -6,6 +6,8 @@ test_gates_f6's artifact (F3, `f_goals_4-20261030-114742`), and the real check o
 key equal to the committed `f_grade.txt`'s."""
 import json
 import os
+import subprocess
+import sys
 
 import pytest
 
@@ -263,3 +265,35 @@ def test_grade_f7_on_f7_reads_call_8_s_two_objects_no_open_line_no_reask_and_gra
     mine["grade"] = "grade_f6"
     mine["report_lines"] = mine["report_lines"][:-len(NEW)]
     assert mine == committed
+
+
+F8 = os.path.join(TESTING, "artifacts", "f_goals_9-20261102-181937")
+F9 = os.path.join(TESTING, "artifacts", "f_goals_10-20261102-231705")
+
+
+def test_f_grade_7_on_f8_reproduces_the_committed_f_grade_txt_byte_for_byte():
+    """Ruling P26-Q: `f_grade_7.py` on the committed F8 artifact reproduces its committed `f_grade.txt`
+    byte for byte (CRLF folded), so a drift in a live planner name the frozen grade reads
+    (`llm.objects`, `view.OPEN_KEY`) fails here."""
+    p = os.path.join(F8, "f_goals_9.json")
+    if not os.path.isfile(p):
+        pytest.skip("%s is not checked out" % F8)
+    script = os.path.join(TESTING, "agent", "drivers", "f_grade_7.py")
+    r = subprocess.run([sys.executable, script, p], capture_output=True, cwd=TESTING)
+    assert r.returncode == 0
+    want = open(os.path.join(F8, "f_grade.txt"), "rb").read().replace(b"\r\n", b"\n")
+    assert r.stdout.replace(b"\r\n", b"\n") == want
+
+
+def test_f_grade_7_on_f9_reproduces_the_committed_f_grade_txt_byte_for_byte():
+    """Ruling P26-Q: `f_grade_7.py` on the committed F9 artifact reproduces its committed `f_grade.txt`
+    byte for byte (CRLF folded), so a drift in a live planner name the frozen grade reads
+    (`llm.objects`, `view.OPEN_KEY`) fails here."""
+    p = os.path.join(F9, "f_goals_10.json")
+    if not os.path.isfile(p):
+        pytest.skip("%s is not checked out" % F9)
+    script = os.path.join(TESTING, "agent", "drivers", "f_grade_7.py")
+    r = subprocess.run([sys.executable, script, p], capture_output=True, cwd=TESTING)
+    assert r.returncode == 0
+    want = open(os.path.join(F9, "f_grade.txt"), "rb").read().replace(b"\r\n", b"\n")
+    assert r.stdout.replace(b"\r\n", b"\n") == want

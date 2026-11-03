@@ -6,6 +6,8 @@ P26-K2), each on a fabricated log where it counts and a clean one where it reads
 `e_grade.txt`'s and the new readings as the grade reads them there."""
 import json
 import os
+import subprocess
+import sys
 
 import pytest
 
@@ -398,3 +400,20 @@ def test_grade_e15_on_e16_keeps_every_grade_e13_key_through_grade_e14_and_reads_
     mine["grade"] = "grade_e13"
     mine["report_lines"] = mine["report_lines"][:-(len(NEW) + len(T14.NEW))]
     assert mine == _committed(E16)
+
+
+E18 = os.path.join(TESTING, "artifacts", "e_day_18-20261102-224036")
+
+
+def test_e_grade_15_on_e18_reproduces_the_committed_e_grade_txt_byte_for_byte():
+    """Ruling P26-Q: `e_grade_15.py` on the committed E18 artifact reproduces its committed `e_grade.txt`
+    byte for byte (CRLF folded), so a drift in a live planner name the frozen grade reads (`World._window_edge`,
+    `World.window_way`) fails here."""
+    p = os.path.join(E18, "e_day_18.json")
+    if not os.path.isfile(p):
+        pytest.skip("%s is not checked out" % E18)
+    script = os.path.join(TESTING, "agent", "drivers", "e_grade_15.py")
+    r = subprocess.run([sys.executable, script, p], capture_output=True, cwd=TESTING)
+    assert r.returncode == 0
+    want = open(os.path.join(E18, "e_grade.txt"), "rb").read().replace(b"\r\n", b"\n")
+    assert r.stdout.replace(b"\r\n", b"\n") == want

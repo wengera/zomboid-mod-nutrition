@@ -6,6 +6,8 @@ the real check on E16 (`e_day_16-20261102-125450`): the new keys zero there and 
 committed `e_grade.txt`'s."""
 import json
 import os
+import subprocess
+import sys
 
 import pytest
 
@@ -493,3 +495,20 @@ def test_grade_e14_on_e16_reads_iteration_17_s_keys_zero_and_every_grade_e13_key
     mine["grade"] = "grade_e13"
     mine["report_lines"] = mine["report_lines"][:-len(NEW)]
     assert mine == committed
+
+
+E17 = os.path.join(TESTING, "artifacts", "e_day_17-20261102-180459")
+
+
+def test_e_grade_14_on_e17_reproduces_the_committed_e_grade_txt_byte_for_byte():
+    """Ruling P26-Q: `e_grade_14.py` on the committed E17 artifact reproduces its committed `e_grade.txt`
+    byte for byte (CRLF folded), so a drift in a live planner name the frozen grade reads
+    (`policies.INSIDE_CROWD_N`) fails here."""
+    p = os.path.join(E17, "e_day_17.json")
+    if not os.path.isfile(p):
+        pytest.skip("%s is not checked out" % E17)
+    script = os.path.join(TESTING, "agent", "drivers", "e_grade_14.py")
+    r = subprocess.run([sys.executable, script, p], capture_output=True, cwd=TESTING)
+    assert r.returncode == 0
+    want = open(os.path.join(E17, "e_grade.txt"), "rb").read().replace(b"\r\n", b"\n")
+    assert r.stdout.replace(b"\r\n", b"\n") == want
