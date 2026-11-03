@@ -776,11 +776,11 @@ K.types.wear = {
 -- ISWearClothing.WalkBodyLocations (the accessory locations, lua:shared/TimedActions/ISWearClothing.lua:176-202). Its server
 -- complete empties the location (removeWornItem) and leaves the garment in the main inventory unless the inventory has no
 -- room for it (setWornItem places it on the floor then), where the RipClothing recipe accepts it (IsNotWorn refuses a worn or
--- held item). check: itemId a number (bad args), the item held (none held), worn (W.wornOf, isWorn(): else not worn), not in a
--- hand (getPrimaryHandItem() or getSecondaryHandItem() is the item: else held), and the player not moving unless the garment's
--- location is in WalkBodyLocations (isPlayerMoving: else moving; an absent list counts every location as stopping on a walk,
--- fail-closed). The first tick queues the action through
--- K.queueAction (not loaded, not valid). Done {itemId, loc} once getWornItems():contains(item) reads false with the item in
+-- held item). check: itemId a number (bad args), the item held (none held), worn (W.wornOf, isWorn(): else not
+-- worn), not in a hand (getPrimaryHandItem() or getSecondaryHandItem() is the item: else held), and the player not
+-- moving unless the garment's location is in WalkBodyLocations (isPlayerMoving: else moving; an absent list counts
+-- every location as stopping on a walk, fail-closed). The first tick queues the action through K.queueAction (not
+-- loaded, not valid). Done {itemId, loc} once getWornItems():contains(item) reads false with the item in
 -- the main inventory (ItemContainer.contains); failed dropped once it reads false with the item gone from it; failed stopped
 -- when the action left the vanilla queue UNWEAR_SETTLE_MS ago with it still worn (a run or a walk stopped it); UNWEAR_MS
 -- after the queue, interrupted. At every end the garment is marked for Sense's re-read (markWear: S.recheck, S.wornDirty).
@@ -788,9 +788,9 @@ K.types.wear = {
 -- (4a0e9546ec) InventoryItem.isEquipped @9-@34 L3359-L3360 answers IsoGameCharacter.isEquipped(item) for an item whose
 -- container's parent is a character, which @0-@21 L10551 reads isEquippedClothing(item) or isHandItem(item);
 -- isEquippedClothing @0-@5 L10556 is wornItems.contains(item), and isHandItem @0-@21 L3633 is isPrimaryHandItem or
--- isSecondaryHandItem (Clothing declares no isEquipped of its own). So isEquipped reads true for every worn garment, and
--- the old check refused every unwear held: F9 (f_goals_10-20261102-231705) sent the unwear of its worn T-shirt three times
--- (a91, a107, a121), each rejected held, while two parts bled, and died with no rag ripped.
+-- isSecondaryHandItem (Clothing declares no isEquipped of its own). So isEquipped reads true for every worn garment,
+-- and the old check refused every unwear held: F9 (f_goals_10-20261102-231705) sent the unwear of its worn T-shirt
+-- three times (a91, a107, a121), each rejected held, while two parts bled, and died with no rag ripped.
 K.UNWEAR_MS = 10000         -- a garment still worn this long after its queue is interrupted
 K.UNWEAR_SETTLE_MS = 2000   -- the server's complete reaches the client late; past this after the action left the queue, stopped
 
@@ -820,8 +820,8 @@ local function walkOk(it)
     return false
 end
 
--- whether the item sits in either hand: getPrimaryHandItem() or getSecondaryHandItem() is it (each index-checked through
--- PZA.call; an absent member reads no item there)
+-- whether the item sits in either hand: getPrimaryHandItem() or getSecondaryHandItem() is it (each index-checked
+-- through PZA.call; an absent member reads no item there)
 local function inHand(p, it)
     local _, a = PZA.call(p, "getPrimaryHandItem")
     if a ~= nil and a == it then return true end
