@@ -3359,7 +3359,7 @@ def gate_e12(outs):
 # (`doorway_left`, `doorway_drag`, `doorway_inside`, `doorway_exit`) are read through `_threat_why` on every line, because the
 # trapped tick the care took under P25-Q (branch "care") carries the threat's why, and `blocked_edge` is read at its three sites
 # (the threat's why, the goal's, the need's `fill`) on every line and counted by the branch that answered.
-from agent.base.planner.doorway import STAND_EXIT_ENDS    # noqa: E402 - P25-W: the ends that walk out
+STAND_EXIT_ENDS = ("wound", "drag", "inside")    # P25-W: the ends that walk out, frozen as iteration 16 had them (P26-N: the live tuple gained `crowd`)
 from agent.base.planner.policies import DRAG_DOWN_N       # noqa: E402 - P25-U: the stand's `drag` end reads at DRAG_DOWN_N - 1
 from agent.base.planner import edges as _edges            # noqa: E402 - P25-X: the planner's own edge read (`edge_read`, `_crossed`, `same_side`)
 from agent.base.planner import goal_policies as _gp       # noqa: E402 - P25-X: the goals whose legs read it (`_Legs`) and `leg_max`
