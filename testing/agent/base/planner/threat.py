@@ -126,9 +126,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     WINDOW_STALL = True   # ruling P26-J: a window way out's act holding the player within STUCK_MOVE for WINDOW_STALL_S
                           # is dropped and refused `stalled`, a first `interrupted` end sent again
                           # (`flee.Flee._stall_limit`, `_window_ended`); off, the act runs to its end, a failure refuses
-    STAND_CROWD = True    # ruling P26-K: the doorway stand ends `crowd` at STAND_CROWD_N held within DANGER_R, read
-                          # after `wound` and before `inside`, and walks out (`DoorwayStand._stand_crowd`); off, no such
-                          # end
+    STAND_CROWD = True    # ruling P26-K: the doorway stand ends `crowd` at STAND_CROWD_N standing held within DANGER_R,
+                          # read after `wound` and before `inside` (`DoorwayStand._stand_crowd`); it takes the close
+                          # with nobody inside, else walks out (P26-K2, `_stand_occupied`); off, no such end
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the

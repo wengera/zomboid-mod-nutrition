@@ -250,7 +250,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   - Survival 20 (iteration 18, E17): P26-I, a window way out needs an inside square that can be stood on
     (`night.window_exits`' `walkable`: E17's kitchen counter); P26-J, the window act stall-read as the walk is, an
     `interrupted` end sent once more (`flee.Flee._stall_limit`, `_window_ended`); P26-K, the doorway stand ends `crowd`
-    at STAND_CROWD_N held within DANGER_R and walks out (`doorway.DoorwayStand._stand_crowd`); `T8_SWITCHES`.
+    at STAND_CROWD_N standing held within DANGER_R, takes the close with nobody inside, else walks out (P26-K2:
+    `doorway.DoorwayStand._stand_crowd`, `_stand_occupied`); `T8_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already

@@ -23,8 +23,9 @@ The rule changes the end of a `many` flee's shelter steps (`policies.Flee`, ruli
   through it, and the `inside` end found no way out): a door whose building has no other way out on its floor (another
   door, an opening or a window, `night.exits`) is refused `one_exit`, so the stand is only taken where its ends under
   a group can walk out (P25-W). Ruling P26-K (`STAND_CROWD`; E17, E16 and E14 each died with five or six in the room
-  after the stand's end): the stand leaves once STAND_CROWD_N held zombies stand within DANGER_R (`crowd`), before
-  they reach the front.
+  after the stand's end): the stand leaves once STAND_CROWD_N standing held zombies are within DANGER_R (`crowd`),
+  before they reach the front; ruling P26-K2: with no zombie on the stand's room or its door square that end takes the
+  close, else the way out.
 - **The stand** (`Doorway`, a `policies.Fight` that never walks the open-ground stance machine): on the square inside
   the threshold the enter left it on (a room square of the building), the stance held facing out (an `aim` of (0, 0)
   facing the nearest listed zombie within AIM_R, else the bearing to the door's outside square); whatever comes within
@@ -41,9 +42,10 @@ The rule changes the end of a `many` flee's shelter steps (`policies.Flee`, ruli
   drag-down, two 3.001 s before; ruling R1 of review-t32-brief read DRAG_DOWN_N, `STAND_DRAG_EARLY` off), or the
   weapon is gone (`unarmed`: the stand swings a weapon), or a standing zombie reads on a square of the stand's room
   off the door square and not its target (`inside`: ruling P25-V, `stand_room`), or a part bleeds that did not when
-  the stand began (`wound`: ruling P25-K), or STAND_CROWD_N or more held zombies stand within DANGER_R (`crowd`:
-  ruling P26-K). After `wound`, `crowd`, `drag` or `inside` (ruling P25-W: the group is at or through the front, or
-  gathered before it) the plan is dropped and the Flee walks out of the building by its way out (`Flee.walk_out`,
+  the stand began (`wound`: ruling P25-K), or STAND_CROWD_N or more standing held zombies are within DANGER_R
+  (`crowd`: ruling P26-K). After `wound`, `crowd`, `drag` or `inside` (ruling P25-W: the group is at or through the
+  front, or gathered before it; but a `crowd` with nobody inside takes the close below, ruling P26-K2) the plan is
+  dropped and the Flee walks out of the building by its way out (`Flee.walk_out`,
   `policies.exit_plan`), else holds trapped; never the close, which in E14 shut the kitchen door with five zombies
   inside. After `health`, `unarmed` or `quiet` the plan goes back to its `close` step, sent from inside as today's
   shelter close (the Lua's `interact`: a close that fails reads `passed`, and the sheltered hold, the door fight, the
@@ -273,8 +275,8 @@ class DoorwayStand:
         - `wound` (ruling P25-K, `STAND_WOUND`; E12, #4431: the stand held the door from game minute 694 while the
           bleeding parts rose from 1 to 7, the first bite far above FLEE_HEALTH): a part reading `bleeding` that was not
           when the stand began (the start's indices kept on the plan, `bleed0`), logged `doorway_wound` (the indices);
-        - `crowd` (ruling P26-K, `STAND_CROWD`): STAND_CROWD_N or more held zombies within DANGER_R (`_stand_crowd`),
-          logged `doorway_crowd` {n};
+        - `crowd` (ruling P26-K, `STAND_CROWD`): STAND_CROWD_N or more standing held zombies within DANGER_R
+          (`_stand_crowd`: a fallen one is a stomp target, not a crowd), logged `doorway_crowd` {n};
         - `inside` (ruling P25-V, `STAND_INSIDE`): a standing zombie on a square of the stand's room, off its door
           square and not its target (`_stand_inside`), logged `doorway_inside` {id, square};
         - `drag` with the frame's `me.attackers` at DRAG_DOWN_N - 1 (ruling P25-U, `STAND_DRAG_EARLY`; off, at
@@ -291,7 +293,9 @@ class DoorwayStand:
           end's close shut the kitchen door with five zombies inside): the plan is dropped and the Flee walks out of
           the building (`Flee.walk_out`: the way out, else the trapped hold, never the close), `("flee", "doorway")` on
           the tick and while that way out runs (`Flee.stand_exit_running`), ahead of every row as the close ran; logged
-          `doorway_exit` on the tick (`_stand_exit_why`);
+          `doorway_exit` on the tick (`_stand_exit_why`); except a `crowd` with nobody inside (ruling P26-K2,
+          `_stand_occupied`: no zombie on a square of the stand's room nor on the door square; E17's line 364, every
+          zombie outside), which takes the close below, logged `doorway_exit` {end crowd, exit close};
         - `off` drops the plan, no close walked back to the door; the flee steers from the next row;
         - `health`, `unarmed` and `quiet` (and every end with `STAND_EXIT` off) put the plan back on its `close` step,
           and while that close runs `("flee", "doorway")`: the Flee sends it from inside and its end is the shelter's.
@@ -316,18 +320,24 @@ class DoorwayStand:
                 f._drop(False)   # the episode only steers from here (`picked` kept)
                 return None
             if self.STAND_EXIT and left in STAND_EXIT_ENDS:
-                self.stand_left = self.stand_exit = left
-                f.walk_out(left)
-                return "flee", "doorway"
+                if left == "crowd" and not self._stand_occupied(plan):
+                    self.stand_exit = left   # P26-K2: logged `doorway_exit` {crowd, close}; the plan keeps its close
+                else:
+                    self.stand_left = self.stand_exit = left
+                    f.walk_out(left)
+                    return "flee", "doorway"
             plan["step"] = "close"
         return ("flee", "doorway") if f.closing_stand() else None
 
     def _stand_exit_why(self, f):
         """Ruling P25-W's `doorway_exit` on the stand's end tick, read after the Flee answered: {end, exit}, `exit` the
-        way out the choose took ("door", "opening" or, ruling P26-A, "window": `policies.exit_kind`), "trapped" for
-        its trapped hold, "steer" off a room square (an end read within DOOR_OFF_R outside), else "deferred" (the
+        way out the choose took ("door", "opening" or, ruling P26-A, "window": `policies.exit_kind`), "close" for a
+        `crowd` end with nobody inside (ruling P26-K2: the plan kept on its close step), "trapped" for its trapped
+        hold, "steer" off a room square (an end read within DOOR_OFF_R outside), else "deferred" (the
         flee's own drop or finish took the tick)."""
-        if f.exit is not None:
+        if f.closing_stand():
+            kind = "close"
+        elif f.exit is not None:
             kind = exit_kind(self.world, f.exit)
         elif "trapped" in self.why:
             kind = "trapped"
@@ -376,12 +386,30 @@ class DoorwayStand:
         through the door and three across the window square beside it, the first bite 2 game minutes later and the
         death at game minute 617; E16 held five, then six; E14's five came in through the window square beside its
         door): with `STAND_CROWD` on, the count of the held zombies within DANGER_R (`_within`: those read dead and
-        those out of the hold across their blocked edge left out) when it is STAND_CROWD_N or more, else None. The pick
-        is unchanged: its `standing` condition already refuses more than DOOR_STAND_N standing within DANGER_R."""
+        those out of the hold across their blocked edge left out) that are standing (ruling P26-K2: not `onFloor`; a
+        fallen one is a stomp target, the finish rule's, not a crowd) when they are STAND_CROWD_N or more, else None.
+        The pick is unchanged: its `standing` condition already refuses more than DOOR_STAND_N standing within
+        DANGER_R."""
         if not self.STAND_CROWD:
             return None
-        n = len(self._within(DANGER_R))
+        n = sum(1 for z in self._within(DANGER_R) if not on_floor(z))
         return n if n >= STAND_CROWD_N else None
+
+    def _stand_occupied(self, plan):
+        """Ruling P26-K2 (E17's line 364: the `crowd` end with every held zombie outside): a zombie (not read dead, a
+        fallen one too, so a doubt walks out) is on a square of the stand's room (`stand_room`) or on the door square
+        itself, where a close would shut it in or fail on it. False: the `crowd` end takes the close."""
+        room = stand_room(self.world, plan)
+        door = plan["doors"][plan["door_i"]]
+        dead = blocked(self.dead, self.clock())
+        zf = me_floor(self.world)
+        for zid, z in self.world.zombies.items():
+            if zid in dead or z.get("x") is None or z.get("y") is None:
+                continue
+            sq = (int(math.floor(z["x"])), int(math.floor(z["y"])), zf)
+            if sq == door or sq in room:
+                return True
+        return False
 
     def _stand_inside(self, plan):
         """Ruling P25-V (E14: the stand faced the door square while five zombies crossed the window square beside the
