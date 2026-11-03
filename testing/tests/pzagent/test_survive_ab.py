@@ -2,8 +2,10 @@
 the 141.47037506103516 game minutes on the gate square with four walks `stuck` unmoved, the five kills by one swing at
 a fallen zombie, fight 2's stance legs at 20951 fallen 8.683652011883524 to 11.861148063389683 tiles off, line 386's
 listing; F10, `f_goals_11-20261103-075140`, its `GUIDE.md` §§ 2 to 6: the hold's lone fight at 27031, the undressed
-bleed, the low fight's hall at 26967, the spent replaces, P26-L1's swings). The fake mod over PZA/1.7.1; each test's
-geometry is simplified from the line its docstring names.
+bleed, the low fight's hall at 26967, the spent replaces, P26-L1's swings); and its fix 2 from E20,
+`e_day_20-20261103-121340`, its `GUIDE.md` §§ 3 and 4: the attack a190 at 3189 from 1.8161174585612616 tiles, the
+26 lines with the marked biter at point blank and nothing sent, the `health` flee's 98 lines with six dressings held
+and none sent. The fake mod over PZA/1.7.1; each test's geometry is simplified from the line its docstring names.
 
 - P27-F, the stuck square (`STUCK_LEAVE`): a goal walk ended `stuck` unmoved marks its square and its route's first
   edge for STUCK_MARK_MIN (logged `stuck_mark`); the scripted source never rests there (logged `leave`); the view
@@ -27,6 +29,12 @@ geometry is simplified from the line its docstring names.
 - P27-K3, the replace held off under a chaser (`REPLACE_QUIET`): no replace while a listed zombie chases (logged
   `spent_held`).
 - P27-L, P26-L1's divided swing withdrawn: `WOUNDED_SWING` off by default.
+- Fix 2, P27-M, the attack within reach (`ATTACK_REACH`): the standing fight's attack only within the frame's
+  `weapon.reach` plus ATTACK_MARGIN (logged `attack`), the stance standing beyond it (logged `attack_held`) and the
+  advance a walk to it (logged `reach_walk`); the floor swing keeps FIGHT_REACH.
+- Fix 2, P27-N, a zombie at point blank never dropped (`POINT_BLANK_PIN`): a marked zombie within POINT_BLANK_R, or the
+  one read attacking, is pinned, shoved, then swung at (logged `pinned` {why}); never one across a wall or a refused
+  edge.
 """
 import pytest
 
@@ -901,10 +909,11 @@ def test_the_care_carries_stock_early_and_the_yield_reads_it_there(tmp_path):
 def test_the_iteration_20_switches_and_constants():
     """`survive.T10_SWITCHES`, each on by default (P27-L's withdrawal is `WOUNDED_SWING`'s default, in T8_SWITCHES),
     the Fight's rules they hand down and policies.py's three new constants (the controller's numbers) and the leave's
-    distance. Named change, Plan 27 Task 5 fix 2: the tuple ends with fix 2's switches (P27-M's ATTACK_REACH)."""
+    distance. Named change, Plan 27 Task 5 fix 2: the tuple's first eight, fix 2's switches after them
+    (`test_the_fix_2_switches_and_constants`)."""
     from agent.base.planner import fight as F
-    assert S.T10_SWITCHES == ("STUCK_LEAVE", "FLOOR_FINISH", "FALLEN_SEEK", "LISTING_FALLEN", "SHOVE_CLOSE",
-                              "STOCK_EARLY", "LOW_EXIT", "REPLACE_QUIET", "ATTACK_REACH")
+    assert S.T10_SWITCHES[:8] == ("STUCK_LEAVE", "FLOOR_FINISH", "FALLEN_SEEK", "LISTING_FALLEN", "SHOVE_CLOSE",
+                                  "STOCK_EARLY", "LOW_EXIT", "REPLACE_QUIET")
     assert "T10_SWITCHES" in S.__all__ and all(getattr(S.Survive, name) is True for name in S.T10_SWITCHES)
     assert not set(S.T10_SWITCHES) & set(S.T9_SWITCHES + S.T8_SWITCHES + S.T7_SWITCHES)
     assert {"floor_finish", "fallen_seek", "shove_close", "low_exit"} <= set(F.FIGHT_RULES)
@@ -1046,6 +1055,96 @@ def test_the_fix_2_switches_and_constants():
     """Iteration 20's fix 2: its switches in `T10_SWITCHES`, on by default, the Fight's rules they hand down, and its
     constants (ATTACK_MARGIN the controller's number; WALK_DONE_R the Lua walk's K.DONE_R)."""
     from agent.base.planner import fight as F
-    assert S.T10_SWITCHES[-1:] == ("ATTACK_REACH",) and S.Survive.ATTACK_REACH is True
-    assert "attack_reach" in F.FIGHT_RULES
+    assert S.T10_SWITCHES[8:] == ("ATTACK_REACH", "POINT_BLANK_PIN")
+    assert all(getattr(S.Survive, name) is True for name in S.T10_SWITCHES[8:])
+    assert {"attack_reach", "point_blank_pin"} <= set(F.FIGHT_RULES)
     assert (P.ATTACK_MARGIN, P.WALK_DONE_R) == (0.35, 1.0)
+
+
+# ================================================================ P27-N: a zombie at point blank is never dropped
+BITER = 100.10591989736684569   # E20's 3189 at 0.10591989736684569 tiles from seq 6375 (GUIDE § 3), marked no-progress
+OTHER = z(2, 107.715, has_target=False)   # E20's 3188, idle 7.715 tiles off, held (so no `unreachable` flee)
+
+
+def marked_at(tmp_path, x, on=True, **k):
+    """E20's lines 722-747 simplified: the Fight running at zombie 1 (its stance leg sent at 2.4 tiles, so the hold
+    radius is DISENGAGE_R and 3188's stand-in, idle beyond DANGER_R, is held), then zombie 1 `x - 100` tiles east marked
+    unreachable (the no-progress stall's mark) and the character bitten (`me.attackers` 1). Returns (r, sv, the
+    marked tick's send)."""
+    r, sv = make(tmp_path)
+    sv.POINT_BLANK_PIN = on
+    fr(r, [z(1, 102.4), OTHER], weapon=E20_BAT)
+    accept(r, tick(r, sv))
+    assert sv.mode == "fight"
+    sv.unreachable[1] = r.clock() + P.UNREACHABLE_S
+    fr(r, [z(1, x), OTHER], weapon=E20_BAT, attackers=1, health=74.65353393554688, **k)
+    return r, sv, tick(r, sv)
+
+
+def test_e20_s_marked_zombie_at_point_blank_is_pinned_shoved_then_swung_at(tmp_path):
+    """E20's lines 722-747 (26 lines, 12.603 s: the why `target` null, `unreachable` [3189], nothing sent, 3189 0.507 to
+    1.576 tiles off and biting): the marked zombie at 0.106 tiles is pinned, logged `pinned` {why "point_blank"}, and
+    shoved (the knock-down's chance); on the next tick the swing."""
+    r, sv, a = marked_at(tmp_path, BITER)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args) == ("shove", {"targetId": 1}) and w["pinned"] == {"why": "point_blank"}
+    assert w["target"] == 1 and w["unreachable"] == [1]
+    r.answer({"state": "done", "result": {"knockdown": False, "attackStarted": True, "targetDead": False}})
+    fr(r, [z(1, BITER), OTHER], weapon=E20_BAT, attackers=1, health=64.84652709960938)
+    b = tick(r, sv)
+    assert (b.type, b.args) == ("attack", {"targetId": 1}) and threat_why(tmp_path)["pinned"] == {"why": "point_blank"}
+
+
+def test_the_attacker_is_pinned_through_its_hit_reaction_and_shoved_on_the_next_allowed_tick(tmp_path):
+    """A marked zombie 1.3 tiles off (beyond point blank) on a frame reading `me.attackers` 1 with the `Bite` reaction,
+    the nearest listed: pinned, logged `pinned` {why "attacker"}, nothing sent while the reaction lasts (the engine
+    starts no swing in it); on the next frame, the reaction over, the shove, then the swing."""
+    r, sv, a = marked_at(tmp_path, 101.3, hit_reaction="Bite")
+    w = threat_why(tmp_path)
+    assert a is None and w["pinned"] == {"why": "attacker"} and w["hitReaction"] == "Bite"
+    r.advance(0.5)
+    fr(r, [z(1, 101.3), OTHER], weapon=E20_BAT, attackers=1)
+    b = tick(r, sv)
+    assert (b.type, b.args) == ("shove", {"targetId": 1}) and threat_why(tmp_path)["pinned"] == {"why": "attacker"}
+    r.answer({"state": "done", "result": {"knockdown": False, "attackStarted": True, "targetDead": False}})
+    fr(r, [z(1, 101.3), OTHER], weapon=E20_BAT, attackers=0)
+    assert tick(r, sv).args == {"targetId": 1} and r.acts.history[-1].type == "attack"
+
+
+def test_a_marked_zombie_at_3_tiles_stays_left_out(tmp_path):
+    """The mark stands beyond point blank with no attack read: zombie 1 marked 3 tiles off, 3188's stand-in idle at
+    7.7: the Fight's target is the other one, never 1, no `pinned` {why}."""
+    r, sv, a = marked_at(tmp_path, 103.0)
+    w = threat_why(tmp_path)
+    assert w.get("target") != 1 and not isinstance(w.get("pinned"), dict)
+    assert all(x.args.get("targetId") != 1 for x in r.acts.history[1:])   # the stance leg before the mark aside
+
+
+def test_with_point_blank_pin_off_the_marked_zombie_at_point_blank_is_left_out(tmp_path):
+    """`test_e20_s_marked_zombie_at_point_blank_is_pinned_shoved_then_swung_at`'s geometry with `POINT_BLANK_PIN` off:
+    no send at zombie 1, as on E20's 26 lines."""
+    r, sv, a = marked_at(tmp_path, BITER, on=False)
+    assert all(x.args.get("targetId") != 1 for x in r.acts.history[1:]) and threat_why(tmp_path).get("target") != 1
+
+
+def test_a_marked_zombie_at_point_blank_across_a_wall_or_a_refused_edge_stays_left_out(tmp_path):
+    """The pin's guards: zombie 1 marked 0.5 tiles off across the player's north wall (its line read blocked: P23-K's
+    zombie behind a locked door), or marked with a refusal across a known blocked edge (`edge_marks`, P25-X: the sixth
+    golden's gate zombie 15885 at 0.9282266374931059 tiles across the fence row): no pin, nothing sent at it."""
+    from .test_policies import behind_wall_n
+    for case in ("wall", "edge"):
+        d = tmp_path / case
+        d.mkdir()
+        r, sv = make(d)
+        if case == "wall":
+            r.scan(behind_wall_n())
+        fr(r, [z(1, 102.4), OTHER], weapon=E20_BAT)
+        accept(r, tick(r, sv))
+        sv.unreachable[1] = r.clock() + P.UNREACHABLE_S
+        if case == "edge":
+            sv.edge_marks[1] = ((100, 200, 0), "N")
+        fr(r, [z(1, 100.0, 199.5), OTHER], weapon=E20_BAT, attackers=0)
+        tick(r, sv)
+        w = threat_why(d)
+        assert not isinstance(w.get("pinned"), dict), case
+        assert all(x.args.get("targetId") != 1 for x in r.acts.history[1:]), case

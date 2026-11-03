@@ -279,7 +279,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     P27-L, P26-L1's divided swing withdrawn (`threat.Threat.WOUNDED_SWING` off by default, kept in `T8_SWITCHES`).
     Its fix 2 (E20, `e_day_20-20261103-121340`, in `T10_SWITCHES`): P27-M, the standing fight's attack at a standing
     zombie only within the frame's `weapon.reach` plus ATTACK_MARGIN, the stance standing beyond it and the advance a
-    walk at a walk to it (`fight.Fight._attack_hold`, `_reach_walk`).
+    walk at a walk to it (`fight.Fight._attack_hold`, `_reach_walk`); P27-N, a zombie at point blank or read
+    attacking never left out by a mark, pinned, shoved then swung at (`fight.Fight._pin_free`, `_pin_send`).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -400,11 +401,11 @@ T9_SWITCHES = ("FLEE_FINISH", "MANY_TAIL", "HOLD_LONE", "HOLD_REST", "SPENT_KEEP
 # survival iteration 19 (Plan 27 Task 1): P27-A to P27-C2 and P27-E on `threat.Threat` (FLEE_FINISH, MANY_TAIL,
 # HOLD_LONE, HOLD_REST, LOW_SWING); P27-D on `Survive` (SPENT_KEEP)
 T10_SWITCHES = ("STUCK_LEAVE", "FLOOR_FINISH", "FALLEN_SEEK", "LISTING_FALLEN", "SHOVE_CLOSE", "STOCK_EARLY",
-                "LOW_EXIT", "REPLACE_QUIET", "ATTACK_REACH")
+                "LOW_EXIT", "REPLACE_QUIET", "ATTACK_REACH", "POINT_BLANK_PIN")
 # survival iteration 20 (Plan 27 Task 5): P27-F, P27-K1 and P27-K3 on `Survive` (STUCK_LEAVE, read by the goal runner;
 # STOCK_EARLY; REPLACE_QUIET, copied to the Care); P27-G to P27-J and P27-K2 on `threat.Threat` (FLOOR_FINISH,
-# FALLEN_SEEK, LISTING_FALLEN, SHOVE_CLOSE, LOW_EXIT); its fix 2 (Task 5 fix 2, E20): P27-M on `threat.Threat`
-# (ATTACK_REACH)
+# FALLEN_SEEK, LISTING_FALLEN, SHOVE_CLOSE, LOW_EXIT); its fix 2 (Task 5 fix 2, E20): P27-M and P27-N on
+# `threat.Threat` (ATTACK_REACH, POINT_BLANK_PIN)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")

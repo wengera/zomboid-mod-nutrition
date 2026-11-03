@@ -182,6 +182,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     ATTACK_REACH = True   # ruling P27-M: the standing fight's attack at a standing zombie only within the frame's
                           # `weapon.reach` plus ATTACK_MARGIN, the stance standing beyond it and the advance a walk to
                           # it (`fight.Fight._attack_hold`, `_reach_walk`); off, the attack within FIGHT_REACH
+    POINT_BLANK_PIN = True   # ruling P27-N: a zombie within POINT_BLANK_R, or the nearest listed while the frame reads
+                             # it attacking, is never left out of the Fight's targets by a mark, pinned and shoved,
+                             # then swung at (`fight.Fight._pin_free`, `_pin_send`); off, the marks leave it out
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -999,7 +1002,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("wounded_swing", self.WOUNDED_SWING),
                                                ("low_swing", self.LOW_SWING), ("floor_finish", self.FLOOR_FINISH),
                                                ("fallen_seek", self.FALLEN_SEEK), ("shove_close", self.SHOVE_CLOSE),
-                                               ("low_exit", self.LOW_EXIT), ("attack_reach", self.ATTACK_REACH))
+                                               ("low_exit", self.LOW_EXIT), ("attack_reach", self.ATTACK_REACH),
+                                               ("point_blank_pin", self.POINT_BLANK_PIN))
                          if on)
 
     def _flee_rules(self):

@@ -217,10 +217,18 @@ def test_the_no_progress_constants():
     assert (P.STALL_SWINGS, P.UNREACHABLE_S) == (3, 20.0)
 
 
+def pre_pin(f):
+    """Named change, Plan 27 Task 5 fix 2: P27-N (`point_blank_pin`, Survive's POINT_BLANK_PIN) off, the rule before
+    it: these fixtures' zombie stands at 1.0 tiles, POINT_BLANK_R, where no mark leaves a zombie out since P27-N
+    (`test_survive_ab`)."""
+    f.rules = f.rules - {"point_blank_pin"}
+    return f
+
+
 def test_three_started_swings_that_take_no_health_make_the_target_unreachable(tmp_path):
     r = Rig(tmp_path)
     r.frame(zombies=[zh(7, 101.0, 200.0, 1.167)])
-    f = Fight(r.world, r.acts, r.clock)
+    f = pre_pin(Fight(r.world, r.acts, r.clock))
     for _ in range(3):
         swing_at(r, f, 7, 101.0, 1.167)
     a = f.step()                                             # the fourth decision
@@ -240,7 +248,7 @@ def test_an_unreachable_target_falls_through_to_another(tmp_path):
     r = Rig(tmp_path)
     two = lambda: [zh(7, 101.0, 200.0, 1.167), zh(8, 101.5, 201.0, 1.0)]
     r.frame(zombies=two())
-    f = Fight(r.world, r.acts, r.clock)
+    f = pre_pin(Fight(r.world, r.acts, r.clock))
     for _ in range(3):
         f.step()
         assert r.cmd() == ("attack", {"targetId": 7})
@@ -263,7 +271,7 @@ def test_swings_whose_target_loses_health_keep_the_fight(tmp_path):
 def test_a_done_swing_not_started_does_not_count(tmp_path):
     r = Rig(tmp_path)
     r.frame(zombies=[zh(7, 101.0, 200.0, 1.0)])
-    f = Fight(r.world, r.acts, r.clock)
+    f = pre_pin(Fight(r.world, r.acts, r.clock))
     swing_at(r, f, 7, 101.0, 1.0)
     swing_at(r, f, 7, 101.0, 1.0, started=False)
     swing_at(r, f, 7, 101.0, 1.0)
@@ -279,12 +287,12 @@ def test_the_unreachable_memory_is_shared_with_a_later_fight(tmp_path):
     r = Rig(tmp_path)
     r.frame(zombies=[zh(7, 101.0, 200.0, 1.0)])
     memo = {}
-    f = Fight(r.world, r.acts, r.clock, unreachable=memo)
+    f = pre_pin(Fight(r.world, r.acts, r.clock, unreachable=memo))
     for _ in range(3):
         swing_at(r, f, 7, 101.0, 1.0)
     f.step()
     assert set(memo) == {7}
-    assert Fight(r.world, r.acts, r.clock, unreachable=memo).step() is None
+    assert pre_pin(Fight(r.world, r.acts, r.clock, unreachable=memo)).step() is None
 
 
 def test_a_nil_id_zombie_is_never_a_target(tmp_path):
@@ -1210,13 +1218,14 @@ def test_exit_plan_refuses_an_opening_whose_line_passes_a_threat_within_exit_cle
 
 def test_a_cornered_fight_never_skips_a_marked_zombie_within_mark_free_r(tmp_path):
     """Fix round 1 (the review's I3): zombie 7 marked unreachable at 1.0 tiles: a plain Fight skips it, a cornered
-    one (`mark_free_r` 1.5) swings at it; beyond the radius the mark holds."""
+    one (`mark_free_r` 1.5) swings at it; beyond the radius the mark holds. Named change, Plan 27 Task 5 fix 2:
+    `pre_pin`."""
     for free, want in ((0.0, None), (1.5, ("attack", {"targetId": 7}))):
         d = tmp_path / str(free)
         d.mkdir()
         r = Rig(d)
         r.frame(zombies=[zombie(7, 101.0, 200.0)])
-        f = Fight(r.world, r.acts, r.clock, unreachable={7: r.clock() + 20.0})
+        f = pre_pin(Fight(r.world, r.acts, r.clock, unreachable={7: r.clock() + 20.0}))
         f.mark_free_r = free
         a = f.step()
         assert (r.cmd() if a is not None else None) == want
