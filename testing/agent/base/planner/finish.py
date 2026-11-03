@@ -10,11 +10,11 @@ docstrings stay the record.
 """
 import math
 
-from agent.base.planner.policies import (DANGER_R, FIGHT_REACH, FINISH_CLEAR_R, FINISH_R, KEEP_R, LISTED_R,
-                                         POINT_BLANK_R, PREEMPTED, SHOVE_R, STAND_MIN_R, UNREACHABLE_S, arms_hurt,
-                                         blocked, chasing, hit_reaction, line_to, on_floor, running, standing,
-                                         target_id_ok, zdist)
-from agent.base.pza1 import Attack, Shove, Stomp
+from agent.base.planner.policies import (DANGER_R, FALLEN_SEEK_TICKS, FIGHT_REACH, FINISH_CLEAR_R, FINISH_R, KEEP_R,
+                                         LISTED_R, POINT_BLANK_R, PREEMPTED, SEEK_SKIP_S, SHOVE_R, STAND_MIN_R,
+                                         UNREACHABLE_S, arms_hurt, blocked, centre, chasing, hit_reaction, line_to,
+                                         on_floor, running, standing, target_id_ok, zdist)
+from agent.base.pza1 import Attack, Shove, Stomp, WalkTo
 
 FLEE_FINISH_REASONS = ("strain", "pair", "many")   # the flee reasons whose episode takes the finish (P27-A)
 
@@ -485,3 +485,44 @@ class FightFinish:
         self.why = {"target": self.target, "pinned": self.target is not None, "dist": d,
                     "finish_first": {"target": pick[0], "dist": pick[1]}}
         return Stomp(pick[0])
+
+    def _observe_fallen(self, t):
+        """Ruling P27-H's count, every observe: `_fallen` (target id, consecutive observes) while the `fallen_seek` rule
+        is on and target `t` (id, zombie, dist) reads `onFloor` beyond FINISH_R in the standing fight's range
+        (`stance_at`); any other read resets it."""
+        if ("fallen_seek" not in self.rules or t is None or not on_floor(t[1]) or t[2] <= FINISH_R
+                or not self.stance_at(t[2])):
+            self._fallen = None
+            return
+        n = self._fallen[1] + 1 if self._fallen is not None and self._fallen[0] == t[0] else 1
+        self._fallen = (t[0], n)
+
+    def _fallen_due(self, t):
+        """P27-H: target `t` has read fallen beyond FINISH_R on FALLEN_SEEK_TICKS consecutive observes (`_fallen`)."""
+        return (t is not None and self._fallen is not None and self._fallen[0] == t[0]
+                and self._fallen[1] >= FALLEN_SEEK_TICKS)
+
+    def _fallen_seek(self, t):
+        """Ruling P27-H (`fallen_seek`, Survive's FALLEN_SEEK; E19, `e_day_19-20261103-072904`: fight 2's eleven stance
+        legs stood 20.437649965286255 s at 20951, read fallen and unmoving 8.683652011883524 to 11.861148063389683 tiles
+        off, until the look behind fled, #4556): once `_fallen_due` reads target `t` (a running stance leg giving way
+        to it, `busy`), with no standing zombie within DANGER_R and its line not read blocked, `(WalkTo,)` of its
+        square's centre at a walk (the far finish's walk: the stance walk `fallen`, giving way within FINISH_R, where
+        the finish rule takes it, or when it stands), logged `fallen_seek` {target, dist, ticks}; else the stance on it
+        ends: it is marked unreachable for SEEK_SKIP_S (the seek's skip, so no engage re-reads it meanwhile) and the
+        Fight chooses again without it, `(command,)`, logged `fallen_seek` {..., left True} (with nothing else held the
+        threat branch releases the Fight, `Engage._released`, and the goal runs). None while not due. Cost if wrong: a
+        walk to one that rises (the finish rule reads it standing and the ordinary fight takes it)."""
+        if not self._fallen_due(t):
+            return None
+        zid, z, d = t
+        read = {"target": zid, "dist": d, "ticks": self._fallen[1]}
+        self._fallen = None
+        if self._standing_near(DANGER_R) is None and line_to(self.world, z) is not False:
+            self.why = {"target": zid, "pinned": True, "dist": d, "fallen_seek": read}
+            self._walk_kind = "fallen"
+            return (WalkTo(*centre((z["x"], z["y"])), "walk"),)
+        self._mark_unreachable(zid, SEEK_SKIP_S)
+        cmd = self._choose()
+        self.why = dict(self.why, fallen_seek=dict(read, left=True))
+        return (cmd,)

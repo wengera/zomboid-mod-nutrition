@@ -297,6 +297,10 @@ STUCK_MARK_MIN = 30.0     # game minutes a square a goal walk ended `stuck` on u
 STUCK_LEAVE_R = 10.0      # tiles from a marked square the scripted source's walk away from its edge goes (P27-F, with
                           # no building to walk back to): SCAN_R's place, the next place over, a judgment (the brief
                           # names the walk and no distance)
+FALLEN_SEEK_TICKS = 4     # consecutive ticks a standing fight's target reads fallen beyond FINISH_R before it is walked
+                          # to or left (P27-H): E19's fight 2 stood eleven stance legs, 20.437649965286255 s, at 20951
+                          # lying 8.683652011883524 to 11.861148063389683 tiles off; MANY_TAIL_TICKS' four (two seconds
+                          # at the drivers' PLANNER_HZ 2) rule out one frame's fall, the controller's number
 
 
 def place_of(world):

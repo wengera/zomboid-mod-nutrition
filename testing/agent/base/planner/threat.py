@@ -159,6 +159,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # swing at a fallen zombie within FIGHT_REACH ahead of the stomp, and no stomp goes while a
                           # strike at it runs (`finish.FightFinish._floor_finish`, `ThreatFinish._flee_finish`); off,
                           # the stomp first (P24-AL, P24-AQ)
+    FALLEN_SEEK = True    # ruling P27-H: a standing fight whose target reads fallen beyond FINISH_R on
+                          # FALLEN_SEEK_TICKS ticks walks to it, or with a standing zombie within DANGER_R or its line
+                          # blocked leaves it (`finish.FightFinish._fallen_seek`); off, the stance stands at it
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -902,7 +905,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("shove_break_run", self.SHOVE_BREAK_RUN),
                                                ("blocked_edge", self.BLOCKED_EDGE),
                                                ("wounded_swing", self.WOUNDED_SWING),
-                                               ("low_swing", self.LOW_SWING), ("floor_finish", self.FLOOR_FINISH))
+                                               ("low_swing", self.LOW_SWING), ("floor_finish", self.FLOOR_FINISH),
+                                               ("fallen_seek", self.FALLEN_SEEK))
                          if on)
 
     def _flee_rules(self):

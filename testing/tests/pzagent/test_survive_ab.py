@@ -310,3 +310,80 @@ def test_the_flee_finish_holds_while_a_strike_at_its_fallen_zombie_runs(tmp_path
             assert got is None and w["strike_runs"] == {"target": 1, "aid": a.aid} and sends(r)[-1] == "attack"
         else:
             assert got.type == "stomp"
+
+
+# ================================================================ P27-H: the stance at a fallen zombie out of reach
+FAR = 108.683652011883524   # E19's fight 2: 20951 read fallen and unmoving 8.683652011883524 tiles off (GUIDE § 4)
+
+
+def stance_then_fallen(tmp_path, extra=(), wall=False):
+    """E19's fight 2 simplified: the Fight takes the stance at zombie 1 chasing 2.4 tiles off (sought at once, within
+    KEEP_R), then the frames read it fallen FAR - 100 tiles off (with `extra` zombies; `wall`: a room square's west wall
+    at x 104 on the line, which no P25-X read takes). Returns (r, sv) after the stance's first leg."""
+    r, sv = make(tmp_path)
+    if wall:
+        r.scan([square(x, 200, room="hall" if x == 104 else None, blockW=x == 104) for x in range(99, 111)])
+    fr(r, [z(1, 102.4)])
+    assert tick(r, sv).type == "aim" and sv.mode == "fight"
+    return r, sv
+
+
+def fallen_tick(r, sv, extra=()):
+    r.advance(0.5)
+    fr(r, [z(1, FAR, floor=True)] + list(extra))
+    return tick(r, sv)
+
+
+def test_e19_s_stance_at_a_fallen_target_beyond_finish_r_walks_to_it_after_fallen_seek_ticks(tmp_path):
+    """E19's fight 2 (eleven stance legs, 20.437649965286255 s, at 20951 lying 8.68 to 11.86 tiles off): three ticks
+    the stance stands (its leg held, or the stand leg once the back leg gives way), the FALLEN_SEEK_TICKS-th the leg
+    gives way and the walk to it goes at a walk, logged
+    `fallen_seek` {target, dist, ticks 4}; once it lies within FINISH_R the finish's stomp takes it."""
+    r, sv = stance_then_fallen(tmp_path)
+    for _ in range(P.FALLEN_SEEK_TICKS - 1):
+        a = fallen_tick(r, sv)
+        assert (a is None or a.type == "aim") and "fallen_seek" not in threat_why(tmp_path)
+    a = fallen_tick(r, sv)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args) == ("walkTo", {"x": 108.5, "y": 200.5, "gait": "walk"})
+    assert w["fallen_seek"] == {"target": 1, "dist": pytest.approx(FAR - 100.0), "ticks": P.FALLEN_SEEK_TICKS}
+    r.fake.act(a.aid, "accepted", "walkTo")
+    r.pump()
+    r.advance(0.5)
+    fr(r, [z(1, 104.5, floor=True)])
+    assert tick(r, sv).type == "stomp"
+
+
+def test_a_standing_zombie_within_danger_r_leaves_the_fallen_target(tmp_path):
+    """The same stance with a second zombie standing idle 5 tiles south (within DANGER_R): no walk; the stance on the
+    fallen one ends (`fallen_seek` {left True}), marked unreachable, and the Fight takes the standing one."""
+    r, sv = stance_then_fallen(tmp_path)
+    other = [z(2, 100.0, 205.0, has_target=False)]
+    for _ in range(P.FALLEN_SEEK_TICKS - 1):
+        fallen_tick(r, sv, other)
+    a = fallen_tick(r, sv, other)
+    w = threat_why(tmp_path)
+    assert w["fallen_seek"]["left"] is True and 1 in sv.unreachable and "walkTo" not in sends(r)
+    assert w["target"] == 2 and a is not None and a.args.get("targetId") == 2
+
+
+def test_a_fallen_target_behind_a_wall_is_left_and_the_fight_released(tmp_path):
+    """A wall on the line to the fallen one (a room square's west edge at x 104, no P25-X read): no walk, `left` True,
+    and on the next tick, nothing else held, the threat branch releases the Fight (the goal's tick)."""
+    r, sv = stance_then_fallen(tmp_path, wall=True)
+    for _ in range(P.FALLEN_SEEK_TICKS):
+        fallen_tick(r, sv)
+    assert threat_why(tmp_path)["fallen_seek"]["left"] is True and "walkTo" not in sends(r)
+    fallen_tick(r, sv)
+    assert sv.mode is None and last(tmp_path)["branch"] != "threat"
+
+
+def test_with_fallen_seek_off_the_stance_stands_at_the_fallen_target(tmp_path):
+    """`test_e19_s_stance_at_a_fallen_target_beyond_finish_r_walks_to_it_after_fallen_seek_ticks`'s geometry with
+    `FALLEN_SEEK` off: six fallen ticks, no walk, no `fallen_seek`."""
+    r, sv = stance_then_fallen(tmp_path)
+    sv.FALLEN_SEEK = False
+    for _ in range(6):
+        fallen_tick(r, sv)
+        assert "fallen_seek" not in threat_why(tmp_path)
+    assert "walkTo" not in sends(r)
