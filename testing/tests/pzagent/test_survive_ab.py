@@ -35,9 +35,12 @@ and none sent. The fake mod over PZA/1.7.1; each test's geometry is simplified f
 - Fix 2, P27-N, a zombie at point blank never dropped (`POINT_BLANK_PIN`): a marked zombie within POINT_BLANK_R, or the
   one read attacking, is pinned, shoved, then swung at (logged `pinned` {why}); never one across a wall or a refused
   edge.
+- Fix 2, P27-O, the `health` flee rides the bleed (`HEALTH_RIDE`): the bandage rides that flee's leg whatever the
+  distance once FLEE_CARE_S have passed since it began with a part bleeding (logged `ride` {flee "health"}).
 """
 import pytest
 
+from agent.base.planner import care as C
 from agent.base.planner import goal_prompt as GP
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
@@ -1055,7 +1058,7 @@ def test_the_fix_2_switches_and_constants():
     """Iteration 20's fix 2: its switches in `T10_SWITCHES`, on by default, the Fight's rules they hand down, and its
     constants (ATTACK_MARGIN the controller's number; WALK_DONE_R the Lua walk's K.DONE_R)."""
     from agent.base.planner import fight as F
-    assert S.T10_SWITCHES[8:] == ("ATTACK_REACH", "POINT_BLANK_PIN")
+    assert S.T10_SWITCHES[8:] == ("ATTACK_REACH", "POINT_BLANK_PIN", "HEALTH_RIDE")
     assert all(getattr(S.Survive, name) is True for name in S.T10_SWITCHES[8:])
     assert {"attack_reach", "point_blank_pin"} <= set(F.FIGHT_RULES)
     assert (P.ATTACK_MARGIN, P.WALK_DONE_R) == (0.35, 1.0)
@@ -1161,3 +1164,82 @@ def test_the_fight_s_own_pin_leaves_out_a_zombie_refused_across_a_blocked_edge(t
     f.edge_marks = {1: ((100, 200, 0), "N")}
     a = f.step()
     assert f.target == 2 and a is not None and a.args.get("targetId") != 1 and f._pin_free() == {}
+
+
+# ================================================================ P27-O: the `health` flee rides the bleed
+E20_FLEE_H = 19.266738891601562   # E20's line 748: the `health` flee began at this health (GUIDE § 4)
+E20_PARTS = [part(9, bleeding=True, bleedingTime=12.950828552246094),
+             part(7, bleeding=True, bleedingTime=22.198352813720703)]   # E20's two bleeding parts at the last
+# frame, seq 6605 (part 9 from seq 6379, part 7 from seq 6447)
+
+
+def health_flee(tmp_path, x, since=None, on=True, attackers=0):
+    """E20's `health` flee (line 748 on): health 19.266738891601562 with 3189 chasing, parts 9 and 7 bleeding, the
+    looted bandage and five rags held (six dressings); the flee's steer sent at 2.5 tiles and running; then the frame
+    with the chaser `x - 100` tiles behind, ticked. `since`: wall seconds since the `health` flee began (Survive's
+    `health_since`), else as the tick set it."""
+    r, sv = make(tmp_path)
+    sv.HEALTH_RIDE = on
+    hold(r, 10, "Base.Bandage")
+    for iid in range(11, 16):
+        hold(r, iid, "Base.RippedSheets")
+    care_frame(r, E20_PARTS, zombies=[z(1, 102.5)], health=E20_FLEE_H)
+    tick(r, sv)
+    assert threat_why(tmp_path)["flee"] == "health" and r.cmd()[0] == "steer"
+    r.answer("progress")
+    if since is not None:
+        sv.health_since = r.clock() - since
+    r.advance(0.5)
+    care_frame(r, E20_PARTS, zombies=[z(1, x)], health=E20_FLEE_H, attackers=attackers)
+    tick(r, sv)
+    return r, sv
+
+
+def ridden(r):
+    return [a for a in r.acts.history if a.type == "bandage" and a.args.get("keepMoving") is True]
+
+
+def test_e20_s_health_flee_rides_the_bandage_once_flee_care_s_have_passed_whatever_the_distance(tmp_path):
+    """E20's `health` flee (98 lines, lines 748 to 845; 3189 chasing 1.283800888761518 to 5.083229199369507 tiles
+    behind, inside RIDE_R; no dressing sent with six held while parts 9 and 7 bled): FLEE_CARE_S after the flee began
+    with a part bleeding, the chaser 2.0 tiles behind, the bandage rides the flee's running leg (`keepMoving`) on the
+    worst part above the legs, logged `ride` {flee "health"}."""
+    r, sv = health_flee(tmp_path, 102.0, since=C.FLEE_CARE_S)
+    assert len(ridden(r)) == 1 and r.cmd()[0] == "bandage" and r.cmd()[1]["keepMoving"] is True
+    w = threat_why(tmp_path)
+    assert w["care"] is True and w["ride"] == {"flee": "health"}
+
+
+def test_inside_ride_r_before_flee_care_s_the_health_flee_sends_no_bandage(tmp_path):
+    """The same flee a second short of FLEE_CARE_S, the chaser 2.0 tiles behind (inside RIDE_R): no bandage, the
+    flee's leg holds the tick; with `HEALTH_RIDE` off, none at FLEE_CARE_S either (the rule before it, as E20 ran)."""
+    r, sv = health_flee(tmp_path, 102.0, since=C.FLEE_CARE_S - 1.0)
+    assert ridden(r) == [] and "care" not in threat_why(tmp_path)
+    (tmp_path / "off").mkdir()
+    r2, sv2 = health_flee(tmp_path / "off", 102.0, since=C.FLEE_CARE_S, on=False)
+    assert ridden(r2) == []
+
+
+def test_the_health_ride_keeps_the_drag_down_guard(tmp_path):
+    """As the `many` ride's clause (Task 32 fix 1, minor 9): with `me.attackers` at DRAG_DOWN_N - 1 no ride goes,
+    whatever the clock."""
+    r, sv = health_flee(tmp_path, 102.0, since=C.FLEE_CARE_S, attackers=P.DRAG_DOWN_N - 1)
+    assert ridden(r) == []
+
+
+def test_beyond_ride_r_the_health_flee_rides_as_before(tmp_path):
+    """P24-U's own clause, unchanged: the chaser 7 tiles behind (beyond RIDE_R), the flee just begun: the ride goes,
+    logged `ride` True (P27-O's clock did not admit it)."""
+    r, sv = health_flee(tmp_path, 107.0)
+    assert len(ridden(r)) == 1 and threat_why(tmp_path)["ride"] is True
+
+
+def test_the_health_clock_starts_with_the_health_flee_and_ends_with_its_episode(tmp_path):
+    """`health_since`: the wall of the first `health` reason of the flee episode, kept while it runs, None once the
+    threat holds nothing."""
+    r, sv = health_flee(tmp_path, 102.0)
+    assert sv.health_since == r.clock() - 0.5
+    r.advance(0.5)
+    care_frame(r, E20_PARTS, zombies=[z(1, 130.0)], health=E20_FLEE_H)
+    tick(r, sv)
+    assert sv.mode is None and sv.health_since is None

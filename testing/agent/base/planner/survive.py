@@ -280,7 +280,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     Its fix 2 (E20, `e_day_20-20261103-121340`, in `T10_SWITCHES`): P27-M, the standing fight's attack at a standing
     zombie only within the frame's `weapon.reach` plus ATTACK_MARGIN, the stance standing beyond it and the advance a
     walk at a walk to it (`fight.Fight._attack_hold`, `_reach_walk`); P27-N, a zombie at point blank or read
-    attacking never left out by a mark, pinned, shoved then swung at (`fight.Fight._pin_free`, `_pin_send`).
+    attacking never left out by a mark, pinned, shoved then swung at (`fight.Fight._pin_free`, `_pin_send`); P27-O,
+    the `health` flee's leg ridden by the bandage whatever the distance once FLEE_CARE_S have passed since that flee
+    began with a part bleeding (`care_yield.CareYield._rides_health`).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -401,11 +403,11 @@ T9_SWITCHES = ("FLEE_FINISH", "MANY_TAIL", "HOLD_LONE", "HOLD_REST", "SPENT_KEEP
 # survival iteration 19 (Plan 27 Task 1): P27-A to P27-C2 and P27-E on `threat.Threat` (FLEE_FINISH, MANY_TAIL,
 # HOLD_LONE, HOLD_REST, LOW_SWING); P27-D on `Survive` (SPENT_KEEP)
 T10_SWITCHES = ("STUCK_LEAVE", "FLOOR_FINISH", "FALLEN_SEEK", "LISTING_FALLEN", "SHOVE_CLOSE", "STOCK_EARLY",
-                "LOW_EXIT", "REPLACE_QUIET", "ATTACK_REACH", "POINT_BLANK_PIN")
+                "LOW_EXIT", "REPLACE_QUIET", "ATTACK_REACH", "POINT_BLANK_PIN", "HEALTH_RIDE")
 # survival iteration 20 (Plan 27 Task 5): P27-F, P27-K1 and P27-K3 on `Survive` (STUCK_LEAVE, read by the goal runner;
 # STOCK_EARLY; REPLACE_QUIET, copied to the Care); P27-G to P27-J and P27-K2 on `threat.Threat` (FLOOR_FINISH,
-# FALLEN_SEEK, LISTING_FALLEN, SHOVE_CLOSE, LOW_EXIT); its fix 2 (Task 5 fix 2, E20): P27-M and P27-N on
-# `threat.Threat` (ATTACK_REACH, POINT_BLANK_PIN)
+# FALLEN_SEEK, LISTING_FALLEN, SHOVE_CLOSE, LOW_EXIT); its fix 2 (Task 5 fix 2, E20): P27-M, P27-N and P27-O on
+# `threat.Threat` (ATTACK_REACH, POINT_BLANK_PIN, HEALTH_RIDE)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -557,6 +559,9 @@ class Survive(Threat):
         self.spent = None         # this tick's `_read_spent` (None: fit to fight)
         self.spent_kinds = ()     # every hold `_read_spent` read this tick, in its order (P24-AP reads them all)
         self.many_since = None    # wall of the first `many` reason since the threat branch last held nothing (P24-AR)
+        self.health_since = None  # wall of the first `health` reason of the running flee episode (P27-O), else None
+        self.ride_flee = None     # this tick: "health" when P27-O's clock admitted the ride (logged `ride` {flee}),
+                                  # else None
         self.many_tail_n = 0      # consecutive ticks a `many` episode read strung out (P27-B: MANY_TAIL_TICKS ends it)
         self.many_tail = None     # this tick: {ticks, standing, pressing} when the tail ended the episode (P27-B)
         self.rest_from = None     # world minutes of the hold's rest's first tick while it rests (P27-C2), else None

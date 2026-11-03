@@ -1785,7 +1785,8 @@ def test_iteration_20_moves_the_six_goldens_at_the_listing_s_across_clause_and_e
       hellos announce no `aim`, so their Fights are the approach and swing, which the rule leaves.
     - POINT_BLANK_PIN (fix 2's P27-N) moves none: the one marked zombie a golden lists within POINT_BLANK_R, the
       sixth's gate zombie 15885 (0.9282266374931059 tiles off at line 228), is refused across the fence row's blocked
-      edge (`edge_marks`), which the pin leaves out; no golden frame reads a hit reaction.
+      edge (`edge_marks`), which the pin leaves out; no golden frame reads a hit reaction. HEALTH_RIDE (fix 2's P27-O)
+      moves none: no golden ring decodes a bleeding part.
     A golden no switch moves is its file before iteration 20 byte for byte. Named change, Plan 27 Task 5 fix 2: each
     switch's own first line is read at that line (`FIRST_T10`), the sixth's first moved line now P27-M's."""
     base, got = pre_t10_gold(key), gold(key)

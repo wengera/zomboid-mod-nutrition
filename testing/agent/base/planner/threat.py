@@ -185,6 +185,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     POINT_BLANK_PIN = True   # ruling P27-N: a zombie within POINT_BLANK_R, or the nearest listed while the frame reads
                              # it attacking, is never left out of the Fight's targets by a mark, pinned and shoved,
                              # then swung at (`fight.Fight._pin_free`, `_pin_send`); off, the marks leave it out
+    HEALTH_RIDE = True    # ruling P27-O: the `health` flee's leg is ridden by the bandage as the `many` flee's is,
+                          # whatever the distance once FLEE_CARE_S have passed since that flee began with a part
+                          # bleeding (`care_yield.CareYield._rides_health`); off, P24-U's RIDE_R alone
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -719,15 +722,16 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
 
     def _end_flee_episode(self):
         """A flee episode's own flags cleared: its stall origin, its one load drop, its `many` (P23-AM 1), its `health`
-        (P24-X) and its last reason (P26-D)."""
+        (P24-X) and its clock (P27-O) and its last reason (P26-D)."""
         self.stall_flee, self.flee_dropped, self.flee_many, self.flee_health = False, False, False, False
-        self.flee_reason = None
+        self.flee_reason, self.health_since = None, None
 
     def _threat_read(self):
         """The tick's threat bookkeeping, once (ruling P24-A (g)): the held list (`_held`), the Flee's observe and the
         breach's closing count (`_breach_now`). Read in `_read` (Plan 25 Task 2, `OBSERVES_IN_READ`), else at the
         threat branch's start in `assess` (the rules before it)."""
         self.care_yield, self.care.ride_now, self.engaging, self.avoid = None, False, False, set()
+        self.ride_flee = None   # P27-O: this tick's ride the health flee's clock admitted
         self.bleed_yield = None   # P26-D: this tick's yield the bleed's rule made
         self.bleed_held = False   # P26-L2: this tick's yield the dressing's hold made
         self.finish_block = None   # Task 36 fix 1: this tick's refusal only (`_finish_chaser` sets it)
@@ -794,7 +798,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if self.care_yield is not None:
             self.why = {"care": True, "nearest": self.care_yield, "held": len(held)}
             if self.care.ride_now:
-                self.why["ride"] = True
+                self.why["ride"] = {"flee": self.ride_flee} if self.ride_flee else True   # P27-O: the health ride
             if self.bleed_yield is not None:
                 self.why["care_yield"] = {"why": "bleed", "near": self.bleed_yield}   # P26-D
                 if self.bleed_held:
@@ -856,6 +860,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if want == "flee":
             self.flee_many = self.flee_many or reason == "many"
             self.flee_health = self.flee_health or reason == "health"
+            if reason == "health" and self.health_since is None:
+                self.health_since = self.clock()   # P27-O: the health flee's clock, kept for its episode
             if reason == "many" and self.many_since is None:
                 self.many_since = self.clock()   # P24-AR: the long flee's clock, kept across its corners
             policy.threats = held

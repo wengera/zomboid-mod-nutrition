@@ -1,6 +1,6 @@
 """The threat branch's yield to the care branch: the mixin `CareYield` that `threat.Threat` derives from (rulings
 P24-P, P24-U and P24-AR: the bandage under a held threat, the ride on a flee leg, the care tick in a long flee; P26-D's
-bleed under the threat branch and P26-L2's hold of its dressing).
+bleed under the threat branch and P26-L2's hold of its dressing; P27-O's ride on the `health` flee's leg).
 Moved out of `threat.py` at Plan 25 Task 2 (a pure move: every rule, switch and constant unchanged; the constants
 in `policies.py`'s table); its state is `Survive`'s own, set in `Survive.__init__`, and `survive.py`'s module docstring
 stays the record of every rule here.
@@ -83,18 +83,25 @@ class CareYield:
         7, why `no_rag`, went on lines 817, 832, 847 and 862, the first three superseded by the threat branch's flee
         legs): the yield takes the wound's rip (a held cotton garment ripped for a bleeding part with nothing to dress
         it) as it takes a dressing: a running rip holds the yield as a running bandage does (the nearest beyond
-        CARE_HOLD_R), and the bleed's room takes the rip as well as a dressing (`Care.dresses_wound`)."""
+        CARE_HOLD_R), and the bleed's room takes the rip as well as a dressing (`Care.dresses_wound`). Ruling P27-O
+        (`HEALTH_RIDE`; E20, `e_day_20-20261103-121340`: over the `health` flee's 98 lines from the bite no dressing was
+        sent with six held while parts 9 and 7 bled, the chaser 1.283800888761518 to 5.083229199369507 tiles behind,
+        inside RIDE_R): the `health` flee's leg is admitted as the `many` flee's (`_rides_health`), the ride's own
+        reads (`_ride_leg`, `Care.rides_wound`) unchanged; a ride only its clock admitted is logged `ride` {flee
+        "health"} (`ride_flee`)."""
         if not self.world.can("bandage") or not self._nearest_seen or self.care.riding() is not None:
             return None
         near = self._nearest_seen[-1][1]
         chased = any(z.get("hasTarget") is True for z in held)
         free = self._rides_many(near) if (self.flee_many and chased) else (near > RIDE_R or not chased)
-        bleed = not free and chased and self._bleed_leg() and near > RIDE_MANY_R   # P26-D: the pair or held leg
-        if (free or bleed) and self._ride_leg() is not None:
+        health = not free and chased and not self.flee_many and self._rides_health()   # P27-O: the health flee's leg
+        bleed = not free and not health and chased and self._bleed_leg() and near > RIDE_MANY_R   # P26-D
+        if (free or bleed or health) and self._ride_leg() is not None:
             self._observe(self.care)
             if self.care.rides_wound():
                 self.care.ride_now = True
                 self.bleed_yield = near if bleed else None
+                self.ride_flee = "health" if health else None
                 return near
         if self.flee_many:
             return None
@@ -153,6 +160,15 @@ class CareYield:
         if not self.BLEED_HOLD or a is None or not self.care.busy() or self.care.last is not a:
             return False
         return len(self._within(FIGHT_REACH)) == 1 and not self._closing()
+
+    def _rides_health(self):
+        """Ruling P27-O: the running flee is a `health` one (`flee_reason`, its last decision's) with `HEALTH_RIDE` on,
+        FLEE_CARE_S wall seconds have passed since that flee began (`health_since`) and a part bleeds
+        (`Care.bleeding_n`), except under the drag-down guard (`me.attackers` at DRAG_DOWN_N - 1), as `_rides_many`'s
+        clock clause reads; the nearest beyond RIDE_R rides already by P24-U's own clause."""
+        return (self.HEALTH_RIDE and self.mode == "flee" and self.flee_reason == "health"
+                and self.health_since is not None and self.clock() - self.health_since >= FLEE_CARE_S
+                and self.care.bleeding_n() >= 1 and self._attackers() < DRAG_DOWN_N - 1)
 
     def _rides_many(self, near):
         """Ruling P24-AR, the care tick inside a long flee (E9: four bites bled the health from 96.39065551757812 to 0
