@@ -151,6 +151,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # `Fight.shove_only` "hold"); off, every such tick flees `strain`
     HOLD_REST = True      # ruling P27-C2: the endurance hold's walk with no chaser listed within LISTED_R is the rest,
                           # no leg sent (`hold.Hold._hold_rest`, `_rest`); off, P25-C's walk
+    LOW_SWING = True      # ruling P27-E: the low fight's full swing after SHOVE_FAIL_N missed shoves at its lone target
+                          # (`shove.FightShove._low_swing`); off, the low fight never swings (P25-S)
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -885,13 +887,14 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         return flee.busy() and flee.last.args.get("gait") == "walk"
 
     def _fight_rules(self):
-        """The iterations 13 to 18 Fight rules (`fight.FIGHT_RULES`) whose switch is on: the Fight's `rules`."""
+        """The iterations 13 to 19 Fight rules (`fight.FIGHT_RULES`) whose switch is on: the Fight's `rules`."""
         return frozenset(rule for rule, on in (("corner_break", self.CORNER_BREAK), ("finish_first", self.FINISH_FIRST),
                                                ("ride_wait", self.RIDE_WAIT), ("fence_wait", self.FENCE_WAIT),
                                                ("finish_far", self.FINISH_FAR), ("shove_break", self.SHOVE_BREAK),
                                                ("shove_break_run", self.SHOVE_BREAK_RUN),
                                                ("blocked_edge", self.BLOCKED_EDGE),
-                                               ("wounded_swing", self.WOUNDED_SWING))
+                                               ("wounded_swing", self.WOUNDED_SWING),
+                                               ("low_swing", self.LOW_SWING))
                          if on)
 
     def _flee_rules(self):

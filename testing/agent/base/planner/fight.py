@@ -139,9 +139,9 @@ from agent.base.world import me_floor, me_xy
 __all__ = ["Fight", "FIGHT_RULES"]
 
 FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finish_far", "shove_break",
-               "shove_break_run", "blocked_edge", "wounded_swing")   # survival iterations 13 to 18's Fight rules
-                     # (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1), each on in `rules` unless
-                     # Survive's switch for it is off
+               "shove_break_run", "blocked_edge", "wounded_swing", "low_swing")   # survival iterations 13 to 19's
+                     # Fight rules (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E), each on in
+                     # `rules` unless Survive's switch for it is off
 
 
 class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
@@ -605,8 +605,10 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         (`arms_hurt`), any hold Survive read this tick (`spent`: the arms', the endurance or the tired hold, each
         halving a swing, #4370, #4371), or a shove-and-stomp Fight (`shove_only`: "unarmed", ruling P25-P, the
         shove and the stomp need no weapon, the Lua's K.STAND_R; "low", ruling P25-S, under FLEE_HEALTH the kill with
-        the least exposure; "hold", ruling P27-C, the endurance hold's lone zombie)."""
-        return arms_hurt(self.world) or bool(self.spent) or self.shove_only is not None
+        the least exposure; "hold", ruling P27-C, the endurance hold's lone zombie), but for the low fight's full swing
+        when it is due (ruling P27-E, `_low_swing_due`)."""
+        return (arms_hurt(self.world) or bool(self.spent)
+                or (self.shove_only is not None and not self._low_swing_due()))
 
     def _wounded_leg(self, zid, z, d):
         """Ruling P24-AP, the wounded fight (#4370: at `body.armPain` STRAIN_HARD a swing does half its damage or less,
@@ -628,7 +630,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         flight (`ride`, until its end) holds a Fight that sends no swing (`no_swing`: a hold, or the arms' pain) off
         every send, its shoves, stomps and legs, unless the frame reads `me.attackers` at DRAG_DOWN_N - 1 (the
         drag-down guard's line, `Survive._drag`, which flees first there)."""
-        if "ride_wait" not in self.rules or self.ride is None or not self.no_swing():
+        if "ride_wait" not in self.rules or self.ride is None or not (self.no_swing() or self._low_swing_due()):
             return False
         n = (self.world.me or {}).get("attackers")
         return not (isinstance(n, int) and not isinstance(n, bool) and n >= DRAG_DOWN_N - 1)
@@ -803,8 +805,10 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
             self.repositioned = True
             self.why["reposition"] = list(sq)
             return WalkTo(*centre(sq), "run")
-        if (self.stance_at(d) and (d > FIGHT_REACH or not (self.in_stance() or self.no_swing()))
-                and not (self.approach and d <= FIGHT_REACH)):   # P24-AP: wounded, in reach the backpedal is the leg
+        if (self.stance_at(d) and (d > FIGHT_REACH or not (self.in_stance() or self.no_swing()
+                                                           or self.shove_only is not None))
+                and not (self.approach and d <= FIGHT_REACH)):   # P24-AP: wounded, in reach the backpedal is the leg;
+            # P27-E: a shove-and-stomp Fight takes no enter leg in reach, its low swing going from where it stands
             if self.ride is not None and d > FIGHT_REACH:   # P24-U: an aim would end the riding bandage; held off
                 self.why["ride"] = self.ride.aid           # until it ends, a target within reach excepted
                 return None

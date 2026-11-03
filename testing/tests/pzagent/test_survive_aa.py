@@ -20,6 +20,7 @@ each test's geometry is simplified from the line its docstring names.
 """
 import pytest
 
+from agent.base.planner import fight as F
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
 
@@ -40,8 +41,8 @@ def sends(r):
 
 
 def test_the_iteration_19_switches_and_constants():
-    assert S.T9_SWITCHES == ("FLEE_FINISH", "MANY_TAIL", "HOLD_LONE", "HOLD_REST", "SPENT_KEEP")
-    assert "T9_SWITCHES" in S.__all__
+    assert S.T9_SWITCHES == ("FLEE_FINISH", "MANY_TAIL", "HOLD_LONE", "HOLD_REST", "SPENT_KEEP", "LOW_SWING")
+    assert "T9_SWITCHES" in S.__all__ and "low_swing" in F.FIGHT_RULES
     assert all(getattr(S.Survive, name) is True for name in S.T9_SWITCHES)
     assert not set(S.T9_SWITCHES) & set(S.T8_SWITCHES + S.T7_SWITCHES + S.T6_SWITCHES)
     assert (P.FINISH_CLEAR_R, P.MANY_TAIL_TICKS, P.SPENT_REDRESS_BT) == (3.0, 4, 10.0)
@@ -371,3 +372,68 @@ def test_with_spent_keep_off_the_long_bleed_is_redressed(tmp_path):
     neck(r)
     tick(r, sv)
     assert r.cmd() == ("bandage", {"itemId": 11, "part": 9})
+
+
+# ================================================================ P27-E: the low fight's swing
+def shoves(r, sv, n, **k):
+    """`n` shoves at the lone zombie at point blank (0.8 tiles), each answered missed (done, `knockdown` false), a
+    second between them."""
+    for _ in range(n):
+        lone(r, **k)
+        a = tick(r, sv)
+        assert (a.type, a.args) == ("shove", {"targetId": 1}), a
+        r.fake.answer({"shove": ["accepted", MISS]})
+        r.pump()
+        r.advance(1.0)
+
+
+def lone(r, health=35.0, **k):
+    fr(r, [z(1, 100.8)], health=health, **k)
+
+
+def test_the_low_fight_swings_after_three_missed_shoves_then_shoves_again(tmp_path):
+    """F8's last fight (28762 shoved six times, never swung at) in the low fight (health 35): after SHOVE_FAIL_N missed
+    shoves the full swing (`attack`, logged `low_swing` {target, missed 3}); its end read, the shove again (the count
+    reset by the swing, so no second swing at once)."""
+    r, sv = make(tmp_path)
+    shoves(r, sv, P.SHOVE_FAIL_N)
+    lone(r)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args) == ("attack", {"targetId": 1}) and w["low_swing"] == {"target": 1, "missed": 3}
+    assert w["low_fight"] is True and sv.fight._miss_run.get(1, 0) == 0
+    r.fake.answer({"attack": ["accepted", ATTACK_DONE]})
+    r.pump()
+    r.advance(1.0)
+    lone(r)
+    a = tick(r, sv)
+    assert (a.type, a.args) == ("shove", {"targetId": 1}) and "low_swing" not in threat_why(tmp_path)
+
+
+def test_two_missed_shoves_shove_again(tmp_path):
+    r, sv = make(tmp_path)
+    shoves(r, sv, 2)
+    lone(r)
+    a = tick(r, sv)
+    assert a.type == "shove" and "low_swing" not in threat_why(tmp_path)
+
+
+def test_the_unarmed_and_the_hold_fights_keep_no_swing_after_three_missed_shoves(tmp_path):
+    """The unarmed fight (no weapon, health 100) and the hold fight (the endurance hold) after three missed shoves: no
+    `attack` (P25-T's lone break, a steer, takes the count)."""
+    for name, k in (("unarmed", {"health": 100.0, "weapon": None}), ("hold", {"health": 100.0, "endurance": HOLD_E})):
+        (tmp_path / name).mkdir()
+        r, sv = make(tmp_path / name)
+        shoves(r, sv, P.SHOVE_FAIL_N, **k)
+        lone(r, **k)
+        a = tick(r, sv)
+        assert a.type != "attack" and "attack" not in sends(r) and "low_swing" not in threat_why(tmp_path / name), name
+
+
+def test_with_low_swing_off_the_low_fight_never_swings(tmp_path):
+    r, sv = make(tmp_path)
+    sv.LOW_SWING = False
+    shoves(r, sv, P.SHOVE_FAIL_N)
+    lone(r)
+    a = tick(r, sv)
+    assert a.type != "attack" and "attack" not in sends(r)

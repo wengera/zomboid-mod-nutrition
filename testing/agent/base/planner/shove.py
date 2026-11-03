@@ -1,6 +1,7 @@
 """The shove at the swing and the corner after a missed shove: the mixin `FightShove` (`fight.Fight`'s: rulings P24-AG
-and P24-AH's shove, P25-A's corner, P25-I's logged third branch, P25-L's break after repeated misses and P26-L1's
-divided swing after them under the `wounded` reason, `_wounded_swing`). Moved out of
+and P24-AH's shove, P25-A's corner, P25-I's logged third branch, P25-L's break after repeated misses, P26-L1's
+divided swing after them under the `wounded` reason, `_wounded_swing`, and P27-E's full swing after them in the low
+fight, `_low_swing`). Moved out of
 `fight.py` at Plan 25 Task 8 (`_shove`, `_shove_missed` and `_corner` whole, their rules unchanged; the constants in
 `policies.py`'s table); the state is the `Fight`'s own, and `fight.py`'s module docstring stays the record.
 """
@@ -30,6 +31,9 @@ class FightShove:
           lone target, the swing in the shove's place (`_wounded_swing`), before the corner's reads;
         - ruling P24-AH: in a standing fight (`standing`), a second standing zombie inside KEEP_R: the nearer of the
           two is shoved (within the Lua's SHOVE_R) before the next swing, once a swing (`_shoved`)."""
+        low = self._low_swing(zid)   # P27-E: the low fight's full swing after the failed shoves, within FIGHT_REACH
+        if low is not None:
+            return low
         if not self.world.can("shove"):
             return None
         pain = arm_pain(self.world)
@@ -86,6 +90,34 @@ class FightShove:
         if k < SHOVE_FAIL_N or not self._alone(zid):
             return None
         self.why["wounded_swing"] = k
+        self._held_before = False
+        return Attack(zid)
+
+    def _low_swing_due(self, zid=None):
+        """Ruling P27-E (`LOW_SWING`; F8, `f_goals_9-20261102-181937`: its last fight shoved its lone 28762, health
+        1.1920000314712524, six times, each done `knockdown` false, and never swung; the guides' notes § 2: one swing,
+        then back off, then shove again): the low fight's full swing is due at `zid` (the pinned target by default): the
+        `low_swing` rule on, the Fight's `shove_only` "low" (P25-S: not the unarmed nor the hold fight, which keep no
+        swing), no hold read (`spent`) nor the arms' pain at STRAIN_HARD (`arms_hurt`: the swing is the full one), the
+        target standing within FIGHT_REACH with SHOVE_FAIL_N or more missed shoves at it on record (`_missed_n`, P25-T's
+        count) and no other zombie within DANGER_R (`_alone`). `no_swing` reads it (the swing's exception, so the
+        wounded backpedal gives way to it within reach), and so does `_ride_waits` (a riding bandage still holds it)."""
+        zid = self.target if zid is None else zid
+        z = self.world.zombies.get(zid) if zid is not None else None
+        if ("low_swing" not in self.rules or self.shove_only != "low" or self.spent or arms_hurt(self.world)
+                or z is None or z.get("x") is None or z.get("y") is None or on_floor(z)):
+            return False
+        return zdist(self.world, z) <= FIGHT_REACH and self._missed_n(zid) >= SHOVE_FAIL_N and self._alone(zid)
+
+    def _low_swing(self, zid):
+        """Ruling P27-E's send (`_low_swing_due`): one `Attack` at `zid` from where the player stands, logged
+        `low_swing` {target, missed}, the misses at it reset (`_misses`, `_miss_run`), so the next shove-and-stomp sends
+        at it are the backpedal and the shove again until SHOVE_FAIL_N more miss; else None."""
+        if not self._low_swing_due(zid):
+            return None
+        self.why["low_swing"] = {"target": zid, "missed": self._missed_n(zid)}
+        self._misses = None
+        self._miss_run.pop(zid, None)
         self._held_before = False
         return Attack(zid)
 
