@@ -120,7 +120,9 @@ one table the gates and the other policies import).
   finish: with a weapon held and the swing allowed, a fallen zombie within FIGHT_REACH takes the attack ahead of the
   stomp, and a running attack at a zombie it knocked down is held to its end (`finish.FightFinish._floor_finish`,
   `_finish_gives_way`); P27-H, the stance at a fallen target beyond FINISH_R for FALLEN_SEEK_TICKS walks to it, or with
-  a standing zombie within DANGER_R or its line blocked leaves it (`finish.FightFinish._fallen_seek`).
+  a standing zombie within DANGER_R or its line blocked leaves it (`finish.FightFinish._fallen_seek`); P27-J, a
+  shove-and-stomp Fight whose lone chaser holds beyond point blank for SHOVE_CLOSE_TICKS walks to it, or with its line
+  blocked leaves it (`shove.FightShove._shove_close`).
 """
 import math
 import time
@@ -145,9 +147,9 @@ __all__ = ["Fight", "FIGHT_RULES"]
 
 FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finish_far", "shove_break",
                "shove_break_run", "blocked_edge", "wounded_swing", "low_swing",
-               "floor_finish", "fallen_seek")   # survival iterations 13 to 20's Fight rules (P25-A, P25-B, P25-D,
-                     # P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H), each on in `rules` unless
-                     # Survive's switch for it is off
+               "floor_finish", "fallen_seek", "shove_close")   # survival iterations 13 to 20's Fight rules (P25-A,
+                     # P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H, P27-J), each on in
+                     # `rules` unless Survive's switch for it is off
 
 
 class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
@@ -218,6 +220,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         self.crowd = None                   # Survive sets it each tick: an `inside` corner's count at point blank
                                             # (P26-C, `_crowd_shove`), else None
         self._fallen = None                 # (target id, consecutive observes it read fallen beyond FINISH_R) (P27-H)
+        self._close = None                  # (target id, consecutive observes it held beyond point blank) (P27-J)
+        self.close_left = {}                # Survive shares its own: zombie id -> wall until a close refused for its
+                                            # blocked line leaves it out of the hold's reads (P27-J)
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -446,6 +451,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
             return t[2] <= AIM_R
         if kind == "fallen":   # P27-H: the walk to a fallen target ends within FINISH_R (the finish's) or as it stands
             return t[2] <= FINISH_R or not on_floor(t[1])
+        if kind == "close":    # P27-J: the walk to point blank ends there (the shove's) or as it falls
+            return t[2] <= POINT_BLANK_R or on_floor(t[1])
         if t[2] > DISENGAGE_R or not self.stance_at(t[2]) or stance_leg_kind(t[2], self.advance, self.seeking(t)) not in ("toward", "seek"):
             return True
         mx, my = me_xy(self.world)
@@ -480,8 +487,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         t = self._target(pin=False)
         if t is None or t[0] != self.last.args.get("targetId"):
             return False
-        if self._fallen_due(t):
-            return False   # P27-H: the stance at a target lying fallen beyond FINISH_R gives way to its walk
+        if self._fallen_due(t) or self._close_due(t):
+            return False   # P27-H, P27-J: the stance gives way to the walk to a fallen target or to point blank
         if self._fence_leg is not None:   # P25-F: the fence wait's leg holds while the wait calls for it
             read = self._fence_read(t)
             return read is not None and read[0] == self._fence_leg
@@ -537,6 +544,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         self._observe_stand(t)
         self._observe_seek(t)
         self._observe_fallen(t)   # P27-H
+        self._observe_close(t)    # P27-J
         if t is None or t[2] <= FIGHT_REACH or (self.stance_at(t[2]) and not self.advance):
             self.out_of_reach_since = self.clock()   # P24-G 1: a stand's own clock is STAND_MAX_S
         a = self.last
@@ -820,6 +828,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
             self.repositioned = True
             self.why["reposition"] = list(sq)
             return WalkTo(*centre(sq), "run")
+        close = self._shove_close(t)   # P27-J: a shove-only Fight's chaser holding off is walked to, or left
+        if close is not None:
+            return close[0]
         if (self.stance_at(d) and (d > FIGHT_REACH or not (self.in_stance() or self.no_swing()
                                                            or self.shove_only is not None))
                 and not (self.approach and d <= FIGHT_REACH)):   # P24-AP: wounded, in reach the backpedal is the leg;

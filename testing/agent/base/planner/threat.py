@@ -166,6 +166,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     LISTING_FALLEN = True  # ruling P27-I: the `many` counts (the listing's and the held one's) leave out a zombie read
                            # fallen and one across a known blocked edge out of the hold radius (`_left_out`); off, they
                            # count as P24-AD and P24-AN read them
+    SHOVE_CLOSE = True    # ruling P27-J: the hold's lone fight only at a chasing zombie, an idle one leaving the rest
+                          # (`hold.Hold._hold_idle`), and a shove-only Fight's lone chaser holding beyond point blank
+                          # for SHOVE_CLOSE_TICKS walked to, or left for a blocked line
+                          # (`shove.FightShove._shove_close`); off, the stance stands at it (P25-P, P25-S, P27-C)
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -828,9 +832,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                 policy.drop_stuck_leg()   # P24-A fix 2, I1: never a stalled leg held its FLEE_S under the guard
             self.pair_yield = None   # P25-J (3): a flee's yield is the `pair` flee's own finish (`_pair_flee_finish`)
             ans = self._flee_drop() or self._flee_finish(reason)
-            rest = ans is None and walk and self._hold_rest()   # P27-C2: the hold's walk with no chaser is the rest
-            if ans is None:
-                ans = self._rest(policy) if rest else self._answer(policy)
+            idle = None if walk or reason != "strain" else self._hold_idle()   # P27-J (a): an idle zombie in reach
+            rest = ans is None and (walk or idle is not None) and self._hold_rest()   # P27-C2: the hold's walk with no
+            if ans is None:                                                            # chaser is the rest
+                ans = self._rest(policy, idle) if rest else self._answer(policy)
             if not rest:
                 self.rest_from = None
             pick = self._doorway_pick(policy) if reason == "many" and self.PICK_WHY else None   # P24-AX, after the pick
@@ -845,6 +850,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.edge_ticks = EDGE_HOLD_TICKS if self.EDGE else 0   # P24-AU, read at the policy's observe
             policy.rules = self._fight_rules()   # P25-A, P25-B, P25-D, P25-F
             policy.edge_marks = self.edge_marks   # P25-X: the refusals across a blocked edge, shared as `unreachable`
+            policy.close_left = self.close_left   # P27-J: the shove-only close's refusals across a blocked line
             policy.shove_only = self._shove_only(kind)   # P25-P, P25-S: no swing, no seek
             policy.crowd = self._inside_crowd() if kind == "cornered" else None   # P26-C
             ans = self._answer(policy)
@@ -950,7 +956,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("blocked_edge", self.BLOCKED_EDGE),
                                                ("wounded_swing", self.WOUNDED_SWING),
                                                ("low_swing", self.LOW_SWING), ("floor_finish", self.FLOOR_FINISH),
-                                               ("fallen_seek", self.FALLEN_SEEK))
+                                               ("fallen_seek", self.FALLEN_SEEK), ("shove_close", self.SHOVE_CLOSE))
                          if on)
 
     def _flee_rules(self):

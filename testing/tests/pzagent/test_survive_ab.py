@@ -455,3 +455,98 @@ def test_the_held_count_leaves_the_fallen_out_during_a_fight(tmp_path):
         fr(r, [z(1, 102.4)] + FALLEN_TWO)
         tick(r, sv)
         assert (threat_why(d).get("flee") == "many") is (not on), on
+
+
+# ================================================================ P27-J: the shove-only fight's close
+HOLD_E = 0.6897225379943848   # E18's endurance under the hold (test_survive_aa's), F10's hold read lower
+
+
+def held_off(r, sv, x=103.3, ticks=1, **k):
+    """`ticks` ticks of the frame with zombie 1 standing at (`x`, 200) (`k` laid over it), under the endurance hold;
+    each leg sent is accepted and left running. The last tick's action."""
+    a = None
+    for _ in range(ticks):
+        fr(r, [dict(z(1, x), **k)], endurance=HOLD_E)
+        a = tick(r, sv)
+        if a is not None:
+            r.fake.act(a.aid, "accepted", a.type)
+            r.pump()
+        r.advance(0.5)
+    return a
+
+
+def test_f10_s_hold_rests_at_an_idle_zombie_within_danger_r(tmp_path):
+    """F10's fifth reading (P27-C stood 12.509 s facing 27031 reading no target of its own, `hasTarget` false, 2.8 to
+    3.4 tiles off): under the endurance hold the lone idle zombie 3.3 tiles off takes no hold fight; the hold's rest
+    runs, nothing sent, logged `rest` {endurance, since_min, idle 1}; with `SHOVE_CLOSE` off, P27-C's hold fight."""
+    r, sv = make(tmp_path)
+    assert held_off(r, sv, hasTarget=False) is None
+    w = threat_why(tmp_path)
+    assert w["flee"] == "strain" and w["rest"]["idle"] == 1 and "hold_fight" not in w and sends(r) == []
+    (tmp_path / "off").mkdir()
+    r2, sv2 = make(tmp_path / "off")
+    sv2.SHOVE_CLOSE = False
+    assert held_off(r2, sv2, hasTarget=False).type == "aim" and threat_why(tmp_path / "off")["hold_fight"] is True
+
+
+@pytest.mark.parametrize("k", [{"hasTarget": True}, {"hasTarget": None}])
+def test_a_chasing_zombie_or_one_with_no_target_read_takes_the_hold_fight(tmp_path, k):
+    """`hasTarget` true, or a frame carrying none (read None): the lone zombie is the hold fight's (P27-C)."""
+    r, sv = make(tmp_path)
+    assert held_off(r, sv, **k).type == "aim" and threat_why(tmp_path)["hold_fight"] is True
+
+
+def test_f10_s_hold_fight_closes_on_a_chaser_holding_beyond_point_blank(tmp_path):
+    """F10's hold fight (lines 656-681: the stance at 27031, the zombie at 2.86 then 3.2 to 3.4 tiles for twenty lines,
+    five aim legs and nothing else): the chaser holding 3.3 tiles off, alone: the stance stands five ticks, the
+    SHOVE_CLOSE_TICKS-th the leg gives way and the walk to the square one short of it goes at a walk, logged
+    `shove_close` {target, dist, ticks}; arrived at point blank, the shove."""
+    r, sv = make(tmp_path)
+    for k in range(P.SHOVE_CLOSE_TICKS - 1):
+        a = held_off(r, sv)
+        assert (a is None or a.type == "aim") and "shove_close" not in threat_why(tmp_path), k
+    a = held_off(r, sv)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args) == ("walkTo", {"x": 102.5, "y": 200.5, "gait": "walk"}) and w["hold_fight"] is True
+    assert w["shove_close"] == {"target": 1, "dist": pytest.approx(3.3), "ticks": P.SHOVE_CLOSE_TICKS}
+    a = held_off(r, sv, x=100.8)
+    assert (a.type, a.args) == ("shove", {"targetId": 1}) and threat_why(tmp_path)["shove"] == "hold"
+
+
+def test_a_chaser_behind_a_wall_is_left_and_the_hold_rests(tmp_path):
+    """The same chaser with a wall on the line (a room square's west edge at x 102, which no P25-X read takes): no walk;
+    the target is left (`shove_close` {left True}, marked unreachable) and on the next tick the hold rests (no leg,
+    `rest`) though it stands chasing within DANGER_R."""
+    r, sv = make(tmp_path)
+    r.scan([square(x, 200, room="hall" if x == 102 else None, blockW=x == 102) for x in range(99, 106)])
+    held_off(r, sv, ticks=P.SHOVE_CLOSE_TICKS)
+    w = threat_why(tmp_path)
+    assert w["shove_close"]["left"] is True and 1 in sv.unreachable and "walkTo" not in sends(r)
+    n = len(r.acts.history)
+    assert held_off(r, sv) is None and "rest" in threat_why(tmp_path) and len(r.acts.history) == n
+
+
+def test_the_unarmed_fight_closes_on_a_chaser_and_never_on_an_idle_one(tmp_path):
+    """The unarmed fight (no weapon, health 100: P25-P) at a chaser 3.3 tiles off: the close walk on the
+    SHOVE_CLOSE_TICKS-th tick; at the same zombie idle (`hasTarget` false) eight ticks and no walk."""
+    for idle in (False, True):
+        d = tmp_path / str(idle)
+        d.mkdir()
+        r, sv = make(d)
+        for _ in range(P.SHOVE_CLOSE_TICKS + (2 if idle else 0)):
+            fr(r, [z(1, 103.3, has_target=not idle)], weapon=None)
+            a = tick(r, sv)
+            if a is not None:
+                r.fake.act(a.aid, "accepted", a.type)
+                r.pump()
+            r.advance(0.5)
+        assert ("walkTo" in sends(r)) is (not idle) and threat_why(d)["unarmed_fight"] is True
+
+
+def test_with_shove_close_off_the_hold_fight_stands_at_the_chaser(tmp_path):
+    """`test_f10_s_hold_fight_closes_on_a_chaser_holding_beyond_point_blank`'s chaser with `SHOVE_CLOSE` off: eight
+    ticks, no walk (F10's twenty lines of aim legs)."""
+    r, sv = make(tmp_path)
+    sv.SHOVE_CLOSE = False
+    held_off(r, sv, ticks=8)
+    assert "walkTo" not in sends(r) and "shove_close" not in threat_why(tmp_path)

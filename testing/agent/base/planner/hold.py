@@ -6,7 +6,7 @@ module docstring stays the record of every rule here.
 """
 from agent.base.planner.policies import (DANGER_R, ENDURANCE_RELEASE, ENDURANCE_T, FLEE_HEALTH_PAIR, HOLD_QUIET_S,
                                          HOLD_SPAN_MIN, KEEP_R, LISTED_R, STIFF_HARD, STIFF_SOFT, STRAIN_HARD,
-                                         TIRED_FIGHT_T, arm_pain, arm_stiffness, chasing, on_floor, zdist)
+                                         TIRED_FIGHT_T, arm_pain, arm_stiffness, blocked, chasing, on_floor, zdist)
 
 
 def _num(v):
@@ -115,9 +115,32 @@ class Hold:
     def _hold_walk(self, reason):
         """Ruling P25-C (F3: 45 run steers under the endurance hold while it never read above 0.80, #4415's hypothesis
         that the runs kept it from the release line): the `strain` flee under the endurance hold walks while no zombie
-        is within DANGER_R (`HOLD_RUN` on), else runs (FLEE_GAIT)."""
+        is within DANGER_R (`HOLD_RUN` on), else runs (FLEE_GAIT). Ruling P27-J: a zombie a shove-only Fight left for
+        its blocked line (`_kept`) does not count there."""
         return (self.HOLD_RUN and reason == "strain" and "endurance" in self.spent_kinds
-                and not self._within(DANGER_R))
+                and not self._kept(self._within(DANGER_R)))
+
+    def _kept(self, zs):
+        """Ruling P27-J (b): `zs` (zombie records) less those a shove-only Fight left for a blocked line within
+        SEEK_SKIP_S (`close_left`), with `SHOVE_CLOSE` on; else `zs`."""
+        left = blocked(self.close_left, self.clock()) if self.SHOVE_CLOSE and self.close_left else ()
+        if not left:
+            return zs
+        out = {id(self.world.zombies[zid]) for zid in left if zid in self.world.zombies}
+        return [z for z in zs if id(z) not in out]
+
+    def _hold_idle(self):
+        """Ruling P27-J (a) (`SHOVE_CLOSE`; F10, `f_goals_11-20261103-075140`: P27-C's lone fight stood 12.509 s facing
+        27031, which read no target of its own, `hasTarget` false, 2.8 to 3.4 tiles off): under the endurance hold alone
+        (`spent_kinds` ("endurance",)) the id of the one standing zombie within DANGER_R (`_kept`) when it reads
+        `hasTarget` false, else None: the hold's lone fight is not taken at it (`_hold_lone`) and the `strain` flee's
+        rest (P27-C2, `_hold_rest`) runs as with nobody within DANGER_R, logged `rest` {..., idle}. Cost if wrong: an
+        idle zombie that turns while the character rests."""
+        if not (self.SHOVE_CLOSE and self.spent_kinds == ("endurance",)):
+            return None
+        stand = [(zid, z) for zid, z in self.world.zombies.items()
+                 if any(z is k for k in self._kept(self._within(DANGER_R))) and not on_floor(z)]
+        return stand[0][0] if len(stand) == 1 and stand[0][1].get("hasTarget") is False else None
 
     def _hold_rest(self):
         """Ruling P27-C2 (`HOLD_REST`; E18, `e_day_18-20261102-224036`: the endurance hold named all 271 `strain` lines
@@ -128,10 +151,10 @@ class Hold:
         nothing new is sent), the character stands, logged `rest` {endurance, since_min: game minutes since the rest's
         first tick}; a listed chaser restores the walk (P25-C). The timed release (HOLD_SPAN_MIN, HOLD_QUIET_S) is
         unchanged. Cost if wrong: standing in the open, a zombie arriving from beyond the listing finding the character
-        still."""
-        return self.HOLD_REST and not any(chasing(z) for z in self._within(LISTED_R))
+        still. Ruling P27-J (b): a chaser a shove-only Fight left for its blocked line (`_kept`) does not count."""
+        return self.HOLD_REST and not any(chasing(z) for z in self._kept(self._within(LISTED_R)))
 
-    def _rest(self, flee):
+    def _rest(self, flee, idle=None):
         """P27-C2's answer (`_hold_rest`): `flee`'s observe, its running leg held (`holding`) or nothing sent, the
         tick's why `rest` {endurance (this tick's `spent`), since_min (`rest_from`, set on the rest's first tick)};
         `(flee, None)`, the threat branch holding. `rest_from` is reset by any threat decision that is not the rest
@@ -144,6 +167,8 @@ class Hold:
         if self.rest_from is None:
             self.rest_from = wm
         self.why["rest"] = {"endurance": (self.spent or {}).get("endurance"), "since_min": wm - self.rest_from}
+        if idle is not None:
+            self.why["rest"]["idle"] = idle   # P27-J (a): the rest kept at an idle zombie within DANGER_R
         return flee, None
 
     def _hold_lone(self):
@@ -156,14 +181,16 @@ class Hold:
         the Fight is the shove-and-stomp fight (`Fight.shove_only` "hold", `Threat._shove_only`: the stance, the shove
         at point blank, the stomp of the fallen, no swing, no seek), logged `hold_fight`. Two or more within DANGER_R,
         or a second chaser listed, flee `strain` as before. Cost if wrong: the tired fight the hold was ruled against
-        (F3, #4415), bounded to one zombie and no swing."""
+        (F3, #4415), bounded to one zombie and no swing. Ruling P27-J (a), with `SHOVE_CLOSE` on: only at a chasing
+        zombie (`hasTarget` not read false), an idle one leaving the rest running (`_hold_idle`), and never at one a
+        shove-only Fight left for its blocked line (`_kept`)."""
         if not (self.HOLD_LONE and self.spent_kinds == ("endurance",) and self.world.can("shove")
                 and self._health() >= FLEE_HEALTH_PAIR):
             return False
-        stand = [z for z in self._within(DANGER_R) if not on_floor(z)]
-        if len(stand) != 1:
-            return False
-        return not any(z is not stand[0] and chasing(z) for z in self._within(LISTED_R))
+        stand = [z for z in self._kept(self._within(DANGER_R)) if not on_floor(z)]
+        if len(stand) != 1 or (self.SHOVE_CLOSE and stand[0].get("hasTarget") is False):
+            return False   # P27-J (a): only at a chaser (or a frame reading no `hasTarget`), an idle one rests
+        return not any(z is not stand[0] and chasing(z) for z in self._kept(self._within(LISTED_R)))
 
     def spent_view(self):
         """The goal view's `spent` (Plan 25 Task 3, P25-C; spec § 2.2(f): the model reads the hold to choose `Rest`):

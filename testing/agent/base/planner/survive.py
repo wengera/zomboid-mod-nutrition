@@ -268,7 +268,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     the stomp, no stomp while a strike at it runs (`finish.FightFinish._floor_finish`, `ThreatFinish._flee_finish`);
     P27-H, the stance at a target fallen beyond FINISH_R walks to it after FALLEN_SEEK_TICKS, else leaves it
     (`finish.FightFinish._fallen_seek`); P27-I, the `many` counts leave out a fallen zombie and one across a known
-    blocked edge out of the hold radius (`threat.Threat._left_out`); `T10_SWITCHES`.
+    blocked edge out of the hold radius (`threat.Threat._left_out`); P27-J, the hold's lone fight only at a chaser, the
+    rest kept at an idle one (`hold.Hold._hold_idle`), and a shove-only Fight's lone chaser holding beyond point blank
+    walked to, or left for a blocked line (`shove.FightShove._shove_close`); `T10_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -388,9 +390,9 @@ T8_SWITCHES = ("WINDOW_INNER", "WINDOW_STALL", "STAND_CROWD", "WOUNDED_SWING", "
 T9_SWITCHES = ("FLEE_FINISH", "MANY_TAIL", "HOLD_LONE", "HOLD_REST", "SPENT_KEEP", "LOW_SWING")
 # survival iteration 19 (Plan 27 Task 1): P27-A to P27-C2 and P27-E on `threat.Threat` (FLEE_FINISH, MANY_TAIL,
 # HOLD_LONE, HOLD_REST, LOW_SWING); P27-D on `Survive` (SPENT_KEEP)
-T10_SWITCHES = ("STUCK_LEAVE", "FLOOR_FINISH", "FALLEN_SEEK", "LISTING_FALLEN")
-# survival iteration 20 (Plan 27 Task 5): P27-F on `Survive` (STUCK_LEAVE, read by the goal runner); P27-G to P27-I on
-# `threat.Threat` (FLOOR_FINISH, FALLEN_SEEK, LISTING_FALLEN)
+T10_SWITCHES = ("STUCK_LEAVE", "FLOOR_FINISH", "FALLEN_SEEK", "LISTING_FALLEN", "SHOVE_CLOSE")
+# survival iteration 20 (Plan 27 Task 5): P27-F on `Survive` (STUCK_LEAVE, read by the goal runner); P27-G to P27-J on
+# `threat.Threat` (FLOOR_FINISH, FALLEN_SEEK, LISTING_FALLEN, SHOVE_CLOSE)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -508,6 +510,7 @@ class Survive(Threat):
         self._flood = None        # (map version, player square, squares): the engage's bounded flood (`_reach`)
         self.dead = {}            # zombie id -> wall until it is skipped, read dead (policies.Fight, Task 12 fix 1)
         self.edge_marks = {}      # zombie id -> the blocked edge a Fight refused it across (P25-X, `planner/edges.py`)
+        self.close_left = {}      # zombie id -> wall until a shove-only close left it for a blocked line (P27-J)
         self.strain_hold = False  # the arms' strain hold (P24-AG, P24-AT): set at a stiffness of STIFF_HARD, cleared
                                   # under STIFF_SOFT
         self.wound = None         # this tick: {kind "wounded", armPain, strain} at armPain STRAIN_HARD (P24-AT), else None

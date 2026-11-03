@@ -1,17 +1,18 @@
 """The shove at the swing and the corner after a missed shove: the mixin `FightShove` (`fight.Fight`'s: rulings P24-AG
 and P24-AH's shove, P25-A's corner, P25-I's logged third branch, P25-L's break after repeated misses, P26-L1's
-divided swing after them under the `wounded` reason, `_wounded_swing`, and P27-E's full swing after them in the low
-fight, `_low_swing`). Moved out of
+divided swing after them under the `wounded` reason, `_wounded_swing`, P27-E's full swing after them in the low
+fight, `_low_swing`, and P27-J's close of a shove-only Fight on a chaser holding beyond point blank, `_shove_close`).
+Moved out of
 `fight.py` at Plan 25 Task 8 (`_shove`, `_shove_missed` and `_corner` whole, their rules unchanged; the constants in
 `policies.py`'s table); the state is the `Fight`'s own, and `fight.py`'s module docstring stays the record.
 """
 import math
 
 from agent.base.planner.policies import (DANGER_R, FIGHT_REACH, FLEE_GAIT, FLEE_S, INSIDE_CROWD_N, KEEP_R,
-                                         POINT_BLANK_R, SHOVE_BREAK_N, SHOVE_FAIL_N, SHOVE_R, SHOVE_REPEAT_S,
-                                         STAND_MIN_R, STRAIN_SOFT, arm_pain, arms_hurt, blocked, on_floor,
-                                         target_id_ok, zdist)
-from agent.base.pza1 import Attack, Shove, Steer
+                                         POINT_BLANK_R, SEEK_SKIP_S, SHOVE_BREAK_N, SHOVE_CLOSE_TICKS, SHOVE_FAIL_N,
+                                         SHOVE_R, SHOVE_REPEAT_S, STAND_MIN_R, STRAIN_SOFT, arm_pain, arms_hurt,
+                                         blocked, centre, line_to, on_floor, target_id_ok, zdist)
+from agent.base.pza1 import Attack, Shove, Steer, WalkTo
 from agent.base.world import me_xy
 
 
@@ -120,6 +121,53 @@ class FightShove:
         self._miss_run.pop(zid, None)
         self._held_before = False
         return Attack(zid)
+
+    def _observe_close(self, t):
+        """Ruling P27-J (b)'s count, every observe: `_close` (target id, consecutive observes) while the `shove_close`
+        rule is on, the Fight is a shove-and-stomp one (`shove_only`) and its target `t` (id, zombie, dist) stands
+        chasing (`hasTarget` not read false) beyond POINT_BLANK_R and within DANGER_R with no other zombie there
+        (`_alone`); any other read resets it."""
+        if ("shove_close" not in self.rules or self.shove_only is None or t is None or on_floor(t[1])
+                or t[1].get("hasTarget") is False or not POINT_BLANK_R < t[2] <= DANGER_R or not self._alone(t[0])):
+            self._close = None
+            return
+        n = self._close[1] + 1 if self._close is not None and self._close[0] == t[0] else 1
+        self._close = (t[0], n)
+
+    def _close_due(self, t):
+        """P27-J (b): target `t` has held beyond point blank on SHOVE_CLOSE_TICKS consecutive observes (`_close`)."""
+        return (t is not None and self._close is not None and self._close[0] == t[0]
+                and self._close[1] >= SHOVE_CLOSE_TICKS)
+
+    def _shove_close(self, t):
+        """Ruling P27-J (b) (`shove_close`, Survive's SHOVE_CLOSE; F10, `f_goals_11-20261103-075140`: the hold's lone
+        fight stood in the stance at 27031 from 5.655010277210074 tiles, the zombie came to 2.86 and held 3.2 to 3.4
+        tiles for twenty lines while five `aim` legs went and nothing else: a shove-only Fight never seeks, and its
+        shove goes at point blank only): once `_close_due` reads target `t` (a running stance leg giving way to it,
+        `busy`) with its line not read blocked, `(WalkTo,)` at a walk to the centre of the square one tile short of it
+        on the line (the stance walk `close`, giving way at point blank, where the ordinary path shoves), logged
+        `shove_close` {target, dist, ticks}; with its line read blocked (a fence or a wall between) it is left: marked
+        unreachable for SEEK_SKIP_S and in `close_left` (Survive's, which the hold's reads leave out, so under the hold
+        the rest resumes), the Fight choosing again without it, `(command,)`, logged `shove_close` {..., left True}.
+        None while not due. Cost if wrong: the walk's strain under the hold; a zombie that steps forward as the
+        character does (the backpedal then holds it at KEEP_R as today)."""
+        if not self._close_due(t):
+            return None
+        zid, z, d = t
+        read = {"target": zid, "dist": d, "ticks": self._close[1]}
+        self._close = None
+        if line_to(self.world, z) is False:
+            self._mark_unreachable(zid, SEEK_SKIP_S)
+            self.close_left[zid] = self.clock() + SEEK_SKIP_S
+            cmd = self._choose()
+            self.why = dict(self.why, shove_close=dict(read, left=True))
+            return (cmd,)
+        mx, my = me_xy(self.world)
+        k = max(d - POINT_BLANK_R, 0.0) / d
+        sq = centre((mx + (z["x"] - mx) * k, my + (z["y"] - my) * k))
+        self.why = {"target": zid, "pinned": True, "dist": d, "shove_close": read}
+        self._walk_kind = "close"
+        return (WalkTo(sq[0], sq[1], "walk"),)
 
     def _alone(self, zid):
         """No zombie but `zid` listed with a position within DANGER_R of the player, one read dead aside (P26-L1)."""
