@@ -370,11 +370,14 @@ def test_a_shelter_pick_that_is_no_stand_keeps_the_one_door_shed(tmp_path):
     assert [v[3] for v in f.door_verdicts(f.threats)] == ["one_exit"]
 
 
-def stand_on_shed(tmp_path, window_exit=True):
+def stand_on_shed(tmp_path, window_exit=True, crowd=False):
     """E16's stand on the shed, run through the shelter steps (the closed door, the approach square, the open, the walk
     to the post (10710, 10596)) with the stand's aim sent; then line 469's frame (the player on the door's inside
-    square, 24164 and 24134 on it, `me.attackers` 1) ticked with `WINDOW_EXIT` as given: (r, sv, the threat why)."""
+    square, 24164 and 24134 on it, `me.attackers` 1) ticked with `WINDOW_EXIT` as given: (r, sv, the threat why).
+    Named change, ruling P26-K (Plan 26 Task 7): line 469's five within DANGER_R end the stand `crowd` ahead of
+    `inside`, so the stand runs with `STAND_CROWD` off (`crowd` False) unless asked, its `inside` end the one read."""
     r, sv, _ = pick_line(tmp_path)
+    sv.STAND_CROWD = crowd
     r.answer()
     approach = (DOOR[0] + 0.5, DOOR[1] + 0.5)
     r.frame(x=approach[0], y=approach[1], zombies=zs(EAST, approach))

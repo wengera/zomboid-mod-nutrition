@@ -126,6 +126,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     WINDOW_STALL = True   # ruling P26-J: a window way out's act holding the player within STUCK_MOVE for WINDOW_STALL_S
                           # is dropped and refused `stalled`, a first `interrupted` end sent again
                           # (`flee.Flee._stall_limit`, `_window_ended`); off, the act runs to its end, a failure refuses
+    STAND_CROWD = True    # ruling P26-K: the doorway stand ends `crowd` at STAND_CROWD_N held within DANGER_R, read
+                          # after `wound` and before `inside`, and walks out (`DoorwayStand._stand_crowd`); off, no such
+                          # end
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -506,7 +509,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.sheltered = self.flee is not None and self.flee.sheltered and inside
         self.broken, self.group_steer, self.corner_yield, self.behind, self.listed = None, None, None, None, None
         self.stand_left, self.stand_end, self.stand_wound, self.pair_yield = None, None, None, None
-        self.stand_drag, self.stand_inside, self.stand_exit = None, None, None
+        self.stand_drag, self.stand_inside, self.stand_exit, self.stand_crowd = None, None, None, None
         self.one_exit_refused = None
         door = self._doorway()
         if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
@@ -769,7 +772,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                 self.why["doorway_one_exit"] = self.one_exit_refused   # P26-B: the building the pick refused
         for key, v in (("yield", self.corner_yield), ("behind", self.behind), ("listed", self.listed),
                        ("doorway_left", self.stand_end), ("pain", self.wound), ("finish_block", self.finish_block),
-                       ("doorway_wound", self.stand_wound), ("doorway_drag", self.stand_drag),
+                       ("doorway_wound", self.stand_wound), ("doorway_crowd", self.stand_crowd),
+                       ("doorway_drag", self.stand_drag),
                        ("doorway_inside", self.stand_inside),
                        ("pair_yield", self.pair_yield)):
             if v is not None:

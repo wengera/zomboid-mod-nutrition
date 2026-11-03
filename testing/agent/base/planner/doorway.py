@@ -22,7 +22,9 @@ The rule changes the end of a `many` flee's shelter steps (`policies.Flee`, ruli
   from there. Ruling P26-B (`STAND_SECOND_EXIT`; E16: the stand held the one door of a shed until the group came
   through it, and the `inside` end found no way out): a door whose building has no other way out on its floor (another
   door, an opening or a window, `night.exits`) is refused `one_exit`, so the stand is only taken where its ends under
-  a group can walk out (P25-W).
+  a group can walk out (P25-W). Ruling P26-K (`STAND_CROWD`; E17, E16 and E14 each died with five or six in the room
+  after the stand's end): the stand leaves once STAND_CROWD_N held zombies stand within DANGER_R (`crowd`), before
+  they reach the front.
 - **The stand** (`Doorway`, a `policies.Fight` that never walks the open-ground stance machine): on the square inside
   the threshold the enter left it on (a room square of the building), the stance held facing out (an `aim` of (0, 0)
   facing the nearest listed zombie within AIM_R, else the bearing to the door's outside square); whatever comes within
@@ -39,8 +41,9 @@ The rule changes the end of a `many` flee's shelter steps (`policies.Flee`, ruli
   drag-down, two 3.001 s before; ruling R1 of review-t32-brief read DRAG_DOWN_N, `STAND_DRAG_EARLY` off), or the
   weapon is gone (`unarmed`: the stand swings a weapon), or a standing zombie reads on a square of the stand's room
   off the door square and not its target (`inside`: ruling P25-V, `stand_room`), or a part bleeds that did not when
-  the stand began (`wound`: ruling P25-K). After `wound`, `drag` or `inside` (ruling P25-W: the group is at or
-  through the front) the plan is dropped and the Flee walks out of the building by its way out (`Flee.walk_out`,
+  the stand began (`wound`: ruling P25-K), or STAND_CROWD_N or more held zombies stand within DANGER_R (`crowd`:
+  ruling P26-K). After `wound`, `crowd`, `drag` or `inside` (ruling P25-W: the group is at or through the front, or
+  gathered before it) the plan is dropped and the Flee walks out of the building by its way out (`Flee.walk_out`,
   `policies.exit_plan`), else holds trapped; never the close, which in E14 shut the kitchen door with five zombies
   inside. After `health`, `unarmed` or `quiet` the plan goes back to its `close` step, sent from inside as today's
   shelter close (the Lua's `interact`: a close that fails reads `passed`, and the sheltered hold, the door fight, the
@@ -55,9 +58,9 @@ import math
 
 from agent.base.planner.fight import Fight
 from agent.base.planner.policies import (AIM_LEG_S, AIM_R, DANGER_R, DRAG_DOWN_N, FIGHT_REACH, FLEE_HEALTH,
-                                         POINT_BLANK_R, Policy, STAND_MIN_R, arm_pain, blocked, centre, exit_kind,
-                                         hit_reaction, line_to, on_floor, on_post, on_room, standing, target_id_ok,
-                                         zdist)
+                                         POINT_BLANK_R, Policy, STAND_CROWD_N, STAND_MIN_R, arm_pain, blocked, centre,
+                                         exit_kind, hit_reaction, line_to, on_floor, on_post, on_room, standing,
+                                         target_id_ok, zdist)
 from agent.base.pza1 import Aim, Attack, Shove, WalkTo
 from agent.base.world import me_floor, me_xy
 
@@ -66,8 +69,8 @@ DOOR_STAND_N = 3      # standing zombies within DANGER_R at most for a `many` fl
 DOOR_HOLD_S = 10.0    # wall seconds with no zombie within DANGER_R before the stand ends and the door is closed (a
                       # judgment: a shambler of the queue standing off at DANGER_R walks in within a few seconds; ten
                       # planner seconds is twenty ticks, longer than a 3 s flee leg and the stomp's 4 s walk)
-STAND_EXIT_ENDS = ("wound", "drag", "inside")   # the stand's ends under a group that walk out, never the close
-                                                # (ruling P25-W)
+STAND_EXIT_ENDS = ("wound", "crowd", "drag", "inside")   # the stand's ends under a group that walk out, never the
+                                                         # close (ruling P25-W; `crowd`, ruling P26-K)
 DOOR_OFF_R = 2.0      # tiles from the threshold square's centre beyond which a player off the building's room squares
                       # has left the stand (Task 32 fix 1, the review's major 2: "about 2 tiles"; a stomp's walk out of
                       # the doorway reaches the outside square and the one beyond it)
@@ -270,6 +273,8 @@ class DoorwayStand:
         - `wound` (ruling P25-K, `STAND_WOUND`; E12, #4431: the stand held the door from game minute 694 while the
           bleeding parts rose from 1 to 7, the first bite far above FLEE_HEALTH): a part reading `bleeding` that was not
           when the stand began (the start's indices kept on the plan, `bleed0`), logged `doorway_wound` (the indices);
+        - `crowd` (ruling P26-K, `STAND_CROWD`): STAND_CROWD_N or more held zombies within DANGER_R (`_stand_crowd`),
+          logged `doorway_crowd` {n};
         - `inside` (ruling P25-V, `STAND_INSIDE`): a standing zombie on a square of the stand's room, off its door
           square and not its target (`_stand_inside`), logged `doorway_inside` {id, square};
         - `drag` with the frame's `me.attackers` at DRAG_DOWN_N - 1 (ruling P25-U, `STAND_DRAG_EARLY`; off, at
@@ -282,10 +287,10 @@ class DoorwayStand:
         - `quiet` once no zombie has been within DANGER_R for DOOR_HOLD_S wall seconds (`plan["quiet"]` the last wall
           one was).
         Every end is logged `doorway_left` (`stand_end`) and kept as `plan["left"]`; where it goes:
-        - `wound`, `drag` and `inside` (STAND_EXIT_ENDS) under ruling P25-W (`STAND_EXIT`; E14: the `wound` end's close
-          shut the kitchen door with five zombies inside): the plan is dropped and the Flee walks out of the building
-          (`Flee.walk_out`: the way out, else the trapped hold, never the close), `("flee", "doorway")` on the tick and
-          while that way out runs (`Flee.stand_exit_running`), ahead of every row as the close ran; logged
+        - `wound`, `crowd`, `drag` and `inside` (STAND_EXIT_ENDS) under ruling P25-W (`STAND_EXIT`; E14: the `wound`
+          end's close shut the kitchen door with five zombies inside): the plan is dropped and the Flee walks out of
+          the building (`Flee.walk_out`: the way out, else the trapped hold, never the close), `("flee", "doorway")` on
+          the tick and while that way out runs (`Flee.stand_exit_running`), ahead of every row as the close ran; logged
           `doorway_exit` on the tick (`_stand_exit_why`);
         - `off` drops the plan, no close walked back to the door; the flee steers from the next row;
         - `health`, `unarmed` and `quiet` (and every end with `STAND_EXIT` off) put the plan back on its `close` step,
@@ -335,7 +340,8 @@ class DoorwayStand:
     def _stand_end(self, plan):
         """The stand's end this tick (`_doorway`'s docstring), the first of its table that holds, else None; the quiet
         clock (`plan["quiet"]`) moved on while a zombie is within DANGER_R, and the wound read every tick (its start's
-        snapshot is taken on the first). `drag` reads the frame's `me.attackers` at `_stand_drag_n` and logs the count
+        snapshot is taken on the first). `crowd` reads the held zombies within DANGER_R (`_stand_crowd`) and logs their
+        count (`stand_crowd`); `drag` reads the frame's `me.attackers` at `_stand_drag_n` and logs the count
         (`stand_drag`)."""
         now = self.clock()
         if self._within(DANGER_R):
@@ -344,21 +350,38 @@ class DoorwayStand:
         if new:
             self.stand_wound = new
         attackers = self._attackers()
+        crowd = self._stand_crowd()
         inside = self._stand_inside(plan)
         health = ("health", lambda: self._health() < FLEE_HEALTH)
         drag = ("drag", lambda: attackers >= self._stand_drag_n())
         ends = (("wound", lambda: new),
+                ("crowd", lambda: crowd is not None),
                 ("inside", lambda: inside),
                 *((drag, health) if self.STAND_DRAG_EARLY else (health, drag)),
                 ("unarmed", lambda: not self._armed()),
                 ("off", lambda: off_post(self.world, plan)),
                 ("quiet", lambda: now - plan["quiet"] >= DOOR_HOLD_S))
         left = next((end for end, holds in ends if holds()), None)
+        if left == "crowd":
+            self.stand_crowd = {"n": crowd}
         if left == "drag":
             self.stand_drag = attackers
         if left == "inside":
             self.stand_inside = {"id": inside[0], "square": [inside[1][0], inside[1][1]]}
         return left
+
+    def _stand_crowd(self):
+        """Ruling P26-K (E17, `e_day_17-20261102-180459`: the stand held building 2's kitchen door from line 362 with
+        six held within DANGER_R from line 370 and none inside, until its `inside` end at line 380; three came in
+        through the door and three across the window square beside it, the first bite 2 game minutes later and the
+        death at game minute 617; E16 held five, then six; E14's five came in through the window square beside its
+        door): with `STAND_CROWD` on, the count of the held zombies within DANGER_R (`_within`: those read dead and
+        those out of the hold across their blocked edge left out) when it is STAND_CROWD_N or more, else None. The pick
+        is unchanged: its `standing` condition already refuses more than DOOR_STAND_N standing within DANGER_R."""
+        if not self.STAND_CROWD:
+            return None
+        n = len(self._within(DANGER_R))
+        return n if n >= STAND_CROWD_N else None
 
     def _stand_inside(self, plan):
         """Ruling P25-V (E14: the stand faced the door square while five zombies crossed the window square beside the

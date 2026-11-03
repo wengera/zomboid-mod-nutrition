@@ -11,6 +11,9 @@ waited 14.3 s and failed `dead`.
 - P26-J, the window step is stall-read like the walk (`WINDOW_STALL`): the window act holding the player within
   STUCK_MOVE for WINDOW_STALL_S is dropped and its exit refused `stalled`; a first `interrupted` end is sent once more,
   the second refused (the E17 write-up's amendment).
+- P26-K, the stand leaves before the room fills (`STAND_CROWD`): the doorway stand's end `crowd` at STAND_CROWD_N held
+  within DANGER_R, read after `wound` and before `inside`, walks out by the way out as P25-W's ends do (line 370:
+  six held, none inside; the first bite 2 game minutes after the record's end).
 """
 import functools
 import os
@@ -266,3 +269,106 @@ def test_e17_s_window_act_is_dropped_at_its_stall_and_the_window_noted_stalled()
     assert "holding" not in threat(rows[STALL_LINE - 1]) and threat(rec[STALL_LINE - 1])["holding"] == "a81"
     assert threat(rows[STALL_LINE - 1])["cornered"] == 2403
     assert kept["sv"].world.window_marks[COUNTER][1] == "stalled"
+
+
+# ================================================ P26-K: the stand leaves before the room fills
+ZOMBIE_FIELDS = ("x", "y", "dist", "hasTarget", "crawler", "health", "onFloor")
+LINE_370_NEAREST = (2408, 2444, 2417, 2403, 2400, 2401)   # line 370's six within DANGER_R, nearest first; 2416 beyond
+
+
+def e17_stand(tmp_path, line, keep=None, crowd=True):
+    """A Survive on a Rig holding E17's map as decision line `line` read it, its doorway stand on building 2's kitchen
+    door running as the record's ran from line 362 (the plan `night.shelter_plan` kept to the door, marked a stand as
+    `Flee.choose` marks one, `stood` at `stand` as `Flee._stand_at_post` leaves it), then line `line`'s frame (the
+    player, `me.attackers`, the zombies the World held then, only those of ids `keep` when given) ticked with
+    `STAND_CROWD` as given: (r, sv, the threat why)."""
+    from agent.base.planner import night as N
+    from .test_survive import make, threat_why, tick
+    w = e17_world(line)
+    r, sv = make(tmp_path)
+    sv.STAND_CROWD = crowd
+    r.scan([dict(s) for s in w.map.values()])
+    rows = [dict({k: z.get(k) for k in ZOMBIE_FIELDS}, id=zid) for zid, z in w.zombies.items()
+            if keep is None or zid in keep]
+    me = w.me
+    r.frame(x=me["x"], y=me["y"], zombies=rows, attackers=me["attackers"])
+    f = FL.Flee(r.world, r.acts, r.clock, shunned=sv.night.shunned)
+    plan = N.shelter_plan(r.world, 2, door=KITCHEN_DOOR)
+    way = r.world.door_way(KITCHEN_DOOR)
+    plan.update(stand=True, way=way, post=P.stand_post(r.world, way, 2, True), step="stand", stood=True,
+                quiet=r.clock())
+    f.plan, f.picked = plan, True
+    sv.flee = f
+    tick(r, sv)
+    return r, sv, threat_why(tmp_path)
+
+
+def test_the_stand_crowd_constant_and_its_end_among_the_ends_that_walk_out():
+    from agent.base.planner import doorway as D
+    assert S.T8_SWITCHES == ("WINDOW_INNER", "WINDOW_STALL", "STAND_CROWD") and P.STAND_CROWD_N == 4
+    assert "crowd" in D.STAND_EXIT_ENDS
+
+
+def test_line_370_s_six_within_danger_r_none_inside_and_the_record_s_stand_held():
+    """The reading the rule rests on: at line 370 six zombies stood within DANGER_R of the stand (2416 beyond it), none
+    on the kitchen's squares, and the record's stand held (no end) until line 380's `inside`."""
+    w = e17_world(370)
+    near = sorted((P.zdist(w, z), zid) for zid, z in w.zombies.items() if P.zdist(w, z) <= P.DANGER_R)
+    assert tuple(zid for _, zid in near) == LINE_370_NEAREST
+    assert all(w.map.get((int(z["x"]), int(z["y"]), 0), {}).get("room") is None for z in w.zombies.values())
+    _, rec, _ = e17()
+    assert all("doorway_left" not in threat(rec[k - 1]) for k in range(362, 380))
+
+
+def test_e17_s_stand_with_four_held_ends_crowd_and_takes_the_way_out(tmp_path):
+    """Line 370's geometry with its four nearest (2408, 2444, 2417, 2403, all within DANGER_R) and 2416 beyond it: the
+    stand ends `crowd` (`doorway_left` crowd, `doorway_crowd` {n 4}) and walks out as P25-W's ends do
+    (`Flee.walk_out`): the way out is the hall's north door (10722, 10627), its outside square (10722, 10626) farther
+    from every held zombie than the player, walked to at a run (`doorway_exit` {end crowd, exit door})."""
+    r, sv, w = e17_stand(tmp_path, 370, keep=LINE_370_NEAREST[:4] + (2416,))
+    assert w["doorway_left"] == "crowd" and w["doorway_crowd"] == {"n": 4}
+    assert w["doorway_exit"]["end"] == "crowd" and w["flee"] == "doorway"
+    assert sv.flee.plan is None and sv.flee.adopted
+    assert w["doorway_exit"]["exit"] == "door" and (w["door"], w["outer"]) == ([10722, 10627, 0], [10722, 10626, 0])
+    assert r.cmd() == ("walkTo", {"x": 10722.5, "y": 10625.5, "gait": "run"})
+
+
+def test_e17_s_stand_with_three_held_holds(tmp_path):
+    """The same line with its three nearest within DANGER_R: no end, the stand's Doorway answers."""
+    r, sv, w = e17_stand(tmp_path, 370, keep=LINE_370_NEAREST[:3] + (2416,))
+    assert "doorway_left" not in w and "doorway_crowd" not in w and w["doorway"] == 2
+    assert sv.flee.plan["step"] == "stand"
+
+
+def test_with_the_switch_off_six_held_leave_the_stand_standing(tmp_path):
+    r, sv, w = e17_stand(tmp_path, 370, crowd=False)
+    assert "doorway_left" not in w and w["doorway"] == 2
+    d = tmp_path / "on"
+    d.mkdir()
+    r, sv, w = e17_stand(d, 370)
+    assert w["doorway_left"] == "crowd" and w["doorway_crowd"] == {"n": 6}
+
+
+def test_e17_replayed_on_iteration_18_ends_its_stand_crowd_at_line_364():
+    """E17 replayed with iteration 18 on: the stand began at line 362 as the record's (two held within DANGER_R), and
+    ends `crowd` at line 364, the first of its lines to read four within DANGER_R, 16 lines before the record's
+    `inside` end at 380; that line's held zombies (seven within the hold) refuse every way out, so the end reads
+    `trapped` (the replay is open loop from here: its next lines are counterfactual)."""
+    rows = e17_replay(364, WINDOW_INNER=True, WINDOW_STALL=True, STAND_CROWD=True)
+    _, rec, _ = e17()
+    assert threat(rows[361])["leg"] == "stand" and rows[361]["inputs"]["threats"] == 2
+    assert "doorway_left" not in threat(rows[362]) and rows[362]["inputs"]["threats"] == 3
+    w = threat(rows[363])
+    assert rows[363]["inputs"]["threats"] == 4 and w["doorway_left"] == "crowd" and w["doorway_crowd"] == {"n": 4}
+    assert w["doorway_exit"] == {"end": "crowd", "exit": "trapped"} and w["trapped"] == 2
+    assert threat(rec[363])["leg"] == "stand"
+
+
+def test_e16_s_stand_on_line_469_ends_crowd_ahead_of_inside_and_walks_out_by_the_window(tmp_path):
+    """E16's stand on the shed (`test_survive_y.stand_on_shed`) at line 469, five within DANGER_R (24164 and 24134 on
+    the door's inside square): with P26-K the end is `crowd` {n 5}, read before `inside`, and it walks out by the
+    window as the `inside` end did (P26-A)."""
+    r, sv, w = Y.stand_on_shed(tmp_path, crowd=True)
+    assert w["doorway_left"] == "crowd" and w["doorway_crowd"] == {"n": 5} and "doorway_inside" not in w
+    assert w["doorway_exit"] == {"end": "crowd", "exit": "window"} and sv.flee.walking_out == "crowd"
+    assert r.cmd() == ("walkTo", {"x": 10710.5, "y": 10596.5, "gait": "run"})

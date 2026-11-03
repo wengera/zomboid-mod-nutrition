@@ -257,6 +257,10 @@ SHOVE_BREAK_N = 3         # missed shoves in a row at one lone target after whic
                           # `knockdown` false, while the bites took the bleeding parts from 1 to 7 (#4431); the window
                           # is SHOVE_BREAK_N x SHOVE_REPEAT_S, a judgment (three rolls of the knock-down, #4373)
 # survival iteration 17 (Plan 26 Task 2, rulings P26-A to P26-E; E16, F7 and F5)
+STAND_CROWD_N = 4         # held zombies within DANGER_R at which the doorway stand ends `crowd` and walks out (P26-K:
+                          # E17's stand held six within DANGER_R from its line 370, none inside, ended `inside` at 380
+                          # and the first bite came 2 game minutes later; E16's held five, then six; E14's five came in
+                          # through the window square beside its door; the pick takes at most DOOR_STAND_N standing)
 INSIDE_CROWD_N = 2        # zombies within POINT_BLANK_R (or `me.attackers`, if more) at which an `inside` corner shoves
                           # and never swings (P26-C: from E16's stand's `inside` end the corner sent five attacks with
                           # two zombies on the door's inside square, four of which swung, one lowering its target)

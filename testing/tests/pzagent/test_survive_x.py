@@ -38,7 +38,8 @@ from .test_survive_n import TSHIRT, unwear_rig
 def test_the_iteration_16_switches():
     assert S.T6_SWITCHES == ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE", "EDGE_OUT_OF_HOLD",
                              "DIRTY_RAG_RIP")
-    assert D.STAND_EXIT_ENDS == ("wound", "drag", "inside")
+    assert D.STAND_EXIT_ENDS == ("wound", "crowd", "drag", "inside")   # named change, ruling P26-K (Plan 26 Task 7):
+    # the stand's `crowd` end walks out too
     assert all(getattr(S.Survive, name) is True for name in S.T6_SWITCHES)
 
 
