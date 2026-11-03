@@ -646,8 +646,8 @@ def test_with_the_wounded_swing_off_the_three_misses_break_away_as_f8_did(tmp_pa
 
 
 def test_two_missed_shoves_shove_again_and_a_hold_or_the_low_fight_never_swings(tmp_path):
-    """Under SHOVE_FAIL_N misses the shove again; the rule is the `wounded` reason's alone: with the endurance hold
-    (`spent`) or a shove-and-stomp Fight (`shove_only`) the three misses take the break as before."""
+    """Under SHOVE_FAIL_N misses the shove again; the rule is the `wounded` reason's alone: `_wounded_swing` answers
+    None under a hold (`spent`) or a shove-and-stomp Fight (`shove_only`)."""
     r, sv = make(tmp_path)
     for _ in range(2):
         wounded(r, LONE_AT)
@@ -678,7 +678,7 @@ REDRESSED, FLED = 1408, 1412   # a280, the second; a281, the `health` flee's ste
 def test_f8_s_two_bleed_dressings_were_superseded_each_by_a_zombie_closing_inside_fight_reach():
     """The reading: P26-D's yield sent a272 at line 1381 and a280 at 1408 (each `care_yield` {why bleed}); the threat
     branch's sends superseded both (a273, the backpedal at line 1385, and a281, the `health` flee's steer at 1412),
-    each with 28762 inside FIGHT_REACH and beyond POINT_BLANK_R, nearer than three ticks before (the `_closing` read:
+    each with 28762 inside FIGHT_REACH and beyond POINT_BLANK_R, nearer than two ticks before (the `_closing` read:
     3.1445653688463455 at line 1383, 2.285627371974817 at 1410). P26-L2 holds a dressing only from a zombie that is not
     closing, so F8 replayed with BLEED_HOLD alone on sends what the record sent on every line from 1381 to 1420."""
     lines, rows, _ = f8()
@@ -701,19 +701,21 @@ def test_f8_s_two_bleed_dressings_were_superseded_each_by_a_zombie_closing_insid
     assert not any((threat(r).get("care_yield") or {}).get("held") for r in on)
 
 
-def bleed_fight(tmp_path, first, then, hold=True, mark=True):
+def bleed_fight(tmp_path, first, then, hold=True, mark=True, second=None):
     """F8's second-wound fight on the Rig: a bat held, the arms' pain F8_PAIN, part 9 bleeding, a clean rag held; the
     lone zombie `first` tiles east (the Fight made), then 2.49867461357495 (line 1381's: nothing within FIGHT_REACH,
     the bleed's yield sends the dressing, accepted and running; with `mark` false its mark `bleed_dressing` cleared),
-    then `then` tiles, ticked with `BLEED_HOLD` as given: (r, sv, the dressing, the last tick's send)."""
+    then `then` tiles, ticked with `BLEED_HOLD` as given: (r, sv, the dressing, the last tick's send). With `second`
+    (a distance, ruling P26-L2a) a second zombie stands that many tiles north in the last frame."""
     from .test_survive_g import hold as held_item, part
     r, sv = make(tmp_path)
     sv.BLEED_HOLD = hold
     wounds = {"armPain": F8_PAIN, "strain": {"l": 0.0, "r": 0.0}, "bleeding": 1,
               "parts": [part(9, bleeding=True, bleedingTime=5.0)]}
 
-    def at(x):
-        zs = [dict(z, health=LONE_HEALTH) for z in Y.zs([(1, 100.0 + x, 200.0)], (100.0, 200.0))]
+    def at(x, also=None):
+        rows = [(1, 100.0 + x, 200.0)] + ([] if also is None else [(2, 100.0, 200.0 - also)])
+        zs = [dict(z, health=LONE_HEALTH) for z in Y.zs(rows, (100.0, 200.0))]
         r.frame(zombies=zs, wounds=wounds)
 
     at(first)
@@ -731,7 +733,7 @@ def bleed_fight(tmp_path, first, then, hold=True, mark=True):
     r.fake.answer({"bandage": ["accepted"]})
     r.pump()
     r.advance(0.5)
-    at(then)
+    at(then, second)
     return r, sv, a, tick(r, sv)
 
 
@@ -748,6 +750,16 @@ def test_a_bleed_dressing_holds_while_the_zombie_in_reach_is_not_closing(tmp_pat
     d.mkdir()
     r, sv, dressing, a = bleed_fight(d, 1.2192022022657956, 1.4588033009706454, hold=False)
     assert a is not None and last(d)["branch"] == "threat" and "care_yield" not in threat_why(d)
+
+
+def test_a_bleed_dressing_is_not_held_with_two_zombies_in_fight_reach(tmp_path):
+    """Ruling P26-L2a: line 1385's lone zombie (1.4588033009706454, not closing) with a second 1.5 tiles off, both
+    within FIGHT_REACH: the hold does not apply (`_bleed_holds` wants exactly one in reach), the threat branch decides
+    and sends, no `care_yield` held; the same case with the second absent holds (the test above)."""
+    r, sv, dressing, a = bleed_fight(tmp_path, 1.2192022022657956, 1.4588033009706454, second=1.5)
+    assert len(sv._within(P.FIGHT_REACH)) == 2 and not sv._closing()
+    assert a is not None and last(tmp_path)["branch"] == "threat"
+    assert "care_yield" not in threat_why(tmp_path) and not sv._bleed_holds()
 
 
 def test_a_zombie_closing_inside_fight_reach_supersedes_the_bleed_dressing(tmp_path):

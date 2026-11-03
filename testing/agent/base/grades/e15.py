@@ -210,7 +210,8 @@ def _inside_after(L, mv, ln):
     """True when a frame within CLOSE_INSIDE_S after the line's wall holds a zombie on a mapped square with a room of
     the building the player stood in at the line, False when every zombie there stands elsewhere or the frames hold
     none at all (a clean close is a clean close), None when the player's building is unread or no frame follows, or
-    the zombies there stand on squares the map does not know."""
+    the zombies there stand on squares the map does not know (an unmapped-zombie frame after a zombie-free frame
+    reads False, as the code does: the earlier empty frame already made the close clean)."""
     wall = E._n(ln.get("wall"))
     me = E._frame_me(L, ln)
     if wall is None or me is None:

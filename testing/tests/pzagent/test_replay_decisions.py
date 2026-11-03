@@ -1614,6 +1614,7 @@ def test_iteration_18_moves_no_golden(key):
     (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off (`pre_t8`). P26-I and P26-J read a
     window way out and its act, which need a build announcing `window`, and no golden's hello does; P26-K reads a
     running doorway stand, which only `f1-caps15` reaches (its hello announcing the stance), on two lines (357 and
-    518) with at most one zombie within DANGER_R, under STAND_CROWD_N."""
+    518) with at most one zombie within DANGER_R, under STAND_CROWD_N. P26-L1 reads `body.armPain` (PZA/1.7), which no
+    golden's frames carry; P26-L2 reads P26-D's bleed yield, and no golden's parts decode `bleeding`."""
     only = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t8))}
     assert only == gold(key)
