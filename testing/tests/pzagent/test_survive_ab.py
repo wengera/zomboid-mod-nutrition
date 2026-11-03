@@ -1148,3 +1148,16 @@ def test_a_marked_zombie_at_point_blank_across_a_wall_or_a_refused_edge_stays_le
         w = threat_why(d)
         assert not isinstance(w.get("pinned"), dict), case
         assert all(x.args.get("targetId") != 1 for x in r.acts.history[1:]), case
+
+
+def test_the_fight_s_own_pin_leaves_out_a_zombie_refused_across_a_blocked_edge(tmp_path):
+    """The edge guard on the Fight itself (Survive's hold leaves such a zombie out when it reads it across the edge,
+    `EDGE_OUT_OF_HOLD`; the sixth golden's 15885 was held, its line unscanned): a Fight with zombie 1 marked and refused
+    across the north edge 0.5 tiles off, zombie 2 3 tiles east: the Fight never pins 1."""
+    from agent.base.planner.fight import Fight
+    r = Rig(tmp_path)
+    fr(r, [z(1, 100.0, 199.5), z(2, 103.0)], weapon=E20_BAT)
+    f = Fight(r.world, r.acts, r.clock, unreachable={1: r.clock() + P.UNREACHABLE_S})
+    f.edge_marks = {1: ((100, 200, 0), "N")}
+    a = f.step()
+    assert f.target == 2 and a is not None and a.args.get("targetId") != 1 and f._pin_free() == {}
