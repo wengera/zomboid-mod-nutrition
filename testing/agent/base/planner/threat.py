@@ -123,6 +123,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     # it, all of them in `survive.T8_SWITCHES` (the replay tests' `pre_t8`)
     WINDOW_INNER = True   # ruling P26-I: a window way out needs an inside square that is neither `solid` nor
                           # `solidTrans` (`night.window_exits`' `walkable`); off, P26-A's windows whatever stands inside
+    WINDOW_STALL = True   # ruling P26-J: a window way out's act holding the player within STUCK_MOVE for WINDOW_STALL_S
+                          # is dropped and refused `stalled`, a first `interrupted` end sent again
+                          # (`flee.Flee._stall_limit`, `_window_ended`); off, the act runs to its end, a failure refuses
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -700,6 +703,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.window_exit_on = self.WINDOW_EXIT   # P26-A
             policy.second_exit_on = self.STAND_SECOND_EXIT   # P26-B
             policy.window_inner_on = self.WINDOW_INNER   # P26-I
+            policy.window_stall_on = self.WINDOW_STALL   # P26-J
             walk = self._hold_walk(reason)   # P25-C: the endurance hold's flee walks with nobody within DANGER_R
             policy.gait = "walk" if walk else FLEE_GAIT
             policy.keep_gait()

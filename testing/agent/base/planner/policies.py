@@ -112,6 +112,11 @@ WALK_STALL_S = 1.0    # wall seconds a flee walk may leave the player within STU
                       # walk (P23-AJ fix 1, G2), a shelter step's walk while a held threat is within DANGER_R (P23-AM 2)
                       # and a running steer leg's stuck read (P23-AM fix 1, R1); one quantity (P24-A (g), the close
                       # review's M3: the old EXIT_STALL_S and STEP_STALL_S merged)
+WINDOW_STALL_S = 3.0  # wall seconds a window way out's act may leave the player within STUCK_MOVE before it is dropped
+                      # (ruling P26-J, `flee.Flee._stall_limit`): above the one live window climbed `done`, F5's a20
+                      # (`f_goals_6-20261030-192251`), whose longest such hold was 2.497 s (frame seq 1617 to 1661, the
+                      # open and the climb's start), below E17's a81 (`e_day_17-20261102-180459`), 12.9 s from seq 3482
+                      # to its `dead` end; WALK_STALL_S would have dropped F5's at seq 1573
 CORNERED_R = 1.5      # tiles: Survive's corner's trigger radius (P23-AJ 2)
 STUCK_NEAR_R = 1.5    # tiles: a running leg unmoved WALK_STALL_S with a held threat this near is stuck (P23-AM fix 1,
                       # R1; split from CORNERED_R, P24-A (g), the close review's M4)

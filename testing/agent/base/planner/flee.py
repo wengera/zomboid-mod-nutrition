@@ -87,6 +87,8 @@ constants and record unchanged; the constants stay in `policies.py`).
   building has no other way out on its floor is refused `one_exit` (`door_verdicts`).
   Survival 20 (ruling P26-I, `window_inner_on`, Survive's `WINDOW_INNER`): a window whose inside square reads `solid` or
   `solidTrans` (E17's kitchen counter) is no way out (`night.window_exits`), for the exit and `_other_exit` alike.
+  Ruling P26-J (`window_stall_on`, `WINDOW_STALL`): the window act is stall-read as the walk is (WINDOW_STALL_S,
+  `_stall_limit`), a stalled one refused `stalled`; a first `interrupted` end is sent once more (`_window_ended`).
 """
 import math
 import time
@@ -94,7 +96,8 @@ import time
 from agent.base.planner.policies import (AHEAD_CONE, AHEAD_R, DANGER_R, DISENGAGE_R, DOOR_CLEAR_R, DOOR_WALK_S,
                                          FLEE_GAIT, FLEE_S, NEAR_R, PREEMPTED, SHELTER_FLEE_R, STEER_PROBE,
                                          STEER_TURNS, STEP_PROBE, STUCK_MOVE, STUCK_NEAR_R, STUCK_SKIP_DEG,
-                                         WALK_STALL_S, WIDE_TURNS, Policy, _night, _rotate, away_vector, centre,
+                                         WALK_STALL_S, WIDE_TURNS, WINDOW_STALL_S, Policy, _night, _rotate,
+                                         away_vector, centre,
                                          clear_heading, exit_plan, in_building, in_corridor, line_to, on_post, on_room,
                                          running, stand_post, target_id_ok, zdist)
 from agent.base.pza1 import Climb, Interact, Steer, Stop, WalkTo, Window
@@ -142,6 +145,8 @@ class Flee(Policy):
         self.second_exit_on = True   # Survive sets it each tick (its STAND_SECOND_EXIT switch, P26-B)
         self.window_inner_on = True   # Survive sets it each tick (its WINDOW_INNER switch, P26-I): a window way out
                                       # needs an inside square that can be stood on
+        self.window_stall_on = True   # Survive sets it each tick (its WINDOW_STALL switch, P26-J): the window act's
+                                      # progress is stall-read as the walk's, and an `interrupted` end is sent again
         self.door_walk = None    # this observe: {stall, end} when a stand's walk stalled (P25-E), else None
         self.walking_out = None  # the doorway stand's end this Flee walks out on (P25-W: `walk_out`), else None
 
@@ -361,21 +366,23 @@ class Flee(Policy):
             self._refuse_exit()
 
     def _observe_exit(self):
-        """An exit step's end, and a running walk's progress (fix round 1, the review's G2): a walk that has left the
-        player within STUCK_MOVE of where it last moved for WALK_STALL_S wall seconds is dropped while still current
-        (`_dropped`) and read as failed. An open `done` goes back to the walk (`opened`); a superseded step is sent
-        again; a walk `done` with the frame reading outside waits for the choose to read it out (`_exit_step`); a
-        walk that failed, stalled or ended `done` with the frame still inside goes to the open when its way out is a
-        closed door not yet opened (I2), else refuses that exit for the episode, as does a failed open (P23-AJ 3: the
-        next choose takes the next way out, else the adoption or the trapped hold)."""
+        """An exit step's end, and a running step's progress (fix round 1, the review's G2): a walk that has left the
+        player within STUCK_MOVE of where it last moved for WALK_STALL_S wall seconds, or a window way out's act for
+        WINDOW_STALL_S (ruling P26-J, `_stall_limit`), is dropped while still current (`_dropped`) and read as failed.
+        An open `done` goes back to the walk (`opened`); a superseded step is sent again; a walk `done` with the frame
+        reading outside waits for the choose to read it out (`_exit_step`); a walk that failed, stalled or ended `done`
+        with the frame still inside goes to the open when its way out is a closed door not yet opened (I2), else
+        refuses that exit for the episode, as does a failed open (P23-AJ 3: the next choose takes the next way out,
+        else the adoption or the trapped hold); a window step's end is `_window_ended`'s."""
         a = self._exit_a
         if a is None or a is self._exit_read or self.exit is None:
             return
         if not self.actions.done(a):
-            if a.type != "walkTo" or not running(self.actions, a):
+            limit = self._stall_limit(a)
+            if limit is None or not running(self.actions, a):
                 return
             self._exit_anchor, still = self._still_for(self._exit_anchor)
-            if still < WALK_STALL_S:
+            if still < limit:
                 return
             self._dropped = a
         self._exit_read = a
@@ -397,6 +404,18 @@ class Flee(Policy):
             else:
                 self._refuse_exit()
 
+    def _stall_limit(self, a):
+        """The wall seconds the running exit step `a` may leave the player within STUCK_MOVE of where it last moved
+        before it is dropped, else None (not stall-read): WALK_STALL_S for a walk (fix round 1, G2); WINDOW_STALL_S for
+        a window way out's act with `window_stall_on` (ruling P26-J; E17's a81 held the player 12.9 s on the square east
+        of the kitchen counter while the Lua's queue stood empty from the first bite, `progress` on every act line,
+        until it failed `dead`); an open's `interact` is not read."""
+        if a.type == "walkTo":
+            return WALK_STALL_S
+        if a.type == "window" and self.window_stall_on:
+            return WINDOW_STALL_S
+        return None
+
     def _window_ended(self, e, a):
         """Ruling P26-A: the end of a window way out's step `a`. The climb's (`Window`), as the goal layer's
         `_climb_ended` reads one: `done` marks the exit `climbed` (the next `_exit_step` reads the frame off the room
@@ -405,17 +424,28 @@ class Flee(Policy):
         `locked` or a second WINDOW_REPEAT end leaves the window dead) and refuses the exit, except a `locked` end of a
         try that was no smash (ruling P26-7c): the window is noted `locked`, its outside square is not refused and the
         exit ends, so the next `exit_plan` offers the same window with `smash` True (one episode tries the open, then
-        the smash). The walk's to the window's inside square: `done` marks it `walked` (the climb goes next, the Lua's
-        own walk to the near side taking it the rest of the way); a walk that failed or stalled refuses the exit, as a
-        way out's failed walk with no door to open does."""
+        the smash). Ruling P26-J (`window_stall_on`): a climb dropped for its stall (`_stall_limit`) notes the window
+        `stalled` and refuses the exit, so the next choose takes the next way out or the trapped hold (its `Stop` ends
+        the act still running); a first `interrupted` end (`goals.note_window_end` answers it so: a second within
+        DOOR_RETRY_MIN reads `failed`) keeps the exit and sends the climb once more (`sent` reset), the second refusing
+        it. The walk's to the window's inside square: `done` marks it `walked` (the climb goes next, the Lua's own walk
+        to the near side taking it the rest of the way); a walk that failed or stalled refuses the exit, as a way out's
+        failed walk with no door to open does."""
         if a.type == "window":
             from agent.base.planner.goals import note_window_end   # goals imports night, which imports this module
-            if a.state == "done":
-                e["climbed"] = True
-            elif note_window_end(self.world, e["window"], a) == "locked":
-                self._end_exit()   # P26-7c: an unsmashed try refused locked, the next choose offers the smash
-            else:
+            if a is self._dropped:
+                self.world.note_window_fail(e["window"], "stalled")   # P26-J: still running, its stall read
                 self._refuse_exit()
+            elif a.state == "done":
+                e["climbed"] = True
+            else:
+                reason = note_window_end(self.world, e["window"], a)
+                if reason == "locked":
+                    self._end_exit()   # P26-7c: an unsmashed try refused locked, the next choose offers the smash
+                elif reason == "interrupted" and self.window_stall_on:
+                    e["sent"] = False   # P26-J: the first interrupted climb is sent once more
+                else:
+                    self._refuse_exit()
         elif a is self._dropped or a.state != "done":
             self._refuse_exit()
         else:

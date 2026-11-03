@@ -1611,7 +1611,7 @@ def test_iteration_17_moves_no_golden(key):
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
 def test_iteration_18_moves_no_golden(key):
     """Survival iteration 18 moves no golden: the six are byte-identical with its switches on
-    (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off (`pre_t8`). P26-I reads a window way
-    out, which needs a build announcing `window`, and no golden's hello does."""
+    (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off (`pre_t8`). P26-I and P26-J read a
+    window way out and its act, which need a build announcing `window`, and no golden's hello does."""
     only = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t8))}
     assert only == gold(key)
