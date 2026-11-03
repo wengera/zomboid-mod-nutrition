@@ -134,7 +134,10 @@ class Hold:
     def _rest(self, flee):
         """P27-C2's answer (`_hold_rest`): `flee`'s observe, its running leg held (`holding`) or nothing sent, the
         tick's why `rest` {endurance (this tick's `spent`), since_min (`rest_from`, set on the rest's first tick)};
-        `(flee, None)`, the threat branch holding."""
+        `(flee, None)`, the threat branch holding. `rest_from` is reset by any threat decision that is not the rest
+        (a Fight, a flee sending a leg, `hold`, `doorway`) and when the threat ends; a tick yielded to the care (a
+        bandage sent standing still, `_care_yields`) does not reset it: the dressing continues the rest, and
+        `since_min` counts across it."""
         self._observe(flee)
         self.why = dict(flee.why, holding=flee.last.aid) if flee.busy() else {}
         wm = self.world.world_minutes()

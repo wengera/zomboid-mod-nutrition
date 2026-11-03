@@ -27,7 +27,7 @@ from agent.base.planner import survive as S
 from .test_survive import make, threat_why, tick
 from .test_survive_g import care_frame, care_why, hold, part
 from .test_survive_q import GROUP3, STIFF, fr, struck, z
-from .test_survive_t import MISS
+from .test_survive_t import MISS, riding
 
 FALLEN_D = 2.5339841792960844   # E18's line 1649: 30744 knocked down by the shove a354, read `onFloor` from seq 17980
 NECK_BT = 15.462026596069336    # E18's part 9 `bleedingTime` at its first re-dressing (GUIDE § 7)
@@ -134,6 +134,43 @@ def test_a_fallen_zombie_never_struck_under_the_many_flee_is_stomped_and_with_th
     assert tick(r2, sv2).type == "steer" and "finish" not in threat_why(tmp_path / "off")
 
 
+def test_a_fallen_zombie_whose_one_stomp_is_spent_leaves_the_next_one_in_reach_to_be_finished(tmp_path):
+    """Review minor 1 (P24-AQ's case, `test_survive_q`, with a second fallen zombie): 1 fallen at 1.5 tiles is stomped
+    once and survives (the stomp done, no `stood`, its end None), 9 fallen at 3.0 tiles with the clearance kept: the
+    next tick's stomp is at 9, not silence at the spent 1."""
+    r, sv = struck(tmp_path)
+    zs = [z(1, 101.5, floor=True), z(9, 103.0, floor=True)] + GROUP3
+    fr(r, zs)
+    a = tick(r, sv)
+    assert (a.type, a.args) == ("stomp", {"targetId": 1}) and threat_why(tmp_path)["flee"] == "many"
+    r.answer({"state": "done", "result": {"hit": True, "attackStarted": True, "targetDead": False}})
+    r.advance(0.5)
+    fr(r, zs)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args) == ("stomp", {"targetId": 9}) and w["finish"] == 9 and w["flee"] == "many"
+
+
+def test_the_flee_finish_logs_the_tick_s_own_flee_reason(tmp_path):
+    """Review minor 5 (E18's line 1649, `e18_1649`; P24-AQ's `GROUP3` with the nearest standing zombie then fallen): a
+    `strain` tick logs `flee_finish` reason "strain"; a tick of a `many` episode that now reads `unarmed` (the weapon
+    gone) logs "unarmed", not "many"."""
+    r, sv = make(tmp_path)
+    fr(r, e18_1649(), endurance=HOLD_E)
+    tick(r, sv)
+    assert threat_why(tmp_path)["flee_finish"]["reason"] == "strain"
+    (tmp_path / "unarmed").mkdir()
+    r2, sv2 = make(tmp_path / "unarmed")
+    fr(r2, [z(1, 104.0)] + GROUP3)
+    tick(r2, sv2)
+    assert sv2.flee_many and threat_why(tmp_path / "unarmed")["flee"] == "many"
+    r2.answer()
+    fr(r2, [z(1, 101.5, floor=True)] + GROUP3, weapon=None)
+    assert tick(r2, sv2).type == "stomp"
+    w = threat_why(tmp_path / "unarmed")
+    assert w["flee"] == "unarmed" and w["flee_finish"]["reason"] == "unarmed"
+
+
 def test_the_pair_flee_s_finish_is_the_flee_finish_logged_pair(tmp_path):
     """A running `pair` flee (health 55, two within DANGER_R) whose nearer zombie falls 2.5 tiles off with the other 4.5
     off: the stomp, logged `flee_finish` {reason pair} with `pair_yield`."""
@@ -215,6 +252,8 @@ def test_three_strung_out_ticks_then_a_second_within_danger_r_resets_the_count(t
 
 
 def test_with_many_tail_off_the_strung_out_episode_holds(tmp_path):
+    """`test_a_many_episode_strung_out_for_many_tail_ticks_ends_and_the_lone_one_is_fought`'s geometry (`STRUNG`) with
+    `MANY_TAIL` off: six strung-out ticks and the `many` episode holds, no `many_tail`."""
     r, sv = many_episode(tmp_path)
     sv.MANY_TAIL = False
     for _ in range(6):
@@ -265,6 +304,8 @@ def test_the_arms_hold_and_the_endurance_hold_under_flee_health_pair_flee_strain
 
 
 def test_with_hold_lone_off_the_lone_zombie_is_fled_strain(tmp_path):
+    """`test_e18_s_hold_with_one_zombie_at_4_tiles_is_the_hold_fight`'s geometry (one zombie 4 tiles off, the endurance
+    hold) with `HOLD_LONE` off: the `strain` flee as before."""
     r, sv = make(tmp_path)
     sv.HOLD_LONE = False
     fr(r, [z(1, 104.0)], endurance=HOLD_E)
@@ -322,11 +363,54 @@ def test_a_zombie_within_danger_r_runs(tmp_path):
 
 
 def test_with_hold_rest_off_the_hold_walks(tmp_path):
+    """`strain_run`'s hold with the two idle zombies listed 8 and 9 tiles off (the rest test's geometry) and `HOLD_REST`
+    off: P25-C's walk, no `rest`."""
     r, sv = strain_run(tmp_path)
     sv.HOLD_REST = False
     fr(r, [z(1, 108.0, has_target=False), IDLE2], endurance=HOLD_E)
     a = tick(r, sv)
     assert a.type == "steer" and a.args["gait"] == "walk" and "rest" not in threat_why(tmp_path)
+
+
+def rest_tick(r, sv, minute):
+    """One rest tick of `strain_run`'s hold at game minute `minute` (the two idle zombies 8 and 9 tiles off): the why's
+    `rest.since_min`."""
+    r.advance(0.5)
+    fr(r, [z(1, 108.0, has_target=False), IDLE2], endurance=HOLD_E, game_min=minute)
+    assert tick(r, sv) is None
+    return threat_why(r.dir)["rest"]["since_min"]
+
+
+@pytest.mark.parametrize("kind", ["hold", "doorway"])
+def test_a_rest_run_broken_by_a_hold_or_doorway_decision_restarts_since_min(tmp_path, monkeypatch, kind):
+    """Review minor 4 (the rest of `test_the_hold_with_no_chaser_listed_rests`): a rest tick, a tick the threat plan
+    answers `hold` (held inside) or `doorway` (the stand) is not the rest, so `rest_from` is reset and the next rest
+    tick, a game minute later, reads `since_min` 0.0 (not 1.0)."""
+    r, sv = strain_run(tmp_path)
+    assert rest_tick(r, sv, 480.0) == 0.0 and sv.rest_from is not None
+    plan = sv._threat_plan
+    monkeypatch.setattr(sv, "_threat_plan", lambda held, breach: (kind, None))
+    monkeypatch.setattr(sv, "_stand", lambda held: (None, None))
+    r.advance(0.5)
+    fr(r, [z(1, 108.0, has_target=False), IDLE2], endurance=HOLD_E, game_min=480.5)
+    tick(r, sv)
+    assert sv.rest_from is None
+    monkeypatch.setattr(sv, "_threat_plan", plan)
+    assert rest_tick(r, sv, 481.0) == 0.0
+
+
+def test_a_care_yield_between_two_rest_ticks_keeps_the_rest_counting(tmp_path, monkeypatch):
+    """Review minor 4, ruling P27-2b: a tick yielded to the care (a bandage sent standing still) continues the rest:
+    `rest_from` is kept and the next rest tick, a game minute after the first, reads `since_min` 1.0."""
+    r, sv = strain_run(tmp_path)
+    assert rest_tick(r, sv, 480.0) == 0.0
+    monkeypatch.setattr(sv, "_care_yields", lambda held: 9.0)
+    r.advance(0.5)
+    fr(r, [z(1, 108.0, has_target=False), IDLE2], endurance=HOLD_E, game_min=480.5)
+    tick(r, sv)
+    assert threat_why(r.dir)["care"] is True and sv.rest_from is not None
+    monkeypatch.undo()
+    assert rest_tick(r, sv, 481.0) == pytest.approx(1.0)
 
 
 # ================================================================ P27-D: the spent dressing kept
@@ -360,6 +444,8 @@ def test_a_spent_dressing_is_replaced_at_a_short_bleed_or_a_bleeding_part(tmp_pa
 
 
 def test_the_replace_still_prefers_a_clean_bandage_to_a_rag(tmp_path):
+    """`neck` at bleedingTime 9.0 (the short-bleed test's geometry) holding a ripped sheet and a bandage: the bandage
+    (13) is the one sent, not the rag (12)."""
     r, sv = make(tmp_path)
     neck(r, 9.0, items=((12, "Base.RippedSheets"), (13, "Base.Bandage")))
     tick(r, sv)
@@ -367,6 +453,8 @@ def test_the_replace_still_prefers_a_clean_bandage_to_a_rag(tmp_path):
 
 
 def test_with_spent_keep_off_the_long_bleed_is_redressed(tmp_path):
+    """E18's neck (`test_e18_s_neck_under_its_spent_dressing_is_kept`'s geometry, bleedingTime 15.46) with `SPENT_KEEP`
+    off: the bandage is sent as before."""
     r, sv = make(tmp_path)
     sv.SPENT_KEEP = False
     neck(r)
@@ -411,6 +499,8 @@ def test_the_low_fight_swings_after_three_missed_shoves_then_shoves_again(tmp_pa
 
 
 def test_two_missed_shoves_shove_again(tmp_path):
+    """`test_the_low_fight_swings_after_three_missed_shoves_then_shoves_again`'s geometry (health 35, the lone target at
+    point blank) after SHOVE_FAIL_N - 1 missed shoves: the shove again, no `low_swing`."""
     r, sv = make(tmp_path)
     shoves(r, sv, 2)
     lone(r)
@@ -431,9 +521,43 @@ def test_the_unarmed_and_the_hold_fights_keep_no_swing_after_three_missed_shoves
 
 
 def test_with_low_swing_off_the_low_fight_never_swings(tmp_path):
+    """The same geometry after SHOVE_FAIL_N missed shoves with `LOW_SWING` off: no `attack` is ever sent."""
     r, sv = make(tmp_path)
     sv.LOW_SWING = False
     shoves(r, sv, P.SHOVE_FAIL_N)
     lone(r)
     a = tick(r, sv)
     assert a.type != "attack" and "attack" not in sends(r)
+
+
+def test_a_riding_bandage_holds_the_due_low_swing(tmp_path):
+    """Review minor 2 (P25-D's `test_e11_s_rides_...` in `test_survive_t`, with the low fight's swing due): three missed
+    shoves at the lone 28762-like target at point blank, a bandage riding (`fight.ride`): no `attack` is sent, the tick
+    logs `ride_wait` (the ride's aid) and the bandage stays the current action."""
+    r, sv = make(tmp_path)
+    shoves(r, sv, P.SHOVE_FAIL_N)
+    ride = riding(r, sv)
+    lone(r)
+    assert tick(r, sv) is None
+    w = threat_why(tmp_path)
+    assert w["ride_wait"] == ride.aid and r.acts.history[-1] is ride
+    assert "attack" not in sends(r) and "low_swing" not in w
+
+
+def test_the_swing_from_fight_reach_is_followed_by_the_backpedal(tmp_path):
+    """Review minor 3 (the brief's `the full swing at FIGHT_REACH, then the backpedal`): after three missed shoves the
+    target stands 1.5 tiles off (within FIGHT_REACH, beyond point blank): the full swing goes (`no_swing`'s exception
+    lets the wounded backpedal give way), and on the next tick the `aim` back leg, not a second swing."""
+    r, sv = make(tmp_path)
+    shoves(r, sv, P.SHOVE_FAIL_N)
+    fr(r, [z(1, 101.5)], health=35.0)
+    a = tick(r, sv)
+    assert (a.type, a.args) == ("attack", {"targetId": 1}) and threat_why(tmp_path)["low_swing"]["missed"] == 3
+    r.fake.answer({"attack": ["accepted", ATTACK_DONE]})
+    r.pump()
+    r.advance(1.0)
+    fr(r, [z(1, 101.5)], health=35.0)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "aim" and a.args["vx"] < -0.9 and w["leg"] == "back" and "low_swing" not in w
+    assert sends(r).count("attack") == 1

@@ -10,9 +10,10 @@ docstrings stay the record.
 """
 import math
 
-from agent.base.planner.policies import (DANGER_R, FIGHT_REACH, FINISH_CLEAR_R, FINISH_R, KEEP_R, POINT_BLANK_R,
-                                         PREEMPTED, SHOVE_R, STAND_MIN_R, UNREACHABLE_S, arms_hurt, blocked, chasing,
-                                         hit_reaction, line_to, on_floor, running, standing, target_id_ok, zdist)
+from agent.base.planner.policies import (DANGER_R, FIGHT_REACH, FINISH_CLEAR_R, FINISH_R, KEEP_R, LISTED_R,
+                                         POINT_BLANK_R, PREEMPTED, SHOVE_R, STAND_MIN_R, UNREACHABLE_S, arms_hurt,
+                                         blocked, chasing, hit_reaction, line_to, on_floor, running, standing,
+                                         target_id_ok, zdist)
 from agent.base.pza1 import Attack, Shove, Stomp
 
 FLEE_FINISH_REASONS = ("strain", "pair", "many")   # the flee reasons whose episode takes the finish (P27-A)
@@ -105,7 +106,9 @@ class ThreatFinish:
         (`finish_chaser`), in place of DANGER_R and KEEP_R. The sends, their refusals and ends are P24-AQ's (one stomp a
         zombie, `finishing`; no floor strike under a hold, R2, nor unarmed), a stomp the replaced Fight saw refused
         within SWING_SKIP_S read as refused (as `_flee_stomp_ok` reads it). Logged `flee_finish` {reason, struck (sent
-        at within UNREACHABLE_S), clear (the nearest listed standing zombie's tiles, else None)} beside `finish`, and
+        at within UNREACHABLE_S), clear (the nearest listed standing zombie's tiles, else None)} beside `finish`
+        (`reason` the tick's own flee reason, `flee_reason`: `strain`, `pair`, `many`, or any other a `many` episode
+        runs under, `unarmed` or `broken` among them; "many" where the tick names none), and
         `pair_yield` under the `pair` flee (the `pair` flee's own finish's why)."""
         self.finish_block = None
         if self._finish_a is not None and running(self.actions, self._finish_a):
@@ -146,9 +149,9 @@ class ThreatFinish:
         self.finishing[zid] = kind
         self.why = {"finish": zid, "kind": kind, "dist": d}
         if wide:
-            self.why["flee_finish"] = {"reason": reason if reason in FLEE_FINISH_REASONS else "many",
+            self.why["flee_finish"] = {"reason": self.flee_reason or "many",
                                        "struck": now - self.struck.get(zid, -math.inf) <= UNREACHABLE_S,
-                                       "clear": self._nearest_standing(dead)}
+                                       "clear": self._nearest_standing()}
             if reason == "pair":
                 self.pair_yield = zid
         return self.flee, cmd
@@ -172,20 +175,26 @@ class ThreatFinish:
 
     def _fallen_wide(self, dead, now):
         """P27-A's candidate: (id, tiles) of the nearest zombie `downed_list` reads (`onFloor`, within FINISH_R, a line
-        not read blocked, one read dead left out) whose floor strike is not spent, with no standing zombie within
-        FINISH_CLEAR_R of the character (`_within`, the fallen left out); else None."""
+        not read blocked, one read dead left out) whose finish is not spent, with no standing zombie within
+        FINISH_CLEAR_R of the character (`_within`, the fallen left out); else None. A finish is spent by its floor
+        strike, or by its stomp that went and whose end did not say `stood` (it rose) nor `refused` (the Lua turned it
+        down): the next fallen zombie in reach is the candidate (fix 1 of Task 1: a spent nearest hid every farther one,
+        #4441's three to eight stomps a kill)."""
         if any(not on_floor(z) for z in self._within(FINISH_CLEAR_R)):
             return None
         for zid, _, d in downed_list(self.world, dead, {}, now, FINISH_R):
-            if self.finishing.get(zid) != "floor":
-                return zid, d
+            if self.finishing.get(zid) == "floor":
+                continue
+            if (self.finishing.get(zid) in ("stomp", "stomp2")
+                    and self._finish_end_read(zid) not in ("stood", "refused")):
+                continue
+            return zid, d
         return None
 
-    def _nearest_standing(self, dead):
-        """The tiles to the nearest listed standing zombie (not `on_floor`, not read dead), else None (P27-A's
-        `clear`)."""
-        ds = [zdist(self.world, z) for zid, z in self.world.zombies.items() if zid not in dead and not on_floor(z)
-              and z.get("x") is not None and z.get("y") is not None]
+    def _nearest_standing(self):
+        """The tiles to the nearest listed standing zombie (`_within(LISTED_R)`: not `on_floor`, not read dead, not
+        counted out across a blocked edge), else None (P27-A's `clear`)."""
+        ds = [zdist(self.world, z) for z in self._within(LISTED_R) if not on_floor(z)]
         return min(ds) if ds else None
 
     def _pair_finish(self):

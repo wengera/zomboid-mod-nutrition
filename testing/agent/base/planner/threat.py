@@ -711,6 +711,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     def _decide(self, held, breach, replanned=False):
         """`_threat_plan`'s decision executed by the Fight or the Flee, logged in `why`."""
         kind, reason = self._threat_plan(held, breach)
+        if kind in ("hold", "doorway"):
+            self.rest_from = None   # P27-C2 (Task 1 fix 1): held inside or standing a doorway is not the hold's rest
         if kind == "hold":
             self.why = {"flee": "held_inside", "held": len(held)}
             return None, None
