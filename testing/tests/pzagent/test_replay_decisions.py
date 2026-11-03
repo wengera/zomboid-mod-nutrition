@@ -145,8 +145,18 @@ def pre_t8(sv, keep=()):
 def pre_t9(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 27 Task 1 (survival iteration 19): its switches off
     (`survive.T9_SWITCHES`), but those named in `keep` (the one-switch form `pre_t3`'s tests use; no test passes it
-    here)."""
+    here). Plan 27 Task 5: iteration 20's switches (`pre_t10`) off with them, so every seam onto an earlier rule reads
+    them off."""
     for name in S.T9_SWITCHES:
+        if name not in keep:
+            setattr(sv, name, False)
+    pre_t10(sv)
+
+
+def pre_t10(sv, keep=()):
+    """The replay's mutate seam onto the rules before Plan 27 Task 5 (survival iteration 20): its switches off
+    (`survive.T10_SWITCHES`), but those named in `keep` (the one-switch form `pre_t3`'s tests use)."""
+    for name in S.T10_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
 
@@ -1698,3 +1708,19 @@ def test_iteration_19_moves_e4_alone_at_the_many_tail(key):
     assert got[434]["why"]["many_tail"] == {"ticks": 4, "standing": 0, "pressing": 1}
     assert got[434]["why"]["flee"] == "strain" and "many_tail" not in base[434]["why"]
     assert got[441]["why"]["listed"] == 4 and "listed" not in base[441]["why"]
+
+
+# ================================================================ Plan 27 Task 5: iteration 20 on the goldens
+@functools.lru_cache(maxsize=6)
+def _pre_t10_replayed(key):
+    return json.dumps(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t10), sort_keys=True)
+
+
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_iteration_20_moves_no_golden(key):
+    """Survival iteration 20 (Plan 27 Task 5) moves no golden: the six are byte-identical with its switches on
+    (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off (`pre_t10`). P27-F's stuck mark reads a
+    goal walk the goal runner sent, and the replay's goals are the record's (`RecordedGoals`), so no golden tick marks
+    a square."""
+    only = {d["line"]: d for d in R.decisions(json.loads(_pre_t10_replayed(key)))}
+    assert only == gold(key)

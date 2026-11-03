@@ -262,6 +262,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     with no chaser listed is the rest, no leg sent (`hold.Hold._hold_rest`, `_rest`); P27-D, a spent dressing on a
     part not bleeding kept on a long bleed (`care.Care._redresses`); P27-E, the low fight's full swing after
     SHOVE_FAIL_N missed shoves (`shove.FightShove._low_swing`); `T9_SWITCHES`.
+  - Survival 22 (iteration 20, E19 and F10): P27-F, a goal walk ended `stuck` unmoved marks its square and edge, and the
+    scripted source leaves the square by a known way, never a Rest (`goal_runner.GoalRunner._read_walks`,
+    `ScriptedSource._ways_out`, the view's `stuck`); `T10_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -381,6 +384,8 @@ T8_SWITCHES = ("WINDOW_INNER", "WINDOW_STALL", "STAND_CROWD", "WOUNDED_SWING", "
 T9_SWITCHES = ("FLEE_FINISH", "MANY_TAIL", "HOLD_LONE", "HOLD_REST", "SPENT_KEEP", "LOW_SWING")
 # survival iteration 19 (Plan 27 Task 1): P27-A to P27-C2 and P27-E on `threat.Threat` (FLEE_FINISH, MANY_TAIL,
 # HOLD_LONE, HOLD_REST, LOW_SWING); P27-D on `Survive` (SPENT_KEEP)
+T10_SWITCHES = ("STUCK_LEAVE",)
+# survival iteration 20 (Plan 27 Task 5): P27-F on `Survive` (STUCK_LEAVE, read by the goal runner)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -401,7 +406,7 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "MANY_LISTED_N", "DRAG_DOWN_N", "FINISH_R",
            "NEED_STATS", "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_RETRY_MIN", "FILL_SETTLE_S", "FILL_WANTS",
            "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T3_SWITCHES",
-           "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES", "T7_SWITCHES", "T8_SWITCHES", "T9_SWITCHES"]
+           "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES", "T7_SWITCHES", "T8_SWITCHES", "T9_SWITCHES", "T10_SWITCHES"]
 
 
 @dataclass
@@ -435,6 +440,11 @@ class Survive(Threat):
     SPENT_KEEP = True     # ruling P27-D (Plan 27 Task 1): a spent dressing on a part reading `bleeding` false is
                           # replaced only at a bleedingTime at or under SPENT_REDRESS_BT (`care.Care._redresses`); off,
                           # every spent dressing is replaced. Set on the Care each tick (`_read`). In T9_SWITCHES
+
+    STUCK_LEAVE = True    # ruling P27-F (Plan 27 Task 5): a goal walk ended `stuck` unmoved marks its square and its
+                          # route's first edge, the scripted source then leaving the square by a known way, never a Rest
+                          # (`goal_runner.GoalRunner._read_walks`, `ScriptedSource._ways_out`); off, no mark. Set on the
+                          # goal runner each tick (`_read`). In T10_SWITCHES
 
     SHELTER_LEGS = True   # ruling P25-N (Plan 25 Task 8): a Shelter goal's and the night's approach to a far door in
                           # legs (`goal_policies.Shelter`, `night.Night._leg`); set on the goals' kit and the Night each
@@ -944,6 +954,7 @@ class Survive(Threat):
                                                       # `rides_wound`) before the care branch, so set at the tick's read
         self.care.wear_worn = self.WEAR_WORN   # P26-E: read by the Care's observe (`_read_observes`)
         self.care.spent_keep = self.SPENT_KEEP   # P27-D: read by the Care's choose
+        self.goals.stuck_leave = self.STUCK_LEAVE   # P27-F: read by the goal runner's observe, below
         self.ticks += 1
         self._observed = []
         self._note_failures()
@@ -1031,6 +1042,9 @@ class Survive(Threat):
             tried["threat"] = dict(tried.get("threat") or {}, kill=kill)
         if self.release is not None:   # P25-M: a hold released this tick, on the threat why whatever answered
             tried["threat"] = dict(tried.get("threat") or {}, release=self.release)
+        mark = getattr(self.goals, "stuck_now", None)
+        if mark is not None:   # P27-F: the goal walk's stuck mark read this tick, on the goal why whatever answered
+            tried["goal"] = dict(tried.get("goal") or {}, stuck_mark=mark)
         inputs["branches"] = tried
         return Decision(branch, owner, cmd, inputs)
 

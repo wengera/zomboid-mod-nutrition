@@ -288,6 +288,15 @@ SPENT_REDRESS_BT = 10.0   # a spent dressing on a part reading `bleeding` false 
                           # bleeding false under its spent dressing at 15.462026596069336 and 13.89616870880127, and its
                           # two re-dressings each took health (82.34173583984375 to 67.09330749511719 and
                           # 62.200069427490234 to 54.371578216552734)
+# survival iteration 20 (Plan 27 Task 5, rulings P27-F to P27-L; E19 `e_day_19-20261103-072904`, F10
+# `f_goals_11-20261103-075140`)
+STUCK_MARK_MIN = 30.0     # game minutes a square a goal walk ended `stuck` on unmoved stays marked with its route's
+                          # first edge (P27-F): E19 stood 141.47037506103516 game minutes on the gate square, its four
+                          # walks from it (game minutes 640, 643, 710 and 776) each `stuck` unmoved, the source resting
+                          # 17 times between; DOOR_RETRY_MIN's 30, a judgment (the controller's number)
+STUCK_LEAVE_R = 10.0      # tiles from a marked square the scripted source's walk away from its edge goes (P27-F, with
+                          # no building to walk back to): SCAN_R's place, the next place over, a judgment (the brief
+                          # names the walk and no distance)
 
 
 def place_of(world):

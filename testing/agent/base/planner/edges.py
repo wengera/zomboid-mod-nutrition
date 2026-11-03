@@ -17,6 +17,8 @@ the shelter and loot routes own them, and the engage leaves a zombie inside a bu
   is a door (`via`, the square on `b`'s side of it, the route's walk target: the path follower opens a closed door on
   its path); a run whose nearest way is its end (walked round, or a hoppable stretch) reads None, iteration 15's walk
   round a wall and reposition standing; a run with no way known within `reach` is a wall.
+- `first_edge(world, a, b)` (ruling P27-F, survival iteration 20): the edge the line from `a` toward `b` leaves `a`'s
+  square by, the goal runner's stuck mark of a walk that ended `stuck` unmoved (`goal_runner.GoalRunner`).
 - `FightEdge` (the Fight's mixin; rule `blocked_edge`): a target whose line crosses such an edge is routed through the
   door (`WalkTo` of `via`) or, with none within DISENGAGE_R, refused: marked unreachable until a frame reads it on the
   player's side of the edge or the player crosses to its side (`edge_marks`; never the UNREACHABLE_S mark), so no seek
@@ -36,7 +38,7 @@ from agent.base.planner.policies import DISENGAGE_R, PREEMPTED, centre
 from agent.base.pza1 import WalkTo
 from agent.base.world import me_xy
 
-__all__ = ["edge_read", "edge_why", "same_side", "crossed", "FightEdge", "ThreatEdge", "GoalEdge"]
+__all__ = ["edge_read", "edge_why", "same_side", "crossed", "first_edge", "FightEdge", "ThreatEdge", "GoalEdge"]
 
 
 def _edge_of(p, q):
@@ -73,6 +75,17 @@ def _crossed(world, a, b):
 
 
 crossed = _crossed   # the public name (Plan 26, ruling CF-1): no importer yet; the next grade module takes it
+
+
+def first_edge(world, a, b):
+    """Ruling P27-F: the edge (holder, side) the straight line from position `a` toward `b` leaves `a`'s square by (the
+    first of `World.edge_steps`, a diagonal's first corner leg), else None (the line stays on the square, or its first
+    step is on unmapped ground): the route a goal walk that ended `stuck` unmoved could not take."""
+    start = (int(math.floor(a[0])), int(math.floor(a[1])))
+    step = next(iter(world.edge_steps(a, b)), None)
+    if step is None or step[0][:2] != start:
+        return None
+    return _edge_of(*step)
 
 
 def _door_on(world, holder, side):

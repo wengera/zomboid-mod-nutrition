@@ -2,16 +2,32 @@
 `schema/goals.json`), the `GoalSource` seam, the `ScriptedSource` and the `GoalRunner`. Moved out of `goals.py` at
 Plan 25 Task 2 (a pure move: every rule and constant unchanged; the constants and the shared reads stay in
 `goals.py`, which re-exports every name here).
+
+Ruling P27-F (`STUCK_LEAVE`, survival iteration 20; E19, `e_day_19-20261103-072904`: from game minute 639 to 781 the
+character stood on one square north of the fence row's locked gate, its four goal walks from it toward the row's
+unlocked door each `stuck` 5.992 to 5.994 s after its accept with the character unmoved, and the scripted source rested
+17 times there): the runner keeps each goal walk it sends with the square and position it was sent from
+(`GoalRunner.send`), and a walk that ends `failed "stuck"` with the frame's square equal to the send's marks the square
+and the route's first edge out of it (`edges.first_edge` of the line to the walk's target) for STUCK_MARK_MIN game
+minutes (`stuck_marks`, read by `stuck_at`; logged `stuck_mark` {edge, square, goal} on that tick's decision line,
+`stuck_now`); the view carries the player's mark as `stuck` {square, edge}. The scripted source then never answers
+`Rest` there: it takes the first way out not cooled (`ScriptedSource._ways_out`): the walk back to the nearest known
+building on the square's side of the marked edge (its door, else its nearest room square), else a `LootBuilding` of the
+nearest unlooted building, else an `ExploreToward` STUCK_LEAVE_R tiles from the square away from the edge, logged
+`leave` {why "stuck", target {type, args}} on the runner's why of that pick. Cost if wrong: a walk away from an edge
+the next session might cross.
 """
 import json
 import math
 import time
 from typing import Optional, Protocol, runtime_checkable
 
+from agent.base.planner.edges import first_edge, same_side
 from agent.base.planner.goal_policies import ExploreToward, Goal, Kit, LootBuilding, Rest, Shelter, Stock, TYPES
-from agent.base.planner.goals import (BUILDING_R, COOL_REASONS, GOAL_COOL_S, GOAL_HOLD_SUPERSEDE_TICKS,
+from agent.base.planner.goals import (ARRIVE_R, BUILDING_R, COOL_REASONS, GOAL_COOL_S, GOAL_HOLD_SUPERSEDE_TICKS,
                                       OPTIONAL_FIELDS, REST_S, SCHEMA_PATH, STOCK_KINDS, _num, goal_key, int_id)
-from agent.base.planner.policies import LOOT_MAX_LEVEL
+from agent.base.planner.night import player_square
+from agent.base.planner.policies import LOOT_MAX_LEVEL, STUCK_LEAVE_R, STUCK_MARK_MIN, me_xy
 from agent.base.planner.view import why_of
 
 
@@ -85,9 +101,53 @@ class ScriptedSource:
     """The scripted order (the module docstring)."""
     NAME = "scripted"
 
+    def __init__(self):
+        self.last_leave = None   # P27-F: {why "stuck", target {type, args}} when the last pick left a marked square
+
     def propose(self, view):
         cooled = {goal_key(c.get("type"), c.get("args")) for c in view.get("cooled") or () if isinstance(c, dict)}
-        return next((g for g in self.candidates(view) if goal_key(g.TYPE, g.args()) not in cooled), Rest(REST_S))
+        self.last_leave = None
+        g = next((g for g in self.candidates(view) if goal_key(g.TYPE, g.args()) not in cooled), None)
+        if g is not None:
+            return g
+        g = next((g for g in self._ways_out(view) if goal_key(g.TYPE, g.args()) not in cooled), None)
+        if g is None:
+            return Rest(REST_S)
+        self.last_leave = {"why": "stuck", "target": {"type": g.TYPE, "args": g.args()}}
+        return g
+
+    def _ways_out(self, view):
+        """Ruling P27-F (the module docstring): the goals that leave the square the view's `stuck` marks, in order,
+        where the scripted order would rest: an ExploreToward to each known building's door (else its nearest room
+        square) on the player's side of the marked edge, nearest first, never one within ARRIVE_R nor blocked nor
+        shunned; a LootBuilding of each building reading not looted and not blocked, nearest first (at a load the loot
+        takes); then an ExploreToward STUCK_LEAVE_R tiles from the square away from the edge. Nothing without a mark."""
+        stuck, pos = view.get("stuck"), view.get("pos") or {}
+        if not isinstance(stuck, dict) or not (_num(pos.get("x")) and _num(pos.get("y"))):
+            return
+        me = (pos["x"], pos["y"])
+        e = stuck.get("edge")
+        edge = ((e[0], e[1], 0), e[2]) if e else None
+        bs = _nearest_first(view.get("buildings") or ())
+        for b in bs:
+            to = b.get("door") or [b.get("x"), b.get("y")]
+            if (b.get("blocked") or b.get("shunned") or not _num(b.get("dist")) or b["dist"] <= ARRIVE_R
+                    or not all(int_id(v) for v in to)
+                    or (edge is not None and not same_side(edge, me, (to[0] + 0.5, to[1] + 0.5)))):
+                continue
+            yield ExploreToward(to[0], to[1])
+        level = (view.get("load") or {}).get("level")
+        if not _num(level) or level <= LOOT_MAX_LEVEL:
+            for b in bs:
+                if b.get("looted") is False and not b.get("blocked"):
+                    yield LootBuilding(b["id"])
+        if edge is not None:
+            (hx, hy, _), side = edge
+            x, y, r = int(math.floor(me[0])), int(math.floor(me[1])), int(STUCK_LEAVE_R)
+            if side == "N":
+                yield ExploreToward(x, y - r if me[1] < hy else y + r)
+            else:
+                yield ExploreToward(x - r if me[0] < hx else x + r, y)
 
     def candidates(self, view):
         """The goals in the scripted order (the module docstring), each one the view admits."""
@@ -143,6 +203,11 @@ class GoalRunner:
         self.pending = False   # the source answered None (P23-AC) on the last ask and no goal runs
         self.hold_ticks = 0    # planner ticks in a row another branch held without sending, the goal running (M-7)
         self.refusal = None    # the last proposal refused as cooled, for the next proposal's view (`_carried`)
+        self.stuck_leave = True   # ruling P27-F: Survive sets it each tick from its `STUCK_LEAVE`; off, no stuck mark
+        self.stuck_marks = {}  # square (x, y, z) -> (world minutes, {edge, square, goal}) of a walk stuck unmoved there
+        self.stuck_now = None  # this tick's stuck mark (P27-F), logged on the decision line, else None
+        self.world = None      # the World of the last observe (a sent walk's square is read off it)
+        self._walks = []       # (walk Action, the send's square, the player's position, the goal's {type, args})
         self._ended_now = None
         self._observed = False
 
@@ -184,10 +249,11 @@ class GoalRunner:
     def observe(self, world, actions):
         """The kit's bookkeeping and the running goal's pre-emption and budget (the module docstring); Survive calls
         it every tick before its branches."""
-        self.actions = actions
+        self.actions, self.world = actions, world
         self._ended_now, self._observed = None, True
         self.kit.observe(world, actions)
         self.kit.read_buildings(world)
+        self._read_walks(world, actions)
         g = self.current
         if g is None:
             return
@@ -200,6 +266,32 @@ class GoalRunner:
             g.end("failed", "goal budget")
         if not g.running:
             self._close(g)
+
+    def _read_walks(self, world, actions):
+        """Ruling P27-F (the module docstring): each goal walk sent (`_walks`) read once at its end; one that ended
+        `failed "stuck"` with the player still on the send's square marks it, with the route's first edge, when
+        `stuck_leave` is on (`stuck_now` names the mark this tick)."""
+        self.stuck_now = None
+        keep = []
+        for w in self._walks:
+            a, sq, pos, goal = w
+            if not actions.done(a):
+                keep.append(w)
+            elif self.stuck_leave and a.state == "failed" and a.reason == "stuck" and player_square(world) == sq:
+                edge = first_edge(world, pos, (a.args.get("x"), a.args.get("y")))
+                self.stuck_now = {"edge": None if edge is None else [edge[0][0], edge[0][1], edge[1]],
+                                  "square": [sq[0], sq[1]], "goal": goal}
+                self.stuck_marks[sq] = (world.world_minutes(), self.stuck_now)
+        self._walks = keep
+
+    def stuck_at(self, world):
+        """The player's square's stuck mark within STUCK_MARK_MIN game minutes, `{square, edge}`, else None (P27-F: the
+        view's `stuck`)."""
+        sq = player_square(world)
+        m = self.stuck_marks.get(sq) if sq is not None else None
+        if m is None or world.world_minutes() - m[0] >= STUCK_MARK_MIN:
+            return None
+        return {"square": m[1]["square"], "edge": m[1]["edge"]}
 
     def tick(self, world, actions, view=None):
         """The goal's command this tick, or None (the module docstring)."""
@@ -234,6 +326,9 @@ class GoalRunner:
             cmd = None
         self.why = dict(g.why, goal=g.TYPE, args=g.args(), state=g.state, reason=g.reason, proposed=proposed,
                         ended=ended)
+        leave = getattr(self.source, "last_leave", None) if proposed is not None else None
+        if leave is not None:
+            self.why["leave"] = leave   # P27-F: the source's pick that leaves a marked square
         return cmd
 
     def held(self, by_other):
@@ -243,8 +338,12 @@ class GoalRunner:
 
     def send(self, cmd):
         action = self.actions.send(cmd)
-        if self.current is not None:
-            self.current.sent(cmd, action)
+        g = self.current
+        if g is not None:
+            g.sent(cmd, action)
+            sq = player_square(self.world) if cmd.TYPE == "walkTo" and self.world is not None else None
+            if sq is not None:   # P27-F: the square and position the walk left from, its end read by `_read_walks`
+                self._walks.append((action, sq, me_xy(self.world), {"type": g.TYPE, "args": g.args()}))
         return action
 
     def rows(self):

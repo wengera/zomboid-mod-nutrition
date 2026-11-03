@@ -76,6 +76,10 @@ planner's memory: `need_marks`, `night`, `goals`, `clock`; a missing one reads e
   (F7: it was empty on all 33 such views, and a Stock then ends at once), only when at least one building is shown (the
   BUILDINGS_SHOWN nearest, the ones the model sees) and every one shown reads `looted`; absent otherwise (outside KEYS,
   so a view without it renders as before).
+- `stuck` (ruling P27-F, Plan 27 Task 5: E19's four goal walks from the gate square each `stuck` unmoved): the goal
+  runner's mark of the player's square, `{square, edge}` (`GoalRunner.stuck_at`: a goal walk ended `stuck` with the
+  player unmoved there within STUCK_MARK_MIN game minutes, and the route's first edge out of it, [x, y, side]); absent
+  otherwise (outside KEYS), rendered as its own `stuck:` line after `last_goal`'s.
 
 The view only reads: the kit is bound by its runner's `observe`, never here (fix 1 M5).
 
@@ -127,6 +131,7 @@ THREAT_SENDS = ("attack", "steer", "walkTo", "stop", "hold")   # a superseding s
 OPTIONAL_KEYS = ("night", "tired")   # rendered only when the view carries them (Task 29)
 HOLD_KEY, HOLD_AFTER = "spent", "tired"   # the hold's view key (Plan 25 Task 3) and the line its `hold:` line follows
 OPEN_KEY, OPEN_AFTER = "open", "buildings"   # P26-G: the all-looted key and the line it follows
+STUCK_KEY, STUCK_AFTER = "stuck", "last_goal"   # P27-F: the stuck square's key and the line its `stuck:` line follows
 OPEN_GOALS = ("ExploreToward",)   # P26-G/P26-5: the goal always open when every shown building reads looted
 OPEN_STOCK = "Stock"              # P26-5: and this one only while the view's `stock_uses` is non-empty
 REASK_KEY = "reask_why"   # P26-H: the LLM source's re-ask, its refusal's why, read as the tail line (`_reask`)
@@ -294,6 +299,9 @@ def view(world, survive):
     shown = buildings[:BUILDINGS_SHOWN]   # P26-5: the buildings `render` shows, not every known one
     if shown and all(b["looted"] for b in shown):
         v[OPEN_KEY] = list(OPEN_GOALS) + ([OPEN_STOCK] if v["stock_uses"] else [])
+    stuck = runner.stuck_at(world) if hasattr(runner, "stuck_at") else None
+    if stuck is not None:
+        v[STUCK_KEY] = stuck   # P27-F: the square the goal walks could not leave, and the edge they failed on
     return v
 
 
@@ -332,6 +340,13 @@ def _open(v):
     return "%s: %s" % (OPEN_KEY, json.dumps(goals, separators=(",", ":"))) if goals else None
 
 
+def _stuck(v):
+    """The stuck square's line (ruling P27-F): `stuck: {"edge":[x,y,side],"square":[x,y]}` while the view carries
+    `stuck`, else None (no line)."""
+    s = v.get(STUCK_KEY)
+    return "%s: %s" % (STUCK_KEY, json.dumps(s, sort_keys=True, separators=(",", ":"))) if s else None
+
+
 def _reask(v):
     """The re-ask's tail line (ruling P26-H) while the view carries `reask_why`, else None (no line)."""
     why = v.get(REASK_KEY)
@@ -351,7 +366,8 @@ def _line(v, k, shown, events):
 
 
 def _lines(v, shown, events=True):
-    after = {HOLD_AFTER: _hold(v), OPEN_AFTER: _open(v)}   # the lines of the keys outside KEYS, by the line they follow
+    after = {HOLD_AFTER: _hold(v), OPEN_AFTER: _open(v), STUCK_AFTER: _stuck(v)}   # the lines of the keys outside
+    # KEYS, by the line they follow
     lines = []
     for k in KEYS:
         line = _line(v, k, shown, events)
