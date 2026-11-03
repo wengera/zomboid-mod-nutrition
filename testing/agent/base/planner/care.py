@@ -28,10 +28,11 @@ Its choose, the first that answers (`why` names the `reason`, the `part`, the `i
    `bleedingTime` as before); the first spent part left is logged `spent_kept` {part, bleedingTime, dirty} on the
    care line whenever the step would have sent before. Cost if wrong: a dirty dressing's infection odds (#4299) on a
    part the engine would have re-bled. Ruling P27-K3 (`replace_quiet`, Survive's `REPLACE_QUIET`; F10,
-   `f_goals_11-20261103-075140`: each spent replace bled its part for the act's 5.978 to 6.281 s, and the one
-   superseded after the dressing came off bled part 4 five game minutes): a replace is sent only with no listed zombie
-   chasing within LISTED_R (`chasing_n`, Survive's count, the rest's test of P27-C2); with one the step holds, logged
-   `spent_held` {part, chasing}. The bleeding step is unchanged. Cost if wrong: a spent dressing worn longer.
+   `f_goals_11-20261103-075140`: the five landed replaces bled their parts for the act's 5.978 to 6.281 s, and
+   the one superseded after the dressing came off bled part 4 five game minutes): a replace is sent only with no
+   listed zombie chasing within LISTED_R (`chasing_n`, Survive's count, the rest's test of P27-C2); with one the step
+   holds, logged `spent_held` {part, chasing}. The bleeding step is unchanged. Cost if wrong: a spent dressing worn
+   longer.
 3. `wash`: a dirty rag held, no zombie within DISENGAGE_R (Survive sets `quiet` each tick), and a known water source
    (`World.water_sources`: the map's square `water` record with water in it, on the player's floor, not refused
    lately) within WASH_R: `Wash(itemId, x, y)`, the Lua walking next to it (a wash does not test the water's taint,
@@ -242,6 +243,8 @@ class Care(Policy):
         self.dirty_rag_rip = True  # ruling P25-Y: a dirty rag alone held, its part's bleedingTime at or under
                                    # DIRTY_RAG_MIN, does not block the rip or the unwear; off, a dressing of any kind
                                    # held blocks both (Survive sets it each tick from its `DIRTY_RAG_RIP`)
+        self.stock_early = True   # ruling P27-K1: the wound's rip counts as a dressing under the threat branch's yield
+                                  # (`CareYield._care_yields`; Survive sets it each tick from its `STOCK_EARLY`)
         self.trapped = False      # ruling P25-Q: the tick is the threat's trapped hold passed on (Survive sets it each
                                   # care tick): the bleeding step's unwear goes as on a quiet tick (never the wash)
         self.wear_worn = True     # ruling P26-E: a wear rejected `worn` marks its item worn (Survive sets it each tick

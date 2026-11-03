@@ -98,7 +98,7 @@ class CareYield:
                 return near
         if self.flee_many:
             return None
-        rip = self.STOCK_EARLY   # P27-K1: the wound's rip is taken as a dressing is
+        rip = self.care.stock_early   # P27-K1: the wound's rip is taken as a dressing is
         running = self.care.busy() and (self.care.last.type == "bandage" or (rip and self.care.last.type == "rip"))
         refused = (near <= (CARE_HOLD_R if running else CARE_R)
                    or (not running and (self._closing() or (self.mode == "flee" and chased))))

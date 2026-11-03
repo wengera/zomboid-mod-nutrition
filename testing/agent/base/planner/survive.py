@@ -1003,6 +1003,7 @@ class Survive(Threat):
                                                       # `rides_wound`) before the care branch, so set at the tick's read
         self.care.wear_worn = self.WEAR_WORN   # P26-E: read by the Care's observe (`_read_observes`)
         self.care.spent_keep = self.SPENT_KEEP   # P27-D: read by the Care's choose
+        self.care.stock_early = self.STOCK_EARLY   # P27-K1: read by the threat branch's care yield (`_care_yields`)
         self.goals.stuck_leave = self.STUCK_LEAVE   # P27-F: read by the goal runner's observe, below
         self.ticks += 1
         self._observed = []

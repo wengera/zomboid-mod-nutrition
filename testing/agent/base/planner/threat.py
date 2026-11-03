@@ -168,8 +168,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # FALLEN_SEEK_TICKS ticks walks to it, or with a standing zombie within DANGER_R or its line
                           # blocked leaves it (`finish.FightFinish._fallen_seek`); off, the stance stands at it
     LISTING_FALLEN = True  # ruling P27-I: the `many` counts (the listing's and the held one's) leave out a zombie read
-                           # fallen and one across a known blocked edge out of the hold radius (`_left_out`); off, they
-                           # count as P24-AD and P24-AN read them
+                           # fallen and one across a known blocked edge out of the hold radius (`_left_out`), as do the
+                           # stance count and P27-B's tail read, which share `_counts_listed`; off, they count as
+                           # P24-AD and P24-AN read them
     SHOVE_CLOSE = True    # ruling P27-J: the hold's lone fight only at a chasing zombie, an idle one leaving the rest
                           # (`hold.Hold._hold_idle`), and a shove-only Fight's lone chaser holding beyond point blank
                           # for SHOVE_CLOSE_TICKS walked to, or left for a blocked line
@@ -256,9 +257,11 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         read fallen, one was the gate zombie across the fence row and one stood chasing 10.538954093041877 tiles off,
         and the listing's count of four began a new `many` episode, #4555): why zombie `z` is left out of the `many`
         counts, else None: "fallen" when the frame reads it `onFloor`; "across" when it stands beyond the hold radius
-        (`_hold_r`) and the straight line to it crosses a known blocked edge (`edges.crossed`, P25-X's read: a
-        blocked, unhoppable outdoor edge). None with `LISTING_FALLEN` off. Cost if wrong: a group that rises together
-        (the fallen counted again the tick they stand)."""
+        (`_hold_r`) and the straight line to it crosses a known blocked edge (`edges.crossed`, P25-X's read: a blocked,
+        unhoppable outdoor edge). None with `LISTING_FALLEN` off. `_counts_listed` reads it, so the clauses reach every
+        read of the listing: the `many` counts, the stance count (`engage._stance_count`) and P27-B's tail read
+        (`_many_tail_read`). Cost if wrong: a group that rises together (the fallen counted again the tick they
+        stand)."""
         if not self.LISTING_FALLEN:
             return None
         if on_floor(z):
@@ -864,8 +867,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             self.pair_yield = None   # P25-J (3): a flee's yield is the `pair` flee's own finish (`_pair_flee_finish`)
             ans = self._flee_drop() or self._flee_finish(reason)
             idle = None if walk or reason != "strain" else self._hold_idle()   # P27-J (a): an idle zombie in reach
-            rest = ans is None and (walk or idle is not None) and self._hold_rest()   # P27-C2: the hold's walk with no
-            if ans is None:                                                            # chaser is the rest
+            # P27-C2: the hold's walk with no chaser is the rest
+            rest = ans is None and (walk or idle is not None) and self._hold_rest()
+            if ans is None:
                 ans = self._rest(policy, idle) if rest else self._answer(policy)
             if not rest:
                 self.rest_from = None

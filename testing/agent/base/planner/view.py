@@ -366,8 +366,8 @@ def _line(v, k, shown, events):
 
 
 def _lines(v, shown, events=True):
-    after = {HOLD_AFTER: _hold(v), OPEN_AFTER: _open(v), STUCK_AFTER: _stuck(v)}   # the lines of the keys outside
-    # KEYS, by the line they follow
+    # the lines of the keys outside KEYS, by the line they follow
+    after = {HOLD_AFTER: _hold(v), OPEN_AFTER: _open(v), STUCK_AFTER: _stuck(v)}
     lines = []
     for k in KEYS:
         line = _line(v, k, shown, events)

@@ -1764,8 +1764,10 @@ def test_iteration_20_moves_the_six_goldens_at_the_listing_s_across_clause_and_e
       sixth's moved lines are whys alone, and E4's decisions move from line 441, where the listing's four made `many`
       again before (`listed` 4, Task 1's P27-B re-entry) and now one of them, across the fence, is left out (`listing`
       {fallen 0, across 1}): the endurance hold's `strain` flee holds its running leg where the `many` steer went, and
-      every later moved line is downstream of it (open loop). No golden frame reads `onFloor`, so the fallen clause
-      moves none. E2 lists no zombie across the row beyond its hold.
+      every later moved line is downstream of it (open loop). The clauses reach every read of the listing, so on E4
+      under `LISTING_FALLEN` alone the `many_tail` why also moves, from line 434 to line 430, before line 441's
+      decision change. No golden frame reads `onFloor`, so the fallen clause moves none. E2 lists no zombie across the
+      row beyond its hold.
     - STUCK_LEAVE (P27-F) moves none: its mark reads a goal walk the goal runner sent, and the replay's goals are the
       record's (`RecordedGoals`). FLOOR_FINISH (P27-G) and FALLEN_SEEK (P27-H) move none: both read a zombie the
       frame reads `onFloor`. SHOVE_CLOSE (P27-J) moves none: a shove-only Fight and the hold's lone fight need a build

@@ -131,11 +131,11 @@ class Hold:
 
     def _hold_idle(self):
         """Ruling P27-J (a) (`SHOVE_CLOSE`; F10, `f_goals_11-20261103-075140`: P27-C's lone fight stood 12.509 s facing
-        27031, which read no target of its own, `hasTarget` false, 2.8 to 3.4 tiles off): under the endurance hold alone
-        (`spent_kinds` ("endurance",)) the id of the one standing zombie within DANGER_R (`_kept`) when it reads
-        `hasTarget` false, else None: the hold's lone fight is not taken at it (`_hold_lone`) and the `strain` flee's
-        rest (P27-C2, `_hold_rest`) runs as with nobody within DANGER_R, logged `rest` {..., idle}. Cost if wrong: an
-        idle zombie that turns while the character rests."""
+        27031, which read no target of its own, `hasTarget` false, 2.815809041061751 to 3.393632390072648 tiles off):
+        under the endurance hold alone (`spent_kinds` ("endurance",)) the id of the one standing zombie within DANGER_R
+        (`_kept`) when it reads `hasTarget` false, else None: the hold's lone fight is not taken at it (`_hold_lone`)
+        and the `strain` flee's rest (P27-C2, `_hold_rest`) runs as with nobody within DANGER_R, logged `rest` {...,
+        idle}. Cost if wrong: an idle zombie that turns while the character rests."""
         if not (self.SHOVE_CLOSE and self.spent_kinds == ("endurance",)):
             return None
         stand = [(zid, z) for zid, z in self.world.zombies.items()

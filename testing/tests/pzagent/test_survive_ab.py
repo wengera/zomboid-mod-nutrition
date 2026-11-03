@@ -289,6 +289,18 @@ def test_a_running_strike_at_the_zombie_it_knocked_down_is_held_no_stomp_sent(tm
     assert tick(r2, sv2).type == "stomp"
 
 
+def test_a_running_strike_at_a_zombie_it_knocked_down_beyond_reach_is_held_no_stomp_sent(tmp_path):
+    """E19's `busy` case, the Fight's side of P27-G: the attack at zombie 1 runs and 1 reads fallen 3.0 tiles off
+    (beyond FIGHT_REACH, within FINISH_R, so `_finish_gives_way` gives way to the stomp): the finish holds, nothing
+    sent, logged `strike_runs` {target, aid}, no stomp; the swing is no reach."""
+    r, sv = make(tmp_path)
+    a = striking(r, sv)
+    fr(r, [fallen(103.0)])
+    assert tick(r, sv) is None
+    w = threat_why(tmp_path)
+    assert w["strike_runs"] == {"target": 1, "aid": a.aid} and "stomp" not in w and "stomp" not in sends(r)
+
+
 def test_the_many_flee_s_finish_swings_at_a_fallen_zombie_within_reach(tmp_path):
     """E19's flee finish (P27-A's two firings under `many`, each a stomp refused `busy` and the floor strike the kill):
     a zombie fallen 1.8 tiles off (beyond CORNERED_R, within FIGHT_REACH) never struck, GROUP3 chasing 7.5 off: the
@@ -521,10 +533,10 @@ def test_a_chasing_zombie_or_one_with_no_target_read_takes_the_hold_fight(tmp_pa
 
 
 def test_f10_s_hold_fight_closes_on_a_chaser_holding_beyond_point_blank(tmp_path):
-    """F10's hold fight (lines 656-681: the stance at 27031, the zombie at 2.86 then 3.2 to 3.4 tiles for twenty lines,
-    five aim legs and nothing else): the chaser holding 3.3 tiles off, alone: the stance stands five ticks, the
-    SHOVE_CLOSE_TICKS-th the leg gives way and the walk to the square one short of it goes at a walk, logged
-    `shove_close` {target, dist, ticks}; arrived at point blank, the shove."""
+    """F10's hold fight (lines 656-681: the stance at 27031, the zombie at 2.815809041061751 then 3.1712611313783534 to
+    3.393632390072648 tiles for twenty lines, five aim legs and nothing else): the chaser holding 3.3 tiles off, alone:
+    the stance stands five ticks, the SHOVE_CLOSE_TICKS-th the leg gives way and the walk to the square one short of it
+    goes at a walk, logged `shove_close` {target, dist, ticks}; arrived at point blank, the shove."""
     r, sv = make(tmp_path)
     for k in range(P.SHOVE_CLOSE_TICKS - 1):
         a = held_off(r, sv)
@@ -565,6 +577,29 @@ def test_the_unarmed_fight_closes_on_a_chaser_and_never_on_an_idle_one(tmp_path)
                 r.pump()
             r.advance(0.5)
         assert ("walkTo" in sends(r)) is (not idle) and threat_why(d)["unarmed_fight"] is True
+
+
+def test_the_unarmed_close_is_a_lone_chaser_s_with_a_second_zombie_standing_within_danger_r_no_walk(tmp_path):
+    """P27-J (b) applies to the lone chasing target: a second zombie 5 tiles off, standing across a blocked fence
+    edge (`edge_marks`, out of the hold's count so the unarmed fight still runs, but within DANGER_R for `_alone`):
+    the chaser 3.3 tiles off held through SHOVE_CLOSE_TICKS plus two ticks sends no `shove_close` walk; with the
+    second zombie gone the walk goes."""
+    for second in (True, False):
+        d = tmp_path / str(second)
+        d.mkdir()
+        r, sv = make(d)
+        for _ in range(P.SHOVE_CLOSE_TICKS + 2):
+            fr(r, [z(1, 103.3)] + ([z(2, 105.0, has_target=False)] if second else []), weapon=None)
+            if second:
+                sv.edge_marks[2] = ((104, 200, 0), "W")
+                sv.unreachable[2] = float("inf")
+            a = tick(r, sv)
+            if a is not None:
+                r.fake.act(a.aid, "accepted", a.type)
+                r.pump()
+            r.advance(0.5)
+        assert threat_why(d)["unarmed_fight"] is True
+        assert ("walkTo" in sends(r)) is (not second) and ("shove_close" in threat_why(d)) is (not second)
 
 
 def test_with_shove_close_off_the_hold_fight_stands_at_the_chaser(tmp_path):
@@ -638,6 +673,27 @@ def test_the_early_stock_rips_with_an_idle_zombie_beyond_danger_r_or_a_dirty_rag
     tick(r, sv)
     assert r.cmd() == ("rip", {"itemId": 22})
     assert last(tmp_path)["inputs"]["branches"]["care"]["stock"]["stock_early"]["branch"] == "stock"
+
+
+def test_the_early_stock_refuses_with_a_zombie_within_danger_r_and_no_threat_policy_running(tmp_path):
+    """P27-K1's DANGER_R clause (`_care_stock`'s `not self._within(DANGER_R)`), the step tried on its own on a tick the
+    threat branch has not answered (`mode` None: the tick's read done, no decision yet; `assess` reaches the step only
+    after the threat branch answered or held nothing, so the guard is the step's own and no whole tick reaches it
+    with a zombie within DANGER_R, the release (`_released`) needing none there): the T-shirt held, no clean
+    dressing, one zombie 3 tiles off: no rip; with the zombie gone, the rip of the T-shirt, `stock_early`."""
+    for zs in ([z(1, 103.0)], []):
+        d = tmp_path / str(len(zs))
+        d.mkdir()
+        r, sv = shirt_rig(d)
+        care_frame(r, [part(5)], zombies=zs)
+        sv._read(r.world, r.acts)
+        assert sv.mode is None and bool(sv._within(P.DANGER_R)) is bool(zs)
+        ans = sv._care_stock()
+        if zs:
+            assert ans is None
+        else:
+            assert (ans[1].TYPE, ans[1].args()) == ("rip", {"itemId": 22})
+            assert sv.why["stock_early"]["branch"] == "stock"
 
 
 def bleeding_shirt(tmp_path, zs, **k):
@@ -824,6 +880,24 @@ def test_f10_s_divided_swings_withdrawn_three_missed_shoves_take_the_break_by_de
 
 
 # ================================================================ iteration 20's switches and constants
+def test_the_care_carries_stock_early_and_the_yield_reads_it_there(tmp_path):
+    """P27-K1's switch lives on `Survive` and is copied onto the Care at `_read` (as `dirty_rag_rip` is), the threat
+    branch's yield reading `self.care.stock_early`: a Care built alone reads it on (no `Survive`, no AttributeError),
+    a tick under `STOCK_EARLY` off copies it off, and the yield's running-rip hold follows it."""
+    from agent.base.planner.care import Care
+    r, sv = make(tmp_path)
+    assert Care(r.world, r.acts, r.clock).stock_early is True
+    sv.STOCK_EARLY = False
+    fr(r, [z(1, 103.0)])
+    tick(r, sv)
+    assert sv.care.stock_early is False
+    sv.STOCK_EARLY = True
+    r.advance(0.5)
+    fr(r, [z(1, 103.0)])
+    tick(r, sv)
+    assert sv.care.stock_early is True
+
+
 def test_the_iteration_20_switches_and_constants():
     """`survive.T10_SWITCHES`, each on by default (P27-L's withdrawal is `WOUNDED_SWING`'s default, in T8_SWITCHES),
     the Fight's rules they hand down and policies.py's three new constants (the controller's numbers) and the leave's
