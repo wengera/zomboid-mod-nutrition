@@ -247,6 +247,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     `fight.Fight._crowd_shove`); P26-D, the bleed under the threat branch (`care_yield.CareYield._bleed_free`,
     `_bleed_leg`, `care.Care.dresses_wound`); P26-E, a wear rejected `worn` marks its garment worn
     (`care.Care.observe`, `World.mark_worn`); `T7_SWITCHES`.
+  - Survival 20 (iteration 18, E17): P26-I, a window way out needs an inside square that can be stood on
+    (`night.window_exits`' `walkable`: E17's kitchen counter); `T8_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -360,6 +362,8 @@ T6_SWITCHES = ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE",
 T7_SWITCHES = ("WINDOW_EXIT", "STAND_SECOND_EXIT", "INSIDE_SHOVE", "THREAT_BLEED", "WEAR_WORN")
 # survival iteration 17 (Plan 26 Task 2): P26-A to P26-D on `threat.Threat` (WINDOW_EXIT, STAND_SECOND_EXIT,
 # INSIDE_SHOVE, THREAT_BLEED); P26-E on `Survive` (WEAR_WORN)
+T8_SWITCHES = ("WINDOW_INNER",)
+# survival iteration 18 (Plan 26 Task 7): P26-I on `threat.Threat` (WINDOW_INNER)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -380,7 +384,7 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "MANY_LISTED_N", "DRAG_DOWN_N", "FINISH_R",
            "NEED_STATS", "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_RETRY_MIN", "FILL_SETTLE_S", "FILL_WANTS",
            "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T3_SWITCHES",
-           "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES", "T7_SWITCHES"]
+           "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES", "T7_SWITCHES", "T8_SWITCHES"]
 
 
 @dataclass

@@ -119,6 +119,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # swings (`_inside_crowd`, `fight.Fight._crowd_shove`); off, the corner's swing as before
     THREAT_BLEED = True   # ruling P26-D: the bleed's yield under the threat branch (`care_yield.CareYield._bleed_free`,
                           # `_bleed_leg`); off, the yield's reads of P24-P, P24-U and P24-AR alone
+    # survival iteration 18 (Plan 26 Task 7; survive.py's docstring, Survival 20): each switch off is the rule before
+    # it, all of them in `survive.T8_SWITCHES` (the replay tests' `pre_t8`)
+    WINDOW_INNER = True   # ruling P26-I: a window way out needs an inside square that is neither `solid` nor
+                          # `solidTrans` (`night.window_exits`' `walkable`); off, P26-A's windows whatever stands inside
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -328,7 +332,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if f is not None and f.exit is not None:
             return True
         return exit_plan(self.world, held, f.refused if f is not None else (), self.TRANS,
-                         self.WINDOW_EXIT) is not None
+                         self.WINDOW_EXIT, self.WINDOW_INNER) is not None
 
     def _cornered(self, held, inside):
         """The zombie id a cornered Fight runs on (ruling P23-AJ 2, its fix rounds, and the coordinator's amendment 6
@@ -695,6 +699,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.door_walk_on = self.DOOR_WALK   # P25-E
             policy.window_exit_on = self.WINDOW_EXIT   # P26-A
             policy.second_exit_on = self.STAND_SECOND_EXIT   # P26-B
+            policy.window_inner_on = self.WINDOW_INNER   # P26-I
             walk = self._hold_walk(reason)   # P25-C: the endurance hold's flee walks with nobody within DANGER_R
             policy.gait = "walk" if walk else FLEE_GAIT
             policy.keep_gait()

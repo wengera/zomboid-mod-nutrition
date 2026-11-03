@@ -584,7 +584,7 @@ def on_room(world):
     return (world.map.get(_night().player_square(world)) or {}).get("room") is not None
 
 
-def exit_plan(world, threats, refused=(), trans=True, windows=False):
+def exit_plan(world, threats, refused=(), trans=True, windows=False, walkable=True):
     """The way out of the building the player stands in (ruling P23-AJ 3 as amended, and its fix round 1), else
     None: standing on a room square of a building, of its `night.exits` on the player's floor (an opening, or a
     closed exterior door to open first) whose outside square is not in `refused`, whose outside square's centre is no
@@ -602,7 +602,8 @@ def exit_plan(world, threats, refused=(), trans=True, windows=False):
     `(door marked, window, smash, distance, outer, inner)`: a window is the way out only when no door or opening is, and
     an unlocked one goes before a locked one at any distance, ruling P26-7d, as `goals.window_pick` ranks); a
     window's record carries `window` and `smash`, its `target` its inside square (`inner`, the walk's end before the
-    climb) and its `step` "window" (`flee.Flee._window_step`), `sent` False."""
+    climb) and its `step` "window" (`flee.Flee._window_step`), `sent` False. Ruling P26-I (`walkable`,
+    `Threat.WINDOW_INNER`): a window whose inside square cannot be stood on is no way out (`night.window_exits`)."""
     N = _night()
     s = world.map.get(N.player_square(world)) or {}
     b = s.get("building")
@@ -612,7 +613,7 @@ def exit_plan(world, threats, refused=(), trans=True, windows=False):
     me = me_xy(world)
     marked = world.marked_doors()   # Task 18 fix 1, major 4: a marked door stays a way out, ranked after the others
     best = None
-    for e in N.exits(world, b, me_floor(world), windows):
+    for e in N.exits(world, b, me_floor(world), windows, walkable):
         if e["outer"] in refused:
             continue
         c = centre(e["outer"])

@@ -122,8 +122,18 @@ def pre_t6(sv, keep=()):
 
 def pre_t7(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 26 Task 2 (survival iteration 17): its switches off
-    (`survive.T7_SWITCHES`), but those named in `keep`."""
+    (`survive.T7_SWITCHES`), but those named in `keep`. Plan 26 Task 7: iteration 18's switches (`pre_t8`) off with
+    them, so every seam onto an earlier rule reads them off."""
     for name in S.T7_SWITCHES:
+        if name not in keep:
+            setattr(sv, name, False)
+    pre_t8(sv)
+
+
+def pre_t8(sv, keep=()):
+    """The replay's mutate seam onto the rules before Plan 26 Task 7 (survival iteration 18): its switches off
+    (`survive.T8_SWITCHES`), but those named in `keep` (`test_iteration_18_moves_no_golden`)."""
+    for name in S.T8_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
 
@@ -1594,4 +1604,14 @@ def test_iteration_17_moves_no_golden(key):
     it reads free there, building 2's kitchen door (10721, 10638), has another way out on each of its 13 reads; P26-D
     and P26-E read a part's `bleeding` and a `wear`, which no golden ring carries."""
     only = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t7))}
+    assert only == gold(key)
+
+
+# ================================================================ Plan 26 Task 7: iteration 18 on the goldens
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_iteration_18_moves_no_golden(key):
+    """Survival iteration 18 moves no golden: the six are byte-identical with its switches on
+    (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off (`pre_t8`). P26-I reads a window way
+    out, which needs a build announcing `window`, and no golden's hello does."""
+    only = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t8))}
     assert only == gold(key)

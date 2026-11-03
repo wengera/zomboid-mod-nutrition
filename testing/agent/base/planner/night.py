@@ -162,14 +162,14 @@ def approach_square(world, door):
     return None if way is None else way[1]
 
 
-def exits(world, building, z, windows=False):
+def exits(world, building, z, windows=False, walkable=True):
     """The ways out of `building` on floor `z` (ruling P23-AJ 3 as amended): `[{inner, outer, door}]`, each opening
     of `world.openings` (`door` None: the step from `inner` to `outer` reads open) on that floor, then each exterior
     door the map reads closed and not barricaded with its `approach_square` as `outer` (`door` the square to open
     first; a locked one included, since the Lua's open unlocks a door that opens from inside; one marked stuck kept,
     the way out being read from inside: Task 18 fix 1, the review's major 4), sorted by `outer`. With `windows`
     (ruling P26-A, `Threat.WINDOW_EXIT`) and a build announcing `window`, each exterior window of the building on that
-    floor follows them, sorted by `outer` too (`window_exits`)."""
+    floor follows them, sorted by `outer` too (`window_exits`; `walkable`, ruling P26-I, its walkability read)."""
     out = [{"inner": a, "outer": b, "door": None} for a, b in world.openings(building) if a[2] == z]
     for d in exterior_doors(world, building, z, marked=True):
         rec = world.map[d].get("door") or {}
@@ -177,10 +177,10 @@ def exits(world, building, z, windows=False):
             inner, outer = world.door_way(d)
             out.append({"inner": inner, "outer": outer, "door": d})
     out = sorted(out, key=lambda e: (e["outer"], e["inner"]))
-    return out + window_exits(world, building, z) if windows else out
+    return out + window_exits(world, building, z, walkable) if windows else out
 
 
-def window_exits(world, building, z):
+def window_exits(world, building, z, walkable=True):
     """Ruling P26-A (E16, `e_day_16-20261102-125450`: the doorway stand's `inside` end read `trapped` in the one-door
     shed, both zombies on the door's inside square, while the window on the far wall lay 2.3458507024507074 tiles from
     the nearest of them, and no exit crossed a window: `World.openings` leaves a window's edge out): the building's
@@ -188,16 +188,35 @@ def window_exits(world, building, z):
     the build announcing `window` (else []). Each window square `goals.usable_windows` reads (not `barricaded`, no
     failed end of `goals.WINDOW_DEAD`: the one filter `window_pick` reads too); `inner` and `outer` its room square and
     its outside square (`World.window_way`); `smash` True for a locked one (the record's `locked`, or a try that ended
-    `locked`), as `window_pick`'s smash."""
+    `locked`), as `window_pick`'s smash.
+
+    Ruling P26-I (`walkable`, `Threat.WINDOW_INNER`; E17, `e_day_17-20261102-180459`: the stand's `inside` end walked
+    out by building 2's kitchen window (10720, 10634), whose inside square read `solidTrans` with a `counter` on it;
+    the walk there ended `done` one tile short, and the window act's own walk to the near side never arrived, for two
+    reasons, the counter and the Lua's queue cleared at the first bite, and the act failed `dead` 14.4 s after its
+    send): a window whose inside square reads `solid` or `solidTrans` (a counter, a shelf, a sink: the Lua's window
+    action walks to the near-side square first) is left out; its outside square is never `solid`, `World.window_way`
+    pairing a window only with a mapped, non-solid outdoor square. So `exit_plan` never offers it, and the stand's end
+    and the trapped hold read no way out there, as before P26-A. The read sits here, not in `usable_windows` (the
+    window record's filter `goals.window_pick` shares): `inner` exists only once `World.window_way` has paired the
+    window, which the exits alone do, and the goal layer's `window_pick` (entering from outside, its near side the
+    outer square) is untouched by the rule; a counter behind a window is the Lua's problem on entry, read live before
+    it is ruled."""
     if not world.can("window"):
         return []
     from agent.base.planner.goals import usable_windows   # goals imports this module at its top
     out = []
     for w, locked in usable_windows(world, building, z):
         way = world.window_way(w, building)
-        if way is not None:
+        if way is not None and (not walkable or _stood_on(world, way[0])):
             out.append({"inner": way[0], "outer": way[1], "door": None, "window": w, "smash": locked})
     return sorted(out, key=lambda e: (e["outer"], e["inner"]))
+
+
+def _stood_on(world, sq):
+    """Ruling P26-I: the mapped square `sq` can be stood on, reading neither `solid` nor `solidTrans`."""
+    s = world.map.get(sq)
+    return s is not None and not s.get("solid") and not s.get("solidTrans")
 
 
 def _inside_for(rooms, door):

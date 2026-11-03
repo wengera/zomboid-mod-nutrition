@@ -85,6 +85,8 @@ constants and record unchanged; the constants stay in `policies.py`).
   (`World.note_window_fail`, so a WINDOW_DEAD end leaves it out of the next `exits`) and refuses the exit. Ruling
   P26-B (`second_exit_on`, `STAND_SECOND_EXIT`): with the pick a doorway stand's (`stand_ok`), a free door whose
   building has no other way out on its floor is refused `one_exit` (`door_verdicts`).
+  Survival 20 (ruling P26-I, `window_inner_on`, Survive's `WINDOW_INNER`): a window whose inside square reads `solid` or
+  `solidTrans` (E17's kitchen counter) is no way out (`night.window_exits`), for the exit and `_other_exit` alike.
 """
 import math
 import time
@@ -138,6 +140,8 @@ class Flee(Policy):
         self.door_walk_on = True  # Survive sets it each tick (its DOOR_WALK switch, P25-E)
         self.window_exit_on = True   # Survive sets it each tick (its WINDOW_EXIT switch, P26-A): windows are ways out
         self.second_exit_on = True   # Survive sets it each tick (its STAND_SECOND_EXIT switch, P26-B)
+        self.window_inner_on = True   # Survive sets it each tick (its WINDOW_INNER switch, P26-I): a window way out
+                                      # needs an inside square that can be stood on
         self.door_walk = None    # this observe: {stall, end} when a stand's walk stalled (P25-E), else None
         self.walking_out = None  # the doorway stand's end this Flee walks out on (P25-W: `walk_out`), else None
 
@@ -485,10 +489,11 @@ class Flee(Policy):
     def _other_exit(self, building, door):
         """Ruling P26-B: `building` has a way out on `door`'s floor besides `door` (`night.exits`, its windows with
         `window_exit_on`): another closed exterior door, an opening that is not the step through `door` itself
-        (`World.door_way`: an open door's step is an opening), or a window."""
+        (`World.door_way`: an open door's step is an opening), or a window (one whose inside square can be stood on,
+        with `window_inner_on`: ruling P26-I)."""
         way = self.world.door_way(door)
         return any(e["door"] != door and (e["inner"], e["outer"]) != way
-                   for e in _night().exits(self.world, building, door[2], self.window_exit_on))
+                   for e in _night().exits(self.world, building, door[2], self.window_exit_on, self.window_inner_on))
 
     def _shelter(self, ts):
         """The plan's next step (its walks at FLEE_GAIT); once done inside, a hold while every threat reads
@@ -642,7 +647,7 @@ class Flee(Policy):
             if cmd is not None or self.plan is not None:
                 return cmd
         if on_room(self.world):
-            self.exit = exit_plan(self.world, ts, self.refused, self.trans, self.window_exit_on)
+            self.exit = exit_plan(self.world, ts, self.refused, self.trans, self.window_exit_on, self.window_inner_on)
             if self.exit is not None:
                 return self._exit_step()
             self.walking_out = None   # the stand's way out found none: the trapped hold is no running exit
