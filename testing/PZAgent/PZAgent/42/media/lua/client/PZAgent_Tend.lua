@@ -770,7 +770,7 @@ K.types.wear = {
     end,
 }
 
--- ---- unwear {itemId} (PZA/1.7, Task 9 fix 11; jar-reads-2 section 14, rows #4376 and #4377) -------------------------------
+-- ---- unwear {itemId} (PZA/1.7, Task 9 fix 11; jar-reads-2 section 14, rows #4376 and #4551, the latter superseding #4377 at the Plan 26 close) -------------------------------
 -- A worn garment taken off as vanilla's Unequip does it (ISInventoryPaneContextMenu.lua:2847 queues ISUnequipAction:new(
 -- player, item, 50)): 50 ticks, stopped by a run, and by a walk unless the garment's body location is in
 -- ISWearClothing.WalkBodyLocations (the accessory locations, lua:shared/TimedActions/ISWearClothing.lua:176-202). Its server
