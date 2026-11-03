@@ -173,6 +173,25 @@ def test_the_stand_crowd_reads_unread_when_the_close_has_no_mapped_frame_after_i
     assert (g["lines"], g["closes"], g["inside_after_close"], g["unread"]) == (1, 1, 0, 1)
 
 
+def test_a_crowd_close_counts_in_the_stand_crowd_closes_and_the_stand_exit_reading_is_left_as_grade_e14_read_it():
+    """Review t7 minor 1 (the coordinator's amendment): the `crowd:close` tick is `stand_crowd`'s, apart from the
+    frozen `stand_exit.closes`; the reader does not touch `stand_exit`, which grade_e15 carries unchanged."""
+    import ast
+    import inspect
+    close = _act("interact", x=3, y=0, kind="close")
+    log = [aline(0, 0.0, {"flee": "doorway", "doorway_left": "crowd", "doorway_crowd": {"n": 4},
+                          "doorway_exit": {"end": "crowd", "exit": "close"}}, close)]
+    a = T14.artifact()
+    e15 = G.grade_e15(a, decision_lines=log, lines=[])
+    e14 = G14.grade_e14(a, decision_lines=log, lines=[])
+    assert e15["stand_crowd"]["closes"] == 1 and e15["stand_crowd"]["by_exit"] == {"close": 1}
+    assert e15["stand_exit"] == e14["stand_exit"]
+    for fn in (G.e_stand_crowd, G.grade_e15):
+        body = ast.parse(inspect.getsource(fn)).body[0].body[1:]        # the docstring left out
+        assert not any(isinstance(n, ast.Constant) and n.value == "stand_exit" for b in body for n in ast.walk(b))
+    assert "excludes `crowd` ends from P26-N on" in e15["report_lines"][-1]
+
+
 # ================================================================ grade_e15 over grade_e14
 @pytest.mark.parametrize("fixture", T14.E13_FIXTURES, ids=lambda f: f.__name__)
 def test_grade_e15_reads_every_grade_e14_key_unchanged_on_test_gates_e13_s_fixtures(fixture, monkeypatch):

@@ -240,7 +240,10 @@ def e_stand_crowd(L, lines):
     line without one), `closes` the lines among them that sent an `interact` `close` on the end's tick. Inference off
     the frames and the map (`_MapView`): `inside_after_close` the closes after which a frame within CLOSE_INSIDE_S held
     a zombie on a room square of the building the player stood in (the close shut a room that was not empty, or one
-    that was entered by another way) and `unread` the closes whose building or frames the map does not know."""
+    that was entered by another way) and `unread` the closes whose building or frames the map does not know. The
+    reading is apart from the frozen `gates_e.e_stand_exit`: its `closes` (must read 0) counts the close after a stand's
+    wound, drag and inside ends, a `crowd` end's close (P26-K2, `doorway_exit` {end crowd, exit close}) is
+    counted here only, and this reader never reads or changes `stand_exit`."""
     if L is None:
         return {"read": False}
     mv = E._MapView(lines)
@@ -278,7 +281,8 @@ def _lines_e15(g):
                     ws.get("windows"))) if ws.get("read") else "window stall and interrupt (P26-J, P26-M): no decision "
                                                                 "log read")
     out.append(("stand crowd end (P26-K, P26-K2) [reading]: %s `crowd` ends, sizes %s, exits %s, %s closes sent on "
-                "the tick; [inference] %s closes followed within CLOSE_INSIDE_S by a zombie inside, %s unread" % (
+                "the tick (the frozen stand_exit `closes` reading excludes `crowd` ends from P26-N on); [inference] "
+                "%s closes followed within CLOSE_INSIDE_S by a zombie inside, %s unread" % (
                     sc.get("lines"), sc.get("n_hist"), sc.get("by_exit"), sc.get("closes"),
                     sc.get("inside_after_close"), sc.get("unread"))) if sc.get("read")
                else "stand crowd end (P26-K, P26-K2): no decision log read")
