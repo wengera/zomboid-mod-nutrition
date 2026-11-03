@@ -38,7 +38,8 @@ LIB = os.path.dirname(S.__file__)
 
 # ================================================================ static: the package, its constants, its imports
 def test_the_defaults_are_the_briefs():
-    want = {"BUDGET_S": 1200.0, "MIN_FREE_GB": 12.0, "DAY_CAP_S": 840, "PLANNER_HZ": 2, "SERVER_POLL_S": 60,
+    # MIN_FREE_GB is the one-client pre-boot floor, 10.0 since ruling P27-4c (2026-11-03; was 12.0)
+    want = {"BUDGET_S": 1200.0, "MIN_FREE_GB": 10.0, "DAY_CAP_S": 840, "PLANNER_HZ": 2, "SERVER_POLL_S": 60,
             "DAMAGE_POLL_S": 5, "PERSIST_S": 30, "MEM_POLL_S": 300, "LIVE_MIN_FREE_GB": 0.5, "STOP_HEALTH": 0.0,
             "MEM_LOW_READS": 2, "BUS_DEAD_S": 60, "BUS_DEAD_POLLS": 2, "STORM_N": 10, "STORM_WINDOW_S": 60,
             "HELLO_TIMEOUT_S": 60.0, "FRAME_TIMEOUT_S": 10.0, "KIT": "Base.BaseballBat", "POLL_S": 0.1,
@@ -343,7 +344,7 @@ def test_make_day_session_is_the_one_chain_builder(tmp_path):
     names its planner, its extra record and its copied files."""
     assert DY.LIMITS == {"DAY_CAP_S": 840, "PLANNER_HZ": 2, "DAMAGE_POLL_S": 5}
     assert DY.CONSTANTS == dict(S.DEFAULTS, **DY.LIMITS, BUDGET_S=1200.0)
-    assert (DY.USER, DY.BUDGET_S, DY.MIN_FREE_GB) == ("admin", 1200.0, 12.0)
+    assert (DY.USER, DY.BUDGET_S, DY.MIN_FREE_GB) == ("admin", 1200.0, 10.0)
     xs = types.SimpleNamespace(copied=[], out=S.new_out(), user="admin", path=str(tmp_path / "a.json"))
     made = []
 
@@ -618,8 +619,11 @@ MODES = ("sync", "polls")
 PORT_LIMITS = {"DAMAGE_POLL_S": 30}
 
 
+JAVA = {"pids": [4242, 4343], "gb": 6.5, "each": [3.25, 3.25]}   # the Java processes' working sets, a fake reading
+
+
 def run_session(tmp_path, monkeypatch, mode="sync", limits=None, budget_s=1e9, free=lambda: 30.0, bus=None,
-                setup=None, polls=None, sleep=None, port=True, polls_join_s=None, **flags):
+                setup=None, polls=None, sleep=None, port=True, polls_join_s=None, java=lambda: JAVA, **flags):
     """One Session on DayMod and a bus (FakeBus from the `bus` knobs, or an object with bind(mod) and ask). `polls`
     is a PollThread or a callable of the fake clock making one; mode "polls" without one runs InlinePolls. `sleep`
     wraps the mod's sleep. PORT_LIMITS lie under `limits` unless port is False (the library's own defaults)."""
@@ -642,7 +646,7 @@ def run_session(tmp_path, monkeypatch, mode="sync", limits=None, budget_s=1e9, f
         polls = InlinePolls(clock=clock.now)
     lim = dict(PORT_LIMITS if port else {}, **(limits or {}))
     sess = S.Session(xs, FileTransport(sd, clock=clock.now), planner_factory=Survive, clock=clock.now,
-                     sleep=sleep(mod.sleep) if sleep else mod.sleep, free=free, limits=lim, polls=polls,
+                     sleep=sleep(mod.sleep) if sleep else mod.sleep, free=free, java=java, limits=lim, polls=polls,
                      polls_join_s=polls_join_s)
     if setup is not None:
         setup(sess)
@@ -817,6 +821,15 @@ def test_two_consecutive_low_reads_stop_on_memory_and_one_does_not(tmp_path, mon
     assert r.out["stop"]["reason"] == "day_cap" and len(r.out["memory_reads"]) >= 5
     r = run_session(tmp_path / "c", monkeypatch, mode, limits={"MEM_POLL_S": 10}, free=lambda: None)
     assert r.out["stop"]["reason"] == "memory" and len(r.out["memory_reads"]) == 2
+
+
+@pytest.mark.parametrize("mode", MODES)
+def test_every_memory_read_carries_the_java_working_sets(tmp_path, monkeypatch, mode):
+    # P27-4b: the row beside free_gb is the Java processes' working sets (None when unreadable), never a stop input
+    r = run_session(tmp_path, monkeypatch, mode, limits={"MEM_POLL_S": 10, "DAY_CAP_S": 40})
+    assert r.out["memory_reads"] and all(m["java_gb"] == JAVA for m in r.out["memory_reads"])
+    r = run_session(tmp_path / "b", monkeypatch, mode, limits={"MEM_POLL_S": 10, "DAY_CAP_S": 40}, java=lambda: None)
+    assert r.out["stop"]["reason"] == "day_cap" and all(m["java_gb"] is None for m in r.out["memory_reads"])
 
 
 @pytest.mark.parametrize("mode", MODES)

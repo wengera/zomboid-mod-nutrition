@@ -111,7 +111,7 @@ DEATH_WINDOW_S = 300              # the damage records and frames a death record
 STOP_SETTLE_S = 2.0               # the loop's closing Stop: how long the pump waits for its act line and a later frame
 DEFAULTS = {
     "BUDGET_S": 1200.0,           # the wall budget from the end of the memory gate, the boot included
-    "MIN_FREE_GB": 12.0,          # the pre-boot memory floor (CLAUDE.md § 5)
+    "MIN_FREE_GB": 10.0,          # the one-client pre-boot floor (CLAUDE.md § 5; ruling P27-4c, 2026-11-03: E17, E18 and F9 ran steady at 3.3 GB available from 12.0 to 16.6 before the boot, and the LIVE_MIN_FREE_GB stop guards the run)
     "DAY_CAP_S": 840,             # the loop's own wall time
     "PLANNER_HZ": 2,
     "SERVER_POLL_S": 60,          # stats.all and players
@@ -434,12 +434,12 @@ class Stop(Exception):
 # ================================================================ the session
 class Session:
     """The hello, damage-hook, kit and loop phases over one FileTransport (the module docstring). `planner_factory
-    (world, actions, log_path, clock)` makes the planner once; clock, sleep, players (the players read), free (the
-    memory read), limits (laid over DEFAULTS), poll_s (default POLL_S), polls (a PollThread), polls_join_s (the
+    (world, actions, log_path, clock)` makes the planner once; clock, sleep, players (the players read), free and java (the
+    memory reads), limits (laid over DEFAULTS), poll_s (default POLL_S), polls (a PollThread), polls_join_s (the
     worker's join at the loop's end; default the longest read) and shots (a shots.ShotTaker) are injectable."""
 
     def __init__(self, xs, transport, planner_factory=Survive, clock=time.time, sleep=time.sleep,
-                 players=read_players, free=X.free_gb, limits=None, poll_s=None, polls=None, polls_join_s=None,
+                 players=read_players, free=X.free_gb, java=X.java_gb, limits=None, poll_s=None, polls=None, polls_join_s=None,
                  shots=None):
         self.xs, self.tr, self.clock, self.sleep = xs, transport, clock, sleep
         self.user = xs.user
@@ -449,7 +449,7 @@ class Session:
         self.rd = self.out.setdefault("readings", {})
         self.lim = dict(DEFAULTS)
         self.lim.update(limits or {})
-        self.players, self.free = players, free
+        self.players, self.free, self.java = players, free, java
         self.poll_s = self.lim["POLL_S"] if poll_s is None else poll_s
         self.polls = polls
         # the join at the loop's end covers the longest read: a bus step's timeout and its liveness ping
@@ -826,9 +826,10 @@ class Session:
 
     # -- memory, the planner -------------------------------------------------------------------------------------
     def memory_read(self, now):
-        """One free-memory read; MEM_LOW_READS in a row below LIVE_MIN_FREE_GB stop."""
+        """One memory read, the host's free GB and the Java processes' working sets (P27-4b, recorded only); MEM_LOW_READS in
+        a row of free below LIVE_MIN_FREE_GB stop."""
         g = self.free()
-        self.mem_rows.append({"wallS": now - self.t_loop0, "free_gb": g})
+        self.mem_rows.append({"wallS": now - self.t_loop0, "free_gb": g, "java_gb": self.java()})
         self.out["memory_reads"] = list(self.mem_rows)
         if X.memory_ok(g, self.lim["LIVE_MIN_FREE_GB"]):
             self.mem_low_in_row = 0

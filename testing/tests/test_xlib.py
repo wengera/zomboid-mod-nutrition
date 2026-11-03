@@ -325,6 +325,58 @@ def test_memory_ok():
     assert X.memory_ok(None, 12.0) is False
 
 
+def _tasklist(monkeypatch, stdout=None, exc=None):
+    import subprocess
+    calls = []
+
+    def run(cmd, **kw):
+        calls.append((cmd, kw))
+        if exc is not None:
+            raise exc
+        return subprocess.CompletedProcess(cmd, 0, stdout=stdout, stderr="")
+    monkeypatch.setattr(X.subprocess, "run", run)
+    return calls
+
+
+def test_java_gb_sums_the_working_sets_of_every_java_process(monkeypatch):
+    # P27-4b: tasklist's fifth CSV column is "1,234,567 K"
+    calls = _tasklist(monkeypatch, '"java.exe","1111","Console","1","3,145,728 K"\r\n'
+                                   '"java.exe","2222","Console","1","1,572,864 K"\r\n')
+    r = X.java_gb()
+    assert r == {"pids": [1111, 2222], "gb": 4.5, "each": [3.0, 1.5]}
+    cmd, kw = calls[0]
+    assert cmd == ["tasklist", "/FO", "CSV", "/NH", "/FI", "IMAGENAME eq java.exe"]
+    assert kw["capture_output"] is True and kw["text"] is True and kw["timeout"] == 10
+
+
+def test_java_gb_rounds_the_sum_to_two_decimals(monkeypatch):
+    _tasklist(monkeypatch, '"java.exe","7","Console","1","1,000,000 K"\n"java.exe","8","Console","1","2,000,000 K"\n')
+    r = X.java_gb()
+    assert r["gb"] == round(3000000 / 1048576, 2) == 2.86 and r["each"] == [0.95, 1.91]
+
+
+def test_java_gb_reads_empty_when_no_java_runs(monkeypatch):
+    _tasklist(monkeypatch, "INFO: No tasks are running which match the specified criteria.\r\n")
+    assert X.java_gb() == {"pids": [], "gb": 0.0, "each": []}
+
+
+def test_java_gb_reads_none_on_an_exception_or_a_timeout(monkeypatch):
+    import subprocess
+    _tasklist(monkeypatch, exc=OSError("no tasklist"))
+    assert X.java_gb() is None
+    _tasklist(monkeypatch, exc=subprocess.TimeoutExpired("tasklist", 10))
+    assert X.java_gb() is None
+
+
+def test_the_xs_memory_row_carries_the_java_working_sets(monkeypatch):
+    xs, _, _ = make({})
+    monkeypatch.setattr(X, "free_gb", lambda: 11.5)
+    want = {"pids": [5], "gb": 3.1, "each": [3.1]}
+    monkeypatch.setattr(X, "java_gb", lambda: want)
+    row = xs.mem("preboot")
+    assert row["free_gb"] == 11.5 and row["java_gb"] == want and xs.out["memory"] == [row]
+
+
 # ---------------------------------------------------------------- grades
 def test_grade_with_zero_samples_is_unmeasured_not_as_predicted():
     xs, _, _ = make({})

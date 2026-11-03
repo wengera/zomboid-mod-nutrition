@@ -258,7 +258,8 @@ class Client:
 
 
 HELPER_OPTIONS = {"showSurvivalGuide": "false", "showFirstTimeSearchTutorial": "false",
-                  "showFirstAnimalZoneInfo": "false"}   # the game's helper dialogs, off on every client
+                  "showFirstAnimalZoneInfo": "false",   # the game's helper dialogs, off on every client
+                  "texture2x": "false", "textureCompression": "true"}   # single-size, compressed textures cut the client's texture memory (P27-4a)
 
 
 HIDDEN_WINDOWS = ("charinfowindow", "charinfowindow.info", "charinfowindow.skills", "charinfowindow.health",

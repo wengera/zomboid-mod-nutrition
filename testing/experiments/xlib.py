@@ -16,6 +16,7 @@ with `id` (PZTestKit_Server.lua, `@reply` of item.get) or a string; `eat.action`
 (PZTestKit_Client.lua, `@reply` of eat.action); `time.snapshot` answers {worldAge, hour, minutes,
 mult, trueMult, wall} (PZTestKit_Core.lua).
 """
+import csv
 import ctypes
 import glob
 import hashlib
@@ -23,6 +24,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import time
 import traceback
@@ -73,6 +75,22 @@ def free_gb():
         m.dwLength = ctypes.sizeof(m)
         ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m))
         return round(m.ullAvailPhys / float(2 ** 30), 2)
+    except Exception:                          # noqa: BLE001 - a missing reading is recorded as None
+        return None
+
+
+def java_gb():
+    """The working set of every java.exe process (P27-4b): {"pids": [...], "gb": <sum, 2 decimals>, "each": [<gb per
+    pid>]}, empty when none runs; None when tasklist cannot be read."""
+    try:
+        r = subprocess.run(["tasklist", "/FO", "CSV", "/NH", "/FI", "IMAGENAME eq java.exe"],
+                           capture_output=True, text=True, timeout=10)
+        pids, kb = [], []
+        for row in csv.reader((r.stdout or "").splitlines()):
+            if len(row) >= 5 and row[0].lower() == "java.exe":
+                pids.append(int(row[1]))
+                kb.append(int(row[4].replace(",", "").replace("K", "").strip()))
+        return {"pids": pids, "gb": round(sum(kb) / float(2 ** 20), 2), "each": [round(k / float(2 ** 20), 2) for k in kb]}
     except Exception:                          # noqa: BLE001 - a missing reading is recorded as None
         return None
 
@@ -222,7 +240,7 @@ class Xs:
             print(f"could not write {self.path}: {type(e).__name__}: {e}")
 
     def mem(self, tag):
-        row = {"tag": tag, "wall": self.wall(), "free_gb": free_gb()}
+        row = {"tag": tag, "wall": self.wall(), "free_gb": free_gb(), "java_gb": java_gb()}
         self.out.setdefault("memory", []).append(row)
         return row
 

@@ -54,7 +54,7 @@ def test_the_constants_name_the_drivers_own_file_key_artifact_and_profile():
     assert (P.KEY, P.PROFILE, P.ARTIFACT) == ("p_stance", "testing/profiles/agent.toml", "p_stance.json")
     assert os.path.isfile(os.path.join(REPO, P.PROFILE))
     assert P.BUDGET_S == 150.0 and P.LIMITS["DAY_CAP_S"] == P.BUDGET_S and P.LIMITS["PLANNER_HZ"] == 10
-    assert P.ALLOWED == ("--session", "--fixture") and P.USER == "admin" and P.MIN_FREE_GB == 12.0
+    assert P.ALLOWED == ("--session", "--fixture") and P.USER == "admin" and P.MIN_FREE_GB == 10.0   # the one-client floor since ruling P27-4c (was 12.0)
     assert P.CONSTANTS == dict(S.DEFAULTS, **P.LIMITS, BUDGET_S=150.0, BOOT_BUDGET_S=P.BOOT_BUDGET_S)
     assert P.GRADE_KEY == "grade_p1" and P.STEPS == ("idle", "aim_stand", "aim_strafe", "aim_target", "attack",
                                                       "post_attack", "walk", "settle")
