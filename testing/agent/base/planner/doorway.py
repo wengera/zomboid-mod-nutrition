@@ -72,7 +72,8 @@ DOOR_HOLD_S = 10.0    # wall seconds with no zombie within DANGER_R before the s
                       # judgment: a shambler of the queue standing off at DANGER_R walks in within a few seconds; ten
                       # planner seconds is twenty ticks, longer than a 3 s flee leg and the stomp's 4 s walk)
 STAND_EXIT_ENDS = ("wound", "crowd", "drag", "inside")   # the stand's ends under a group that walk out, never the
-                                                         # close (ruling P25-W; `crowd`, ruling P26-K)
+                                                         # close (ruling P25-W; `crowd`, ruling P26-K; a `crowd` with
+                                                         # nobody inside and the door square clear closes, P26-K2)
 DOOR_OFF_R = 2.0      # tiles from the threshold square's centre beyond which a player off the building's room squares
                       # has left the stand (Task 32 fix 1, the review's major 2: "about 2 tiles"; a stomp's walk out of
                       # the doorway reaches the outside square and the one beyond it)
@@ -395,10 +396,10 @@ class DoorwayStand:
         n = sum(1 for z in self._within(DANGER_R) if not on_floor(z))
         return n if n >= STAND_CROWD_N else None
 
-    def _stand_occupied(self, plan):
-        """Ruling P26-K2 (E17's line 364: the `crowd` end with every held zombie outside): a zombie (not read dead, a
-        fallen one too, so a doubt walks out) is on a square of the stand's room (`stand_room`) or on the door square
-        itself, where a close would shut it in or fail on it. False: the `crowd` end takes the close."""
+    def _room_zombies(self, plan):
+        """The one scan of the stand's room (review-t7 minor 4): `(zid, z, square, on_door)` for each listed zombie
+        (not read dead, with a position) on a square of the stand's room (`stand_room`) or on its door square, on the
+        player's floor; `_stand_inside` and `_stand_occupied` filter it."""
         room = stand_room(self.world, plan)
         door = plan["doors"][plan["door_i"]]
         dead = blocked(self.dead, self.clock())
@@ -408,8 +409,13 @@ class DoorwayStand:
                 continue
             sq = (int(math.floor(z["x"])), int(math.floor(z["y"])), zf)
             if sq == door or sq in room:
-                return True
-        return False
+                yield zid, z, sq, sq == door
+
+    def _stand_occupied(self, plan):
+        """Ruling P26-K2 (E17's line 364: the `crowd` end with every held zombie outside): a zombie (not read dead, a
+        fallen one too, so a doubt walks out) is on a square of the stand's room or on the door square itself
+        (`_room_zombies`), where a close would shut it in or fail on it. False: the `crowd` end takes the close."""
+        return any(True for _ in self._room_zombies(plan))
 
     def _stand_inside(self, plan):
         """Ruling P25-V (E14: the stand faced the door square while five zombies crossed the window square beside the
@@ -419,18 +425,11 @@ class DoorwayStand:
         the stand fights through) nor the Doorway's target; else None. A downed one inside is the stand's stomp."""
         if not self.STAND_INSIDE:
             return None
-        room = stand_room(self.world, plan)
-        door = plan["doors"][plan["door_i"]]
         f = self.fight
         target = f.target if f is not None and f.doorway is not None else None
-        dead = blocked(self.dead, self.clock())
-        zf, best = me_floor(self.world), None
-        for zid, z in self.world.zombies.items():
-            if (z.get("x") is None or z.get("y") is None or on_floor(z) or zid in dead
-                    or (target is not None and zid == target)):
-                continue
-            sq = (int(math.floor(z["x"])), int(math.floor(z["y"])), zf)
-            if sq == door or sq not in room:
+        best = None
+        for zid, z, sq, on_door in self._room_zombies(plan):
+            if on_door or on_floor(z) or (target is not None and zid == target):
                 continue
             key = (zdist(self.world, z), repr(zid))
             if best is None or key < best[0]:

@@ -208,15 +208,9 @@ def window_exits(world, building, z, walkable=True):
     out = []
     for w, locked in usable_windows(world, building, z):
         way = world.window_way(w, building)
-        if way is not None and (not walkable or _stood_on(world, way[0])):
+        if way is not None and (not walkable or world.stood_on(way[0])):
             out.append({"inner": way[0], "outer": way[1], "door": None, "window": w, "smash": locked})
     return sorted(out, key=lambda e: (e["outer"], e["inner"]))
-
-
-def _stood_on(world, sq):
-    """Ruling P26-I: the mapped square `sq` can be stood on, reading neither `solid` nor `solidTrans`."""
-    s = world.map.get(sq)
-    return s is not None and not s.get("solid") and not s.get("solidTrans")
 
 
 def _inside_for(rooms, door):

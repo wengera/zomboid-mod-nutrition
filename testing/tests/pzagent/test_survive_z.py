@@ -1,5 +1,5 @@
-"""Survival 20 (survival iteration 18; Plan 26 Task 7; E17, `e_day_17-20261102-180459`, rows pending its write-up's
-mint; F5, `f_goals_6-20261030-192251`, its a20 the one live window climbed `done`, for WINDOW_STALL_S; E16,
+"""Survival 20 (survival iteration 18; Plan 26 Task 7; E17, `e_day_17-20261102-180459`, rows #4516-#4524;
+F5, `f_goals_6-20261030-192251`, its a20 the one live window climbed `done`, for WINDOW_STALL_S; E16,
 `e_day_16-20261102-125450`, through `test_survive_y`'s shed). E17's own record, read as the planner read it
 (`replay_decisions.read_record` and `align`: the World through a decision line's frame and the trailing lines its tick
 read), and replayed (`replay_decisions.replay`: HEAD's planner is the one E17 ran on, `6df43e92`, so with iteration
@@ -126,6 +126,15 @@ def test_a_solid_inside_square_is_left_out_too_and_the_window_record_filter_is_t
     assert COUNTER in [e["window"] for e in N.window_exits(w, 2, 0, walkable=False)]
 
 
+def test_world_stood_on_is_the_one_walkability_read_of_the_window_exits():
+    """Review-t7 minor 3: `World.stood_on` (`_solid` with `trans`) is the read `night.window_exits` takes: an unmapped
+    square, a `solid` one and a `solidTrans` one (the counter) cannot be stood on; the outdoor square west of it can."""
+    w = e17_world(380)
+    assert not w.stood_on(COUNTER) and w.stood_on(COUNTER_OUT) and not w.stood_on((0, 0, 0))
+    assert not e17_world(380, solidTrans=False, solid=True).stood_on(COUNTER)
+    assert e17_world(380, solidTrans=False).stood_on(COUNTER)
+
+
 def test_e17_s_inside_end_reads_trapped_with_the_counter_window_left_out():
     """E17 replayed to line 380 with P26-I alone on: the stand's `inside` end finds no way out and reads `trapped`
     (`doorway_exit` {end inside, exit trapped}), no walk to the counter."""
@@ -212,6 +221,25 @@ def test_a_climb_that_holds_the_player_for_window_stall_s_is_dropped_and_its_win
     assert r.cmd() == ("stop", {}) and f.why["trapped"] == 1
 
 
+def test_a_stalled_window_is_a_dead_end_and_the_next_exit_plan_offers_no_window(tmp_path):
+    """Ruling P26-J2 (review-t7 nit 3): `stalled` is in `goals.WINDOW_DEAD`, so a window whose climb stalled is left out
+    by `usable_windows` and the exits for DOOR_RETRY_MIN game minutes (`World.window_fail`), never offered again at
+    once: before the stall `exit_plan` offers the shed window; after it, none; past DOOR_RETRY_MIN it is offered
+    again."""
+    from agent.base.planner import goals as G
+    from agent.base.world import DOOR_RETRY_MIN
+    assert "stalled" in G.WINDOW_DEAD
+    r, f = climb_running(tmp_path)
+    zs = list(r.world.zombies.values())
+    assert P.exit_plan(r.world, zs, windows=True)["window"] == Y.WIN   # no refusal passed: only the mark can drop it
+    hold_for(r, f, P.WINDOW_STALL_S)
+    assert r.world.window_fail(Y.WIN) == "stalled"
+    assert Y.WIN not in [sq for sq, _ in G.usable_windows(r.world, 1, 0)]
+    assert P.exit_plan(r.world, zs, windows=True) is None
+    r.world.window_marks[Y.WIN] = (r.world.world_minutes() - DOOR_RETRY_MIN, "stalled")
+    assert P.exit_plan(r.world, zs, windows=True)["window"] == Y.WIN
+
+
 def test_a_climb_whose_frames_move_or_hold_under_the_limit_is_kept(tmp_path):
     """The window act running while the frames move 0.3 tiles a half second (past STUCK_MOVE each second) for twice
     WINDOW_STALL_S, or hold F5's 2.497 s: kept, no failure noted, the climb's own end awaited."""
@@ -282,15 +310,17 @@ ZOMBIE_FIELDS = ("x", "y", "dist", "hasTarget", "crawler", "health", "onFloor")
 LINE_370_NEAREST = (2408, 2444, 2417, 2403, 2400, 2401)   # line 370's six within DANGER_R, nearest first; 2416 beyond
 
 
-def e17_stand(tmp_path, line, keep=None, crowd=True, place=None, fallen=()):
+def e17_stand(tmp_path, line, keep=None, crowd=True, place=None, fallen=(), bleed=None):
     """A Survive on a Rig holding E17's map as decision line `line` read it, its doorway stand on building 2's kitchen
     door running as the record's ran from line 362 (the plan `night.shelter_plan` kept to the door, marked a stand as
     `Flee.choose` marks one, `stood` at `stand` as `Flee._stand_at_post` leaves it), then line `line`'s frame (the
     player, `me.attackers`, the zombies the World held then, only those of ids `keep` when given, those of `place`
-    ({id: (x, y)}) moved there, those of `fallen` lying `onFloor`) ticked with `STAND_CROWD` as given:
-    (r, sv, the threat why)."""
+    ({id: (x, y)}) moved there, those of `fallen` lying `onFloor`) ticked with `STAND_CROWD` as given; with `bleed` (a
+    part index) that part bleeding on the frame though the stand's start snapshot (`bleed0`) held none: (r, sv, the
+    threat why)."""
     from agent.base.planner import night as N
     from .test_survive import make, threat_why, tick
+    from .test_survive_g import part
     w = e17_world(line)
     r, sv = make(tmp_path)
     sv.STAND_CROWD = crowd
@@ -303,12 +333,15 @@ def e17_stand(tmp_path, line, keep=None, crowd=True, place=None, fallen=()):
         if row["id"] in fallen:
             row["onFloor"] = True
     me = w.me
-    r.frame(x=me["x"], y=me["y"], zombies=rows, attackers=me["attackers"])
+    wounds = None if bleed is None else {"parts": [part(bleed, bleeding=True, bleedingTime=3.0)], "bleeding": 1}
+    r.frame(x=me["x"], y=me["y"], zombies=rows, attackers=me["attackers"], wounds=wounds)
     f = FL.Flee(r.world, r.acts, r.clock, shunned=sv.night.shunned)
     plan = N.shelter_plan(r.world, 2, door=KITCHEN_DOOR)
     way = r.world.door_way(KITCHEN_DOOR)
     plan.update(stand=True, way=way, post=P.stand_post(r.world, way, 2, True), step="stand", stood=True,
                 quiet=r.clock())
+    if bleed is not None:
+        plan["bleed0"] = frozenset()
     f.plan, f.picked = plan, True
     sv.flee = f
     tick(r, sv)
@@ -360,6 +393,18 @@ def test_a_crowd_end_with_a_zombie_on_the_door_square_takes_the_way_out(tmp_path
     r, sv, w = e17_stand(tmp_path, 370, keep=LINE_370_NEAREST[:4] + (2416,), place={2408: (10721.5, 10638.5)})
     assert w["doorway_left"] == "crowd" and w["doorway_exit"]["exit"] != "close"
     assert sv.flee.plan is None and sv.stand_left == "crowd"
+
+
+def test_a_wounded_stand_with_four_held_outside_ends_wound_not_crowd_and_walks_out(tmp_path):
+    """Review-t7 minor 2: `crowd` is read after `wound`. Line 370's four nearest, all outside (the case that takes the
+    close under P26-K2), with part 4 newly bleeding (absent from the stand's start snapshot): the end is `wound`
+    (P25-W: a bleeding stand never shuts the door on the character), the walk-out, never `crowd`'s close; no
+    `doorway_crowd` is logged. The mutant swapping the two entries of `_stand_end` reads `crowd` and fails it."""
+    r, sv, w = e17_stand(tmp_path, 370, keep=LINE_370_NEAREST[:4] + (2416,), bleed=4)
+    assert w["doorway_left"] == "wound" and "doorway_crowd" not in w
+    assert w["doorway_exit"]["end"] == "wound" and w["doorway_exit"]["exit"] != "close"
+    assert sv.flee.plan is None and sv.stand_left == "wound" and sv.stand_exit == "wound"
+    assert not [a for a in r.acts.history if a.type == "interact" and a.args["kind"] == "close"]
 
 
 def test_a_crowd_counts_standing_zombies_only(tmp_path):

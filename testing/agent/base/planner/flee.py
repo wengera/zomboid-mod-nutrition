@@ -172,8 +172,9 @@ class Flee(Policy):
         return self.exit is not None
 
     def walk_out(self, end):
-        """Ruling P25-W: the doorway stand ended `end` under a group (`wound`, `drag`, `inside`) walks out of the
-        building, never the close: the stand's plan dropped (`picked` kept, so no other shelter this episode) and the
+        """Ruling P25-W: the doorway stand ended `end` under a group (`wound`, `drag`, `inside`, and `crowd` unless
+        nobody is inside and the door square is clear, which closes: P26-K2) walks out of the building, never the
+        close: the stand's plan dropped (`picked` kept, so no other shelter this episode) and the
         adoption spent (`adopted`: the adopted building's re-close would be the close again), so the next choose takes
         `exit_plan` on a room square (a door, an opening or a window (P26-A) out, at FLEE_GAIT), else the trapped
         hold; off a room square, the steer. `walking_out` keeps `end` while the exit runs (`Survive._doorway`: ahead of
@@ -426,7 +427,8 @@ class Flee(Policy):
         exit ends, so the next `exit_plan` offers the same window with `smash` True (one episode tries the open, then
         the smash). Ruling P26-J (`window_stall_on`): a climb dropped for its stall (`_stall_limit`) notes the window
         `stalled` and refuses the exit, so the next choose takes the next way out or the trapped hold (its `Stop` ends
-        the act still running); a first `interrupted` end (`goals.note_window_end` answers it so: a second within
+        the act still running; the `stalled` mark is a WINDOW_DEAD end, so the window stays out of the exits for
+        DOOR_RETRY_MIN, ruling P26-J2); a first `interrupted` end (`goals.note_window_end` answers it so: a second within
         DOOR_RETRY_MIN reads `failed`) keeps the exit and sends the climb once more (`sent` reset), the second refusing
         it. The walk's to the window's inside square: `done` marks it `walked` (the climb goes next, the Lua's own walk
         to the near side taking it the rest of the way); a walk that failed or stalled refuses the exit, as a way out's

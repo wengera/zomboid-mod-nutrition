@@ -172,8 +172,9 @@ CONTAINERS_HELD_N = 2   # vessels held (`water` and `container`) at which `conta
 SMASH_MIN_HEALTH = 60.0   # health at or above which a window may be smashed (a smash is noise and, 1 time in 2, a glass cut:
                       # review-t9-fix9 ruling 6, "health above the bandage threshold"; a judgment, survive's pair-flee line)
 SMASH_ZOMBIE_R = 25.0   # tiles: a smash waits while a zombie is listed this near (the noise carries: the view's widest band)
-WINDOW_DEAD = ("not a window", "not valid", "fell", "failed", "no square")   # a window action's ends that leave the
-                      # window out for DOOR_RETRY_MIN game minutes (World.note_window_fail); `locked` is read apart
+WINDOW_DEAD = ("not a window", "not valid", "fell", "failed", "no square", "stalled")   # a window action's ends that
+                      # leave the window out for DOOR_RETRY_MIN game minutes (World.note_window_fail); `locked` is read
+                      # apart; `stalled` (the Flee's climb dropped for its hold, ruling P26-J2) is a mark, not an end
 WINDOW_REPEAT = ("no path", "not adjacent", "interrupted")   # a window action's ends that are tried once more; the
                       # second within DOOR_RETRY_MIN leaves the window out like a WINDOW_DEAD end (review-t24 major 2)
 BUILDING_R = 60.0     # tiles: an unlooted building this near is looted; farther, it is walked toward first (P24-Y)

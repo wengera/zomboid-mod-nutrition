@@ -791,6 +791,11 @@ class World:
         s = self.map.get(sq)
         return s is None or bool(s.get("solid")) or (trans and bool(s.get("solidTrans")))
 
+    def stood_on(self, sq):
+        """Ruling P26-I (`night.window_exits`' walkability read): the square `sq` can be stood on, mapped and reading
+        neither `solid` nor `solidTrans` (`_solid` with `trans`)."""
+        return not self._solid(sq, trans=True)
+
     def _orth_blocked(self, a, b, climb=False):
         """The edge between two orthogonally adjacent squares: a square stores its own north and west edges. With
         `climb` a blocked edge whose holder carries its hop flag (`hopN`/`hopW` True) is crossable."""
