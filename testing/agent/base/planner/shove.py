@@ -153,9 +153,11 @@ class FightShove:
         self._close = (t[0], n)
 
     def _close_due(self, t):
-        """P27-J (b): target `t` has held beyond point blank on SHOVE_CLOSE_TICKS consecutive observes (`_close`)."""
-        return (t is not None and self._close is not None and self._close[0] == t[0]
-                and self._close[1] >= SHOVE_CLOSE_TICKS)
+        """P27-J (b): target `t` has held beyond point blank on SHOVE_CLOSE_TICKS consecutive observes (`_close`), the
+        `shove_close` rule on now and the Fight still a shove-and-stomp one (the observe counted under the last tick's
+        rules)."""
+        return ("shove_close" in self.rules and self.shove_only is not None and t is not None
+                and self._close is not None and self._close[0] == t[0] and self._close[1] >= SHOVE_CLOSE_TICKS)
 
     def _shove_close(self, t):
         """Ruling P27-J (b) (`shove_close`, Survive's SHOVE_CLOSE; F10, `f_goals_11-20261103-075140`: the hold's lone

@@ -439,8 +439,9 @@ def fence_row(r):
 def test_e19_s_gate_zombie_across_the_fence_out_of_the_hold_is_left_out_of_the_listing(tmp_path):
     """E19's 20923, the gate zombie across the fence row, counted at line 386: here a chaser 11 tiles east across the
     fence (beyond the hold radius), the target 4 off and two chasers 9.5 north and south: three counted, no `many`,
-    logged `listing` {fallen 0, across 1}; within the hold radius (8 tiles east, with a fight's DISENGAGE_R hold, or the
-    target's own side) it counts."""
+    logged `listing` {fallen 0, across 1}; across a fence within the hold radius (DANGER_R's, no threat policy running)
+    it counts: with the fence at x 103 and the chaser 4.5 tiles east beyond it, the target 4 tiles north, the four make
+    `many`."""
     r, sv = make(tmp_path)
     fence_row(r)
     far = [z(5, 100.0, 209.5), z(6, 100.0, 190.5)]
@@ -455,6 +456,13 @@ def test_e19_s_gate_zombie_across_the_fence_out_of_the_hold_is_left_out_of_the_l
     fr(r2, [TARGET, z(7, 111.0)] + far)
     tick(r2, sv2)
     assert threat_why(tmp_path / "off")["flee"] == "many"
+    (tmp_path / "held").mkdir()
+    r3, sv3 = make(tmp_path / "held")
+    r3.scan([square(x, 200, blockW=x == 103) for x in range(99, 113)])
+    fr(r3, [z(1, 100.0, 204.0), z(7, 104.5)] + far)
+    tick(r3, sv3)
+    w = threat_why(tmp_path / "held")
+    assert w["flee"] == "many" and "listing" not in w
 
 
 def test_the_held_count_leaves_the_fallen_out_during_a_fight(tmp_path):
@@ -828,3 +836,21 @@ def test_the_iteration_20_switches_and_constants():
     assert {"floor_finish", "fallen_seek", "shove_close", "low_exit"} <= set(F.FIGHT_RULES)
     assert "WOUNDED_SWING" in S.T8_SWITCHES and S.Survive.WOUNDED_SWING is False
     assert (P.STUCK_MARK_MIN, P.FALLEN_SEEK_TICKS, P.SHOVE_CLOSE_TICKS, P.STUCK_LEAVE_R) == (30.0, 4, 6, 10.0)
+
+
+def test_a_switch_turned_off_mid_count_sends_no_walk(tmp_path):
+    """The due reads (`_fallen_due`, `_close_due`) read the rule as the tick sets it: FALLEN_SEEK_TICKS - 1 fallen
+    ticks with `FALLEN_SEEK` on, then off for the tick that would be due: no walk; the same for `SHOVE_CLOSE` at the
+    hold fight's chaser (the observe counts under the last tick's rules)."""
+    r, sv = stance_then_fallen(tmp_path)
+    for _ in range(P.FALLEN_SEEK_TICKS - 1):
+        fallen_tick(r, sv)
+    sv.FALLEN_SEEK = False
+    fallen_tick(r, sv)
+    assert "walkTo" not in sends(r) and "fallen_seek" not in threat_why(tmp_path)
+    (tmp_path / "close").mkdir()
+    r2, sv2 = make(tmp_path / "close")
+    held_off(r2, sv2, ticks=P.SHOVE_CLOSE_TICKS - 1)
+    sv2.SHOVE_CLOSE = False
+    held_off(r2, sv2)
+    assert "walkTo" not in sends(r2) and "shove_close" not in threat_why(tmp_path / "close")

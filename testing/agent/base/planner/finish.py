@@ -498,8 +498,9 @@ class FightFinish:
         self._fallen = (t[0], n)
 
     def _fallen_due(self, t):
-        """P27-H: target `t` has read fallen beyond FINISH_R on FALLEN_SEEK_TICKS consecutive observes (`_fallen`)."""
-        return (t is not None and self._fallen is not None and self._fallen[0] == t[0]
+        """P27-H: target `t` has read fallen beyond FINISH_R on FALLEN_SEEK_TICKS consecutive observes (`_fallen`), the
+        `fallen_seek` rule on now (the observe counted under the last tick's rules)."""
+        return ("fallen_seek" in self.rules and t is not None and self._fallen is not None and self._fallen[0] == t[0]
                 and self._fallen[1] >= FALLEN_SEEK_TICKS)
 
     def _fallen_seek(self, t):
