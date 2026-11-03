@@ -240,8 +240,11 @@ def test_a_standing_zombie_within_danger_r_keeps_the_flee_as_today(tmp_path):
 
 
 def test_a_fallen_zombie_never_struck_is_left(tmp_path):
-    """At 1.9 tiles (beyond CORNERED_R, whose `walk` corner would take a zombie at 1.5 first, struck or not)."""
+    """At 1.9 tiles (beyond CORNERED_R, whose `walk` corner would take a zombie at 1.5 first, struck or not). Named
+    change, ruling P27-A (Plan 27 Task 1): the struck test is dropped, so a fallen zombie never struck is stomped
+    (`test_survive_aa`); pinned with `FLEE_FINISH` off, the rule before it."""
     r, sv = make(tmp_path, caps=CAPS_14)
+    sv.FLEE_FINISH = False
     fr(r, [z(1, 101.9, floor=True)] + GROUP3)
     assert tick(r, sv).type == "steer" and threat_why(tmp_path)["flee"] == "many"
     (tmp_path / "b").mkdir()
@@ -335,9 +338,11 @@ def test_e9_s_7474_at_line_334_is_refused_for_7479_by_it():
     7479 stands chasing 2.16 tiles from 7474 (within KEEP_R; the review read its 1.97-tile offset along y), so the walk
     in would end at it (logged `finish_block`); no finish goes on E9's replay. 7488, fallen on lines 141 to 150 at
     1.24 to 5.73 tiles, always had a standing zombie within DANGER_R (1.57 to 2.26 tiles), so no reach finishes it
-    under P24-AQ's condition (the review's major 5)."""
+    under P24-AQ's condition (the review's major 5). Named change, ruling P27-A (Plan 27 Task 1): the finish takes any
+    fallen zombie, so E9's HEAD replay stomps 7479 at line 274 and 7481 at line 363, neither struck
+    (`test_survive_aa`); pinned with `FLEE_FINISH` off, the rule before it."""
     from .test_survive_o import e9_lines
-    got = e9_lines()
+    got = e9_lines(("FLEE_FINISH",))
     w = got[334]["why"]
     assert got[334]["action"] is None and "finish" not in w and w["flee"] == "many"
     assert w["finish_block"]["target"] == 7474 and w["finish_block"]["chaser"] == 7479

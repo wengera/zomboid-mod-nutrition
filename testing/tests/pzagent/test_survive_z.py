@@ -298,13 +298,18 @@ def test_e17_s_window_act_is_dropped_at_its_stall_and_the_window_noted_stalled()
     WINDOW_STALL_S (the player on (10721.51, 10634.64) since frame seq 3482): a81 is dropped, the counter window noted
     `stalled` in the World, the way out refused, and the threat branch answers the `inside` corner at 2403 (no swing
     under its `Bite`) where the record held a81 on; the next send (line 394's, the trapped hold's bandage under P25-Q)
-    supersedes the act, which ran on live 9.3 s more to its `dead` end."""
+    supersedes the act, which ran on live 9.3 s more to its `dead` end. Named change, ruling P27-A (Plan 27 Task 1):
+    the flee's finish takes any fallen zombie, so E17's replay stomps 2419 at line 259 (fallen 4.49 tiles off under the
+    `many` flee, never struck) and every later aid shifts; iteration 19's switches (`survive.T9_SWITCHES`) are off here,
+    the record's own rules."""
     kept = {}
 
     def mutate(sv):
         kept["sv"] = sv
         for name in S.T8_SWITCHES:
             setattr(sv, name, name == "WINDOW_STALL")
+        for name in S.T9_SWITCHES:
+            setattr(sv, name, False)
     rows = R.replay(E17, mutate=mutate, upto=394)
     _, rec, _ = e17()
     sent = [(k, row["action"]["type"]) for k, row in enumerate(rows, 1) if k >= 380 and row["sent"]]

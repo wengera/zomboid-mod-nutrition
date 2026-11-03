@@ -134,8 +134,19 @@ def pre_t7(sv, keep=()):
 def pre_t8(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 26 Task 7 (survival iteration 18): its switches off
     (`survive.T8_SWITCHES`), but those named in `keep` (the one-switch form `pre_t3`'s tests use; no test passes it
-    here)."""
+    here). Plan 27 Task 1: iteration 19's switches (`pre_t9`) off with them, so every seam onto an earlier rule reads
+    them off."""
     for name in S.T8_SWITCHES:
+        if name not in keep:
+            setattr(sv, name, False)
+    pre_t9(sv)
+
+
+def pre_t9(sv, keep=()):
+    """The replay's mutate seam onto the rules before Plan 27 Task 1 (survival iteration 19): its switches off
+    (`survive.T9_SWITCHES`), but those named in `keep` (the one-switch form `pre_t3`'s tests use; no test passes it
+    here)."""
+    for name in S.T9_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
 
@@ -1619,4 +1630,14 @@ def test_iteration_18_moves_no_golden(key):
     518) with at most one zombie within DANGER_R, under STAND_CROWD_N. P26-L1 reads `body.armPain` (PZA/1.7), which no
     golden's frames carry; P26-L2 reads P26-D's bleed yield, and no golden's parts decode `bleeding`."""
     only = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t8))}
+    assert only == gold(key)
+
+
+# ================================================================ Plan 27 Task 1: iteration 19 on the goldens
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_iteration_19_moves_no_golden(key):
+    """Survival iteration 19 moves no golden: the six are byte-identical with its switches on
+    (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off (`pre_t9`). P27-A's finish reads a zombie
+    the frame reads `onFloor`, which no golden's frames carry."""
+    only = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t9))}
     assert only == gold(key)

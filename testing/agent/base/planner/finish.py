@@ -1,5 +1,6 @@
 """The finish of the fallen and the stomp: the mixins `ThreatFinish` (`threat.Threat`'s: ruling P24-AQ, the
-`many` flee's finishing stomp, its end and its chaser, P24-AV) and `FightFinish` (`fight.Fight`'s: ruling P24-AL's
+`many` flee's finishing stomp, its end and its chaser, P24-AV; ruling P27-A's widening to the `strain` and `pair` flees
+and to any fallen zombie, `_fallen_wide`) and `FightFinish` (`fight.Fight`'s: ruling P24-AL's
 finish, the downed read and P24-AV's stomp wait on a shove's knock-down, P25-B's stomp first and P25-J's reach to
 FINISH_R; and `ThreatFinish`'s P25-J yield of the `pair` flee, `_pair_finish`, and since Task 8 fix 1 the `pair`
 flee's own finish, `_pair_flee_finish`: one rule, `finish_rule`, which the Fight's finish reads too). Moved out of
@@ -9,23 +10,26 @@ docstrings stay the record.
 """
 import math
 
-from agent.base.planner.policies import (DANGER_R, FIGHT_REACH, FINISH_R, KEEP_R, POINT_BLANK_R, PREEMPTED, SHOVE_R,
-                                         STAND_MIN_R, UNREACHABLE_S, arms_hurt, blocked, chasing, hit_reaction, line_to,
-                                         on_floor, running, standing, target_id_ok, zdist)
+from agent.base.planner.policies import (DANGER_R, FIGHT_REACH, FINISH_CLEAR_R, FINISH_R, KEEP_R, POINT_BLANK_R,
+                                         PREEMPTED, SHOVE_R, STAND_MIN_R, UNREACHABLE_S, arms_hurt, blocked, chasing,
+                                         hit_reaction, line_to, on_floor, running, standing, target_id_ok, zdist)
 from agent.base.pza1 import Attack, Shove, Stomp
 
+FLEE_FINISH_REASONS = ("strain", "pair", "many")   # the flee reasons whose episode takes the finish (P27-A)
 
-def finish_chaser(world, zid, dead):
+
+def finish_chaser(world, zid, dead, radius=KEEP_R):
     """The deferred minor 5 of review-t32-fix1: (id, tiles) of the nearest standing (not `on_floor`) zombie chasing
-    (`hasTarget`) within KEEP_R of the fallen target `zid`, the ids in `dead` and the target left out, else None: the
-    stomp's walk to the target would end at it (the flee's finish, P24-AV, and the Fight's stomp first, P25-B)."""
+    (`hasTarget`) within `radius` (KEEP_R; FINISH_CLEAR_R for the flee's finish under P27-A) of the fallen target
+    `zid`, the ids in `dead` and the target left out, else None: the stomp's walk to the target would end at it (the
+    flee's finish, P24-AV, and the Fight's stomp first, P25-B)."""
     t = world.zombies[zid]
     best = None
     for oid, o in world.zombies.items():
         if oid == zid or oid in dead or on_floor(o) or not chasing(o) or o.get("x") is None or o.get("y") is None:
             continue
         d = math.hypot(o["x"] - t["x"], o["y"] - t["y"])
-        if d <= KEEP_R and (best is None or (d, repr(oid)) < (best[1], repr(best[0]))):
+        if d <= radius and (best is None or (d, repr(oid)) < (best[1], repr(best[0]))):
             best = (oid, d)
     return best
 
@@ -68,7 +72,7 @@ def finish_rule(world, skip, dead, knocked, now, swing_ok, knock=False, only=Non
 
 
 class ThreatFinish:
-    """The `many` flee's finish (the module docstring): `Threat`'s mixin."""
+    """The flee's finish (the module docstring): `Threat`'s mixin."""
 
     def _flee_finish(self, reason):
         """Ruling P24-AQ, the fallen target under `many` (E9: the two targets its swings struck, 7488 and 7474, read
@@ -89,17 +93,71 @@ class ThreatFinish:
         stomp walk toward 7474 headed at 7479, standing and chasing 2.16 tiles from it): a chasing standing zombie
         within KEEP_R of the target refuses the finish (`_finish_chaser`, logged `finish_block`). A tick whose reason is
         `pair` outside a `many` episode takes the `pair` flee's own finish instead (`_pair_flee_finish`, P25-J (3) as
-        amended at Task 8 fix 1)."""
+        amended at Task 8 fix 1).
+        Ruling P27-A (`FLEE_FINISH`; E18, `e_day_18-20261102-224036`: line 1649's `strain` flee ran from 30744, knocked
+        down 2.5339841792960844 tiles off with no standing zombie within DANGER_R, and line 939's `many` flee from
+        30452, fallen off its window climb 2.053499872133796 off and never struck; neither was stomped): the finish
+        runs in a flee episode whose reason is `strain` (any hold kind) or `pair` as well as `many`
+        (FLEE_FINISH_REASONS; the `health` flee keeps none: a stomp at FLEE_HEALTH is the fall the guides warn of), on
+        any zombie the frame reads `onFloor` (`downed_list`'s read, P24-AV) within FINISH_R on a line not read blocked,
+        the struck test dropped (`_fallen_wide`); its clearance is no standing zombie within FINISH_CLEAR_R of the
+        character (`_within`, the fallen left out) and no standing chaser within FINISH_CLEAR_R of the fallen one
+        (`finish_chaser`), in place of DANGER_R and KEEP_R. The sends, their refusals and ends are P24-AQ's (one stomp a
+        zombie, `finishing`; no floor strike under a hold, R2, nor unarmed), a stomp the replaced Fight saw refused
+        within SWING_SKIP_S read as refused (as `_flee_stomp_ok` reads it). Logged `flee_finish` {reason, struck (sent
+        at within UNREACHABLE_S), clear (the nearest listed standing zombie's tiles, else None)} beside `finish`, and
+        `pair_yield` under the `pair` flee (the `pair` flee's own finish's why)."""
         self.finish_block = None
         if self._finish_a is not None and running(self.actions, self._finish_a):
             return None
-        if reason == "pair" and not self.flee_many:
+        wide = self.FLEE_FINISH and (self.flee_many or reason in FLEE_FINISH_REASONS)
+        if not wide and reason == "pair" and not self.flee_many:
             return self._pair_flee_finish()
-        if not (self.flee_many or reason == "many"):
+        if not (wide or self.flee_many or reason == "many"):
             return None
         now = self.clock()
         dead = blocked(self.dead, now)
-        if standing(self.world, DANGER_R, dead) or (self.world.me or {}).get("hitReaction"):
+        if (self.world.me or {}).get("hitReaction"):
+            return None
+        best = self._fallen_wide(dead, now) if wide else self._fallen_struck(dead, now)
+        if best is None:
+            return None
+        zid, d = best
+        chaser = self._finish_chaser(zid, dead, FINISH_CLEAR_R if wide else KEEP_R)
+        if chaser is not None:
+            self.finish_block = {"target": zid, "chaser": chaser[0], "dist": chaser[1]}
+            return None
+        done, end = self.finishing.get(zid), self._finish_end_read(zid)
+        again = done == "stomp" and end == "stood"   # P24-AV: fallen again after a `stood`: one more stomp
+        refused = wide and self.fight_refused.get(("stomp", zid), -math.inf) > now
+        if ((done is None or again) and self.world.can("stomp") and not refused
+                and not standing(self.world, STAND_MIN_R, dead | {zid})):
+            cmd, kind = Stomp(zid), ("stomp" if done is None else "stomp2")
+        elif done in ("stomp", "stomp2") and end is None:
+            return None   # the stomp went (or runs) and was not refused: the one finish is spent
+        elif arms_hurt(self.world) or self._fight_spent() or self._unarmed():
+            self.finishing[zid] = "floor"   # P24-AP, R2, P25-P: no floor strike (a swing) at STRAIN_HARD, under a hold
+                                            # or with no weapon held
+            return None
+        elif d > FIGHT_REACH:
+            return None   # the floor strike swings from where the player stands: only within FIGHT_REACH
+        else:
+            cmd, kind = Attack(zid), "floor"
+        self.finishing[zid] = kind
+        self.why = {"finish": zid, "kind": kind, "dist": d}
+        if wide:
+            self.why["flee_finish"] = {"reason": reason if reason in FLEE_FINISH_REASONS else "many",
+                                       "struck": now - self.struck.get(zid, -math.inf) <= UNREACHABLE_S,
+                                       "clear": self._nearest_standing(dead)}
+            if reason == "pair":
+                self.pair_yield = zid
+        return self.flee, cmd
+
+    def _fallen_struck(self, dead, now):
+        """P24-AQ's candidate: (id, tiles) of the nearest zombie struck within UNREACHABLE_S that reads `onFloor`
+        within FINISH_R on a line not read blocked, its floor strike not spent, with no standing zombie within DANGER_R;
+        else None."""
+        if standing(self.world, DANGER_R, dead):
             return None
         best = None
         for zid, at in self.struck.items():
@@ -110,31 +168,25 @@ class ThreatFinish:
             d = zdist(self.world, z)
             if d <= FINISH_R and line_to(self.world, z) is not False and (best is None or (d, repr(zid)) < best[0]):
                 best = ((d, repr(zid)), zid)
-        if best is None:
+        return None if best is None else (best[1], best[0][0])
+
+    def _fallen_wide(self, dead, now):
+        """P27-A's candidate: (id, tiles) of the nearest zombie `downed_list` reads (`onFloor`, within FINISH_R, a line
+        not read blocked, one read dead left out) whose floor strike is not spent, with no standing zombie within
+        FINISH_CLEAR_R of the character (`_within`, the fallen left out); else None."""
+        if any(not on_floor(z) for z in self._within(FINISH_CLEAR_R)):
             return None
-        zid = best[1]
-        chaser = self._finish_chaser(zid, dead)
-        if chaser is not None:
-            self.finish_block = {"target": zid, "chaser": chaser[0], "dist": chaser[1]}
-            return None
-        done, end = self.finishing.get(zid), self._finish_end_read(zid)
-        again = done == "stomp" and end == "stood"   # P24-AV: fallen again after a `stood`: one more stomp
-        if ((done is None or again) and self.world.can("stomp")
-                and not standing(self.world, STAND_MIN_R, dead | {zid})):
-            cmd, kind = Stomp(zid), ("stomp" if done is None else "stomp2")
-        elif done in ("stomp", "stomp2") and end is None:
-            return None   # the stomp went (or runs) and was not refused: the one finish is spent
-        elif arms_hurt(self.world) or self._fight_spent() or self._unarmed():
-            self.finishing[zid] = "floor"   # P24-AP, R2, P25-P: no floor strike (a swing) at STRAIN_HARD, under a hold
-                                            # or with no weapon held
-            return None
-        elif best[0][0] > FIGHT_REACH:
-            return None   # the floor strike swings from where the player stands: only within FIGHT_REACH
-        else:
-            cmd, kind = Attack(zid), "floor"
-        self.finishing[zid] = kind
-        self.why = {"finish": zid, "kind": kind, "dist": best[0][0]}
-        return self.flee, cmd
+        for zid, _, d in downed_list(self.world, dead, {}, now, FINISH_R):
+            if self.finishing.get(zid) != "floor":
+                return zid, d
+        return None
+
+    def _nearest_standing(self, dead):
+        """The tiles to the nearest listed standing zombie (not `on_floor`, not read dead), else None (P27-A's
+        `clear`)."""
+        ds = [zdist(self.world, z) for zid, z in self.world.zombies.items() if zid not in dead and not on_floor(z)
+              and z.get("x") is not None and z.get("y") is not None]
+        return min(ds) if ds else None
 
     def _pair_finish(self):
         """Ruling P25-J (3) as amended at Task 8 fix 1, consulted before a `pair` flee is chosen (E12, #4435: the
@@ -194,9 +246,9 @@ class ThreatFinish:
         done = self.finishing.get(zid)
         return done is None or (done == "stomp" and self._finish_end_read(zid) == "stood")
 
-    def _finish_chaser(self, zid, dead):
-        """`finish_chaser` over the World (the flee's finish, P24-AV)."""
-        return finish_chaser(self.world, zid, dead)
+    def _finish_chaser(self, zid, dead, radius=KEEP_R):
+        """`finish_chaser` over the World within `radius` (the flee's finish, P24-AV; FINISH_CLEAR_R under P27-A)."""
+        return finish_chaser(self.world, zid, dead, radius)
 
     def _finish_end_read(self, zid):
         """The end of the flee's last finishing stomp at `zid`: "stood" when it failed `stood` (P24-AV: the target

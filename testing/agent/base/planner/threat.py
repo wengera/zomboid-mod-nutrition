@@ -136,6 +136,11 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     BLEED_HOLD = True     # ruling P26-L2: the dressing P26-D's yield sent is held while the zombie within FIGHT_REACH
                           # is not closing (`care_yield.CareYield._bleed_holds`), the hold applying only with one zombie
                           # within FIGHT_REACH (P26-L2a; `care_yield.py`); off, any zombie there supersedes it
+    # survival iteration 19 (Plan 27 Task 1; survive.py's docstring, Survival 21): each switch off is the rule before
+    # it, all of them in `survive.T9_SWITCHES` (the replay tests' `pre_t9`)
+    FLEE_FINISH = True    # ruling P27-A: the flee's finish under the `strain`, `pair` and `many` flees on any fallen
+                          # zombie, cleared to FINISH_CLEAR_R (`finish.ThreatFinish._flee_finish`, `_fallen_wide`); off,
+                          # P24-AQ's struck target under `many` and P25-J (3)'s `pair` finish
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -340,12 +345,14 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
 
     def _exit_known(self, held):
         """A way out of the building the character stands in (`policies.exit_plan`, P23-AJ 3): the flee's running
-        one, or one not refused this episode."""
+        one, or one not refused this episode; the window rules read from the Flee's rules (`_flee_rules`, P26-R: the
+        frozenset `_decide` hands the Flee, read here before this tick's Flee may exist)."""
         f = self.flee
         if f is not None and f.exit is not None:
             return True
+        rules = self._flee_rules()
         return exit_plan(self.world, held, f.refused if f is not None else (), self.TRANS,
-                         self.WINDOW_EXIT, self.WINDOW_INNER) is not None
+                         "window_exit" in rules, "window_inner" in rules) is not None
 
     def _cornered(self, held, inside):
         """The zombie id a cornered Fight runs on (ruling P23-AJ 2, its fix rounds, and the coordinator's amendment 6

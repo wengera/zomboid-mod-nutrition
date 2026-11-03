@@ -297,11 +297,13 @@ def test_a_stomp_failed_stood_reads_the_target_again_one_more_stomp_then_the_flo
     assert (a.type, a.args) == ("attack", {"targetId": 1}) and f.why["floor"] is True
 
 
-def chaser_by(tmp_path, target_x, chaser, caps=None):
+def chaser_by(tmp_path, target_x, chaser, caps=None, off=()):
     """A `many` flee (three chasers listed beyond DANGER_R) after the Fight struck zombie 1, now fallen at `target_x`;
-    `chaser` a fourth zombie record (or None)."""
+    `chaser` a fourth zombie record (or None); the switches `off` off."""
     from .test_survive_q import GROUP3, struck
     r, sv = struck(tmp_path)
+    for name in off:
+        setattr(sv, name, False)
     zs = [z(1, target_x, floor=True)] + GROUP3 + ([chaser] if chaser else [])
     fr(r, zs)
     return r, sv, tick(r, sv)
@@ -311,13 +313,16 @@ def test_e9_s_line_334_geometry_a_chaser_within_keep_r_of_the_target_refuses_the
     """The deferred minor 5 of review-t32-fix1 (E9's line 334: 7474 fallen 4.62 tiles off, 7479 standing and chasing
     2.16 tiles from it, 1.97 beyond it along y, 6.49 from the player; here 1.96 from the target): the 4.6-tile stomp
     walk would end at the chaser; the finish is refused (logged `finish_block`) and the flee runs. An idle zombie
-    there refuses nothing. E9's own line: `test_survive_q.test_e9_s_7474_at_line_334_is_refused_for_7479_by_it`."""
+    there refuses nothing. E9's own line: `test_survive_q.test_e9_s_7474_at_line_334_is_refused_for_7479_by_it`.
+    Named change, ruling P27-A (Plan 27 Task 1): the chaser's reach from the fallen one is FINISH_CLEAR_R, so GROUP3's
+    zombie 2, 2.88 tiles from the target, refuses the idle case's stomp too; that case is pinned with `FLEE_FINISH` off,
+    the rule before it."""
     r, sv, a = chaser_by(tmp_path, 104.62, z(5, 106.49, 200.6))
     w = threat_why(tmp_path)
     assert a.type == "steer" and "finish" not in w and w["flee"] == "many"
     assert w["finish_block"] == {"target": 1, "chaser": 5, "dist": pytest.approx(1.96, abs=0.01)}
     (tmp_path / "idle").mkdir()
-    r2, sv2, a2 = chaser_by(tmp_path / "idle", 104.62, z(5, 106.49, 200.6, has_target=False))
+    r2, sv2, a2 = chaser_by(tmp_path / "idle", 104.62, z(5, 106.49, 200.6, has_target=False), off=("FLEE_FINISH",))
     assert (a2.type, a2.args) == ("stomp", {"targetId": 1})
 
 

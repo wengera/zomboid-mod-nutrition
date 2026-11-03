@@ -130,7 +130,9 @@ def test_the_stand_stomps_a_downed_zombie_whose_walk_keeps_its_post_and_leaves_o
 def test_the_pair_flee_yields_to_the_stomp_of_a_downed_zombie_within_finish_r(tmp_path):
     """P25-J (3), E12: health 50 (under FLEE_HEALTH_PAIR), a downed zombie 2.5 tiles east and a standing one 5 tiles
     west (within DANGER_R, beyond KEEP_R): `n` 2, but the stomp goes before the `pair` flee, logged `pair_yield`; with
-    FINISH_FAR off, the `pair` flee as before."""
+    FINISH_FAR off, the `pair` flee as before. Named change, ruling P27-A (Plan 27 Task 1): the running `pair` flee
+    takes the flee's finish (`test_survive_aa`), so the case off is pinned with `FLEE_FINISH` off too, the rules before
+    P25-J."""
     zs = [z(1, 102.5, floor=True), z(2, 95.0)]
     r, sv = make(tmp_path)
     r.frame(zombies=zs, health=50.0)
@@ -141,6 +143,7 @@ def test_the_pair_flee_yields_to_the_stomp_of_a_downed_zombie_within_finish_r(tm
     (tmp_path / "off").mkdir()
     r2, sv2 = make(tmp_path / "off")
     sv2.FINISH_FAR = False
+    sv2.FLEE_FINISH = False
     r2.frame(zombies=zs, health=50.0)
     a2 = tick(r2, sv2)
     assert threat_why(tmp_path / "off")["flee"] == "pair" and a2.type != "stomp"

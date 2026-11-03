@@ -272,6 +272,12 @@ SHOVE_FAIL_N = 3          # missed shoves at one lone standing target (`shove.Fi
                           # done `knockdown` false, and never swung; E11's corner shoved its two seven times, six
                           # missing (#4406). P25-L's break after SHOVE_BREAK_N misses is the other reading of the same
                           # count: at most SHOVE_BREAK_N, or the break would take the count first and reset it
+# survival iteration 19 (Plan 27 Task 1, rulings P27-A to P27-E; E18 `e_day_18-20261102-224036`, F9, F8)
+FINISH_CLEAR_R = 3.0      # tiles: a flee's finish goes with no standing zombie this near the character nor the fallen
+                          # one (P27-A, in place of P24-AQ's DANGER_R): E18's line 1649 ran the `strain` flee from
+                          # 30744, knocked down 2.5339841792960844 tiles off with no standing zombie within DANGER_R,
+                          # and its line 939's `many` flee from 30452, fallen 2.053499872133796 off; HOLD_BREAK_R's and
+                          # GROUP_NEAR_R's 3.0, a judgment (the guides put the stomp at 0.3 strain, a second's work)
 
 
 def place_of(world):
