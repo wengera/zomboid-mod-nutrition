@@ -303,6 +303,14 @@ Its output is the derived artifact `x502-regrade-20261022`; it refuses any argum
 `testing/experiments/xlib.py` holds the plumbing every live driver from x391h to x406 copied: the `Xs` session class (the output dict, the bus-dead flag, the timeline, the server and the clients are its explicit state, with no module globals) with `step` (a timeout pings, and no pong marks the bus dead and raises `BusDead`), `run_phase` (a fault is recorded as `failed_phase`, never `phase=`), `check` (the wall budget and the debugger park), `spawn` (an RCON `additem` confirmed by `item.get`, a leftover before the spawn voiding it), `eat_queue` and `spawned_stop` (the eats stop at any `spawned` that is not the string `"found"`), `grade` (zero samples turn `as_predicted` into `unmeasured`), and the `refuse`, `finish` and `copy_artifacts` skeleton; and the module functions `deployed_marker_check` (each file read once), `manifest_gate` (the staged copy against `release_pack.manifest` of `mod/NutritionRevamp` at HEAD), `grep_noecho` (with a probe exclusion), `memory_ok` and `free_gb`.
 A new driver imports it; a driver that has run is frozen and never does. Its offline tests are `testing/tests/test_xlib.py`, on a fake bus that answers the harness's `@reply` shapes.
 
+<a id="shot-sheet"></a>
+## `shot_sheet.py` — the visual pass's screenshot sheet
+
+`python tools/shot_sheet.py <run or artifact folder> <out.md> [--every N]` reads a run folder's or an artifact's shot index `shots/shots.jsonl`, its `decision.log` and its state logs, and writes one markdown sheet for the cheap visual pass of a live agent session: the fixed questions at the top, then a section per selected shot with the image's absolute path, its marks, the index moment, the decision line's action and threat, and the state frame at the shot's seq.
+It selects the shots within two of every wound (a frame whose `body.health` fell), within two of every kill (an act line whose result reads `targetDead`) and the last twelve (the death), plus every N-th shot, `--every` defaulting to 5.
+It finds the state logs beside the JSON in an artifact or under `clients/*/Lua/pzagent/*/` in a run (the `admin` client's first), decodes them through the agent base's `FileTransport` on a temporary copy, writes only the sheet, and exits `2` with a message on stderr when the index, the decision log or the state log is missing.
+Its tests are `tools/tests/test_shot_sheet.py`, on a fabricated run folder and on E20's artifact.
+
 <a id="fit-tools"></a>
 ## The fit tools
 
