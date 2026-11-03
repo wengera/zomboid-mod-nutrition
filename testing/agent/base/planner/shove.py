@@ -1,13 +1,15 @@
 """The shove at the swing and the corner after a missed shove: the mixin `FightShove` (`fight.Fight`'s: rulings P24-AG
-and P24-AH's shove, P25-A's corner, P25-I's logged third branch and P25-L's break after repeated misses). Moved out of
+and P24-AH's shove, P25-A's corner, P25-I's logged third branch, P25-L's break after repeated misses and P26-L1's
+divided swing after them under the `wounded` reason, `_wounded_swing`). Moved out of
 `fight.py` at Plan 25 Task 8 (`_shove`, `_shove_missed` and `_corner` whole, their rules unchanged; the constants in
 `policies.py`'s table); the state is the `Fight`'s own, and `fight.py`'s module docstring stays the record.
 """
 import math
 
-from agent.base.planner.policies import (FIGHT_REACH, FLEE_GAIT, FLEE_S, INSIDE_CROWD_N, KEEP_R, POINT_BLANK_R,
-                                         SHOVE_BREAK_N, SHOVE_R, SHOVE_REPEAT_S, STAND_MIN_R, STRAIN_SOFT, arm_pain,
-                                         target_id_ok)
+from agent.base.planner.policies import (DANGER_R, FIGHT_REACH, FLEE_GAIT, FLEE_S, INSIDE_CROWD_N, KEEP_R,
+                                         POINT_BLANK_R, SHOVE_BREAK_N, SHOVE_FAIL_N, SHOVE_R, SHOVE_REPEAT_S,
+                                         STAND_MIN_R, STRAIN_SOFT, arm_pain, arms_hurt, blocked, on_floor,
+                                         target_id_ok, zdist)
 from agent.base.pza1 import Attack, Shove, Steer
 from agent.base.world import me_xy
 
@@ -24,7 +26,8 @@ class FightShove:
           arms about a third less than a bat's swing and knocks down 35 + 2 x Strength in 100 (#4373), every time
           (logged `shove` "strain", or "spent" for a hold with the pain under STRAIN_SOFT); rulings P25-P and P25-S:
           a shove-and-stomp Fight (`shove_only`), the same shove at point blank whatever the pain, logged `shove`
-          "unarmed" or "low";
+          "unarmed" or "low"; ruling P26-L1: at point blank under the `wounded` reason after SHOVE_FAIL_N misses at a
+          lone target, the swing in the shove's place (`_wounded_swing`), before the corner's reads;
         - ruling P24-AH: in a standing fight (`standing`), a second standing zombie inside KEEP_R: the nearer of the
           two is shoved (within the Lua's SHOVE_R) before the next swing, once a swing (`_shoved`)."""
         if not self.world.can("shove"):
@@ -32,6 +35,9 @@ class FightShove:
         pain = arm_pain(self.world)
         sore = pain is not None and pain >= STRAIN_SOFT
         blank = (sore or self.spent or self.shove_only) and d <= POINT_BLANK_R
+        swing = self._wounded_swing(zid, z) if blank else None   # P26-L1: the divided swing after the failed shoves
+        if swing is not None:
+            return swing
         if blank and "corner_break" in self.rules and self._shove_missed(zid):
             corner = self._corner(zid, z, sore)   # P25-A: the break or the undivided swing, else the shove again
             if corner is not None:
@@ -54,6 +60,40 @@ class FightShove:
             return None
         self.why.update({"shove": "second", "shoveTarget": sid, "shoveDist": sd, "second": second[0]})
         return Shove(sid)
+
+    def _wounded_swing(self, zid, z):
+        """Ruling P26-L1 (F8, `f_goals_9-20261102-181937`: its last fight's one standing zombie, 28762, health
+        1.1920000314712524 on every frame listing it, took six shoves, each done with its swing started and `knockdown`
+        false, two lone breaks between, and no swing, the arms' pain 58.1 to 119.1 from the first wound) amends P25-I
+        (`_corner`'s divided swing not taken, logged `corner` {kind shove}: review-t3 finding 1, the swing at 1/3.8 to
+        1/27 of its damage, #4370, the shove's knock-down a crit roll pain does not touch, #4373, the stomp outside the
+        divider, #4374) and P24-AP's no swing at STRAIN_HARD (`no_swing`) for one case: a lone standing zombie that
+        resisted SHOVE_FAIL_N shoves takes the divided swing. With the `wounded_swing` rule on (`WOUNDED_SWING`), a
+        Fight under the `wounded` reason alone (`arms_hurt`; no hold, `spent`, and no shove-and-stomp Fight,
+        `shove_only`, whose fights take no swing by their own rulings) swings at its standing target `zid` (`z`) at
+        point blank, in the shove's place, once SHOVE_FAIL_N or more missed shoves at it are on record (`_missed_n`,
+        P25-T's count: a swing clears none, so it keeps swinging while the target stands) and no other zombie is listed
+        within DANGER_R (`_alone`: a fallen one in reach is the finish's stomp, `_finish`, which goes first); read
+        before the corner (P25-A, P25-I) and the breaks (P25-L, P25-T), so P25-L's lone break after the same count is
+        not taken while the swing is, and a second zombie within DANGER_R gives the shove and the corner's reading back.
+        Logged `wounded_swing` (the misses). Beyond point blank the backpedal holds as P24-AP's (`_wounded_leg`). Cost
+        if wrong: a divided swing (a third to a twenty-seventh of its damage under heavy arm pain, #4370) spent where a
+        shove might have knocked down. None otherwise."""
+        if ("wounded_swing" not in self.rules or not arms_hurt(self.world) or self.spent
+                or self.shove_only is not None or on_floor(z)):
+            return None
+        k = self._missed_n(zid)
+        if k < SHOVE_FAIL_N or not self._alone(zid):
+            return None
+        self.why["wounded_swing"] = k
+        self._held_before = False
+        return Attack(zid)
+
+    def _alone(self, zid):
+        """No zombie but `zid` listed with a position within DANGER_R of the player, one read dead aside (P26-L1)."""
+        dead = blocked(self.dead, self.clock())
+        return not any(oid != zid and oid not in dead and o.get("x") is not None and o.get("y") is not None
+                       and zdist(self.world, o) <= DANGER_R for oid, o in self.world.zombies.items())
 
     def _crowd_shove(self, zid, d):
         """Ruling P26-C (E16, `e_day_16-20261102-125450`: from the doorway stand's `inside` end the corner sent five

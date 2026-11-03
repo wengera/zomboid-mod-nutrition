@@ -1,12 +1,12 @@
-"""Survival 20 (survival iteration 18; Plan 26 Task 7; E17, `e_day_17-20261102-180459`, rows #4516-#4524;
-F5, `f_goals_6-20261030-192251`, its a20 the one live window climbed `done`, for WINDOW_STALL_S; E16,
-`e_day_16-20261102-125450`, through `test_survive_y`'s shed). E17's own record, read as the planner read it
-(`replay_decisions.read_record` and `align`: the World through a decision line's frame and the trailing lines its tick
-read), and replayed (`replay_decisions.replay`: HEAD's planner is the one E17 ran on, `6df43e92`, so with iteration
-18's switches off the replay is the record's own rules). The
-stand held building 2's kitchen door (10721, 10638) from line 362; its `inside` end at line 380 (frame seq 3447)
-walked out by the kitchen window (10720, 10634), a `solidTrans` square holding a `counter`, where the window act a81
-waited 14.3 s and failed `dead`.
+"""Survival 20 (survival iteration 18; Plan 26 Tasks 7 and 7d; E17, `e_day_17-20261102-180459`, rows #4516-#4524; F5,
+`f_goals_6-20261030-192251`, its a20 the one live window climbed `done`, for WINDOW_STALL_S; E16,
+`e_day_16-20261102-125450`, through `test_survive_y`'s shed; F8 `f_goals_9-20261102-181937`). E17's own record, read as
+the planner read it (`replay_decisions.read_record` and `align`: the World through a decision line's frame and the
+trailing lines its tick read), and replayed (`replay_decisions.replay`: HEAD's planner is the one E17 ran on,
+`6df43e92`, so with iteration 18's switches off the replay is the record's own rules). The stand held building 2's
+kitchen door (10721, 10638) from line 362; its `inside` end at line 380 (frame seq 3447) walked out by the kitchen
+window (10720, 10634), a `solidTrans` square holding a `counter`, where the window act a81 waited 14.3 s and failed
+`dead`.
 
 - P26-I, a window way out needs a walkable inside square (`WINDOW_INNER`): `night.window_exits` leaves out a window
   whose inside square reads `solid` or `solidTrans`; its outside square is never solid (`World.window_way`).
@@ -20,6 +20,10 @@ waited 14.3 s and failed `dead`.
   rule's stomp); a `crowd` end with no zombie on a square of the stand's room nor on its door square takes the close
   (`doorway_exit` {crowd, close}: E17's line 364, every zombie outside), else walks out by the way out as P25-W's ends
   do (E16's line 469: 24134 on the door's inside square), else holds trapped.
+- P26-L1 (Task 7d, F8's death), the divided swing after failed shoves (`WOUNDED_SWING`): under the `wounded` reason
+  alone, a lone standing target at point blank with SHOVE_FAIL_N missed shoves on record is swung at in the shove's
+  place, ahead of the corner and the breaks; a second zombie within DANGER_R gives them back (F8's last fight: six
+  shoves at 28762, health 1.1920000314712524, none knocking down, two lone breaks, no swing).
 """
 import functools
 import os
@@ -31,6 +35,7 @@ from agent.base.planner import survive as S
 from agent.base.world import World, me_xy
 
 from . import test_survive_y as Y
+from .test_survive import make, threat_why, tick
 
 E17 = os.path.join(R.ARTIFACTS, "e_day_17-20261102-180459")
 COUNTER = (10720, 10634, 0)       # the kitchen window's square: its record on its own west edge, a `counter` on it
@@ -350,7 +355,8 @@ def e17_stand(tmp_path, line, keep=None, crowd=True, place=None, fallen=(), blee
 
 def test_the_stand_crowd_constant_and_its_end_among_the_ends_that_walk_out():
     from agent.base.planner import doorway as D
-    assert S.T8_SWITCHES == ("WINDOW_INNER", "WINDOW_STALL", "STAND_CROWD") and P.STAND_CROWD_N == 4
+    assert S.T8_SWITCHES[:3] == ("WINDOW_INNER", "WINDOW_STALL", "STAND_CROWD") and P.STAND_CROWD_N == 4   # Task 7d
+    # (named change): P26-L's switches follow in the tuple
     assert "crowd" in D.STAND_EXIT_ENDS
 
 
@@ -462,3 +468,197 @@ def test_e16_s_stand_on_line_469_ends_crowd_ahead_of_inside_and_walks_out_by_the
     assert w["doorway_left"] == "crowd" and w["doorway_crowd"] == {"n": 5} and "doorway_inside" not in w
     assert w["doorway_exit"] == {"end": "crowd", "exit": "window"} and sv.flee.walking_out == "crowd"
     assert r.cmd() == ("walkTo", {"x": 10710.5, "y": 10596.5, "gait": "run"})
+
+
+# ================================================ P26-L1: the divided swing after failed shoves
+F8 = os.path.join(R.ARTIFACTS, "f_goals_9-20261102-181937")
+LONE = 28762                        # F8's last fight's one standing zombie
+LONE_HEALTH = 1.1920000314712524    # its health on every frame listing it
+LAST_FIGHT = 1312                   # the decision line of F8's last fight's first line (`loop.fights[25]`)
+FIRST_BREAK = 1379                  # a271: the lone break (misses 3) after a265, a267 and a269
+DEATH_SEQ = 13473                   # the death event's seq
+F8_PAIN = 88.3                      # the arms' pain on line 1379's frame
+SHOVE_ENDS = ("a265", "a267", "a269", "a274", "a276", "a278")   # the last fight's six shoves, each at LONE
+MISSED = {"state": "done", "result": {"attackStarted": True, "knockdown": False, "targetDead": False}}
+SWUNG = {"state": "done", "result": {"attackStarted": True, "targetDead": False}}
+
+
+@functools.lru_cache(maxsize=1)
+def f8():
+    lines, rows = R.read_record(F8)
+    return lines, rows, R.align(lines, rows)
+
+
+def f8_world(line):
+    """A World holding F8's record through decision line `line`'s frame and the trailing lines its tick read."""
+    lines, _, ends = f8()
+    w = World()
+    for ln in lines[:ends[line - 1][1]]:
+        w.apply(ln)
+    return w
+
+
+def f8_replay(upto, **on):
+    """F8's record replayed through decision line `upto` with iteration 18's switches as given (each of
+    `survive.T8_SWITCHES` off unless named True; F8 ran on `db9f947c`, whose planner is `6df43e92`'s)."""
+    def mutate(sv):
+        for name in S.T8_SWITCHES:
+            setattr(sv, name, bool(on.get(name)))
+    return R.replay(F8, mutate=mutate, upto=upto)
+
+
+def sent(row):
+    return (row["branch"], row["action"])
+
+
+def test_the_wounded_swing_s_constant_switch_and_rule():
+    from agent.base.planner import fight as F
+    assert P.SHOVE_FAIL_N == 3 and P.SHOVE_FAIL_N <= P.SHOVE_BREAK_N and "wounded_swing" in F.FIGHT_RULES
+    assert "WOUNDED_SWING" in S.T8_SWITCHES and S.Survive.WOUNDED_SWING is True
+
+
+def test_f8_s_last_fight_shoved_its_lone_standing_zombie_six_times_and_never_swung():
+    """The reading the rule rests on: from line 1312 to the death F8's Fight sent six shoves at 28762, each done with
+    its swing started and `knockdown` false, and no attack; 28762 read health 1.1920000314712524 and stood on all 612
+    frames listing it before the death; the arms' pain read 20 or more (the `wounded` reason, no hold) on every
+    threat line; no other zombie stood within DANGER_R on the lines of the first three shoves, and line 1379 broke
+    away (`corner` {kind break, misses 3, n 1})."""
+    lines, rows, _ = f8()
+    ends = {ln["aid"]: ln for ln in lines if ln["kind"] == "act" and ln["state"] in ("done", "failed")}
+    for aid in SHOVE_ENDS:
+        assert ends[aid]["state"] == "done" and ends[aid]["result"] == {"attackStarted": True, "knockdown": False,
+                                                                         "targetDead": False}
+    aids, _ = R.recorded_aids(lines, rows)
+    fight = [(aids[k], rows[k - 1]["action"]) for k in range(LAST_FIGHT, len(rows) + 1) if rows[k - 1]["sent"]]
+    assert [aid for aid, a in fight if a["type"] == "shove"] == list(SHOVE_ENDS)
+    assert all(a["args"]["targetId"] == LONE for _, a in fight if a["type"] == "shove")
+    assert not any(a["type"] == "attack" for _, a in fight)
+    seen = [z for ln in lines if ln["kind"] == "frame" and ln["seq"] < DEATH_SEQ for z in ln.get("zombies") or ()
+            if z.get("id") == LONE]
+    assert len(seen) == 612 and {z["health"] for z in seen} == {LONE_HEALTH} and not any(z.get("onFloor") for z in seen)
+    for k in range(LAST_FIGHT, FIRST_BREAK + 1):
+        w = threat(rows[k - 1])
+        assert w["pain"]["kind"] == "wounded" and w["pain"]["armPain"] >= P.STRAIN_HARD and "flee" not in w, k
+        assert "spent" not in w and "low_fight" not in w, k
+    for k in (1359, 1365, 1372, FIRST_BREAK):
+        w = f8_world(k)
+        near = [zid for zid, z in w.zombies.items() if z.get("x") is not None and P.zdist(w, z) <= P.DANGER_R]
+        assert near == [LONE], k
+    assert threat(rows[FIRST_BREAK - 1])["corner"] == {"kind": "break", "misses": 3, "n": 1, "shoved": LONE}
+
+
+def test_f8_replayed_with_the_wounded_swing_swings_where_each_lone_break_went():
+    """F8 replayed with P26-L1 alone on: the first moved line of each fight whose lone target took three missed shoves
+    under the `wounded` reason is the record's break, now the swing (`attack`, logged `wounded_swing` 3): 28728 at
+    line 571, 28774 at 1023 and, in the last fight, 28762 at 1379 (0.7034084172721121 tiles), every line from 1312 to
+    1378 as the switch off replays it; with the switch off line 1379 is the record's break (a271)."""
+    on, off = f8_replay(FIRST_BREAK, WOUNDED_SWING=True), f8_replay(FIRST_BREAK)
+    _, rows, _ = f8()
+    moved = [k for k in range(1, FIRST_BREAK + 1) if sent(on[k - 1]) != sent(off[k - 1])]
+    assert moved[:2] == [571, 1023] and moved[-1] == FIRST_BREAK
+    assert not [k for k in moved if LAST_FIGHT <= k < FIRST_BREAK]
+    for k in (571, 1023, FIRST_BREAK):
+        assert threat(off[k - 1])["corner"]["kind"] == "break" and rows[k - 1]["action"]["type"] == "steer"
+        assert on[k - 1]["action"]["type"] == "attack" and threat(on[k - 1])["wounded_swing"] == 3
+        assert "corner" not in threat(on[k - 1])
+    assert on[FIRST_BREAK - 1]["action"] == {"type": "attack", "args": {"targetId": LONE}}
+    assert sent(off[FIRST_BREAK - 1]) == sent(rows[FIRST_BREAK - 1])
+
+
+def wounded(r, rows):
+    """F8's wounded frame on the Rig: the arms' pain F8_PAIN, no stiffness, a bat held, health 100 and no wound counted
+    (so a second zombie within DANGER_R is fought, never the `pair` flee), the zombies `rows` ((id, x, y): standing,
+    chasing, LONE_HEALTH) about the player at (100, 200)."""
+    zs = [dict(z, health=LONE_HEALTH) for z in Y.zs(rows, (100.0, 200.0))]
+    r.frame(zombies=zs, wounds={"armPain": F8_PAIN, "strain": {"l": 0.0, "r": 0.0}})
+
+
+LONE_AT = ((1, 100.7034084172721121, 200.0),)   # line 1379's geometry: the lone zombie 0.7034084172721121 tiles east
+
+
+def three_missed(tmp_path, on=True):
+    """A Survive on a Rig at F8's last fight: three shoves at the lone zombie at point blank, each 5 s apart (the
+    backpedal's spacing, past SHOVE_REPEAT_S, as F8's), each done with its swing started and `knockdown` false; then
+    the frame read again with `WOUNDED_SWING` as given."""
+    r, sv = make(tmp_path)
+    sv.WOUNDED_SWING = on
+    for _ in range(3):
+        wounded(r, LONE_AT)
+        a = tick(r, sv)
+        assert (a.type, a.args) == ("shove", {"targetId": 1}) and threat_why(tmp_path)["shove"] == "strain"
+        r.fake.answer({"shove": ["accepted", MISSED]})
+        r.pump()
+        r.advance(5.0)
+    wounded(r, LONE_AT)
+    return r, sv
+
+
+def test_three_missed_shoves_at_a_lone_standing_zombie_under_the_wounded_reason_take_the_swing(tmp_path):
+    """F8's last fight: after three missed shoves the fourth send at point blank is the swing (`attack`, logged
+    `wounded_swing` 3), never the break; the swing done with the zombie still standing, the next is the swing again."""
+    r, sv = three_missed(tmp_path)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args) == ("attack", {"targetId": 1}) and w["wounded_swing"] == 3 and "corner" not in w
+    assert w["pain"]["kind"] == "wounded" and sv.fight._miss_run == {1: 3}
+    r.fake.answer({"attack": ["accepted", SWUNG]})
+    r.pump()
+    r.advance(1.0)
+    wounded(r, LONE_AT)
+    a = tick(r, sv)
+    assert (a.type, a.args) == ("attack", {"targetId": 1}) and threat_why(tmp_path)["wounded_swing"] == 3
+
+
+def test_a_second_zombie_within_danger_r_gives_back_the_corner_s_reading(tmp_path):
+    """A second zombie listed 3 tiles off (within DANGER_R, beyond FIGHT_REACH): no swing; the rules before P26-L1
+    answer, here P25-L's lone break after the same three misses (`corner` {kind break, n 1, misses 3}); a swing
+    running when it arrives is followed by that reading too."""
+    two = LONE_AT + ((2, 103.0, 200.0),)
+    r, sv = three_missed(tmp_path)
+    wounded(r, two)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "steer" and "wounded_swing" not in w
+    assert w["corner"] == {"kind": "break", "shoved": 1, "n": 1, "misses": 3}
+    d = tmp_path / "swung"
+    d.mkdir()
+    r, sv = three_missed(d)
+    assert tick(r, sv).type == "attack"
+    r.fake.answer({"attack": ["accepted", SWUNG]})
+    r.pump()
+    r.advance(1.0)
+    wounded(r, two)
+    a = tick(r, sv)
+    assert a.type == "steer" and threat_why(d)["corner"]["kind"] == "break" and "wounded_swing" not in threat_why(d)
+
+
+def test_with_the_wounded_swing_off_the_three_misses_break_away_as_f8_did(tmp_path):
+    r, sv = three_missed(tmp_path, on=False)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "steer" and w["corner"] == {"kind": "break", "shoved": 1, "n": 1, "misses": 3}
+    assert "wounded_swing" not in w and not any(x.type == "attack" for x in r.acts.history)
+
+
+def test_two_missed_shoves_shove_again_and_a_hold_or_the_low_fight_never_swings(tmp_path):
+    """Under SHOVE_FAIL_N misses the shove again; the rule is the `wounded` reason's alone: with the endurance hold
+    (`spent`) or a shove-and-stomp Fight (`shove_only`) the three misses take the break as before."""
+    r, sv = make(tmp_path)
+    for _ in range(2):
+        wounded(r, LONE_AT)
+        assert tick(r, sv).type == "shove"
+        r.fake.answer({"shove": ["accepted", MISSED]})
+        r.pump()
+        r.advance(5.0)
+    wounded(r, LONE_AT)
+    a = tick(r, sv)
+    assert a.type == "shove" and "wounded_swing" not in threat_why(tmp_path)
+    d = tmp_path / "held"
+    d.mkdir()
+    r, sv = three_missed(d)
+    assert tick(r, sv).type == "attack"   # the third miss read: the swing
+    f, z = sv.fight, r.world.zombies[1]   # the Fight's own reads (the threat branch sets both each tick)
+    for attr, value in (("spent", ("endurance",)), ("shove_only", "low")):
+        setattr(f, attr, value)
+        assert f._wounded_swing(1, z) is None, attr
+        setattr(f, attr, () if attr == "spent" else None)

@@ -264,6 +264,14 @@ STAND_CROWD_N = 4         # standing held zombies within DANGER_R at which the s
 INSIDE_CROWD_N = 2        # zombies within POINT_BLANK_R (or `me.attackers`, if more) at which an `inside` corner shoves
                           # and never swings (P26-C: from E16's stand's `inside` end the corner sent five attacks with
                           # two zombies on the door's inside square, four of which swung, one lowering its target)
+# survival iteration 18 (Plan 26 Task 7d, ruling P26-L; F8)
+SHOVE_FAIL_N = 3          # missed shoves at one lone standing target (`shove.FightShove._missed_n`) after which a Fight
+                          # under the `wounded` reason swings in the shove's place (P26-L1, which amends P25-I: a lone
+                          # standing zombie that resisted SHOVE_FAIL_N shoves takes the divided swing, #4370, #4373,
+                          # #4374): F8's last fight (`f_goals_9-20261102-181937`) shoved its lone 28762 six times, each
+                          # done `knockdown` false, and never swung; E11's corner shoved its two seven times, six
+                          # missing (#4406). P25-L's break after SHOVE_BREAK_N misses is the other reading of the same
+                          # count: at most SHOVE_BREAK_N, or the break would take the count first and reset it
 
 
 def place_of(world):

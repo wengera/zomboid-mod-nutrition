@@ -341,8 +341,11 @@ def missed(r, end=MISS):
 def test_two_missed_shoves_take_the_third_and_three_take_the_break(tmp_path):
     """E12 (#4434, #4436: 29 `strain` shoves, 6 knock-downs in 39 done shoves, no swing for 108 game minutes): after the
     first and the second missed shove at the lone target the shove goes again (`corner` {kind shove}); after the third,
-    the steer at a run away from it, logged `corner` {kind break, shoved, n 1, misses 3}, the run of misses reset."""
+    the steer at a run away from it, logged `corner` {kind break, shoved, n 1, misses 3}, the run of misses reset.
+    Named change, ruling P26-L1 (Plan 26 Task 7d): under the `wounded` reason a lone target's third miss takes the
+    divided swing ahead of this break (`test_survive_z`); this case pins the break with `WOUNDED_SWING` off."""
     r, sv = shoved(tmp_path, [z(1, 100.49)])
+    sv.WOUNDED_SWING = False
     for n in (2, 3):
         a = tick(r, sv)
         assert (a.type, a.args) == ("shove", {"targetId": 1}), n
@@ -381,9 +384,11 @@ def test_misses_older_than_the_window_do_not_count(tmp_path):
     it: the shove again, not the break; that fourth shove missed too, three lie inside the window at 10 s: the break
     (8 fix 1, review-t8 minor 5: the case fails at the parent on that behaviour, the window read by literal). Named
     change, ruling P25-T (Plan 25 Task 10): the misses count over the Fight's life; this case pins the window with
-    `SHOVE_BREAK_RUN` off (`test_survive_w` the run)."""
+    `SHOVE_BREAK_RUN` off (`test_survive_w` the run); and ruling P26-L1's (Plan 26 Task 7d) with `WOUNDED_SWING` off,
+    whose swing takes the third miss's place under the `wounded` reason."""
     r, sv = shoved(tmp_path, [z(1, 100.49)])
     sv.SHOVE_BREAK_RUN = False
+    sv.WOUNDED_SWING = False
     t0 = r.clock() - 0.5
     r.advance(7.0)
     fr(r, [z(1, 100.49)], WOUND, NO_STIFF, health=70.0)
@@ -406,6 +411,7 @@ def test_misses_older_than_the_window_do_not_count(tmp_path):
 def test_with_shove_break_off_the_shoves_go_on(tmp_path):
     r, sv = shoved(tmp_path, [z(1, 100.49)])
     sv.SHOVE_BREAK = False
+    sv.WOUNDED_SWING = False   # named change, ruling P26-L1 (Plan 26 Task 7d): its swing would follow the third miss
     for _ in range(3):
         assert tick(r, sv).type == "shove"
         missed(r)

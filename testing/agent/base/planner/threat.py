@@ -129,6 +129,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     STAND_CROWD = True    # ruling P26-K: the doorway stand ends `crowd` at STAND_CROWD_N standing held within DANGER_R,
                           # read after `wound` and before `inside` (`DoorwayStand._stand_crowd`); it takes the close
                           # with nobody inside, else walks out (P26-K2, `_stand_occupied`); off, no such end
+    WOUNDED_SWING = True  # ruling P26-L1: under the `wounded` reason a lone standing target at point blank with
+                          # SHOVE_FAIL_N missed shoves on record is swung at in the shove's place, ahead of the corner
+                          # and the breaks (`shove.FightShove._wounded_swing`); off, the shove, the corner, the breaks
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -821,12 +824,13 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         return flee.busy() and flee.last.args.get("gait") == "walk"
 
     def _fight_rules(self):
-        """The iterations 13 to 16 Fight rules (`fight.FIGHT_RULES`) whose switch is on: the Fight's `rules`."""
+        """The iterations 13 to 18 Fight rules (`fight.FIGHT_RULES`) whose switch is on: the Fight's `rules`."""
         return frozenset(rule for rule, on in (("corner_break", self.CORNER_BREAK), ("finish_first", self.FINISH_FIRST),
                                                ("ride_wait", self.RIDE_WAIT), ("fence_wait", self.FENCE_WAIT),
                                                ("finish_far", self.FINISH_FAR), ("shove_break", self.SHOVE_BREAK),
                                                ("shove_break_run", self.SHOVE_BREAK_RUN),
-                                               ("blocked_edge", self.BLOCKED_EDGE))
+                                               ("blocked_edge", self.BLOCKED_EDGE),
+                                               ("wounded_swing", self.WOUNDED_SWING))
                          if on)
 
     def _door_targets(self):

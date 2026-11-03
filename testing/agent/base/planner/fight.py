@@ -112,6 +112,10 @@ one table the gates and the other policies import).
   more; None for any other Fight) at INSIDE_CROWD_N or more shoves its target at the swing (`_crowd_shove`), the stomp
   of a fallen one in reach going first as ever (`_finish`); with one at point blank the swing stands. Every shove,
   stomp or attack such a Fight sends is logged `corner` {kind "inside", send, near_n} (`choose`).
+  Survival 20 (survival iteration 18; Plan 26 Task 7d; survive.py's docstring the record): P26-L1, the divided swing
+  after failed shoves: under the `wounded` reason alone, at a lone standing target at point blank with SHOVE_FAIL_N
+  missed shoves on record, the swing in the shove's place (`shove.FightShove._wounded_swing`), ahead of the corner and
+  the breaks; a second zombie within DANGER_R gives them back.
 """
 import math
 import time
@@ -135,9 +139,9 @@ from agent.base.world import me_floor, me_xy
 __all__ = ["Fight", "FIGHT_RULES"]
 
 FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finish_far", "shove_break",
-               "shove_break_run", "blocked_edge")   # survival iterations 13 to 16's Fight rules (P25-A, P25-B,
-                     # P25-D, P25-F; P25-J, P25-L; P25-T; P25-X), each on in `rules` unless Survive's switch for it is
-                     # off
+               "shove_break_run", "blocked_edge", "wounded_swing")   # survival iterations 13 to 18's Fight rules
+                     # (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1), each on in `rules` unless
+                     # Survive's switch for it is off
 
 
 class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):

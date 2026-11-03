@@ -247,11 +247,13 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     `fight.Fight._crowd_shove`); P26-D, the bleed under the threat branch (`care_yield.CareYield._bleed_free`,
     `_bleed_leg`, `care.Care.dresses_wound`); P26-E, a wear rejected `worn` marks its garment worn
     (`care.Care.observe`, `World.mark_worn`); `T7_SWITCHES`.
-  - Survival 20 (iteration 18, E17): P26-I, a window way out needs an inside square that can be stood on
+  - Survival 20 (iteration 18, E17 and F8): P26-I, a window way out needs an inside square that can be stood on
     (`night.window_exits`' `walkable`: E17's kitchen counter); P26-J, the window act stall-read as the walk is, an
     `interrupted` end sent once more (`flee.Flee._stall_limit`, `_window_ended`); P26-K, the doorway stand ends `crowd`
     at STAND_CROWD_N standing held within DANGER_R, takes the close with nobody inside, else walks out (P26-K2:
-    `doorway.DoorwayStand._stand_crowd`, `_stand_occupied`); `T8_SWITCHES`.
+    `doorway.DoorwayStand._stand_crowd`, `_stand_occupied`); and (Task 7d, F8) P26-L1, under the `wounded` reason a
+    lone standing target at point blank with SHOVE_FAIL_N missed shoves on record is swung at in the shove's place
+    (`shove.FightShove._wounded_swing`); `T8_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -365,8 +367,9 @@ T6_SWITCHES = ("STAND_DRAG_EARLY", "STAND_INSIDE", "STAND_EXIT", "BLOCKED_EDGE",
 T7_SWITCHES = ("WINDOW_EXIT", "STAND_SECOND_EXIT", "INSIDE_SHOVE", "THREAT_BLEED", "WEAR_WORN")
 # survival iteration 17 (Plan 26 Task 2): P26-A to P26-D on `threat.Threat` (WINDOW_EXIT, STAND_SECOND_EXIT,
 # INSIDE_SHOVE, THREAT_BLEED); P26-E on `Survive` (WEAR_WORN)
-T8_SWITCHES = ("WINDOW_INNER", "WINDOW_STALL", "STAND_CROWD")
-# survival iteration 18 (Plan 26 Task 7): P26-I to P26-K on `threat.Threat` (WINDOW_INNER, WINDOW_STALL, STAND_CROWD)
+T8_SWITCHES = ("WINDOW_INNER", "WINDOW_STALL", "STAND_CROWD", "WOUNDED_SWING")
+# survival iteration 18 (Plan 26 Tasks 7 and 7d): P26-I to P26-K on `threat.Threat` (WINDOW_INNER, WINDOW_STALL,
+# STAND_CROWD); P26-L1 on `threat.Threat` (WOUNDED_SWING)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
