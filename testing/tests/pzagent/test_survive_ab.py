@@ -1035,6 +1035,26 @@ def test_e20_s_advance_on_the_idle_zombie_walks_to_the_reach_and_its_margin_then
     assert tick(r, sv).type == "attack"
 
 
+def test_the_advance_s_idle_zombie_turning_chaser_within_fight_reach_is_let_come_the_stance_standing(tmp_path):
+    """P27-M's chaser clause (`_reach_walk_due`: within FIGHT_REACH the advance walks only while the target reads no
+    target of its own): the advance set at the idle zombie 2.4 tiles off sends the walk to the reach; the zombie then
+    turns chasing at E20's 1.816 tiles (beyond reach + ATTACK_MARGIN, within FIGHT_REACH): no `reach_walk`, the
+    stance's `enter` leg (aim (0, 0) at it) and, that leg running, its standing leg kept (nothing sent) with no
+    attack, logged `attack_held`."""
+    r, sv, a = stance_at(tmp_path, 102.4, chases=False)
+    assert sv.fight.advance is True and (a.type, a.args["gait"]) == ("walkTo", "walk")
+    fr(r, [z(1, 100.0 + E20_AT, has_target=True)], weapon=E20_BAT)
+    b = tick(r, sv)
+    assert sv.fight.advance is True and (b.type, b.args["vx"], b.args["vy"], b.args["targetId"]) == ("aim", 0.0, 0.0, 1)
+    assert "reach_walk" not in threat_why(tmp_path)
+    accept(r, b)
+    fr(r, [z(1, 100.0 + E20_AT, has_target=True)], weapon=E20_BAT)
+    assert tick(r, sv) is None
+    w = threat_why(tmp_path)
+    assert w["attack_held"] == {"target": 1, "dist": pytest.approx(E20_AT), "reach": 1.125} and "reach_walk" not in w
+    assert sends(r)[1:] == ["aim"]
+
+
 def test_the_idle_zombie_at_1_816_in_the_advance_takes_the_walk_not_the_attack(tmp_path):
     """E20's own case (3189 idle at line 711's 1.8161174585612616 tiles, the advance on): the walk to the reach, no
     attack; with `ATTACK_REACH` off the advance's `toward` leg, then the attack from it."""
