@@ -264,7 +264,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     SHOVE_FAIL_N missed shoves (`shove.FightShove._low_swing`); `T9_SWITCHES`.
   - Survival 22 (iteration 20, E19 and F10): P27-F, a goal walk ended `stuck` unmoved marks its square and edge, and the
     scripted source leaves the square by a known way, never a Rest (`goal_runner.GoalRunner._read_walks`,
-    `ScriptedSource._ways_out`, the view's `stuck`); `T10_SWITCHES`.
+    `ScriptedSource._ways_out`, the view's `stuck`); P27-G, the swing at a fallen zombie within FIGHT_REACH ahead of
+    the stomp, no stomp while a strike at it runs (`finish.FightFinish._floor_finish`, `ThreatFinish._flee_finish`);
+    `T10_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -384,8 +386,9 @@ T8_SWITCHES = ("WINDOW_INNER", "WINDOW_STALL", "STAND_CROWD", "WOUNDED_SWING", "
 T9_SWITCHES = ("FLEE_FINISH", "MANY_TAIL", "HOLD_LONE", "HOLD_REST", "SPENT_KEEP", "LOW_SWING")
 # survival iteration 19 (Plan 27 Task 1): P27-A to P27-C2 and P27-E on `threat.Threat` (FLEE_FINISH, MANY_TAIL,
 # HOLD_LONE, HOLD_REST, LOW_SWING); P27-D on `Survive` (SPENT_KEEP)
-T10_SWITCHES = ("STUCK_LEAVE",)
-# survival iteration 20 (Plan 27 Task 5): P27-F on `Survive` (STUCK_LEAVE, read by the goal runner)
+T10_SWITCHES = ("STUCK_LEAVE", "FLOOR_FINISH")
+# survival iteration 20 (Plan 27 Task 5): P27-F on `Survive` (STUCK_LEAVE, read by the goal runner); P27-G on
+# `threat.Threat` (FLOOR_FINISH)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")

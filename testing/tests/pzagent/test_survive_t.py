@@ -684,8 +684,10 @@ def test_at_the_fence_within_reach_it_is_neither_repositioned_for_nor_marked(tmp
 
 def test_once_it_crosses_it_is_swung_at_and_once_fallen_stomped(tmp_path):
     """Across (101.6: the fence off the line) the swing from the held stance; fallen after the hop, the stomp (P24-AL's
-    finish)."""
+    finish). Named change, ruling P27-G (Plan 27 Task 5): with the swing allowed a fallen zombie within FIGHT_REACH
+    takes the floor swing ahead of the stomp (`test_survive_ab`); pinned with `FLOOR_FINISH` off, the rule before it."""
     r, sv = fence_rig(tmp_path, 104.5)
+    sv.FLOOR_FINISH = False
     tick(r, sv)
     r.fake.answer({"aim": ["accepted"]})
     r.pump()

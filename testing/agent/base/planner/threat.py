@@ -153,6 +153,12 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # no leg sent (`hold.Hold._hold_rest`, `_rest`); off, P25-C's walk
     LOW_SWING = True      # ruling P27-E: the low fight's full swing after SHOVE_FAIL_N missed shoves at its lone target
                           # (`shove.FightShove._low_swing`); off, the low fight never swings (P25-S)
+    # survival iteration 20 (Plan 27 Task 5; survive.py's docstring, Survival 22): each switch off is the rule before
+    # it, all of them in `survive.T10_SWITCHES` (the replay tests' `pre_t10`)
+    FLOOR_FINISH = True   # ruling P27-G: with a weapon held and the swing allowed, the Fight's and the flee's finish
+                          # swing at a fallen zombie within FIGHT_REACH ahead of the stomp, and no stomp goes while a
+                          # strike at it runs (`finish.FightFinish._floor_finish`, `ThreatFinish._flee_finish`); off,
+                          # the stomp first (P24-AL, P24-AQ)
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -889,14 +895,14 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         return flee.busy() and flee.last.args.get("gait") == "walk"
 
     def _fight_rules(self):
-        """The iterations 13 to 19 Fight rules (`fight.FIGHT_RULES`) whose switch is on: the Fight's `rules`."""
+        """The iterations 13 to 20 Fight rules (`fight.FIGHT_RULES`) whose switch is on: the Fight's `rules`."""
         return frozenset(rule for rule, on in (("corner_break", self.CORNER_BREAK), ("finish_first", self.FINISH_FIRST),
                                                ("ride_wait", self.RIDE_WAIT), ("fence_wait", self.FENCE_WAIT),
                                                ("finish_far", self.FINISH_FAR), ("shove_break", self.SHOVE_BREAK),
                                                ("shove_break_run", self.SHOVE_BREAK_RUN),
                                                ("blocked_edge", self.BLOCKED_EDGE),
                                                ("wounded_swing", self.WOUNDED_SWING),
-                                               ("low_swing", self.LOW_SWING))
+                                               ("low_swing", self.LOW_SWING), ("floor_finish", self.FLOOR_FINISH))
                          if on)
 
     def _flee_rules(self):

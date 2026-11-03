@@ -24,13 +24,18 @@ def fr(r, zs, arm=None, **k):
     r.frame(zombies=list(zs), wounds={"armPain": arm}, **k)
 
 
-def fight(tmp_path, zs, arm=None, caps=None, stance=False, pin=None):
+def fight(tmp_path, zs, arm=None, caps=None, stance=False, pin=None, floor_finish=False):
     """A Fight on a fresh Rig (`caps` the hello's, default every type), the frame's zombies `zs`, `stance` set as
-    Survive's `_stance_ok` sets it, pinned to `pin` (else the nearest at its first choose)."""
+    Survive's `_stance_ok` sets it, pinned to `pin` (else the nearest at its first choose). Named change, ruling P27-G
+    (Plan 27 Task 5): the Fight's `floor_finish` rule off unless `floor_finish` (with it on, and the swing allowed, a
+    fallen zombie within FIGHT_REACH takes the floor swing ahead of the stomp: `test_survive_ab`), so this module's
+    P24-AL finish (the stomp first) is pinned with the rule before it."""
     r = Rig(tmp_path, caps=caps)
     fr(r, zs, arm)
     f = Fight(r.world, r.acts, r.clock, target=pin)
     f.stance = stance
+    if not floor_finish:
+        f.rules = f.rules - {"floor_finish"}
     return r, f
 
 

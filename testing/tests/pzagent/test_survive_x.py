@@ -104,8 +104,11 @@ def _rooms(r):
 
 
 def _inside_tick(tmp_path, zs, inside=True, rooms=False):
+    """One tick of the stand at its post with `zs` (`STAND_INSIDE` as given). Named change, ruling P27-G (Plan 27
+    Task 5): `FLOOR_FINISH` off (P24-AL's stomp of a downed zombie inside is pinned with the rule before it)."""
     r, sv = stood(tmp_path)
     sv.STAND_INSIDE = inside
+    sv.FLOOR_FINISH = False
     if rooms:
         _rooms(r)
     r.frame(x=POST[0], y=POST[1], zombies=zs + group(8.0, POST)[1:])

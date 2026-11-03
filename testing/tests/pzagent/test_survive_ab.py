@@ -8,6 +8,9 @@ geometry is simplified from the line its docstring names.
 - P27-F, the stuck square (`STUCK_LEAVE`): a goal walk ended `stuck` unmoved marks its square and its route's first
   edge for STUCK_MARK_MIN (logged `stuck_mark`); the scripted source never rests there (logged `leave`); the view
   carries `stuck`.
+- P27-G, the floor swing as the finish (`FLOOR_FINISH`): with a weapon held and the swing allowed, the Fight's finish
+  and the flee's swing at a fallen zombie within FIGHT_REACH ahead of the stomp (logged `floor_finish`); no stomp while
+  a strike at the same zombie runs.
 """
 import pytest
 
@@ -19,7 +22,8 @@ from agent.base.planner.goals import ExploreToward, GoalRunner, LootBuilding, Re
 
 from .test_goals import Src
 from .test_policies import Rig, square
-from .test_survive import last, make
+from .test_survive import last, make, threat_why, tick
+from .test_survive_q import GROUP3, fr, z
 
 
 def sends(r):
@@ -201,3 +205,108 @@ def test_the_prompt_tells_the_model_what_stuck_names():
     """The LLM source's prompt carries P27-F's sentence."""
     assert ("`stuck` names a square your walks could not leave and the edge they failed on: answer a goal away "
             "from it") in GP.system(60.0)
+
+
+# ================================================================ P27-G: the floor swing as the finish
+FALLEN_H = 2.0870866775512695   # E19's highest health a fallen zombie died from at one swing (GUIDE § 1, #4553)
+
+
+def fallen(x=101.5, **k):
+    return dict(z(1, x, floor=True), health=FALLEN_H, **k)
+
+
+def test_e19_s_fallen_zombie_within_fight_reach_takes_the_floor_swing_ahead_of_the_stomp(tmp_path):
+    """E19's five kills by one swing at a zombie read fallen (a30, a100, a126, a132, a149; the four landed stomps took
+    0.1437922716140747 to 0.20751547813415527 each): the lone zombie fallen 1.5 tiles off, a bat held, no hold: the
+    Fight's finish is the attack, logged `floor_finish` {target, health}, no stomp."""
+    r, sv = make(tmp_path)
+    fr(r, [fallen()])
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args) == ("attack", {"targetId": 1}) and w["fight"] is True
+    assert w["floor_finish"] == {"target": 1, "health": FALLEN_H} and "stomp" not in w
+
+
+@pytest.mark.parametrize("case", ["beyond_reach", "arms", "endurance", "off"])
+def test_the_stomp_stays_the_finish_beyond_reach_with_the_swing_barred_or_the_switch_off(tmp_path, case):
+    """The stomp, not the swing: the fallen one 3.5 tiles off (beyond FIGHT_REACH, within FINISH_R: the stomp's walk
+    in); the arms' pain at 25 (STRAIN_HARD: `no_swing`); the endurance hold (0.6897225379943848, its fight within
+    KEEP_R); or `FLOOR_FINISH` off."""
+    r, sv = make(tmp_path)
+    k = {"arms": {"arm": 25.0, "strain": {"l": 0.0, "r": 0.0}}, "endurance": {"endurance": 0.6897225379943848}}
+    if case == "off":
+        sv.FLOOR_FINISH = False
+    fr(r, [fallen(103.5 if case == "beyond_reach" else 101.5)], **k.get(case, {}))
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args) == ("stomp", {"targetId": 1}) and "floor_finish" not in w, case
+
+
+def striking(r, sv):
+    """The Fight's attack at zombie 1 standing 1.5 tiles off (after the stance's enter leg, when one goes), accepted
+    and running."""
+    for _ in range(3):
+        fr(r, [z(1, 101.5)])
+        a = tick(r, sv)
+        r.fake.act(a.aid, "accepted", a.type)
+        r.pump()
+        r.advance(0.5)
+        if a.type == "attack":
+            assert a.args == {"targetId": 1}
+            return a
+    raise AssertionError(sends(r))
+
+
+def test_a_running_strike_at_the_zombie_it_knocked_down_is_held_no_stomp_sent(tmp_path):
+    """E19's four stomps refused `busy` (each sent while the strike at the same zombie still ran, each followed by the
+    killing swing): the attack runs and its target reads fallen: the Fight holds it, no stomp; with `FLOOR_FINISH` off
+    the stomp goes as before (P25-B's give-way)."""
+    r, sv = make(tmp_path)
+    a = striking(r, sv)
+    fr(r, [fallen()])
+    assert tick(r, sv) is None and threat_why(tmp_path)["holding"] == a.aid and "stomp" not in sends(r)
+    (tmp_path / "off").mkdir()
+    r2, sv2 = make(tmp_path / "off")
+    sv2.FLOOR_FINISH = False
+    striking(r2, sv2)
+    fr(r2, [fallen()])
+    assert tick(r2, sv2).type == "stomp"
+
+
+def test_the_many_flee_s_finish_swings_at_a_fallen_zombie_within_reach(tmp_path):
+    """E19's flee finish (P27-A's two firings under `many`, each a stomp refused `busy` and the floor strike the kill):
+    a zombie fallen 1.8 tiles off (beyond CORNERED_R, within FIGHT_REACH) never struck, GROUP3 chasing 7.5 off: the
+    flee's finish is the attack (kind `floor_finish`, logged `floor_finish`); fallen 3.5 off, the stomp."""
+    r, sv = make(tmp_path)
+    sv.LISTING_FALLEN = False if hasattr(sv, "LISTING_FALLEN") else None
+    fr(r, [fallen(101.8)] + GROUP3)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args) == ("attack", {"targetId": 1}) and w["flee"] == "many" and sv.flee.last is a
+    assert w["kind"] == "floor_finish" and w["floor_finish"] == {"target": 1, "health": FALLEN_H}
+    (tmp_path / "far").mkdir()
+    r2, sv2 = make(tmp_path / "far")
+    sv2.LISTING_FALLEN = False if hasattr(sv2, "LISTING_FALLEN") else None
+    fr(r2, [fallen(103.5)] + GROUP3)
+    assert tick(r2, sv2).type == "stomp"
+
+
+def test_the_flee_finish_holds_while_a_strike_at_its_fallen_zombie_runs(tmp_path):
+    """The Fight's attack at zombie 1 runs as GROUP3 comes into the listing and 1 reads fallen: the `many` flee's
+    finish holds the strike (nothing sent, logged `strike_runs`), never a stomp or a steer over it; with
+    `FLOOR_FINISH` off the stomp is sent."""
+    for on in (True, False):
+        d = tmp_path / str(on)
+        d.mkdir()
+        r, sv = make(d)
+        sv.FLOOR_FINISH = on
+        sv.LISTING_FALLEN = False if hasattr(sv, "LISTING_FALLEN") else None
+        a = striking(r, sv)
+        fr(r, [fallen()] + GROUP3)
+        got = tick(r, sv)
+        w = threat_why(d)
+        assert w["flee"] == "many"
+        if on:
+            assert got is None and w["strike_runs"] == {"target": 1, "aid": a.aid} and sends(r)[-1] == "attack"
+        else:
+            assert got.type == "stomp"

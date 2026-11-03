@@ -80,13 +80,16 @@ def test_the_wounded_backpedal_holds_until_point_blank(tmp_path):
 
 def test_a_fallen_target_is_stomped_and_a_refused_stomp_takes_the_backpedal_not_the_floor_strike(tmp_path):
     """At STRAIN_HARD the stomp still goes (outside the divider, #4374); refused, the floor strike (a swing) does not:
-    the backpedal; under STRAIN_HARD the floor strike follows as P24-AL rules."""
+    the backpedal; under STRAIN_HARD the floor strike follows as P24-AL rules. Named change, ruling P27-G (Plan 27
+    Task 5): with the swing allowed a fallen zombie within FIGHT_REACH takes the floor swing ahead of the stomp
+    (`test_survive_ab`); pinned with the `floor_finish` rule off, the rule before it."""
     for i, (arm, want) in enumerate(((25.0, "aim"), (19.0, "attack"))):
         d = tmp_path / str(i)
         d.mkdir()
         r = Rig(d)
         fr(r, [z(1, 101.0, floor=True)], arm)
         f = Fight(r.world, r.acts, r.clock)
+        f.rules = f.rules - {"floor_finish"}
         assert f.step().type == "stomp"
         r.answer({"state": "failed", "reason": "out of reach"})
         fr(r, [z(1, 101.0, floor=True)], arm)
@@ -211,9 +214,13 @@ def test_the_arms_hold_still_seeks_nothing(tmp_path):
 GROUP3 = [z(2, 107.5, 200.0), z(3, 107.5, 203.0), z(4, 107.5, 197.0)]   # three chasers beyond DANGER_R: `listed` many
 
 
-def struck(tmp_path, caps=CAPS_14):
-    """A Survive whose Fight swung at zombie 1 at 1.5 tiles (the approach and swing of a PZA/1.4-stance build)."""
+def struck(tmp_path, caps=CAPS_14, floor_finish=False):
+    """A Survive whose Fight swung at zombie 1 at 1.5 tiles (the approach and swing of a PZA/1.4-stance build). Named
+    change, ruling P27-G (Plan 27 Task 5): `FLOOR_FINISH` off unless `floor_finish` (with it on the flee's finish swings
+    at a fallen zombie within FIGHT_REACH ahead of the stomp: `test_survive_ab`), so P24-AQ's and P27-A's stomp-first
+    finish is pinned with the rule before it."""
     r, sv = make(tmp_path, caps=caps)
+    sv.FLOOR_FINISH = floor_finish
     fr(r, [z(1, 101.5)])
     a = tick(r, sv)
     assert (a.type, a.args) == ("attack", {"targetId": 1}) and 1 in sv.struck

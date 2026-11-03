@@ -116,6 +116,10 @@ one table the gates and the other policies import).
   after failed shoves: under the `wounded` reason alone, at a lone standing target at point blank with SHOVE_FAIL_N
   missed shoves on record, the swing in the shove's place (`shove.FightShove._wounded_swing`), ahead of the corner and
   the breaks; a second zombie within DANGER_R gives them back.
+  Survival 22 (survival iteration 20; Plan 27 Task 5; survive.py's docstring the record): P27-G, the floor swing as the
+  finish: with a weapon held and the swing allowed, a fallen zombie within FIGHT_REACH takes the attack ahead of the
+  stomp, and a running attack at a zombie it knocked down is held to its end (`finish.FightFinish._floor_finish`,
+  `_finish_gives_way`).
 """
 import math
 import time
@@ -139,9 +143,10 @@ from agent.base.world import me_floor, me_xy
 __all__ = ["Fight", "FIGHT_RULES"]
 
 FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finish_far", "shove_break",
-               "shove_break_run", "blocked_edge", "wounded_swing", "low_swing")   # survival iterations 13 to 19's
-                     # Fight rules (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E), each on in
-                     # `rules` unless Survive's switch for it is off
+               "shove_break_run", "blocked_edge", "wounded_swing", "low_swing",
+               "floor_finish")   # survival iterations 13 to 20's Fight rules (P25-A, P25-B, P25-D, P25-F; P25-J,
+                     # P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G), each on in `rules` unless Survive's switch for it is
+                     # off
 
 
 class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):

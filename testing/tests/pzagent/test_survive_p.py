@@ -106,7 +106,11 @@ def test_the_shove_at_point_blank_then_the_swing(tmp_path):
 
 
 def test_a_fallen_zombie_in_the_doorway_is_stomped(tmp_path):
+    """Named change, ruling P27-G (Plan 27 Task 5): with the swing allowed a fallen zombie within FIGHT_REACH
+    takes the floor swing ahead of the stomp (`test_survive_ab`); pinned with `FLOOR_FINISH` off, the rule
+    before it."""
     r, sv = stood(tmp_path)
+    sv.FLOOR_FINISH = False
     r.frame(x=POST[0], y=POST[1], zombies=[z(1, 111.6, 201.6, floor=True)] + group(8.0, POST)[1:])
     a = tick(r, sv)
     assert (a.type, a.args) == ("stomp", {"targetId": 1}) and why(r)["doorway"] == 1
@@ -349,8 +353,11 @@ def test_a_door_with_no_room_square_beyond_its_threshold_is_no_stand(tmp_path):
 def test_the_walk_back_gives_way_to_a_zombie_in_reach_and_to_a_downed_one(tmp_path, case):
     """The review's major 2 (E9's replayed walk back held 23 s, the nearest at 0.50 tiles, health 97.5 to 41.6, with
     no swing): a running walk back gives way to a standing zombie within FIGHT_REACH on a line not read blocked (the
-    swing from where the player stands) and to a downed one in reach (the stomp); with neither it holds."""
+    swing from where the player stands) and to a downed one in reach (the stomp); with neither it holds. Named change,
+    ruling P27-G (Plan 27 Task 5): the downed case pinned with `FLOOR_FINISH` off (on, the swing goes ahead of the
+    stomp: `test_survive_ab`)."""
     r, sv = stood(tmp_path)
+    sv.FLOOR_FINISH = False
     me = (110.5, 201.5)
     r.frame(x=me[0], y=me[1], zombies=group(8.0, me))
     assert tick(r, sv).type == "walkTo" and why(r)["step"] == "return"

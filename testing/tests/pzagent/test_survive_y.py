@@ -427,10 +427,12 @@ E16_470 = ((10711.4208984375, 10596.5126953125),   # a105's line: one within it 
 
 def corner_tick(tmp_path, line, inside_shove=True, floor=(), attackers=1):
     """A Survive on the shed, the player on the door's inside square with `line`'s zombies (`floor`: the ids lying
-    on the floor): one tick, the `inside` corner's Fight. (r, sv, the threat why)."""
+    on the floor): one tick, the `inside` corner's Fight. (r, sv, the threat why). Named change, ruling P27-G (Plan 27
+    Task 5): `FLOOR_FINISH` off (P24-AL's stomp of the fallen first, the module's pin, is the rule before it)."""
     me, rows = line
     r, sv = make(tmp_path)
     sv.INSIDE_SHOVE = inside_shove
+    sv.FLOOR_FINISH = False
     r.scan(shed())
     zombies = [dict(z, onFloor=True) if z["id"] in floor else z for z in zs(rows, me)]
     r.frame(x=me[0], y=me[1], zombies=zombies, attackers=attackers)

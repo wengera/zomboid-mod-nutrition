@@ -19,6 +19,13 @@ from agent.base.pza1 import Attack, Shove, Stomp
 FLEE_FINISH_REASONS = ("strain", "pair", "many")   # the flee reasons whose episode takes the finish (P27-A)
 
 
+def strike_running(actions, zid):
+    """Ruling P27-G (E19: the four stomps sent while a strike at the same zombie still ran were refused `busy`, each
+    followed by the killing swing): the aid of the attack at `zid` that is the current action, else None."""
+    cur = actions.current
+    return cur.aid if cur is not None and cur.type == "attack" and cur.args.get("targetId") == zid else None
+
+
 def finish_chaser(world, zid, dead, radius=KEEP_R):
     """The deferred minor 5 of review-t32-fix1: (id, tiles) of the nearest standing (not `on_floor`) zombie chasing
     (`hasTarget`) within `radius` (KEEP_R; FINISH_CLEAR_R for the flee's finish under P27-A) of the fallen target
@@ -109,7 +116,16 @@ class ThreatFinish:
         at within UNREACHABLE_S), clear (the nearest listed standing zombie's tiles, else None)} beside `finish`
         (`reason` the tick's own flee reason, `flee_reason`: `strain`, `pair`, `many`, or any other a `many` episode
         runs under, `unarmed` or `broken` among them; "many" where the tick names none), and
-        `pair_yield` under the `pair` flee (the `pair` flee's own finish's why)."""
+        `pair_yield` under the `pair` flee (the `pair` flee's own finish's why).
+        Ruling P27-G (`FLOOR_FINISH`; E19, `e_day_19-20261103-072904`: the five attacks whose swing met a zombie read
+        fallen each killed it with one swing, from health up to 2.0870866775512695, where each of four landed stomps
+        took 0.1437922716140747 to 0.20751547813415527 off, #4553): with a weapon held and the swing allowed (no hold,
+        R2, no arm pain at STRAIN_HARD, armed), a fallen candidate within FIGHT_REACH takes the `Attack` ahead of its
+        stomp (kind `floor_finish`, logged `floor_finish` {target, health}), the stomp following on a later tick while
+        it lies (the swing spends no stomp); the stomp stays the finish beyond FIGHT_REACH within FINISH_R or with the
+        swing barred. While a strike at the candidate is the current action (`strike_running`: the Fight's attack the
+        flee replaced) the flee holds it, nothing sent (logged `strike_runs` {target, aid}): no stomp over it (the Lua
+        refuses it `busy`) and no steer superseding it."""
         self.finish_block = None
         if self._finish_a is not None and running(self.actions, self._finish_a):
             return None
@@ -130,12 +146,20 @@ class ThreatFinish:
         if chaser is not None:
             self.finish_block = {"target": zid, "chaser": chaser[0], "dist": chaser[1]}
             return None
+        run = strike_running(self.actions, zid) if self.FLOOR_FINISH else None
+        if run is not None:   # P27-G: the strike at it runs: held, never a stomp (refused `busy`) nor a steer over it
+            self.why = {"strike_runs": {"target": zid, "aid": run}}
+            return self.flee, None
         done, end = self.finishing.get(zid), self._finish_end_read(zid)
+        first = done is None or done == "floor_finish"   # P27-G: the floor swing ahead of it spends no stomp
         again = done == "stomp" and end == "stood"   # P24-AV: fallen again after a `stood`: one more stomp
         refused = wide and self.fight_refused.get(("stomp", zid), -math.inf) > now
-        if ((done is None or again) and self.world.can("stomp") and not refused
+        swing = self._armed() and not (arms_hurt(self.world) or self._fight_spent() or self._unarmed())
+        if self.FLOOR_FINISH and done is None and swing and d <= FIGHT_REACH:
+            cmd, kind = Attack(zid), "floor_finish"   # P27-G: the swing at a fallen zombie in reach, ahead of the stomp
+        elif ((first or again) and self.world.can("stomp") and not refused
                 and not standing(self.world, STAND_MIN_R, dead | {zid})):
-            cmd, kind = Stomp(zid), ("stomp" if done is None else "stomp2")
+            cmd, kind = Stomp(zid), ("stomp" if first else "stomp2")
         elif done in ("stomp", "stomp2") and end is None:
             return None   # the stomp went (or runs) and was not refused: the one finish is spent
         elif arms_hurt(self.world) or self._fight_spent() or self._unarmed():
@@ -148,6 +172,8 @@ class ThreatFinish:
             cmd, kind = Attack(zid), "floor"
         self.finishing[zid] = kind
         self.why = {"finish": zid, "kind": kind, "dist": d}
+        if kind == "floor_finish":
+            self.why["floor_finish"] = {"target": zid, "health": self.world.zombies[zid].get("health")}
         if wide:
             self.why["flee_finish"] = {"reason": self.flee_reason or "many",
                                        "struck": now - self.struck.get(zid, -math.inf) <= UNREACHABLE_S,
@@ -343,12 +369,37 @@ class FightFinish:
                 and self._swing_ok("shove", s[0])):
             self.why.update({"shove": "first", "shoveTarget": s[0], "shoveDist": s[2]})
             return (Shove(s[0]),)
+        floor = self._floor_finish(zid, z, d)
+        if floor is not None:
+            return floor
         if self._swing_ok("stomp", zid) and self._standing_near(STAND_MIN_R, (zid,)) is None:
             self.why["stomp"] = True
             return (Stomp(zid),)
         if self.no_swing():   # P24-AP, R2: the floor strike is a swing, divided by the arms' pain: the backpedal
             return (self._wounded_leg(zid, z, d),)
         self.why["floor"] = True   # the stomp refused (or not announced): the weapon's floor strike
+        self._held_before = False
+        return (Attack(zid),)
+
+    def _floor_finish(self, zid, z, d):
+        """Ruling P27-G (`floor_finish`; E19, `e_day_19-20261103-072904`: the five attacks whose swing met a zombie read
+        fallen each killed it with one swing, from health up to 2.0870866775512695, where each of four landed stomps
+        took 0.1437922716140747 to 0.20751547813415527 off; the four stomps sent while a strike at the same zombie still
+        ran were refused `busy`, #4553), with the rule on: a strike at `zid` running (`strike_running`) holds the
+        finish, `(None,)` logged `strike_runs` {target, aid}; else with a weapon held and the swing allowed
+        (`no_swing` false: no hold, no arm pain at STRAIN_HARD, no shove-and-stomp Fight) and `zid` within FIGHT_REACH
+        (`d`), `(Attack,)` ahead of the stomp, logged `floor_finish` {target, health}. Else None: the stomp stays the
+        finish beyond FIGHT_REACH within FINISH_R (its walk in) or with the swing barred. Cost if wrong: a swing's
+        strain where a stomp would do."""
+        if "floor_finish" not in self.rules:
+            return None
+        run = strike_running(self.actions, zid)
+        if run is not None:
+            self.why["strike_runs"] = {"target": zid, "aid": run}
+            return (None,)
+        if self.world.weapon is None or self.no_swing() or d > FIGHT_REACH:
+            return None
+        self.why["floor_finish"] = {"target": zid, "health": z.get("health")}
         self._held_before = False
         return (Attack(zid),)
 
@@ -412,7 +463,11 @@ class FightFinish:
         if self.last.type != "attack":
             return True
         t = self.world.zombies.get(self.last.args.get("targetId"))
-        return t is None or t.get("x") is None or on_floor(t) or zdist(self.world, t) > FIGHT_REACH
+        if t is None or t.get("x") is None:
+            return True
+        if "floor_finish" in self.rules and on_floor(t) and zdist(self.world, t) <= FIGHT_REACH:
+            return False   # P27-G: the running attack at a zombie it knocked down is the floor swing, held to its end
+        return on_floor(t) or zdist(self.world, t) > FIGHT_REACH
 
     def _finish_first(self, d):
         """Ruling P25-B: with the target `d` tiles off beyond FIGHT_REACH (the Fight would walk, step or wait toward a
