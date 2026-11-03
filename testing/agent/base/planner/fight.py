@@ -241,6 +241,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
                                             # (P27-N)
         self._free = None                   # the tick's `_pin_free`, read once after `observe`'s edge and kill reads
                                             # (fix 3, minor 4); None: read on each call (no observe yet)
+        self._free_n = -1                   # the `world.frame_n` of that read: a newer frame reads afresh (fix 3's
+                                            # residual R1: the threat's finish reads `blocked` before this tick's
+                                            # observe)
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -283,8 +286,11 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
 
     def _pin_free(self):
         """The tick's `_pin_read` (`observe` takes it once, after its edge and kill reads; a new edge mark drops it),
-        else a fresh read."""
-        return self._free if self._free is not None else self._pin_read()
+        else a fresh read; a read taken on an older frame (`_free_n` behind `world.frame_n`: the threat's finish
+        rules call `blocked` before the tick's `observe`, fix 3's residual R1) is dropped and read afresh."""
+        if self._free is not None and self._free_n == self.world.frame_n:
+            return self._free
+        return self._pin_read()
 
     def _pin_read(self):
         """Ruling P27-N (E20, `e_day_20-20261103-121340`: from line 722 to line 747, 26 lines and 12.603 s, the why read
@@ -715,6 +721,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         self._observe_edge_route()
         self._observe_kill()
         self._free = self._pin_read()   # once a tick: `blocked` and the pin read it on every call (fix 3, minor 4)
+        self._free_n = self.world.frame_n
         self._observe_leg()
         t = self._target(pin=False)
         self._observe_stand(t)

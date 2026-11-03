@@ -1324,3 +1324,20 @@ def test_the_pin_free_read_is_taken_once_per_tick_not_once_per_blocked_call(tmp_
     f._mark_edge(2, ((100, 200, 0), "N"))
     assert sorted(f._pin_free()) == [1]
 
+
+def test_the_pin_free_read_of_an_older_frame_is_dropped_when_blocked_is_read_before_observe(tmp_path):
+    """Fix 3's residual R1 (`review-t5-fix3.md`): the threat's finish rules call the running Fight's `blocked` before
+    the tick's `observe`; a `_pin_free` read on the previous frame is not returned for a newer one. The marked zombie
+    1 stands 2.5 tiles off on the first frame (left out: no pin), then within POINT_BLANK_R on the next; `blocked`
+    read before any observe of the new frame leaves it in (the fresh read), and the stale read is gone."""
+    from agent.base.planner import fight as F
+    r = Rig(tmp_path)
+    fr(r, [z(1, 102.5), z(2, 100.6)], weapon=E20_BAT)
+    f = F.Fight(r.world, r.acts, r.clock, unreachable={1: r.clock() + P.UNREACHABLE_S})
+    f.observe()
+    assert 1 in f.blocked() and sorted(f._pin_free()) == [2] and f._free_n == r.world.frame_n
+    r.advance(0.5)
+    fr(r, [z(1, 100.5), z(2, 100.6)], weapon=E20_BAT)
+    assert f._free_n != r.world.frame_n
+    assert 1 not in f.blocked() and sorted(f._pin_free()) == [1, 2]
+
