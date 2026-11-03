@@ -461,7 +461,7 @@ def test_the_totals_reach_the_llm_record(tmp_path, monkeypatch):
 
 
 BASE_SENTENCE = (
-    "the base at `acb1e294` (the planner: survival iteration 20 with its mutant pass and fix 1) carries PZA/1.7.1 (the hello "
+    "the base at `0c5da18c` (the planner: survival iteration 20 with its mutant pass, fix 1 and fix 2) carries PZA/1.7.1 (the hello "
     "reads `mod` `1.7`) and survival iteration 20 (over iteration 19: a goal walk ended stuck unmoved marking its "
     "square and its first edge, the scripted source leaving the square by a known way, P27-F; the swing ahead of the "
     "stomp at a fallen zombie within FIGHT_REACH, P27-G; a fallen target beyond FINISH_R walked to after "
@@ -494,7 +494,7 @@ def test_the_driver_is_f_goals_11_py_copied_under_its_own_key_with_its_grade_kep
     first = doc.splitlines()[0]
     assert doc.splitlines()[1] == "" and doc.splitlines()[2].startswith("The rest of this docstring is f_goals.py")
     assert BASE_SENTENCE in first and "PZA/1.7.1" in first and "Task 6" in first and "f_goals_11.py" in first
-    assert "acb1e294" in first and "4672d6cf" not in doc and "f_goals_10" not in doc and "iteration 19 (over" not in doc
+    assert "0c5da18c" in first and "4672d6cf" not in doc and "f_goals_10" not in doc and "iteration 19 (over" not in doc
     order = [first.index(x) for x in ("P27-F;", "P27-G;", "P27-H;", "P27-I;", "P27-J;", "P27-K1;", "P27-K2;",
                                       "P27-K3;", "P27-L)")]
     assert order == sorted(order)           # one clause each, in order
