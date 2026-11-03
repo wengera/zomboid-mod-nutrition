@@ -27,7 +27,11 @@ Its choose, the first that answers (`why` names the `reason`, the `part`, the `i
    engine's raw wound-time units, DIRTY_RAG_MIN's) is replaced (`_redresses`; a part whose frame carries no
    `bleedingTime` as before); the first spent part left is logged `spent_kept` {part, bleedingTime, dirty} on the
    care line whenever the step would have sent before. Cost if wrong: a dirty dressing's infection odds (#4299) on a
-   part the engine would have re-bled.
+   part the engine would have re-bled. Ruling P27-K3 (`replace_quiet`, Survive's `REPLACE_QUIET`; F10,
+   `f_goals_11-20261103-075140`: each spent replace bled its part for the act's 5.978 to 6.281 s, and the one
+   superseded after the dressing came off bled part 4 five game minutes): a replace is sent only with no listed zombie
+   chasing within LISTED_R (`chasing_n`, Survive's count, the rest's test of P27-C2); with one the step holds, logged
+   `spent_held` {part, chasing}. The bleeding step is unchanged. Cost if wrong: a spent dressing worn longer.
 3. `wash`: a dirty rag held, no zombie within DISENGAGE_R (Survive sets `quiet` each tick), and a known water source
    (`World.water_sources`: the map's square `water` record with water in it, on the player's floor, not refused
    lately) within WASH_R: `Wash(itemId, x, y)`, the Lua walking next to it (a wash does not test the water's taint,
@@ -246,6 +250,9 @@ class Care(Policy):
         self.spent_keep = True    # ruling P27-D: a spent dressing on a part not bleeding is replaced only at a
                                   # bleedingTime at or under SPENT_REDRESS_BT (Survive sets it each tick from its
                                   # `SPENT_KEEP`); off, every spent dressing is replaced
+        self.replace_quiet = True  # ruling P27-K3: a replace waits while `chasing_n` reads a chaser listed (Survive
+                                   # sets it each care tick from its `REPLACE_QUIET`); off, the replace goes whatever
+        self.chasing_n = 0        # Survive sets it each care tick: the zombies listed within LISTED_R chasing (P27-K3)
 
     def sent(self, cmd, action):
         self.sends[cmd.itemId] = action
@@ -633,17 +640,20 @@ class Care(Policy):
             return cmd
         clean = items["bandage"] + items["rag"]
         spent = self._spent()
-        kept = None
+        kept, held = None, None
         if spent and clean and w.can("bandage"):
             take = [p for p in spent if self._redresses(p)]   # P27-D: a long bleed's spent dressing kept on
+            if take and self.replace_quiet and self.chasing_n:   # P27-K3: no replace while a listed zombie chases
+                held, take = {"part": take[0]["i"], "chasing": self.chasing_n}, []
+            elif not take:
+                kept = {"part": spent[0]["i"], "bleedingTime": spent[0].get("bleedingTime"),
+                        "dirty": spent[0].get("bandageDirty")}
             if take:
                 p = take[0]
                 self.why = {"reason": "spent", "part": p["i"], "item": clean[0],
                             "kind": "bandage" if items["bandage"] else "rag", "life": p.get("bandageLife"),
                             "dirty": p.get("bandageDirty")}
                 return Bandage(clean[0], part=p["i"])
-            kept = {"part": spent[0]["i"], "bleedingTime": spent[0].get("bleedingTime"),
-                    "dirty": spent[0].get("bandageDirty")}
         cmd = None
         if items["dirty"] and self.quiet and w.can("wash"):
             src = w.water_sources(WASH_R)
@@ -657,4 +667,6 @@ class Care(Policy):
                         "held": {k: len(v) for k, v in items.items()}} if (bleeding or spent or any_rag) else {}
         if kept is not None:
             self.why["spent_kept"] = kept   # P27-D: the step would have sent before it
+        if held is not None:
+            self.why["spent_held"] = held   # P27-K3: the replace held while a listed zombie chases
         return cmd

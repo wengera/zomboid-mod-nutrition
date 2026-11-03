@@ -275,7 +275,7 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     yield taking the wound's rip as a dressing (`_care_stock`, `care.Care.early_rip`, `care_yield.CareYield`); P27-K2,
     the low fight leaves its lone target after SHOVE_FAIL_N missed shoves for the `health` flee, and the inside corner
     yields to that flee's way out under FLEE_HEALTH_FLOOR (`shove.FightShove._low_exit`, `threat.Threat._corner_exit`);
-    `T10_SWITCHES`.
+    P27-K3, a spent dressing's replace held while a listed zombie chases (`care.Care.choose`); `T10_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -358,7 +358,7 @@ from agent.base.planner.policies import (CLOSING_TICKS, CORNER_FREE_R, CORNERED_
                                          DROP_AT, FIGHT_MAX_S, FIGHT_REACH, FINISH_R, FLEE_HEALTH, FLEE_HEALTH_PAIR,
                                          FLIP_MIN_S, GROUP_HOLD_N, GROUP_NEAR_R, GROUP_R_N, HOLD_BREAK_R, LISTED_R,
                                          MANY_LISTED_N, MAX_FIGHT, PREEMPTED, REFIGHT_MARGIN, STUCK_REASONS,
-                                         STUCK_RETRY_GROUP_S, STUCK_RETRY_S, blocked, item_id_ok, spare, zdist)
+                                         STUCK_RETRY_GROUP_S, STUCK_RETRY_S, blocked, chasing, item_id_ok, spare, zdist)
 from agent.base.planner.threat import Threat
 from agent.base.planner.view import NEED_MEMORY_S, view
 from agent.base.planner.water import FILL_RETRY_MIN, FILL_SETTLE_S, FILL_WANTS, SOURCE_FAILS, Water
@@ -396,10 +396,10 @@ T9_SWITCHES = ("FLEE_FINISH", "MANY_TAIL", "HOLD_LONE", "HOLD_REST", "SPENT_KEEP
 # survival iteration 19 (Plan 27 Task 1): P27-A to P27-C2 and P27-E on `threat.Threat` (FLEE_FINISH, MANY_TAIL,
 # HOLD_LONE, HOLD_REST, LOW_SWING); P27-D on `Survive` (SPENT_KEEP)
 T10_SWITCHES = ("STUCK_LEAVE", "FLOOR_FINISH", "FALLEN_SEEK", "LISTING_FALLEN", "SHOVE_CLOSE", "STOCK_EARLY",
-                "LOW_EXIT")
-# survival iteration 20 (Plan 27 Task 5): P27-F and P27-K1 on `Survive` (STUCK_LEAVE, read by the goal runner;
-# STOCK_EARLY); P27-G to P27-J and P27-K2 on `threat.Threat` (FLOOR_FINISH, FALLEN_SEEK, LISTING_FALLEN, SHOVE_CLOSE,
-# LOW_EXIT)
+                "LOW_EXIT", "REPLACE_QUIET")
+# survival iteration 20 (Plan 27 Task 5): P27-F, P27-K1 and P27-K3 on `Survive` (STUCK_LEAVE, read by the goal runner;
+# STOCK_EARLY; REPLACE_QUIET, copied to the Care); P27-G to P27-J and P27-K2 on `threat.Threat` (FLOOR_FINISH,
+# FALLEN_SEEK, LISTING_FALLEN, SHOVE_CLOSE, LOW_EXIT)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -463,6 +463,9 @@ class Survive(Threat):
                           # DANGER_R once the clean dressings fall under RAG_STOCK, a running goal walk superseded for
                           # it (`_care_stock`, `care.Care.early_rip`), and the care yield taking the wound's rip as a
                           # dressing (`care_yield.CareYield._care_yields`); off, the idle stock alone. In T10_SWITCHES
+    REPLACE_QUIET = True  # ruling P27-K3 (Plan 27 Task 5): a spent dressing is replaced only with no listed zombie
+                          # chasing within LISTED_R (`care.Care.choose`'s `spent` step); off, whatever chases. Set on
+                          # the Care each care tick (`_care`). In T10_SWITCHES
 
     SHELTER_LEGS = True   # ruling P25-N (Plan 25 Task 8): a Shelter goal's and the night's approach to a far door in
                           # legs (`goal_policies.Shelter`, `night.Night._leg`); set on the goals' kit and the Night each
@@ -745,6 +748,8 @@ class Survive(Threat):
         c.quiet = not self._within(DISENGAGE_R)
         c.unwear_wound = self.UNWEAR_WOUND
         c.trapped = self.TRAPPED_CARE and self.trapped_pass   # P25-Q: the trapped hold's tick unwears as a quiet one
+        c.replace_quiet = self.REPLACE_QUIET   # P27-K3: the replace waits while a listed zombie chases
+        c.chasing_n = sum(1 for z in self._within(LISTED_R) if chasing(z))
         cmd = c.choose()
         self.why = dict(c.why)
         if self.STOCK_EARLY and cmd is not None and cmd.TYPE == "rip" and self.care_yield is not None:

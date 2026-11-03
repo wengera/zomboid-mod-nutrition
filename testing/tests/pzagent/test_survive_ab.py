@@ -745,3 +745,32 @@ def test_f10_s_inside_corner_yields_to_the_health_flee_under_flee_health_floor(t
         else:
             assert "cornered" not in w and w["flee"] == "health" and w["corner"] == {"yield": "health"}
             assert a is not None and a.type in ("walkTo", "steer", "window", "interact")
+
+
+# ================================================================ P27-K3: the replace held off under a chaser
+from .test_survive_g import care_why                                               # noqa: E402
+
+
+def spent_part4(tmp_path, zs, on=True):
+    """F10's spent replaces (each bled its part for the act's 5.978 to 6.281 s; the one superseded after the dressing
+    came off bled part 4 five game minutes, #T82.4): part 4 under a spent dressing (`bandageLife` 0), not bleeding, its
+    bleedingTime 5.0 (under SPENT_REDRESS_BT: P27-D replaces it), a clean bandage held, zombies `zs`; one tick."""
+    r, sv = make(tmp_path)
+    sv.REPLACE_QUIET = on
+    r.frame(zombies=zs)
+    hold(r, 11, "Base.Bandage")
+    care_frame(r, [part(4, bandaged=True, bandageLife=0.0, bandageDirty=False, bleedingTime=5.0)], zombies=zs)
+    tick(r, sv)
+    return r, sv
+
+
+def test_f10_s_spent_replace_is_held_while_a_listed_zombie_chases(tmp_path):
+    """A chaser listed 10.5 tiles off (within LISTED_R, beyond ENGAGE_R: no threat held): the replace is held, nothing
+    sent, logged `spent_held` {part 4, chasing 1}; the same zombie idle, or `REPLACE_QUIET` off: the bandage goes."""
+    r, sv = spent_part4(tmp_path, [z(1, 110.5)])
+    w = care_why(tmp_path)
+    assert "bandage" not in sends(r) and w["spent_held"] == {"part": 4, "chasing": 1}
+    for name, zs, on in (("idle", [z(1, 110.5, has_target=False)], True), ("off", [z(1, 110.5)], False)):
+        (tmp_path / name).mkdir()
+        r, sv = spent_part4(tmp_path / name, zs, on)
+        assert r.cmd() == ("bandage", {"itemId": 11, "part": 4}) and "spent_held" not in care_why(tmp_path / name)
