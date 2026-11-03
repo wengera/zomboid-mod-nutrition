@@ -1,7 +1,9 @@
 """Survival 20 (survival iteration 18; Plan 26 Task 7; E17, `e_day_17-20261102-180459`, rows pending its write-up's
-mint). E17's own record, read as the planner read it (`replay_decisions.read_record` and `align`: the World through a
-decision line's frame and the trailing lines its tick read), and replayed (`replay_decisions.replay`: HEAD's planner
-is the one E17 ran on, `6df43e92`, so with iteration 18's switches off the replay is the record's own rules). The
+mint; F5, `f_goals_6-20261030-192251`, its a20 the one live window climbed `done`, for WINDOW_STALL_S; E16,
+`e_day_16-20261102-125450`, through `test_survive_y`'s shed). E17's own record, read as the planner read it
+(`replay_decisions.read_record` and `align`: the World through a decision line's frame and the trailing lines its tick
+read), and replayed (`replay_decisions.replay`: HEAD's planner is the one E17 ran on, `6df43e92`, so with iteration
+18's switches off the replay is the record's own rules). The
 stand held building 2's kitchen door (10721, 10638) from line 362; its `inside` end at line 380 (frame seq 3447)
 walked out by the kitchen window (10720, 10634), a `solidTrans` square holding a `counter`, where the window act a81
 waited 14.3 s and failed `dead`.
