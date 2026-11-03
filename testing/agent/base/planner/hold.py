@@ -119,6 +119,30 @@ class Hold:
         return (self.HOLD_RUN and reason == "strain" and "endurance" in self.spent_kinds
                 and not self._within(DANGER_R))
 
+    def _hold_rest(self):
+        """Ruling P27-C2 (`HOLD_REST`; E18, `e_day_18-20261102-224036`: the endurance hold named all 271 `strain` lines
+        from game minute 708, `inputs.threats` 0 on 213 of them and 158 at P25-C's walk, and released once, after 54.79
+        game minutes; the guides' notes § 2: when exhausted disengage and rest): where `_hold_walk` answers (the
+        endurance hold's `strain` flee with no zombie within DANGER_R), no listed zombie within LISTED_R chasing
+        (`hasTarget`) makes the walk the rest: the Flee sends no leg (`Threat._rest`: a running leg is left to end,
+        nothing new is sent), the character stands, logged `rest` {endurance, since_min: game minutes since the rest's
+        first tick}; a listed chaser restores the walk (P25-C). The timed release (HOLD_SPAN_MIN, HOLD_QUIET_S) is
+        unchanged. Cost if wrong: standing in the open, a zombie arriving from beyond the listing finding the character
+        still."""
+        return self.HOLD_REST and not any(chasing(z) for z in self._within(LISTED_R))
+
+    def _rest(self, flee):
+        """P27-C2's answer (`_hold_rest`): `flee`'s observe, its running leg held (`holding`) or nothing sent, the
+        tick's why `rest` {endurance (this tick's `spent`), since_min (`rest_from`, set on the rest's first tick)};
+        `(flee, None)`, the threat branch holding."""
+        self._observe(flee)
+        self.why = dict(flee.why, holding=flee.last.aid) if flee.busy() else {}
+        wm = self.world.world_minutes()
+        if self.rest_from is None:
+            self.rest_from = wm
+        self.why["rest"] = {"endurance": (self.spent or {}).get("endurance"), "since_min": wm - self.rest_from}
+        return flee, None
+
     def _hold_lone(self):
         """Ruling P27-C (`HOLD_LONE`; E18, `e_day_18-20261102-224036`: from game minute 708 to the cap the endurance
         hold named all 271 `strain` lines, `inputs.threats` 1 on 57 of them, and fights 21 to 39 each fled `strain`; the

@@ -149,6 +149,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     HOLD_LONE = True      # ruling P27-C: under the endurance hold one zombie standing within DANGER_R and no other
                           # chaser listed is fought by the shove and the stomp (`hold.Hold._hold_lone`,
                           # `Fight.shove_only` "hold"); off, every such tick flees `strain`
+    HOLD_REST = True      # ruling P27-C2: the endurance hold's walk with no chaser listed within LISTED_R is the rest,
+                          # no leg sent (`hold.Hold._hold_rest`, `_rest`); off, P25-C's walk
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -643,6 +645,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if not held:
             self.mode, self.fight, self.flee = None, None, None
             self.many_since = None   # P24-AR: the long flee's clock ends with the threat
+            self.rest_from = None    # P27-C2: and the hold's rest
             self._end_flee_episode()
             self.sheltered, self.cornered, self.closing = False, None, (0, None)
             self.stuck_heading, self._nearest_seen = None, []
@@ -767,7 +770,12 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             if self.group_steer == "drag":
                 policy.drop_stuck_leg()   # P24-A fix 2, I1: never a stalled leg held its FLEE_S under the guard
             self.pair_yield = None   # P25-J (3): a flee's yield is the `pair` flee's own finish (`_pair_flee_finish`)
-            ans = self._flee_drop() or self._flee_finish(reason) or self._answer(policy)
+            ans = self._flee_drop() or self._flee_finish(reason)
+            rest = ans is None and walk and self._hold_rest()   # P27-C2: the hold's walk with no chaser is the rest
+            if ans is None:
+                ans = self._rest(policy) if rest else self._answer(policy)
+            if not rest:
+                self.rest_from = None
             pick = self._doorway_pick(policy) if reason == "many" and self.PICK_WHY else None   # P24-AX, after the pick
         else:
             policy.only = None if door is None else {zid for zid, _ in door}
@@ -783,6 +791,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.shove_only = self._shove_only(kind)   # P25-P, P25-S: no swing, no seek
             policy.crowd = self._inside_crowd() if kind == "cornered" else None   # P26-C
             ans = self._answer(policy)
+            self.rest_from = None
             if self.pair_yield is not None and not self._finishes(self.pair_yield):
                 self.pair_yield = None   # P25-J (3): logged only where the Fight's finish answers it
         self.why.update({"fight": True} if reason is None else {"flee": reason})

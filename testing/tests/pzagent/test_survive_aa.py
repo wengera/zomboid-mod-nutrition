@@ -40,7 +40,7 @@ def sends(r):
 
 
 def test_the_iteration_19_switches_and_constants():
-    assert S.T9_SWITCHES == ("FLEE_FINISH", "MANY_TAIL", "HOLD_LONE")
+    assert S.T9_SWITCHES == ("FLEE_FINISH", "MANY_TAIL", "HOLD_LONE", "HOLD_REST")
     assert "T9_SWITCHES" in S.__all__
     assert all(getattr(S.Survive, name) is True for name in S.T9_SWITCHES)
     assert not set(S.T9_SWITCHES) & set(S.T8_SWITCHES + S.T7_SWITCHES + S.T6_SWITCHES)
@@ -268,3 +268,61 @@ def test_with_hold_lone_off_the_lone_zombie_is_fled_strain(tmp_path):
     sv.HOLD_LONE = False
     fr(r, [z(1, 104.0)], endurance=HOLD_E)
     assert tick(r, sv).type == "steer" and threat_why(tmp_path)["flee"] == "strain"
+
+
+# ================================================================ P27-C2: the hold's rest
+IDLE2 = z(2, 100.0, 209.0, has_target=False)   # a second zombie listed 9 tiles off, idle (the World keeps it listed)
+
+
+def strain_run(tmp_path):
+    """The endurance hold's `strain` flee at a run: two zombies within DANGER_R, 5 tiles east and 5 north (the lone
+    hold fight refused); its leg ends."""
+    r, sv = make(tmp_path)
+    fr(r, [z(1, 105.0), z(2, 100.0, 205.0)], endurance=HOLD_E)
+    a = tick(r, sv)
+    assert a.type == "steer" and a.args["gait"] == "run" and threat_why(tmp_path)["flee"] == "strain"
+    r.answer()
+    r.advance(0.5)
+    return r, sv
+
+
+def test_the_hold_with_no_chaser_listed_rests(tmp_path):
+    """E18's hold walked on 158 of its 271 `strain` lines, `inputs.threats` 0 on 213: with the two listed 8 and 9
+    tiles off and idle (`hasTarget` false) the flee sends nothing, logged `rest` {endurance, since_min 0.0}; a game
+    minute on it rests on (`since_min` 1.0)."""
+    r, sv = strain_run(tmp_path)
+    n = len(r.acts.history)
+    fr(r, [z(1, 108.0, has_target=False), IDLE2], endurance=HOLD_E)
+    assert tick(r, sv) is None
+    w = threat_why(tmp_path)
+    assert w["flee"] == "strain" and w["rest"] == {"endurance": HOLD_E, "since_min": 0.0}
+    assert len(r.acts.history) == n and "hold_walk" not in w
+    r.advance(0.5)
+    fr(r, [z(1, 108.0, has_target=False), IDLE2], endurance=HOLD_E, game_min=481.0)
+    assert tick(r, sv) is None and threat_why(tmp_path)["rest"]["since_min"] == pytest.approx(1.0)
+
+
+def test_a_chaser_listed_10_tiles_off_restores_the_walk(tmp_path):
+    """One chaser 10 tiles off (within LISTED_R): P25-C's walk, logged `hold_walk`, no `rest`."""
+    r, sv = strain_run(tmp_path)
+    fr(r, [z(1, 110.0), IDLE2], endurance=HOLD_E)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "steer" and a.args["gait"] == "walk" and w["hold_walk"] is True and "rest" not in w
+
+
+def test_a_zombie_within_danger_r_runs(tmp_path):
+    """Two within DANGER_R again: the run (the running leg ended), no `rest`."""
+    r, sv = strain_run(tmp_path)
+    fr(r, [z(1, 105.0), z(2, 100.0, 205.0)], endurance=HOLD_E)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "steer" and a.args["gait"] == "run" and "rest" not in w and w["flee"] == "strain"
+
+
+def test_with_hold_rest_off_the_hold_walks(tmp_path):
+    r, sv = strain_run(tmp_path)
+    sv.HOLD_REST = False
+    fr(r, [z(1, 108.0, has_target=False), IDLE2], endurance=HOLD_E)
+    a = tick(r, sv)
+    assert a.type == "steer" and a.args["gait"] == "walk" and "rest" not in threat_why(tmp_path)

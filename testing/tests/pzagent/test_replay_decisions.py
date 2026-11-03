@@ -1676,7 +1676,8 @@ def test_iteration_19_moves_e4_alone_at_the_many_tail(key):
       the decision unmoved. No other line moves.
     - FLEE_FINISH (P27-A) moves no golden: its finish reads a zombie the frame reads `onFloor`, which no golden's frames
       carry. HOLD_LONE (P27-C) moves none: the hold fight needs a build announcing the PZA/1.7 `shove`, which no
-      golden's hello does.
+      golden's hello does. HOLD_REST (P27-C2) moves none: E4's hold walk (lines 431 to 440, the one golden carrying
+      `hold_walk`) reads a chaser listed on every line, its record reading no `hasTarget` false at all.
     A golden no switch moves is its file before iteration 19 byte for byte."""
     base, got = pre_t9_gold(key), gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]

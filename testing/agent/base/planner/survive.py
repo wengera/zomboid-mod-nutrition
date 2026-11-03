@@ -258,7 +258,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   - Survival 21 (iteration 19, E18, F9 and F8): P27-A, the finish under the `strain`, `pair` and `many` flees on any
     fallen zombie, cleared to FINISH_CLEAR_R (`finish.ThreatFinish._flee_finish`, `_fallen_wide`); P27-B, the `many`
     episode ends on its strung-out tail (`threat.Threat._many_tail_read`); P27-C, the endurance hold's lone zombie
-    fought by the shove and the stomp (`hold.Hold._hold_lone`, `Fight.shove_only` "hold"); `T9_SWITCHES`.
+    fought by the shove and the stomp (`hold.Hold._hold_lone`, `Fight.shove_only` "hold"); P27-C2, the hold's walk
+    with no chaser listed is the rest, no leg sent (`hold.Hold._hold_rest`, `_rest`); `T9_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -375,8 +376,9 @@ T7_SWITCHES = ("WINDOW_EXIT", "STAND_SECOND_EXIT", "INSIDE_SHOVE", "THREAT_BLEED
 T8_SWITCHES = ("WINDOW_INNER", "WINDOW_STALL", "STAND_CROWD", "WOUNDED_SWING", "BLEED_HOLD")
 # survival iteration 18 (Plan 26 Tasks 7 and 7d): P26-I to P26-K on `threat.Threat` (WINDOW_INNER, WINDOW_STALL,
 # STAND_CROWD); P26-L1 and P26-L2 on `threat.Threat` (WOUNDED_SWING, BLEED_HOLD)
-T9_SWITCHES = ("FLEE_FINISH", "MANY_TAIL", "HOLD_LONE")
-# survival iteration 19 (Plan 27 Task 1): P27-A to P27-C on `threat.Threat` (FLEE_FINISH, MANY_TAIL, HOLD_LONE)
+T9_SWITCHES = ("FLEE_FINISH", "MANY_TAIL", "HOLD_LONE", "HOLD_REST")
+# survival iteration 19 (Plan 27 Task 1): P27-A to P27-C2 on `threat.Threat` (FLEE_FINISH, MANY_TAIL, HOLD_LONE,
+# HOLD_REST)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -510,6 +512,7 @@ class Survive(Threat):
         self.many_since = None    # wall of the first `many` reason since the threat branch last held nothing (P24-AR)
         self.many_tail_n = 0      # consecutive ticks a `many` episode read strung out (P27-B: MANY_TAIL_TICKS ends it)
         self.many_tail = None     # this tick: {ticks, standing, pressing} when the tail ended the episode (P27-B)
+        self.rest_from = None     # world minutes of the hold's rest's first tick while it rests (P27-C2), else None
         self.struck = {}          # zombie id -> wall of the last attack or shove sent at it (P24-AQ)
         self.finishing = {}       # zombie id -> the `many` flee's finishing sends at it, "stomp" (then "stomp2" after a
                                   # `stood`, P24-AV) then "floor" (P24-AQ)
