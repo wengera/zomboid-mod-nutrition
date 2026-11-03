@@ -1,0 +1,2 @@
+[03-11-26 12:14:59.688] [admin][10721,10630,0][Login][Hours Survived: 0].
+[03-11-26 12:14:59.689] [admin][10721,10630,0][Cooking=0, Fitness=5, Strength=5, Blunt=0, Axe=0, Lightfoot=0, Nimble=0, Sprinting=0, Sneak=0, Woodwork=0, Aiming=0, Reloading=0, Farming=0, Fishing=0, Trapping=0, PlantScavenging=0, Doctor=0, Electricity=0, Blacksmith=0, MetalWelding=0, Mechanics=0, Spear=0, Maintenance=0, SmallBlade=0, LongBlade=0, SmallBlunt=0, Tailoring=0, Tracking=0, Husbandry=0, FlintKnapping=0, Masonry=0, Pottery=0, Carving=0, Butchering=0, Glassmaking=0][Hours Survived: 0].
