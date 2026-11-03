@@ -24,6 +24,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 TESTING = os.path.dirname(os.path.dirname(HERE))
 F3 = os.path.join(TESTING, "artifacts", "f_goals_4-20261030-114742")
 F9 = os.path.join(TESTING, "artifacts", "f_goals_10-20261102-231705")
+F10 = os.path.join(TESTING, "artifacts", "f_goals_11-20261103-075140")
 NEW = G16.NEW
 
 
@@ -135,6 +136,20 @@ def test_f_grade_8_on_f9_prints_the_committed_f_grade_txt_s_lines_then_the_new_o
     got["grade"] = "grade_f7"
     got["report_lines"] = got["report_lines"][:-len(NEW)]
     assert got == want
+
+
+def test_f_grade_8_on_f10_reproduces_the_committed_f_grade_txt_byte_for_byte():
+    """Ruling P26-Q: `f_grade_8.py` on the committed F10 artifact (the first LLM session graded through `grade_f8`)
+    reproduces its committed `f_grade.txt` byte for byte (CRLF folded), so a drift in any live name read through the
+    grade chain (`grade_f7`: `llm.objects`, `view.OPEN_KEY`, the rest) fails here."""
+    p = os.path.join(F10, "f_goals_11.json")
+    if not os.path.isfile(p):
+        pytest.skip("%s is not checked out" % F10)
+    script = os.path.join(TESTING, "agent", "drivers", "f_grade_8.py")
+    r = subprocess.run([sys.executable, script, p], capture_output=True, cwd=TESTING)
+    assert r.returncode == 0
+    want = open(os.path.join(F10, "f_grade.txt"), "rb").read().replace(b"\r\n", b"\n")
+    assert r.stdout.replace(b"\r\n", b"\n") == want
 
 
 def test_f_grade_8_refuses_an_argument_it_does_not_define():
