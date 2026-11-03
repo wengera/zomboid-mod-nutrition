@@ -452,7 +452,7 @@ def test_a_later_chain_session_holding_the_bat_spawns_none(tmp_path, monkeypatch
 
 # ================================================================ the copy: e_day_19.py's body, its own key
 BASE_SENTENCE = (
-    "the base at `b6ebd954` (the planner: survival iteration 20 with its mutant pass) carries PZA/1.7.1 (the hello "
+    "the base at `acb1e294` (the planner: survival iteration 20 with its mutant pass and fix 1) carries PZA/1.7.1 (the hello "
     "reads `mod` `1.7`) and survival iteration 20 (over iteration 19: a goal walk ended stuck unmoved marking its "
     "square and its first edge, the scripted source leaving the square by a known way, P27-F; the swing ahead of the "
     "stomp at a fallen zombie within FIGHT_REACH, P27-G; a fallen target beyond FINISH_R walked to after "
@@ -495,7 +495,7 @@ def test_the_copy_differs_from_e_day_19_only_in_the_expected_lines():
     # the second docstring line names the parent, the rest of the first paragraph's lines are e_day_19.py's
     assert b.splitlines()[1] == a.splitlines()[1].replace("e_day_18.py's", "e_day_19.py's")
     head = b[:b.index(mark)]
-    for c in ("e_day_19.py", "twentieth", "PZA/1.7.1", "grade_e17", "grade_e16", "b6ebd954", "P27-F", "P27-G",
+    for c in ("e_day_19.py", "twentieth", "PZA/1.7.1", "grade_e17", "grade_e16", "acb1e294", "P27-F", "P27-G",
               "P27-H", "P27-I", "P27-J", "P27-K1", "P27-K2", "P27-K3", "P27-L", "state.1.log", BASE_SENTENCE) + NEW17:
         assert c in head, c
     assert "4672d6cf" not in head and "e_day_18" not in head and "iteration 19 (over" not in head
@@ -507,9 +507,9 @@ def test_the_copy_differs_from_e_day_19_only_in_the_expected_lines():
 
 def test_the_base_sentence_names_the_planner_s_head_at_the_copy():
     """The base sentence's commit is the planner's head the copy was made at (`git log -1 -- testing/agent/base/planner`
-    at Task 6: b6ebd954, survival iteration 20 with its mutant pass); the controller re-bases it before the boot."""
+    at Task 6: b6ebd954, re-based to acb1e294 before the boot); the controller re-bases it before the boot."""
     first = E.__doc__.splitlines()[0]
-    assert "the base at `b6ebd954` (the planner: survival iteration 20 with its mutant pass)" in first
+    assert "the base at `acb1e294` (the planner: survival iteration 20 with its mutant pass and fix 1)" in first
 
 
 def test_the_grade_wired_is_grade_e17_of_the_grades_module():
