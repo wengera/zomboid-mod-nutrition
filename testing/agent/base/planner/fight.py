@@ -237,7 +237,10 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         self.close_left = {}                # Survive shares its own: zombie id -> wall until a close refused for its
                                             # blocked line leaves it out of the hold's reads (P27-J)
         self._attackers = set()             # the ids read attacking (`me.attackers` with a hit reaction, the nearest
-                                            # listed), kept while within FIGHT_REACH: no mark leaves them out (P27-N)
+                                            # listed within FIGHT_REACH), kept while within it: no mark leaves them out
+                                            # (P27-N)
+        self._free = None                   # the tick's `_pin_free`, read once after `observe`'s edge and kill reads
+                                            # (fix 3, minor 4); None: read on each call (no observe yet)
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -263,8 +266,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
     def _observe_attackers(self):
         """Ruling P27-N's attacker read, every observe: with the `point_blank_pin` rule on, the frame reading
         `me.attackers` above 0 with a hit reaction (`hit_reaction`: the bite's or any attack's) adds the nearest listed
-        zombie (a wire id, with a position, not read dead) to `_attackers`, and each one there is kept while it stands
-        within FIGHT_REACH (so the pin outlasts its reaction to the next allowed tick); off, none."""
+        zombie (a wire id, with a position, not read dead) to `_attackers` where it stands within FIGHT_REACH, and each
+        one there is kept while it stands within FIGHT_REACH (so the pin outlasts its reaction to the next allowed
+        tick); off, none."""
         if "point_blank_pin" not in self.rules:
             self._attackers = set()
             return
@@ -273,10 +277,16 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
                 and zid not in dead and z.get("x") is not None and z.get("y") is not None]
         self._attackers = {zid for d, _, zid in near if zid in self._attackers and d <= FIGHT_REACH}
         n = (self.world.me or {}).get("attackers")
-        if near and isinstance(n, int) and not isinstance(n, bool) and n > 0 and hit_reaction(self.world) is not None:
+        if (near and min(near)[0] <= FIGHT_REACH and isinstance(n, int) and not isinstance(n, bool) and n > 0
+                and hit_reaction(self.world) is not None):
             self._attackers.add(min(near)[2])
 
     def _pin_free(self):
+        """The tick's `_pin_read` (`observe` takes it once, after its edge and kill reads; a new edge mark drops it),
+        else a fresh read."""
+        return self._free if self._free is not None else self._pin_read()
+
+    def _pin_read(self):
         """Ruling P27-N (E20, `e_day_20-20261103-121340`: from line 722 to line 747, 26 lines and 12.603 s, the why read
         `target` null and `unreachable` [3189], the no-progress stall's mark, and the Fight sent nothing while 3189 bit
         from 0.507 to 1.576 tiles): {id: why} of the zombies no mark leaves out of the Fight's targets, with the
@@ -341,6 +351,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
         if self.no_swing() or (r is not None and self.stance_at(d) and d > r):
             return None
         self._held_before = self.stance_at(d) and self.in_stance()
+        if r is not None and self.stance_at(d):
+            self.why["attack"] = {"dist": d, "reach": self.world.weapon["reach"]}   # P27-M, as the stance's attack logs
         return (Attack(zid),)
 
     def _target_health(self, zid):
@@ -697,10 +709,12 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, Policy):
                 self._unpin()
 
     def observe(self):
+        self._free = None
         self._observe_attackers()   # P27-N
         self._observe_edge()
         self._observe_edge_route()
         self._observe_kill()
+        self._free = self._pin_read()   # once a tick: `blocked` and the pin read it on every call (fix 3, minor 4)
         self._observe_leg()
         t = self._target(pin=False)
         self._observe_stand(t)

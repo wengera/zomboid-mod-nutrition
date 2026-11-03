@@ -29,9 +29,8 @@ and none sent. The fake mod over PZA/1.7.1; each test's geometry is simplified f
 - P27-K3, the replace held off under a chaser (`REPLACE_QUIET`): no replace while a listed zombie chases (logged
   `spent_held`).
 - P27-L, P26-L1's divided swing withdrawn: `WOUNDED_SWING` off by default.
-- Fix 2, P27-M, the attack within reach (`ATTACK_REACH`): the standing fight's attack only within the frame's
-  `weapon.reach` plus ATTACK_MARGIN (logged `attack`), the stance standing beyond it (logged `attack_held`) and the
-  advance a walk to it (logged `reach_walk`); the floor swing keeps FIGHT_REACH.
+- Fix 2 (P27-M, P27-N, P27-O): the bullets of P27-M, the attack within reach, sit under its section below; fix 3
+  (review-t5-fix2's minors) has the last section.
 - Fix 2, P27-N, a zombie at point blank never dropped (`POINT_BLANK_PIN`): a marked zombie within POINT_BLANK_R, or the
   one read attacking, is pinned, shoved, then swung at (logged `pinned` {why}); never one across a wall or a refused
   edge.
@@ -943,6 +942,9 @@ def test_a_switch_turned_off_mid_count_sends_no_walk(tmp_path):
 
 
 # ================================================================ P27-M: the attack within reach (fix 2, E20)
+# - P27-M (`ATTACK_REACH`): the standing fight's attack only within the frame's `weapon.reach` plus ATTACK_MARGIN (logged
+#   `attack`), the stance standing beyond it (logged `attack_held`) and the advance a walk to it (logged `reach_walk`);
+#   the floor swing keeps FIGHT_REACH.
 E20_BAT = dict(BAT, reach=1.125)   # E20's frames: the bat's `weapon.reach` 1.125 (the Lua's K.reachOf, 1.25 x 0.9)
 E20_AT = 1.8161174585612616        # E20's line 711: a190 sent at 3189 1.8161174585612616 tiles off (GUIDE § 3)
 
@@ -1069,13 +1071,13 @@ BITER = 100.10591989736684569   # E20's 3189 at 0.10591989736684569 tiles from s
 OTHER = z(2, 107.715, has_target=False)   # E20's 3188, idle 7.715 tiles off, held (so no `unreachable` flee)
 
 
-def marked_at(tmp_path, x, on=True, **k):
+def marked_at(tmp_path, x, on=True, reach=True, **k):
     """E20's lines 722-747 simplified: the Fight running at zombie 1 (its stance leg sent at 2.4 tiles, so the hold
     radius is DISENGAGE_R and 3188's stand-in, idle beyond DANGER_R, is held), then zombie 1 `x - 100` tiles east marked
     unreachable (the no-progress stall's mark) and the character bitten (`me.attackers` 1). Returns (r, sv, the
     marked tick's send)."""
     r, sv = make(tmp_path)
-    sv.POINT_BLANK_PIN = on
+    sv.POINT_BLANK_PIN, sv.ATTACK_REACH = on, reach
     fr(r, [z(1, 102.4), OTHER], weapon=E20_BAT)
     accept(r, tick(r, sv))
     assert sv.mode == "fight"
@@ -1096,6 +1098,7 @@ def test_e20_s_marked_zombie_at_point_blank_is_pinned_shoved_then_swung_at(tmp_p
     fr(r, [z(1, BITER), OTHER], weapon=E20_BAT, attackers=1, health=64.84652709960938)
     b = tick(r, sv)
     assert (b.type, b.args) == ("attack", {"targetId": 1}) and threat_why(tmp_path)["pinned"] == {"why": "point_blank"}
+    assert threat_why(tmp_path)["attack"] == {"dist": pytest.approx(BITER - 100.0), "reach": 1.125}   # fix 3, minor 3
 
 
 def test_the_attacker_is_pinned_through_its_hit_reaction_and_shoved_on_the_next_allowed_tick(tmp_path):
@@ -1243,3 +1246,81 @@ def test_the_health_clock_starts_with_the_health_flee_and_ends_with_its_episode(
     care_frame(r, E20_PARTS, zombies=[z(1, 130.0)], health=E20_FLEE_H)
     tick(r, sv)
     assert sv.mode is None and sv.health_since is None
+
+
+# ================================================================ fix 3: review-t5-fix2's minors
+def test_the_attacker_latch_takes_the_nearest_listed_zombie_only_within_fight_reach(tmp_path):
+    """Ruling P27-9 words the attacker read as kept within FIGHT_REACH: a frame reading `me.attackers` 1 with the `Bite`
+    reaction whose nearest listed zombie stands 4 tiles off (beyond FIGHT_REACH 2.0) latches nothing and pins nothing;
+    the nearest at 1.5 tiles is latched (`_pin_free` "attacker"), and kept while it stays within FIGHT_REACH, released
+    once it steps beyond."""
+    from agent.base.planner.fight import Fight
+    r = Rig(tmp_path)
+    fr(r, [z(1, 104.0)], weapon=E20_BAT, attackers=1, hit_reaction="Bite")
+    f = Fight(r.world, r.acts, r.clock)
+    f.observe()
+    assert f._attackers == set() and f._pin_free() == {}
+    for x, want in ((101.5, {1}), (101.9, {1}), (102.2, set())):
+        bitten = dict(attackers=1, hit_reaction="Bite") if x == 101.5 else {}
+        fr(r, [z(1, x)], weapon=E20_BAT, **bitten)
+        f.observe()
+        assert f._attackers == want, x
+    assert f._pin_free() == {}
+
+
+@pytest.mark.parametrize("x, swings", [(101.8, False), (101.4, True)])
+def test_the_low_fight_s_full_swing_goes_only_within_the_reach_and_its_margin(tmp_path, x, swings):
+    """P27-M at the low fight (`_low_swing_due` in the stance): SHOVE_FAIL_N missed shoves at the lone zombie at point
+    blank on record, E20's bat (reach 1.125, so 1.475 with ATTACK_MARGIN), the zombie then 1.8 tiles off (beyond it,
+    within FIGHT_REACH): no attack, no `low_swing`; at 1.4 the full swing goes, logged `low_swing`."""
+    r, sv = make(tmp_path)
+    shoves(r, sv, P.SHOVE_FAIL_N, weapon=E20_BAT)
+    fr(r, [z(1, x)], health=35.0, weapon=E20_BAT)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    if swings:
+        assert (a.type, a.args) == ("attack", {"targetId": 1}) and w["low_swing"]["target"] == 1
+    else:
+        assert "low_swing" not in w and "attack" not in sends(r)
+
+
+def test_the_pin_swings_from_the_stance_only_within_the_reach_and_its_margin(tmp_path):
+    """P27-M at the pin (`_pin_send`): a marked, latched attacker 1.6 tiles off (beyond SHOVE_R, so no shove, and beyond
+    1.125 + ATTACK_MARGIN), the hit reaction over: no attack from the stance (the stance's `attack_held` answers); with
+    `ATTACK_REACH` off the pin swings at it, logged `pinned` {why "attacker"}."""
+    for reach in (True, False):
+        d = tmp_path / str(reach)
+        d.mkdir()
+        r, sv, a = marked_at(d, 101.3, reach=reach, hit_reaction="Bite")
+        assert a is None and threat_why(d)["pinned"] == {"why": "attacker"}
+        r.advance(0.5)
+        fr(r, [z(1, 101.6), OTHER], weapon=E20_BAT, attackers=1)
+        b = tick(r, sv)
+        w = threat_why(d)
+        if reach:
+            assert "attack" not in sends(r) and "attack_held" in w and w["target"] == 1
+        else:
+            assert (b.type, b.args) == ("attack", {"targetId": 1}) and w["pinned"] == {"why": "attacker"}
+
+
+def test_the_pin_free_read_is_taken_once_per_tick_not_once_per_blocked_call(tmp_path, monkeypatch):
+    """Fix 3, minor 4: after `observe` the Fight's `blocked`, `_pin_marked` and `_pin_first` read the one `_pin_free`
+    of the tick (one `line_to` per pin-free zombie), the answer equal to a fresh read; an edge mark made after it
+    (`_mark_edge`) is read at once."""
+    from agent.base.planner import fight as F
+    r = Rig(tmp_path)
+    fr(r, [z(1, 100.5), z(2, 100.6)], weapon=E20_BAT)
+    f = F.Fight(r.world, r.acts, r.clock, unreachable={1: r.clock() + P.UNREACHABLE_S})
+    calls = []
+    real = F.line_to
+    monkeypatch.setattr(F, "line_to", lambda world, zz: calls.append(1) or real(world, zz))
+    f.observe()
+    n = len(calls)
+    for _ in range(4):
+        f.blocked()
+        f._pin_marked()
+        f._pin_first()
+    assert len(calls) == n and sorted(f._pin_free()) == [1, 2]
+    f._mark_edge(2, ((100, 200, 0), "N"))
+    assert sorted(f._pin_free()) == [1]
+
