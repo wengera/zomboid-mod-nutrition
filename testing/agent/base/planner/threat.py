@@ -21,10 +21,9 @@ from agent.base.planner.policies import (AIM_R, CLOSING_TICKS, CORNERED_R, CORNE
                                          DRAG_DOWN_N, DROP_AT, EDGE_HOLD_TICKS, ENGAGE_R, FIGHT_REACH, FINISH_R,
                                          FLEE_GAIT, FLEE_HEALTH, FLEE_HEALTH_FLOOR, FLEE_HEALTH_PAIR, FLIP_MIN_S,
                                          GROUP_HOLD_N, GROUP_NEAR_R, GROUP_R_N, HOLD_BREAK_R, LISTED_R, MANY_LISTED_N,
-                                         MAX_FIGHT,
-                                         POINT_BLANK_R, REFIGHT_MARGIN, STUCK_RETRY_GROUP_S, STUCK_RETRY_S, adoptable,
-                                         blocked, chasing, exit_plan, in_building, in_reach, line_to, others_behind,
-                                         seek_allowed, spare, target_id_ok, zdist)
+                                         MANY_TAIL_TICKS, MAX_FIGHT, POINT_BLANK_R, REFIGHT_MARGIN, STUCK_RETRY_GROUP_S,
+                                         STUCK_RETRY_S, adoptable, blocked, chasing, exit_plan, in_building, in_reach,
+                                         line_to, on_floor, others_behind, seek_allowed, spare, target_id_ok, zdist)
 from agent.base.planner.pull import ThreatPull
 from agent.base.pza1 import Drop
 
@@ -141,6 +140,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     FLEE_FINISH = True    # ruling P27-A: the flee's finish under the `strain`, `pair` and `many` flees on any fallen
                           # zombie, cleared to FINISH_CLEAR_R (`finish.ThreatFinish._flee_finish`, `_fallen_wide`); off,
                           # P24-AQ's struck target under `many` and P25-J (3)'s `pair` finish
+    MANY_TAIL = True      # ruling P27-B: a `many` flee episode ends after MANY_TAIL_TICKS ticks with at most one
+                          # standing zombie within DANGER_R and at most one of the listed pressing (`_many_tail_read`);
+                          # off, it ends only when no held threat is within DANGER_R (P23-AM 1)
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -181,7 +183,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         zombie that wakes counts on the next. Ruling P24-AN (P24-AD extended from the flee's count to the listing's):
         the listing counts a zombie only within DANGER_R or chasing (`_counts_listed`: `hasTarget` true; one whose
         frame carries no `hasTarget` no longer counts beyond DANGER_R), so no idle or unread zombie past DANGER_R ever
-        makes `many` by MANY_LISTED_N."""
+        makes `many` by MANY_LISTED_N. Ruling P27-B (`MANY_TAIL`): the episode's tail, read once a tick in
+        `_threat_read` (`_many_tail_read`), clears `flee_many`, so this clause no longer holds the flee after it."""
         counted = [z for z in held if self._counts_many(z)]
         if self.mode == "flee" and self.flee_many:
             near = len(counted) > MAX_FIGHT or min(zdist(self.world, z) for z in held) <= DANGER_R
@@ -623,6 +626,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self._release_edges()   # P25-X: a zombie refused across a blocked edge, read on the player's side, is free
         self._held, self._breach_now = [], None
         self._read_spent()
+        self._many_tail_read()
         held = self._within(self._hold_r())
         sought = self._sought() if self.ENGAGE else None
         if sought:   # P24-X: one or two within ENGAGE_R, the fight sought
@@ -641,6 +645,28 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             self.flee.threats = held   # over this tick's held records (the stall's and the stuck leg's DANGER_R and
             self._observe(self.flee)   # STUCK_NEAR_R reads: before P24-A (g) the first read saw the last tick's)
         self._held, self._breach_now = held, self._breach(held)
+
+    def _many_tail_read(self):
+        """Ruling P27-B (E18, `e_day_18-20261102-224036`: on 168 of its 302 `many` lines one zombie or none stood within
+        DANGER_R, F9's 105 of 169; the guides' notes § 4: draw a group out and turn on the lead one once it strings
+        out), the `many` episode's tail, read once a tick before the decision: while a flee episode whose reason was
+        `many` runs (`mode` "flee", `flee_many`) with `MANY_TAIL` on, a tick with at most one standing zombie (not
+        `onFloor`) within DANGER_R and at most one of the listed pressing (`_pressing` of the zombies the listing counts,
+        `_counts_listed`) adds one to `many_tail_n`, and any other tick resets it (two or more standing within DANGER_R
+        never end the episode, so P23-AM 1's flips do not return); at MANY_TAIL_TICKS the episode ends (`flee_many`
+        cleared, the count reset, logged `many_tail` {ticks, standing, pressing} on that tick's threat why) and the
+        tick decides by the ordinary rules, the lone one fought where they allow it (the hold's if spent); a `many` read
+        after it starts a new episode as today. Else the count is 0."""
+        self.many_tail = None
+        if not (self.MANY_TAIL and self.mode == "flee" and self.flee_many):
+            self.many_tail_n = 0
+            return
+        stand = sum(1 for z in self._within(DANGER_R) if not on_floor(z))
+        pressing = self._pressing([z for z in self._within(LISTED_R) if self._counts_listed(z)])
+        self.many_tail_n = self.many_tail_n + 1 if stand <= 1 and pressing <= 1 else 0
+        if self.many_tail_n >= MANY_TAIL_TICKS:
+            self.many_tail = {"ticks": self.many_tail_n, "standing": stand, "pressing": pressing}
+            self.flee_many, self.many_tail_n = False, 0
 
     def _threat(self):
         """The threat branch: the tick's bookkeeping (`_threat_read`, read in `_read` with `OBSERVES_IN_READ` on); then
@@ -663,8 +689,12 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                 self.why["care_yield"] = {"why": "bleed", "near": self.bleed_yield}   # P26-D
                 if self.bleed_held:
                     self.why["care_yield"]["held"] = True   # P26-L2: held only by the dressing's hold
-            return None
-        return self._decide(held, breach)
+            ans = None
+        else:
+            ans = self._decide(held, breach)
+        if self.many_tail is not None:
+            self.why["many_tail"] = self.many_tail   # P27-B: the tick the `many` episode's tail ended it
+        return ans
 
     def _decide(self, held, breach, replanned=False):
         """`_threat_plan`'s decision executed by the Fight or the Flee, logged in `why`."""

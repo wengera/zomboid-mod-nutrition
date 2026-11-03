@@ -1561,7 +1561,10 @@ FIRST_EDGE_OUT = {"e2": 70, "e3": 85, "e4": 250, "e5": 75, "f1": 106, SIXTH: 106
 
 
 def pre_edge_out(sv):
+    """`EDGE_OUT_OF_HOLD` off. Named change, Plan 27 Task 1 (ruling P27-B re-recorded E4): iteration 19's switches
+    (`pre_t9`) off with it, so the seam reads the files of `427c0b2d`."""
     sv.EDGE_OUT_OF_HOLD = False
+    pre_t9(sv)
 
 
 @functools.lru_cache(maxsize=6)
@@ -1617,7 +1620,7 @@ def test_iteration_17_moves_no_golden(key):
     it reads free there, building 2's kitchen door (10721, 10638), has another way out on each of its 13 reads; P26-D
     and P26-E read a part's `bleeding` and a `wear`, which no golden ring carries."""
     only = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t7))}
-    assert only == gold(key)
+    assert only == pre_t9_gold(key)   # named change, Plan 27 Task 1: `pre_t7` turns iteration 19 off (P27-B, E4)
 
 
 # ================================================================ Plan 26 Task 7: iteration 18 on the goldens
@@ -1630,14 +1633,64 @@ def test_iteration_18_moves_no_golden(key):
     518) with at most one zombie within DANGER_R, under STAND_CROWD_N. P26-L1 reads `body.armPain` (PZA/1.7), which no
     golden's frames carry; P26-L2 reads P26-D's bleed yield, and no golden's parts decode `bleeding`."""
     only = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t8))}
-    assert only == gold(key)
+    assert only == pre_t9_gold(key)   # named change, Plan 27 Task 1: `pre_t8` turns iteration 19 off (P27-B, E4)
 
 
 # ================================================================ Plan 27 Task 1: iteration 19 on the goldens
+# the goldens as they stood before iteration 19 re-recorded them (Plan 26's close, `88fd464e`): sha256, base, recorded
+PRE_T9 = {"e4": ("08be3096ea6b460e561c14050dc08887665e4504548d76783ee99c8457dcef84", "88fd464e", "2026-11-02")}
+# the first line each iteration-19 switch moves, alone on, on each golden it moves
+FIRST_T9 = {"e4": {"MANY_TAIL": 434}}
+
+
+@functools.lru_cache(maxsize=6)
+def _pre_t9_replayed(key):
+    return json.dumps(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t9), sort_keys=True)
+
+
+def pre_t9_gold(key):
+    """{line: decision} of the replay with iteration 19's switches off: the golden before its re-record."""
+    return {d["line"]: d for d in R.decisions(json.loads(_pre_t9_replayed(key)))}
+
+
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
-def test_iteration_19_moves_no_golden(key):
-    """Survival iteration 19 moves no golden: the six are byte-identical with its switches on
-    (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off (`pre_t9`). P27-A's finish reads a zombie
-    the frame reads `onFloor`, which no golden's frames carry."""
-    only = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t9))}
-    assert only == gold(key)
+def test_with_iteration_19_off_the_goldens_are_plan_26_s(key):
+    """Iteration 19's golden movers are `survive.T9_SWITCHES`: with them off (`pre_t9`) a golden it re-recorded is the
+    file as it stood before byte for byte (its sha256 pinned, `PRE_T9`), and every other golden is its file now."""
+    if key not in PRE_T9:
+        assert pre_t9_gold(key) == gold(key)
+        return
+    sha, base, recorded = PRE_T9[key]
+    text = R.golden_text(R.decisions(json.loads(_pre_t9_replayed(key))), base, R.RUNS[key], recorded,
+                         R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == sha
+
+
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_iteration_19_moves_e4_alone_at_the_many_tail(key):
+    """Survival iteration 19's attribution, each switch alone on against the goldens before it (`pre_t9_gold`):
+    - MANY_TAIL (P27-B) moves E4 alone, first at line 434 (game minute 620): the `many` episode begun before E4's
+      endurance hold still ran under the `strain` flee (`flee_many`), and its fourth tick with no zombie standing
+      within DANGER_R and one pressing ends it, logged `many_tail` {ticks 4, standing 0, pressing 1}, the decision
+      unmoved; at line 441 the listing's four make `many` again (`listed` 4, a new episode as P24-A (a) reads it),
+      the decision unmoved. No other line moves.
+    - FLEE_FINISH (P27-A) moves no golden: its finish reads a zombie the frame reads `onFloor`, which no golden's frames
+      carry.
+    A golden no switch moves is its file before iteration 19 byte for byte."""
+    base, got = pre_t9_gold(key), gold(key)
+    diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
+    if key not in FIRST_T9:
+        assert diff == []
+        return
+    assert diff[0] == min(FIRST_T9[key].values())
+    for switch in S.T9_SWITCHES:
+        alone = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
+                                                             mutate=lambda sv: pre_t9(sv, keep=(switch,))))}
+        moved = [k for k in sorted(set(base) | set(alone)) if base.get(k) != alone.get(k)]
+        assert (moved[0] if moved else None) == FIRST_T9[key].get(switch), switch
+    assert diff == [434, 441]
+    for k in diff:
+        assert base[k]["action"] == got[k]["action"] and base[k]["branch"] == got[k]["branch"]
+    assert got[434]["why"]["many_tail"] == {"ticks": 4, "standing": 0, "pressing": 1}
+    assert got[434]["why"]["flee"] == "strain" and "many_tail" not in base[434]["why"]
+    assert got[441]["why"]["listed"] == 4 and "listed" not in base[441]["why"]

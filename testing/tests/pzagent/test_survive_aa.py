@@ -40,11 +40,11 @@ def sends(r):
 
 
 def test_the_iteration_19_switches_and_constants():
-    assert S.T9_SWITCHES == ("FLEE_FINISH",)
+    assert S.T9_SWITCHES == ("FLEE_FINISH", "MANY_TAIL")
     assert "T9_SWITCHES" in S.__all__
     assert all(getattr(S.Survive, name) is True for name in S.T9_SWITCHES)
     assert not set(S.T9_SWITCHES) & set(S.T8_SWITCHES + S.T7_SWITCHES + S.T6_SWITCHES)
-    assert P.FINISH_CLEAR_R == 3.0
+    assert (P.FINISH_CLEAR_R, P.MANY_TAIL_TICKS) == (3.0, 4)
 
 
 # ================================================================ P27-A: the finish under a flee
@@ -159,3 +159,63 @@ def test_the_old_sessions_replays_stomp_the_fallen_their_flees_left():
     assert all(f["reason"] == "many" and f["struck"] is False for _, f in fin.values())
     assert got[274]["action"] == {"type": "stomp", "args": {"targetId": 7479}}
     assert not any(d["why"].get("finish") for d in e9_lines(("FLEE_FINISH",)).values())
+
+# ================================================================ P27-B: the `many` episode's tail
+START = [z(1, 103.0), z(2, 103.0, 201.0), z(3, 104.0)]   # three chasing within 4 tiles: the `many` episode
+STRUNG = [z(1, 105.0), z(2, 100.0, 188.5, has_target=False), z(3, 88.5, has_target=False)]   # one chasing at 5, two
+# idle 11.5 tiles off (listed, beyond DISENGAGE_R, neither chasing): one standing within DANGER_R, one pressing
+SECOND = [z(1, 105.0), z(2, 100.0, 205.0), z(3, 88.5, has_target=False)]   # a second standing within DANGER_R
+
+
+def many_episode(tmp_path):
+    r, sv = make(tmp_path)
+    fr(r, START)
+    assert tick(r, sv).type == "steer" and threat_why(tmp_path)["flee"] == "many"
+    r.answer()
+    return r, sv
+
+
+def strung_tick(r, sv, tmp_path, zs=STRUNG):
+    """Half a second on, the frame `zs` read and planned; a leg it sends ends at once."""
+    r.advance(0.5)
+    fr(r, zs)
+    n = len(r.acts.history)
+    tick(r, sv)
+    if len(r.acts.history) > n:
+        r.answer()
+    return threat_why(tmp_path)
+
+
+def test_a_many_episode_strung_out_for_many_tail_ticks_ends_and_the_lone_one_is_fought(tmp_path):
+    """The group strung out (one chasing 5 tiles off, the rest idle 11.5 off: E18's 168 `many` lines with one or none
+    within DANGER_R): three ticks the episode holds (`many`), the fourth ends it, logged `many_tail` {ticks 4, standing
+    1, pressing 1}, and the lone one is fought by the ordinary rules."""
+    r, sv = many_episode(tmp_path)
+    for k in range(P.MANY_TAIL_TICKS - 1):
+        w = strung_tick(r, sv, tmp_path)
+        assert w["flee"] == "many" and "many_tail" not in w, k
+    w = strung_tick(r, sv, tmp_path)
+    assert w["many_tail"] == {"ticks": 4, "standing": 1, "pressing": 1}
+    assert sv.mode == "fight" and w["fight"] is True and "flee" not in w and not sv.flee_many
+
+
+def test_three_strung_out_ticks_then_a_second_within_danger_r_resets_the_count(tmp_path):
+    """Three strung-out ticks, then a second zombie standing within DANGER_R: the count resets (the episode never ends
+    while two stand within DANGER_R), so three more strung-out ticks still flee `many` and the fourth ends it."""
+    r, sv = many_episode(tmp_path)
+    for _ in range(3):
+        assert strung_tick(r, sv, tmp_path)["flee"] == "many"
+    w = strung_tick(r, sv, tmp_path, SECOND)
+    assert w["flee"] == "many" and sv.many_tail_n == 0
+    for k in range(3):
+        w = strung_tick(r, sv, tmp_path)
+        assert w["flee"] == "many" and "many_tail" not in w, k
+    assert strung_tick(r, sv, tmp_path)["many_tail"]["ticks"] == 4
+
+
+def test_with_many_tail_off_the_strung_out_episode_holds(tmp_path):
+    r, sv = many_episode(tmp_path)
+    sv.MANY_TAIL = False
+    for _ in range(6):
+        w = strung_tick(r, sv, tmp_path)
+        assert w["flee"] == "many" and "many_tail" not in w

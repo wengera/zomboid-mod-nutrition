@@ -2555,8 +2555,11 @@ def test_a_walk_corner_never_swings_at_a_marked_zombie_or_through_a_blocked_line
 def test_a_many_flee_s_running_shelter_walk_keeps_the_flee_past_flip_min_s(tmp_path):
     """Ruling P23-AM 1's `steps` (my addition, the report's concern 1): the `many` flee's approach walk runs 6 s,
     the player moving; two of the group die and the last stands 7.5 tiles off: past FLIP_MIN_S the walk is still the
-    flee's (`steps`), never superseded by a fight walk."""
+    flee's (`steps`), never superseded by a fight walk. Named change, ruling P27-B (Plan 27 Task 1): the last one alone
+    7.5 tiles off is the episode's strung-out tail, which ends the `many` episode after MANY_TAIL_TICKS ticks and its
+    `steps` keep with it (`test_survive_aa`); pinned with `MANY_TAIL` off, the rule before it."""
     r, sv = make(tmp_path)
+    sv.MANY_TAIL = False
     walk = stall_shelter(r, sv)
     for k in range(1, 13):
         r.advance(0.5)

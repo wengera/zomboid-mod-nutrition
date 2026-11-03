@@ -278,6 +278,11 @@ FINISH_CLEAR_R = 3.0      # tiles: a flee's finish goes with no standing zombie 
                           # 30744, knocked down 2.5339841792960844 tiles off with no standing zombie within DANGER_R,
                           # and its line 939's `many` flee from 30452, fallen 2.053499872133796 off; HOLD_BREAK_R's and
                           # GROUP_NEAR_R's 3.0, a judgment (the guides put the stomp at 0.3 strain, a second's work)
+MANY_TAIL_TICKS = 4       # consecutive ticks with at most one standing zombie within DANGER_R and at most one of the
+                          # listed pressing after which a `many` flee episode ends (P27-B): on 168 of E18's 302 `many`
+                          # lines and 105 of F9's 169 one zombie or none stood within DANGER_R; four ticks (two seconds
+                          # at the drivers' PLANNER_HZ 2) rule out one knock-back's or one frame's dip, a judgment
+                          # beside CLOSING_TICKS' three
 
 
 def place_of(world):
