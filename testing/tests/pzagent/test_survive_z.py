@@ -124,14 +124,14 @@ def test_e17_s_kitchen_has_no_way_out_with_its_counter_window_left_out_and_the_w
 
 
 def test_a_solid_inside_square_is_left_out_too_and_the_window_record_filter_is_the_goal_layer_s():
-    """A `solid` inside square (a wall object) is no way out either; `goals.usable_windows` (the window record's
+    """A `solid` inside square (a wall object) is no way out either; `windows.usable_windows` (the window record's
     filter both callers share) still lists the counter window: the walkability read is the exits' alone."""
-    from agent.base.planner import goals as G
+    from agent.base.planner import windows as WN
     from agent.base.planner import night as N
     w = e17_world(380, solidTrans=False, solid=True)
     assert COUNTER not in [e["window"] for e in N.window_exits(w, 2, 0)]
     w = e17_world(380)
-    assert (COUNTER, True) in G.usable_windows(w, 2, 0)
+    assert (COUNTER, True) in WN.usable_windows(w, 2, 0)
     assert COUNTER not in [e["window"] for e in N.window_exits(w, 2, 0)]
     assert COUNTER in [e["window"] for e in N.window_exits(w, 2, 0, walkable=False)]
 
@@ -198,7 +198,7 @@ def climb_running(tmp_path, stall=True):
     `Window(10710, 10596)`, accepted and running; (r, f)."""
     r = Y.e16_rig(tmp_path, me=WIN_IN)
     f = Y.flee_on(r)
-    f.window_stall_on = stall
+    f.rules = frozenset(FL.FLEE_RULES) - (set() if stall else {"window_stall"})
     f.step()
     assert r.cmd() == ("window", {"x": 10710, "y": 10596})
     r.fake.answer({"window": ["accepted"]})
@@ -232,19 +232,19 @@ def test_a_climb_that_holds_the_player_for_window_stall_s_is_dropped_and_its_win
 
 
 def test_a_stalled_window_is_a_dead_end_and_the_next_exit_plan_offers_no_window(tmp_path):
-    """Ruling P26-J2 (review-t7 nit 3): `stalled` is in `goals.WINDOW_DEAD`, so a window whose climb stalled is left out
+    """Ruling P26-J2 (review-t7 nit 3): `stalled` is in `windows.WINDOW_DEAD`, so a window whose climb stalled is left out
     by `usable_windows` and the exits for DOOR_RETRY_MIN game minutes (`World.window_fail`), never offered again at
     once: before the stall `exit_plan` offers the shed window; after it, none; past DOOR_RETRY_MIN it is offered
     again."""
-    from agent.base.planner import goals as G
+    from agent.base.planner import windows as WN
     from agent.base.world import DOOR_RETRY_MIN
-    assert "stalled" in G.WINDOW_DEAD
+    assert "stalled" in WN.WINDOW_DEAD
     r, f = climb_running(tmp_path)
     zs = list(r.world.zombies.values())
     assert P.exit_plan(r.world, zs, windows=True)["window"] == Y.WIN   # no refusal passed: only the mark can drop it
     hold_for(r, f, P.WINDOW_STALL_S)
     assert r.world.window_fail(Y.WIN) == "stalled"
-    assert Y.WIN not in [sq for sq, _ in G.usable_windows(r.world, 1, 0)]
+    assert Y.WIN not in [sq for sq, _ in WN.usable_windows(r.world, 1, 0)]
     assert P.exit_plan(r.world, zs, windows=True) is None
     r.world.window_marks[Y.WIN] = (r.world.world_minutes() - DOOR_RETRY_MIN, "stalled")
     assert P.exit_plan(r.world, zs, windows=True)["window"] == Y.WIN

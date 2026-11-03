@@ -82,6 +82,7 @@ import math
 import time
 
 from agent.base.planner.policies import DANGER_R, PREEMPTED, STUCK_REASONS, Policy, me_floor, me_xy, zdist
+from agent.base.planner.windows import usable_windows
 from agent.base.pza1 import Climb, Interact, Sleep, WalkTo
 
 TIRED_T = 0.6         # the first TIRED moodle fires above 0.6 [#2279]
@@ -185,11 +186,11 @@ def window_exits(world, building, z, walkable=True):
     shed, both zombies on the door's inside square, while the window on the far wall lay 2.3458507024507074 tiles from
     the nearest of them, and no exit crossed a window: `World.openings` leaves a window's edge out): the building's
     windows on floor `z` as ways out, `[{inner, outer, door: None, window: (x, y, z), smash}]` sorted by `outer`, with
-    the build announcing `window` (else []). Each window square `goals.usable_windows` reads (not `barricaded`, no
-    failed end of `goals.WINDOW_DEAD`: the one filter `window_pick` reads too); `inner` and `outer` its room square and
-    its outside square (`World.window_way`); `smash` True for a locked one (the record's `locked`, or a try that ended
-    `locked`), without `smash_ok`'s health and noise checks (ruling P26-6: a way out under a group takes the cut;
-    `window_pick` smashes only under `smash_ok`).
+    the build announcing `window` (else []). Each window square `windows.usable_windows` reads (not `barricaded`,
+    no failed end of `windows.WINDOW_DEAD`: the one filter `goals.window_pick` reads too); `inner` and `outer` its
+    room square and its outside square (`World.window_way`); `smash` True for a locked one (the record's `locked`,
+    or a try that ended `locked`), without `smash_ok`'s health and noise checks (ruling P26-6: a way out under a
+    group takes the cut; `window_pick` smashes only under `smash_ok`).
 
     Ruling P26-I (`walkable`, `Threat.WINDOW_INNER`; E17, `e_day_17-20261102-180459`: the stand's `inside` end walked
     out by building 2's kitchen window (10720, 10634), whose inside square read `solidTrans` with a `counter` on it;
@@ -205,7 +206,6 @@ def window_exits(world, building, z, walkable=True):
     it is ruled."""
     if not world.can("window"):
         return []
-    from agent.base.planner.goals import usable_windows   # goals imports this module at its top
     out = []
     for w, locked in usable_windows(world, building, z):
         way = world.window_way(w, building)

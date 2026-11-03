@@ -76,19 +76,22 @@ constants and record unchanged; the constants stay in `policies.py`).
   since P24-O), else the adoption or the trapped hold, and `give_way` keeps a running exit (f).
   Survival 18 (ruling P25-W, `planner/doorway.py`): a doorway stand ended under a group hands its Flee `walk_out`:
   the plan dropped and the adoption spent, so the choose walks the way out, else holds trapped; never the close.
-  Survival 19 (ruling P26-A, `window_exit_on`, Survive's `WINDOW_EXIT`): the way out may be a window
+  Survival 19 (ruling P26-A, the `window_exit` rule, Survive's `WINDOW_EXIT`): the way out may be a window
   (`policies.exit_plan`, `night.window_exits`), ranked after every door and opening; its step `window` walks to the
   centre of the window's inside square at the flee's gait while the player is not on it, then sends `Window(x, y,
   smash)` once (`_window_step`); the climb's end is read as the goal layer's `_climb_ended` reads one
   (`_window_ended`): `done` leaves the next choose to read the frame off the room squares (`left`), a frame still on
   one refusing the exit; `failed`, `rejected` or `timeout` notes the window's failure in the World
   (`World.note_window_fail`, so a WINDOW_DEAD end leaves it out of the next `exits`) and refuses the exit. Ruling
-  P26-B (`second_exit_on`, `STAND_SECOND_EXIT`): with the pick a doorway stand's (`stand_ok`), a free door whose
+  P26-B (`stand_second_exit`, `STAND_SECOND_EXIT`): with the pick a doorway stand's (`stand_ok`), a free door whose
   building has no other way out on its floor is refused `one_exit` (`door_verdicts`).
-  Survival 20 (ruling P26-I, `window_inner_on`, Survive's `WINDOW_INNER`): a window whose inside square reads `solid` or
-  `solidTrans` (E17's kitchen counter) is no way out (`night.window_exits`), for the exit and `_other_exit` alike.
-  Ruling P26-J (`window_stall_on`, `WINDOW_STALL`): the window act is stall-read as the walk is (WINDOW_STALL_S,
+  Survival 20 (ruling P26-I, the `window_inner` rule, Survive's `WINDOW_INNER`): a window whose inside square reads
+  `solid` or `solidTrans` (E17's kitchen counter) is no way out (`night.window_exits`), for the exit and
+  `_other_exit` alike.
+  Ruling P26-J (`window_stall`, `WINDOW_STALL`): the window act is stall-read as the walk is (WINDOW_STALL_S,
   `_stall_limit`), a stalled one refused `stalled`; a first `interrupted` end is sent once more (`_window_ended`).
+  The switches reach the Flee as one `rules` frozenset (`FLEE_RULES`, each on unless Survive's switch for it is off:
+  `threat.Threat._flee_rules`), as the Fight's do (`fight.FIGHT_RULES`).
 """
 import math
 import time
@@ -100,10 +103,15 @@ from agent.base.planner.policies import (AHEAD_CONE, AHEAD_R, DANGER_R, DISENGAG
                                          away_vector, centre,
                                          clear_heading, exit_plan, in_building, in_corridor, line_to, on_post, on_room,
                                          running, stand_post, target_id_ok, zdist)
+from agent.base.planner.windows import note_window_end
 from agent.base.pza1 import Climb, Interact, Steer, Stop, WalkTo, Window
 from agent.base.world import me_floor, me_xy
 
-__all__ = ["Flee"]
+__all__ = ["Flee", "FLEE_RULES"]
+
+FLEE_RULES = ("door_walk", "window_exit", "stand_second_exit", "window_inner", "window_stall")   # the Flee's rules
+                     # of survival iterations 13, 17 and 18 (P25-E; P26-A, P26-B; P26-I, P26-J), each Survive's switch
+                     # lower-cased and on in `rules` unless that switch is off
 
 
 class Flee(Policy):
@@ -140,13 +148,7 @@ class Flee(Policy):
                                  # `planner.doorway`)
         self.gait = FLEE_GAIT    # Survive sets it each tick: the gait of every leg and walk (P25-C: `walk` under the
                                  # endurance hold with no zombie within DANGER_R)
-        self.door_walk_on = True  # Survive sets it each tick (its DOOR_WALK switch, P25-E)
-        self.window_exit_on = True   # Survive sets it each tick (its WINDOW_EXIT switch, P26-A): windows are ways out
-        self.second_exit_on = True   # Survive sets it each tick (its STAND_SECOND_EXIT switch, P26-B)
-        self.window_inner_on = True   # Survive sets it each tick (its WINDOW_INNER switch, P26-I): a window way out
-                                      # needs an inside square that can be stood on
-        self.window_stall_on = True   # Survive sets it each tick (its WINDOW_STALL switch, P26-J): the window act's
-                                      # progress is stall-read as the walk's, and an `interrupted` end is sent again
+        self.rules = frozenset(FLEE_RULES)   # Survive sets it each tick: the FLEE_RULES its switches leave on
         self.door_walk = None    # this observe: {stall, end} when a stand's walk stalled (P25-E), else None
         self.walking_out = None  # the doorway stand's end this Flee walks out on (P25-W: `walk_out`), else None
 
@@ -216,7 +218,7 @@ class Flee(Policy):
         if not self.actions.done(a):
             still = self._step_still(a)
             stalled = self._stalled(still)
-            if self.door_walk_on and self.plan.get("stand") and a.type == "walkTo" and still is not None:
+            if "door_walk" in self.rules and self.plan.get("stand") and a.type == "walkTo" and still is not None:
                 if stalled or still >= DOOR_WALK_S:
                     self._door_stall(a, still)   # P25-E: the stand's walk re-routes once, then drops
                 return
@@ -408,12 +410,12 @@ class Flee(Policy):
     def _stall_limit(self, a):
         """The wall seconds the running exit step `a` may leave the player within STUCK_MOVE of where it last moved
         before it is dropped, else None (not stall-read): WALK_STALL_S for a walk (fix round 1, G2); WINDOW_STALL_S for
-        a window way out's act with `window_stall_on` (ruling P26-J; E17's a81 held the player 12.9 s on the square east
-        of the kitchen counter while the Lua's queue stood empty from the first bite, `progress` on every act line,
-        until it failed `dead`); an open's `interact` is not read."""
+        a window way out's act under the `window_stall` rule (ruling P26-J; E17's a81 held the player 12.9 s on the
+        square east of the kitchen counter while the Lua's queue stood empty from the first bite, `progress` on every
+        act line, until it failed `dead`); an open's `interact` is not read."""
         if a.type == "walkTo":
             return WALK_STALL_S
-        if a.type == "window" and self.window_stall_on:
+        if a.type == "window" and "window_stall" in self.rules:
             return WINDOW_STALL_S
         return None
 
@@ -421,20 +423,19 @@ class Flee(Policy):
         """Ruling P26-A: the end of a window way out's step `a`. The climb's (`Window`), as the goal layer's
         `_climb_ended` reads one: `done` marks the exit `climbed` (the next `_exit_step` reads the frame off the room
         squares and ends it `left`, or refuses it with the frame still on one); any other end notes the window's failure
-        in the World (`goals.note_window_end`, the goal layer's own failure leg: a smash refused `locked`, a second
+        in the World (`windows.note_window_end`, the goal layer's own failure leg: a smash refused `locked`, a second
         `locked` or a second WINDOW_REPEAT end leaves the window dead) and refuses the exit, except a `locked` end of a
         try that was no smash (ruling P26-7c): the window is noted `locked`, its outside square is not refused and the
         exit ends, so the next `exit_plan` offers the same window with `smash` True (one episode tries the open, then
-        the smash). Ruling P26-J (`window_stall_on`): a climb dropped for its stall (`_stall_limit`) notes the window
+        the smash). Ruling P26-J (`window_stall`): a climb dropped for its stall (`_stall_limit`) notes the window
         `stalled` and refuses the exit, so the next choose takes the next way out or the trapped hold (its `Stop` ends
         the act still running; the `stalled` mark is a WINDOW_DEAD end, so the window stays out of the exits for
-        DOOR_RETRY_MIN, ruling P26-J2); a first `interrupted` end (`goals.note_window_end` answers it so: a second
+        DOOR_RETRY_MIN, ruling P26-J2); a first `interrupted` end (`windows.note_window_end` answers it so: a second
         within DOOR_RETRY_MIN reads `failed`) keeps the exit and sends the climb once more (`sent` reset), the second
         refusing it. The walk's to the window's inside square: `done` marks it `walked` (the climb goes next, the Lua's
         own walk to the near side taking it the rest of the way); a walk that failed or stalled refuses the exit, as a
         way out's failed walk with no door to open does."""
         if a.type == "window":
-            from agent.base.planner.goals import note_window_end   # goals imports night, which imports this module
             if a is self._dropped:
                 self.world.note_window_fail(e["window"], "stalled")   # P26-J: still running, its stall read
                 self._refuse_exit()
@@ -444,7 +445,7 @@ class Flee(Policy):
                 reason = note_window_end(self.world, e["window"], a)
                 if reason == "locked":
                     self._end_exit()   # P26-7c: an unsmashed try refused locked, the next choose offers the smash
-                elif reason == "interrupted" and self.window_stall_on:
+                elif reason == "interrupted" and "window_stall" in self.rules:
                     e["sent"] = False   # P26-J: the first interrupted climb is sent once more
                 else:
                     self._refuse_exit()
@@ -484,9 +485,9 @@ class Flee(Policy):
         within SHELTER_FLEE_R of the player, `rank` (its distance, the building's repr, the door); `verdict` "locked"
         when the map reads it locked or barricaded, "taken" when a known zombie stands on one of the building's squares
         (M4), in the door's corridor (`in_corridor`, I1 and M3) or nearer its approach square than to the player (a
-        held threat of `ts`), "one_exit" (ruling P26-B, `second_exit_on`: E16's stand in a shed whose one door the group
-        came through, its `inside` end reading no way out) when the pick is a doorway stand's (`stand_ok`) and the
-        door's building has no other way out on the door's floor (`_other_exit`), else "ok"."""
+        held threat of `ts`), "one_exit" (ruling P26-B, `stand_second_exit`: E16's stand in a shed whose one door the
+        group came through, its `inside` end reading no way out) when the pick is a doorway stand's (`stand_ok`) and
+        the door's building has no other way out on the door's floor (`_other_exit`), else "ok"."""
         N = _night()
         mx, my = me_xy(self.world)
         known = self._known()
@@ -511,7 +512,7 @@ class Flee(Policy):
                 elif (occupied or any(in_corridor((mx, my), c, z) for z in known)
                         or any(math.hypot(z["x"] - c[0], z["y"] - c[1]) < zdist(self.world, z) for z in ts)):
                     verdict = "taken"
-                elif self.stand_ok and self.second_exit_on and not self._other_exit(b, door):
+                elif self.stand_ok and "stand_second_exit" in self.rules and not self._other_exit(b, door):
                     verdict = "one_exit"
                 else:
                     verdict = "ok"
@@ -519,13 +520,18 @@ class Flee(Policy):
         return out
 
     def _other_exit(self, building, door):
-        """Ruling P26-B: `building` has a way out on `door`'s floor besides `door` (`night.exits`, its windows with
-        `window_exit_on`): another closed exterior door, an opening that is not the step through `door` itself
+        """Ruling P26-B: `building` has a way out on `door`'s floor besides `door` (`night.exits`, its windows under
+        the `window_exit` rule): another closed exterior door, an opening that is not the step through `door` itself
         (`World.door_way`: an open door's step is an opening), or a window (one whose inside square can be stood on,
-        with `window_inner_on`: ruling P26-I)."""
+        under the `window_inner` rule: ruling P26-I)."""
         way = self.world.door_way(door)
         return any(e["door"] != door and (e["inner"], e["outer"]) != way
-                   for e in _night().exits(self.world, building, door[2], self.window_exit_on, self.window_inner_on))
+                   for e in _night().exits(self.world, building, door[2], *self._window_rules()))
+
+    def _window_rules(self):
+        """`(windows, walkable)`, the `window_exit` and `window_inner` rules as `night.exits` and
+        `policies.exit_plan` take them (P26-A, P26-I)."""
+        return "window_exit" in self.rules, "window_inner" in self.rules
 
     def _shelter(self, ts):
         """The plan's next step (its walks at FLEE_GAIT); once done inside, a hold while every threat reads
@@ -679,7 +685,7 @@ class Flee(Policy):
             if cmd is not None or self.plan is not None:
                 return cmd
         if on_room(self.world):
-            self.exit = exit_plan(self.world, ts, self.refused, self.trans, self.window_exit_on, self.window_inner_on)
+            self.exit = exit_plan(self.world, ts, self.refused, self.trans, *self._window_rules())
             if self.exit is not None:
                 return self._exit_step()
             self.walking_out = None   # the stand's way out found none: the trapped hold is no running exit

@@ -712,11 +712,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.threats = held
             policy.hold_ok = breach is None
             policy.steer_now = self.group_steer is not None
-            policy.door_walk_on = self.DOOR_WALK   # P25-E
-            policy.window_exit_on = self.WINDOW_EXIT   # P26-A
-            policy.second_exit_on = self.STAND_SECOND_EXIT   # P26-B
-            policy.window_inner_on = self.WINDOW_INNER   # P26-I
-            policy.window_stall_on = self.WINDOW_STALL   # P26-J
+            policy.rules = self._flee_rules()   # P25-E, P26-A, P26-B, P26-I, P26-J
             walk = self._hold_walk(reason)   # P25-C: the endurance hold's flee walks with nobody within DANGER_R
             policy.gait = "walk" if walk else FLEE_GAIT
             policy.keep_gait()
@@ -838,6 +834,14 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("shove_break_run", self.SHOVE_BREAK_RUN),
                                                ("blocked_edge", self.BLOCKED_EDGE),
                                                ("wounded_swing", self.WOUNDED_SWING))
+                         if on)
+
+    def _flee_rules(self):
+        """The iterations 13, 17 and 18 Flee rules (`flee.FLEE_RULES`) whose switch is on: the Flee's `rules`."""
+        return frozenset(rule for rule, on in (("door_walk", self.DOOR_WALK), ("window_exit", self.WINDOW_EXIT),
+                                               ("stand_second_exit", self.STAND_SECOND_EXIT),
+                                               ("window_inner", self.WINDOW_INNER),
+                                               ("window_stall", self.WINDOW_STALL))
                          if on)
 
     def _door_targets(self):

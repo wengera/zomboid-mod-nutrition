@@ -54,3 +54,26 @@ def test_the_mixins_are_wired():
         assert issubclass(survive.Survive, mixin)
     for mixin in (FightPull, FightFinish):
         assert issubclass(fight.Fight, mixin) and issubclass(doorway.Doorway, mixin)
+
+
+def test_the_window_filter_and_failure_leg_live_in_windows_and_goals_re_exports_neither():
+    """Ruling P26-R: `usable_windows`, `note_window_end` and their WINDOW_DEAD and WINDOW_REPEAT moved from `goals` to
+    `planner/windows.py`, imported at the top of `night`, `flee`, `goals` and `goal_policies` (one object each)."""
+    from agent.base.planner import flee, goal_policies, night, windows
+    assert night.usable_windows is goals.usable_windows is windows.usable_windows
+    assert flee.note_window_end is goal_policies.note_window_end is windows.note_window_end
+    assert not set(windows.__all__) & set(goals.__all__)
+
+
+def test_the_flee_rules_are_its_switches_lower_cased_each_dropped_by_its_own_switch():
+    """Ruling P26-R: `Threat._flee_rules` hands the Flee `flee.FLEE_RULES` with every switch on, as `_fight_rules`
+    hands the Fight `fight.FIGHT_RULES`, and a switch off drops its own rule (the switch's name lower-cased) alone."""
+    import types
+    from agent.base.planner import flee
+    names = [r.upper() for r in flee.FLEE_RULES]
+    on = types.SimpleNamespace(**{n: getattr(survive.Survive, n) for n in names})
+    assert all(getattr(on, n) is True for n in names)
+    assert threat.Threat._flee_rules(on) == frozenset(flee.FLEE_RULES)
+    for n in names:
+        off = types.SimpleNamespace(**dict(vars(on), **{n: False}))
+        assert threat.Threat._flee_rules(off) == frozenset(flee.FLEE_RULES) - {n.lower()}, n

@@ -7,6 +7,7 @@ from agent.base import items as I
 from agent.base import world as W
 from agent.base.planner import goals as G
 from agent.base.planner import view as V
+from agent.base.planner import windows as WN
 from agent.base.pza1 import Window
 
 from .test_night import CLOSED, OPEN, house
@@ -390,7 +391,7 @@ def test_a_smash_try_refused_locked_leaves_the_window_out_and_a_second_locked_to
 
 
 def test_a_second_no_path_not_adjacent_or_interrupted_leaves_the_window_out(tmp_path):
-    for reason in G.WINDOW_REPEAT:
+    for reason in WN.WINDOW_REPEAT:
         d = tmp_path / reason.replace(" ", "_")
         d.mkdir()
         r, sv, g = stuck_door_rig(d)

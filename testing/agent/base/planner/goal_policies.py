@@ -11,11 +11,12 @@ from typing import ClassVar, Optional
 from agent.base.planner.edges import GoalEdge
 from agent.base.planner.goals import (ARRIVE_R, GOAL_MAX_S, LEG_CHUNK, LEG_MAX, LEG_MIN, LEG_SQ_MARGIN, OPTIONAL_FIELDS,
                                       REST_N, RUN_FIELDS, WANT_USES, WOODS_MAX_R, WOODS_R, WOODS_STEP,
-                                      held_of, looted, note_window_end, open_uses, wanted_uses, window_pick)
+                                      held_of, looted, open_uses, wanted_uses, window_pick)
 from agent.base.planner.night import (SHUN_MIN, door_blocked, hop_after, player_square, shelter_ended, shelter_plan,
                                       shelter_step)
 from agent.base.planner.policies import (Explore, LOOT_MAX_LEVEL, LootHouse, PREEMPTED, SCAN_R, centre, me_floor, me_xy,
                                          place_of)
+from agent.base.planner.windows import note_window_end
 from agent.base.pza1 import Climb, Scan, WalkTo, Window
 
 

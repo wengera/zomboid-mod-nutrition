@@ -158,6 +158,7 @@ import os
 from agent.base.items import holds_use
 from agent.base.planner.night import door_blocked
 from agent.base.planner.policies import CLOTHING_HELD_N, LOOT_WANTS, me_floor, me_xy
+from agent.base.planner.windows import usable_windows
 
 GOAL_MAX_S = 90.0     # wall seconds a goal may run before it is failed "goal budget" and replaced (a Rest: P23-W)
 GOAL_COOL_S = 30.0    # wall seconds a goal that failed having sent nothing is not taken again (fix 1, I4)
@@ -172,11 +173,6 @@ CONTAINERS_HELD_N = 2   # vessels held (`water` and `container`) at which `conta
 SMASH_MIN_HEALTH = 60.0   # health at or above which a window may be smashed (a smash is noise and, 1 time in 2, a glass cut:
                       # review-t9-fix9 ruling 6, "health above the bandage threshold"; a judgment, survive's pair-flee line)
 SMASH_ZOMBIE_R = 25.0   # tiles: a smash waits while a zombie is listed this near (the noise carries: the view's widest band)
-WINDOW_DEAD = ("not a window", "not valid", "fell", "failed", "no square", "stalled")   # a window action's ends that
-                      # leave the window out for DOOR_RETRY_MIN game minutes (World.note_window_fail); `locked` is read
-                      # apart; `stalled` (the Flee's climb dropped for its hold, ruling P26-J2) is a mark, not an end
-WINDOW_REPEAT = ("no path", "not adjacent", "interrupted")   # a window action's ends that are tried once more; the
-                      # second within DOOR_RETRY_MIN leaves the window out like a WINDOW_DEAD end (review-t24 major 2)
 BUILDING_R = 60.0     # tiles: an unlooted building this near is looted; farther, it is walked toward first (P24-Y)
 WOODS_R = 40.0        # tiles: a square with no building known this near is the woods, never a walk's target (P24-Y)
 REST_N = 3            # Rests in a row, no building newly read, before the woods radius widens (Task 18 fix 1, ruling
@@ -203,9 +199,9 @@ EXAMPLES = {"ExploreToward": {"x": 120, "y": 205}, "LootBuilding": {"building": 
 __all__ = ["Goal", "ExploreToward", "LootBuilding", "Shelter", "Stock", "Rest", "GoalSource", "ScriptedSource",
            "GoalRunner", "Kit", "validate", "open_uses", "int_id", "goal_key", "GOAL_MAX_S", "GOAL_COOL_S",
            "GOAL_HOLD_SUPERSEDE_TICKS", "COOL_REASONS",
-           "ARRIVE_R", "REST_S", "STOCK_WANTS", "BUILDING_R", "WOODS_R", "WINDOW_REPEAT", "CONTAINERS_HELD_N",
+           "ARRIVE_R", "REST_S", "STOCK_WANTS", "BUILDING_R", "WOODS_R", "CONTAINERS_HELD_N",
            "CLOTHING_HELD_N", "SMASH_MIN_HEALTH", "SMASH_ZOMBIE_R", "smash_ok", "window_pick",
-           "usable_windows", "note_window_end", "REST_N", "WOODS_STEP",
+           "REST_N", "WOODS_STEP",
            "WOODS_MAX_R", "wanted_uses", "LEG_MAX", "LEG_MIN", "LEG_CHUNK", "leg_max",
            "STOCK_KINDS", "RUN_FIELDS", "STATES", "SCHEMA_PATH", "EXAMPLES", "WANT_USES", "OPTIONAL_FIELDS", "held_of"]
 
@@ -303,43 +299,12 @@ def smash_ok(world, building, shunned=()):
     return _num(health) and health >= SMASH_MIN_HEALTH
 
 
-def usable_windows(world, building, z):
-    """`[(sq, locked)]`, the building's windows on floor `z` a window try may take (ruling P26-7c, one filter for
-    `window_pick` and `night.window_exits`): not barricaded and not left out by a failed end (`WINDOW_DEAD`),
-    `locked` True for a record read locked or a try that ended `locked`; the order of `World.windows`."""
-    out = []
-    for sq in world.windows(building):
-        rec = (world.map.get(sq) or {}).get("window") or {}
-        fail = world.window_fail(sq)
-        if sq[2] != z or rec.get("barricaded") is True or fail in WINDOW_DEAD:
-            continue
-        out.append((sq, rec.get("locked") is True or fail == "locked"))
-    return out
-
-
-def note_window_end(world, sq, action):
-    """The reason a window action's failed end `action` at square `sq` is noted under (`World.note_window_fail`) and
-    returned (ruling P26-7c, one failure leg for the goal layer's `_window_ended` and the Flee's): the end's reason,
-    else its state; review-t24 major 2: a smash try refused `locked` (a barricade or a frame a smash cannot cure), a
-    second `locked`, or a second `WINDOW_REPEAT` end within DOOR_RETRY_MIN leaves the window out for good (`failed`).
-    A `locked` end of an unsmashed try is noted `locked` (the next `usable_windows` reads the window locked, and
-    smashed)."""
-    reason = action.reason or action.state
-    prior = world.window_fail(sq)
-    if reason == "locked" and (action.args.get("smash") is True or prior == "locked"):
-        reason = "failed"
-    elif reason in WINDOW_REPEAT and prior == reason:
-        reason = "failed"
-    world.note_window_fail(sq, reason)
-    return reason
-
-
 def window_pick(world, building, shunned=()):
     """`(x, y, z, smash)` of the building's window to try, else None (Task 24, the route past a stuck door): the
     build announces `window`; windows on the player's floor not barricaded and not left out by a failed end
-    (`usable_windows`); an open one first, then a shut unlocked one (opened, then climbed: no noise), then a locked
-    one (the record's `locked`, or a try that ended `locked`) only when `smash_ok`, with `smash` true; each nearest
-    the player."""
+    (`windows.usable_windows`); an open one first, then a shut unlocked one (opened, then climbed: no noise), then a
+    locked one (the record's `locked`, or a try that ended `locked`) only when `smash_ok`, with `smash` true; each
+    nearest the player."""
     if not world.can("window"):
         return None
     z = me_floor(world)

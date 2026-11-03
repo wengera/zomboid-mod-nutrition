@@ -165,25 +165,25 @@ def test_an_unlocked_window_goes_before_a_nearer_locked_one(tmp_path):
 
 
 def test_the_window_filter_and_the_failure_leg_are_the_goal_layer_s_for_both_callers(tmp_path):
-    """Ruling P26-7c: `goals.usable_windows` (the one filter of `window_pick` and `night.window_exits`) reads the
+    """Ruling P26-7c: `windows.usable_windows` (the one filter of `window_pick` and `night.window_exits`) reads the
     record's `locked` or a try that ended `locked`, and leaves out a barricaded window and a dead one;
-    `goals.note_window_end` (the one failure leg) notes an unsmashed `locked` end `locked`, a smash's or a second
+    `windows.note_window_end` (the one failure leg) notes an unsmashed `locked` end `locked`, a smash's or a second
     `locked` `failed`, a second WINDOW_REPEAT end `failed`."""
     from agent.base.actions import Action
-    from agent.base.planner import goals as G
+    from agent.base.planner import windows as WN
     r = e16_rig(tmp_path)
-    assert G.usable_windows(r.world, 1, 0) == [(WIN, False)] and G.usable_windows(r.world, 1, 1) == []
+    assert WN.usable_windows(r.world, 1, 0) == [(WIN, False)] and WN.usable_windows(r.world, 1, 1) == []
     ends = [Action(aid="a%d" % i, type="window", args=args, deadline_s=30.0, sent_wall=0.0, state=state, reason=reason)
             for i, (args, state, reason) in enumerate((({"x": 10710, "y": 10596}, "rejected", "locked"),
                                                        ({"x": 10710, "y": 10596, "smash": True}, "rejected", "locked"),
                                                        ({"x": 10710, "y": 10596}, "failed", "no path")))]
-    assert G.note_window_end(r.world, WIN, ends[0]) == "locked" and r.world.window_fail(WIN) == "locked"
-    assert G.usable_windows(r.world, 1, 0) == [(WIN, True)]
-    assert G.note_window_end(r.world, WIN, ends[0]) == "failed" and G.usable_windows(r.world, 1, 0) == []
+    assert WN.note_window_end(r.world, WIN, ends[0]) == "locked" and r.world.window_fail(WIN) == "locked"
+    assert WN.usable_windows(r.world, 1, 0) == [(WIN, True)]
+    assert WN.note_window_end(r.world, WIN, ends[0]) == "failed" and WN.usable_windows(r.world, 1, 0) == []
     r2 = e16_rig(tmp_path / "smash")
-    assert G.note_window_end(r2.world, WIN, ends[1]) == "failed"
+    assert WN.note_window_end(r2.world, WIN, ends[1]) == "failed"
     r3 = e16_rig(tmp_path / "repeat")
-    assert [G.note_window_end(r3.world, WIN, ends[2]) for _ in range(2)] == ["no path", "failed"]
+    assert [WN.note_window_end(r3.world, WIN, ends[2]) for _ in range(2)] == ["no path", "failed"]
 
 
 def flee_on(r):
@@ -238,7 +238,7 @@ def test_a_climb_done_with_the_frame_still_inside_refuses_the_window(tmp_path):
 
 
 def test_a_climb_that_fails_notes_the_window_and_refuses_it_the_next_choose_holds_trapped(tmp_path):
-    """A `Window` ended `rejected` "not valid" (one of `goals.WINDOW_DEAD`): the World notes the window's failure
+    """A `Window` ended `rejected` "not valid" (one of `windows.WINDOW_DEAD`): the World notes the window's failure
     (`window_fail`), its outside square refused for the episode; the next choose has no way out (the door's opening
     refused for the zombies on its square, the adoption dropped): the trapped hold."""
     r = e16_rig(tmp_path, me=(10710.5, 10596.5))
