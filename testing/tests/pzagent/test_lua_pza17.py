@@ -248,15 +248,49 @@ def test_unwear_refusals(lua, fs):
     start(lua, p, "unwear", aid="nh", itemId=999)
     start(lua, p, "unwear", aid="ba", itemId="x")
     start(lua, p, "unwear", aid="nw", itemId=91)
-    it.isEquipped = lambda s: True
+    p.getPrimaryHandItem = lambda s: it                                      # in a hand (P26-O)
     start(lua, p, "unwear", aid="he", itemId=90)
-    it.isEquipped = lambda s: False
+    p.getPrimaryHandItem = lambda s: None
     p.isPlayerMoving = lambda s: True
     start(lua, p, "unwear", aid="mo", itemId=90)
     assert states(acts(lua, fs)) == [("nh", "rejected", "none held"), ("ba", "rejected", "bad args"),
                                      ("nw", "rejected", "not worn"), ("he", "rejected", "held"),
                                      ("mo", "rejected", "moving")]
     assert other.st["worn"] is False and lua.globals()._unequips == []
+
+
+def test_unwear_of_a_worn_garment_whose_is_equipped_reads_true_queues_and_is_not_refused_held(lua, fs):
+    """P26-O (F9: three unwears of a worn T-shirt rejected held while two parts bled): the jar's
+    InventoryItem.isEquipped reads IsoGameCharacter.isEquipped, isEquippedClothing (wornItems.contains) or isHandItem,
+    so it reads true for every worn garment; only a hand refuses held."""
+    p, it = unwear_host(lua, equipped=True)
+    g = lua.globals()
+    start(lua, p, "unwear", itemId=90)
+    tick(lua, p)
+    assert states(acts(lua, fs)) == [("a1", "accepted", "")]
+    assert g._unequips == [(p, it, 50)] and g._queue.adds[-1].Type == "ISUnequipAction"
+
+
+def test_unwear_of_a_garment_in_the_primary_hand_is_refused_held(lua, fs):
+    p, it = unwear_host(lua, equipped=True)
+    p.getPrimaryHandItem = lambda s: it
+    start(lua, p, "unwear", itemId=90)
+    assert states(acts(lua, fs)) == [("a1", "rejected", "held")] and lua.globals()._unequips == []
+
+
+def test_unwear_of_a_garment_in_the_secondary_hand_is_refused_held(lua, fs):
+    p, it = unwear_host(lua, equipped=True)
+    p.getSecondaryHandItem = lambda s: it
+    start(lua, p, "unwear", itemId=90)
+    assert states(acts(lua, fs)) == [("a1", "rejected", "held")] and lua.globals()._unequips == []
+
+
+def test_unwear_of_a_worn_garment_beside_other_items_in_both_hands_passes(lua, fs):
+    p, it = unwear_host(lua)
+    bat, torch = hold(p, garment(92, loc="base:bag")), hold(p, garment(93, loc="base:bag"))
+    p.getPrimaryHandItem, p.getSecondaryHandItem = (lambda s: bat), (lambda s: torch)
+    start(lua, p, "unwear", itemId=90)
+    assert states(acts(lua, fs)) == [("a1", "accepted", "")]
 
 
 def test_a_walk_location_garment_is_taken_off_beside_a_walk_and_an_absent_list_refuses(lua, fs):
