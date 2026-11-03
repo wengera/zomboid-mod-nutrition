@@ -6,12 +6,14 @@ log's why fields, the artifact's actions and the state log's act lines, frames a
                 logs no why for a window it left out, so this counts the trapped lines while the kept map held a window
                 of the player's building whose inside square reads `solid` or `solidTrans`, and the window steps that
                 named such a window (an inference; the second must read 0 on a build with the rule).
-  window_stall  P26-J (`Threat.WINDOW_STALL`) and P26-M: the window climbs dropped for their stall (an inference off the
-                refused set that grew while the act still ran) and the `interrupted` ends, how many were sent again
-                (the Lua's P26-M end, the Flee's one more try) and how many were not (the exit refused).
+  window_stall  P26-J (`Threat.WINDOW_STALL`), P26-J2 (a `stalled` window a dead end, so its outer square joins the
+                Flee's `refused` set for good) and P26-M: the window climbs dropped for their stall (an inference off
+                the refused set that grew while the act still ran) and the `interrupted` ends, how many were sent
+                again (the Lua's P26-M end, the Flee's one more try) and how many were not (the exit refused).
   stand_crowd   P26-K (`Threat.STAND_CROWD`) and P26-K2: the stand's `crowd` ends with the count they logged, the exit
                 each took (`close` | `window` | `door` | `opening` | `trapped`), the closes sent on the end's tick and
-                whether a zombie read inside within CLOSE_INSIDE_S after one (an inference off the frames and the map).
+                whether a zombie read inside within CLOSE_INSIDE_S after one (an inference off the frames and the map),
+                and, P26-N2, the frozen stand_exit `closes` net of the closes the `crowd` ends' windows count.
 
 Each reading is {"read": False} without a decision log. A key marked reading counts what the log or the artifact
 states; one marked inference reads an effect off the map, the frames or the order of lines. Frozen once an artifact
@@ -30,7 +32,8 @@ CLOSE_INSIDE_S = 30.0        # wall seconds: a zombie on a square of the stand's
 STALL_SLACK_S = 1.0          # wall seconds: a window act sent this far before its run's first line still belongs to it
 STALL_LOOKAHEAD_LINES = 5    # log lines: the refused set is read at the first line within this many after a run that
                              # carries one (the trapped hold's, the next flee's)
-HELD_FLEES = ("many", "doorway")
+HELD_FLEES = ("many", "doorway")    # the flee reasons whose `trapped` hold `window_inner` counts (the brief's): a
+                                    # `trapped` under another reason (`strain`, `broken`) is not read
 
 
 def _sq(v):
@@ -84,13 +87,14 @@ def e_window_inner(L, lines):
     offered, windows, unread}. Inference, named so: the planner logs no why for a window `night.window_exits` left out,
     so both counts read the kept map as of the line (`_MapView`) for the windows of the building of the square the
     player stood on (the frame, else `inputs.x`/`y`) that were not barricaded and whose inside square
-    (`World.window_way`) reads `solid` or `solidTrans`. `lines` counts the threat lines that read the trapped hold
-    (`_held`: a `many` or `doorway` flee carrying `trapped`, or a `doorway_exit` reading `trapped`) while such a window
+    (`World.window_way`) reads `solid` or `solidTrans`. `lines` counts the trapped `many` and `doorway` flee lines
+    (`HELD_FLEES`; `_held`: such a flee carrying `trapped`, or a `doorway_exit` reading `trapped`) while such a window
     existed (a standable window beside it would have been offered, so these are the lines on which a left-out window
-    existed, not the lines it alone caused); `offered` the lines whose window step (`step` "window") names such a
-    window, which must read 0 on a build with the rule (E17's reading: the lines that walked to the counter's window);
-    `windows` lists those squares of both (distinct, sorted) and `unread` the trapped lines whose player square, or its
-    building, the map does not know."""
+    existed, not the lines it alone caused; a `trapped` under another flee reason is not counted, and E17 holds no
+    trapped line at all, so `lines` reads 0 there); `offered` the window-step lines (`step` "window") naming such an
+    unstandable window, the reading that catches E17 (32 lines walked to the kitchen counter's window) and the one
+    that must read 0 on a build with the rule; `windows` lists those squares of both (distinct, sorted) and `unread`
+    the trapped lines whose player square, or its building, the map does not know."""
     if L is None:
         return {"read": False}
     mv = E._MapView(lines)
@@ -169,8 +173,9 @@ def _stalled(out, L, lines):
 
 
 def e_window_stall(out, L, lines):
-    """The window stall and the interrupted end (P26-J, `Threat.WINDOW_STALL`, and P26-M): {read, stalled, windows,
-    interrupted, resent, refused_after_interrupt}. Inference (`_stalled`): `stalled` the window climbs the Flee dropped
+    """The window stall and the interrupted end (P26-J, `Threat.WINDOW_STALL`, P26-J2, a `stalled` window a dead end
+    whose outer square the Flee refuses, and P26-M): {read, stalled, windows, interrupted, resent,
+    refused_after_interrupt}. Inference (`_stalled`): `stalled` the window climbs the Flee dropped
     for their stall, `windows` their squares: the planner logs the drop only as the window's outer square joining the
     `refused` why, with no `window_fail` key, so the growth with the act still running stands for it. Reading, off the
     threat branch's `window` acts of loop.actions (the terminal act line's state and reason where one exists):
@@ -203,8 +208,9 @@ def e_window_stall(out, L, lines):
 
 def _inside_after(L, mv, ln):
     """True when a frame within CLOSE_INSIDE_S after the line's wall holds a zombie on a mapped square with a room of
-    the building the player stood in at the line, False when every mapped frame there holds none, None when the
-    player's building or every frame is unread."""
+    the building the player stood in at the line, False when every zombie there stands elsewhere or the frames hold
+    none at all (a clean close is a clean close), None when the player's building is unread or no frame follows, or
+    the zombies there stand on squares the map does not know."""
     wall = E._n(ln.get("wall"))
     me = E._frame_me(L, ln)
     if wall is None or me is None:
@@ -219,6 +225,8 @@ def _inside_after(L, mv, ln):
     seen = None
     for w, f in zip(walls[lo:hi], frames[lo:hi]):
         squares = mv.at(w / 1000.0)
+        if not E._l(f.get("zombies")) and seen is None:
+            seen = False
         for z in E._l(f.get("zombies")):
             x, y = E._n(E._d(z).get("x")), E._n(E._d(z).get("y"))
             if x is None or y is None:
@@ -232,18 +240,41 @@ def _inside_after(L, mv, ln):
     return seen
 
 
+def _exit_window_closes(L, ends):
+    """The sent `interact` `close` actions `gates_e.e_stand_exit` counts from the exit ticks whose `doorway_exit` end
+    is in `ends` (None: every end): the same walk, from the tick on while the threat why keeps answering a flee (the
+    care's lines included) to at most EXIT_WINDOW_LINES lines or the next stand end (`gates_e.py:3526-3532`)."""
+    rows, n = L.rows, 0
+    for i, ln in enumerate(rows):
+        ex = L.why(ln).get("doorway_exit")
+        if not isinstance(ex, dict) or (ends is not None and ex.get("end") not in ends):
+            continue
+        for j in range(i, min(len(rows), i + E.EXIT_WINDOW_LINES)):
+            r, rw = rows[j], L.why(rows[j])
+            if j > i and (rw.get("flee") is None or rw.get("doorway_left") is not None) and r.get("branch") != "care":
+                break
+            n += 1 if E._sent(r, "interact") and E._d(E._d(r.get("action")).get("args")).get("kind") == "close" else 0
+    return n
+
+
 def e_stand_crowd(L, lines):
     """The stand's crowd end (P26-K, `Threat.STAND_CROWD`, and P26-K2): {read, lines, n_hist, by_exit, closes,
-    inside_after_close, unread}. Reading: `lines` the threat lines whose `doorway_left` reads "crowd", `n_hist` the
-    count each logged in `doorway_crowd` {n} as a histogram, `by_exit` their `doorway_exit` {end crowd, exit} by `exit`
+    inside_after_close, unread} and, set by `grade_e15` from the frozen stand_exit reading, `stand_exit_closes_net`.
+    Reading: `lines` the threat lines whose `doorway_left` reads "crowd", `n_hist` the count each logged in
+    `doorway_crowd` {n} as a histogram, `by_exit` their `doorway_exit` {end crowd, exit} by `exit`
     (`close` for a crowd with nobody inside, K2; `window`, `door`, `opening` or `trapped` for a walk out; "none" for a
     line without one), `closes` the lines among them that sent an `interact` `close` on the end's tick. Inference off
     the frames and the map (`_MapView`): `inside_after_close` the closes after which a frame within CLOSE_INSIDE_S held
     a zombie on a room square of the building the player stood in (the close shut a room that was not empty, or one
-    that was entered by another way) and `unread` the closes whose building or frames the map does not know. The
-    reading is apart from the frozen `gates_e.e_stand_exit`: its `closes` (must read 0) counts the close after a stand's
-    wound, drag and inside ends, a `crowd` end's close (P26-K2, `doorway_exit` {end crowd, exit close}) is
-    counted here only, and this reader never reads or changes `stand_exit`."""
+    that was entered by another way) and `unread` the closes whose building or frames the map does not know (a close
+    followed by frames that hold no zombie at all is clean, not unread). The frozen `gates_e.e_stand_exit` counts the
+    sent `close` from any `doorway_exit` tick on (`gates_e.py:3532`), whatever the end, and reads `STAND_EXIT_ENDS`
+    (P26-N: its frozen tuple) for `exit_missing` only, so its `closes` (must read 0) also counts a `crowd` end's K2
+    close and the closes sent within EXIT_WINDOW_LINES after it; a nonzero value on E18 is read against this
+    reader's `closes`, not as a defect of the exit rule (P26-N2). `stand_exit_closes_net` (inference, set by
+    `grade_e15`) is that frozen count minus the closes `_exit_window_closes` finds from the `crowd` end ticks with
+    the same window, which equals the frozen count over the other ends because the frozen reader adds each tick's
+    window apart; it is the number that must read 0."""
     if L is None:
         return {"read": False}
     mv = E._MapView(lines)
@@ -271,8 +302,9 @@ def _lines_e15(g):
     wi, ws, sc = (E._d(g.get(k)) for k in ("window_inner", "window_stall", "stand_crowd"))
     out = []
     out.append(("window inner square (P26-I) [inference]: %s trapped lines while the kept map held a window of the "
-                "player's building whose inside square reads solid or solidTrans, %s window-step lines naming one "
-                "(must read 0), at %s; %s trapped lines with the player's square or building unread" % (
+                "player's building whose inside square reads solid or solidTrans (many and doorway flee lines only), "
+                "%s window-step lines naming one (the E17 reading; must read 0), at %s; %s trapped lines with the "
+                "player's square or building unread" % (
                     wi.get("lines"), wi.get("offered"), wi.get("windows"), wi.get("unread")))
                if wi.get("read") else "window inner square (P26-I): no decision log read")
     out.append(("window stall and interrupt (P26-J, P26-M) [reading]: %s interrupted window acts, %s sent again, %s "
@@ -281,10 +313,12 @@ def _lines_e15(g):
                     ws.get("windows"))) if ws.get("read") else "window stall and interrupt (P26-J, P26-M): no decision "
                                                                 "log read")
     out.append(("stand crowd end (P26-K, P26-K2) [reading]: %s `crowd` ends, sizes %s, exits %s, %s closes sent on "
-                "the tick (the frozen stand_exit `closes` reading excludes `crowd` ends from P26-N on); [inference] "
-                "%s closes followed within CLOSE_INSIDE_S by a zombie inside, %s unread" % (
+                "the tick (the frozen stand_exit `closes` also counts a `crowd` end's close and those sent within "
+                "EXIT_WINDOW_LINES after it, so a nonzero value there is read against this count, P26-N2); "
+                "[inference] %s closes followed within CLOSE_INSIDE_S by a zombie inside, %s unread; the frozen "
+                "stand_exit closes net of the `crowd` ends' windows %s (must read 0)" % (
                     sc.get("lines"), sc.get("n_hist"), sc.get("by_exit"), sc.get("closes"),
-                    sc.get("inside_after_close"), sc.get("unread"))) if sc.get("read")
+                    sc.get("inside_after_close"), sc.get("unread"), sc.get("stand_exit_closes_net"))) if sc.get("read")
                else "stand crowd end (P26-K, P26-K2): no decision log read")
     return out
 
@@ -314,6 +348,8 @@ def grade_e15(out, prev=None, decision_lines=None, state_dir=None, lines=None):
     g["window_inner"] = e_window_inner(L, lines)
     g["window_stall"] = e_window_stall(out, L, lines)
     g["stand_crowd"] = e_stand_crowd(L, lines)
+    if g["stand_crowd"].get("read") and g.get("stand_exit", {}).get("read"):
+        g["stand_crowd"]["stand_exit_closes_net"] = g["stand_exit"]["closes"] - _exit_window_closes(L, ("crowd",))
     g["report_lines"] = report_lines_e15(g)
     return g
 

@@ -160,7 +160,8 @@ def test_the_stand_crowd_counts_the_crowd_ends_their_sizes_their_exits_the_close
 
 
 def test_a_zombie_inside_only_after_the_window_is_not_counted_and_a_log_without_a_crowd_end_reads_zero():
-    zero = {"read": True, "lines": 0, "n_hist": {}, "by_exit": {}, "closes": 0, "inside_after_close": 0, "unread": 0}
+    zero = {"read": True, "lines": 0, "n_hist": {}, "by_exit": {}, "closes": 0, "inside_after_close": 0, "unread": 0,
+            "stand_exit_closes_net": 0}
     assert crowd_fixture(flag=False) == zero
     assert grade(log=None)["stand_crowd"] == {"read": False}
 
@@ -173,9 +174,27 @@ def test_the_stand_crowd_reads_unread_when_the_close_has_no_mapped_frame_after_i
     assert (g["lines"], g["closes"], g["inside_after_close"], g["unread"]) == (1, 1, 0, 1)
 
 
-def test_a_crowd_close_counts_in_the_stand_crowd_closes_and_the_stand_exit_reading_is_left_as_grade_e14_read_it():
-    """Review t7 minor 1 (the coordinator's amendment): the `crowd:close` tick is `stand_crowd`'s, apart from the
-    frozen `stand_exit.closes`; the reader does not touch `stand_exit`, which grade_e15 carries unchanged."""
+def test_a_close_followed_by_frames_without_a_zombie_is_clean_and_not_unread():
+    """Review t7b minor 1: frames within CLOSE_INSIDE_S that hold no zombie at all read `inside_after_close` 0 and
+    `unread` 0; a zombie on a square the map does not know leaves the close unread."""
+    close = _act("interact", x=3, y=0, kind="close")
+    log = [aline(0, 0.0, {"flee": "doorway", "doorway_left": "crowd", "doorway_crowd": {"n": 4},
+                          "doorway_exit": {"end": "crowd", "exit": "close"}}, close)]
+    squares = [sqr(x, 0, room="shed", building=2) for x in range(3, 7)]
+    clean = [zf(-0.5, x=4.5, y=0.5), zf(1.0, x=4.5, y=0.5), zf(5.0, x=4.5, y=0.5), mline(-1, squares)]
+    g = grade(log=log, frames=clean)["stand_crowd"]
+    assert (g["closes"], g["inside_after_close"], g["unread"]) == (1, 0, 0)
+    far = [zf(-0.5, x=4.5, y=0.5), zf(1.0, x=4.5, y=0.5, zombies=[{"id": 1, "x": 40.5, "y": 0.5}]),
+           mline(-1, squares)]
+    g = grade(log=log, frames=far)["stand_crowd"]
+    assert (g["closes"], g["inside_after_close"], g["unread"]) == (1, 0, 1)
+
+
+def test_a_crowd_close_counts_in_the_frozen_stand_exit_closes_and_the_net_key_takes_it_out():
+    """Review t7b major 1 (P26-N2): the frozen `gates_e.e_stand_exit` counts the sent `close` from any `doorway_exit`
+    tick on (`gates_e.py:3532`), a `crowd` end's K2 close included, so `stand_exit.closes` reads 1 on a `crowd:close`
+    line; `stand_crowd.stand_exit_closes_net` is that count without the `crowd` ends' windows (0 here, 1 for a
+    close after an `inside` end), and `stand_exit` itself is left as grade_e14 read it."""
     import ast
     import inspect
     close = _act("interact", x=3, y=0, kind="close")
@@ -185,11 +204,31 @@ def test_a_crowd_close_counts_in_the_stand_crowd_closes_and_the_stand_exit_readi
     e15 = G.grade_e15(a, decision_lines=log, lines=[])
     e14 = G14.grade_e14(a, decision_lines=log, lines=[])
     assert e15["stand_crowd"]["closes"] == 1 and e15["stand_crowd"]["by_exit"] == {"close": 1}
+    assert e15["stand_exit"]["closes"] == 1 and e15["stand_exit"]["by_pair"] == {"crowd:close": 1}
+    assert e15["stand_crowd"]["stand_exit_closes_net"] == 0
     assert e15["stand_exit"] == e14["stand_exit"]
-    for fn in (G.e_stand_crowd, G.grade_e15):
-        body = ast.parse(inspect.getsource(fn)).body[0].body[1:]        # the docstring left out
-        assert not any(isinstance(n, ast.Constant) and n.value == "stand_exit" for b in body for n in ast.walk(b))
-    assert "excludes `crowd` ends from P26-N on" in e15["report_lines"][-1]
+    body = ast.parse(inspect.getsource(G.e_stand_crowd)).body[0].body[1:]        # the docstring left out
+    assert not any(isinstance(n, ast.Constant) and n.value == "stand_exit" for b in body for n in ast.walk(b))
+    assert "net of the `crowd` ends' windows 0 (must read 0)" in e15["report_lines"][-1]
+    assert "P26-N2" in e15["report_lines"][-1] and "excludes" not in e15["report_lines"][-1]
+
+
+def net_fixture():
+    """A `crowd:close` line then an `inside:window` line with a close sent within its window: the frozen reader counts
+    2 closes, the net key 1 (the one the exit rule has not replaced)."""
+    close = _act("interact", x=3, y=0, kind="close")
+    log = [aline(0, 0.0, {"flee": "doorway", "doorway_left": "crowd", "doorway_crowd": {"n": 4},
+                          "doorway_exit": {"end": "crowd", "exit": "close"}}, close),
+           aline(1, 1.0, {"flee": "doorway", "doorway_left": "inside",
+                          "doorway_exit": {"end": "inside", "exit": "window"}}, close)]
+    return grade(log=log)
+
+
+def test_a_close_after_a_non_crowd_end_reads_net_1():
+    g = net_fixture()
+    assert g["stand_exit"]["closes"] == 2 and g["stand_crowd"]["closes"] == 1
+    assert g["stand_crowd"]["stand_exit_closes_net"] == 1
+    assert grade(log=None)["stand_crowd"] == {"read": False}
 
 
 # ================================================================ grade_e15 over grade_e14
@@ -262,7 +301,22 @@ MUTANTS = [
      lambda: crowd_fixture()["closes"] == 2),
     ("_inside_after", lambda b: b.replace("(wall + CLOSE_INSIDE_S)", "(wall + 1.0)"),
      lambda: crowd_fixture()["inside_after_close"] == 2),
+    ("grade_e15", lambda b: b.replace(' - _exit_window_closes(L, ("crowd",))', ""),
+     lambda: net_fixture()["stand_crowd"]["stand_exit_closes_net"] == 1),
+    ("_exit_window_closes", lambda b: b.replace("ex.get(\"end\") not in ends", "False"),
+     lambda: net_fixture()["stand_crowd"]["stand_exit_closes_net"] == 1),
+    ("_inside_after", lambda b: b.replace("if not E._l(f.get(\"zombies\")) and seen is None:", "if False:"),
+     lambda: _a_clean_close_is_not_unread()),
 ]
+
+
+def _a_clean_close_is_not_unread():
+    close = _act("interact", x=3, y=0, kind="close")
+    log = [aline(0, 0.0, {"flee": "doorway", "doorway_left": "crowd", "doorway_crowd": {"n": 4},
+                          "doorway_exit": {"end": "crowd", "exit": "close"}}, close)]
+    squares = [sqr(x, 0, room="shed", building=2) for x in range(3, 7)]
+    frames = [zf(-0.5, x=4.5, y=0.5), zf(1.0, x=4.5, y=0.5), mline(-1, squares)]
+    return grade(log=log, frames=frames)["stand_crowd"]["unread"] == 0
 
 
 def _a_fight_line_is_no_hold():
@@ -329,7 +383,7 @@ def test_grade_e15_on_e17_keeps_every_grade_e14_key_as_the_committed_e_grade_txt
     assert g["window_stall"] == {"read": True, "stalled": 0, "windows": [], "interrupted": 0, "resent": 0,
                                  "refused_after_interrupt": 0}
     assert g["stand_crowd"] == {"read": True, "lines": 0, "n_hist": {}, "by_exit": {}, "closes": 0,
-                                "inside_after_close": 0, "unread": 0}
+                                "inside_after_close": 0, "unread": 0, "stand_exit_closes_net": 0}
 
 
 def test_grade_e15_on_e16_keeps_every_grade_e13_key_through_grade_e14_and_reads_the_new_keys_zero():
@@ -338,6 +392,7 @@ def test_grade_e15_on_e16_keeps_every_grade_e13_key_through_grade_e14_and_reads_
     assert g["window_inner"] == {"read": True, "lines": 0, "offered": 0, "windows": [], "unread": 0}
     assert g["window_stall"]["stalled"] == 0
     assert g["stand_crowd"]["lines"] == 0 and g["stand_crowd"]["closes"] == 0
+    assert g["stand_crowd"]["stand_exit_closes_net"] == 0
     for k in NEW + T14.NEW:
         mine.pop(k)
     mine["grade"] = "grade_e13"
