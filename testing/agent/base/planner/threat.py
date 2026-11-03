@@ -132,6 +132,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     WOUNDED_SWING = True  # ruling P26-L1: under the `wounded` reason a lone standing target at point blank with
                           # SHOVE_FAIL_N missed shoves on record is swung at in the shove's place, ahead of the corner
                           # and the breaks (`shove.FightShove._wounded_swing`); off, the shove, the corner, the breaks
+    BLEED_HOLD = True     # ruling P26-L2: the dressing P26-D's yield sent is held while the zombie within FIGHT_REACH
+                          # is not closing (`care_yield.CareYield._bleed_holds`); off, any zombie there supersedes it
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -607,6 +609,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         threat branch's start in `assess` (the rules before it)."""
         self.care_yield, self.care.ride_now, self.engaging, self.avoid = None, False, False, set()
         self.bleed_yield = None   # P26-D: this tick's yield the bleed's rule made
+        self.bleed_held = False   # P26-L2: this tick's yield the dressing's hold made
         self.finish_block = None   # Task 36 fix 1: this tick's refusal only (`_finish_chaser` sets it)
         self._release_edges()   # P25-X: a zombie refused across a blocked edge, read on the player's side, is free
         self._held, self._breach_now = [], None
@@ -649,6 +652,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                 self.why["ride"] = True
             if self.bleed_yield is not None:
                 self.why["care_yield"] = {"why": "bleed", "near": self.bleed_yield}   # P26-D
+                if self.bleed_held:
+                    self.why["care_yield"]["held"] = True   # P26-L2: held only by the dressing's hold
             return None
         return self._decide(held, breach)
 

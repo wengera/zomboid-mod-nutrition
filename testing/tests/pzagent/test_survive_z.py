@@ -24,9 +24,14 @@ window (10720, 10634), a `solidTrans` square holding a `counter`, where the wind
   alone, a lone standing target at point blank with SHOVE_FAIL_N missed shoves on record is swung at in the shove's
   place, ahead of the corner and the breaks; a second zombie within DANGER_R gives them back (F8's last fight: six
   shoves at 28762, health 1.1920000314712524, none knocking down, two lone breaks, no swing).
+- P26-L2 (Task 7d), the bleed dressing kept to its end (`BLEED_HOLD`): the dressing P26-D's yield sent is held while
+  the zombie within FIGHT_REACH is not closing; closing there, or within POINT_BLANK_R, supersedes it (F8's two,
+  a272 and a280, each superseded by a zombie closing inside FIGHT_REACH: the rule holds neither).
 """
 import functools
 import os
+
+import pytest
 
 from agent.base import replay_decisions as R
 from agent.base.planner import flee as FL
@@ -35,7 +40,7 @@ from agent.base.planner import survive as S
 from agent.base.world import World, me_xy
 
 from . import test_survive_y as Y
-from .test_survive import make, threat_why, tick
+from .test_survive import last, make, threat_why, tick
 
 E17 = os.path.join(R.ARTIFACTS, "e_day_17-20261102-180459")
 COUNTER = (10720, 10634, 0)       # the kitchen window's square: its record on its own west edge, a `counter` on it
@@ -662,3 +667,110 @@ def test_two_missed_shoves_shove_again_and_a_hold_or_the_low_fight_never_swings(
         setattr(f, attr, value)
         assert f._wounded_swing(1, z) is None, attr
         setattr(f, attr, () if attr == "spent" else None)
+
+
+# ================================================ P26-L2: the bleed dressing kept to its end
+DRESSED = 1381   # a272: the bleed's yield's dressing (part 9), the nearest 2.49867461357495 tiles off
+BACKPEDAL = 1385   # a273: the backpedal that superseded it, 28762 at 1.4588033009706454
+REDRESSED, FLED = 1408, 1412   # a280, the second; a281, the `health` flee's steer that superseded it
+
+
+def test_f8_s_two_bleed_dressings_were_superseded_each_by_a_zombie_closing_inside_fight_reach():
+    """The reading: P26-D's yield sent a272 at line 1381 and a280 at 1408 (each `care_yield` {why bleed}); the threat
+    branch's sends superseded both (a273, the backpedal at line 1385, and a281, the `health` flee's steer at 1412),
+    each with 28762 inside FIGHT_REACH and beyond POINT_BLANK_R, nearer than three ticks before (the `_closing` read:
+    3.1445653688463455 at line 1383, 2.285627371974817 at 1410). P26-L2 holds a dressing only from a zombie that is not
+    closing, so F8 replayed with BLEED_HOLD alone on sends what the record sent on every line from 1381 to 1420."""
+    lines, rows, _ = f8()
+    aids, _ = R.recorded_aids(lines, rows)
+    for k, aid in ((DRESSED, "a272"), (REDRESSED, "a280")):
+        assert aids[k] == aid and rows[k - 1]["action"]["type"] == "bandage"
+        assert threat(rows[k - 1])["care_yield"]["why"] == "bleed"
+    ends = {ln["aid"]: ln for ln in lines if ln["kind"] == "act" and ln["state"] in ("done", "failed")}
+    assert (ends["a272"]["state"], ends["a272"]["reason"]) == ("failed", "superseded")
+    assert (ends["a280"]["state"], ends["a280"]["reason"]) == ("failed", "superseded")
+    assert (aids[BACKPEDAL], aids[FLED]) == ("a273", "a281")
+    assert threat(rows[BACKPEDAL - 1])["dist"] == 1.4588033009706454 and threat(rows[FLED - 1])["flee"] == "health"
+    for k, before in ((BACKPEDAL, BACKPEDAL - 2), (FLED, FLED - 2)):
+        w, b = f8_world(k), f8_world(before)
+        d, d0 = P.zdist(w, w.zombies[LONE]), P.zdist(b, b.zombies[LONE])
+        assert P.POINT_BLANK_R < d <= P.FIGHT_REACH and d < d0, k
+    on, off = f8_replay(1420, BLEED_HOLD=True), f8_replay(1420)
+    assert [sent(r) for r in on[DRESSED - 1:]] == [sent(r) for r in off[DRESSED - 1:]] == \
+        [sent(r) for r in rows[DRESSED - 1:]]
+    assert not any((threat(r).get("care_yield") or {}).get("held") for r in on)
+
+
+def bleed_fight(tmp_path, first, then, hold=True, mark=True):
+    """F8's second-wound fight on the Rig: a bat held, the arms' pain F8_PAIN, part 9 bleeding, a clean rag held; the
+    lone zombie `first` tiles east (the Fight made), then 2.49867461357495 (line 1381's: nothing within FIGHT_REACH,
+    the bleed's yield sends the dressing, accepted and running; with `mark` false its mark `bleed_dressing` cleared),
+    then `then` tiles, ticked with `BLEED_HOLD` as given: (r, sv, the dressing, the last tick's send)."""
+    from .test_survive_g import hold as held_item, part
+    r, sv = make(tmp_path)
+    sv.BLEED_HOLD = hold
+    wounds = {"armPain": F8_PAIN, "strain": {"l": 0.0, "r": 0.0}, "bleeding": 1,
+              "parts": [part(9, bleeding=True, bleedingTime=5.0)]}
+
+    def at(x):
+        zs = [dict(z, health=LONE_HEALTH) for z in Y.zs([(1, 100.0 + x, 200.0)], (100.0, 200.0))]
+        r.frame(zombies=zs, wounds=wounds)
+
+    at(first)
+    held_item(r, 10, "Base.RippedSheets", use="other")
+    tick(r, sv)
+    assert sv.mode == "fight" and last(tmp_path)["branch"] == "threat"
+    r.advance(0.5)
+    at(2.49867461357495)
+    a = tick(r, sv)
+    assert last(tmp_path)["branch"] == "care" and (a.type, a.args) == ("bandage", {"itemId": 10, "part": 9})
+    assert threat_why(tmp_path)["care_yield"] == {"why": "bleed", "near": pytest.approx(2.49867461357495)}
+    assert sv.bleed_dressing is a
+    if not mark:
+        sv.bleed_dressing = None
+    r.fake.answer({"bandage": ["accepted"]})
+    r.pump()
+    r.advance(0.5)
+    at(then)
+    return r, sv, a, tick(r, sv)
+
+
+def test_a_bleed_dressing_holds_while_the_zombie_in_reach_is_not_closing(tmp_path):
+    """Line 1385's distance (1.4588033009706454, within FIGHT_REACH, beyond POINT_BLANK_R) reached from
+    1.2192022022657956 two ticks before (line 1378's): not closing; the dressing is held (no send, the care branch
+    holding it), logged `care_yield` {why bleed, near, held true}; with the switch off the Fight's send supersedes
+    it."""
+    r, sv, dressing, a = bleed_fight(tmp_path, 1.2192022022657956, 1.4588033009706454)
+    w = threat_why(tmp_path)
+    assert a is None and last(tmp_path)["branch"] == "care" and r.acts.current is dressing
+    assert w["care_yield"] == {"why": "bleed", "near": pytest.approx(1.4588033009706454), "held": True}
+    d = tmp_path / "off"
+    d.mkdir()
+    r, sv, dressing, a = bleed_fight(d, 1.2192022022657956, 1.4588033009706454, hold=False)
+    assert a is not None and last(d)["branch"] == "threat" and "care_yield" not in threat_why(d)
+
+
+def test_a_zombie_closing_inside_fight_reach_supersedes_the_bleed_dressing(tmp_path):
+    """F8's own case: 2.6 tiles two ticks before, 1.4588033009706454 now (closing inside FIGHT_REACH): the threat
+    branch's send supersedes the dressing, as a273 did."""
+    r, sv, dressing, a = bleed_fight(tmp_path, 2.6, 1.4588033009706454)
+    assert a is not None and a.type == "aim" and last(tmp_path)["branch"] == "threat"
+    assert threat_why(tmp_path)["leg"] == "back" and "care_yield" not in threat_why(tmp_path)
+
+
+def test_a_zombie_at_point_blank_supersedes_the_bleed_dressing_with_the_shove(tmp_path):
+    """0.9873355970062675 tiles (line 1386's), not closing (0.9 two ticks before): within POINT_BLANK_R the shove
+    goes."""
+    r, sv, dressing, a = bleed_fight(tmp_path, 0.9, 0.9873355970062675)
+    assert (a.type, a.args) == ("shove", {"targetId": 1}) and last(tmp_path)["branch"] == "threat"
+
+
+def test_only_the_bleed_s_own_dressing_is_held(tmp_path):
+    """The hold is the bleed yield's dressing's (`bleed_dressing`, set at its send): the same running bandage with its
+    mark cleared (as a bandage P24-P's yield sent beyond CARE_R) is superseded at line 1385's distance, not closing."""
+    r, sv, dressing, a = bleed_fight(tmp_path, 1.2192022022657956, 1.4588033009706454, mark=False)
+    assert a is not None and last(tmp_path)["branch"] == "threat" and "care_yield" not in threat_why(tmp_path)
+
+
+def test_the_bleed_hold_s_switch():
+    assert "BLEED_HOLD" in S.T8_SWITCHES and S.Survive.BLEED_HOLD is True

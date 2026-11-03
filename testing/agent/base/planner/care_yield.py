@@ -1,5 +1,6 @@
 """The threat branch's yield to the care branch: the mixin `CareYield` that `threat.Threat` derives from (rulings
-P24-P, P24-U and P24-AR: the bandage under a held threat, the ride on a flee leg, the care tick in a long flee).
+P24-P, P24-U and P24-AR: the bandage under a held threat, the ride on a flee leg, the care tick in a long flee; P26-D's
+bleed under the threat branch and P26-L2's hold of its dressing).
 Moved out of `threat.py` at Plan 25 Task 2 (a pure move: every rule, switch and constant unchanged; the constants
 in `policies.py`'s table); its state is `Survive`'s own, set in `Survive.__init__`, and `survive.py`'s module docstring
 stays the record of every rule here.
@@ -75,7 +76,10 @@ class CareYield:
         read or CARE_R would refuse yields all the same when the bleed leaves room (`_bleed_free`: no zombie within
         FIGHT_REACH, the nearest listed beyond POINT_BLANK_R) and the bleeding step's send is a dressing
         (`Care.dresses_wound`, never a rip or an unwear), the running bandage held while the room lasts. A yield only
-        this rule made is kept in `bleed_yield` (the threat why's `care_yield` {why "bleed", near})."""
+        this rule made is kept in `bleed_yield` (the threat why's `care_yield` {why "bleed", near}). Ruling P26-L2
+        (`BLEED_HOLD`): the dressing that yield sent keeps the room with a zombie within FIGHT_REACH while none closes
+        (`_bleed_holds`), a tick so held kept in `bleed_held` (the why's `care_yield` {why "bleed", near, held
+        true})."""
         if not self.world.can("bandage") or not self._nearest_seen or self.care.riding() is not None:
             return None
         near = self._nearest_seen[-1][1]
@@ -103,6 +107,7 @@ class CareYield:
         if not self.care.dresses_wound():
             return None
         self.bleed_yield = near   # P26-D: the yield the bleed's room made
+        self.bleed_held = bool(self._within(FIGHT_REACH))   # P26-L2: the room only the dressing's hold made
         return near
 
     def _bleed_leg(self):
@@ -118,12 +123,30 @@ class CareYield:
         P24-P's fix 2: a standing bandage stops the run), no zombie within FIGHT_REACH (`_within`: the Fight has no
         target in reach, nor any other zombie there, one read dead or held out across a blocked edge aside) and the
         nearest listed zombie beyond POINT_BLANK_R: the fight line between swings. F7's read (the task's report) asks
-        for no radius of its own: its undressed fight lines lay 2.27 to 7.71 tiles from their nearest zombie."""
+        for no radius of its own: its undressed fight lines lay 2.27 to 7.71 tiles from their nearest zombie. With a
+        zombie within FIGHT_REACH the room lasts only for the running dressing this yield sent, while that zombie is
+        not closing (`_bleed_holds`, ruling P26-L2)."""
         if not self.THREAT_BLEED or self.mode != "fight" or self.fight is None or self.fight.doorway is not None:
             return False
         if self._nearest_seen[-1][1] <= POINT_BLANK_R:
             return False
-        return not self._within(FIGHT_REACH)
+        return not self._within(FIGHT_REACH) or self._bleed_holds()
+
+    def _bleed_holds(self):
+        """Ruling P26-L2 (F8, `f_goals_9-20261102-181937`: P26-D's two dressings in its last fight, a272 and a280,
+        were superseded 1.999 and 1.951 s in, against the 2.601 and 2.726 s of the dressings that landed, by the
+        threat branch's backpedal and its `health` flee's steer, 28762 within FIGHT_REACH): with `BLEED_HOLD` on, the
+        dressing the bleed's yield sent (`bleed_dressing`, `Survive._apply`), still running as the care's own
+        bandage, is held as P25-D holds a riding one while the nearest listed zombie, within FIGHT_REACH, is not
+        closing (`_closing`): the threat branch's sends (the Fight's shove, swing or stance leg) wait; a zombie
+        closing inside FIGHT_REACH, or one within POINT_BLANK_R (`_bleed_free`), supersedes it as before. Both of
+        F8's read closing (each nearer than two ticks before), so neither would have been held. Cost if wrong: a
+        bandage completing while a zombie walks in from 1.5 tiles (the stance leg lost); the closing read and the
+        Fight's reach bound it."""
+        a = self.bleed_dressing
+        if not self.BLEED_HOLD or a is None or not self.care.busy() or self.care.last is not a:
+            return False
+        return not self._closing()
 
     def _rides_many(self, near):
         """Ruling P24-AR, the care tick inside a long flee (E9: four bites bled the health from 96.39065551757812 to 0
