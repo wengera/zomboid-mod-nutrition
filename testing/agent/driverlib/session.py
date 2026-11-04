@@ -922,12 +922,10 @@ class Session:
         return record.death_record(self, via, detail)
 
     def death_via(self):
-        """loop.death.via: "event" (the Lua's death event first), "frame" (a 0 frame first) or "players" (neither
-        before the stop: since Plan 28 Task 1 a players reply with neither read is client_end, never a death)."""
-        df = self.death_frame
-        if df is None:
-            return "players"
-        return "event" if df.get("signal") == "event" else "frame"
+        """loop.death.via: "event" (the Lua's death event first) or "frame" (a 0 frame first). Every death stop has
+        a death frame (Plan 28 Task 1: a players reply with neither read is client_end, never a death), so "players"
+        survives only in the records written before it."""
+        return "event" if self.death_frame.get("signal") == "event" else "frame"
 
     def end_record(self):
         """loop.end at a client_end stop: the last kept frame's seq and body.health, the players reply's names, the

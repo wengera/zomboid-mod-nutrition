@@ -1143,6 +1143,20 @@ def test_a_part_with_is_cut_absent_reads_wound_nil_and_names_is_cut(lua):
     assert dict(frame(lua, q)["body"]["parts"][1])["wound"] is True          # a true read stands beside an absent one
 
 
+def test_a_part_with_deep_wounded_absent_reads_deep_and_wound_nil_and_names_it_once(lua):
+    """Review-t1 minor 4: deepWounded() is read once, by notePart's deep, and woundOf folds that read in; with the
+    member absent deep and wound are both nil and missing names deepWounded once, never the three it still reads."""
+    load(lua)
+    p = make_player()
+    part = _part(h=60.0)
+    part.deepWounded = None
+    _with_parts(p, [part], bleeding=0)
+    r = dict(frame(lua, p)["body"]["parts"][1])
+    names = list(missing(lua))
+    assert "deep" not in r and "wound" not in r
+    assert names.count("deepWounded") == 1 and not {"scratched", "isCut", "bitten"} & set(names)
+
+
 # ---- PZA/1.5.1 (Task 9 fix 1): a sealed can, the bandage use, the absent bleeding() named ------------------------------
 
 def test_a_sealed_pop_can_reads_other_and_its_opened_twin_water(lua):

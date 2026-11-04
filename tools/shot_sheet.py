@@ -8,13 +8,12 @@ sheet, so a reader opens the images with the fixed questions at hand and the met
 within two of every wound (a wound event: a frame on which `body.scratched`, `body.bitten` or `body.bleeding` rose, or
 the first frame of a run reading `me.hitReaction` non-empty; never a frame whose health merely fell: Plan 28 Task 1,
 2026-11-04), within two of every kill (an act line whose `result.targetDead` is true) and the last twelve (the death),
-plus every N-th shot (default 5), and writes the
-questions at the top and a section per selected shot: the image's absolute path, the marks (WOUND@seq, KILL@seq,
-DEATH), the index line's moment (game minute, health, branch, flee, fight, goal, trigger, decision line, seq), the
-decision line's action (type and its gait, target and velocity args) and threat (leg, target, dist, stance, approach,
-reposition), and the state frame at the shot's seq (facing, moving, running, sprinting, aiming, attackers, the
-hit reaction, the zombies listed and within 3 tiles, the nearest one's id, distance, hasTarget, onFloor and health,
-the body's health, parts and armPain, the endurance).
+plus every N-th shot (default 5), and writes the questions at the top and a section per selected shot: the image's
+absolute path, the marks (WOUND@seq, KILL@seq, DEATH), the index line's moment (game minute, health, branch, flee,
+fight, goal, trigger, decision line, seq), the decision line's action (type and its gait, target and velocity args) and
+threat (leg, target, dist, stance, approach, reposition), and the state frame at the shot's seq (facing, moving,
+running, sprinting, aiming, attackers, the hit reaction, the zombies listed and within 3 tiles, the nearest one's id,
+distance, hasTarget, onFloor and health, the body's health, parts and armPain, the endurance).
 
 The inputs are `shots/shots.jsonl` (shots with a `skipped` key are dropped), `decision.log` and every state log
 (`state.log`, its rotations `state.<n>.log` and chunks `state-NNNNNN.log`) in the run's

@@ -19,7 +19,8 @@ E20_SELECTED = [1, 6, 11, 16, 21, 26, 31, 36, 41, 46, 50, 51, 52, 53, 54, 55, 56
                 92, 93, 94, 95]
 
 N_SHOTS = 30
-WOUND_SEQ = 50   # the frame whose body.scratched rose (and whose body.health fell)
+WOUND_SEQ = 50   # the frame whose body.scratched rose
+FALL_SEQ = 40    # the frame whose body.health fell, no count rising: no wound (review-t1 minor 3)
 KILL_SEQ = 155   # the act that reads targetDead
 
 
@@ -43,14 +44,14 @@ def _act(seq, dead):
 
 
 def _make_run(root, state_rel=""):
-    """Thirty shots at seq 10n, a frame at each (health 100 and no scratch, then 80 and one scratch from seq 50), a
-    kill act at seq 155."""
+    """Thirty shots at seq 10n, a frame at each (health 100, then 80 from seq 40; no scratch, then one from seq 50:
+    the fall and the rise on different frames), a kill act at seq 155."""
     shots = os.path.join(root, "shots")
     os.makedirs(shots)
     idx = []
     for n in range(1, N_SHOTS + 1):
         idx.append({"n": n, "file": "shot-%04d-%d.jpg" % (n, 10 * n), "seq": 10 * n, "gameMin": 560 + n,
-                    "health": 100 if n < 5 else 80, "branch": "threat", "flee": None, "fight": 0, "goal": None,
+                    "health": 100 if n < 4 else 80, "branch": "threat", "flee": None, "fight": 0, "goal": None,
                     "trigger": "cadence", "decision_line": n})
     idx[2]["skipped"] = "not foreground"          # a skipped shot is not in the sheet
     with open(os.path.join(shots, "shots.jsonl"), "w", encoding="utf-8") as fh:
@@ -66,7 +67,7 @@ def _make_run(root, state_rel=""):
     os.makedirs(state, exist_ok=True)
     with open(os.path.join(state, "state.log"), "w", encoding="utf-8") as fh:
         for seq in range(10, 10 * N_SHOTS + 1, 10):
-            fh.write(_frame(seq, 100 if seq < WOUND_SEQ else 80, zombies=(seq == 60,)) + "\n")
+            fh.write(_frame(seq, 100 if seq < FALL_SEQ else 80, zombies=(seq == 60,)) + "\n")
             if seq == KILL_SEQ - 5:
                 fh.write(_act(KILL_SEQ, True) + "\n")
                 fh.write(_act(KILL_SEQ - 1, False) + "\n")
