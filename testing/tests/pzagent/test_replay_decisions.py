@@ -155,8 +155,18 @@ def pre_t9(sv, keep=()):
 
 def pre_t10(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 27 Task 5 (survival iteration 20): its switches off
-    (`survive.T10_SWITCHES`), but those named in `keep` (the one-switch form `pre_t3`'s tests use)."""
+    (`survive.T10_SWITCHES`), but those named in `keep` (the one-switch form `pre_t3`'s tests use). Plan 28 Task 3:
+    iteration 21's switches (`pre_t11`) off with them, so every seam onto an earlier rule reads them off."""
     for name in S.T10_SWITCHES:
+        if name not in keep:
+            setattr(sv, name, False)
+    pre_t11(sv)
+
+
+def pre_t11(sv, keep=()):
+    """The replay's mutate seam onto the rules before Plan 28 Task 3 (survival iteration 21): its switches off
+    (`survive.T11_SWITCHES`), but those named in `keep` (the one-switch form `pre_t3`'s tests use)."""
+    for name in S.T11_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
 
@@ -1818,3 +1828,23 @@ def test_iteration_20_moves_the_six_goldens_at_the_listing_s_across_clause_and_e
     acted = [k for k in diff if (base.get(k) or {}).get("action") != (got.get(k) or {}).get("action")
              or (base.get(k) or {}).get("branch") != (got.get(k) or {}).get("branch")]
     assert (acted[0] if acted else None) == ACTED_T10.get(key)
+
+
+# ================================================================ Plan 28 Task 3: iteration 21 on the goldens
+@functools.lru_cache(maxsize=6)
+def _pre_t11_replayed(key):
+    return json.dumps(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t11), sort_keys=True)
+
+
+def pre_t11_gold(key):
+    """{line: decision} of the replay with iteration 21's switches off: the golden before its re-record."""
+    return {d["line"]: d for d in R.decisions(json.loads(_pre_t11_replayed(key)))}
+
+
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_iteration_21_moves_no_golden(key):
+    """Survival iteration 21 moves no golden: the six are byte-identical with its switches on
+    (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off (`pre_t11`). P28-D reads a shove or a
+    stomp rejected `busy`, which needs a build announcing the PZA/1.7 `shove` and `stomp`, and no golden's hello
+    does."""
+    assert pre_t11_gold(key) == gold(key)

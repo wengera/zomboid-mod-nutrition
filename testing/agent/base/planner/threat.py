@@ -188,6 +188,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     HEALTH_RIDE = True    # ruling P27-O: the `health` flee's leg is ridden by the bandage as the `many` flee's is,
                           # whatever the distance once FLEE_CARE_S have passed since that flee began with a part
                           # bleeding (`care_yield.CareYield._rides_health`); off, P24-U's RIDE_R alone
+    # survival iteration 21 (Plan 28 Task 3; survive.py's docstring, Survival 23): each switch off is the rule before
+    # it, all of them in `survive.T11_SWITCHES` (the replay tests' `pre_t11`)
+    BUSY_RETRY = True     # ruling P28-D: a shove or a stomp rejected `busy` records no refusal at its target, so the
+                          # next tick sends it again (`fight.Fight._observe_swing`); off, SWING_SKIP_S's refusal
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -998,7 +1002,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         return flee.busy() and flee.last.args.get("gait") == "walk"
 
     def _fight_rules(self):
-        """The iterations 13 to 20 Fight rules (`fight.FIGHT_RULES`, iteration 20's fix 2 included) whose switch is on:
+        """The iterations 13 to 21 Fight rules (`fight.FIGHT_RULES`, iteration 20's fix 2 included) whose switch is on:
         the Fight's `rules`."""
         return frozenset(rule for rule, on in (("corner_break", self.CORNER_BREAK), ("finish_first", self.FINISH_FIRST),
                                                ("ride_wait", self.RIDE_WAIT), ("fence_wait", self.FENCE_WAIT),
@@ -1009,7 +1013,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("low_swing", self.LOW_SWING), ("floor_finish", self.FLOOR_FINISH),
                                                ("fallen_seek", self.FALLEN_SEEK), ("shove_close", self.SHOVE_CLOSE),
                                                ("low_exit", self.LOW_EXIT), ("attack_reach", self.ATTACK_REACH),
-                                               ("point_blank_pin", self.POINT_BLANK_PIN))
+                                               ("point_blank_pin", self.POINT_BLANK_PIN),
+                                               ("busy_retry", self.BUSY_RETRY))
                          if on)
 
     def _flee_rules(self):

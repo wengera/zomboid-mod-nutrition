@@ -133,6 +133,10 @@ one table the gates and the other policies import).
   it attacking (kept while within FIGHT_REACH), is left out by no mark (`_pin_free`, `blocked`; `pin.FightPin`); a
   marked one takes the pin (`_pin_first`) and is shoved, then swung at, on every tick that may send (`_pin_send`,
   logged `pin` {why}, apart from the target flag `pinned`).
+  Survival 23 (survival iteration 21; Plan 28 Task 3; F11, `f_goals_12-20261103-144240`; survive.py's docstring the
+  record): P28-D, a `busy` rejection is no refusal: a shove or a stomp `rejected` `busy` (the player mid-swing or in a
+  hit reaction, the Lua's check) leaves its target in that skill (no `swing_refused` record), latched in `_busy_retry`
+  until the next send of that kind at that id, logged `busy_retry` {target, kind} (`_observe_swing`, `choose`).
 """
 import math
 import time
@@ -162,9 +166,9 @@ __all__ = ["Fight", "FIGHT_RULES"]
 FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finish_far", "shove_break",
                "shove_break_run", "blocked_edge", "wounded_swing", "low_swing",
                "floor_finish", "fallen_seek", "shove_close", "low_exit", "attack_reach",
-               "point_blank_pin")   # survival iterations 13 to 20's Fight rules (P25-A, P25-B, P25-D, P25-F;
-                     # P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H, P27-J, P27-K2; fix 2's P27-M and
-                     # P27-N), each on in `rules` unless Survive's switch for it is off
+               "point_blank_pin", "busy_retry")   # survival iterations 13 to 21's Fight rules (P25-A, P25-B,
+                     # P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H, P27-J, P27-K2; fix 2's
+                     # P27-M and P27-N; P28-D), each on in `rules` unless Survive's switch for it is off
 
 
 class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach, Policy):
@@ -249,6 +253,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         self.close_left = {}                # Survive shares its own: zombie id -> wall until a close refused for its
                                             # blocked line leaves it out of the hold's reads (P27-J)
         self._init_pin()   # P27-N: the attacker latch and the tick's pin read (`pin.FightPin`)
+        self._busy_retry = None             # (shove or stomp, zombie id) of the last send rejected `busy`, until the
+                                            # next send of that kind at that id or another end at it (P28-D)
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -614,9 +620,21 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         that started counts in the no-progress streak as a swing does (`_swing_landed_nothing`). Ruling P24-AV: a stomp
         failed `stood` (the target rose before it landed) is read again on the next frame (standing, the Fight's own
         path; fallen again, one more stomp): the STOOD_STOMPS-th `stood` at one target leaves it out of the stomp as a
-        refusal does, so the floor strike follows."""
+        refusal does, so the floor strike follows. Ruling P28-D (`busy_retry`, Survive's BUSY_RETRY; F11,
+        `f_goals_12-20261103-144240`: the stomp a145 at 14725, sent while a144 ran at 14630, was rejected `busy`, the
+        refusal kept 14725 out of the finish rule beyond FIGHT_REACH for SWING_SKIP_S, and it lay 2.5172987398919933 to
+        2.5942970526263225 tiles off with nothing within 6 tiles while the Fight logged `out_of_reach`, #4583): a shove
+        or a stomp `rejected` `busy` (the player mid-swing or in a hit reaction, the Lua's `K.attackBusy`) says
+        nothing about the target: no refusal is recorded, the send latched in `_busy_retry` (logged on the next send
+        of its kind at its id, `choose`); any other end at that id clears the latch. Cost if wrong: a send rejected
+        `busy` every tick through a long swing (the Lua's check, no engine call)."""
         zid = a.args.get("targetId")
         res = a.result if isinstance(a.result, dict) else {}
+        if "busy_retry" in self.rules and a.state == "rejected" and a.reason == "busy":
+            self._busy_retry = (a.type, zid)
+            return
+        if self._busy_retry is not None and self._busy_retry[1] == zid:
+            self._busy_retry = None   # P28-D: another end at that id ends the latch
         if a.state != "done" or res.get("attackStarted") is False:
             if a.type == "stomp" and a.state == "failed" and a.reason == "stood":
                 self.stood[zid] = self.stood.get(zid, 0) + 1
@@ -762,6 +780,10 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         if (self.crowd is not None and cmd is not None and cmd.TYPE in ("shove", "stomp", "attack")
                 and "corner" not in self.why):   # P26-C: an `inside` corner's send, logged
             self.why["corner"] = {"kind": "inside", "send": cmd.TYPE, "near_n": self.crowd}
+        retry = self._busy_retry
+        if retry is not None and cmd is not None and (cmd.TYPE, getattr(cmd, "targetId", None)) == retry:
+            self.why["busy_retry"] = {"target": retry[1], "kind": retry[0]}   # P28-D: the send rejected `busy`, again
+            self._busy_retry = None
         return cmd
 
     def _repin_point_blank(self):
