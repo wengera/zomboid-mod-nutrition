@@ -1880,6 +1880,7 @@ def test_iteration_21_moves_four_goldens_at_the_approach_walk(key):
       `holding` lines under it carrying the same `leg` why. E5's replayed Fights send no walk beyond FIGHT_REACH, and
       the sixth's hello announces the stance, whose walks already go at a walk. The floor swing under the pain reads
       `onFloor` and `body.armPain`, which no golden's frames carry.
+    - WOUND_DRESS (P28-A) moves none: its step reads a part's `wound` (PZA/1.7.2), which no golden ring decodes.
     - BUSY_RETRY (P28-D) moves none: a shove or a stomp rejected `busy` needs a build announcing the PZA/1.7 `shove`
       and `stomp`, and no golden's hello does.
     A golden no switch moves is its file before iteration 21 byte for byte."""

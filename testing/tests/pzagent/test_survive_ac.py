@@ -11,6 +11,9 @@ names.
 - P28-C, the floor swing under the arms' pain (`FLOOR_PAIN`): the swing at a fallen zombie within FIGHT_REACH barred by
   a hold or a shove-only Fight, never by `arms_hurt` alone (logged `floor_finish` {.., pain}); the non-stance Fight's
   walk to a zombie beyond FIGHT_REACH at a walk (logged `leg` "walk").
+- P28-A, the wound dressed (`WOUND_DRESS`): a part reading `wound`, not bleeding and not bandaged, dressed with the best
+  clean dressing while more than WOUND_RESERVE are held and no zombie is within DANGER_R (logged `reason` "wound"),
+  else `wound_held` {part, clean}; nothing to dress it beyond the reserve and no garment marks the want `bandage`.
 """
 import math
 
@@ -251,3 +254,121 @@ def test_the_non_stance_fight_walks_to_a_zombie_beyond_fight_reach(tmp_path):
 
 def test_the_floor_pain_switch():
     assert "FLOOR_PAIN" in S.T11_SWITCHES and T.Threat.FLOOR_PAIN is True and "floor_pain" in F.FIGHT_RULES
+
+
+# ================================================================ P28-A: the wound dressed
+F11_P4 = 82.38700103759766   # F11's part 4, scratched, never bleeding, never dressed (#4581, #4585)
+RAGS2 = ((11, "Base.RippedSheets"), (12, "Base.RippedSheets"))
+
+
+def wound4(**k):
+    """F11's part 4: scratched (`wound` true), not bleeding, unbandaged, its health F11_P4."""
+    return part(4, h=F11_P4, wound=True, **k)
+
+
+def care_rig(tmp_path, items, parts, near_n=0):
+    """A Care on a fresh rig holding `items` [(id, fullType)], the frame's parts `parts`, `near_n` set."""
+    r = Rig(tmp_path)
+    for iid, ft in items:
+        hold(r, iid, ft)
+    care_frame(r, parts)
+    c = C.Care(r.world, r.acts, r.clock)
+    c.near_n = near_n
+    return r, c
+
+
+def test_f11_s_scratched_part_4_is_dressed_with_two_clean_rags_held(tmp_path):
+    """F11's part 4 (`wound` true, never bleeding: its health fell to 0 undressed, #4581), two clean rags held, no
+    zombie within DANGER_R: `Bandage(rag, part=4)`, logged {reason "wound", part 4, item, kind "rag", h}."""
+    r, c = care_rig(tmp_path, RAGS2, [wound4()])
+    cmd = c.choose()
+    assert (cmd.TYPE, cmd.args()) == ("bandage", {"itemId": 11, "part": 4})
+    assert c.why == {"reason": "wound", "part": 4, "item": 11, "kind": "rag", "h": F11_P4}
+
+
+def test_one_clean_rag_is_kept_for_a_bleed_and_logged_wound_held(tmp_path):
+    """One clean rag held (WOUND_RESERVE): nothing sent, logged `wound_held` {part 4, clean 1}."""
+    r, c = care_rig(tmp_path, RAGS2[:1], [wound4()])
+    assert c.choose() is None and c.why["wound_held"] == {"part": 4, "clean": 1}
+
+
+def test_one_clean_rag_and_no_garment_wants_a_bandage(tmp_path):
+    """One clean rag, no garment to rip: the want `bandage` (`wants_dressing`); a cotton garment held to rip: no want
+    (the stock's rip comes first)."""
+    r, c = care_rig(tmp_path, RAGS2[:1], [wound4()])
+    assert c.wants_dressing() is True
+    (tmp_path / "shirt").mkdir()
+    r2 = Rig(tmp_path / "shirt")
+    hello152(r2)
+    r2.frame()
+    hold(r2, 11, "Base.RippedSheets")
+    garment(r2, 22, ft="Base.Tshirt_WhiteTINT", rip="cotton")
+    care_frame(r2, [wound4()])
+    assert C.Care(r2.world, r2.acts, r2.clock).wants_dressing() is False
+
+
+def test_a_zombie_within_danger_r_holds_the_dressing(tmp_path):
+    """A zombie within DANGER_R (Survive's `near_n` 1, one 5 tiles off): nothing sent."""
+    r, c = care_rig(tmp_path, RAGS2, [wound4()], near_n=1)
+    assert c.choose() is None and c.why.get("reason") != "wound"
+
+
+def test_a_bleeding_part_is_bandaged_first(tmp_path):
+    """Part 1 bleeding beside part 4: the bleeding step's bandage of part 1 goes first."""
+    r, c = care_rig(tmp_path, RAGS2, [wound4(), part(1, bleeding=True, bleedingTime=5.0, wound=True)])
+    cmd = c.choose()
+    assert cmd.args()["part"] == 1 and c.why["reason"] == "bleeding"
+
+
+def test_a_bleeding_part_with_only_a_dirty_rag_held_wants_no_bandage(tmp_path):
+    """A part both bleeding and scratched (bleedingTime 5.0, under DIRTY_RAG_MIN) with a dirty rag held and no garment:
+    no want (the bleed's own rule: the dirty rag is washed first); the wound step reads only a part not bleeding, so it
+    adds none."""
+    r, c = care_rig(tmp_path, ((13, "Base.RippedSheetsDirty"),),
+                    [part(1, bleeding=True, bleedingTime=5.0, wound=True)])
+    assert c.wants_dressing() is False
+
+
+def test_an_older_log_s_part_with_no_wound_field_is_not_dressed(tmp_path):
+    """A part whose record carries no `wound` (decoded None, a log before PZA/1.7.2): nothing sent, nothing held."""
+    r, c = care_rig(tmp_path, RAGS2, [part(4, h=F11_P4)])
+    assert c.choose() is None and "wound_held" not in c.why
+
+
+def test_a_clean_bandage_goes_before_a_rag(tmp_path):
+    """A clean bandage and a clean rag held: the bandage, kind "bandage"."""
+    r, c = care_rig(tmp_path, ((10, "Base.Bandage"), (12, "Base.RippedSheets")), [wound4()])
+    cmd = c.choose()
+    assert cmd.args()["itemId"] == 10 and c.why["kind"] == "bandage"
+
+
+def test_the_lowest_health_part_is_dressed_first_then_the_least_index(tmp_path):
+    """Parts 6 and 8 scratched beside part 4 (F11's three, #4581): the lowest `h` first, ties to the least index."""
+    r, c = care_rig(tmp_path, RAGS2, [wound4(), part(8, h=51.0, wound=True), part(6, h=51.0, wound=True)])
+    assert c.choose().args()["part"] == 6
+
+
+def test_survive_dresses_the_wound_on_a_quiet_care_tick_and_not_with_wound_dress_off(tmp_path):
+    """The care branch of a Survive with no zombie listed: part 4 dressed (the care line's `reason` "wound"); a part so
+    dressed is left out until a newer frame (`fresh`, as a bleed's); with `WOUND_DRESS` off nothing is sent."""
+    for on in (True, False):
+        d = tmp_path / str(on)
+        d.mkdir()
+        r, sv = make(d)
+        sv.WOUND_DRESS = on
+        for iid, ft in RAGS2:
+            hold(r, iid, ft)
+        care_frame(r, [wound4()])
+        a = tick(r, sv)
+        if on:
+            assert (a.type, a.args["part"]) == ("bandage", 4) and care_why(d)["reason"] == "wound"
+            r.answer()
+            sv.care.observe()
+            assert 4 in sv.care.fresh and sv.care.choose() is None
+        else:
+            assert a is None or a.type != "bandage"
+            assert care_why(d).get("reason") != "wound"
+
+
+def test_the_wound_dress_switch_and_reserve():
+    assert "WOUND_DRESS" in S.T11_SWITCHES and S.Survive.WOUND_DRESS is True and P.WOUND_RESERVE == 1

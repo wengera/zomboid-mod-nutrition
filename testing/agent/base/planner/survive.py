@@ -283,7 +283,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     attacking never left out by a mark, pinned, shoved then swung at (`fight.Fight._pin_free`, `_pin_send`); P27-O,
     the `health` flee's leg ridden by the bandage whatever the distance once FLEE_CARE_S have passed since that flee
     began with a part bleeding (`care_yield.CareYield._rides_health`).
-  - Survival 23 (iteration 21, F11, `f_goals_12-20261103-144240`; Plan 28 Task 3): P28-D, a shove or a stomp rejected
+  - Survival 23 (iteration 21, F11, `f_goals_12-20261103-144240`; Plan 28 Task 3): P28-A, a part reading `wound`, not
+    bleeding, dressed while more than WOUND_RESERVE clean dressings are held and no zombie is within DANGER_R
+    (`care.Care.choose`'s `wound` step); P28-D, a shove or a stomp rejected
     `busy` is no refusal at its target, sent again on the next tick (`fight.Fight._observe_swing`); P28-C, the swing
     at a fallen zombie barred by a hold or a shove-only Fight, never by the arms' pain alone, and the non-stance
     Fight's walk to a zombie at a walk (`fight.Fight.floor_swing_barred`, `finish.ThreatFinish._flee_finish`);
@@ -413,8 +415,9 @@ T10_SWITCHES = ("STUCK_LEAVE", "FLOOR_FINISH", "FALLEN_SEEK", "LISTING_FALLEN", 
 # STOCK_EARLY; REPLACE_QUIET, copied to the Care); P27-G to P27-J and P27-K2 on `threat.Threat` (FLOOR_FINISH,
 # FALLEN_SEEK, LISTING_FALLEN, SHOVE_CLOSE, LOW_EXIT); its fix 2 (Task 5 fix 2, E20): P27-M, P27-N and P27-O on
 # `threat.Threat` (ATTACK_REACH, POINT_BLANK_PIN, HEALTH_RIDE)
-T11_SWITCHES = ("FLOOR_PAIN", "BUSY_RETRY")
-# survival iteration 21 (Plan 28 Task 3): P28-C and P28-D on `threat.Threat` (FLOOR_PAIN, BUSY_RETRY)
+T11_SWITCHES = ("WOUND_DRESS", "FLOOR_PAIN", "BUSY_RETRY")
+# survival iteration 21 (Plan 28 Task 3): P28-A on `Survive` (WOUND_DRESS, copied to the Care); P28-C and P28-D on
+# `threat.Threat` (FLOOR_PAIN, BUSY_RETRY)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -482,6 +485,10 @@ class Survive(Threat):
     REPLACE_QUIET = True  # ruling P27-K3 (Plan 27 Task 5): a spent dressing is replaced only with no listed zombie
                           # chasing within LISTED_R (`care.Care.choose`'s `spent` step); off, whatever chases. Set on
                           # the Care each care tick (`_care`). In T10_SWITCHES
+    WOUND_DRESS = True    # ruling P28-A (Plan 28 Task 3): a part reading `wound`, not bleeding and not bandaged, is
+                          # dressed while more than WOUND_RESERVE clean dressings are held and no zombie is within
+                          # DANGER_R (`care.Care.choose`'s `wound` step, `_wound_wants`); off, no such step. Set on the
+                          # Care each care tick (`_care`). In T11_SWITCHES
 
     SHELTER_LEGS = True   # ruling P25-N (Plan 25 Task 8): a Shelter goal's and the night's approach to a far door in
                           # legs (`goal_policies.Shelter`, `night.Night._leg`); set on the goals' kit and the Night each
@@ -769,6 +776,8 @@ class Survive(Threat):
         c.trapped = self.TRAPPED_CARE and self.trapped_pass   # P25-Q: the trapped hold's tick unwears as a quiet one
         c.replace_quiet = self.REPLACE_QUIET   # P27-K3: the replace waits while a listed zombie chases
         c.chasing_n = sum(1 for z in self._within(LISTED_R) if chasing(z))
+        c.wound_dress = self.WOUND_DRESS   # P28-A: the wound step, on a care tick with nothing within DANGER_R
+        c.near_n = len(self._within(DANGER_R))
         cmd = c.choose()
         self.why = dict(c.why)
         if self.STOCK_EARLY and cmd is not None and cmd.TYPE == "rip" and self.care_yield is not None:

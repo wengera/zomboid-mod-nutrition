@@ -33,7 +33,17 @@ Its choose, the first that answers (`why` names the `reason`, the `part`, the `i
    listed zombie chasing within LISTED_R (`chasing_n`, Survive's count, the rest's test of P27-C2); with one the step
    holds, logged `spent_held` {part, chasing}. The bleeding step is unchanged. Cost if wrong: a spent dressing worn
    longer.
-3. `wash`: a dirty rag held, no zombie within DISENGAGE_R (Survive sets `quiet` each tick), and a known water source
+3. `wound` (ruling P28-A, `wound_dress`, Survive's `WOUND_DRESS`; F11, `f_goals_12-20261103-144240`: its scratched
+   parts 4, 6 and 8 never bled, took no care line and fell to 0, 9.163058280944824 and 51.79861068725586, while
+   63.577457427978516 of its 100 health fell on frames reading no bleed and no bite, #4581, #4585; an undressed
+   scratch drains each tick where a bandage suppresses it, #2364): the first part `_wounds` lists (PZA/1.7.2's
+   `wound` true, `bleeding` false, `bandaged` false; the lowest `h` first, then the least index) is dressed with the
+   best clean item held (a bandage, then a clean rag, never a dirty one: #4299) while more than WOUND_RESERVE clean
+   dressings are held and no zombie is within DANGER_R (`near_n`, Survive's count, set each care tick), logged
+   `{reason "wound", part, item, kind, h}`; a part left for the reserve logs `wound_held` {part, clean} on the care
+   line. A part so dressed is `fresh` as a bleed's. A frame whose parts carry no `wound` (an older log) reads none.
+   Cost if wrong: a dressing's seconds on a quiet tick and the rag a later bleed wants, bounded by the reserve.
+4. `wash`: a dirty rag held, no zombie within DISENGAGE_R (Survive sets `quiet` each tick), and a known water source
    (`World.water_sources`: the map's square `water` record with water in it, on the player's floor, not refused
    lately) within WASH_R: `Wash(itemId, x, y)`, the Lua walking next to it (a wash does not test the water's taint,
    #4301).
@@ -66,7 +76,7 @@ it is held (nor a dirty rag to wash) and no garment can be ripped: Survive then 
 view lists and the goal layer's loot takes first (`goals.wanted_uses`). Unwear then rip (ruling P24-AJ, Plan 24 Task
 27; PZA/1.7's `unwear`, #4376, #4551: vanilla's Unequip leaves the garment in the main inventory, where the rip recipe,
 which refuses a worn item, takes it): on the same idle tick, after the rag stock's rip found nothing unworn to rip, a
-bleeding part with nothing to dress it (`wants_dressing`) takes `Unwear(itemId)` of the worn cotton garment covering
+bleeding part with nothing to dress it (`_bleed_wants`) takes `Unwear(itemId)` of the worn cotton garment covering
 the least (`_unwear_pick`: the item record's `worn` and `rip` "cotton", its clothing record's bite + scratch the least,
 ties by the least id; never at a shoe or trouser location, UNWEAR_NEVER over the clothing record's `loc`), one per
 item per WEAR_RETRY_MIN game minutes, none while the last one's garment still reads worn within WEAR_SETTLE_MAX frames
@@ -77,7 +87,9 @@ cotton garment worn, and a night of Shelter goals and flees gave the stock no id
 3.4362869262695312): the bleeding step itself takes the same unwear as its last step (`_unwear_step`, logged
 `{reason "unwear", part, item, loc, cover}`) with no dressing of any kind held, nothing unworn to rip, no ride and
 `quiet`, on any care tick (the care branch runs before the goal's, so it pre-empts a running goal); Survive's
-`UNWEAR_WOUND` off is the rule before it.
+`UNWEAR_WOUND` off is the rule before it. Ruling P28-A (`wound_dress`): `wants_dressing()` also marks the want for a
+part `_wounds` lists with no more than WOUND_RESERVE clean dressings held and no garment to rip (`_wound_wants`); the
+stock's unwear reads the bleed's want alone (`_bleed_wants`), so a scratch takes off no garment.
 The wear (Plan 24 Task 24, review-t9-fix9's ruling 5; PZA/1.6.1's `me.worn` with each entry's `holes` and `cond`): on
 the same idle tick as the rag stock, after it, `stock()` answers `Wear(itemId)` of the held unworn garment whose
 clothing record beats what is worn at its location (`wear_gain`: `cond` above 0, `holes` 0, bite + scratch above the
@@ -113,7 +125,7 @@ import math
 import re
 import time
 
-from agent.base.planner.policies import SPENT_REDRESS_BT, Policy, PREEMPTED, item_id_ok
+from agent.base.planner.policies import SPENT_REDRESS_BT, WOUND_RESERVE, Policy, PREEMPTED, item_id_ok
 from agent.base.pza1 import Bandage, Drop, Rip, Unwear, Wash, Wear
 from agent.base.world import me_floor
 
@@ -256,6 +268,9 @@ class Care(Policy):
         self.replace_quiet = True  # ruling P27-K3: a replace waits while `chasing_n` reads a chaser listed (Survive
                                    # sets it each care tick from its `REPLACE_QUIET`); off, the replace goes whatever
         self.chasing_n = 0        # Survive sets it each care tick: the zombies listed within LISTED_R chasing (P27-K3)
+        self.wound_dress = True   # ruling P28-A: a part reading `wound`, not bleeding, is dressed (Survive sets it each
+                                  # care tick from its `WOUND_DRESS`); off, no wound step and no want for it
+        self.near_n = 0           # Survive sets it each care tick: the zombies within DANGER_R (P28-A's quiet test)
 
     def sent(self, cmd, action):
         self.sends[cmd.itemId] = action
@@ -371,6 +386,14 @@ class Care(Policy):
         return [p for p in self._parts() if p.get("bandaged") is True
                 and ((_num(p.get("bandageLife")) and p["bandageLife"] <= 0) or p.get("bandageDirty") is True)]
 
+    def _wounds(self):
+        """Ruling P28-A: the parts reading `wound` true (PZA/1.7.2: scratched, cut, bitten or deep-wounded, the Lua's
+        rank-1 test of a bandageable part), `bleeding` false and `bandaged` false, the lowest `h` first, then the least
+        index; none on a frame whose parts carry no `wound` (decoded None)."""
+        ps = [p for p in self._parts() if p.get("wound") is True and p.get("bleeding") is False
+              and p.get("bandaged") is False]
+        return sorted(ps, key=lambda p: (p.get("h") if _num(p.get("h")) else math.inf, p["i"]))
+
     def _redresses(self, p):
         """Ruling P27-D: spent part `p`'s dressing is replaced: `spent_keep` off, the part reading `bleeding` true, or
         its `bleedingTime` at or under SPENT_REDRESS_BT (a frame carrying none: the rule before it)."""
@@ -450,7 +473,7 @@ class Care(Policy):
         """Ruling P24-AJ (the module docstring), the idle stock's unwear: `_unwear_step` while a bleeding part has
         nothing to dress it (`wants_dressing`: no dressing, no dirty rag, nothing unworn to rip); else (None, None).
         With P25-H on (`unwear_wound`) the bleeding step takes the same unwear first, on any quiet care tick."""
-        if not self.wants_dressing():
+        if not self._bleed_wants(self._items()):   # P28-A: a scratch's want takes off no garment
             return None, None
         return self._unwear_step()
 
@@ -597,16 +620,28 @@ class Care(Policy):
         return None if best is None else best[1:]
 
     def wants_dressing(self):
-        """A part bleeds (unbandaged), `bandage` announced, and the bleeding step has nothing to put on it: no clean
-        bandage or rag, no dirty rag the time rule allows, no dirty rag to wash, no garment to rip (P24-AB: the want
-        `bandage`)."""
+        """`bandage` announced and a wound with nothing to dress it (P24-AB: the want `bandage`): a bleed's
+        (`_bleed_wants`), or ruling P28-A's (`_wound_wants`)."""
         if not self.world.can("bandage"):
             return False
-        bleeding = self._bleeding()
-        if not bleeding:
-            return False
         items = self._items()
-        return self._wound(items, bleeding)[0] is None and not items["dirty"]
+        return self._bleed_wants(items) or self._wound_wants(items)
+
+    def _bleed_wants(self, items):
+        """A part bleeds (unbandaged) and the bleeding step has nothing to put on it: no clean bandage or rag, no dirty
+        rag the time rule allows, no dirty rag to wash, no garment to rip (P24-AB); the idle stock's unwear reads it
+        alone (P24-AJ)."""
+        bleeding = self._bleeding()
+        return bool(bleeding) and self._wound(items, bleeding)[0] is None and not items["dirty"]
+
+    def _wound_wants(self, items):
+        """Ruling P28-A: with `wound_dress` on, a part `_wounds` lists, no more than WOUND_RESERVE clean dressings held
+        and no garment to rip (`rip` announced and `_rip_item`)."""
+        if not self.wound_dress or not self._wounds():
+            return False
+        if len(items["bandage"]) + len(items["rag"]) > WOUND_RESERVE:
+            return False
+        return not (self.world.can("rip") and self._rip_item() is not None)
 
     def bleeding_n(self):
         """How many parts bleed unbandaged (ruling P24-AR's count, FLEE_CARE_N)."""
@@ -657,6 +692,16 @@ class Care(Policy):
                             "kind": "bandage" if items["bandage"] else "rag", "life": p.get("bandageLife"),
                             "dirty": p.get("bandageDirty")}
                 return Bandage(clean[0], part=p["i"])
+        wound_held = None
+        wounds = self._wounds() if self.wound_dress and w.can("bandage") else []
+        if wounds and len(clean) > WOUND_RESERVE:
+            if not self.near_n:   # P28-A: the wound dressed on a quiet care tick
+                p = wounds[0]
+                self.why = {"reason": "wound", "part": p["i"], "item": clean[0],
+                            "kind": "bandage" if items["bandage"] else "rag", "h": p.get("h")}
+                return Bandage(clean[0], part=p["i"])
+        elif wounds:
+            wound_held = {"part": wounds[0]["i"], "clean": len(clean)}   # P28-A: the reserve kept for a bleed
         cmd = None
         if items["dirty"] and self.quiet and w.can("wash"):
             src = w.water_sources(WASH_R)
@@ -672,4 +717,6 @@ class Care(Policy):
             self.why["spent_kept"] = kept   # P27-D: the step would have sent before it
         if held is not None:
             self.why["spent_held"] = held   # P27-K3: the replace held while a listed zombie chases
+        if wound_held is not None:
+            self.why["wound_held"] = wound_held   # P28-A: the wound left for the reserve
         return cmd
