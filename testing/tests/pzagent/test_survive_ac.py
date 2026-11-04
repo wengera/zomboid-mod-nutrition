@@ -35,7 +35,7 @@ from agent.base import pza1
 from agent.base.pza1 import Shove, Stomp
 
 from .test_policies import Rig, square
-from .test_survive import last, make, threat_why, tick
+from .test_survive import make, threat_why, tick
 from .test_survive_g import care_frame, care_why, garment, hello152, hold, part
 from .test_survive_q import DONE_SHOVE, GROUP3, STIFF, fr, z
 
