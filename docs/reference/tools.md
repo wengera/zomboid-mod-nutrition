@@ -307,7 +307,7 @@ A new driver imports it; a driver that has run is frozen and never does. Its off
 ## `shot_sheet.py` — the visual pass's screenshot sheet
 
 `python tools/shot_sheet.py <run or artifact folder> <out.md> [--every N]` reads a run folder's or an artifact's shot index `shots/shots.jsonl`, its `decision.log` and its state logs, and writes one markdown sheet for the cheap visual pass of a live agent session: the fixed questions at the top, then a section per selected shot with the image's absolute path, its marks, the index moment, the decision line's action and threat, and the state frame at the shot's seq.
-It selects the shots within two of every wound (a frame whose `body.health` fell), within two of every kill (an act line whose result reads `targetDead`) and the last twelve (the death), plus every N-th shot, `--every` defaulting to 5.
+It selects the shots within two of every wound (a wound event: the first frame of a run reading `me.hitReaction` non-empty, or a frame on which `body.scratched`, `body.bitten` or `body.bleeding` rose; Plan 28 Task 1, since a bleed made nearly every frame a health fall), within two of every kill (an act line whose result reads `targetDead`) and the last twelve (the death), plus every N-th shot, `--every` defaulting to 5.
 It finds the state logs beside the JSON in an artifact or under `clients/*/Lua/pzagent/*/` in a run (the `admin` client's first), decodes them through the agent base's `FileTransport` on a temporary copy, writes only the sheet, and exits `2` with a message on stderr when the index, the decision log or the state log is missing.
 Its tests are `tools/tests/test_shot_sheet.py`, on a fabricated run folder and on E20's artifact.
 
