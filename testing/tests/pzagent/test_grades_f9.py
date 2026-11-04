@@ -137,8 +137,8 @@ def test_grade_f9_on_f11_keeps_every_grade_f8_key_as_the_committed_f_grade_txt_a
     g = _grade(F11, "f_goals_12", G.grade_f9)
     assert g["grade"] == "grade_f9" and all(g[k]["read"] is True for k in NEW)
     assert (g["floor_finish"]["lines"], g["listing"]["lines"], g["stock_early"]["lines"]) == (5, 59, 2)
-    for k, v in T18.ZERO.items():
-        assert g[k] == v, k
+    for k in T18.ZERO:
+        assert g[k] == T18.zero(k, 27), k
     h = g["hits"]
     assert (h["runs"], h["kills"], h["per_kill"]) == (7, 3, 7 / 3) and g["kills"]["planner"] == 3
     assert h["kinds"] == {"Bite": 3, "BiteLEFT": 2, "BiteRIGHT": 2}
@@ -146,7 +146,8 @@ def test_grade_f9_on_f11_keeps_every_grade_f8_key_as_the_committed_f_grade_txt_a
         == F11_STRIKES
     assert g["facing"] == {"read": True, "swings": 6, "off_by_points": _off(**{"0": 2, "1": 3, "3": 1}), "unread": 0,
                            "shoves_off": {"swings": 34, "off_by_points": _off(**{"0": 34}), "unread": 0},
-                           "stomps_off": {"swings": 14, "off_by_points": _off(**{"0": 14}), "unread": 0}}
+                           "stomps_off": {"swings": 14, "off_by_points": _off(**{"0": 14}), "unread": 0},
+                           "paired": {"frame": 54, "line": 0}}
     assert g["client_end"] == {"read": True, "stopped": "death", "seq": None, "health": None}
     _, committed = _committed(F11, "f_grade.txt")
     mine = json.loads(json.dumps(FG9.finite({k: v for k, v in g.items() if k not in NEW}), sort_keys=True,

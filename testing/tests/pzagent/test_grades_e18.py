@@ -23,7 +23,7 @@ from . import test_grades_e14 as T14
 from .test_gates_e7 import T0, aline, zf
 from .test_gates_e13 import _act
 from .test_grades_e14 import actl, row
-from .test_grades_e17 import CLEAN, filler, res, swing
+from .test_grades_e17 import CLEAN, res, swing
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TESTING = os.path.dirname(os.path.dirname(HERE))
@@ -299,7 +299,8 @@ def test_the_busy_retry_reads_zero_without_the_why_and_unread_without_a_log():
 # ================================================================ P28-E, the circle
 def circle_fixture(flag=True):
     """`back` legs sent with the circle's turn +45, +45, -45 (the side switched), +30 (switched, off CIRCLE_TURN);
-    two straight `back` legs (two standing within KEEP_R, then one standing beside a fallen one); a circle logged and
+    two straight `back` legs (two standing within KEEP_R; one standing beside a fallen one, `straight_one`); a circle
+    logged and
     not sent and one on a care line."""
     c = (lambda t: {"circle": {"turn": t}}) if flag else (lambda t: {})
     back = lambda t: dict({"fight": True, "target": 1, "stance": True, "leg": "back", "back": [-0.7, 0.7]}, **c(t))
@@ -316,40 +317,50 @@ def circle_fixture(flag=True):
 
 def test_the_circle_counts_the_legs_by_side_the_switched_sides_the_off_turns_and_the_straight_legs_at_two():
     assert circle_fixture() == {"read": True, "legs": 4, "sides": {"+": 3, "-": 1}, "blocked_turns": 2, "off_turn": 1,
-                                "straight_two": 1}
+                                "straight_two": 1, "straight_one": 1}
 
 
 def test_the_circle_reads_zero_without_the_why_and_unread_without_a_log():
     assert circle_fixture(flag=False) == {"read": True, "legs": 0, "sides": {}, "blocked_turns": 0, "off_turn": 0,
-                                          "straight_two": 5}
+                                          "straight_two": 5, "straight_one": 1}
     assert grade(log=CLEAN)["circle"] == {"read": True, "legs": 0, "sides": {}, "blocked_turns": 0, "off_turn": 0,
-                                          "straight_two": 0}
+                                          "straight_two": 0, "straight_one": 0}
     assert grade(log=None)["circle"] == {"read": False}
 
 
 # ================================================================ P28-F, the facing on the swing
 def facing_fixture():
     """The player at (10, 10). Attack swings: a1 facing SE at 4 bearing N (350 degrees; a frame facing N before the
-    event), a2 facing N (0 off), a3 facing S (4 off), a4's swing not started, a5's target off the frame (unread); the
-    shoves s1 facing E at 5 due east (0) and s2 facing NE (1); the stomp k1 facing S at 6 just south (0), s2's late
-    `done` line between its accept and its swing event; an aim's swing event not read."""
+    event), a2 facing N (0 off), a3 facing S (4 off), a4's swing not started, a5's target off the frame (unread), a6
+    facing N whose frame names it (`act.aid`) after an aim's later accept; the shoves s1 facing E at 5 due east (0)
+    and s2 facing NE (1); the stomp k1 facing S at 6 just south (0), s2's late `done` line between its accept and its
+    swing event; an aim's swing event not read. The frames after a1, a2, a3, s1 and a6 carry `act.aid` (paired by the
+    frame), those after s2, k1 and a5 none (paired by the last accepted line)."""
     z4 = [{"id": 4, "x": 9.83, "y": 9.0, "dist": 1.0}]
     z5 = [{"id": 5, "x": 11.0, "y": 10.0, "dist": 1.0}]
-    f = lambda t, d, zs: hf(t, me_dir=d, zombies=zs)
-    lines = [actl("a1", "attack", "accepted", 1.0), f(1.05, "N", z4), swing(1.1), f(1.2, "SE", z4), f(1.3, "N", z4),
-             actl("a2", "attack", "accepted", 2.0), swing(2.1), f(2.2, "N", z4),
-             actl("a3", "attack", "accepted", 3.0), swing(3.1), f(3.2, "S", z4),
-             actl("s1", "shove", "accepted", 4.0), swing(4.1), f(4.2, "E", z5),
+
+    def f(t, d, zs, aid=None):
+        fr = hf(t, me_dir=d, zombies=zs)
+        fr["act"] = {"aid": aid, "state": "accepted"} if aid is not None else None
+        return fr
+    lines = [actl("a1", "attack", "accepted", 1.0), f(1.05, "N", z4, "a1"), swing(1.1), f(1.2, "SE", z4, "a1"),
+             f(1.3, "N", z4, "a1"),
+             actl("a2", "attack", "accepted", 2.0), swing(2.1), f(2.2, "N", z4, "a2"),
+             actl("a3", "attack", "accepted", 3.0), swing(3.1), f(3.2, "S", z4, "a3"),
+             actl("s1", "shove", "accepted", 4.0), swing(4.1), f(4.2, "E", z5, "s1"),
              actl("s2", "shove", "accepted", 5.0), swing(5.1), f(5.2, "NE", z5),
              actl("k1", "stomp", "accepted", 6.0), actl("s2", "shove", "done", 6.05), swing(6.1),
              f(6.2, "S", [{"id": 6, "x": 10.0, "y": 10.3}]),
              actl("g1", "aim", "accepted", 7.0), swing(7.1), f(7.2, "W", z4),
              actl("a4", "attack", "accepted", 8.0), swing(8.1, started=False), f(8.2, "W", z4),
-             actl("a5", "attack", "accepted", 9.0), swing(9.1), f(9.2, "N", z5)]
+             actl("a5", "attack", "accepted", 9.0), swing(9.1), f(9.2, "N", z5),
+             actl("a6", "attack", "accepted", 10.0), actl("g2", "aim", "accepted", 10.05), swing(10.1),
+             f(10.2, "N", z4, "a6")]
     acts = [row("a1", "attack", 1.0, targetId=4), row("a2", "attack", 2.0, targetId=4),
             row("a3", "attack", 3.0, targetId=4), row("s1", "shove", 4.0, targetId=5),
             row("s2", "shove", 5.0, targetId=5), row("k1", "stomp", 6.0, targetId=6), row("g1", "aim", 7.0, targetId=4),
-            row("a4", "attack", 8.0, targetId=4), row("a5", "attack", 9.0, targetId=4)]
+            row("a4", "attack", 8.0, targetId=4), row("a5", "attack", 9.0, targetId=4),
+            row("a6", "attack", 10.0, targetId=4), row("g2", "aim", 10.05, targetId=4)]
     return grade(acts, [], CLEAN, lines)["facing"]
 
 
@@ -358,16 +369,17 @@ def _off(**kw):
 
 
 def test_the_facing_reads_the_compass_points_off_the_target_on_the_frame_after_each_swing_event():
-    assert facing_fixture() == {"read": True, "swings": 4, "off_by_points": _off(**{"0": 1, "3": 1, "4": 1}),
+    assert facing_fixture() == {"read": True, "swings": 5, "off_by_points": _off(**{"0": 2, "3": 1, "4": 1}),
                                 "unread": 1, "shoves_off": {"swings": 2, "off_by_points": _off(**{"0": 1, "1": 1}),
                                                             "unread": 0},
-                                "stomps_off": {"swings": 1, "off_by_points": _off(**{"0": 1}), "unread": 0}}
+                                "stomps_off": {"swings": 1, "off_by_points": _off(**{"0": 1}), "unread": 0},
+                                "paired": {"frame": 5, "line": 3}}
 
 
 def test_the_facing_reads_zero_without_a_swing_and_unread_without_a_log():
     zero = {"swings": 0, "off_by_points": _off(), "unread": 0}
     assert grade(log=CLEAN, frames=[hf(1.0)])["facing"] == dict(zero, read=True, shoves_off=dict(zero),
-                                                                stomps_off=dict(zero))
+                                                                stomps_off=dict(zero), paired={"frame": 0, "line": 0})
     assert grade(log=None)["facing"] == {"read": False}
 
 
@@ -532,16 +544,19 @@ MUTANTS = [
      lambda: circle_fixture()["straight_two"] == 1),
     ("e_circle", lambda b: b.replace('if ln.get("branch") != "threat":', "if False:"),
      lambda: circle_fixture()["legs"] == 4),
+    ("e_circle", lambda b: b.replace("n == 1", "n >= 1"), lambda: circle_fixture()["straight_one"] == 1),
     # P28-F
     ("bearing_deg", lambda b: b.replace("math.atan2(dx, -dy)", "math.atan2(dx, dy)"),
      lambda: G.compass(0, -1) == "N" and G.compass(1, 1) == "SE"),
     ("compass", lambda b: b.replace("(b + 22.5) // 45.0", "b // 45.0"),
-     lambda: facing_fixture()["off_by_points"] == _off(**{"0": 1, "3": 1, "4": 1})),
+     lambda: facing_fixture()["off_by_points"] == _off(**{"0": 2, "3": 1, "4": 1})),
     ("_points", lambda b: b.replace("min(i, 8 - i)", "i"),
      lambda: facing_fixture()["shoves_off"]["off_by_points"] == _off(**{"0": 1, "1": 1})),
-    ("e_facing", lambda b: b.replace("pend = []", "pend = pend"), lambda: facing_fixture()["swings"] == 4),
+    ("e_facing", lambda b: b.replace("pend = []", "pend = pend"), lambda: facing_fixture()["swings"] == 5),
+    ("e_facing", lambda b: b.replace("aid = own if own is not None else inferred", "aid = inferred"),
+     lambda: facing_fixture()["swings"] == 5),
     ("e_facing", lambda b: b.replace(' and ln.get("attackStarted") is True', ""),
-     lambda: facing_fixture()["swings"] == 4),
+     lambda: facing_fixture()["swings"] == 5),
     ("e_facing", lambda b: b.replace('ln.get("state") == "accepted"', 'ln.get("state") is not None'),
      lambda: facing_fixture()["stomps_off"]["swings"] == 1),
     # the spec's 1 (c)
@@ -602,25 +617,34 @@ ZERO = {
     "floor_pain": {"read": True, "swings": 0, "landed": 0, "kills": 0, "stomps_after": 0,
                    "swings_under_pain_before": 0},
     "busy_retry": {"read": True, "sends": 0, "by_kind": {}, "stomps_landed_after": 0, "kills_after": 0},
-    "circle": {"read": True, "legs": 0, "sides": {}, "blocked_turns": 0, "off_turn": 0, "straight_two": 0},
+    "circle": {"read": True, "legs": 0, "sides": {}, "blocked_turns": 0, "off_turn": 0, "straight_two": 0,
+               "straight_one": 0},
 }
+
+
+def zero(k, straight_one):
+    """ZERO[k], the circle's `straight_one` an older log's own count (its straight `back` legs at one standing zombie
+    within KEEP_R: the circle off, no rule check)."""
+    return dict(ZERO[k], straight_one=straight_one) if k == "circle" else ZERO[k]
 
 
 def test_grade_e18_on_e20_keeps_every_grade_e17_key_as_the_committed_e_grade_txt_and_reads_the_new_keys():
     """E20 ran survival iteration 20 on PZA/1.7.1 (no part `wound` field, no iteration 21 why) and stopped before
     Plan 28 Task 1's `client_end` (its stop reads `death`, no `loop.end`): every rule key reads 0; the hits read its
     six bite reactions over its seven kills, the facing its 36 attack swings each on the target's bearing (and its two
-    stomps')."""
+    stomps'), each paired by its frame's own `act.aid`; the circle's `straight_one` its five straight `back` legs at one
+    standing zombie (the circle not yet a rule)."""
     g, mine = _real(E20, "e_day_20.json")
     assert g["grade"] == "grade_e18"
-    for k, v in ZERO.items():
-        assert g[k] == v, k
+    for k in ZERO:
+        assert g[k] == zero(k, 5), k
     h = g["hits"]
     assert (h["runs"], h["kills"], h["per_kill"], h["kinds"]) == (6, 7, 6 / 7, {"Bite": 6})
     assert g["kills"]["planner"] == 7
     assert g["facing"] == {"read": True, "swings": 36, "off_by_points": _off(**{"0": 36}), "unread": 0,
                            "shoves_off": {"swings": 0, "off_by_points": _off(), "unread": 0},
-                           "stomps_off": {"swings": 2, "off_by_points": _off(**{"0": 2}), "unread": 0}}
+                           "stomps_off": {"swings": 2, "off_by_points": _off(**{"0": 2}), "unread": 0},
+                           "paired": {"frame": 38, "line": 0}}
     assert g["client_end"] == {"read": True, "stopped": "death", "seq": None, "health": None}
     _, committed = _committed(E20, "e_grade.txt")
     for k in NEW:

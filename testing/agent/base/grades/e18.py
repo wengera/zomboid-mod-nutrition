@@ -15,17 +15,22 @@ and events:
                their kills, the stomps after, and an older log's floor swings under the pain (the check, 0 by P24-AP).
   busy_retry   P28-D, a `busy` rejection retried (`BUSY_RETRY`): the sends by kind, the stomps landed after, the kills.
   circle       P28-E, the circle (`CIRCLE`): the `back` legs by the turn's side, the sides switched, the turns off
-               CIRCLE_TURN, the straight `back` legs at two or more standing zombies within KEEP_R.
+               CIRCLE_TURN, the straight `back` legs at two or more standing zombies within KEEP_R and at one.
   facing       P28-F, the facing on the swing (the F11 guide's section 2 read, graded): on the frame after each attack's
-               swing event the compass points between `me.dir` and the target's bearing, the shoves' and stomps' apart.
+               swing event (its act the frame's own `act.aid`, else the last accepted act line) the compass points
+               between `me.dir` and the target's bearing, the shoves' and stomps' apart.
   client_end   the spec's 1 (c), the client's end as a stop: the stop's reason and `loop.end`'s seq and health.
 
 Each reading but `hits` is {"read": False} without a decision log; `hits` is {"read": False} without frames. A key
 marked reading counts what the log, the frames or the artifact states; one marked inference reads an effect off the
 frames, the events or the order of lines. Every live planner name the readings read is copied below as a frozen
-constant with its source and its value at 8e5d26f1 (ruling P26-Q, `grades/__init__.py`; WOUND_RESERVE and CIRCLE_TURN
-as Plan 28 Task 3's brief names them, `planner/policies.py`'s table after WALK_DONE_R): this module imports nothing
-from `agent.base.planner` or `agent.base.world`; the chain it imports (`grades.e17.grade_e17`, which reads live names
+constant with its source and its value at 56a5ab12 (Plan 28 Task 3's last rule commit; ruling P26-Q,
+`grades/__init__.py`), and every why key read off Task 3's committed code (`care.py` `choose`'s wound step, `shove.py`
+`_shove`, `fight.py` `_choose`, `_circle_turn` and `choose`, `finish.py` `_floor_finish` and `_flee_finish`; the pre-run
+edit of review-t4). No reader reads a switch (`T11_SWITCHES`, nor the coming APPROACH_WALK: P28-C's non-stance walk
+shares FLOOR_PAIN for now and no reading counts it), there is no `shove_early` (P28-B1 withdrawn) and SHOVE_R (1.1 at
+ab596f41) is read by none. This module imports nothing from `agent.base.planner` or `agent.base.world`; the chain it
+imports (`grades.e17.grade_e17`, which reads live names
 through `e16`, `e15`, `e14` and `gates_e`) is pinned by the regrade tests of the artifacts graded through it. Frozen
 once an artifact carries its output; `gates_e`, `grades/e14.py` to `grades/e17.py` and every driver stay untouched."""
 import bisect
@@ -35,12 +40,13 @@ from agent.base import gates_e as E
 from agent.base.grades import e14 as G14
 from agent.base.grades import e17 as G17
 
-# Frozen copies of the live planner names read here (P26-Q), each as it stood at 8e5d26f1 (Plan 28 Task 2's head).
+# Frozen copies of the live planner names read here (P26-Q), each as it stood at 56a5ab12 (the line there; the commit
+# that set it in brackets where it is iteration 21's).
 STRAIN_HARD = 20.0     # planner/policies.py:166: the arms' summed pain at which the Fight never swings (P24-AP)
 KEEP_R = 2.5           # planner/policies.py:134: tiles, a target inside this is backpedalled from (the circle's count)
 AIM_LEG_S = 2.0        # planner/policies.py:130: seconds one stance leg (`aim`) holds
-WOUND_RESERVE = 1      # planner/policies.py (Plan 28 Task 3, P28-A): clean dressings the wound step keeps back
-CIRCLE_TURN = 45.0     # planner/policies.py (Plan 28 Task 3, P28-E): degrees the circle turns the `back` heading
+WOUND_RESERVE = 1      # planner/policies.py:319 (334b502c, P28-A): clean dressings the wound step keeps for a bleed
+CIRCLE_TURN = 45.0     # planner/policies.py:325 (56a5ab12, P28-E): degrees the circle turns the `back` heading
 COMPASS = ("N", "NE", "E", "SE", "S", "SW", "W", "NW")   # world.py:213: the eight points, clockwise from north
 
 
@@ -98,9 +104,10 @@ def _hit_runs(frames):
     return runs
 
 
-def _run_walls(lines):
-    """The sorted wallMs of the reaction runs' first frames (`_hit_runs`)."""
-    return [E._n(f.get("wallMs")) for f in _hit_runs(E._frame_index(lines)[1])]
+def _run_walls(frames):
+    """The wallMs of the reaction runs' first frames (`_hit_runs`) of `frames` in wall order, so sorted as they come;
+    computed once per grade (`readings_e18`) and handed to the readers that read bites."""
+    return [E._n(f.get("wallMs")) for f in _hit_runs(frames)]
 
 
 def _wound_rises(frames):
@@ -176,15 +183,15 @@ def _targets(out):
             for a in (E._d(x) for x in E._l(E._d(E._d(out).get("loop")).get("actions")))}
 
 
-def e_hits(out, lines, kills):
+def e_hits(out, frames, lines, kills):
     """The hits per kill (P28-M, ruling of 2026-11-04): {read, runs, kills, per_kill, wounds, wound_frames,
     wounds_per_kill, by_fight, outside, kinds, strike_before}, read off the frames with or without a decision log
     ({"read": False} without a frame). Reading: `runs` the reaction runs (`_hit_runs`), `kinds` the first frame's
     reaction per run, `kills` the inherited `kills.planner`, `per_kill` runs over it (None at 0 kills), `wounds` the
     summed rises of WOUND_COUNTS between consecutive frames on `wound_frames` frames, `wounds_per_kill` over the kills,
     `by_fight` the runs whose first frame lies in each `loop.fights` row's span (`startS` to `end.endS` on the loop
-    clock), `outside` those in none. Inference off the order of lines: `strike_before` per run (`_strike_before`)."""
-    _, frames = E._frame_index(lines)
+    clock), `outside` those in none. Inference off the order of lines: `strike_before` per run (`_strike_before`).
+    `frames` are the frame lines of `lines` in wall order (`gates_e._frame_index`, read once per grade)."""
     if not frames:
         return {"read": False}
     runs = _hit_runs(frames)
@@ -289,7 +296,7 @@ def e_wound_dress(L, lines):
 
 
 # ---------------------------------------------------------------- P28-B2
-def e_shove_back(L, lines):
+def e_shove_back(L, lines, runs):
     """The back leg after a missed shove (P28-B2, `Threat.SHOVE_BACK`): {read, lines, legs, bites_during,
     shoves_after}. Reading: `lines` the threat lines whose why carries `shove_back` {target, missed}
     (`shove.FightShove._shove`, the stance's `back` leg in the second shove's place), `legs` those that sent the
@@ -298,7 +305,7 @@ def e_shove_back(L, lines):
     a shove sent at the same zombie."""
     if L is None:
         return {"read": False}
-    acts, runs, rows = G14._acts(lines, "aim"), _run_walls(lines), L.rows
+    acts, rows = G14._acts(lines, "aim"), L.rows   # `runs`: the reaction runs' first walls (`_run_walls`)
     n = legs = during = after = 0
     for i, ln in enumerate(rows):
         sb = L.why(ln).get("shove_back") if ln.get("branch") == "threat" else None
@@ -323,7 +330,7 @@ def _drift_leg(w):
     return w.get("out_of_reach") is True and w.get("stance") is True and w.get("leg") == "stand"
 
 
-def e_drift_stand(L, lines):
+def e_drift_stand(L, runs):
     """The drifted pin's stance (P28-B3, `Threat.DRIFT_STAND`): {read, lines, legs, shoves_after, bites_after}.
     Reading: `lines` the threat lines whose why reads `out_of_reach` true with `stance` true and `leg` "stand"
     (`fight.Fight._choose`'s cornered branch, the pin beyond CORNERED_R chasing), `legs` those that sent the `aim`.
@@ -331,7 +338,7 @@ def e_drift_stand(L, lines):
     at the why's target, `bites_after` those after which a hit reaction run began within BITE_AFTER_S."""
     if L is None:
         return {"read": False}
-    runs, rows = _run_walls(lines), L.rows
+    rows = L.rows   # `runs`: the reaction runs' first walls (`_run_walls`)
     n = legs = after = bites = 0
     for i, ln in enumerate(rows):
         w = L.why(ln)
@@ -424,16 +431,18 @@ def _standing_within(f, r):
 
 
 def e_circle(L):
-    """The circle (P28-E, `Threat.CIRCLE`): {read, legs, sides, blocked_turns, off_turn, straight_two}. Reading: `legs`
-    the threat lines sending the `aim` on the `back` leg whose why carries `circle` {turn} (`fight.Fight._circle_turn`),
-    `sides` them by the turn's sign ("+", "-", "0"), `off_turn` those whose turn is not CIRCLE_TURN either way (must
-    read 0). Inference off the order of lines and the frames: `blocked_turns` the legs whose side differs from the
-    previous circle leg's (the kept side read blocked: `_circle_turn` keeps its side while its heading is clear),
-    `straight_two` the `back` legs sent without `circle` whose frame reads two or more standing zombies within KEEP_R
-    (the straight backpedal the rule keeps)."""
+    """The circle (P28-E, `Threat.CIRCLE`): {read, legs, sides, blocked_turns, off_turn, straight_two, straight_one}.
+    Reading: `legs` the threat lines sending the `aim` on the `back` leg whose why carries `circle` {turn}
+    (`fight.Fight._circle_turn`, logged only on a turned leg: ±CIRCLE_TURN), `sides` them by the turn's sign ("+", "-",
+    "0"), `off_turn` those whose turn is not CIRCLE_TURN either way (must read 0). Inference off the order of lines and
+    the frames: `blocked_turns` the legs whose side differs from the previous circle leg's (the kept side read blocked:
+    `_circle_turn` keeps its side while its heading is clear), and over the `back` legs sent without `circle`:
+    `straight_two` those whose frame reads two or more standing zombies within KEEP_R (the straight backpedal the rule
+    keeps), `straight_one` those reading exactly one (`_circle_turn`'s fallback with both sides blocked, which logs no
+    `circle`, or the rule off; the frame's count, not the planner's `_standing`)."""
     if L is None:
         return {"read": False}
-    legs = blocked = off = straight = 0
+    legs = blocked = off = straight = one = 0
     sides, last = {}, None
     for ln in L.rows:
         if ln.get("branch") != "threat":
@@ -444,7 +453,9 @@ def e_circle(L):
         c = w.get("circle")
         if not isinstance(c, dict):
             f = L.frame(ln)
-            straight += 1 if f is not None and _standing_within(f, KEEP_R) >= 2 else 0
+            n = _standing_within(f, KEEP_R) if f is not None else 0
+            straight += 1 if n >= 2 else 0
+            one += 1 if n == 1 else 0
             continue
         legs += 1
         t = E._n(c.get("turn"))
@@ -454,7 +465,7 @@ def e_circle(L):
         blocked += 1 if last is not None and side != last else 0
         last = side
     return {"read": True, "legs": legs, "sides": sides, "blocked_turns": blocked, "off_turn": off,
-            "straight_two": straight}
+            "straight_two": straight, "straight_one": one}
 
 
 # ---------------------------------------------------------------- P28-F
@@ -479,16 +490,18 @@ def _facing_off(f, zid):
 
 def e_facing(L, out, lines):
     """The facing on the swing (P28-F, the F11 guide's section 2 read): {read, swings, off_by_points, unread,
-    shoves_off, stomps_off}. Inference off the order of lines: each started `swing` event (`attackStarted` true) is the
-    act of the last accepted act line before it in the state log. Reading, on the first frame after each event:
-    `off_by_points` the attacks' events by the compass points (0 to 4) between `me.dir` and the bearing of the act's
-    target (world x east, y south, `compass`), `unread` those whose frame lists no target or reads no point, `swings`
-    the attacks' events; `shoves_off` and `stomps_off` the same over the shoves' and the stomps' events (the
-    comparison)."""
+    shoves_off, stomps_off, paired}. Each started `swing` event (`attackStarted` true) is read on the first frame
+    after it: its act is that frame's own `act.aid` (a reading, PZA/1.7's frame group), else, where the frame carries
+    none, the last accepted act line before the event in the state log (an inference off the order of lines; `paired`
+    counts the strikes' events by "frame" and by "line"). Reading, on that frame: `off_by_points` the attacks' events by
+    the compass points (0 to 4) between `me.dir` and the bearing of the act's target (world x east, y south,
+    `compass`), `unread` those whose frame lists no target or reads no point, `swings` the attacks' events; `shoves_off`
+    and `stomps_off` the same over the shoves' and the stomps' events (the comparison)."""
     if L is None:
         return {"read": False}
-    targets = _targets(out)
+    targets, types = _targets(out), _act_types(out, lines)
     tally = {t: {"swings": 0, "off_by_points": {str(i): 0 for i in range(5)}, "unread": 0} for t in STRIKES}
+    paired = {"frame": 0, "line": 0}
     pend, last = [], None
     for ln in E._l(lines):
         if not isinstance(ln, dict):
@@ -497,14 +510,17 @@ def e_facing(L, out, lines):
         if k == "act" and ln.get("state") == "accepted":
             last = ln
         elif k == "event" and ln.get("event") == "swing" and ln.get("attackStarted") is True:
-            pend.append(last)
+            pend.append(E._d(last).get("aid"))
         elif k == "frame" and pend:
-            for a in pend:
-                t = E._d(a).get("type")
+            own = E._d(ln.get("act")).get("aid")
+            for inferred in pend:
+                aid = own if own is not None else inferred
+                t = types.get(aid)
                 if t not in tally:
                     continue
+                paired["frame" if own is not None else "line"] += 1
                 tally[t]["swings"] += 1
-                off = _facing_off(ln, targets.get(E._d(a).get("aid")))
+                off = _facing_off(ln, targets.get(aid))
                 if off is None:
                     tally[t]["unread"] += 1
                 else:
@@ -512,7 +528,15 @@ def e_facing(L, out, lines):
             pend = []
     a = tally["attack"]
     return {"read": True, "swings": a["swings"], "off_by_points": a["off_by_points"], "unread": a["unread"],
-            "shoves_off": tally["shove"], "stomps_off": tally["stomp"]}
+            "shoves_off": tally["shove"], "stomps_off": tally["stomp"], "paired": paired}
+
+
+def _act_types(out, lines):
+    """{aid: type} of the state log's act lines, the artifact's loop.actions filling the rest."""
+    types = {a.get("aid"): a.get("type") for a in (E._d(x) for x in E._l(E._d(E._d(out).get("loop")).get("actions")))}
+    types.update({ln.get("aid"): ln.get("type") for ln in E._l(lines)
+                  if isinstance(ln, dict) and ln.get("kind") == "act" and ln.get("type") is not None})
+    return types
 
 
 # ---------------------------------------------------------------- the spec's 1 (c)
@@ -534,8 +558,10 @@ def readings_e18(out, decision_lines, lines, kills=None):
     L = E._Lines(out, decision_lines, lines) if decision_lines is not None else None
     if kills is None:
         kills = E.e_kills_9(out, lines).get("planner")
-    return {"hits": e_hits(out, lines, kills), "wound_dress": e_wound_dress(L, lines),
-            "shove_back": e_shove_back(L, lines), "drift_stand": e_drift_stand(L, lines),
+    frames = L.index[1] if L is not None else E._frame_index(lines)[1]   # sorted once per grade
+    runs = _run_walls(frames)
+    return {"hits": e_hits(out, frames, lines, kills), "wound_dress": e_wound_dress(L, lines),
+            "shove_back": e_shove_back(L, lines, runs), "drift_stand": e_drift_stand(L, runs),
             "floor_pain": e_floor_pain(L, lines), "busy_retry": e_busy_retry(L), "circle": e_circle(L),
             "facing": e_facing(L, out, lines), "client_end": e_client_end(out, L)}
 
@@ -576,14 +602,17 @@ def lines_e18(g):
                     br.get("sends"), br.get("by_kind"), br.get("stomps_landed_after"), br.get("kills_after")))
                if br.get("read") else "busy retry (P28-D): no decision log read")
     out.append(("circle (P28-E) [reading]: %s circle legs by side %s, %s off CIRCLE_TURN (must read 0); [inference] "
-                "%s sides switched, %s straight `back` legs at two or more standing within KEEP_R" % (
+                "%s sides switched, %s straight `back` legs at two or more standing within KEEP_R, %s at one" % (
                     ci.get("legs"), ci.get("sides"), ci.get("off_turn"), ci.get("blocked_turns"),
-                    ci.get("straight_two"))) if ci.get("read") else "circle (P28-E): no decision log read")
+                    ci.get("straight_two"), ci.get("straight_one")))
+               if ci.get("read") else "circle (P28-E): no decision log read")
     so, st = E._d(fa.get("shoves_off")), E._d(fa.get("stomps_off"))
     out.append(("facing (P28-F) [reading]: %s attack swings by the points off the target %s (%s unread), shoves %s "
-                "(%s unread), stomps %s (%s unread); [inference] each swing event the last accepted act's" % (
+                "(%s unread), stomps %s (%s unread), each swing event's act the frame's own %s; [inference] by the "
+                "last accepted act line %s" % (
                     fa.get("swings"), fa.get("off_by_points"), fa.get("unread"), so.get("off_by_points"),
-                    so.get("unread"), st.get("off_by_points"), st.get("unread")))
+                    so.get("unread"), st.get("off_by_points"), st.get("unread"), E._d(fa.get("paired")).get("frame"),
+                    E._d(fa.get("paired")).get("line")))
                if fa.get("read") else "facing (P28-F): no decision log read")
     out.append(("client end (the spec's 1 (c)) [reading]: the stop %s, loop.end seq %s health %s" % (
                     ce.get("stopped"), ce.get("seq"), ce.get("health")))
