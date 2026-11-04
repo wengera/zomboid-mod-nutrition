@@ -529,7 +529,8 @@ def test_reach_is_the_weapons_max_range_times_range_mod_times_the_margin(lua):
 
 def test_attack_beyond_reach_queues_one_approach_walk_at_a_walk_and_swings_once_inside(lua, fs):
     """Plan 28 Task 1, ruling P27-9: the approach sub-walk goes at a walk, never a run (E20's a190 ran
-    1.762922801715824 tiles into zombie 3189, which bit, #4571); before it the approach ran (wantRun true)."""
+    1.762922801715824 tiles into zombie 3189, which bit, #4571); before it the approach ran (wantRun true).
+    Re-pinned for ruling P28-F (Plan 28 Task 1b): the first tick within the reach faces, the next presses."""
     load(lua)
     z, p = attack_world(lua, zx=13.0)
     pos = mover(p, 10.0, 20.0)
@@ -543,8 +544,10 @@ def test_attack_beyond_reach_queues_one_approach_walk_at_a_walk_and_swings_once_
     assert len(q.adds) == 1 and list(p.attacks) == []               # one walk, never re-queued
     pos["x"] = 12.0                                                 # 1.0 tiles off: inside the reach 1.125
     tick(lua, p)
-    assert list(p.attacks) == [0] and list(p.faced) == [z] and len(q.adds) == 1
+    assert list(p.attacks) == [] and list(p.faced) == [z] and len(q.adds) == 1
     assert q.queue == [] and lua.eval("PZA.motor.wantRun") is False
+    tick(lua, p)
+    assert list(p.attacks) == [0] and list(p.faced) == [z, z] and len(q.adds) == 1
     tick(lua, p, 5)
     assert list(p.attacks) == [0]                                   # one swing only
 
@@ -586,10 +589,11 @@ def test_attack_whose_approach_square_is_absent_fails_on_that_tick_with_no_squar
 
 
 def test_attack_started_true_then_false_is_done_with_the_largest_melee_delay(lua, fs):
+    """Re-pinned for ruling P28-F (Plan 28 Task 1b): the first tick within the reach faces, the next presses."""
     load(lua)
     _, p = attack_world(lua)
     start(lua, p, "attack", targetId=7)
-    tick(lua, p)
+    tick(lua, p, 2)
     assert list(p.attacks) == [0]
     for started, delay in ((True, 0.4), (True, 0.6), (True, 0.5)):
         p.attack["started"], p.attack["delay"] = started, delay
@@ -603,10 +607,11 @@ def test_attack_started_true_then_false_is_done_with_the_largest_melee_delay(lua
 
 
 def test_attack_that_never_starts_is_done_after_the_swing_window(lua, fs):
+    """Re-pinned for ruling P28-F (Plan 28 Task 1b): the first tick within the reach faces, the next presses."""
     load(lua)
     _, p = attack_world(lua)
     start(lua, p, "attack", targetId=7)
-    tick(lua, p)
+    tick(lua, p, 2)
     lua.globals()._clock["ms"] += 1499
     tick(lua, p)
     assert not ended(lua)
@@ -618,10 +623,11 @@ def test_attack_that_never_starts_is_done_after_the_swing_window(lua, fs):
 
 
 def test_a_target_that_dies_ends_the_attack_done_with_target_dead(lua, fs):
+    """Re-pinned for ruling P28-F (Plan 28 Task 1b): the first tick within the reach faces, the next presses."""
     load(lua)
     z, p = attack_world(lua)
     start(lua, p, "attack", targetId=7)
-    tick(lua, p)
+    tick(lua, p, 2)
     z.isDead = lambda s: True
     tick(lua, p)
     a = acts(lua, fs)
@@ -664,6 +670,79 @@ def test_attack_fails_no_weapon_when_the_weapon_leaves_the_hand_before_the_swing
     p.getPrimaryHandItem = lambda s: None
     tick(lua, p)
     assert states(acts(lua, fs))[-1] == ("a1", "failed", "no weapon")
+
+
+# ---- Plan 28 Task 1b (ruling P28-F): the swing faces a client update before it presses -------------------------------
+
+def test_attack_within_reach_faces_on_its_first_tick_and_presses_on_the_next(lua, fs):
+    """Ruling P28-F: the swing sets no facing (#4588) and the hit test reads the animation's angle at the press
+    (#4591), so the first tick within the reach faces the target and presses nothing; the next faces again and
+    presses DoAttack(0) once."""
+    load(lua)
+    z, p = attack_world(lua)
+    start(lua, p, "attack", targetId=7)
+    tick(lua, p)
+    assert list(p.faced) == [z] and list(p.attacks) == []
+    assert lua.eval("PZA.skills.cur.st.swungAt") is None and lua.eval("PZA.skills.cur.st.faceTicks") == 0
+    tick(lua, p)
+    assert list(p.faced) == [z, z] and list(p.attacks) == [0]
+    tick(lua, p, 3)
+    assert list(p.attacks) == [0] and list(p.faced) == [z, z]
+
+
+def test_a_target_stepping_out_of_reach_after_the_face_is_approached_again_and_faced_afresh(lua, fs):
+    """Ruling P28-F: a target that moves beyond the reach between the face and the press sends the attack back to the
+    approach (the sub-walk again, the face cleared); back within the reach it faces afresh and presses a tick later;
+    APPROACH_MS counts from the first approach tick."""
+    load(lua)
+    zp = {"x": 11.0}
+    z = make_zombie(7, 11.0, 20.0)
+    z.getX = lambda s: zp["x"]
+    sense(lua, [z])
+    lua.globals()._cell = make_cell(zombies=[z], squares={(13, 20, 0): "zsq"})
+    p = make_player(weapon=make_weapon())
+    pos = mover(p, 10.0, 20.0)
+    q = lua.globals()._queue
+    start(lua, p, "attack", targetId=7)
+    tick(lua, p)
+    assert list(p.faced) == [z] and list(p.attacks) == []
+    zp["x"] = 13.0                                                  # 3.0 tiles off: beyond the reach 1.125
+    tick(lua, p)
+    assert list(p.attacks) == [] and [a.Type for a in q.adds] == ["ISWalkToTimedAction"]
+    assert lua.eval("PZA.skills.cur.st.facedAt") is None and lua.eval("PZA.skills.cur.st.sub.gait") == "walk"
+    at = lua.eval("PZA.skills.cur.st.approachAt")
+    pos["x"] = 12.0
+    tick(lua, p)
+    assert list(p.faced) == [z, z] and list(p.attacks) == [] and q.queue == []
+    tick(lua, p)
+    assert list(p.faced) == [z, z, z] and list(p.attacks) == [0]
+    assert lua.eval("PZA.skills.cur.st.approachAt") == at
+
+
+def test_the_approach_budget_after_a_face_counts_from_the_first_approach_tick(lua, fs):
+    """Ruling P28-F: a re-approach after a face keeps the first approach's start, so a target stepping in and out of
+    the reach cannot hold the attack past APPROACH_MS."""
+    load(lua)
+    zp = {"x": 13.0}
+    z = make_zombie(7, 13.0, 20.0)
+    z.getX = lambda s: zp["x"]
+    sense(lua, [z])
+    lua.globals()._cell = make_cell(zombies=[z], squares={(13, 20, 0): "zsq", (14, 20, 0): "zsq2"})
+    p = make_player(weapon=make_weapon())
+    mover(p, 10.0, 20.0)
+    g = lua.globals()
+    start(lua, p, "attack", targetId=7)
+    tick(lua, p)                                                    # the first approach tick
+    g._clock["ms"] += 3000
+    zp["x"] = 11.0
+    tick(lua, p)                                                    # within the reach: the face
+    assert list(p.faced) == [z] and list(p.attacks) == []
+    zp["x"] = 14.0
+    tick(lua, p)                                                    # out again: the approach resumes
+    assert not ended(lua)
+    g._clock["ms"] += 1000
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "out of reach") and list(p.attacks) == []
 
 
 # ---- interact --------------------------------------------------------------------------------------------------------
@@ -1092,12 +1171,13 @@ def run_stop(lua):
 
 
 def run_attack(lua):
+    """Re-pinned for ruling P28-F (Plan 28 Task 1b): the first tick within the reach faces, the next presses."""
     z, p = attack_world(lua, zx=13.0)
     pos = mover(p, 10.0, 20.0)
     start(lua, p, "attack", aid="attack", targetId=7)
     tick(lua, p)
     pos["x"] = 12.0
-    tick(lua, p)
+    tick(lua, p, 2)
     lua.globals()._clock["ms"] += 1500
     tick(lua, p)
     return p
@@ -1424,6 +1504,7 @@ def test_a_player_dying_mid_skill_fails_it_dead_with_the_motor_off(lua, fs, typ)
 
 
 def test_the_swing_writes_both_latches_false_before_do_attack(lua, fs):
+    """Re-pinned for ruling P28-F (Plan 28 Task 1b): the first tick within the reach faces, the next presses."""
     load(lua)
     _, p = attack_world(lua, zx=13.0)
     pos = mover(p, 10.0, 20.0)
@@ -1432,7 +1513,7 @@ def test_the_swing_writes_both_latches_false_before_do_attack(lua, fs):
     start(lua, p, "attack", targetId=7)
     tick(lua, p)
     pos["x"] = 12.0
-    tick(lua, p)
+    tick(lua, p, 2)
     assert len(seen) == 1
     assert seen[0][-2:] == [("setForceRun", False), ("setForceSprint", False)]
 
@@ -1966,6 +2047,7 @@ def test_the_runner_calls_a_skills_stop_hook_at_every_end_but_done(lua, fs):
 # ---- PZA/1.4 (ruling P24-C): the attack refused busy in a hit reaction or a started attack --------------------------------
 
 def test_attack_during_a_hit_reaction_is_rejected_busy_and_presses_nothing(lua, fs):
+    """Re-pinned for ruling P28-F (Plan 28 Task 1b): the first tick within the reach faces, the next presses."""
     load(lua)
     _, p = attack_world(lua)
     p.combat["hitReaction"] = "HitReactionFront"
@@ -1974,7 +2056,7 @@ def test_attack_during_a_hit_reaction_is_rejected_busy_and_presses_nothing(lua, 
     assert states(acts(lua, fs)) == [("a1", "rejected", "busy")] and list(p.attacks) == [] and list(p.faced) == []
     p.combat["hitReaction"] = ""                                 # the reaction's state exits: the re-sent one swings
     start(lua, p, "attack", aid="a2", targetId=7)
-    tick(lua, p)
+    tick(lua, p, 2)
     assert ("a2", "accepted", "") in states(acts(lua, fs)) and list(p.attacks) == [0]
 
 

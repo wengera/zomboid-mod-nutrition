@@ -219,7 +219,10 @@ def test_a_walk_superseding_the_aim_releases_the_stance(lua, fs):
     assert calls(p) == ["setForceAim", "nullifyAiming"] and lua.eval("PZA.skills.stance.held") is False
 
 
-def test_an_attack_superseding_the_aim_swings_from_the_held_stance(lua, fs):
+def test_an_attack_superseding_the_aim_swings_after_releasing_the_held_stance(lua, fs):
+    """Re-pinned for ruling P28-F (Plan 28 Task 1b; was ..._swings_from_the_held_stance): the swing pressed while the
+    stance held, which kept it AIM_HOLD_MS past the swing; the attack now releases it on its first tick, presses
+    unaimed a tick after its face, and leaves no stance for the hold to release."""
     load(lua)
     aim_world(lua, zx=11.0)
     p = make_player(weapon=make_weapon())
@@ -228,32 +231,34 @@ def test_an_attack_superseding_the_aim_swings_from_the_held_stance(lua, fs):
     start(lua, p, "attack", aid="atk", targetId=7)
     assert calls(p) == ["setForceAim"] and p.aim["force"] is True
     tick(lua, p)
-    assert p.attacks == [0] and p.aim["force"] is True                # the swing pressed while the stance holds
+    assert p.attacks == [] and p.aim["force"] is False and calls(p) == ["setForceAim", "nullifyAiming"]
+    tick(lua, p)
+    assert p.attacks == [0] and p.aim["force"] is False               # the swing pressed unaimed
     lua.globals()._clock["ms"] += 1500
     tick(lua, p)
     assert states(acts(lua, fs))[-1] == ("atk", "done", "")
-    assert p.aim["force"] is True                                     # kept past the swing for the next aim
-    lua.globals()._clock["ms"] += 1999
+    assert lua.eval("PZA.skills.stance.held") is False                # nothing kept past the swing
+    lua.globals()._clock["ms"] += 2000
     tick(lua, p)
-    assert p.aim["force"] is True
-    lua.globals()._clock["ms"] += 1
-    tick(lua, p)
-    assert calls(p)[-1] == "nullifyAiming" and lua.eval("PZA.skills.stance.held") is False
+    assert calls(p) == ["setForceAim", "nullifyAiming"]               # the hold has nothing to release
 
 
-def test_a_new_aim_after_the_kept_attack_keeps_the_stance_and_a_steer_releases_it(lua, fs):
+def test_a_new_aim_after_the_attack_retakes_the_stance_and_a_steer_releases_it(lua, fs):
+    """Re-pinned for ruling P28-F (Plan 28 Task 1b; was ..._after_the_kept_attack_keeps_the_stance_...): the attack
+    releases the stance on its first tick, so the planner's next aim re-takes it (a second setForceAim)."""
     load(lua)
     aim_world(lua, zx=11.0)
     p = make_player(weapon=make_weapon())
     start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5, targetId=7)
     tick(lua, p)
     start(lua, p, "attack", aid="atk", targetId=7)
-    tick(lua, p)
+    tick(lua, p, 2)
     lua.globals()._clock["ms"] += 1500
     tick(lua, p)
+    assert calls(p) == ["setForceAim", "nullifyAiming"]
     start(lua, p, "aim", aid="aim2", vx=0, vy=0, seconds=5, targetId=7)
     tick(lua, p)
-    assert "nullifyAiming" not in calls(p) and p.aim["force"] is True
+    assert calls(p) == ["setForceAim", "nullifyAiming", "setForceAim"] and p.aim["force"] is True
     start(lua, p, "steer", aid="flee", vx=1, vy=0, seconds=1, gait="run")
     assert calls(p)[-1] == "nullifyAiming" and p.aim["force"] is False
 
@@ -271,6 +276,26 @@ def test_an_attack_out_of_reach_releases_the_stance_before_its_approach(lua, fs)
     tick(lua, p)
     assert calls(p)[-1] == "nullifyAiming" and p.attacks == []
     assert lua.globals()._queue.adds[-1].Type == "ISWalkToTimedAction"
+
+
+def test_an_attack_within_reach_releases_the_held_stance_on_its_first_tick_and_presses_unaimed(lua, fs):
+    """Ruling P28-F: the aimed player faces the mouse (#4589) and the post-update hands that to the animation before
+    OnTick (#4590), so an attack releases a held stance on its first tick whatever the distance (before, only beyond
+    the reach); the aim superseded by the attack keeps the stance until that tick; the press comes a tick after the
+    face, unaimed."""
+    load(lua)
+    z = aim_world(lua, zx=11.0)
+    p = make_player(weapon=make_weapon())
+    start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5, targetId=7)
+    tick(lua, p)
+    start(lua, p, "attack", aid="atk", targetId=7)
+    assert calls(p) == ["setForceAim"] and p.aim["force"] is True     # kept until the attack's first tick
+    tick(lua, p)
+    assert calls(p) == ["setForceAim", "nullifyAiming"] and p.aim["force"] is False
+    assert lua.eval("PZA.skills.stance.held") is False and lua.eval("PZA.motor.wantAim") is False
+    assert p.attacks == [] and p.faced[-1] is z
+    tick(lua, p)
+    assert p.attacks == [0] and p.aim["force"] is False and calls(p) == ["setForceAim", "nullifyAiming"]
 
 
 def test_a_rejected_command_leaves_the_aim_and_its_stance_running(lua, fs):
@@ -512,18 +537,24 @@ def test_a_climb_after_an_aim_releases_the_stance_first(lua, fs):
 
 # ---- PZA/1.5.1 (Task 9 fix 1): the kept stance, the climb's done and its corner edge -----------------------------------
 
+def kept_stance(lua, p):
+    """The stance held with no skill running, set directly: an aim's first tick, then the runner idled under it. An
+    attack left this state AIM_HOLD_MS past its swing until ruling P28-F (Plan 28 Task 1b) made its first tick release
+    the stance; the K.start and K.tick wrappers' guards on it stay in the code and are pinned on it here."""
+    start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5, targetId=7)
+    tick(lua, p)
+    lua.execute("PZA.skills.cur = nil")
+
+
 def test_a_rejected_attack_during_the_idle_hold_keeps_the_kept_stance(lua, fs):
     """Review minor 4 (the stance): with the stance kept after an attack and no skill running, an attack rejected busy
-    during a hit reaction released it; a rejected command now changes nothing, and the hold still ends it."""
+    during a hit reaction released it; a rejected command now changes nothing, and the hold still ends it.
+    Re-pinned for ruling P28-F (Plan 28 Task 1b): an attack no longer keeps the stance, so kept_stance sets it."""
     load(lua)
     aim_world(lua, zx=11.0)
     p = make_player(weapon=make_weapon())
-    start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5, targetId=7)
-    tick(lua, p)
-    start(lua, p, "attack", aid="atk", targetId=7)
-    tick(lua, p)
+    kept_stance(lua, p)
     g = lua.globals()
-    g._clock["ms"] += 1500
     tick(lua, p)
     assert ended(lua) and lua.eval("PZA.skills.stance.held") is True
     p.combat["hitReaction"] = "HitReaction"
@@ -677,24 +708,25 @@ def test_held_frames_count_only_the_frames_is_aiming_read_true(lua, fs):
     assert r["heldFrames"] == 3 and r["ticks"] == 5 and r["held"] is True
 
 
-def test_the_kept_stance_after_an_attack_is_asserted_until_the_hold_releases_it(lua, fs):
+def test_the_attack_drops_the_stance_on_its_first_frame_and_presses_unaimed(lua, fs):
+    """Re-pinned for ruling P28-F (Plan 28 Task 1b; was test_the_kept_stance_after_an_attack_is_asserted_until_the_
+    hold_releases_it): the swing pressed on a frame reading aiming and the stance was asserted AIM_HOLD_MS past it;
+    the attack's first frame now releases it and faces, the next frame's update reads no aiming (the Motor asserts
+    nothing), and the press lands on that frame's OnTick, unaimed."""
     load(lua)
-    aim_world(lua, zx=11.0)
+    z = aim_world(lua, zx=11.0)
     p = make_player(weapon=make_weapon())
     start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5, targetId=7)
     engine_frame(lua, p)
     start(lua, p, "attack", aid="atk", targetId=7)
     engine_frame(lua, p)
-    assert p.attacks == [0] and p.isAiming(p) is True
+    assert p.attacks == [] and p.faced[-1] is z and lua.eval("PZA.motor.wantAim") is False
+    engine_frame(lua, p)
+    assert p.attacks == [0] and p.isAiming(p) is False
     g = lua.globals()
     g._clock["ms"] += 1500
     engine_frame(lua, p)
-    assert ended(lua) and lua.eval("PZA.motor.wantAim") is True and p.isAiming(p) is True
-    g._clock["ms"] += 2000
-    engine_frame(lua, p)
-    assert lua.eval("PZA.motor.wantAim") is False
-    engine_frame(lua, p)
-    assert p.isAiming(p) is False
+    assert ended(lua) and lua.eval("PZA.motor.wantAim") is False and p.isAiming(p) is False
 
 
 def test_a_target_dying_reports_held_frames_too(lua, fs):
@@ -717,17 +749,14 @@ def test_a_target_dying_reports_held_frames_too(lua, fs):
 
 def test_a_flee_started_from_a_kept_stance_releases_it_before_the_first_frame(lua, fs):
     """Mutant M10: the stance kept after an attack (no skill running) is released by the K.start wrapper's release(p)
-    when a skill other than an aim or an attack starts; without it the flee would walk strafing under the force-aim."""
+    when a skill other than an aim or an attack starts; without it the flee would walk strafing under the force-aim.
+    Re-pinned for ruling P28-F (Plan 28 Task 1b): an attack no longer keeps the stance, so kept_stance sets it."""
     load(lua)
     aim_world(lua, zx=11.0)
     p = make_player(weapon=make_weapon())
-    start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5, targetId=7)
+    kept_stance(lua, p)
     engine_frame(lua, p)
-    start(lua, p, "attack", aid="atk", targetId=7)
-    engine_frame(lua, p)
-    lua.globals()._clock["ms"] += 1500
-    engine_frame(lua, p)
-    assert ended(lua) and lua.eval("PZA.motor.wantAim") is True       # done, the stance kept
+    assert ended(lua) and lua.eval("PZA.motor.wantAim") is True       # no skill running, the stance kept
     start(lua, p, "steer", aid="flee", vx=1, vy=0, seconds=1, gait="run")
     assert lua.eval("PZA.motor.wantAim") is False                     # released by the wrapper, not by a tick
     n = len(p.sets)

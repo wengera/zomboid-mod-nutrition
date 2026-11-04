@@ -139,10 +139,15 @@ end
 -- only); a held weapon, else no weapon. Beyond the reach one approach walk at a walk (Plan 28 Task 1, ruling P27-9:
 -- E20's a190 ran 1.762922801715824 tiles into zombie 3189, which bit, #4571; a sub-walk to the zombie's position) for
 -- up to APPROACH_MS, then failed out of reach (a walk that fails, as one that cannot queue, ends it at once failed
--- with the walk's reason: no square, no path, stuck); within the reach the walk is cleared, the run dropped, and
--- faceThisObject(z) and DoAttack(0) are called once, DoAttack through PZA.call (index-first) under pcall, its return
--- never read (the jar: DoAttack always returns false). From the swing on, each tick reads isAttackStarted and
--- getMeleeDelay through PZA.call; done when attackStarted has read true and then false, or SWING_MS after the swing.
+-- with the walk's reason: no square, no path, stuck); within the reach the walk is cleared, the run dropped and
+-- faceThisObject(z) called with nothing pressed, and a later tick within the reach calls faceThisObject(z) again and
+-- DoAttack(0) once (ruling P28-F, Plan 28 Task 1b: the swing sets no facing, #4588, and the melee hit test reads the
+-- animation's angle at the press, #4591, which the post-update turns toward the forward direction the face wrote only
+-- on the client update after it, #4590; the runner ticks once a client update), DoAttack through PZA.call
+-- (index-first) under pcall, its return never read (the jar: DoAttack always returns false). A target beyond the
+-- reach between the face and the press is approached again (the face cleared), APPROACH_MS counting from the first
+-- approach tick. From the swing on, each tick reads isAttackStarted and getMeleeDelay through PZA.call; done when
+-- attackStarted has read true and then false, or SWING_MS after the swing.
 -- A target that reads dead mid-skill ends it done at once with the swings made so far (0 during the approach). Result
 -- {swings (1 once DoAttack was called), attackStarted (true ever read), meleeDelay (the largest read, 0 when none),
 -- targetDead (isDead at the end)}.
@@ -158,6 +163,7 @@ K.REACH_FALLBACK = 1.25
 K.REACH_MARGIN = 0.9
 K.APPROACH_MS = 4000      -- the approach walk's wall budget before out of reach
 K.SWING_MS = 1500         -- a swing whose attack never starts and ends is done this long after DoAttack
+K.FACE_TICKS = 1          -- client ticks from the face to the press (P28-F): the post-update turns the animation
 
 -- the held weapon's reach in tiles: getMaxRange(p) * getRangeMod(p), or REACH_FALLBACK when either member is
 -- absent or answers no number, times REACH_MARGIN
@@ -199,22 +205,32 @@ local function attackApproach(p, st)
     local d, zx, zy = zombieDist(p, st.z)
     local now = PZA.now()
     if d ~= nil and d <= K.reachOf(p, w) then
-        if st.sub ~= nil and st.sub.state == "running" then clearQueue(p) end
-        st.sub = nil
-        -- any run dropped before the swing (the approach walks) by construction: the wants off, both latches false
-        -- written here, never left to the engine's per-frame wipe
-        MO.want("walk")
-        PZA.call(p, "setForceRun", false)
-        PZA.call(p, "setForceSprint", false)
+        if st.facedAt == nil then
+            if st.sub ~= nil and st.sub.state == "running" then clearQueue(p) end
+            st.sub = nil
+            -- any run dropped before the swing (the approach walks) by construction: the wants off, both latches false
+            -- written here, never left to the engine's per-frame wipe
+            MO.want("walk")
+            PZA.call(p, "setForceRun", false)
+            PZA.call(p, "setForceSprint", false)
+            PZA.call(p, "faceThisObject", st.z)
+            st.facedAt, st.faceTicks = now, 0
+            return nil
+        end
+        -- the press a client update after the face at the soonest (P28-F): the animation has turned to it by now
+        st.faceTicks = st.faceTicks + 1
+        if st.faceTicks < K.FACE_TICKS then return nil end
         PZA.call(p, "faceThisObject", st.z)
         local _, called = pcall(PZA.call, p, "DoAttack", 0)
         if called == true then st.swings = 1 end
         st.swungAt = now
         return nil
     end
+    -- beyond the reach after a face: the face cleared, the approach again (P28-F)
+    st.facedAt, st.faceTicks = nil, nil
     if st.sub == nil then
         if zx == nil then return "failed", "out of reach" end
-        st.sub, st.approachAt = subWalk(zx, zy, "walk"), now
+        st.sub, st.approachAt = subWalk(zx, zy, "walk"), st.approachAt or now
     end
     if now - st.approachAt >= K.APPROACH_MS then return "failed", "out of reach" end
     -- a sub-walk that fails (no square, no path: it cannot queue; stuck) ends the attack at once with its reason
@@ -233,7 +249,7 @@ K.types.attack = {
         local _, w = PZA.call(p, "getPrimaryHandItem")
         if w == nil then return false, "no weapon" end
         return true, "", { id = id, z = z, swings = 0, started = false, delay = 0, sub = nil, approachAt = nil,
-                           swungAt = nil }
+                           swungAt = nil, facedAt = nil, faceTicks = nil }
     end,
     tick = function(p, st)
         if isDead(p) then return "failed", "dead" end

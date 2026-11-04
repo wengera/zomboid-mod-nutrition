@@ -21,9 +21,9 @@ local isDead, dist, clearQueue, posOf = K.isDead, K.dist, K.clearQueue, W.posOf
 -- true), and the path follower will not climb while aiming (#4289), so the stance lives only under an aim and the
 -- attack it hands over to:
 --   an aim holds it from its first tick and releases it at its end (done, failed, superseded), except when an attack
---   supersedes it (K.start below names the starting type in K.starting): the attack then swings from the held stance
---   (PZAgent_SkillsWorld.lua's swing drops the run latches, faces and presses DoAttack(0), unchanged), and an attack
---   whose target is out of reach releases it before its approach, which runs;
+--   supersedes it (K.start below names the starting type in K.starting): the attack's own first tick then releases it,
+--   whatever the distance (ruling P28-F: the aimed player faces the mouse, #4589), and its swing faces and presses a
+--   tick later unaimed (PZAgent_SkillsWorld.lua's attackApproach), its approach walk, if any, running unaimed too;
 --   any other skill started (walkTo, steer, climb, a care skill, stop) releases it (K.start's wrapper);
 --   with no skill running it is released AIM_HOLD_MS after the last one ended (K.tick's wrapper), so a kept stance
 --   never outlives the planner's next aim.
@@ -164,7 +164,7 @@ K.types.aim = {
         end
         return nil
     end,
-    -- every end but done: the stance released, unless an attack supersedes the aim (it swings from the stance)
+    -- every end but done: the stance released, unless an attack supersedes the aim (its first tick releases it)
     stop = function(p, st, reason)
         if st.startMs == nil then return end
         if reason == "superseded" and K.starting == "attack" then
@@ -203,15 +203,16 @@ function K.tick(p)
     end
 end
 
--- the attack's tick, wrapped: under a held stance, a target beyond the reach before the swing releases the stance (the
--- approach walk is a timed action, stopped by aiming, and runs)
+-- the attack's tick, wrapped (ruling P28-F, Plan 28 Task 1b): a held stance is released on the attack's first tick
+-- whatever the distance, as the shove releases it before its press. While the local player reads aiming (the held
+-- stance's force-aim counts as the aim key) every update after OnPlayerUpdate sets the forward direction toward the
+-- mouse cursor (#4589), and the post-update hands that to the animation before OnTick (#4590), so a swing pressed from
+-- the stance faced the cursor, not the target the skill faced (F11, f_goals_12-20261103-144240's GUIDE.md section 2).
+-- An aim superseded by an attack keeps the stance through its stop hook (K.starting) until this tick releases it,
+-- one tick later; the approach walk, a timed action stopped by aiming, runs unaimed.
 local attackTick = K.types.attack.tick
 K.types.attack.tick = function(p, st)
-    if ST.held and st.swungAt == nil and st.sub == nil then
-        local _, w = PZA.call(p, "getPrimaryHandItem")
-        local d = K.zombieDist(p, st.z)
-        if w ~= nil and d ~= nil and d > K.reachOf(p, w) then release(p) end
-    end
+    if ST.held and st.swungAt == nil and st.sub == nil then release(p) end
     return attackTick(p, st)
 end
 
