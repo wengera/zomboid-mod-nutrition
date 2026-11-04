@@ -294,6 +294,20 @@ def test_an_attack_within_reach_releases_the_held_stance_on_its_first_tick_and_p
     assert p.attacks == [] and p.faced[-1] is z
     tick(lua, p)
     assert p.attacks == [0] and p.aim["force"] is False and calls(p) == ["setForceAim", "nullifyAiming"]
+def test_a_walk_started_between_an_attack_and_its_first_tick_releases_the_kept_stance(lua, fs):
+    """Plan 28 Task 1b fix 1, review-t1b re-review N1: an aim superseded by an attack keeps the stance until the
+    attack's first tick (ruling P28-F); a walk started before that tick releases it through the K.start wrapper's
+    release(p), the only live release that is not the aim's stop hook (the idle hold that once covered it is gone)."""
+    load(lua)
+    aim_world(lua, zx=11.0)
+    p = make_player(weapon=make_weapon())
+    start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5, targetId=7)
+    tick(lua, p)
+    start(lua, p, "attack", aid="atk", targetId=7)
+    start(lua, p, "walkTo", aid="w", x=12, y=20, gait="walk")
+    assert lua.eval("PZA.skills.stance.held") is False and calls(p)[-1] == "nullifyAiming"
+
+
 
 
 def test_a_rejected_command_leaves_the_aim_and_its_stance_running(lua, fs):
