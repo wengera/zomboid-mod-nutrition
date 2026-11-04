@@ -288,7 +288,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     (`care.Care.choose`'s `wound` step); P28-B2, the stance's `back` leg after a missed point-blank shove in the
     second shove's place (`shove.FightShove._shove`); P28-B3, a cornered Fight's drifted pin chasing within DANGER_R
     faced by the standing leg (`fight.Fight._drift_stands`); SHOVE_R at the engine's reach 1.1 (P28-B1 withdrawn by
-    the jar read, #4592); P28-D, a shove or a stomp rejected
+    the jar read, #4592); P28-E, the `back` leg from a lone standing zombie turned CIRCLE_TURN, the last side kept
+    (`fight.Fight._circle_turn`); P28-D, a shove or a stomp rejected
     `busy` is no refusal at its target, sent again on the next tick (`fight.Fight._observe_swing`); P28-C, the swing
     at a fallen zombie barred by a hold or a shove-only Fight, never by the arms' pain alone, and the non-stance
     Fight's walk to a zombie at a walk (`fight.Fight.floor_swing_barred`, `finish.ThreatFinish._flee_finish`);
@@ -418,9 +419,10 @@ T10_SWITCHES = ("STUCK_LEAVE", "FLOOR_FINISH", "FALLEN_SEEK", "LISTING_FALLEN", 
 # STOCK_EARLY; REPLACE_QUIET, copied to the Care); P27-G to P27-J and P27-K2 on `threat.Threat` (FLOOR_FINISH,
 # FALLEN_SEEK, LISTING_FALLEN, SHOVE_CLOSE, LOW_EXIT); its fix 2 (Task 5 fix 2, E20): P27-M, P27-N and P27-O on
 # `threat.Threat` (ATTACK_REACH, POINT_BLANK_PIN, HEALTH_RIDE)
-T11_SWITCHES = ("WOUND_DRESS", "SHOVE_BACK", "DRIFT_STAND", "FLOOR_PAIN", "BUSY_RETRY")
-# survival iteration 21 (Plan 28 Task 3): P28-A on `Survive` (WOUND_DRESS, copied to the Care); P28-B2, P28-B3, P28-C
-# and P28-D on `threat.Threat` (SHOVE_BACK, DRIFT_STAND, FLOOR_PAIN, BUSY_RETRY); P28-B1 withdrawn (no switch)
+T11_SWITCHES = ("WOUND_DRESS", "SHOVE_BACK", "DRIFT_STAND", "FLOOR_PAIN", "BUSY_RETRY", "CIRCLE")
+# survival iteration 21 (Plan 28 Task 3): P28-A on `Survive` (WOUND_DRESS, copied to the Care); P28-B2, P28-B3, P28-C,
+# P28-D and P28-E on `threat.Threat` (SHOVE_BACK, DRIFT_STAND, FLOOR_PAIN, BUSY_RETRY, CIRCLE); P28-B1 withdrawn (no
+# switch)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")

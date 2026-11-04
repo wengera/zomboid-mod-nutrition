@@ -1884,6 +1884,8 @@ def test_iteration_21_moves_four_goldens_at_the_approach_walk(key):
     - SHOVE_BACK (P28-B2) moves none: its back leg follows a shove, which needs a build announcing the PZA/1.7 `shove`,
       and no golden's hello does. DRIFT_STAND (P28-B3) moves none: no replayed golden tick reads a cornered Fight's
       drifted pin (`out_of_reach`, on no golden line). SHOVE_R's 1.1 (no switch) reaches only the shoves.
+    - CIRCLE (P28-E) moves none: no golden line logs a `back` leg (the sixth's stance legs are its `pull`, `seek`,
+      `enter` and `stand` legs; the other hellos announce no `aim`).
     - BUSY_RETRY (P28-D) moves none: a shove or a stomp rejected `busy` needs a build announcing the PZA/1.7 `shove`
       and `stomp`, and no golden's hello does.
     A golden no switch moves is its file before iteration 21 byte for byte."""

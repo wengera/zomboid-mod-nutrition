@@ -229,8 +229,11 @@ def test_the_world_reads_solid_trans_only_for_the_heading(tmp_path):
 
 def test_the_backpedal_turns_off_a_solid_trans_square_behind(tmp_path):
     """The stance's backpedal (a heading read) never steps into a `solidTrans` square: a zombie east at 2.2 tiles,
-    the column x = 99 behind the player read `solidTrans`: the back leg turns off due west."""
+    the column x = 99 behind the player read `solidTrans`: the back leg turns off due west.
+    Named change, ruling P28-E (Plan 28 Task 3): pinned with `CIRCLE` off, the rule before it (the straight backpedal
+    from a lone zombie, where the leg circles now: `test_survive_ac`)."""
     r, sv = make(tmp_path)
+    sv.CIRCLE = False
     r.scan(trans_row(99))
     r.frame(x=100.5, y=200.5, zombies=[zd(1, 102.7, 200.5, me=(100.5, 200.5))])
     sv.fight = None

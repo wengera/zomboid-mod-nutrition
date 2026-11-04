@@ -59,8 +59,11 @@ def test_unarmed_one_zombie_is_fought_from_the_stance_shoved_at_point_blank_and_
     """F5 (27 fights, every one fled `unarmed`): one zombie 4 tiles off, no weapon, health 100: the Fight's stance (an
     `aim`, never sought: the unarmed Fight closes on nothing), logged `unarmed_fight`; at 1.6 tiles (in reach, beyond
     point blank) the backpedal, never an attack; at 0.8 the shove, logged `shove` "unarmed"; its knock-down read, the
-    fallen zombie is stomped."""
+    fallen zombie is stomped.
+    Named change, ruling P28-E (Plan 28 Task 3): pinned with `CIRCLE` off, the rule before it (the straight backpedal
+    from a lone zombie, where the leg circles now: `test_survive_ac`)."""
     r, sv = make(tmp_path)
+    sv.CIRCLE = False
     lone(r, 104.0)
     a = tick(r, sv)
     w = threat_why(tmp_path)

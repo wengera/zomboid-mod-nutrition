@@ -30,8 +30,11 @@ DONE_SHOVE = {"state": "done", "result": {"knockdown": False, "attackStarted": T
 def test_the_arms_hold_alone_fights_a_zombie_within_keep_r_with_the_backpedal_never_the_swing(tmp_path):
     """armPain 25 with a stiffness of 25 (the hold: named change, Task 36, P24-AT sets it on the stiffness), one zombie
     at 2.0 tiles (within KEEP_R and FIGHT_REACH, beyond point blank): no `strain` flee; the Fight's answer is the
-    backpedal (an aim away from it, `wounded` 25), never an attack."""
+    backpedal (an aim away from it, `wounded` 25), never an attack.
+    Named change, ruling P28-E (Plan 28 Task 3): pinned with `CIRCLE` off, the rule before it (the straight backpedal
+    from a lone zombie, where the leg circles now: `test_survive_ac`)."""
     r, sv = make(tmp_path)
+    sv.CIRCLE = False
     fr(r, [z(1, 102.0)], 25.0, STIFF)
     a = tick(r, sv)
     w = threat_why(tmp_path)

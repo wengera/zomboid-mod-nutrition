@@ -50,8 +50,11 @@ def test_one_zombie_at_four_tiles_is_met_standing_then_backpedalled_inside_keep_
     AIM_LEG_S; the leg holds while the target stays beyond KEEP_R and gives way the tick it comes inside (2.2 tiles):
     the next leg backpedals along the away vector (west, the zombie east of the player); within reach the `attack`
     goes from the stance (the running leg gives way). Named change, ruling P24-X: the first leg is the seek, (1, 0)
-    toward it (it stood, (0, 0), letting it come), `leg` "seek"; the rest is iteration 7's."""
+    toward it (it stood, (0, 0), letting it come), `leg` "seek"; the rest is iteration 7's.
+    Named change, ruling P28-E (Plan 28 Task 3): pinned with `CIRCLE` off, the rule before it (the straight backpedal
+    from a lone zombie, where the leg circles now: `test_survive_ac`)."""
     r, sv = make(tmp_path)
+    sv.CIRCLE = False
     r.frame(zombies=[zd(1, 104.0, 200.0)])
     tick(r, sv)
     a = stance_args(r)
@@ -81,8 +84,11 @@ def test_one_zombie_at_four_tiles_is_met_standing_then_backpedalled_inside_keep_
 def test_a_pinned_target_beyond_keep_r_is_stood_facing_and_inside_it_backpedalled_from(tmp_path, x, kind, unsought):
     """Ruling P24-N 2: beyond KEEP_R (6 and 2.55 tiles) the leg stands facing the target, (0, 0); inside it and
     beyond FIGHT_REACH (2.5, 2.2, 2.01) the leg backpedals along the away vector whatever the target's own move (a
-    zombie that does not come is backed from as one that does: no closing read)."""
+    zombie that does not come is backed from as one that does: no closing read).
+    Named change, ruling P28-E (Plan 28 Task 3): pinned with `CIRCLE` off, the rule before it (the straight backpedal
+    from a lone zombie, where the leg circles now: `test_survive_ac`)."""
     r, sv = make(tmp_path)
+    sv.CIRCLE = False
     r.frame(zombies=[zd(1, x, 200.0, has_target=False)])
     tick(r, sv)
     a = stance_args(r)
@@ -147,8 +153,11 @@ def test_after_a_walk_released_the_stance_a_target_in_reach_is_aimed_at_before_t
 
 def test_a_stance_leg_ended_re_aims_and_backpedals_inside_keep_r_whatever_the_target_does(tmp_path):
     """Named change (P24-N, the P24-M closing case): each AIM_LEG_S the stance re-aims; inside KEEP_R the leg
-    backpedals whether or not the target moved toward the player since the last leg (P24-M stood when it did not)."""
+    backpedals whether or not the target moved toward the player since the last leg (P24-M stood when it did not).
+    Named change, ruling P28-E (Plan 28 Task 3): pinned with `CIRCLE` off, the rule before it (the straight backpedal
+    from a lone zombie, where the leg circles now: `test_survive_ac`)."""
     r, sv = make(tmp_path)
+    sv.CIRCLE = False
     r.frame(zombies=[zd(1, 102.2, 200.0)])
     tick(r, sv)
     assert stance_args(r)["vx"] == -1.0
@@ -1912,8 +1921,11 @@ def test_the_keep_margin_constant():
 def test_a_backpedal_gives_way_to_a_standing_leg_once_the_target_is_past_keep_r_and_its_margin(tmp_path):
     """The review's major 1 (a backpedal held its whole AIM_LEG_S while its target fell back past KEEP_R; #4324's
     full leg moved the character 3.0 tiles while the target's distance rose from 2.48 to 3.48): a back leg sent at 2.3
-    tiles holds at 2.7 (inside KEEP_R + KEEP_MARGIN) and gives way at 2.9 to a standing leg, (0, 0)."""
+    tiles holds at 2.7 (inside KEEP_R + KEEP_MARGIN) and gives way at 2.9 to a standing leg, (0, 0).
+    Named change, ruling P28-E (Plan 28 Task 3): pinned with `CIRCLE` off, the rule before it (the straight backpedal
+    from a lone zombie, where the leg circles now: `test_survive_ac`)."""
     r, sv = make(tmp_path)
+    sv.CIRCLE = False
     r.frame(zombies=[zd(1, 102.3, 200.0)])
     tick(r, sv)
     assert stance_args(r)["vx"] == -1.0 and threat_why(tmp_path)["leg"] == "back"
@@ -1933,8 +1945,11 @@ def test_a_backpedal_gives_way_to_a_standing_leg_once_the_target_is_past_keep_r_
 
 def test_an_enter_leg_whose_target_is_knocked_out_of_reach_gives_way_to_the_backpedal(tmp_path):
     """The review's major 1, the `enter` leg: sent with its target in reach (1.8 tiles, the stance not held), the
-    target knocked back to 2.3 tiles: the leg gives way to a `back` leg (it stood its 2 s before)."""
+    target knocked back to 2.3 tiles: the leg gives way to a `back` leg (it stood its 2 s before).
+    Named change, ruling P28-E (Plan 28 Task 3): pinned with `CIRCLE` off, the rule before it (the straight backpedal
+    from a lone zombie, where the leg circles now: `test_survive_ac`)."""
     r, sv = make(tmp_path)
+    sv.CIRCLE = False
     r.frame(zombies=[zd(1, 101.8, 200.0)])
     tick(r, sv)
     assert threat_why(tmp_path)["leg"] == "enter"

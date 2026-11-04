@@ -322,6 +322,10 @@ WOUND_RESERVE = 1         # clean dressings (bandages and clean rags) the wound 
                           # undressed while 63.577457427978516 of its health fell on frames reading no bleed and no bite
                           # (#4581, #4585); one kept for the next bleed, the stock's rip (RAG_STOCK 2) refilling it, a
                           # judgment
+CIRCLE_TURN = 45.0        # degrees the stance's `back` leg from a lone standing zombie within KEEP_R turns off the
+                          # straight away heading (P28-E, E20's candidate, #4576: the stance's legs walked straight
+                          # toward or away from the target): half of STEER_TURNS' 90, the arc keeping the target within
+                          # the swing's reach while it follows, a judgment (the spec's number)
 
 
 def place_of(world):

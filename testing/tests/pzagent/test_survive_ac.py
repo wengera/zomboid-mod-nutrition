@@ -19,6 +19,8 @@ names.
   cornered Fight's pin standing beyond CORNERED_R chasing within DANGER_R takes the standing leg (logged
   `out_of_reach` with `stance`); SHOVE_R at the engine's shove reach 1.1 (#4592; B1, the early shove, withdrawn by
   that read).
+- P28-E, the circle (`CIRCLE`): the `back` leg from a lone standing zombie within KEEP_R turned by CIRCLE_TURN to the
+  side `clear_heading` passes, the last side kept (logged `circle` {turn}).
 """
 import math
 
@@ -510,3 +512,69 @@ def test_the_strike_switches_and_the_shove_reach():
     assert {"SHOVE_BACK", "DRIFT_STAND"} <= set(S.T11_SWITCHES) and T.Threat.SHOVE_BACK and T.Threat.DRIFT_STAND
     assert {"shove_back", "drift_stand"} <= set(F.FIGHT_RULES)
     assert P.SHOVE_R == 1.1 and not hasattr(P, "SHOVE_EARLY_R") and "SHOVE_EARLY" not in S.T11_SWITCHES
+
+
+# ================================================================ P28-E: the circle
+def circled(tmp_path, extra=(), wall=False):
+    """One zombie standing 2.3 tiles due east (inside KEEP_R, beyond FIGHT_REACH: the standing fight's `back` leg), the
+    map clear (unknown squares open); `wall`: a solid square at (99, 199) on the +45 degree heading's line; `extra`
+    zombies listed. Returns (r, f) of a standing Fight."""
+    r = Rig(tmp_path)
+    if wall:
+        r.scan([square(99, 199, solid=True)])
+    r.frame(zombies=[z(1, 102.3)] + list(extra))
+    return r, fight(r, stance=True)
+
+
+def cross(a, b):
+    return a[0] * b[1] - a[1] * b[0]
+
+
+def test_the_back_leg_from_a_lone_zombie_circles_and_keeps_its_side(tmp_path):
+    """The `back` leg's vector is the away heading (west) turned CIRCLE_TURN (45 degrees: its dot with west cos 45, the
+    cross positive), logged `circle` {turn 45.0}; the next leg turns the same side."""
+    r, f = circled(tmp_path)
+    a = f.step()
+    v = (a.args["vx"], a.args["vy"])
+    assert f.why["leg"] == "back" and f.why["circle"] == {"turn": 45.0}
+    assert abs(-v[0] - math.cos(math.radians(45.0))) < 1e-9 and cross((-1.0, 0.0), v) > 0.0
+    end(r, a, "done")
+    r.advance(P.AIM_LEG_S)
+    r.frame(zombies=[z(1, 102.3)])
+    b = f.step()
+    assert cross((-1.0, 0.0), (b.args["vx"], b.args["vy"])) > 0.0 and f.why["circle"] == {"turn": 45.0}
+
+
+def test_with_the_first_side_blocked_the_circle_turns_the_other_way(tmp_path):
+    """The +45 degree heading blocked (a solid square on its line), the -45 one clear: -45."""
+    r, f = circled(tmp_path, wall=True)
+    a = f.step()
+    assert cross((-1.0, 0.0), (a.args["vx"], a.args["vy"])) < 0.0 and f.why["circle"] == {"turn": -45.0}
+
+
+@pytest.mark.parametrize("case", ["two", "off"])
+def test_two_standing_within_keep_r_or_the_switch_off_backpedal_straight_away(tmp_path, case):
+    """Two standing zombies within KEEP_R (a second 2.4 tiles south), or the rule off: straight away, no `circle`."""
+    r, f = circled(tmp_path, extra=[z(2, 100.0, 202.4)] if case == "two" else ())
+    if case == "off":
+        f.rules = f.rules - {"circle"}
+    a = f.step()
+    assert f.why["leg"] == "back" and "circle" not in f.why
+    assert (a.args["vx"], a.args["vy"]) == pytest.approx((-1.0, 0.0))
+
+
+def test_the_iteration_21_switches_and_constants():
+    """The six switches (P28-B1 withdrawn, amendment 1), each on; WOUND_DRESS on `Survive`, the five others on
+    `threat.Threat` in the Fight's rules, each switch off dropping its own rule alone; the constants."""
+    import types
+    assert S.T11_SWITCHES == ("WOUND_DRESS", "SHOVE_BACK", "DRIFT_STAND", "FLOOR_PAIN", "BUSY_RETRY", "CIRCLE")
+    assert "T11_SWITCHES" in S.__all__ and S.Survive.WOUND_DRESS is True
+    names = S.T11_SWITCHES[1:]
+    assert all(getattr(T.Threat, n) is True for n in names) and {n.lower() for n in names} <= set(F.FIGHT_RULES)
+    on = types.SimpleNamespace(**{n: getattr(S.Survive, n) for n in
+                                  [r.upper() for r in F.FIGHT_RULES]})
+    every = T.Threat._fight_rules(on)
+    for n in names:
+        off = types.SimpleNamespace(**dict(vars(on), **{n: False}))
+        assert T.Threat._fight_rules(off) == every - {n.lower()}, n
+    assert (P.WOUND_RESERVE, P.CIRCLE_TURN, P.SHOVE_R) == (1, 45.0, 1.1)

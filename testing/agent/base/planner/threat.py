@@ -196,6 +196,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     DRIFT_STAND = True    # ruling P28-B3: a cornered Fight's pin standing beyond CORNERED_R, chasing within DANGER_R
                           # on a line not read blocked, takes the stance's standing leg (`fight.Fight._drift_stands`);
                           # off, nothing sent (`out_of_reach`, P24-A fix 2, I2a)
+    CIRCLE = True         # ruling P28-E: the stance's `back` leg from one standing zombie within KEEP_R turns
+                          # CIRCLE_TURN off the straight away heading, the last side kept while clear
+                          # (`fight.Fight._circle_turn`); off, the straight backpedal
     FLOOR_PAIN = True     # ruling P28-C: the swing at a fallen zombie within FIGHT_REACH is barred by a hold or a
                           # shove-only Fight, never by the arms' pain alone (`fight.Fight.floor_swing_barred`,
                           # `finish.ThreatFinish._flee_finish`), and the non-stance Fight's walk to a zombie beyond
@@ -1025,7 +1028,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("low_exit", self.LOW_EXIT), ("attack_reach", self.ATTACK_REACH),
                                                ("point_blank_pin", self.POINT_BLANK_PIN),
                                                ("busy_retry", self.BUSY_RETRY), ("floor_pain", self.FLOOR_PAIN),
-                                               ("shove_back", self.SHOVE_BACK), ("drift_stand", self.DRIFT_STAND))
+                                               ("shove_back", self.SHOVE_BACK), ("drift_stand", self.DRIFT_STAND),
+                                               ("circle", self.CIRCLE))
                          if on)
 
     def _flee_rules(self):

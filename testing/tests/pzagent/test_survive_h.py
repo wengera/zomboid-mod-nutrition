@@ -184,8 +184,11 @@ def test_a_sleeper_is_not_woken_to_seek(tmp_path):
 def test_the_seek_leg_gives_way_at_keep_r_to_iteration_7_s_stance(tmp_path):
     """P24-X then P24-N: the seek leg holds while its target stays beyond KEEP_R (the target at 6 then 3 tiles) and
     gives way the tick it comes inside (2.4): the backpedal; the target is then `sought` and the seek never resumes
-    for it (beyond KEEP_R again at 3.5: a standing leg, iteration 7's)."""
+    for it (beyond KEEP_R again at 3.5: a standing leg, iteration 7's).
+    Named change, ruling P28-E (Plan 28 Task 3): pinned with `CIRCLE` off, the rule before it (the straight backpedal
+    from a lone zombie, where the leg circles now: `test_survive_ac`)."""
     r, sv = make(tmp_path)
+    sv.CIRCLE = False
     r.frame(zombies=[zd(1, 106.0, 200.0)])
     tick(r, sv)
     leg = r.acts.history[-1]

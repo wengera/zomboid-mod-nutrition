@@ -148,13 +148,17 @@ one table the gates and the other policies import).
   cornered Fight's pin standing beyond CORNERED_R, chasing within DANGER_R on a line not read blocked, takes the
   stance's standing leg (`_drift_stands`, logged `out_of_reach` with `stance`), held while it comes beyond CORNERED_R
   (`busy`), where it sent nothing before.
+  P28-E, the circle: the stance's `back` leg with exactly one standing zombie within KEEP_R (its target) turns
+  CIRCLE_TURN off the straight away heading, the side last used first while `clear_heading` passes it, else the other,
+  else straight away and STEER_TURNS as before (`_circle_turn`, logged `circle` {turn}); two or more standing within
+  KEEP_R keep the straight backpedal.
 """
 import math
 import time
 
 from agent.base.planner.edges import FightEdge
 from agent.base.planner.finish import FightFinish
-from agent.base.planner.policies import (AIM_HOLD_S, AIM_LEG_S, AIM_R, CORNERED_R, DANGER_R,
+from agent.base.planner.policies import (AIM_HOLD_S, AIM_LEG_S, AIM_R, CIRCLE_TURN, CORNERED_R, DANGER_R,
                                          DISENGAGE_R, DRAG_DOWN_N, EDGE_HOLD_TICKS, FENCE_BACK_R, FIGHT_MAX_S,
                                          FIGHT_REACH, FINISH_R, KEEP_MARGIN, KEEP_R, KNOCK_READ_S, MISSES_TO_APPROACH,
                                          NO_TARGET, POINT_BLANK_R, PREEMPTED, PULL_R, Policy, REPIN_MARGIN,
@@ -178,9 +182,10 @@ FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finis
                "shove_break_run", "blocked_edge", "wounded_swing", "low_swing",
                "floor_finish", "fallen_seek", "shove_close", "low_exit", "attack_reach",
                "point_blank_pin", "busy_retry", "floor_pain", "shove_back",
-               "drift_stand")   # survival iterations 13 to 21's Fight rules (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L;
-                     # P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H, P27-J, P27-K2; fix 2's P27-M and P27-N; P28-D,
-                     # P28-C, P28-B2, P28-B3), each on in `rules` unless Survive's switch for it is off
+               "drift_stand", "circle")   # survival iterations 13 to 21's Fight rules (P25-A, P25-B, P25-D, P25-F;
+                     # P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H, P27-J, P27-K2; fix 2's P27-M and
+                     # P27-N; P28-D, P28-C, P28-B2, P28-B3, P28-E), each on in `rules` unless Survive's switch for it
+                     # is off
 
 
 class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach, Policy):
@@ -267,6 +272,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         self._init_pin()   # P27-N: the attacker latch and the tick's pin read (`pin.FightPin`)
         self._busy_retry = None             # (shove or stomp, zombie id) of the last send rejected `busy`, until the
                                             # next send of that kind at that id or another end at it (P28-D)
+        self._circle_side = 1               # the side the last circling `back` leg turned (+1 first, -1), kept (P28-E)
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -981,8 +987,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         return Attack(zid)   # nearest_zombie yields int ids only (M7)
 
     def _stance_leg(self, zid, z, d, kind=None):
-        """One stance leg (rulings P24-G 1 and P24-N): `aim` facing the target for AIM_LEG_S, walking (the stance
-        never runs) one of
+        """One stance leg (rulings P24-G 1 and P24-N): `aim` at the target for AIM_LEG_S (its `targetId`: the frames'
+        `dir` reads the target's bearing, #4588-#4591), walking (the stance never runs) one of
         - `enter` (0, 0): the target within FIGHT_REACH with the stance not held (`in_stance`): the stance is taken
           before the swing, which the next choose sends from it;
         - `toward`: the advance (`advance`, after STAND_MAX_S without progress), the unit vector to the target while
@@ -991,7 +997,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
           fix 1, the review's minor 3: ruling P24-N 1 closes "in the stance ... not to a run");
         - `back`: the target inside KEEP_R: `away_vector` of the held threats (`threats`, else the target) turned
           by STEER_TURNS to the first heading `clear_heading` passes (never into a wall or over a fence), else
-          standing: a wall behind is never stepped into;
+          standing: a wall behind is never stepped into; with one standing zombie within KEEP_R and the `circle` rule
+          on, turned CIRCLE_TURN first (`_circle_turn`, ruling P28-E);
         - `pull` (ruling P24-AN): a lone chaser beyond PULL_R pulled from the group (`pulling`): the unit vector from
           the group's centroid (`pull_centroid`) to the player, turned by STEER_TURNS to the first heading
           `clear_heading` passes, else standing; the chaser faced while it follows, the group left behind;
@@ -1014,7 +1021,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             return self._reach_walk(zid, z, d)   # P27-M: the advance on an idle target within FIGHT_REACH
         elif kind == "back":
             ts = [q for q in (self.threats or [z]) if q.get("x") is not None and q.get("y") is not None]
-            v = self._clear_turn(away_vector(self.world, [(q["x"], q["y"]) for q in ts]))
+            away = away_vector(self.world, [(q["x"], q["y"]) for q in ts])
+            lone = "circle" in self.rules and away is not None and len(self._standing(KEEP_R)) == 1
+            v = self._circle_turn(away) if lone else self._clear_turn(away)   # P28-E: the arc from a lone zombie
         elif kind == "pull":
             c = self.pull_centroid(t)
             v = self._clear_turn(away_vector(self.world, [c]))
@@ -1029,6 +1038,22 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         if kind == "seek":
             self.why["seek"] = True
         return Aim(vx, vy, AIM_LEG_S, targetId=zid)
+
+    def _circle_turn(self, a):
+        """Ruling P28-E (`circle`, Survive's CIRCLE; E20, `e_day_20-20261103-121340`'s candidate, #4576: the stance's
+        legs walked straight toward or away from the target): the `back` leg's heading `a` (the unit away heading)
+        turned CIRCLE_TURN degrees to the side last used (`_circle_side`, +1 first, so the arc goes one way while it
+        stays clear), else to the other side, the first whose heading `clear_heading` passes, the side kept, logged
+        `circle` {turn}; with neither clear, `_clear_turn(a)` (straight away, then STEER_TURNS, as before). The aim
+        keeps its target (the frames' `dir` reads its bearing). Cost if wrong: a slower retreat from a lone zombie, a
+        leg toward an edge `clear_heading` reads open."""
+        for side in (self._circle_side, -self._circle_side):
+            h = _rotate(a, side * CIRCLE_TURN)
+            if clear_heading(self.world, h, STEER_PROBE, self.trans):
+                self._circle_side = side
+                self.why["circle"] = {"turn": side * CIRCLE_TURN}
+                return h
+        return self._clear_turn(a)
 
     def _clear_turn(self, a):
         """Heading `a` (a unit vector, or None) turned by STEER_TURNS to the first heading `clear_heading` passes

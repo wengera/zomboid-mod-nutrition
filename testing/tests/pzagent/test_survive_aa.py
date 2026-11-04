@@ -558,8 +558,11 @@ def test_a_riding_bandage_holds_the_due_low_swing(tmp_path):
 def test_the_swing_from_fight_reach_is_followed_by_the_backpedal(tmp_path):
     """Review minor 3 (the brief's `the full swing at FIGHT_REACH, then the backpedal`): after three missed shoves the
     target stands 1.5 tiles off (within FIGHT_REACH, beyond point blank): the full swing goes (`no_swing`'s exception
-    lets the wounded backpedal give way), and on the next tick the `aim` back leg, not a second swing."""
+    lets the wounded backpedal give way), and on the next tick the `aim` back leg, not a second swing.
+    Named change, ruling P28-E (Plan 28 Task 3): pinned with `CIRCLE` off, the rule before it (the straight backpedal
+    from a lone zombie, where the leg circles now: `test_survive_ac`)."""
     r, sv = make(tmp_path)
+    sv.CIRCLE = False
     shoves(r, sv, P.SHOVE_FAIL_N)
     fr(r, [z(1, 101.5)], health=35.0)
     a = tick(r, sv)
