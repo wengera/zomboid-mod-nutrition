@@ -709,7 +709,7 @@ def test_a_target_stepping_out_of_reach_after_the_face_is_approached_again_and_f
     zp["x"] = 13.0                                                  # 3.0 tiles off: beyond the reach 1.125
     tick(lua, p)
     assert list(p.attacks) == [] and [a.Type for a in q.adds] == ["ISWalkToTimedAction"]
-    assert lua.eval("PZA.skills.cur.st.facedAt") is None and lua.eval("PZA.skills.cur.st.sub.gait") == "walk"
+    assert lua.eval("PZA.skills.cur.st.faced") is False and lua.eval("PZA.skills.cur.st.sub.gait") == "walk"
     at = lua.eval("PZA.skills.cur.st.approachAt")
     pos["x"] = 12.0
     tick(lua, p)

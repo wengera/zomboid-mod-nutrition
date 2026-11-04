@@ -222,7 +222,7 @@ def test_a_walk_superseding_the_aim_releases_the_stance(lua, fs):
 def test_an_attack_superseding_the_aim_swings_after_releasing_the_held_stance(lua, fs):
     """Re-pinned for ruling P28-F (Plan 28 Task 1b; was ..._swings_from_the_held_stance): the swing pressed while the
     stance held, which kept it AIM_HOLD_MS past the swing; the attack now releases it on its first tick, presses
-    unaimed a tick after its face, and leaves no stance for the hold to release."""
+    unaimed a tick after its face, and keeps none past the swing."""
     load(lua)
     aim_world(lua, zx=11.0)
     p = make_player(weapon=make_weapon())
@@ -238,9 +238,7 @@ def test_an_attack_superseding_the_aim_swings_after_releasing_the_held_stance(lu
     tick(lua, p)
     assert states(acts(lua, fs))[-1] == ("atk", "done", "")
     assert lua.eval("PZA.skills.stance.held") is False                # nothing kept past the swing
-    lua.globals()._clock["ms"] += 2000
-    tick(lua, p)
-    assert calls(p) == ["setForceAim", "nullifyAiming"]               # the hold has nothing to release
+    assert calls(p) == ["setForceAim", "nullifyAiming"]
 
 
 def test_a_new_aim_after_the_attack_retakes_the_stance_and_a_steer_releases_it(lua, fs):
@@ -535,37 +533,7 @@ def test_a_climb_after_an_aim_releases_the_stance_first(lua, fs):
     assert queued_types(lua) == ["ISClimbOverFence"]
 
 
-# ---- PZA/1.5.1 (Task 9 fix 1): the kept stance, the climb's done and its corner edge -----------------------------------
-
-def kept_stance(lua, p):
-    """The stance held with no skill running, set directly: an aim's first tick, then the runner idled under it. An
-    attack left this state AIM_HOLD_MS past its swing until ruling P28-F (Plan 28 Task 1b) made its first tick release
-    the stance; the K.start and K.tick wrappers' guards on it stay in the code and are pinned on it here."""
-    start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5, targetId=7)
-    tick(lua, p)
-    lua.execute("PZA.skills.cur = nil")
-
-
-def test_a_rejected_attack_during_the_idle_hold_keeps_the_kept_stance(lua, fs):
-    """Review minor 4 (the stance): with the stance kept after an attack and no skill running, an attack rejected busy
-    during a hit reaction released it; a rejected command now changes nothing, and the hold still ends it.
-    Re-pinned for ruling P28-F (Plan 28 Task 1b): an attack no longer keeps the stance, so kept_stance sets it."""
-    load(lua)
-    aim_world(lua, zx=11.0)
-    p = make_player(weapon=make_weapon())
-    kept_stance(lua, p)
-    g = lua.globals()
-    tick(lua, p)
-    assert ended(lua) and lua.eval("PZA.skills.stance.held") is True
-    p.combat["hitReaction"] = "HitReaction"
-    start(lua, p, "attack", aid="busy", targetId=7)
-    start(lua, p, "walkTo", aid="bad", x="no", y=1)
-    assert states(acts(lua, fs))[-2:] == [("busy", "rejected", "busy"), ("bad", "rejected", "bad args")]
-    assert "nullifyAiming" not in calls(p) and p.aim["force"] is True
-    g._clock["ms"] += 2000
-    tick(lua, p)
-    assert calls(p)[-1] == "nullifyAiming"
-
+# ---- PZA/1.5.1 (Task 9 fix 1): the climb's done and its corner edge --------------------------------------------------
 
 def test_a_walk_crossing_the_edges_line_away_from_the_fence_is_not_a_climb(lua, fs):
     """Review minor 4 (the climb): the far side alone was a half-plane; done needs the player within one square of the
@@ -743,23 +711,3 @@ def test_a_target_dying_reports_held_frames_too(lua, fs):
     engine_frame(lua, p)
     r = acts(lua, fs)[-1]["result"]
     assert r["targetDead"] is True and r["heldFrames"] == 1 and r["ticks"] == 1
-
-
-# ---- PZA/1.5.6 (Plan 24 Task 9 fix 8): the K.start wrapper's release pinned -------------------------------------------
-
-def test_a_flee_started_from_a_kept_stance_releases_it_before_the_first_frame(lua, fs):
-    """Mutant M10: the stance kept after an attack (no skill running) is released by the K.start wrapper's release(p)
-    when a skill other than an aim or an attack starts; without it the flee would walk strafing under the force-aim.
-    Re-pinned for ruling P28-F (Plan 28 Task 1b): an attack no longer keeps the stance, so kept_stance sets it."""
-    load(lua)
-    aim_world(lua, zx=11.0)
-    p = make_player(weapon=make_weapon())
-    kept_stance(lua, p)
-    engine_frame(lua, p)
-    assert ended(lua) and lua.eval("PZA.motor.wantAim") is True       # no skill running, the stance kept
-    start(lua, p, "steer", aid="flee", vx=1, vy=0, seconds=1, gait="run")
-    assert lua.eval("PZA.motor.wantAim") is False                     # released by the wrapper, not by a tick
-    n = len(p.sets)
-    engine_frame(lua, p)                                              # the flee's first tick wants the run (OnTick)
-    engine_frame(lua, p)                                              # the next frame's Motor writes the latch
-    assert ("setForceRun", True) in p.sets[n:] and p.isAiming(p) is False

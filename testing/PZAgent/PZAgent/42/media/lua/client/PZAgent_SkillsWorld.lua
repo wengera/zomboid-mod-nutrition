@@ -205,7 +205,7 @@ local function attackApproach(p, st)
     local d, zx, zy = zombieDist(p, st.z)
     local now = PZA.now()
     if d ~= nil and d <= K.reachOf(p, w) then
-        if st.facedAt == nil then
+        if not st.faced then
             if st.sub ~= nil and st.sub.state == "running" then clearQueue(p) end
             st.sub = nil
             -- any run dropped before the swing (the approach walks) by construction: the wants off, both latches false
@@ -214,7 +214,7 @@ local function attackApproach(p, st)
             PZA.call(p, "setForceRun", false)
             PZA.call(p, "setForceSprint", false)
             PZA.call(p, "faceThisObject", st.z)
-            st.facedAt, st.faceTicks = now, 0
+            st.faced, st.faceTicks = true, 0       -- the face flag: set at the face, cleared on a step-out
             return nil
         end
         -- the press a client update after the face at the soonest (P28-F): the animation has turned to it by now
@@ -227,7 +227,7 @@ local function attackApproach(p, st)
         return nil
     end
     -- beyond the reach after a face: the face cleared, the approach again (P28-F)
-    st.facedAt, st.faceTicks = nil, nil
+    st.faced, st.faceTicks = false, nil
     if st.sub == nil then
         if zx == nil then return "failed", "out of reach" end
         st.sub, st.approachAt = subWalk(zx, zy, "walk"), st.approachAt or now
@@ -249,7 +249,7 @@ K.types.attack = {
         local _, w = PZA.call(p, "getPrimaryHandItem")
         if w == nil then return false, "no weapon" end
         return true, "", { id = id, z = z, swings = 0, started = false, delay = 0, sub = nil, approachAt = nil,
-                           swungAt = nil, facedAt = nil, faceTicks = nil }
+                           swungAt = nil, faced = false, faceTicks = nil }
     end,
     tick = function(p, st)
         if isDead(p) then return "failed", "dead" end

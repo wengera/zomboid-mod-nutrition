@@ -24,9 +24,9 @@ local isDead, dist, clearQueue, posOf = K.isDead, K.dist, K.clearQueue, W.posOf
 --   supersedes it (K.start below names the starting type in K.starting): the attack's own first tick then releases it,
 --   whatever the distance (ruling P28-F: the aimed player faces the mouse, #4589), and its swing faces and presses a
 --   tick later unaimed (PZAgent_SkillsWorld.lua's attackApproach), its approach walk, if any, running unaimed too;
---   any other skill started (walkTo, steer, climb, a care skill, stop) releases it (K.start's wrapper);
---   with no skill running it is released AIM_HOLD_MS after the last one ended (K.tick's wrapper), so a kept stance
---   never outlives the planner's next aim.
+--   any other skill started (walkTo, steer, climb, a care skill, stop) releases it (K.start's wrapper).
+-- So no stance outlives the skill holding it: P28-F deleted the idle hold (AIM_HOLD_MS, K.tick's wrapper) that kept
+-- one past an attack's swing, a state no path reaches once the attack's first tick releases it (review-t1b R1).
 -- K.stance.held is the mod's own record of a stance it set; a release is one nullifyAiming under pcall (S-15: a raise
 -- counted in K.errors, never propagated out of the runner).
 -- Held every frame (PZA/1.5.4, Plan 24 Task 9 fix 6, ruling P24-T; jar-reads-2 section 9): the force-aim set once lives
@@ -34,13 +34,12 @@ local isDead, dist, clearQueue, posOf = K.isDead, K.dist, K.clearQueue, W.posOf
 -- update reads it), so E6's aims never read isAiming true. While the stance is held, PZA.motor.wantAim is set and the
 -- Motor's OnPlayerUpdate handler re-asserts setForceAim(true) every frame, inside the update and before
 -- UpdateInputState reads it (PZAgent_Motor.lua); the release clears it.
-K.AIM_HOLD_MS = 2000      -- a stance kept past an attack with no skill running is released this long after
 K.AIM_R = 12              -- tiles: a target farther than the sense radius is no target
-K.stance = K.stance or { held = false, idleAt = nil }
+K.stance = K.stance or { held = false }
 local ST = K.stance
 
 function K.releaseStance(p)
-    ST.held, ST.idleAt = false, nil
+    ST.held = false
     MO.wantAim = false
     local ok, err = pcall(PZA.call, p, "nullifyAiming")
     if not ok then
@@ -109,7 +108,7 @@ local function aimStart(p, st)
     PZA.call(p, "setForceRun", false)
     PZA.call(p, "setForceSprint", false)
     PZA.call(p, "setForceAim", true)
-    ST.held, ST.idleAt = true, nil
+    ST.held = true
     MO.wantAim = true
     faceOf(p, st)
     if st.vx ~= 0 or st.vy ~= 0 then
@@ -167,19 +166,15 @@ K.types.aim = {
     -- every end but done: the stance released, unless an attack supersedes the aim (its first tick releases it)
     stop = function(p, st, reason)
         if st.startMs == nil then return end
-        if reason == "superseded" and K.starting == "attack" then
-            ST.idleAt = nil
-            return
-        end
+        if reason == "superseded" and K.starting == "attack" then return end
         release(p)
     end,
 }
 
 -- the runner's start, wrapped: K.starting names the type being started while the base start runs (the aim's stop hook
 -- reads it), and a held stance is released when the start began a skill (K.cur changed) that is not an aim or an
--- attack. A rejected command changes nothing, so it leaves the running skill, and a stance kept with none running (the
--- AIM_HOLD_MS after an attack), as they were (PZA/1.5.1, Task 9 review minor 4: an attack rejected busy during a hit
--- reaction dropped the kept stance). Main and the tests call K.start through the table.
+-- attack. A rejected command changes nothing, so it leaves the running skill and its stance as they were (PZA/1.5.1,
+-- Task 9 review minor 4). Main and the tests call K.start through the table.
 local startBase = K.start
 function K.start(cmd, p)
     K.starting = type(cmd) == "table" and cmd.type or nil
@@ -188,19 +183,6 @@ function K.start(cmd, p)
     K.starting = nil
     local cur = K.cur
     if ST.held and cur ~= before and cur ~= nil and cur.type ~= "aim" and cur.type ~= "attack" then release(p) end
-end
-
--- the runner's tick, wrapped: a stance kept with no skill running is released AIM_HOLD_MS after the runner went idle
-local tickBase = K.tick
-function K.tick(p)
-    tickBase(p)
-    if not ST.held or K.cur ~= nil then return end
-    local now = PZA.now()
-    if ST.idleAt == nil then
-        ST.idleAt = now
-    elseif now - ST.idleAt >= K.AIM_HOLD_MS then
-        release(p)
-    end
 end
 
 -- the attack's tick, wrapped (ruling P28-F, Plan 28 Task 1b): a held stance is released on the attack's first tick
