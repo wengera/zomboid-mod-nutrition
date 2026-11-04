@@ -1142,7 +1142,7 @@ def test_a_marked_zombie_at_3_tiles_stays_left_out(tmp_path):
     7.7: the Fight's target is the other one, never 1, no `pin` {why}."""
     r, sv, a = marked_at(tmp_path, 103.0)
     w = threat_why(tmp_path)
-    assert w.get("target") != 1 and not isinstance(w.get("pinned"), dict)
+    assert w.get("target") != 1 and "pin" not in w
     assert all(x.args.get("targetId") != 1 for x in r.acts.history[1:])   # the stance leg before the mark aside
 
 
@@ -1172,7 +1172,7 @@ def test_a_marked_zombie_at_point_blank_across_a_wall_or_a_refused_edge_stays_le
         fr(r, [z(1, 100.0, 199.5), OTHER], weapon=E20_BAT, attackers=0)
         tick(r, sv)
         w = threat_why(d)
-        assert not isinstance(w.get("pinned"), dict), case
+        assert "pin" not in w, case
         assert all(x.args.get("targetId") != 1 for x in r.acts.history[1:]), case
 
 
