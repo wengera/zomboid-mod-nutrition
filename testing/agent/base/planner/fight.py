@@ -137,6 +137,11 @@ one table the gates and the other policies import).
   record): P28-D, a `busy` rejection is no refusal: a shove or a stomp `rejected` `busy` (the player mid-swing or in a
   hit reaction, the Lua's check) leaves its target in that skill (no `swing_refused` record), latched in `_busy_retry`
   until the next send of that kind at that id, logged `busy_retry` {target, kind} (`_observe_swing`, `choose`).
+  P28-C, the floor swing under the arms' pain: the swing at a fallen zombie within FIGHT_REACH (the finish's
+  `_floor_finish`, the floor strike after a refused stomp) is barred by a hold or a shove-only Fight, never by
+  `arms_hurt` alone (`floor_swing_barred`), logged `floor_finish` {.., pain}; in its commit the walk to a zombie beyond
+  FIGHT_REACH of a Fight not in the stance goes at a walk, never a run (the spec's 1 (b), ruling P27-9: E20's a190
+  ran 1.762922801715824 tiles into 3189, #4571), logged `leg` "walk".
 """
 import math
 import time
@@ -166,9 +171,9 @@ __all__ = ["Fight", "FIGHT_RULES"]
 FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finish_far", "shove_break",
                "shove_break_run", "blocked_edge", "wounded_swing", "low_swing",
                "floor_finish", "fallen_seek", "shove_close", "low_exit", "attack_reach",
-               "point_blank_pin", "busy_retry")   # survival iterations 13 to 21's Fight rules (P25-A, P25-B,
-                     # P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H, P27-J, P27-K2; fix 2's
-                     # P27-M and P27-N; P28-D), each on in `rules` unless Survive's switch for it is off
+               "point_blank_pin", "busy_retry", "floor_pain")   # survival iterations 13 to 21's Fight rules (P25-A,
+                     # P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H, P27-J, P27-K2;
+                     # fix 2's P27-M and P27-N; P28-D, P28-C), each on in `rules` unless Survive's switch for it is off
 
 
 class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach, Policy):
@@ -686,6 +691,20 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         return (arms_hurt(self.world) or bool(self.spent)
                 or (self.shove_only is not None and not self._low_swing_due()))
 
+    def floor_swing_barred(self):
+        """Ruling P28-C (`floor_pain`, Survive's FLOOR_PAIN; F11, `f_goals_12-20261103-144240`: from the first bite
+        `body.armPain` read 25.6 to 115.5 and no attack went again, the kills after the first by stomps alone, five to
+        seven landed stomps a kill at 0.0756 to 0.5496 health each, where E19's floor swings killed in one from health
+        up to 2.0870866775512695, #4583, #4553): the swing at a fallen zombie (the finish's floor swing, P27-G, and the
+        floor strike after a refused stomp, P24-AL) is barred by a hold (`spent`, R2) or a shove-and-stomp Fight
+        (`shove_only`, but for the low fight's full swing when due, P27-E), never by the arms' pain alone: a divided
+        swing at a fallen zombie still lands its floor multiplier (#4374). The swing at a standing zombie keeps P24-AP's
+        bar (`no_swing`). With the rule off, `no_swing`. Cost if wrong: a swing's strain and seconds where a stomp
+        would do, bounded to a fallen target in reach."""
+        if "floor_pain" not in self.rules:
+            return self.no_swing()
+        return bool(self.spent) or (self.shove_only is not None and not self._low_swing_due())
+
     def _wounded_leg(self, zid, z, d):
         """Ruling P24-AP, the wounded fight (#4370: at `body.armPain` STRAIN_HARD a swing does half its damage or less,
         whatever the pain's source), and ruling R2 under any hold (`no_swing`): where the Fight would swing, the
@@ -908,6 +927,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             if self._seek_send and d > AIM_R:           # beyond the aim's range the seek walks, never runs
                 self.why.update({"seek": True, "leg": "walk"})
                 self._walk_kind = "far" if self.standing() else None   # fix 1: it gives way within AIM_R
+                return WalkTo(*centre((z["x"], z["y"])), "walk")
+            if "floor_pain" in self.rules:   # P28-C's commit, the spec's 1 (b): the walk to a zombie, never a run
+                self.why["leg"] = "walk"
                 return WalkTo(*centre((z["x"], z["y"])), "walk")
             return WalkTo(*centre((z["x"], z["y"])), "run")
         hit = hit_reaction(self.world)

@@ -190,6 +190,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # bleeding (`care_yield.CareYield._rides_health`); off, P24-U's RIDE_R alone
     # survival iteration 21 (Plan 28 Task 3; survive.py's docstring, Survival 23): each switch off is the rule before
     # it, all of them in `survive.T11_SWITCHES` (the replay tests' `pre_t11`)
+    FLOOR_PAIN = True     # ruling P28-C: the swing at a fallen zombie within FIGHT_REACH is barred by a hold or a
+                          # shove-only Fight, never by the arms' pain alone (`fight.Fight.floor_swing_barred`,
+                          # `finish.ThreatFinish._flee_finish`), and the non-stance Fight's walk to a zombie beyond
+                          # FIGHT_REACH goes at a walk (the spec's 1 (b)); off, P24-AP's bar and the run
     BUSY_RETRY = True     # ruling P28-D: a shove or a stomp rejected `busy` records no refusal at its target, so the
                           # next tick sends it again (`fight.Fight._observe_swing`); off, SWING_SKIP_S's refusal
 
@@ -1014,7 +1018,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("fallen_seek", self.FALLEN_SEEK), ("shove_close", self.SHOVE_CLOSE),
                                                ("low_exit", self.LOW_EXIT), ("attack_reach", self.ATTACK_REACH),
                                                ("point_blank_pin", self.POINT_BLANK_PIN),
-                                               ("busy_retry", self.BUSY_RETRY))
+                                               ("busy_retry", self.BUSY_RETRY), ("floor_pain", self.FLOOR_PAIN))
                          if on)
 
     def _flee_rules(self):

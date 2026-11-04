@@ -1798,8 +1798,10 @@ def test_iteration_20_moves_the_six_goldens_at_the_listing_s_across_clause_and_e
       edge (`edge_marks`), which the pin leaves out; no golden frame reads a hit reaction. HEALTH_RIDE (fix 2's P27-O)
       moves none: no golden ring decodes a bleeding part.
     A golden no switch moves is its file before iteration 20 byte for byte. Named change, Plan 27 Task 5 fix 2: each
-    switch's own first line is read at that line (`FIRST_T10`), the sixth's first moved line now P27-M's."""
-    base, got = pre_t10_gold(key), gold(key)
+    switch's own first line is read at that line (`FIRST_T10`), the sixth's first moved line now P27-M's. Named
+    change, Plan 28 Task 3: read against the goldens with iteration 21 off (`pre_t11_gold`), whose P28-C re-recorded
+    four."""
+    base, got = pre_t10_gold(key), pre_t11_gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
     if key not in FIRST_T10:
         assert diff == []
@@ -1841,10 +1843,61 @@ def pre_t11_gold(key):
     return {d["line"]: d for d in R.decisions(json.loads(_pre_t11_replayed(key)))}
 
 
+# the goldens as they stood before iteration 21 re-recorded them (Plan 27's close): sha256, base, recorded
+PRE_T11 = {"e2": ("90cea8a29fc7e8cedc6376a775587deb72d59f5942224bf75c30aad6fba46465", "d96f9318", "2026-11-03"),
+           "e3": ("57fc396be0b7e9ebb3ebd85e58c13c3cb9bbb60ce3b27099b1a14bfdfe95e448", "2625cb96", "2026-11-03"),
+           "e4": ("c76405232c9967825e7a97d8db63af000fe0722893be990e17855ab3fcabf6b0", "2625cb96", "2026-11-03"),
+           "f1": ("9707340b286feee69c6035249724e57a965a4486000cb1b70feb3c963a13f035", "2625cb96", "2026-11-03")}
+# the first line each iteration-21 switch moves, alone on, on each golden it moves (P28-C's commit: the approach-and-
+# swing Fight's first walk to a zombie beyond FIGHT_REACH, at a walk where the run went)
+FIRST_T11 = {"e2": {"FLOOR_PAIN": 146}, "e3": {"FLOOR_PAIN": 170}, "e4": {"FLOOR_PAIN": 302},
+             "f1": {"FLOOR_PAIN": 164}}
+# every line on each golden whose decision (branch or action) iteration 21 moves: the approach walks' gait alone
+ACTED_T11 = {"e2": [146, 156, 210], "e3": [170, 203], "e4": [302, 334, 371], "f1": [164, 223, 318, 353, 432, 516]}
+
+
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
-def test_iteration_21_moves_no_golden(key):
-    """Survival iteration 21 moves no golden: the six are byte-identical with its switches on
-    (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off (`pre_t11`). P28-D reads a shove or a
-    stomp rejected `busy`, which needs a build announcing the PZA/1.7 `shove` and `stomp`, and no golden's hello
-    does."""
-    assert pre_t11_gold(key) == gold(key)
+def test_with_iteration_21_off_the_goldens_are_iteration_20_s(key):
+    """Iteration 21's golden movers are `survive.T11_SWITCHES`: with them off (`pre_t11`) a golden it re-recorded is
+    the file as it stood before byte for byte (its sha256 pinned, `PRE_T11`), and every other golden is its file
+    now."""
+    if key not in PRE_T11:
+        assert pre_t11_gold(key) == gold(key)
+        return
+    sha, base, recorded = PRE_T11[key]
+    text = R.golden_text(R.decisions(json.loads(_pre_t11_replayed(key))), base, R.RUNS[key], recorded,
+                         R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == sha
+
+
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_iteration_21_moves_four_goldens_at_the_approach_walk(key):
+    """Survival iteration 21's attribution, each switch alone on against the goldens before it (`pre_t11_gold`):
+    - FLOOR_PAIN (P28-C, and in its commit the spec's 1 (b), ruling P27-9: the walk to a zombie beyond FIGHT_REACH of
+      a Fight not in the stance at a walk, never a run) moves E2, E3, E4 and F1, each first at its first approach walk
+      (E2 line 146 at 12788 from 4.231606567324637 tiles, E3 170, E4 302, F1 164): `gait` "walk" where the record ran,
+      logged `leg` "walk"; every moved decision is such a walk's gait (`ACTED_T11`), the other moved lines the
+      `holding` lines under it carrying the same `leg` why. E5's replayed Fights send no walk beyond FIGHT_REACH, and
+      the sixth's hello announces the stance, whose walks already go at a walk. The floor swing under the pain reads
+      `onFloor` and `body.armPain`, which no golden's frames carry.
+    - BUSY_RETRY (P28-D) moves none: a shove or a stomp rejected `busy` needs a build announcing the PZA/1.7 `shove`
+      and `stomp`, and no golden's hello does.
+    A golden no switch moves is its file before iteration 21 byte for byte."""
+    base, got = pre_t11_gold(key), gold(key)
+    diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
+    if key not in FIRST_T11:
+        assert diff == []
+        return
+    assert diff[0] == min(FIRST_T11[key].values())
+    for switch in S.T11_SWITCHES:
+        alone = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
+                                                             mutate=lambda sv: pre_t11(sv, keep=(switch,))))}
+        moved = [k for k in sorted(set(base) | set(alone)) if base.get(k) != alone.get(k)]
+        assert (moved[0] if moved else None) == FIRST_T11[key].get(switch), switch
+    acted = [k for k in diff if base[k]["action"] != got[k]["action"] or base[k]["branch"] != got[k]["branch"]]
+    assert acted == ACTED_T11[key]
+    for k in acted:
+        was, now = base[k]["action"], got[k]["action"]
+        assert (was["type"], was["args"]["gait"]) == ("walkTo", "run") and now["type"] == "walkTo"
+        assert dict(was["args"], gait="walk") == now["args"] and got[k]["why"]["leg"] == "walk"
+        assert "leg" not in base[k]["why"] and got[k]["why"]["fight"] is True

@@ -110,7 +110,12 @@ Task 5 fix 2, the attack within the weapon's reach plus ATTACK_MARGIN) re-record
 the one golden whose hello announces the stance), first moved at line 246, the `attack` {dist, reach} why on the
 stance's attack at 15911 from 0.8922789090925147 tiles, and its decisions from line 320, the attack at 15937 from
 1.9071235531258082 tiles held for the stance's standing leg (`attack_held`), the attack going on line 321 from
-0.37365609000281447.
+0.37365609000281447. Ruling P28-C (Plan 28 Task 3, survival iteration 21; in its commit the spec's 1 (b), ruling P27-9:
+the walk to a zombie beyond FIGHT_REACH of a Fight not in the stance at a walk, never a run) re-recorded E2, E3, E4 and
+F1 (base `f229e492`), each first moved at its first approach walk (E2 at line 146, the walk at 12788 from
+4.231606567324637 tiles; E3 170, E4 302, F1 164), `gait` "walk" and `leg` "walk" where the record ran: every moved
+decision is such a walk's gait, the other moved lines the `holding` lines under it; `T11_SWITCHES` off reproduces the
+files before it (`test_replay_decisions.PRE_T11`, `pre_t11`).
 
 `agreement(artifact_dir, replayed)` compares the replayed log with the record's own decision.log at every line where
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat

@@ -257,11 +257,14 @@ def test_e19_s_fallen_zombie_within_fight_reach_takes_the_floor_swing_ahead_of_t
 def test_the_stomp_stays_the_finish_beyond_reach_with_the_swing_barred_or_the_switch_off(tmp_path, case):
     """The stomp, not the swing: the fallen one 3.5 tiles off (beyond FIGHT_REACH, within FINISH_R: the stomp's walk
     in); the arms' pain at 25 (STRAIN_HARD: `no_swing`); the endurance hold (0.6897225379943848, its fight within
-    KEEP_R); or `FLOOR_FINISH` off."""
+    KEEP_R); or `FLOOR_FINISH` off.
+    Named change, ruling P28-C (Plan 28 Task 3): its `arms` case pinned with `FLOOR_PAIN` off, the rule before it (the
+    arms' pain at STRAIN_HARD barring the swing at a fallen zombie)."""
     r, sv = make(tmp_path)
     k = {"arms": {"arm": 25.0, "strain": {"l": 0.0, "r": 0.0}}, "endurance": {"endurance": 0.6897225379943848}}
     if case == "off":
         sv.FLOOR_FINISH = False
+    sv.FLOOR_PAIN = case != "arms"
     fr(r, [fallen(103.5 if case == "beyond_reach" else 101.5)], **k.get(case, {}))
     a = tick(r, sv)
     w = threat_why(tmp_path)

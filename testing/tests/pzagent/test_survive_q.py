@@ -82,14 +82,16 @@ def test_a_fallen_target_is_stomped_and_a_refused_stomp_takes_the_backpedal_not_
     """At STRAIN_HARD the stomp still goes (outside the divider, #4374); refused, the floor strike (a swing) does not:
     the backpedal; under STRAIN_HARD the floor strike follows as P24-AL rules. Named change, ruling P27-G (Plan 27
     Task 5): with the swing allowed a fallen zombie within FIGHT_REACH takes the floor swing ahead of the stomp
-    (`test_survive_ab`); pinned with the `floor_finish` rule off, the rule before it."""
+    (`test_survive_ab`); pinned with the `floor_finish` rule off, the rule before it.
+    Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the arms' pain at
+    STRAIN_HARD barring the swing at a fallen zombie)."""
     for i, (arm, want) in enumerate(((25.0, "aim"), (19.0, "attack"))):
         d = tmp_path / str(i)
         d.mkdir()
         r = Rig(d)
         fr(r, [z(1, 101.0, floor=True)], arm)
         f = Fight(r.world, r.acts, r.clock)
-        f.rules = f.rules - {"floor_finish"}
+        f.rules = f.rules - {"floor_finish", "floor_pain"}
         assert f.step().type == "stomp"
         r.answer({"state": "failed", "reason": "out of reach"})
         fr(r, [z(1, 101.0, floor=True)], arm)
@@ -284,7 +286,10 @@ def test_a_refused_stomp_takes_one_floor_strike_then_the_flee(tmp_path):
 
 
 def test_at_strain_hard_a_refused_stomp_takes_no_floor_strike(tmp_path):
+    """Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the arms' pain at
+    STRAIN_HARD barring the swing at a fallen zombie)."""
     r, sv = struck(tmp_path)
+    sv.FLOOR_PAIN = False
     zs = [z(1, 101.5, floor=True)] + GROUP3
     fr(r, zs, 25.0)
     assert tick(r, sv).type == "stomp"

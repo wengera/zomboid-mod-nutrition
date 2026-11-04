@@ -12,8 +12,8 @@ import math
 
 from agent.base.planner.policies import (DANGER_R, FALLEN_SEEK_TICKS, FIGHT_REACH, FINISH_CLEAR_R, FINISH_R, KEEP_R,
                                          LISTED_R, POINT_BLANK_R, PREEMPTED, SEEK_SKIP_S, SHOVE_R, STAND_MIN_R,
-                                         UNREACHABLE_S, arms_hurt, blocked, centre, chasing, hit_reaction, line_to,
-                                         on_floor, running, standing, target_id_ok, zdist)
+                                         UNREACHABLE_S, arm_pain, arms_hurt, blocked, centre, chasing, hit_reaction,
+                                         line_to, on_floor, running, standing, target_id_ok, zdist)
 from agent.base.pza1 import Attack, Shove, Stomp, WalkTo
 
 FLEE_FINISH_REASONS = ("strain", "pair", "many")   # the flee reasons whose episode takes the finish (P27-A)
@@ -125,7 +125,9 @@ class ThreatFinish:
         it lies (the swing spends no stomp); the stomp stays the finish beyond FIGHT_REACH within FINISH_R or with the
         swing barred. While a strike at the candidate is the current action (`strike_running`: the Fight's attack the
         flee replaced) the flee holds it, nothing sent (logged `strike_runs` {target, aid}): no stomp over it (the Lua
-        refuses it `busy`) and no steer superseding it."""
+        refuses it `busy`) and no steer superseding it.
+        Ruling P28-C (`FLOOR_PAIN`): the arms' pain at STRAIN_HARD alone bars neither the floor swing nor the floor
+        strike (a hold, R2, or no weapon, P25-P, still does), logged `floor_finish` {.., pain} with the pain read."""
         self.finish_block = None
         if self._finish_a is not None and running(self.actions, self._finish_a):
             return None
@@ -154,7 +156,8 @@ class ThreatFinish:
         first = done is None or done == "floor_finish"   # P27-G: the floor swing ahead of it spends no stomp
         again = done == "stomp" and end == "stood"   # P24-AV: fallen again after a `stood`: one more stomp
         refused = wide and self.fight_refused.get(("stomp", zid), -math.inf) > now
-        swing = self._armed() and not (arms_hurt(self.world) or self._fight_spent() or self._unarmed())
+        pain_bars = not self.FLOOR_PAIN and arms_hurt(self.world)   # P28-C: the pain alone bars no swing at the fallen
+        swing = self._armed() and not (pain_bars or self._fight_spent() or self._unarmed())
         if self.FLOOR_FINISH and done is None and swing and d <= FIGHT_REACH:
             cmd, kind = Attack(zid), "floor_finish"   # P27-G: the swing at a fallen zombie in reach, ahead of the stomp
         elif ((first or again) and self.world.can("stomp") and not refused
@@ -162,7 +165,7 @@ class ThreatFinish:
             cmd, kind = Stomp(zid), ("stomp" if first else "stomp2")
         elif done in ("stomp", "stomp2") and end is None:
             return None   # the stomp went (or runs) and was not refused: the one finish is spent
-        elif arms_hurt(self.world) or self._fight_spent() or self._unarmed():
+        elif pain_bars or self._fight_spent() or self._unarmed():
             self.finishing[zid] = "floor"   # P24-AP, R2, P25-P: no floor strike (a swing) at STRAIN_HARD, under a hold
                                             # or with no weapon held
             return None
@@ -174,6 +177,8 @@ class ThreatFinish:
         self.why = {"finish": zid, "kind": kind, "dist": d}
         if kind == "floor_finish":
             self.why["floor_finish"] = {"target": zid, "health": self.world.zombies[zid].get("health")}
+            if self.FLOOR_PAIN and arm_pain(self.world) is not None:
+                self.why["floor_finish"]["pain"] = arm_pain(self.world)   # P28-C: the swing under the pain read
         if wide:
             self.why["flee_finish"] = {"reason": self.flee_reason or "many",
                                        "struck": now - self.struck.get(zid, -math.inf) <= UNREACHABLE_S,
@@ -375,8 +380,8 @@ class FightFinish:
         if self._swing_ok("stomp", zid) and self._standing_near(STAND_MIN_R, (zid,)) is None:
             self.why["stomp"] = True
             return (Stomp(zid),)
-        if self.no_swing():   # P24-AP, R2: the floor strike is a swing, divided by the arms' pain: the backpedal
-            return (self._wounded_leg(zid, z, d),)
+        if self.floor_swing_barred():   # R2: under a hold or in a shove-only Fight the backpedal (P28-C: the arms'
+            return (self._wounded_leg(zid, z, d),)   # pain alone bars no floor strike; off, P24-AP's `no_swing`)
         self.why["floor"] = True   # the stomp refused (or not announced): the weapon's floor strike
         self._held_before = False
         return (Attack(zid),)
@@ -390,16 +395,19 @@ class FightFinish:
         (`no_swing` false: no hold, no arm pain at STRAIN_HARD, no shove-and-stomp Fight) and `zid` within FIGHT_REACH
         (`d`), `(Attack,)` ahead of the stomp, logged `floor_finish` {target, health}. Else None: the stomp stays the
         finish beyond FIGHT_REACH within FINISH_R (its walk in) or with the swing barred. Cost if wrong: a swing's
-        strain where a stomp would do."""
+        strain where a stomp would do. Ruling P28-C (`floor_pain`): the swing barred by `floor_swing_barred` (a hold or
+        a shove-only Fight, never the arms' pain alone), logged `floor_finish` {.., pain} with the pain read."""
         if "floor_finish" not in self.rules:
             return None
         run = strike_running(self.actions, zid)
         if run is not None:
             self.why["strike_runs"] = {"target": zid, "aid": run}
             return (None,)
-        if self.world.weapon is None or self.no_swing() or d > FIGHT_REACH:
+        if self.world.weapon is None or self.floor_swing_barred() or d > FIGHT_REACH:
             return None
         self.why["floor_finish"] = {"target": zid, "health": z.get("health")}
+        if "floor_pain" in self.rules and arm_pain(self.world) is not None:
+            self.why["floor_finish"]["pain"] = arm_pain(self.world)   # P28-C: the swing under the pain read
         self._held_before = False
         return (Attack(zid),)
 

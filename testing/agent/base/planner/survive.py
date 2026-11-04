@@ -284,7 +284,10 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     the `health` flee's leg ridden by the bandage whatever the distance once FLEE_CARE_S have passed since that flee
     began with a part bleeding (`care_yield.CareYield._rides_health`).
   - Survival 23 (iteration 21, F11, `f_goals_12-20261103-144240`; Plan 28 Task 3): P28-D, a shove or a stomp rejected
-    `busy` is no refusal at its target, sent again on the next tick (`fight.Fight._observe_swing`); `T11_SWITCHES`.
+    `busy` is no refusal at its target, sent again on the next tick (`fight.Fight._observe_swing`); P28-C, the swing
+    at a fallen zombie barred by a hold or a shove-only Fight, never by the arms' pain alone, and the non-stance
+    Fight's walk to a zombie at a walk (`fight.Fight.floor_swing_barred`, `finish.ThreatFinish._flee_finish`);
+    `T11_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -410,8 +413,8 @@ T10_SWITCHES = ("STUCK_LEAVE", "FLOOR_FINISH", "FALLEN_SEEK", "LISTING_FALLEN", 
 # STOCK_EARLY; REPLACE_QUIET, copied to the Care); P27-G to P27-J and P27-K2 on `threat.Threat` (FLOOR_FINISH,
 # FALLEN_SEEK, LISTING_FALLEN, SHOVE_CLOSE, LOW_EXIT); its fix 2 (Task 5 fix 2, E20): P27-M, P27-N and P27-O on
 # `threat.Threat` (ATTACK_REACH, POINT_BLANK_PIN, HEALTH_RIDE)
-T11_SWITCHES = ("BUSY_RETRY",)
-# survival iteration 21 (Plan 28 Task 3): P28-D on `threat.Threat` (BUSY_RETRY)
+T11_SWITCHES = ("FLOOR_PAIN", "BUSY_RETRY")
+# survival iteration 21 (Plan 28 Task 3): P28-C and P28-D on `threat.Threat` (FLOOR_PAIN, BUSY_RETRY)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")

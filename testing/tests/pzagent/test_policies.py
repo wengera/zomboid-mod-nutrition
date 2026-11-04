@@ -112,9 +112,12 @@ def all_sends_valid(rig):
 
 # ================================================================ Fight
 def test_fight_walks_at_a_run_to_the_zombie_square_beyond_reach_then_attacks_within_it(tmp_path):
+    """Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
+    Fight's walk to a zombie at a run)."""
     r = Rig(tmp_path)
     r.frame(zombies=[zombie(7, 105.6, 200.2)])
     f = Fight(r.world, r.acts, r.clock)
+    f.rules = f.rules - {"floor_pain"}
     a = f.step()
     assert a is not None and r.cmd() == ("walkTo", {"x": 105.5, "y": 200.5, "gait": "run"})
     r.frame(zombies=[zombie(7, 104.0, 200.0)])
@@ -135,10 +138,13 @@ def test_fight_picks_the_nearest_zombie(tmp_path):
 
 def test_two_swings_not_started_in_a_row_force_one_approach_walk(tmp_path):
     """Named change, ruling P24-A (e): the zombie stood at 1.0 tiles, within POINT_BLANK_R, where no approach walk
-    goes now; it stands at 1.5."""
+    goes now; it stands at 1.5.
+    Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
+    Fight's walk to a zombie at a run)."""
     r = Rig(tmp_path)
     r.frame(zombies=[zombie(7, 101.5, 200.0)])
     f = Fight(r.world, r.acts, r.clock)
+    f.rules = f.rules - {"floor_pain"}
     f.step()
     assert r.cmd()[0] == "attack"
     r.answer({"state": "done", "result": swing(False)})
@@ -296,9 +302,12 @@ def test_the_unreachable_memory_is_shared_with_a_later_fight(tmp_path):
 
 
 def test_a_nil_id_zombie_is_never_a_target(tmp_path):
+    """Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
+    Fight's walk to a zombie at a run)."""
     r = Rig(tmp_path)
     r.frame(zombies=[dict(zombie(7, 101.0, 200.0), id=None)])
     f = Fight(r.world, r.acts, r.clock)
+    f.rules = f.rules - {"floor_pain"}
     assert f.step() is None and r.acts.history == []
     r.frame(zombies=[dict(zombie(7, 101.0, 200.0), id=None), zombie(8, 103.0, 200.0)])
     f.step()
@@ -798,9 +807,12 @@ def test_a_dead_pinned_target_is_dropped_and_the_fight_re_pins_the_nearest(tmp_p
 
 
 def test_a_pinned_target_beyond_disengage_r_is_dropped(tmp_path):
+    """Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
+    Fight's walk to a zombie at a run)."""
     r = Rig(tmp_path)
     r.frame(zombies=[zombie(7, 101.5, 200.0), zombie(8, 103.0, 200.0)])
     f = Fight(r.world, r.acts, r.clock)
+    f.rules = f.rules - {"floor_pain"}
     f.step()
     r.answer({"state": "done", "result": swing(True)})
     r.frame(zombies=[zombie(7, 111.0, 200.0), zombie(8, 103.0, 200.0)])   # 7 at 11 tiles: beyond DISENGAGE_R
@@ -809,9 +821,12 @@ def test_a_pinned_target_beyond_disengage_r_is_dropped(tmp_path):
 
 
 def test_the_target_keyword_pins_from_the_start(tmp_path):
+    """Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
+    Fight's walk to a zombie at a run)."""
     r = Rig(tmp_path)
     r.frame(zombies=[zombie(7, 101.0, 200.0), zombie(9, 104.0, 200.0)])
     f = Fight(r.world, r.acts, r.clock, target=9)
+    f.rules = f.rules - {"floor_pain"}
     f.step()
     assert r.cmd() == ("walkTo", {"x": 104.5, "y": 200.5, "gait": "run"}) and f.why["target"] == 9
     assert f.why["pinned"] is True

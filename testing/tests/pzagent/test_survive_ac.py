@@ -8,6 +8,9 @@ names.
 
 - P28-D, a `busy` rejection is no refusal (`BUSY_RETRY`): a shove or a stomp `rejected` `busy` leaves no
   `swing_refused` record; the next send of that kind at that id is logged `busy_retry` {target, kind}.
+- P28-C, the floor swing under the arms' pain (`FLOOR_PAIN`): the swing at a fallen zombie within FIGHT_REACH barred by
+  a hold or a shove-only Fight, never by `arms_hurt` alone (logged `floor_finish` {.., pain}); the non-stance Fight's
+  walk to a zombie beyond FIGHT_REACH at a walk (logged `leg` "walk").
 """
 import math
 
@@ -139,3 +142,112 @@ def test_the_busy_latch_clears_on_any_other_end_at_that_id(tmp_path):
 
 def test_the_busy_retry_switch():
     assert "BUSY_RETRY" in S.T11_SWITCHES and T.Threat.BUSY_RETRY is True and "busy_retry" in F.FIGHT_RULES
+
+
+# ================================================================ P28-C: the floor swing under the arms' pain
+def test_f11_s_fallen_zombie_at_point_blank_under_the_arms_pain_takes_the_floor_swing(tmp_path):
+    """F11's a136 (line 610): 14630 read fallen 0.9 tiles off, the arms' pain 30 (P24-AP's STRAIN_HARD passed), the
+    bat held, no hold: the Fight's finish is the swing at it, logged `floor_finish` {target, health, pain 30}, where the
+    stomp went (each landed stomp took 0.0756 to 0.5496 of its health, #4583); with `FLOOR_PAIN` off the stomp."""
+    for on in (True, False):
+        d = tmp_path / str(on)
+        d.mkdir()
+        r, sv = make(d)
+        sv.FLOOR_PAIN = on
+        fr(r, [z(14630, 100.9, floor=True)], 30.0)
+        a = tick(r, sv)
+        w = threat_why(d)
+        assert w["fight"] is True
+        if on:
+            assert (a.type, a.args) == ("attack", {"targetId": 14630})
+            assert w["floor_finish"] == {"target": 14630, "health": 1.0, "pain": 30.0} and "stomp" not in w
+        else:
+            assert (a.type, a.args) == ("stomp", {"targetId": 14630}) and "floor_finish" not in w
+
+
+@pytest.mark.parametrize("hold", [{"spent": ("endurance",)}, {"shove_only": "low"}])
+def test_a_hold_or_a_shove_only_fight_still_stomps_the_fallen(tmp_path, hold):
+    """The swing at a fallen zombie stays barred by a hold (R2: the endurance hold halves a swing, #4371) and by a
+    shove-only Fight (P25-S's low fight; its full swing not due): the stomp."""
+    r = Rig(tmp_path)
+    fr(r, [z(14630, 100.9, floor=True)], 30.0)
+    f = fight(r, **hold)
+    a = f.step()
+    assert (a.type, a.args) == ("stomp", {"targetId": 14630}) and "floor_finish" not in f.why
+    assert f.floor_swing_barred() is True
+
+
+def test_a_standing_zombie_under_the_arms_pain_is_never_swung_at(tmp_path):
+    """P24-AP stands for a standing zombie: one 1.2 tiles off (in reach, beyond point blank) under the arms' pain 30
+    takes the wounded backpedal, never an attack; the floor swing's bar alone is lifted (`floor_swing_barred` false
+    while `no_swing` reads true)."""
+    r = Rig(tmp_path)
+    fr(r, [z(1, 101.2)], 30.0)
+    f = fight(r)
+    a = f.step()
+    assert a.type == "aim" and f.why["leg"] == "back" and f.why["wounded"] == 30.0
+    assert f.no_swing() is True and f.floor_swing_barred() is False
+
+
+def test_with_floor_pain_off_the_floor_swing_s_bar_is_no_swing(tmp_path):
+    """`floor_swing_barred` falls back to `no_swing` with the rule off: the arms' pain 30 alone bars it then."""
+    r = Rig(tmp_path)
+    fr(r, [], 30.0)
+    f = fight(r)
+    assert f.floor_swing_barred() is False
+    f.rules = f.rules - {"floor_pain"}
+    assert f.floor_swing_barred() is True
+
+
+def test_the_many_flee_s_finish_swings_at_a_fallen_zombie_under_the_arms_pain(tmp_path):
+    """P27-G's flee finish under the arms' pain 30: a zombie fallen 1.8 tiles off (beyond CORNERED_R, within
+    FIGHT_REACH), GROUP3 chasing 7.5 off (the `many` flee): the finish is the attack, kind `floor_finish`, logged
+    {target, health, pain 30}; with `FLOOR_PAIN` off the stomp."""
+    for on in (True, False):
+        d = tmp_path / str(on)
+        d.mkdir()
+        r, sv = make(d)
+        sv.FLOOR_PAIN = on
+        sv.LISTING_FALLEN = False   # P27-I off: GROUP3 makes `many` with the fallen one counted
+        fr(r, [z(1, 101.8, floor=True)] + GROUP3, 30.0)
+        a = tick(r, sv)
+        w = threat_why(d)
+        assert w["flee"] == "many"
+        if on:
+            assert (a.type, a.args) == ("attack", {"targetId": 1}) and w["kind"] == "floor_finish"
+            assert w["floor_finish"] == {"target": 1, "health": 1.0, "pain": 30.0}
+        else:
+            assert (a.type, a.args) == ("stomp", {"targetId": 1})
+
+
+@pytest.mark.parametrize("hold", [{"strain": STIFF}, {"endurance": 0.6897225379943848}])
+def test_the_flee_s_finish_under_a_hold_still_stomps(tmp_path, hold):
+    """The same `many` flee with a hold beside the pain (the arms' stiffness past STIFF_HARD, or E18's endurance
+    0.6897225379943848, R2): the hold bars the swing at the fallen one, the stomp goes."""
+    r, sv = make(tmp_path)
+    sv.LISTING_FALLEN = False
+    fr(r, [z(1, 101.8, floor=True)] + GROUP3, 30.0, **hold)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert w["flee"] == "many" and sv._fight_spent() and (a.type, a.args) == ("stomp", {"targetId": 1})
+    assert "floor_finish" not in w
+
+
+def test_the_non_stance_fight_walks_to_a_zombie_beyond_fight_reach(tmp_path):
+    """The spec's 1 (b) (ruling P27-9; E20's a190 ran 1.762922801715824 tiles into 3189, #4571): the approach-and-swing
+    Fight's walk to a zombie beyond FIGHT_REACH goes at a walk, logged `leg` "walk"; with the rule off at a run."""
+    for on in (True, False):
+        d = tmp_path / str(on)
+        d.mkdir()
+        r = Rig(d)
+        r.frame(zombies=[z(7, 105.6, 200.2)])
+        f = fight(r)
+        if not on:
+            f.rules = f.rules - {"floor_pain"}
+        f.step()
+        assert r.cmd() == ("walkTo", {"x": 105.5, "y": 200.5, "gait": "walk" if on else "run"})
+        assert (f.why.get("leg") == "walk") is on
+
+
+def test_the_floor_pain_switch():
+    assert "FLOOR_PAIN" in S.T11_SWITCHES and T.Threat.FLOOR_PAIN is True and "floor_pain" in F.FIGHT_RULES
