@@ -833,14 +833,42 @@ def test_every_memory_read_carries_the_java_working_sets(tmp_path, monkeypatch, 
 
 
 @pytest.mark.parametrize("mode", MODES)
-def test_a_players_reply_without_the_user_is_a_death_with_its_record(tmp_path, monkeypatch, mode):
+def test_a_players_reply_without_the_user_and_no_death_read_is_the_client_end(tmp_path, monkeypatch, mode):
+    """Plan 28 Task 1 (spec section 2 item 1c): with no death event and no frame at or under STOP_HEALTH read before
+    it, a players reply without the user is the client's end (E20's vanilla NullPointerException), never a death:
+    loop.end {seq, health, players, wallS, gameMin} is written and loop.death is not. Before it this read `death`."""
     r = run_session(tmp_path, monkeypatch, mode, limits={"SERVER_POLL_S": 5}, bus={"gone_from": 35.0})
-    st = r.out["stop"]
-    assert st["reason"] == "death" and "players reply without admin" in st["detail"]
-    death = r.out["loop"]["death"]
-    assert death["via"] == "players" and death["frame"] is None and len(death["last_frames"]) == fr_n(r.out)
-    g = GT.grade_d(r.out)
-    assert g["death_explained"] is False and g["death_explained_by"] is None and g["deaths"][0]["via"] == "players"
+    st, loop = r.out["stop"], r.out["loop"]
+    assert st["reason"] == "client_end" and "players reply without admin" in st["detail"]
+    assert "death" not in loop
+    end = loop["end"]
+    last = loop["last_frames"][-1]
+    assert set(end) == {"seq", "health", "players", "wallS", "gameMin"}
+    assert end["seq"] == last["seq"] and end["health"] == last["body"]["health"] == 100.0
+    assert end["players"] == [] and end["wallS"] == pytest.approx(st["wallS"], abs=1.0)
+    assert end["gameMin"] == pytest.approx(st["gameMin"], abs=1.0)
+
+
+def test_a_players_reply_without_the_user_after_a_death_read_stays_a_death():
+    """The same reply after the death event (or a 0 frame) set Session.death_frame stops `death` as before; one
+    with the user in it stops nothing."""
+    from agent.driverlib import reads as RD
+    sess = types.SimpleNamespace(user="admin", death_frame={"signal": "event", "seq": 7})
+    rd = RD.ServerReads.__new__(RD.ServerReads)
+    rd.s = sess
+    with pytest.raises(S.Stop) as e:
+        rd.check_death(["bob"])
+    assert e.value.reason == "death" and e.value.detail == "players reply without admin: ['bob']"
+    sess.death_frame = None
+    with pytest.raises(S.Stop) as e:
+        rd.check_death(["bob"])
+    assert e.value.reason == "client_end" and sess.end_players == ["bob"]
+    rd.check_death(["admin", "bob"])
+    rd.check_death(None)
+
+
+def test_stops_name_client_end_after_death():
+    assert S.STOPS[:2] == ("death", "client_end") and len(set(S.STOPS)) == len(S.STOPS)
 
 
 @pytest.mark.parametrize("mode", MODES)

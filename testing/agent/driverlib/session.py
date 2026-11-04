@@ -59,12 +59,18 @@ bus timeout plus the liveness ping: Session.polls_join_s; ServerReads.end), reco
 death record's final damage read while the worker is still in a read (damage.final_error names it).
 STOP CONDITIONS, the first that holds ends the loop, named in out["stop"] {reason, detail, wallS, gameMin, worldAge}:
   death            the Lua's `death` event (PZA/1.3, ruling P23-AO; detail `event death seq N ...`), a frame's
-                   body.health <= STOP_HEALTH, or a `players` reply (a list, or {} for nobody) without the user (an
-                   error reply is no death: a failed read, the last kept as loop.players_error). The client's
+                   body.health <= STOP_HEALTH, or a `players` reply (a list, or {} for nobody) without the user after
+                   either was read (an error reply is no death: a failed read, the last kept as loop.players_error;
+                   with neither read before it the reply is client_end). The client's
                    health copy is no reliable death signal in multiplayer (the fourth chain's froze at 19.5 on the
                    dead character), so the event is the primary one; the first of the event and a 0 frame, by line
                    order, is the death frame (Session.death_frame, its `signal` "event" or "frame_health"), and
-                   loop.death.via names it: "event", "frame" or "players";
+                   loop.death.via names it: "event" or "frame" ("players", neither before the reply, only in the
+                   records written before Plan 28 Task 1, when such a reply was a death);
+  client_end       a `players` reply without the user with no death read before it (no death event, no frame at
+                   or under STOP_HEALTH: Session.death_frame None; Plan 28 Task 1, E20's client ended on a vanilla
+                   NullPointerException): the client's end, never a death; out["loop"]["end"] {seq and health of
+                   the last kept frame, players (the reply's names), wallS, gameMin} is written, loop.death is not;
   bus_dead         BUS_DEAD_POLLS consecutive failed server polls (neither a stats map nor a players list), no link
                    line for BUS_DEAD_S, xlib's BusDead or a bus already dead, or the client parked in the debugger;
   lua_error_storm  more than STORM_N lua_error events within STORM_WINDOW_S of the client's own clock;
@@ -72,7 +78,8 @@ STOP CONDITIONS, the first that holds ends the loop, named in out["stop"] {reaso
   day_cap          the loop's own wall time reaches DAY_CAP_S;
   budget           xs.check's wall budget;
   error            anything else the loop raised.
-A death writes out["loop"]["death"] (record.death_record). A stop before the loop ran leaves loop.started absent.
+A death writes out["loop"]["death"] (record.death_record), a client_end out["loop"]["end"]. A stop before the loop ran
+leaves loop.started absent.
 THE SHOTS (ruling P23-AL; `shots`, a shots.ShotTaker, or None for none): the worker starts beside the server reads at
 the loop's start; each planner tick marks `shot_moment()` (the latest frame's seq, wallMs, gameMin and health, the
 latest decision line's branch, flee and goal, the open fight's index, the decision log's line count), the death frame
@@ -148,7 +155,7 @@ NEEDS_FIELDS = ["gameMin", "hunger", "thirst", "fatigue", "health", "serverHunge
 AGENT_LUA = "testing/PZAgent"
 AGENT_BASE = "testing/agent/base"
 DRIVERLIB = "testing/agent/driverlib"
-STOPS = ("death", "bus_dead", "lua_error_storm", "memory", "day_cap", "budget", "error")
+STOPS = ("death", "client_end", "bus_dead", "lua_error_storm", "memory", "day_cap", "budget", "error")
 PHASES = ("hello", "damage_hook", "kit", "loop")
 
 
@@ -476,6 +483,7 @@ class Session:
         self.missing = []
         self.death_frame = None       # the first death signal off the link: a 0 frame's or the death event's
         self.death_event = None       # the Lua's death event (PZA/1.3), its seq, wallMs and fields
+        self.end_players = None       # the players reply's names at a client_end stop (ServerReads.check_death)
         self.t_loop0 = None
         self.last_line_t = None
         self.ready = False
@@ -915,20 +923,29 @@ class Session:
 
     def death_via(self):
         """loop.death.via: "event" (the Lua's death event first), "frame" (a 0 frame first) or "players" (neither
-        before the players reply)."""
+        before the stop: since Plan 28 Task 1 a players reply with neither read is client_end, never a death)."""
         df = self.death_frame
         if df is None:
             return "players"
         return "event" if df.get("signal") == "event" else "frame"
 
+    def end_record(self):
+        """loop.end at a client_end stop: the last kept frame's seq and body.health, the players reply's names, the
+        loop's wall second and the game minute."""
+        f = self.frames[-1] if self.frames else {}
+        return {"seq": f.get("seq"), "health": body_health(f), "players": self.end_players, "wallS": self.loop_s(),
+                "gameMin": self.world.game_min}
+
     def set_stop(self, reason, detail, at=None):
         """The session's first stop, named in out["stop"] at `at` (stop_point(), else now); a death also writes
-        out["loop"]["death"]."""
+        out["loop"]["death"], a client_end out["loop"]["end"] (never loop.death)."""
         if self.out.get("stop") is not None:
             return
         self.out["stop"] = dict({"reason": reason, "detail": detail}, **(at or self.stop_point()))
         if reason == "death":
             self.loop["death"] = self.death_record(self.death_via(), detail)
+        elif reason == "client_end":
+            self.loop["end"] = self.end_record()
         self.xs.note("stop %s: %s" % (reason, detail))
 
     def run(self):

@@ -19,7 +19,8 @@ serverWallMs, dtMs, paired (within PAIR_S)}; a players result read as the list o
 players_error); a stats half and a players half make one server poll (a half arriving twice closes the round, the
 other half counted failed), a poll with neither a stats map nor a players list counted failed; a damage result's new
 records merged into the World, kept (the last SERVER_RECORDS_KEPT), summed by tag, a gap in the indices counted
-`lost`. Then the checks, in the order the synchronous poll made them: a players list without the user is a death,
+`lost`. Then the checks, in the order the synchronous poll made them: a players list without the user is a death
+when a death was read before it (Session.death_frame), else the client's end (client_end, Plan 28 Task 1),
 a bus xlib marked dead is bus_dead, BUS_DEAD_POLLS consecutive failed polls is bus_dead, and a worker that ended
 outside a read is an error (each a session.Stop).
 THE WORKER AND THE MAIN THREAD: session.py's docstring. `end()` joins the worker with the session's polls_join_s and
@@ -214,8 +215,16 @@ class ServerReads:
             self.fails_in_row += 1
 
     def check_death(self, names):
-        if names is not None and self.s.user not in names:
-            raise DS.Stop("death", "players reply without %s: %s" % (self.s.user, names))
+        """A players list without the user: `death` when the death event or a frame at or under STOP_HEALTH was read
+        before it (Session.death_frame), else `client_end` (Plan 28 Task 1: E20's client ended on a vanilla
+        NullPointerException with no death read), its names kept as Session.end_players for loop.end."""
+        if names is None or self.s.user in names:
+            return
+        detail = "players reply without %s: %s" % (self.s.user, names)
+        if self.s.death_frame is None:
+            self.s.end_players = list(names)
+            raise DS.Stop("client_end", detail)
+        raise DS.Stop("death", detail)
 
     def check_fails(self):
         if self.fails_in_row >= self.s.lim["BUS_DEAD_POLLS"]:
