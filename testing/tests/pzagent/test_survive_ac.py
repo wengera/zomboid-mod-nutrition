@@ -14,6 +14,11 @@ names.
 - P28-A, the wound dressed (`WOUND_DRESS`): a part reading `wound`, not bleeding and not bandaged, dressed with the best
   clean dressing while more than WOUND_RESERVE are held and no zombie is within DANGER_R (logged `reason` "wound"),
   else `wound_held` {part, clean}; nothing to dress it beyond the reserve and no garment marks the want `bandage`.
+- P28-B, the strike before the zombie's attack: B2 (`SHOVE_BACK`), after a shove that knocked nothing down the
+  stance's `back` leg in the second shove's place (logged `shove_back` {target, missed}); B3 (`DRIFT_STAND`), a
+  cornered Fight's pin standing beyond CORNERED_R chasing within DANGER_R takes the standing leg (logged
+  `out_of_reach` with `stance`); SHOVE_R at the engine's shove reach 1.1 (#4592; B1, the early shove, withdrawn by
+  that read).
 """
 import math
 
@@ -372,3 +377,136 @@ def test_survive_dresses_the_wound_on_a_quiet_care_tick_and_not_with_wound_dress
 
 def test_the_wound_dress_switch_and_reserve():
     assert "WOUND_DRESS" in S.T11_SWITCHES and S.Survive.WOUND_DRESS is True and P.WOUND_RESERVE == 1
+
+
+# ================================================================ P28-B: the strike before the zombie's attack
+A49 = 0.9786915268854448   # F11's a49 shoved 14725 this far off, `knockdown` false, the bite 0.804 s later (#4580)
+
+
+def shoved(tmp_path, on=True):
+    """F11's a49 simplified: one zombie standing A49 tiles off under the arms' pain 30; the Fight's first send is the
+    shove (P24-AG), ended done `knockdown` false; 1.0 s later the next frame. Returns (r, f)."""
+    r = Rig(tmp_path)
+    fr(r, [z(1, 100.0 + A49)], 30.0)
+    f = fight(r)
+    if not on:
+        f.rules = f.rules - {"shove_back"}
+    a = f.step()
+    assert (a.type, a.args) == ("shove", {"targetId": 1})
+    r.answer(DONE_SHOVE)
+    r.advance(1.0)
+    fr(r, [z(1, 100.0 + A49)], 30.0)
+    return r, f
+
+
+def test_f11_s_shove_that_knocked_nothing_down_is_followed_by_the_back_leg(tmp_path):
+    """F11's a49 (the last shove done `knockdown` false 1.0 s before, one standing zombie, the arms' pain 30): the next
+    send is the stance's `back` leg facing it, logged `shove_back` {target 1, missed 1}, never the second shove."""
+    r, f = shoved(tmp_path)
+    a = f.step()
+    assert a.type == "aim" and a.args["targetId"] == 1 and a.args["vx"] < -0.5
+    assert f.why["leg"] == "back" and f.why["shove_back"] == {"target": 1, "missed": 1}
+    assert f.why["corner"]["kind"] == "shove"
+
+
+def test_with_shove_back_off_the_second_shove_goes(tmp_path):
+    """`SHOVE_BACK` off: the shove again, P25-I's corner {kind shove} logged."""
+    r, f = shoved(tmp_path, on=False)
+    a = f.step()
+    assert a.type == "shove" and f.why["corner"]["kind"] == "shove" and "shove_back" not in f.why
+
+
+def test_after_shove_repeat_s_the_shove_goes_again(tmp_path):
+    """SHOVE_REPEAT_S after the missed shove's send (no longer `_shove_missed`): the shove."""
+    r, f = shoved(tmp_path)
+    r.advance(P.SHOVE_REPEAT_S - 1.0)
+    fr(r, [z(1, 100.0 + A49)], 30.0)
+    a = f.step()
+    assert a.type == "shove" and "shove_back" not in f.why
+
+
+def test_with_no_aim_announced_the_shove_goes_again(tmp_path):
+    """A build announcing no `aim`: the back leg cannot go, so the shove does (amendment 4, `_wounded_leg`'s rule)."""
+    r = Rig(tmp_path, caps=[t for t in pza1.ACTION_TYPES if t != "aim"])
+    fr(r, [z(1, 100.0 + A49)], 30.0)
+    f = fight(r)
+    assert f.step().type == "shove"
+    r.answer(DONE_SHOVE)
+    r.advance(1.0)
+    fr(r, [z(1, 100.0 + A49)], 30.0)
+    assert f.step().type == "shove" and "shove_back" not in f.why
+
+
+@pytest.mark.parametrize("x2, kind", [(101.3, "attack"), (101.05, "shove")])
+def test_a_second_standing_zombie_is_shoved_only_within_the_engine_s_shove_reach(tmp_path, x2, kind):
+    """P24-AH's shove of the nearer of two standing zombies within KEEP_R, at SHOVE_R 1.1 (the engine's shove reach,
+    the bare hands' MaxRange to the zombie's position, #4592): the nearer at 1.3 tiles is not shoved (the swing at it
+    stands, within the bat's reach and ATTACK_MARGIN); at 1.05 it is, logged `shove` "second"."""
+    r = Rig(tmp_path)
+    zs = [z(1, 101.4), z(2, x2)]
+    r.frame(zombies=zs)
+    f = fight(r, stance=True)
+    a = f.step()
+    assert a.type == "aim" and f.why["leg"] == "enter"
+    accept(r, a)
+    r.frame(zombies=zs)
+    b = f.step()
+    assert (b.type, b.args) == (kind, {"targetId": 2})
+    if kind == "shove":
+        assert f.why["shove"] == "second"
+
+
+def drifted(tmp_path, chases=True, wall=False, extra=()):
+    """F11's lines 696 to 705 simplified: a Fight cornered as F11's was after the corner's break (`point_blank`), its
+    pin 1 standing 3.0 tiles east (beyond CORNERED_R), chasing or idle; `wall`: the row y 200 mapped with a solid
+    square at x 101 between; `extra` zombies listed. Returns (r, f)."""
+    r = Rig(tmp_path)
+    if wall:
+        r.scan([square(x, 200, solid=x == 101) for x in range(99, 105)])
+    r.frame(zombies=[z(1, 103.0, has_target=chases)] + list(extra))
+    return r, fight(r, point_blank=True, target=1)
+
+
+def test_f11_s_drifted_pin_chasing_takes_the_standing_leg(tmp_path):
+    """F11's ten `out_of_reach` lines (696 to 705: 14725 chasing from 7.712846482962758 tiles to point blank, nothing
+    sent, the bite after): the pin chasing 3.0 tiles off on a clear line takes `Aim(0, 0, AIM_LEG_S, targetId=1)`,
+    logged `out_of_reach` with `stance` and `leg` "stand"."""
+    r, f = drifted(tmp_path)
+    a = f.step()
+    assert (a.type, a.args) == ("aim", {"vx": 0.0, "vy": 0.0, "seconds": P.AIM_LEG_S, "targetId": 1, "bearing": -1.0})
+    assert f.why["out_of_reach"] is True and f.why["stance"] is True and f.why["leg"] == "stand"
+
+
+def test_the_drifted_stand_holds_while_the_pin_comes_and_gives_way_inside_cornered_r(tmp_path):
+    """The standing leg runs while the pin closes beyond CORNERED_R (`busy`), and gives way once it is within it."""
+    r, f = drifted(tmp_path)
+    a = f.step()
+    accept(r, a)
+    r.frame(zombies=[z(1, 102.0)])
+    assert f.step() is None and r.acts.current is a
+    r.frame(zombies=[z(1, 101.3)])
+    assert f.step() is not None
+
+
+@pytest.mark.parametrize("case", ["idle", "wall", "off"])
+def test_an_idle_or_walled_drifted_pin_still_holds_out_of_reach(tmp_path, case):
+    """The pin idle (`hasTarget` false), its line read blocked, or the rule off: nothing sent, `out_of_reach` as
+    before (P24-A fix 2, I2a)."""
+    r, f = drifted(tmp_path, chases=case != "idle", wall=case == "wall")
+    if case == "off":
+        f.rules = f.rules - {"drift_stand"}
+    assert f.step() is None and f.why["out_of_reach"] is True and "stance" not in f.why
+
+
+def test_a_fallen_zombie_in_reach_takes_the_drifted_finish_first(tmp_path):
+    """A zombie fallen 1.8 tiles off (beyond CORNERED_R, within FIGHT_REACH) beside the drifted pin: the drifted finish
+    (P25-J) goes first, the floor swing at it."""
+    r, f = drifted(tmp_path, extra=[z(2, 101.8, floor=True)])
+    a = f.step()
+    assert (a.type, a.args) == ("attack", {"targetId": 2}) and f.why["downed"] == 2
+
+
+def test_the_strike_switches_and_the_shove_reach():
+    assert {"SHOVE_BACK", "DRIFT_STAND"} <= set(S.T11_SWITCHES) and T.Threat.SHOVE_BACK and T.Threat.DRIFT_STAND
+    assert {"shove_back", "drift_stand"} <= set(F.FIGHT_RULES)
+    assert P.SHOVE_R == 1.1 and not hasattr(P, "SHOVE_EARLY_R") and "SHOVE_EARLY" not in S.T11_SWITCHES

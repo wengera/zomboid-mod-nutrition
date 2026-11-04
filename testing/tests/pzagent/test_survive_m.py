@@ -29,19 +29,24 @@ def fight(tmp_path, zs, arm=None, caps=None, stance=False, pin=None, floor_finis
     Survive's `_stance_ok` sets it, pinned to `pin` (else the nearest at its first choose). Named change, ruling P27-G
     (Plan 27 Task 5): the Fight's `floor_finish` rule off unless `floor_finish` (with it on, and the swing allowed, a
     fallen zombie within FIGHT_REACH takes the floor swing ahead of the stomp: `test_survive_ab`), so this module's
-    P24-AL finish (the stomp first) is pinned with the rule before it."""
+    P24-AL finish (the stomp first) is pinned with the rule before it. Named change, ruling P28-B2 (Plan 28 Task 3):
+    the `shove_back` rule off, the rule before it (the shove again after a miss, where the back leg goes now:
+    `test_survive_ac`)."""
     r = Rig(tmp_path, caps=caps)
     fr(r, zs, arm)
     f = Fight(r.world, r.acts, r.clock, target=pin)
     f.stance = stance
+    f.rules = f.rules - {"shove_back"}
     if not floor_finish:
         f.rules = f.rules - {"floor_finish"}
     return r, f
 
 
 def test_the_swing_constants():
-    """#4372: the bat's MinRange 0.61 (the bare hand's 0.6); the Lua's SHOVE_R 1.5; a refused skill waits as a mark."""
-    assert (P.STAND_MIN_R, P.SHOVE_R, P.SWING_SKIP_S) == (0.61, 1.5, P.UNREACHABLE_S)
+    """#4372: the bat's MinRange 0.61 (the bare hand's 0.6); the Lua's SHOVE_R 1.5; a refused skill waits as a mark.
+    Named change, ruling P28-B (Plan 28 Task 3): SHOVE_R 1.1, the engine's shove reach (#4592; the Lua's 1.5 a wider
+    bound)."""
+    assert (P.STAND_MIN_R, P.SHOVE_R, P.SWING_SKIP_S) == (0.61, 1.1, P.UNREACHABLE_S)
     assert P.SWING_TYPES == ("attack", "aim", "shove", "stomp")
 
 
@@ -95,12 +100,14 @@ def stance_in(tmp_path, zs, arm=None):
     return r, f
 
 
-@pytest.mark.parametrize("pin_x,second_x,shoved", [(101.2, 102.0, 1), (101.8, 101.0, 2)])
+@pytest.mark.parametrize("pin_x,second_x,shoved", [(101.05, 102.0, 1), (101.8, 101.0, 2)])
 def test_a_second_zombie_inside_keep_r_with_the_pin_in_reach_shoves_the_nearer(tmp_path, pin_x, second_x, shoved):
     """P24-AH: the stance held on pin 1 within FIGHT_REACH, zombie 2 inside KEEP_R: the nearer of the two is shoved
     before the next swing (`why` `shove` "second"); after the shove the swing goes, then the shove again. Named change,
     Plan 27 Task 5 fix 2: P27-M (`ATTACK_REACH`) off, the rule before it (the pin at 1.8 tiles, beyond the rig's reach
-    1.2 and ATTACK_MARGIN)."""
+    1.2 and ATTACK_MARGIN).
+    Named change, ruling P28-B (Plan 28 Task 3): SHOVE_R 1.1, the engine's shove reach (#4592), so the shoved zombie
+    stands 1.05 tiles off where it stood at 1.2 (the pin, the nearer)."""
     zs = [z(1, pin_x), z(2, second_x)]
     r, f = stance_in(tmp_path, zs)
     f.rules = f.rules - {"attack_reach"}

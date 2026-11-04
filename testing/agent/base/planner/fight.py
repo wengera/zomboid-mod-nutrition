@@ -142,6 +142,12 @@ one table the gates and the other policies import).
   `arms_hurt` alone (`floor_swing_barred`), logged `floor_finish` {.., pain}; in its commit the walk to a zombie beyond
   FIGHT_REACH of a Fight not in the stance goes at a walk, never a run (the spec's 1 (b), ruling P27-9: E20's a190
   ran 1.762922801715824 tiles into 3189, #4571), logged `leg` "walk".
+  P28-B (the strike before the zombie's attack; F11's #4580; P28-B1's early shove withdrawn by the jar read, the
+  engine's shove reach 1.1 the point-blank band itself, #4592, so SHOVE_R reads 1.1): B2, after a missed point-blank
+  shove the stance's `back` leg in the second shove's place (`shove.FightShove._shove`, logged `shove_back`); B3, a
+  cornered Fight's pin standing beyond CORNERED_R, chasing within DANGER_R on a line not read blocked, takes the
+  stance's standing leg (`_drift_stands`, logged `out_of_reach` with `stance`), held while it comes beyond CORNERED_R
+  (`busy`), where it sent nothing before.
 """
 import math
 import time
@@ -171,9 +177,10 @@ __all__ = ["Fight", "FIGHT_RULES"]
 FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finish_far", "shove_break",
                "shove_break_run", "blocked_edge", "wounded_swing", "low_swing",
                "floor_finish", "fallen_seek", "shove_close", "low_exit", "attack_reach",
-               "point_blank_pin", "busy_retry", "floor_pain")   # survival iterations 13 to 21's Fight rules (P25-A,
-                     # P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H, P27-J, P27-K2;
-                     # fix 2's P27-M and P27-N; P28-D, P28-C), each on in `rules` unless Survive's switch for it is off
+               "point_blank_pin", "busy_retry", "floor_pain", "shove_back",
+               "drift_stand")   # survival iterations 13 to 21's Fight rules (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L;
+                     # P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H, P27-J, P27-K2; fix 2's P27-M and P27-N; P28-D,
+                     # P28-C, P28-B2, P28-B3), each on in `rules` unless Survive's switch for it is off
 
 
 class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach, Policy):
@@ -538,6 +545,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         if self._fence_leg is not None:   # P25-F: the fence wait's leg holds while the wait calls for it
             read = self._fence_read(t)
             return read is not None and read[0] == self._fence_leg
+        if self.point_blank and self._leg == "stand":   # P28-B3: the drifted pin's stand holds while it comes
+            return t[2] > CORNERED_R and self._drift_stands(t[1], t[2])
         if self._leg == "back" and self.no_swing():   # P24-AP, R2: the wounded backpedal holds until point blank
             return POINT_BLANK_R < t[2] <= KEEP_R + KEEP_MARGIN
         if t[2] <= FIGHT_REACH or not self.stance_at(t[2]):
@@ -705,6 +714,18 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             return self.no_swing()
         return bool(self.spent) or (self.shove_only is not None and not self._low_swing_due())
 
+    def _drift_stands(self, z, d):
+        """Ruling P28-B3 (`drift_stand`, Survive's DRIFT_STAND; F11, `f_goals_12-20261103-144240`: on lines 696 to 705
+        the Fight sent nothing, each line `out_of_reach`, while 14725 closed chasing from 7.712846482962758 tiles after
+        the corner's break, and it bit, #4580): a cornered Fight's (`point_blank`) pin `z`, `d` tiles off beyond
+        CORNERED_R, stands (not `on_floor`: a fallen pin is the drifted finish's), chases (`hasTarget`), within
+        DANGER_R, on a line not read blocked, with the build announcing `aim` and no riding bandage (P24-U: an aim ends
+        it): the stance's standing leg aimed at it (`_choose`, held by `busy` while it comes beyond CORNERED_R), the
+        shove or the swing taking it within reach. The drifted finish (P25-J) goes first. Cost if wrong: a leg standing
+        for a pin that turns away (it ends at AIM_LEG_S, or as the pin stops chasing)."""
+        return ("drift_stand" in self.rules and not on_floor(z) and chasing(z) and d <= DANGER_R and self.ride is None
+                and line_to(self.world, z) is not False and self.world.can("aim"))
+
     def _wounded_leg(self, zid, z, d):
         """Ruling P24-AP, the wounded fight (#4370: at `body.armPain` STRAIN_HARD a swing does half its damage or less,
         whatever the pain's source), and ruling R2 under any hold (`no_swing`): where the Fight would swing, the
@@ -861,6 +882,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             if fin is not None:
                 return fin[0]
             self.why = {"target": zid, "pinned": True, "dist": d, "out_of_reach": True}
+            if self._drift_stands(z, d):   # P28-B3: the stance aimed at the pin while it comes, not nothing
+                self.why["stance"] = True
+                return self._stance_leg(zid, z, d, kind="stand")
             return None
         if self._ride_waits():   # P25-D: the riding bandage lands before a held Fight's next send
             self.why = {"target": zid, "pinned": True, "dist": d, "ride_wait": self.ride.aid}

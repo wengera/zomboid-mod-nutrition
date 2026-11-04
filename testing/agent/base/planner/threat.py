@@ -190,6 +190,12 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # bleeding (`care_yield.CareYield._rides_health`); off, P24-U's RIDE_R alone
     # survival iteration 21 (Plan 28 Task 3; survive.py's docstring, Survival 23): each switch off is the rule before
     # it, all of them in `survive.T11_SWITCHES` (the replay tests' `pre_t11`)
+    SHOVE_BACK = True     # ruling P28-B2: after a point-blank shove that knocked nothing down (within SHOVE_REPEAT_S)
+                          # the stance's `back` leg in the second shove's place (`shove.FightShove._shove`); off, the
+                          # shove again (P25-I's corner {kind shove})
+    DRIFT_STAND = True    # ruling P28-B3: a cornered Fight's pin standing beyond CORNERED_R, chasing within DANGER_R
+                          # on a line not read blocked, takes the stance's standing leg (`fight.Fight._drift_stands`);
+                          # off, nothing sent (`out_of_reach`, P24-A fix 2, I2a)
     FLOOR_PAIN = True     # ruling P28-C: the swing at a fallen zombie within FIGHT_REACH is barred by a hold or a
                           # shove-only Fight, never by the arms' pain alone (`fight.Fight.floor_swing_barred`,
                           # `finish.ThreatFinish._flee_finish`), and the non-stance Fight's walk to a zombie beyond
@@ -1018,7 +1024,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("fallen_seek", self.FALLEN_SEEK), ("shove_close", self.SHOVE_CLOSE),
                                                ("low_exit", self.LOW_EXIT), ("attack_reach", self.ATTACK_REACH),
                                                ("point_blank_pin", self.POINT_BLANK_PIN),
-                                               ("busy_retry", self.BUSY_RETRY), ("floor_pain", self.FLOOR_PAIN))
+                                               ("busy_retry", self.BUSY_RETRY), ("floor_pain", self.FLOOR_PAIN),
+                                               ("shove_back", self.SHOVE_BACK), ("drift_stand", self.DRIFT_STAND))
                          if on)
 
     def _flee_rules(self):

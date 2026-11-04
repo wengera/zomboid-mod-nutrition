@@ -1125,18 +1125,20 @@ def test_e20_s_marked_zombie_at_point_blank_is_pinned_shoved_then_swung_at(tmp_p
 
 
 def test_the_attacker_is_pinned_through_its_hit_reaction_and_shoved_on_the_next_allowed_tick(tmp_path):
-    """A marked zombie 1.3 tiles off (beyond point blank) on a frame reading `me.attackers` 1 with the `Bite` reaction,
+    """A marked zombie 1.05 tiles off (beyond point blank) on a frame reading `me.attackers` 1 with the `Bite` reaction,
     the nearest listed: pinned, logged `pin` {why "attacker"}, nothing sent while the reaction lasts (the engine
-    starts no swing in it); on the next frame, the reaction over, the shove, then the swing."""
-    r, sv, a = marked_at(tmp_path, 101.3, hit_reaction="Bite")
+    starts no swing in it); on the next frame, the reaction over, the shove, then the swing.
+    Named change, ruling P28-B (Plan 28 Task 3): SHOVE_R 1.1, the engine's shove reach (#4592), so the shoved zombie
+    stands 1.05 tiles off where it stood at 1.3."""
+    r, sv, a = marked_at(tmp_path, 101.05, hit_reaction="Bite")
     w = threat_why(tmp_path)
     assert a is None and w["pin"] == {"why": "attacker"} and w["hitReaction"] == "Bite"
     r.advance(0.5)
-    fr(r, [z(1, 101.3), OTHER], weapon=E20_BAT, attackers=1)
+    fr(r, [z(1, 101.05), OTHER], weapon=E20_BAT, attackers=1)
     b = tick(r, sv)
     assert (b.type, b.args) == ("shove", {"targetId": 1}) and threat_why(tmp_path)["pin"] == {"why": "attacker"}
     r.answer({"state": "done", "result": {"knockdown": False, "attackStarted": True, "targetDead": False}})
-    fr(r, [z(1, 101.3), OTHER], weapon=E20_BAT, attackers=0)
+    fr(r, [z(1, 101.05), OTHER], weapon=E20_BAT, attackers=0)
     assert tick(r, sv).args == {"targetId": 1} and r.acts.history[-1].type == "attack"
 
 

@@ -1881,6 +1881,9 @@ def test_iteration_21_moves_four_goldens_at_the_approach_walk(key):
       the sixth's hello announces the stance, whose walks already go at a walk. The floor swing under the pain reads
       `onFloor` and `body.armPain`, which no golden's frames carry.
     - WOUND_DRESS (P28-A) moves none: its step reads a part's `wound` (PZA/1.7.2), which no golden ring decodes.
+    - SHOVE_BACK (P28-B2) moves none: its back leg follows a shove, which needs a build announcing the PZA/1.7 `shove`,
+      and no golden's hello does. DRIFT_STAND (P28-B3) moves none: no replayed golden tick reads a cornered Fight's
+      drifted pin (`out_of_reach`, on no golden line). SHOVE_R's 1.1 (no switch) reaches only the shoves.
     - BUSY_RETRY (P28-D) moves none: a shove or a stomp rejected `busy` needs a build announcing the PZA/1.7 `shove`
       and `stomp`, and no golden's hello does.
     A golden no switch moves is its file before iteration 21 byte for byte."""

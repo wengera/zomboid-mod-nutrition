@@ -87,8 +87,11 @@ A116 = [z(1, 100.58), z(2, 100.0, 198.09)]   # ... and 3665: 27613 at 0.58, 2760
 
 def shoved(tmp_path, zs, end=MISS, arm=WOUND, **k):
     """The `wounded` corner of E11 (health 70, the arms' pain `arm`, no stiffness): the walk corner on zombie 1 at
-    point blank shoves it (P24-AG), the shove ends `end`, half a second passes and the frame is read again."""
+    point blank shoves it (P24-AG), the shove ends `end`, half a second passes and the frame is read again. Named
+    change, ruling P28-B2 (Plan 28 Task 3): `SHOVE_BACK` off, the rule before it (the shove again after a miss, where
+    the back leg goes now: `test_survive_ac`), for the corner's and the breaks' tests reading the misses."""
     r, sv = make(tmp_path)
+    sv.SHOVE_BACK = False
     fr(r, zs, arm, NO_STIFF, health=70.0, **k)
     a = tick(r, sv)
     w = threat_why(tmp_path)
@@ -140,8 +143,11 @@ def test_boxed_in_with_no_clear_heading_is_shoved_again_not_swung_at(tmp_path):
 @pytest.mark.parametrize("k", [{"endurance": 0.6}, {"fatigue": 0.7}])
 def test_under_the_endurance_or_tired_hold_the_missed_shove_is_shoved_again(tmp_path, k):
     """The hold halves the swing again (#4371): the lone zombie missed by a shove is shoved again, never swung at
-    (named change, P25-I: logged `corner` {kind shove, sore false}: no arms' pain read)."""
+    (named change, P25-I: logged `corner` {kind shove, sore false}: no arms' pain read).
+    Named change, ruling P28-B2 (Plan 28 Task 3): pinned with `SHOVE_BACK` off, the rule before it (the shove again
+    after a missed shove, where the back leg goes now: `test_survive_ac`)."""
     r, sv = make(tmp_path)
+    sv.SHOVE_BACK = False
     r.frame(zombies=[z(1, 100.49)], health=70.0, **k)
     assert tick(r, sv).type == "shove"
     r.fake.answer({"shove": ["accepted", MISS]})

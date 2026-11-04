@@ -175,7 +175,9 @@ ENDURANCE_RELEASE = 0.80   # ... and above which that hold ends (review-t27: res
                            # a fight takes far more, so the edge alone flickered flee / one swing / flee)
 TIRED_FIGHT_T = 0.6   # stats.fatigue at or above which no fight is sought or stood (ruling P24-AK; the first TIRED
                       # moodle, night.TIRED_T, halves every swing at its first level too, #4371)
-SHOVE_R = 1.5         # tiles: the Lua's shove refuses a target beyond this (`too far`, PZAgent_Stance.lua K.SHOVE_R)
+SHOVE_R = 1.1         # tiles: the engine's shove reach, the bare hands' MaxRange 1.1 to the zombie's position, #4592;
+                      # the Lua's K.SHOVE_R 1.5 is a wider bound (ruling P28-B, Plan 28 Task 3, the jar read withdrawing
+                      # P28-B1's early shove: the reach is the point-blank band itself; 1.5 before it)
 STAND_MIN_R = 0.61    # tiles: a standing zombie this near the player makes the engine's call shove it (the weapon's
                       # MinRange, #4372: the bat's 0.61, the bare hand's 0.6), so no shove or stomp of another is sent
                       # (ruling P24-AH; the frame carries no MinRange, the bat's the widest read)

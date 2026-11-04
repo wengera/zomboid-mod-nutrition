@@ -471,7 +471,9 @@ def test_with_spent_keep_off_the_long_bleed_is_redressed(tmp_path):
 # ================================================================ P27-E: the low fight's swing
 def shoves(r, sv, n, **k):
     """`n` shoves at the lone zombie at point blank (0.8 tiles), each answered missed (done, `knockdown` false), a
-    second between them."""
+    second between them. Named change, ruling P28-B2 (Plan 28 Task 3): `SHOVE_BACK` off, the rule before it (the
+    shove again after a miss, where the back leg goes now: `test_survive_ac`), for the tests reading these misses."""
+    sv.SHOVE_BACK = False
     for _ in range(n):
         lone(r, **k)
         a = tick(r, sv)

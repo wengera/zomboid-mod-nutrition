@@ -1,7 +1,8 @@
 """The shove at the swing and the corner after a missed shove: the mixin `FightShove` (`fight.Fight`'s: rulings P24-AG
 and P24-AH's shove, P25-A's corner, P25-I's logged third branch, P25-L's break after repeated misses, P26-L1's
 divided swing after them under the `wounded` reason, `_wounded_swing`, P27-E's full swing after them in the low
-fight, `_low_swing`, and P27-J's close of a shove-only Fight on a chaser holding beyond point blank, `_shove_close`).
+fight, `_low_swing`, P27-J's close of a shove-only Fight on a chaser holding beyond point blank, `_shove_close`, and
+P28-B2's back leg after a missed shove, `_shove`).
 Moved out of `fight.py` at Plan 25 Task 8 (`_shove`, `_shove_missed` and `_corner` whole, their rules unchanged; the
 constants in `policies.py`'s table); the state is the `Fight`'s own, and `fight.py`'s module docstring stays the
 record.
@@ -31,7 +32,15 @@ class FightShove:
           "unarmed" or "low"; ruling P26-L1: at point blank under the `wounded` reason after SHOVE_FAIL_N misses at a
           lone target, the swing in the shove's place (`_wounded_swing`), before the corner's reads;
         - ruling P24-AH: in a standing fight (`standing`), a second standing zombie inside KEEP_R: the nearer of the
-          two is shoved (within the Lua's SHOVE_R) before the next swing, once a swing (`_shoved`)."""
+          two is shoved (within SHOVE_R, the engine's shove reach since ruling P28-B, #4592) before the next swing, once
+          a swing (`_shoved`).
+        Ruling P28-B2 (`shove_back`, Survive's SHOVE_BACK; F11, `f_goals_12-20261103-144240`: five of its seven bites
+        came 0.101 to 0.804 s after a shove at point blank that knocked nothing down, a49's from 0.9786915268854448
+        tiles, #4580): after a missed point-blank shove at `zid` (`_shove_missed`, within SHOVE_REPEAT_S), where the
+        corner and the breaks answer nothing (`corner` {kind "shove"}), the stance's `back` leg aimed at it goes in the
+        second shove's place (`_stance_leg`, as `_wounded_leg`'s), logged `shove_back` {target, missed}; with no `aim`
+        announced the shove again; once SHOVE_REPEAT_S has passed since the miss, the shove. Cost if wrong: the
+        backpedal's half tile given up after each miss."""
         low = self._low_swing(zid)   # P27-E: the low fight's full swing after the failed shoves, within FIGHT_REACH
         if low is not None:
             return low
@@ -51,6 +60,9 @@ class FightShove:
             brk = self._run_break(zid, z, sore)   # P25-T: a miss on record at any spacing consults the breaks
             if brk is not None:
                 return brk
+        if blank and "shove_back" in self.rules and self._shove_missed(zid) and self.world.can("aim"):
+            self.why["shove_back"] = {"target": zid, "missed": self._missed_n(zid)}   # P28-B2: back off, not again
+            return self._stance_leg(zid, z, d, kind="back")
         if blank and self._swing_ok("shove", zid) and self._standing_near(STAND_MIN_R, (zid,)) is None:
             self.why.update({"shove": self.shove_only or ("strain" if sore else "spent"), "strain": pain})
             return Shove(zid)
