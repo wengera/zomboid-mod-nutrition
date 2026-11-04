@@ -19,7 +19,7 @@ E20_SELECTED = [1, 6, 11, 16, 21, 26, 31, 36, 41, 46, 50, 51, 52, 53, 54, 55, 56
                 92, 93, 94, 95]
 
 N_SHOTS = 30
-WOUND_SEQ = 50   # the frame whose body.health fell
+WOUND_SEQ = 50   # the frame whose body.scratched rose (and whose body.health fell)
 KILL_SEQ = 155   # the act that reads targetDead
 
 
@@ -29,7 +29,8 @@ def _frame(seq, health, zombies=()):
         "me": {"x": 10.5, "y": 20.5, "z": 0, "dir": "SE", "moving": True, "running": seq == 60, "sprinting": False,
                "aiming": False, "attackers": 1, "hitReaction": ""},
         "stats": {"endurance": 0.75},
-        "body": {"health": health, "parts": [{"i": 3, "h": 0}], "armPain": 2.5},
+        "body": {"health": health, "scratched": 1 if seq >= WOUND_SEQ else 0, "parts": [{"i": 3, "h": 0}],
+                 "armPain": 2.5},
         "zombies": [{"id": 77, "x": 12, "y": 21, "dist": 2.5, "hasTarget": True, "onFloor": False, "health": 1.5},
                     {"id": 78, "x": 30, "y": 31, "dist": 9.0, "hasTarget": False, "onFloor": True, "health": 0.5}]
         if zombies else [],
@@ -42,7 +43,8 @@ def _act(seq, dead):
 
 
 def _make_run(root, state_rel=""):
-    """Thirty shots at seq 10n, a frame at each (health 100, then 80 from seq 50), a kill act at seq 155."""
+    """Thirty shots at seq 10n, a frame at each (health 100 and no scratch, then 80 and one scratch from seq 50), a
+    kill act at seq 155."""
     shots = os.path.join(root, "shots")
     os.makedirs(shots)
     idx = []
@@ -76,11 +78,36 @@ def run(tmp_path):
     return _make_run(str(tmp_path / "e_day_x-1"))
 
 
-def test_the_wound_is_the_frame_whose_health_fell_and_the_kill_the_act_that_reads_target_dead(run):
+def test_the_wound_is_the_frame_whose_scratch_count_rose_and_the_kill_the_act_that_reads_target_dead(run):
+    """Plan 28 Task 1, 2026-11-04: a WOUND mark is a wound event, no longer a health fall (F11's bleed made 114 of
+    131 shots WOUND marks)."""
     r = SS.load_run(run)
     wounds, kills = SS.find_wounds(r.frames), SS.find_kills(r.acts)
     assert wounds == [WOUND_SEQ]
     assert kills == [KILL_SEQ]
+
+
+def _f(seq, health=100.0, scratched=None, bitten=None, bleeding=None, reaction=None):
+    body = {"health": health, "scratched": scratched, "bitten": bitten, "bleeding": bleeding}
+    return {"seq": seq, "body": body, "me": None if reaction is None else {"hitReaction": reaction}}
+
+
+def test_a_wound_is_a_count_rising_or_a_hit_reactions_first_frame_never_a_health_fall_alone():
+    """Plan 28 Task 1, 2026-11-04: F11's bleed made 114 of 131 shots WOUND marks, each a frame whose health fell under
+    a bleed. A WOUND mark is now a wound event: body.scratched, body.bitten or body.bleeding rising above the last value
+    read, or the first frame of a run reading me.hitReaction non-empty (from empty or unread)."""
+    frames = [_f(1, 100.0, 0, 0, 0, ""), _f(2, 95.0, 0, 0, 0, ""),          # health fell, no count rose: no mark
+              _f(3, 90.0, 1, 0, 0, ""),                                      # scratched rose
+              _f(4, 85.0, 1, 0, 1, ""),                                      # bleeding rose
+              _f(5, 80.0, 1, 0, 1, ""), _f(6, 75.0, 1, 0, 1, "HitReaction"),  # a hit reaction's first frame
+              _f(7, 70.0, 1, 0, 1, "HitReaction"),                           # its second: no mark
+              _f(8, 70.0, 1, 1, 1, "HitReaction"),                           # bitten rose under the same run
+              _f(9, 65.0, 1, 1, 0, ""), _f(10, 60.0, 1, 1, 1, None),          # me unread; bleeding rose again
+              _f(11, 60.0, 0, 1, 1, None), _f(12, 60.0, 1, 1, 1, "")]         # healed then scratched: a rise
+    assert SS.find_wounds(frames) == [3, 4, 6, 8, 10, 12]
+    assert SS.find_wounds([_f(1, reaction="HitReactionBehind")]) == [1]        # from unread
+    assert SS.find_wounds([_f(1, 100.0, 2, 1, 1), _f(2, 50.0)]) == []         # the first counts and an unread body
+    assert not hasattr(SS, "HEALTH_EPS")
 
 
 def test_select_shots_takes_two_each_side_of_the_wound_and_the_kill_the_last_twelve_and_every_nth(run):
@@ -189,8 +216,11 @@ def test_main_exits_2_on_a_sheet_error_and_0_otherwise(run, tmp_path, capsys):
 
 @pytest.mark.skipif(not os.path.isdir(E20), reason="the E20 artifact is not checked out")
 def test_e20_selection_reproduces_the_controllers_sheet(tmp_path):
+    """Plan 28 Task 1, 2026-11-04: under the wound-event rule E20 reads 9 wounds where the health-fall rule read 43;
+    the selection is the controller's sheet's all the same (the shots around the nine fall in the same windows)."""
     r = SS.load_run(E20)
     selected, marks, wounds, kills = SS.select_shots(r, every=5)
     assert len(r.shots) == 95
     assert [s["n"] for s in selected] == E20_SELECTED
-    assert (len(selected), len(wounds), len(kills)) == (55, 43, 7)
+    assert (len(selected), len(wounds), len(kills)) == (55, 9, 7)
+    assert wounds == [6379, 6447, 6475, 6503, 6504, 6531, 6532, 6559, 6560]

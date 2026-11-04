@@ -5,8 +5,10 @@
 
 Reads a run folder (`testing/runs/<run>/`) or an artifact folder (`testing/artifacts/<run>/`) and writes one markdown
 sheet, so a reader opens the images with the fixed questions at hand and the metrics beside each. It selects the shots
-within two of every wound (a frame whose `body.health` fell), within two of every kill (an act line whose
-`result.targetDead` is true) and the last twelve (the death), plus every N-th shot (default 5), and writes the
+within two of every wound (a wound event: a frame on which `body.scratched`, `body.bitten` or `body.bleeding` rose, or
+the first frame of a run reading `me.hitReaction` non-empty; never a frame whose health merely fell: Plan 28 Task 1,
+2026-11-04), within two of every kill (an act line whose `result.targetDead` is true) and the last twelve (the death),
+plus every N-th shot (default 5), and writes the
 questions at the top and a section per selected shot: the image's absolute path, the marks (WOUND@seq, KILL@seq,
 DEATH), the index line's moment (game minute, health, branch, flee, fight, goal, trigger, decision line, seq), the
 decision line's action (type and its gait, target and velocity args) and threat (leg, target, dist, stance, approach,
@@ -40,7 +42,7 @@ NEAR_TILES = 3.0
 DEATH_SHOTS = 12
 NEIGHBOURS = 2
 ACTION_ARGS = ("gait", "run", "x", "y", "targetId", "vx", "vy", "bearing")
-HEALTH_EPS = 0.01
+WOUND_COUNTS = ("scratched", "bitten", "bleeding")
 
 QUESTIONS = """Questions, answered per shot in one line each (the shot's number first), then a summary tying the \
 answers to the marks:
@@ -117,16 +119,29 @@ def load_run(path):
 
 
 def find_wounds(frames):
-    """The seqs of the frames whose body.health fell below the last one read."""
+    """The seqs of the wound events: the frames on which body.scratched, body.bitten or body.bleeding rose above the
+    last value read, or me.hitReaction turned non-empty from empty or unread (a run's first frame). A frame whose
+    health merely fell is no wound (Plan 28 Task 1, 2026-11-04: F11's bleed made 114 of 131 shots WOUND marks under
+    the health-fall rule, and the full sheet's pass stalled)."""
     wounds = []
-    prev = None
+    last = {}
+    reacting = False
     for f in frames:
-        h = (f.get("body") or {}).get("health")
-        if h is None:
-            continue
-        if prev is not None and h < prev - HEALTH_EPS:
+        body = f.get("body") or {}
+        hit = False
+        for k in WOUND_COUNTS:
+            v = body.get(k)
+            if v is None:
+                continue
+            if k in last and v > last[k]:
+                hit = True
+            last[k] = v
+        reaction = (f.get("me") or {}).get("hitReaction")
+        if reaction and not reacting:
+            hit = True
+        reacting = bool(reaction)
+        if hit:
             wounds.append(f["seq"])
-        prev = h
     return wounds
 
 
