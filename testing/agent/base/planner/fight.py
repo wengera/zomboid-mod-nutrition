@@ -47,7 +47,7 @@ one table the gates and the other policies import).
   with `stance` set (Survive's `_stance_ok`), neither `point_blank` nor `only`, and the target within AIM_R
   (`stance_at`), every leg is `Aim(vx, vy, AIM_LEG_S, targetId)` facing the target (`_stance_leg`), the fight's first
   action included: within FIGHT_REACH with the stance not held (`in_stance`: the last send was this Fight's running
-  aim, or its attack from the stance running or ended within AIM_HOLD_S, Task 9's hand-over) an `enter` leg (0, 0),
+  aim; the Lua releases the stance on an attack's first tick and keeps none after it) an `enter` leg (0, 0),
   the swing following from it; inside KEEP_R the backpedal (`away_vector` of `threats` turned by STEER_TURNS to the
   first heading `clear_heading` passes, never into a wall or over a hoppable fence, else (0, 0)); beyond it standing
   (0, 0), the target faced while it comes. A running leg gives way (`busy`) once the target is within reach,
@@ -158,7 +158,7 @@ import time
 
 from agent.base.planner.edges import FightEdge
 from agent.base.planner.finish import FightFinish
-from agent.base.planner.policies import (AIM_HOLD_S, AIM_LEG_S, AIM_R, CIRCLE_TURN, CORNERED_R, DANGER_R,
+from agent.base.planner.policies import (AIM_LEG_S, AIM_R, CIRCLE_TURN, CORNERED_R, DANGER_R,
                                          DISENGAGE_R, DRAG_DOWN_N, EDGE_HOLD_TICKS, FENCE_BACK_R, FIGHT_MAX_S,
                                          FIGHT_REACH, FINISH_R, KEEP_MARGIN, KEEP_R, KNOCK_READ_S, MISSES_TO_APPROACH,
                                          NO_TARGET, POINT_BLANK_R, PREEMPTED, PULL_R, Policy, REPIN_MARGIN,
@@ -223,8 +223,6 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         self._leg_read = None               # the last stance leg whose end observe() has read
         self._stand = None                  # (target id, wall of the stand clock's start, its health then)
         self._leg = None                    # the kind of the last stance leg sent: enter, stand, back or toward
-        self._attack_held = False           # the last attack was sent from the held stance (Task 9's hand-over)
-        self._held_before = False           # the stance read held at the choose that chose the attack
         self.kill = None                    # this observe's kill: the target id its attack or aim read dead (P24-Q)
         self.ride = None                    # Survive sets it each tick: the riding bandage while one runs (P24-U)
         self._kill_read = None              # the last attack or aim whose result the kill read has seen
@@ -567,17 +565,15 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         return want == self._leg
 
     def in_stance(self):
-        """The Lua holds the stance now (Task 9's hand-over, PZAgent_Stance.lua): the last action sent by anyone is
-        this Fight's aim still running, or its attack sent from the held stance and running or ended within
-        AIM_HOLD_S. Any other send (a walk, a steer, a care skill) released it."""
+        """The Lua holds the stance now: the last action sent by anyone is this Fight's aim, still running. P28-F's
+        planner side (Plan 28 Task 3 fix 1, review-t1b R2; Task 1b `e75bf474`, `e9241a94`): the Lua releases the
+        stance on an attack's first tick and keeps none after the swing, so an attack, running or ended, reads no
+        stance held (before it, an attack from the held stance read held while it ran and AIM_HOLD_S after its end).
+        Any other send (a walk, a steer, a care skill) released it."""
         a = self.last
         if a is None or not self.actions.history or self.actions.history[-1] is not a:
             return False
-        if a.type == "aim":
-            return not self.actions.done(a)
-        if a.type != "attack" or not self._attack_held:
-            return False
-        return not self.actions.done(a) or (a.ended_wall is not None and self.clock() - a.ended_wall < AIM_HOLD_S)
+        return a.type == "aim" and not self.actions.done(a)
 
     def _observe_kill(self):
         """Ruling P24-Q (zombies killed, the iteration's metric): the Fight's last attack or aim that ended with
@@ -979,9 +975,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         held = self._attack_hold(zid, z, d)   # P27-M: no attack beyond the weapon's reach and ATTACK_MARGIN
         if held is not None:
             return held[0]
-        self._held_before = self.stance_at(d) and self.in_stance()
         if self.stance_at(d):
-            self.why["stance"] = True   # the swing from the stance (Task 9's hand-over keeps it)
+            self.why["stance"] = True   # the swing from the stance (the Lua releases it on the attack's first tick)
             if self.reach_r() is not None:
                 self.why["attack"] = {"dist": d, "reach": self.world.weapon["reach"]}   # P27-M
         return Attack(zid)   # nearest_zombie yields int ids only (M7)
@@ -1079,6 +1074,5 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             self._shove_a[cmd.targetId] = action   # P25-A: its end read by `_shove_missed`
         elif cmd.TYPE in ("attack", "stomp"):
             self._shoved = False
-            self._attack_held = self._held_before if cmd.TYPE == "attack" else False
             if cmd.targetId != self._streak_id:   # a new target: its streak starts here
                 self._streak_id, self._streak_h, self.no_progress = cmd.targetId, self._target_health(cmd.targetId), 0

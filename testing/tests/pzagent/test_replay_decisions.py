@@ -31,6 +31,55 @@ def replay_rows(key):
     return json.loads(replayed(key))
 
 
+# ---------------------------------------------------------------- P28-F's planner side (Plan 28 Task 3 fix 1, R2)
+# The stance is not read held after an attack (review-t1b R2: the Lua releases it on the attack's first tick and keeps
+# none after the swing; `fight.Fight.in_stance`), a named change with no switch: the sixth golden's files before it
+# that an older seam reproduced (PRE_AD, PRE_AG, PRE_AN) are no longer HEAD's replay, so those three cases re-run on a
+# `git archive` of the last build reading the hold (CLAUDE.md § 5: a replay broken at HEAD by a later change re-runs on
+# the last build whose pins it held), the archive holding the planner, the tests, the data and F1's artifact
+R2_FROZEN = "361324b7"
+R2_FROZEN_NODES = ("test_the_sixth_golden_is_f1_s_inputs_with_the_pza1_5_caps_reproduced_byte_for_byte",
+                   "test_with_idle_off_the_goldens_are_iteration_8_s[f1-caps15]",
+                   "test_with_strain_off_the_goldens_are_iteration_9_s[f1-caps15]",
+                   "test_with_iteration_11_off_the_goldens_are_task_27_s[f1-caps15]")
+
+
+@functools.lru_cache(maxsize=1)
+def _r2_frozen_run():
+    """(returncode, output, the sixth golden's text there) of the sixth-golden cases (R2_FROZEN_NODES: its byte for
+    byte replay, then the three older seams) run once in a child pytest on a `git archive` of R2_FROZEN; skipped where
+    git or the commit is not reachable (a source export with no history)."""
+    import io
+    import subprocess
+    import sys
+    import tarfile
+    import tempfile
+    paths = ["pytest.ini", "data", "testing/agent", "testing/PZAgent", "testing/tests/conftest.py",
+             "testing/tests/slow_tests.txt", "testing/tests/pzagent", "testing/artifacts/" + R.RUNS["f1"]]
+    try:
+        blob = subprocess.run(["git", "-C", R.REPO, "archive", "--format=tar", R2_FROZEN] + paths,
+                              capture_output=True, check=True).stdout
+    except (OSError, subprocess.CalledProcessError) as e:
+        pytest.skip("no git archive of %s: %s" % (R2_FROZEN, e))
+    with tempfile.TemporaryDirectory() as tmp:
+        with tarfile.open(fileobj=io.BytesIO(blob)) as tf:
+            tf.extractall(tmp, filter="data")
+        nodes = ["testing/tests/pzagent/test_replay_decisions.py::" + n for n in R2_FROZEN_NODES]
+        run = subprocess.run([sys.executable, "-m", "pytest", "-q", "-rA", "-p", "no:cacheprovider"] + nodes,
+                             cwd=tmp, capture_output=True, text=True,
+                             env=dict(os.environ, PYTHONDONTWRITEBYTECODE="1"))
+        with open(os.path.join(tmp, "testing", "tests", "pzagent", "golden", "survive-decisions-%s.json" % SIXTH),
+                  encoding="utf-8", newline="") as f:
+            text = f.read()
+    return run.returncode, run.stdout[-4000:] + run.stderr[-2000:], text
+
+
+def r2_frozen(node):
+    """Asserts the case `node` (one of R2_FROZEN_NODES) passed on R2_FROZEN's archive."""
+    rc, out, _ = _r2_frozen_run()
+    assert rc == 0 and "PASSED testing/tests/pzagent/test_replay_decisions.py::" + node in out, out
+
+
 # ---------------------------------------------------------------- the rules before Task 32 (survival iteration 11)
 def pre_an(sv):
     """The replay's mutate seam onto the rules before Plan 24 Task 32 (survival iteration 11): `Survive.PULL` (P24-AN,
@@ -939,7 +988,10 @@ PRE_AD = {"e2": "f52a02afdff62493dc9e0a537504005660bfd30c99cab0d694e42daf89aebbc
 @pytest.mark.parametrize("key", sorted(PRE_AD))
 def test_with_idle_off_the_goldens_are_iteration_8_s(key):
     """P24-AD is one switch (`Survive.IDLE`): with it off every golden is the file Task 21 re-recorded byte for byte
-    (its sha256 pinned), so every line P24-AD moved is P24-AD's (refactor A, P24-AB and P24-AC moved none)."""
+    (its sha256 pinned), so every line P24-AD moved is P24-AD's (refactor A, P24-AB and P24-AC moved none). Named
+    change, P28-F's planner side (Plan 28 Task 3 fix 1, R2, no switch): the sixth's case runs on R2_FROZEN's archive."""
+    if key == SIXTH:
+        return r2_frozen("test_with_idle_off_the_goldens_are_iteration_8_s[f1-caps15]")
     text = R.golden_text(R.decisions(json.loads(_pre_ad_replayed(key))), "14f9c6a8", R.RUNS[key], "2026-10-29",
                          R.SPANS.get(key), R.HELLO_CAPS.get(key))
     assert hashlib.sha256(text.encode("utf-8")).hexdigest() == PRE_AD[key]
@@ -1068,7 +1120,10 @@ PRE_AG = {"e2": "ce339594d3cc5a0715468423bd5a2c60ab2421a7a52dd99342c390127e0c7d0
 def test_with_strain_off_the_goldens_are_iteration_9_s(key):
     """P24-AG and P24-AK are one switch (`Survive.STRAIN`): with it off every golden is the file as it stood before
     Task 27 byte for byte (its sha256 pinned), so every line Task 27 moved is theirs, and the shove, the stomp, the
-    finish of the fallen, the loaded-window legs and the unwear (always on) moved none."""
+    finish of the fallen, the loaded-window legs and the unwear (always on) moved none. Named change, P28-F's
+    planner side (Plan 28 Task 3 fix 1, R2, no switch): the sixth's case runs on R2_FROZEN's archive."""
+    if key == SIXTH:
+        return r2_frozen("test_with_strain_off_the_goldens_are_iteration_9_s[f1-caps15]")
     text = R.golden_text(R.decisions(json.loads(_pre_ag_replayed(key))), "9abc5037", R.RUNS[key], "2026-10-29",
                          R.SPANS.get(key), R.HELLO_CAPS.get(key))
     assert hashlib.sha256(text.encode("utf-8")).hexdigest() == PRE_AG[key]
@@ -1181,7 +1236,10 @@ PRE_AN = {"e2": ("ce339594d3cc5a0715468423bd5a2c60ab2421a7a52dd99342c390127e0c7d
 def test_with_iteration_11_off_the_goldens_are_task_27_s(key):
     """Iteration 11's golden movers are three switches (`Survive.PULL`, `DOORWAY`, `TRANS`): with them off every golden
     is the file as it stood before Task 32 byte for byte (its sha256 pinned), so P24-AN's listing count, P24-AP,
-    P24-AQ and P24-AR (always on) move none."""
+    P24-AQ and P24-AR (always on) move none. Named change, P28-F's planner side (Plan 28 Task 3 fix 1, R2, no
+    switch): the sixth's case runs on R2_FROZEN's archive."""
+    if key == SIXTH:
+        return r2_frozen("test_with_iteration_11_off_the_goldens_are_task_27_s[f1-caps15]")
     sha, base, recorded = PRE_AN[key]
     text = R.golden_text(R.decisions(json.loads(_pre_an_replayed(key))), base, R.RUNS[key], recorded,
                          R.SPANS.get(key), R.HELLO_CAPS.get(key))
@@ -1847,7 +1905,12 @@ def pre_t11_gold(key):
 PRE_T11 = {"e2": ("90cea8a29fc7e8cedc6376a775587deb72d59f5942224bf75c30aad6fba46465", "d96f9318", "2026-11-03"),
            "e3": ("57fc396be0b7e9ebb3ebd85e58c13c3cb9bbb60ce3b27099b1a14bfdfe95e448", "2625cb96", "2026-11-03"),
            "e4": ("c76405232c9967825e7a97d8db63af000fe0722893be990e17855ab3fcabf6b0", "2625cb96", "2026-11-03"),
-           "f1": ("9707340b286feee69c6035249724e57a965a4486000cb1b70feb3c963a13f035", "2625cb96", "2026-11-03")}
+           "f1": ("9707340b286feee69c6035249724e57a965a4486000cb1b70feb3c963a13f035", "2625cb96", "2026-11-03"),
+           SIXTH: ("adbf3f4a105a6dbf94b06c975ada722cfaf21a0e095f7a38247147321a7865da", "e4cf5b40", "2026-11-03")}
+# the goldens a named change with no switch re-recorded in iteration 21, and the first line it moved: fix 1's R2,
+# P28-F's planner side (the stance not read held after an attack), the sixth's follow-up attack at 15885 from
+# 0.7801175874939513 tiles now its `enter` leg, the attack on line 441 from 1.0072464647115065 tiles
+R2_MOVED = {SIXTH: 440}
 # the first line each iteration-21 switch moves, alone on, on each golden it moves (P28-C's commit: the approach-and-
 # swing Fight's first walk to a zombie beyond FIGHT_REACH, at a walk where the run went)
 FIRST_T11 = {"e2": {"FLOOR_PAIN": 146}, "e3": {"FLOOR_PAIN": 170}, "e4": {"FLOOR_PAIN": 302},
@@ -1860,7 +1923,14 @@ ACTED_T11 = {"e2": [146, 156, 210], "e3": [170, 203], "e4": [302, 334, 371], "f1
 def test_with_iteration_21_off_the_goldens_are_iteration_20_s(key):
     """Iteration 21's golden movers are `survive.T11_SWITCHES`: with them off (`pre_t11`) a golden it re-recorded is
     the file as it stood before byte for byte (its sha256 pinned, `PRE_T11`), and every other golden is its file
-    now."""
+    now. Named change, fix 1's R2 (P28-F's planner side, no switch): the sixth (`R2_MOVED`) is its file now with the
+    switches off too, and its file before (its sha256 in `PRE_T11`) is the file R2_FROZEN's archive holds, which that
+    build replays byte for byte (`r2_frozen`)."""
+    if key in R2_MOVED:
+        assert pre_t11_gold(key) == gold(key)
+        r2_frozen("test_the_sixth_golden_is_f1_s_inputs_with_the_pza1_5_caps_reproduced_byte_for_byte")
+        assert hashlib.sha256(_r2_frozen_run()[2].encode("utf-8")).hexdigest() == PRE_T11[key][0]
+        return
     if key not in PRE_T11:
         assert pre_t11_gold(key) == gold(key)
         return
@@ -1888,7 +1958,9 @@ def test_iteration_21_moves_four_goldens_at_the_approach_walk(key):
       `enter` and `stand` legs; the other hellos announce no `aim`).
     - BUSY_RETRY (P28-D) moves none: a shove or a stomp rejected `busy` needs a build announcing the PZA/1.7 `shove`
       and `stomp`, and no golden's hello does.
-    A golden no switch moves is its file before iteration 21 byte for byte."""
+    A golden no switch moves is its file before iteration 21 byte for byte, but the sixth: fix 1's R2 (P28-F's planner
+    side, no switch) re-recorded it, so `pre_t11` reproduces its file now and its file before is pinned by `PRE_T11`'s
+    sha256 on R2_FROZEN's archive (`test_p28_f_s_planner_side_moves_the_sixth_at_its_follow_up_swing`)."""
     base, got = pre_t11_gold(key), gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
     if key not in FIRST_T11:
@@ -1907,3 +1979,23 @@ def test_iteration_21_moves_four_goldens_at_the_approach_walk(key):
         assert (was["type"], was["args"]["gait"]) == ("walkTo", "run") and now["type"] == "walkTo"
         assert dict(was["args"], gait="walk") == now["args"] and got[k]["why"]["leg"] == "walk"
         assert "leg" not in base[k]["why"] and got[k]["why"]["fight"] is True
+
+
+def test_p28_f_s_planner_side_moves_the_sixth_at_its_follow_up_swing():
+    """Fix 1's R2 (review-t1b R2; Task 1b `e75bf474`, `e9241a94`: the Lua releases the stance on the attack's first
+    tick and keeps none after the swing), a named change with no switch: the stance is not read held after an attack
+    (`fight.Fight.in_stance`, AIM_HOLD_S deleted). Against the sixth's file before it (R2_FROZEN's), the first moved
+    line is 440: the follow-up attack at 15885 from 0.7801175874939513 tiles, read from the stance before, is the
+    `enter` leg (0, 0) now, and the attack goes on line 441 from 1.0072464647115065 tiles; every later moved line is
+    downstream (open loop). The other five goldens' hellos announce no `aim`, so their Fights never read the stance."""
+    old = {d["line"]: d for d in json.loads(_r2_frozen_run()[2])["decisions"]}
+    new = gold(SIXTH)
+    diff = [k for k in sorted(set(old) | set(new)) if old.get(k) != new.get(k)]
+    assert diff[0] == R2_MOVED[SIXTH]
+    was, now, then = old[440], new[440], new[441]
+    assert was["action"] == {"type": "attack", "args": {"targetId": 15885}} and was["why"]["stance"] is True
+    assert was["why"]["dist"] == 0.7801175874939513
+    assert now["action"]["type"] == "aim" and now["why"]["leg"] == "enter"
+    assert now["action"]["args"]["targetId"] == 15885
+    assert then["action"] == {"type": "attack", "args": {"targetId": 15885}}
+    assert then["why"]["dist"] == 1.0072464647115065

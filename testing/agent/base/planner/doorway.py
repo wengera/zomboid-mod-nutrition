@@ -247,8 +247,7 @@ class Doorway(Fight):
                 return Shove(zid)
             if self.no_swing():
                 return self._wounded_leg(zid, z, d)
-            self._held_before = self.in_stance()
-            self.why["stance"] = self._held_before
+            self.why["stance"] = self.in_stance()   # the swing from the running aim (the attack releases it, R2)
             return Attack(zid)
         if not self._on_post():
             self.why = dict(self._base(), step="return")

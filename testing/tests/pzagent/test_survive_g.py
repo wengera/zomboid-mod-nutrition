@@ -37,9 +37,10 @@ def unsought(monkeypatch):
 # ================================================================ the constants
 def test_the_stance_constants():
     """Named change (ruling P24-N, Task 12): KEEP_R replaces P24-M's BACKPEDAL_BAND and the closing read's
-    CLOSE_MIN; AIM_HOLD_S mirrors the Lua's K.AIM_HOLD_MS."""
-    assert (P.AIM_LEG_S, P.STAND_MAX_S, P.KEEP_R, P.AIM_HOLD_S) == (2.0, 20.0, 2.5, 2.0)
-    assert not hasattr(P, "BACKPEDAL_BAND") and not hasattr(P, "CLOSE_MIN")
+    CLOSE_MIN; AIM_HOLD_S mirrored the Lua's K.AIM_HOLD_MS. Named change, P28-F's planner side (Plan 28 Task 3 fix 1,
+    review-t1b R2): AIM_HOLD_S deleted, the Lua keeping no stance after an attack."""
+    assert (P.AIM_LEG_S, P.STAND_MAX_S, P.KEEP_R) == (2.0, 20.0, 2.5)
+    assert not hasattr(P, "BACKPEDAL_BAND") and not hasattr(P, "CLOSE_MIN") and not hasattr(P, "AIM_HOLD_S")
     assert P.FIGHT_REACH < P.KEEP_R < P.DANGER_R
     assert S.BRANCHES[0] == "threat"
 
@@ -52,7 +53,9 @@ def test_one_zombie_at_four_tiles_is_met_standing_then_backpedalled_inside_keep_
     goes from the stance (the running leg gives way). Named change, ruling P24-X: the first leg is the seek, (1, 0)
     toward it (it stood, (0, 0), letting it come), `leg` "seek"; the rest is iteration 7's.
     Named change, ruling P28-E (Plan 28 Task 3): pinned with `CIRCLE` off, the rule before it (the straight backpedal
-    from a lone zombie, where the leg circles now: `test_survive_ac`)."""
+    from a lone zombie, where the leg circles now: `test_survive_ac`).
+    Named change, P28-F's planner side (Plan 28 Task 3 fix 1, review-t1b R2): the stance is not read held after an
+    attack (the Lua releases it on the attack's first tick and keeps none after the swing; AIM_HOLD_S deleted)."""
     r, sv = make(tmp_path)
     sv.CIRCLE = False
     r.frame(zombies=[zd(1, 104.0, 200.0)])
@@ -75,7 +78,7 @@ def test_one_zombie_at_four_tiles_is_met_standing_then_backpedalled_inside_keep_
     r.frame(zombies=[zd(1, 101.0, 200.0)])
     tick(r, sv)
     assert r.cmd() == ("attack", {"targetId": 1}) and threat_why(tmp_path)["stance"] is True   # from the stance
-    assert sv.fight.in_stance()
+    assert not sv.fight.in_stance()                                         # R2: the attack released the stance
     all_sends_valid(r)
 
 
@@ -103,7 +106,9 @@ def test_the_fights_first_action_is_aim_even_within_reach_then_the_swing_from_it
     the swing goes from it (the running leg gives way within reach). Within CORNERED_R (1.5) of a character with no
     fight running the corner rules stand (P24-G 1: a cornered Fight never stands): its swing goes at once. Named change,
     Plan 27 Task 5 fix 2: P27-M (`ATTACK_REACH`) off, the rule before it (the swing at 2.0 and 1.6 tiles, beyond the
-    rig's reach 1.2 and ATTACK_MARGIN: `test_survive_ab`)."""
+    rig's reach 1.2 and ATTACK_MARGIN: `test_survive_ab`).
+    Named change, P28-F's planner side (Plan 28 Task 3 fix 1, review-t1b R2): the stance is not read held after an
+    attack (the Lua releases it on the attack's first tick and keeps none after the swing; AIM_HOLD_S deleted)."""
     r, sv = make(tmp_path)
     sv.ATTACK_REACH = False
     r.frame(zombies=[zd(1, x, 200.0)])
@@ -114,7 +119,8 @@ def test_the_fights_first_action_is_aim_even_within_reach_then_the_swing_from_it
     r.answer("progress")
     r.frame(zombies=[zd(1, x, 200.0)])
     tick(r, sv)
-    assert r.cmd() == ("attack", {"targetId": 1}) and sv.fight._attack_held is True
+    assert r.cmd() == ("attack", {"targetId": 1}) and threat_why(tmp_path)["stance"] is True
+    assert not sv.fight.in_stance()                                         # R2: the attack released the stance
 
 
 def test_a_first_engagement_within_cornered_r_is_the_corners_swing(tmp_path):
@@ -125,9 +131,11 @@ def test_a_first_engagement_within_cornered_r_is_the_corners_swing(tmp_path):
 
 
 def test_after_a_walk_released_the_stance_a_target_in_reach_is_aimed_at_before_the_swing(tmp_path):
-    """Any send other than the Fight's aim or its attack from the stance releases it (Task 9's hand-over): after a
-    walk the stance is not held, so the first choose within reach is an `enter` leg; an attack whose stance hold ran
-    out (AIM_HOLD_S after its end) needs one too."""
+    """Any send other than the Fight's running aim releases the stance: after a walk the stance is not held, so the
+    first choose within reach is an `enter` leg; the attack from the stance releases it too, running or ended, so the
+    next swing takes its `enter` leg again. Named change, P28-F's planner side (Plan 28 Task 3 fix 1, review-t1b R2):
+    before it the attack from the stance read held while it ran and AIM_HOLD_S after its end (Task 9's hand-over), a
+    hold the Lua no longer keeps."""
     r = Rig(tmp_path)
     r.frame(zombies=[zd(1, 101.0, 200.0)])
     f = stance_fight(r)
@@ -140,11 +148,9 @@ def test_after_a_walk_released_the_stance_a_target_in_reach_is_aimed_at_before_t
     att = f.choose()
     assert att.TYPE == "attack"
     a = f.send(att)
-    assert f.in_stance()
+    assert not f.in_stance()                                               # the attack's first tick released it
     r.answer()
-    assert a.state == "done" and f.in_stance()                             # the Lua's hold after the swing
-    r.advance(P.AIM_HOLD_S)
-    assert not f.in_stance() and f.choose().TYPE == "aim"
+    assert a.state == "done" and not f.in_stance() and f.choose().TYPE == "aim"   # no hold after the swing
     f.send(f.choose())
     assert f.in_stance()
     r.acts.send(pza1.Stop())                                                  # another sender: the stance released

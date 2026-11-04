@@ -105,7 +105,6 @@ class FightShove:
         if k < SHOVE_FAIL_N or not self._alone(zid):
             return None
         self.why["wounded_swing"] = k
-        self._held_before = False
         return Attack(zid)
 
     def _low_swing_due(self, zid=None):
@@ -136,7 +135,6 @@ class FightShove:
         self.why["low_swing"] = {"target": zid, "missed": self._missed_n(zid)}
         self._misses = None
         self._miss_run.pop(zid, None)
-        self._held_before = False
         self._low_swung.add(zid)   # P27-K2: the next SHOVE_FAIL_N misses at it leave it (`_low_exit`)
         return Attack(zid)
 
@@ -352,5 +350,4 @@ class FightShove:
             self.why["corner"] = {"kind": "shove", "shoved": zid, "n": n, "sore": sore}
             return None
         self.why["corner"] = {"kind": "swing", "shoved": zid, "n": n}
-        self._held_before = False
         return Attack(zid)

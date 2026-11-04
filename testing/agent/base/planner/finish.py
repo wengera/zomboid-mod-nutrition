@@ -383,7 +383,6 @@ class FightFinish:
         if self.floor_swing_barred():   # R2: under a hold or in a shove-only Fight the backpedal (P28-C: the arms'
             return (self._wounded_leg(zid, z, d),)   # pain alone bars no floor strike; off, P24-AP's `no_swing`)
         self.why["floor"] = True   # the stomp refused (or not announced): the weapon's floor strike
-        self._held_before = False
         return (Attack(zid),)
 
     def _floor_finish(self, zid, z, d):
@@ -408,7 +407,6 @@ class FightFinish:
         self.why["floor_finish"] = {"target": zid, "health": z.get("health")}
         if "floor_pain" in self.rules and arm_pain(self.world) is not None:
             self.why["floor_finish"]["pain"] = arm_pain(self.world)   # P28-C: the swing under the pain read
-        self._held_before = False
         return (Attack(zid),)
 
     def _drifted_finish(self):

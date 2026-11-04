@@ -115,7 +115,14 @@ the walk to a zombie beyond FIGHT_REACH of a Fight not in the stance at a walk, 
 F1 (base `f229e492`), each first moved at its first approach walk (E2 at line 146, the walk at 12788 from
 4.231606567324637 tiles; E3 170, E4 302, F1 164), `gait` "walk" and `leg` "walk" where the record ran: every moved
 decision is such a walk's gait, the other moved lines the `holding` lines under it; `T11_SWITCHES` off reproduces the
-files before it (`test_replay_decisions.PRE_T11`, `pre_t11`).
+files before it (`test_replay_decisions.PRE_T11`, `pre_t11`). Fix 1's R2, P28-F's planner side (the stance is not
+read held after an attack: the Lua releases it on the attack's first tick and keeps none after the swing, Task 1b's
+`e75bf474` and `e9241a94`; AIM_HOLD_S deleted, no switch), re-recorded the sixth, first moved at line 440: the follow-up
+attack at 15885 from 0.7801175874939513 tiles is the stance's `enter` leg, the attack going on line 441 from
+1.0072464647115065 tiles, every later moved line downstream (open loop); with no switch, `pre_t11` reproduces every
+golden's file before iteration 21 but the sixth's, whose sha256 `PRE_T11` pins against the file the last build reading
+the hold holds (`test_replay_decisions.R2_FROZEN`, 361324b7), where that file and the three older seams' sixth cases
+(PRE_AD, PRE_AG, PRE_AN) re-run.
 
 `agreement(artifact_dir, replayed)` compares the replayed log with the record's own decision.log at every line where
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat

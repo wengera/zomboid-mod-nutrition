@@ -126,7 +126,6 @@ class FightPin:
         r = self.reach_r()
         if self.no_swing() or (r is not None and self.stance_at(d) and d > r):
             return None
-        self._held_before = self.stance_at(d) and self.in_stance()
         if r is not None and self.stance_at(d):
             self.why["attack"] = {"dist": d, "reach": self.world.weapon["reach"]}   # P27-M, as the stance's attack logs
         return (Attack(zid),)

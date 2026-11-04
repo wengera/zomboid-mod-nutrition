@@ -135,8 +135,6 @@ KEEP_R = 2.5          # tiles: a target inside this and beyond FIGHT_REACH is ba
                       # stands facing it and lets it come (ruling P24-N, superseding P24-M's band of FIGHT_REACH + 1)
 KEEP_MARGIN = 0.25    # tiles: a running backpedal holds until its target is this far past KEEP_R, so the back and
                       # stand legs do not flap at the line (Task 12 fix 1, the review's major 1)
-AIM_HOLD_S = 2.0      # seconds the Lua keeps a stance an attack swung from once nothing runs (K.AIM_HOLD_MS 2000,
-                      # PZAgent_Stance.lua): an attack ended longer ago left the character out of the stance
 STUCK_SKIP_DEG = 15.0  # degrees: after a stuck leg, no heading this near its heading is chosen again (fix 3, F4)
 SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded to
 LOOT_MAX_LEVEL = 1    # spec § 9 (1) "stops looting before level 3": a loot is sent only at load level 0-1
