@@ -136,8 +136,9 @@ end
 -- One swing at the zombie whose online id is targetId (PZA.sense.zombieById, index-checked), the way the harness's
 -- attack.melee swings (PZTestKit_Client.lua: faceThisObject(z), then DoAttack(0)), only within the held weapon's reach
 -- (K.reachOf). check: the zombie alive within ATTACK_R of the player, else rejected no target (a check-time rejection
--- only); a held weapon, else no weapon. Beyond the reach one approach walk at a run (a sub-walk to the zombie's position)
--- for up to APPROACH_MS, then failed out of reach (a walk that fails, as one that cannot queue, ends it at once failed
+-- only); a held weapon, else no weapon. Beyond the reach one approach walk at a walk (Plan 28 Task 1, ruling P27-9:
+-- E20's a190 ran 1.762922801715824 tiles into zombie 3189, which bit, #4571; a sub-walk to the zombie's position) for
+-- up to APPROACH_MS, then failed out of reach (a walk that fails, as one that cannot queue, ends it at once failed
 -- with the walk's reason: no square, no path, stuck); within the reach the walk is cleared, the run dropped, and
 -- faceThisObject(z) and DoAttack(0) are called once, DoAttack through PZA.call (index-first) under pcall, its return
 -- never read (the jar: DoAttack always returns false). From the swing on, each tick reads isAttackStarted and
@@ -200,8 +201,8 @@ local function attackApproach(p, st)
     if d ~= nil and d <= K.reachOf(p, w) then
         if st.sub ~= nil and st.sub.state == "running" then clearQueue(p) end
         st.sub = nil
-        -- the approach's run dropped before the swing by construction: the wants off and both latches written false
-        -- here, never left to the engine's per-frame wipe
+        -- any run dropped before the swing (the approach walks) by construction: the wants off, both latches false
+        -- written here, never left to the engine's per-frame wipe
         MO.want("walk")
         PZA.call(p, "setForceRun", false)
         PZA.call(p, "setForceSprint", false)
@@ -213,7 +214,7 @@ local function attackApproach(p, st)
     end
     if st.sub == nil then
         if zx == nil then return "failed", "out of reach" end
-        st.sub, st.approachAt = subWalk(zx, zy, "run"), now
+        st.sub, st.approachAt = subWalk(zx, zy, "walk"), now
     end
     if now - st.approachAt >= K.APPROACH_MS then return "failed", "out of reach" end
     -- a sub-walk that fails (no square, no path: it cannot queue; stuck) ends the attack at once with its reason

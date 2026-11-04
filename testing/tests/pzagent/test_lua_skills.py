@@ -527,7 +527,9 @@ def test_reach_is_the_weapons_max_range_times_range_mod_times_the_margin(lua):
     assert reach(make_weapon(2.0, None)) == pytest.approx(1.125)
 
 
-def test_attack_beyond_reach_queues_one_approach_walk_at_a_run_and_swings_once_inside(lua, fs):
+def test_attack_beyond_reach_queues_one_approach_walk_at_a_walk_and_swings_once_inside(lua, fs):
+    """Plan 28 Task 1, ruling P27-9: the approach sub-walk goes at a walk, never a run (E20's a190 ran
+    1.762922801715824 tiles into zombie 3189, which bit, #4571); before it the approach ran (wantRun true)."""
     load(lua)
     z, p = attack_world(lua, zx=13.0)
     pos = mover(p, 10.0, 20.0)
@@ -535,7 +537,8 @@ def test_attack_beyond_reach_queues_one_approach_walk_at_a_run_and_swings_once_i
     start(lua, p, "attack", targetId=7)
     tick(lua, p)
     assert [a.Type for a in q.adds] == ["ISWalkToTimedAction"] and q.adds[0].sq == "zsq"
-    assert lua.eval("PZA.motor.wantRun") is True and list(p.attacks) == []
+    assert lua.eval("PZA.skills.cur.st.sub.gait") == "walk"
+    assert lua.eval("PZA.motor.wantRun") is False and list(p.attacks) == []
     tick(lua, p, 3)
     assert len(q.adds) == 1 and list(p.attacks) == []               # one walk, never re-queued
     pos["x"] = 12.0                                                 # 1.0 tiles off: inside the reach 1.125
