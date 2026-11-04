@@ -152,14 +152,16 @@ def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_
     isAutoWalk read; getMaxWeight answers max_weight, the inventory's getCapacityWeight weight, getCurrentSquare square;
     the body damage's getNumPartsBleeding/Scratched/Bitten answer wounds, HasInjury any(wounds), and getBodyParts lists
     one part per part_health entry (17 parts at 100 by default; PZA/1.5: each unwounded, unbandaged, not bleeding,
-    its bandage life 0 and so isBandageDirty true, as the jar's BodyPart reads an unbandaged part)."""
+    its bandage life 0 and so isBandageDirty true, as the jar's BodyPart reads an unbandaged part; PZA/1.7.2: not
+    scratched, cut or bitten, so its wound reads false)."""
     vals = {"HUNGER": hunger, "THIRST": 0.2, "FATIGUE": 0.1, "ENDURANCE": 0.9, "PANIC": 0.0, "PAIN": 0.0,
             "FOOD_SICKNESS": 0.0, "WETNESS": 5.0, "TEMPERATURE": 37.0}
     stats = J(get=lambda s, stat: vals[stat])
     levels = moodle_levels or {}
     parts = [J(getHealth=lambda s, h=h: h, bandaged=lambda s: False, bleeding=lambda s: False,
                getBleedingTime=lambda s: 0.0, getBandageLife=lambda s: 0.0, isBandageDirty=lambda s: True,
-               deepWounded=lambda s: False, isInfectedWound=lambda s: False)
+               deepWounded=lambda s: False, isInfectedWound=lambda s: False, scratched=lambda s: False,
+               isCut=lambda s: False, bitten=lambda s: False)
              for h in (part_health if part_health is not None else [100.0] * 17)]
     bd = J(getOverallBodyHealth=lambda s: health, getHealth=lambda s: health,
            getNumPartsBleeding=lambda s: wounds[0], getNumPartsScratched=lambda s: wounds[1],

@@ -48,7 +48,7 @@ PRIOR = {
 # the positional records
 RECORDS = {
     "wornLoc": ("loc", "bite", "scratch", "holes", "cond"),
-    "part": ("i", "h", "bleeding", "bleedingTime", "bandaged", "bandageLife", "bandageDirty", "deep", "infected"),
+    "part": ("i", "h", "bleeding", "bleedingTime", "bandaged", "bandageLife", "bandageDirty", "deep", "infected", "wound"),
     "strain": ("l", "r"),
     "zombie": ("id", "x", "y", "dist", "hasTarget", "crawler", "health", "onFloor"),
     "portal": ("open", "locked", "barricaded"),

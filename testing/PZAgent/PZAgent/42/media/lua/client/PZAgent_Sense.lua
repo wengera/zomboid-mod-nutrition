@@ -588,6 +588,9 @@ end
 -- whose life reads 0 and so dirty), deepWounded() and isInfectedWound(). An absent member leaves its field nil and is
 -- named in missing. Cost a frame: bandaged() on each of the 17 parts beside getHealth (bleeding() too while a part
 -- bleeds), then five or six reads per listed part; the body group is elided from a delta frame while it is unchanged.
+-- PZA/1.7.2 (Plan 28 Task 1): wound, true when scratched(), isCut(), bitten() or deepWounded() (deep's own read) reads
+-- true (PZAgent_Tend.lua's rankOf rank 1, a scratch that does not bleed included), false when all four read false, nil
+-- when one is absent and none reads true, each absent one named in missing: three more reads per listed part.
 function S.notePart(b, i, part, h)
     local okB, band = PZA.call(part, "bandaged")
     if not okB then PZA.missing(S.missing, "bandaged") end
@@ -606,6 +609,7 @@ function S.notePart(b, i, part, h)
     end
     get(r, "deep", part, "deepWounded")
     get(r, "infected", part, "isInfectedWound")
+    r.wound = S.woundOf(part, r.deep)
     b.parts[#b.parts + 1] = r
 end
 
@@ -937,4 +941,21 @@ function S.frame(p)
     local f = frameFloorBase(p)
     guarded("zombies:floor", zombiesFloor, f)
     return f
+end
+
+-- the part record's wound (PZA/1.7.2, Plan 28 Task 1; S.notePart's comment): deep is the part's deepWounded() read (nil
+-- when it was absent); true when any of the four reads true, false when all four read false, else nil
+local WOUND_READS = { "scratched", "isCut", "bitten" }
+function S.woundOf(part, deep)
+    local wound = deep
+    for k = 1, #WOUND_READS do
+        local ok, v = PZA.call(part, WOUND_READS[k])
+        if not ok then
+            PZA.missing(S.missing, WOUND_READS[k])
+            if wound == false then wound = nil end
+        elseif v == true then
+            wound = true
+        end
+    end
+    return wound
 end

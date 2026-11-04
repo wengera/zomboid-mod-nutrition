@@ -111,8 +111,9 @@ def test_clock_stats_and_body(lua):
     b = f["body"]
     assert (b["health"], b["bleeding"], b["scratched"], b["bitten"]) == (88.0, 1, 2, 0)
     assert [(e["i"], e["h"]) for e in b["parts"].values()] == [(3, 62.5), (11, 99.0)]
-    assert lua.eval("PZA.enc.body(...)", b) == ("[88,1,2,0,[[3,62.5,false,0,false,null,null,false,false],"
-                                                "[11,99,false,0,false,null,null,false,false]],0,[0,0]]")   # PZA/1.5's fields, PZA/1.7's
+    # PZA/1.5's fields, PZA/1.7's, PZA/1.7.2's wound
+    assert lua.eval("PZA.enc.body(...)", b) == ("[88,1,2,0,[[3,62.5,false,0,false,null,null,false,false,false],"
+                                                "[11,99,false,0,false,null,null,false,false,false]],0,[0,0]]")
     unhurt = frame(lua, make_player())["body"]
     assert lua.eval("PZA.enc.body(...)", unhurt) == "[100,0,0,0,[],0,[0,0]]"
 
@@ -1048,7 +1049,8 @@ def test_without_fluid_category_only_a_water_source_reads_water(lua):
 
 # ---- PZA/1.5 (ruling P24-G): body.parts' bleeding, bleedingTime, bandaged, bandageLife, bandageDirty, deep, infected --
 
-def _part(h=100.0, bleeding=False, time=0.0, bandaged=False, life=0.0, deep=False, infected=False, calls=None):
+def _part(h=100.0, bleeding=False, time=0.0, bandaged=False, life=0.0, deep=False, infected=False, calls=None,
+          scratched=False, cut=False, bitten=False):
     def rec(name, v):
         def f(s):
             if calls is not None:
@@ -1058,7 +1060,8 @@ def _part(h=100.0, bleeding=False, time=0.0, bandaged=False, life=0.0, deep=Fals
     return J(getHealth=rec("getHealth", h), bleeding=rec("bleeding", bleeding), getBleedingTime=rec("time", time),
              bandaged=rec("bandaged", bandaged), getBandageLife=rec("life", life),
              isBandageDirty=rec("dirty", life <= 0), deepWounded=rec("deep", deep),
-             isInfectedWound=rec("infected", infected))
+             isInfectedWound=rec("infected", infected), scratched=rec("scratched", scratched), isCut=rec("cut", cut),
+             bitten=rec("bitten", bitten))
 
 
 def _with_parts(p, parts, bleeding):
@@ -1074,12 +1077,14 @@ def test_a_part_is_listed_hurt_bandaged_or_bleeding_with_its_care_fields(lua):
                     _part(bleeding=True, time=9.0), _part(h=80.0, bandaged=True, life=3.25, time=1.0)], bleeding=1)
     parts = [dict(x) for x in frame(lua, p)["body"]["parts"].values()]
     assert parts == [
-        {"i": 1, "h": 60.0, "bleeding": False, "bleedingTime": 0.0, "bandaged": False, "deep": True, "infected": True},
+        {"i": 1, "h": 60.0, "bleeding": False, "bleedingTime": 0.0, "bandaged": False, "deep": True, "infected": True,
+         "wound": True},
         {"i": 2, "h": 100.0, "bleeding": False, "bleedingTime": 4.5, "bandaged": True, "bandageLife": 0.0,
-         "bandageDirty": True, "deep": False, "infected": False},
-        {"i": 3, "h": 100.0, "bleeding": True, "bleedingTime": 9.0, "bandaged": False, "deep": False, "infected": False},
+         "bandageDirty": True, "deep": False, "infected": False, "wound": False},
+        {"i": 3, "h": 100.0, "bleeding": True, "bleedingTime": 9.0, "bandaged": False, "deep": False, "infected": False,
+         "wound": False},
         {"i": 4, "h": 80.0, "bleeding": False, "bleedingTime": 1.0, "bandaged": True, "bandageLife": 3.25,
-         "bandageDirty": False, "deep": False, "infected": False}]
+         "bandageDirty": False, "deep": False, "infected": False, "wound": False}]
     assert missing(lua) == []
 
 
@@ -1092,7 +1097,7 @@ def test_no_part_reads_bleeding_while_the_body_counts_none_bleeding(lua):
     assert "bleeding" not in calls and calls.count("bandaged") == 2
     assert [dict(x)["bleeding"] for x in f["body"]["parts"].values()] == [False]
     enc = json.loads(lua.eval("PZA.enc.body(...)", f["body"]))
-    assert enc[4] == [[1, 50, False, 0, False, None, None, False, False]]
+    assert enc[4] == [[1, 50, False, 0, False, None, None, False, False, False]]
 
 
 def test_an_absent_part_member_leaves_its_field_nil_and_is_named(lua):
@@ -1104,6 +1109,38 @@ def test_an_absent_part_member_leaves_its_field_nil_and_is_named(lua):
     r = dict(frame(lua, p)["body"]["parts"][1])
     assert r["i"] == 0 and "bandaged" not in r and "infected" not in r and r["deep"] is False
     assert {"bandaged", "isInfectedWound"} <= set(missing(lua))
+
+
+# ---- PZA/1.7.2 (Plan 28 Task 1): the part record's wound, Tend's rank-1 test of a bandageable part ------------------
+
+def test_a_scratched_part_that_does_not_bleed_reads_wound_true_and_a_clean_one_false(lua):
+    """The wound flag: true when scratched(), isCut(), bitten() or deepWounded() reads true (PZAgent_Tend.lua's rankOf
+    rank 1), false when all four read false; a scratch that does not bleed is the case bleeding alone misses."""
+    load(lua)
+    p = make_player()
+    _with_parts(p, [_part(h=90.0, scratched=True), _part(h=70.0), _part(h=80.0, cut=True),
+                    _part(h=85.0, bitten=True)], bleeding=0)
+    parts = [dict(x) for x in frame(lua, p)["body"]["parts"].values()]
+    assert [(r["i"], r["bleeding"], r["wound"]) for r in parts] == [(0, False, True), (1, False, False),
+                                                                   (2, False, True), (3, False, True)]
+    assert missing(lua) == []
+    enc = json.loads(lua.eval("PZA.enc.body(...)", frame(lua, p)["body"]))
+    assert [r[9] for r in enc[4]] == [True, False, True, True]
+
+
+def test_a_part_with_is_cut_absent_reads_wound_nil_and_names_is_cut(lua):
+    load(lua)
+    p = make_player()
+    part = _part(h=60.0)
+    part.isCut = None
+    _with_parts(p, [part], bleeding=0)
+    r = dict(frame(lua, p)["body"]["parts"][1])
+    assert "wound" not in r and r["deep"] is False and "isCut" in missing(lua)
+    q = make_player()
+    hurt = _part(h=60.0, scratched=True)
+    hurt.isCut = None
+    _with_parts(q, [hurt], bleeding=0)
+    assert dict(frame(lua, q)["body"]["parts"][1])["wound"] is True          # a true read stands beside an absent one
 
 
 # ---- PZA/1.5.1 (Task 9 fix 1): a sealed can, the bandage use, the absent bleeding() named ------------------------------

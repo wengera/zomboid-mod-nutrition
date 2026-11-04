@@ -32,7 +32,8 @@ def rand_frame(rng, seq=1):
                for _ in range(rng.choice([0, 0, 1, 2, 5]))]
     parts = [{"i": i, "h": lua_float(rng, 0, 100), "bleeding": b(), "bleedingTime": lua_float(rng, 0, 20),
               "bandaged": b(), "bandageLife": maybe(rng, lua_float(rng, 0, 5)), "bandageDirty": maybe(rng, b()),
-              "deep": b(), "infected": b()} for i in rng.sample(range(17), rng.choice([0, 1, 3]))]
+              "deep": b(), "infected": b(), "wound": maybe(rng, b())}
+             for i in rng.sample(range(17), rng.choice([0, 1, 3]))]
     return {
         "kind": "frame", "seq": seq, "tick": rng.randrange(0, 10 ** 6), "wallMs": rng.randrange(10 ** 12, 2 * 10 ** 12),
         "gameMin": lua_float(rng, 0, 10 ** 5), "worldAge": maybe(rng, lua_float(rng, 0, 1000)),
@@ -594,11 +595,11 @@ def test_bandage_rip_and_wash_are_actions_with_their_args_results_and_reasons():
 
 def test_the_part_record_appends_its_care_fields_and_a_two_field_part_decodes_with_them_none():
     assert pza1.RECORDS["part"] == ("i", "h", "bleeding", "bleedingTime", "bandaged", "bandageLife", "bandageDirty",
-                                    "deep", "infected")
+                                    "deep", "infected", "wound")
     assert pza1.PRIOR["part"] == 2
     f = rand_frame(random.Random(61))
     f["body"]["parts"] = [{"i": 3, "h": 62.5, "bleeding": True, "bleedingTime": 9.5, "bandaged": True,
-                           "bandageLife": 0.0, "bandageDirty": True, "deep": False, "infected": False}]
+                           "bandageLife": 0.0, "bandageDirty": True, "deep": False, "infected": False, "wound": True}]
     assert pza1.decode(json.loads(pza1.encode("frame", f))) == f
     arr = json.loads(pza1.encode("frame", f))
     body = pza1.ORDER["frame"].index("body")
@@ -608,6 +609,24 @@ def test_the_part_record_appends_its_care_fields_and_a_two_field_part_decodes_wi
     arr[body][4] = [[3]]
     with pytest.raises(ValueError):
         pza1.decode(arr)
+
+
+def test_the_part_record_appends_wound_and_a_pza_1_7_part_decodes_with_it_none():
+    """PZA/1.7.2 (Plan 28 Task 1): the part record's wound, appended after infected; a part a PZAgent 1.7 writer
+    emitted (nine fields, every log before Plan 28) decodes with wound None, the x-prior unchanged."""
+    assert pza1.RECORDS["part"][-1] == "wound" and pza1.PRIOR["part"] == 2
+    d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["part"]
+    assert d["required"][-1] == "wound" and d["properties"]["wound"]["type"] == "boolean"
+    f = rand_frame(random.Random(62))
+    f["body"]["parts"] = [{"i": 5, "h": 90.0, "bleeding": False, "bleedingTime": 0.0, "bandaged": False,
+                           "bandageLife": None, "bandageDirty": None, "deep": False, "infected": False, "wound": True}]
+    arr = json.loads(pza1.encode("frame", f))
+    body = pza1.ORDER["frame"].index("body")
+    assert arr[body][4] == [[5, 90.0, False, 0.0, False, None, None, False, False, True]]
+    assert pza1.decode(arr) == f
+    arr[body][4] = [arr[body][4][0][:9]]                        # a PZA/1.7 part
+    p = pza1.decode(arr)["body"]["parts"][0]
+    assert p["infected"] is False and p["wound"] is None
 
 
 # ---- PZA/1.5 (ruling P24-G): fill; the square's water ---------------------------------------------------------------

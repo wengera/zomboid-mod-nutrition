@@ -29,7 +29,7 @@ PZA.schema = {
     },
     records = {
         wornLoc = { "loc", "bite", "scratch", "holes", "cond" },
-        part = { "i", "h", "bleeding", "bleedingTime", "bandaged", "bandageLife", "bandageDirty", "deep", "infected" },
+        part = { "i", "h", "bleeding", "bleedingTime", "bandaged", "bandageLife", "bandageDirty", "deep", "infected", "wound" },
         strain = { "l", "r" },
         zombie = { "id", "x", "y", "dist", "hasTarget", "crawler", "health", "onFloor" },
         portal = { "open", "locked", "barricaded" },
@@ -134,9 +134,10 @@ PZA.enc.wornLoc = enc_wornLoc
 --   bandageDirty: Whether the bandage is dirty, isBandageDirty() (its life at 0 or less: doubles the infection odds, T6b.6); null on an unbandaged part.
 --   deep: Whether the part carries a deep wound, deepWounded(); a bandage clears the flag.
 --   infected: Whether the wound is infected, isInfectedWound().
+--   wound: Whether the part carries a wound a bandage treats: scratched(), isCut(), bitten() or deepWounded() reads true (PZAgent_Tend.lua's rank-1 test); false when all four read false, null when one is absent and none reads true (PZA/1.7.2, Plan 28 Task 1). A scratch that does not bleed reads true here and false in bleeding.
 local function enc_part(t)
     if t == nil then return "null" end
-    return "[" .. v(t.i) .. "," .. v(t.h) .. "," .. v(t.bleeding) .. "," .. v(t.bleedingTime) .. "," .. v(t.bandaged) .. "," .. v(t.bandageLife) .. "," .. v(t.bandageDirty) .. "," .. v(t.deep) .. "," .. v(t.infected) .. "]"
+    return "[" .. v(t.i) .. "," .. v(t.h) .. "," .. v(t.bleeding) .. "," .. v(t.bleedingTime) .. "," .. v(t.bandaged) .. "," .. v(t.bandageLife) .. "," .. v(t.bandageDirty) .. "," .. v(t.deep) .. "," .. v(t.infected) .. "," .. v(t.wound) .. "]"
 end
 PZA.enc.part = enc_part
 
