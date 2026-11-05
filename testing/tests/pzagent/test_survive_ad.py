@@ -177,7 +177,7 @@ def done(r, a, **res):
 
 def want(target, mode="strike", reach=STRIKE_R, back=ARC, floor=True):
     """A melee's wire args: `floorSwing` left off when False (`pza1._Cmd.args`)."""
-    out = {"targetId": target, "mode": mode, "reach": reach, "keepR": P.KEEP_R, "shoveR": P.SHOVE_R,
+    out = {"targetId": target, "mode": mode, "reach": reach, "keepR": P.KEEP_R, "shoveR": P.SHOVE_SEND_R,
            "releaseR": P.MELEE_RELEASE_R, "backVx": back[0], "backVy": back[1], "seconds": P.MELEE_S}
     if floor:
         out["floorSwing"] = True
@@ -201,7 +201,7 @@ def test_a_standing_fight_s_target_within_keep_r_starts_melee_with_each_argument
     f = fight(r)
     a = f.step()
     assert (a.type, a.args) == ("melee", want(9))
-    assert f.why["leg"] == "enter" and f.why["ladder"] == "aim" and "melee" not in f.why
+    assert f.why["leg"] == "enter" and f.why["ladder"] == "aim" and f.why["melee"] == {"mode": "strike", "pain": None}
     assert f.why["maneuver"] == {"maneuver": "melee", "target": 9, "mode": "strike", "sends": 1, "step": None,
                                  "d": None}
     assert isinstance(f.m, Melee) and f.m.action is a and f.m.target == 9
@@ -273,7 +273,7 @@ def test_the_attack_and_the_shove_at_the_pin_are_the_melee(tmp_path):
     fr(r, [z(9, 100.9)], 30.0)
     f = fight(r, stance=False)
     a = f.step()
-    assert (a.type, a.args["mode"], f.why["ladder"]) == ("melee", "shove", "shove")
+    assert (a.type, a.args["mode"], f.why["ladder"]) == ("melee", "strike", "shove")   # P28-H: the pain alone strikes
 
 
 def test_the_floor_swing_and_the_stomp_at_a_fallen_pin_are_the_melee_in_finish_mode(tmp_path):
@@ -362,7 +362,7 @@ def test_the_melee_is_re_sent_early_with_a_fresh_heading_before_its_seconds_run_
     fr(r, [z(9, 100.0, 202.0)])
     b = f.step()
     assert (b.type, b.args) == ("melee", want(9, back=P._rotate((0.0, -1.0), P.CIRCLE_TURN)))
-    assert f.why["melee"] == {"resend": "early"} and f.why["maneuver"]["sends"] == 2 and f.m.action is b
+    assert f.why["melee"]["resend"] == "early" and f.why["maneuver"]["sends"] == 2 and f.m.action is b
 
 
 def test_a_done_time_re_sends_while_the_target_stands(tmp_path):
@@ -377,7 +377,7 @@ def test_a_done_time_re_sends_while_the_target_stands(tmp_path):
     r.advance(0.5)
     fr(r, [z(9, 102.0)])
     b = f.step()
-    assert b.type == "melee" and f.why["melee"] == {"resend": "time"} and f.m.n == 2
+    assert b.type == "melee" and f.why["melee"]["resend"] == "time" and f.m.n == 2
 
 
 # ================================================================ the ends
@@ -774,7 +774,7 @@ def test_the_re_send_is_timed_from_the_accept(tmp_path):
     assert f.step() is None
     r.advance(0.25)
     fr(r, [z(9, 102.0)])
-    assert f.step().type == "melee" and f.why["melee"] == {"resend": "early"}
+    assert f.step().type == "melee" and f.why["melee"]["resend"] == "early"
 
 
 def test_a_melee_whose_send_another_sender_superseded_sends_nothing_and_ends(tmp_path):
@@ -801,7 +801,7 @@ def test_a_choose_after_another_sender_s_command_starts_a_new_melee(tmp_path):
     first = f.m
     r.acts.send(Scan(2))
     cmd = f.choose()
-    assert cmd.TYPE == "melee" and f.m is not first and first in f._spent_m and "melee" not in f.why
+    assert cmd.TYPE == "melee" and f.m is not first and first in f._spent_m and "resend" not in f.why["melee"]
 
 
 def test_a_melee_is_the_swing_after_a_shove(tmp_path):
@@ -856,7 +856,7 @@ def test_the_walk_to_a_fallen_target_is_bounded_across_the_sends(tmp_path):
         done(r, a)
         fr(r, [z(9, 102.4, floor=True)])
         b = f.step()
-        assert b.type == "melee" and f.why["melee"] == {"resend": "time"}
+        assert b.type == "melee" and f.why["melee"]["resend"] == "time"
         act(r, b, "accepted")
         act(r, b, "progress", result={"step": "stomp" if reached else "stomp_walk", "d": 1.6})
         act(r, b, "progress", result={"step": "stomp_walk", "d": 1.6})
@@ -902,12 +902,12 @@ def test_the_decision_line_carries_the_ladder_the_re_send_and_the_end(tmp_path):
     fr(r, [z(9, 102.0)])
     a = tick(r, sv)
     w = threat_why(tmp_path)
-    assert a.type == "melee" and w["ladder"] == "aim" and "melee" not in w and "melee_end" not in w
+    assert a.type == "melee" and w["ladder"] == "aim" and "resend" not in w["melee"] and "melee_end" not in w
     act(r, a, "accepted")
     r.advance(P.MELEE_S - P.MELEE_RESEND_MARGIN_S)
     fr(r, [z(9, 102.0)])
     b = tick(r, sv)
-    assert b.type == "melee" and threat_why(tmp_path)["melee"] == {"resend": "early"}
+    assert b.type == "melee" and threat_why(tmp_path)["melee"]["resend"] == "early"
     act(r, b, "accepted")
     act(r, b, "failed", "out of range")
     r.advance(0.5)
@@ -946,7 +946,7 @@ def test_the_early_re_send_waits_for_a_strike_in_flight(tmp_path):
     r.advance(0.1)
     fr(r, [z(9, 101.1)])
     b = f.step()
-    assert b.type == "melee" and f.why["melee"] == {"resend": "early"}
+    assert b.type == "melee" and f.why["melee"]["resend"] == "early"
 
 
 def test_a_crowd_end_with_the_frame_behind_still_gives_the_ladder_the_choose(tmp_path):
@@ -983,7 +983,7 @@ def test_the_walk_s_bound_fires_across_early_re_sends(tmp_path):
         b = f.step()
         assert 9 not in f.unreachable and f.m is not None
         if b is not None:
-            assert b.type == "melee" and f.why["melee"] == {"resend": "early"}
+            assert b.type == "melee" and f.why["melee"]["resend"] == "early"
             resends += 1
             act(r, b, "accepted")
             act(r, b, "progress", result={"step": "stomp_walk", "d": 2.4})
@@ -991,3 +991,32 @@ def test_the_walk_s_bound_fires_across_early_re_sends(tmp_path):
     fr(r, [z(9, 102.4, floor=True)])
     assert f.step() is None and f.unreachable[9] == r.clock() + P.SEEK_SKIP_S
     assert resends >= 1 and f.why["melee_end"]["end"] == "out of reach" and f.m is None
+
+
+# ================================================================ Task 7e (ruling P28-H, from E22's reading)
+def test_the_shove_is_sent_inside_its_reach(tmp_path):
+    """P28-H 1: the melee's `shoveR` is SHOVE_SEND_R (0.9), inside the engine's shove reach SHOVE_R (1.1, #4592), which
+    stays the planner's refusal bound: E22's eight shoves at 1.068 to 1.100 tiles knocked nothing down."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 102.0)])
+    a = fight(r).step()
+    assert a.args["shoveR"] == P.SHOVE_SEND_R == 0.9 and P.SHOVE_SEND_R < P.SHOVE_R == 1.1
+
+
+def test_the_arms_pain_alone_keeps_the_melee_in_strike_mode(tmp_path):
+    """P28-H 3: at `body.armPain` 30 (over STRAIN_HARD, P24-AP's bar on the ladder's swing) the ladder's backpedal at a
+    chaser 2.0 tiles off is the melee in mode `strike` (the swing at the reach, where T86 read every swing landing),
+    logged `melee` {mode, pain}; the floor swing stays allowed (P28-C). A hold or a shove-only Fight under the same
+    pain still shoves."""
+    r = rig(tmp_path, "pain")
+    fr(r, [z(9, 102.0)], 30.0)
+    f = fight(r)
+    a = f.step()
+    assert (a.type, a.args["mode"], f.why["leg"]) == ("melee", "strike", "back") and a.args["floorSwing"] is True
+    assert f.why["melee"] == {"mode": "strike", "pain": 30.0} and f.why["wounded"] == 30.0
+    for k in ({"spent": ("arms",)}, {"shove_only": "low"}):
+        r = rig(tmp_path, sorted(k)[0])
+        fr(r, [z(9, 102.0)], 30.0)
+        f = fight(r, **k)
+        a = f.step()
+        assert (a.type, a.args["mode"]) == ("melee", "shove") and f.why["melee"] == {"mode": "shove", "pain": 30.0}, k

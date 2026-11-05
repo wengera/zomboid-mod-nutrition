@@ -6,7 +6,8 @@ the swing a tick after its face, the back leg after a miss, the close, the stand
 one where its ladder would send an in-reach command at its pin and sets its `inputs` before each `step`.
 
 - `step()`: `pza1.Melee` at `target` from `inputs` (`MeleeInputs`: the Fight's mode, reach, `back` heading and
-  floor swing, read afresh at each send) and the policies table (`keepR` KEEP_R, `shoveR` SHOVE_R, `releaseR`
+  floor swing, read afresh at each send) and the policies table (`keepR` KEEP_R, `shoveR` SHOVE_SEND_R, inside the
+  engine's reach SHOVE_R: Task 7e, ruling P28-H 1; `releaseR`
   MELEE_RELEASE_R, `seconds` MELEE_S); None while the running melee is not yet due its re-send. The re-send
   (`resend`): "early" once MELEE_S - MELEE_RESEND_MARGIN_S have passed since the running melee's accept (its
   `acked_wall`, else its `sent_wall`), so the Lua supersedes a melee of the same target and keeps the stance (Task
@@ -37,7 +38,7 @@ import time
 from agent.base import pza1
 from agent.base.planner.maneuvers.base import Maneuver
 from agent.base.planner.policies import (KEEP_R, MELEE_RELEASE_R, MELEE_RESEND_MARGIN_S, MELEE_S, MELEE_WALK_S,
-                                         SHOVE_R)
+                                         SHOVE_SEND_R)
 
 STRIKE_KEYS = ("swings", "floors", "stomps")   # a span's strikes the no-progress streak counts: the ladder's attack
                                                # (the swing and the floor swing) and its stomp (`Fight.observe`)
@@ -100,7 +101,7 @@ class Melee(Maneuver):
         self.resend = None if self.action is None else ("early" if live else "time")
         i = self.inputs
         self.mode = i.mode
-        cmd = pza1.Melee(targetId=self.target, mode=i.mode, reach=float(i.reach), keepR=KEEP_R, shoveR=SHOVE_R,
+        cmd = pza1.Melee(targetId=self.target, mode=i.mode, reach=float(i.reach), keepR=KEEP_R, shoveR=SHOVE_SEND_R,
                          releaseR=MELEE_RELEASE_R, backVx=float(i.back[0]), backVy=float(i.back[1]),
                          seconds=MELEE_S, floorSwing=bool(i.floor_swing))
         self._log(sends=self.n + 1)

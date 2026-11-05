@@ -344,6 +344,12 @@ MELEE_BACKOFF_TICKS = 10  # planner ticks after a melee ended `interrupted`, `ti
                           # goes at that target, the ladder's command going instead (fix 1, review-t7b m2): Survive's
                           # FAILED_COOLDOWN_TICKS, the cooling of a failed command, mirrored (survive.py imports this
                           # module, so it cannot be read from there)
+SHOVE_SEND_R = 0.9        # tiles: the melee's `shoveR` (Plan 28 Task 7e, ruling P28-H 1), the shove sent inside its
+                          # reach, not at its edge: the engine's reach SHOVE_R 1.1 (to the nearest of head, pelvis and
+                          # position, #4592) read as a bound, not a target; E22's eight shoves at 1.068 to 1.100 tiles
+                          # (`e_day_22-20261105-004919`, the fight at game minutes 611 to 621) knocked nothing down nine
+                          # bites in a row, against F11's and F12's at 0.16 to 0.98 that knocked down 8 of 33 and 8 of
+                          # 36; SHOVE_R stays the planner's refusal bound, the controller's number
 
 
 def place_of(world):

@@ -8,13 +8,18 @@ command at its pin. Its state is the Fight's own (`_init_dispatch`), and `fight.
   (`World.can`, so no golden's record, whose hello announces none, moves) and no `melee_off`, a ladder command at the
   pin (its `targetId` the Fight's `target`), the pin listed within MELEE_RELEASE_R: an `aim` leg `enter`, `back` or
   `stand` within KEEP_R at a standing pin (the fence wait's leg excepted), an `attack` (the swing, or at a fallen pin
-  the floor swing), a `shove` or a `stomp`. Mode `finish` at a fallen pin or for a stomp, else `shove` where the
-  Fight swings at nothing (`no_swing`: a hold, the arms' pain at STRAIN_HARD, a shove-and-stomp Fight), else
-  `strike`. The approach-and-swing Fight (a non-stance one: more than MAX_FIGHT held, the health under the fight
-  line, a trapped character) is dispatched too: its `attack` at the pin is "an attack" (review-t7b's ruling (b): a
-  PZA/1.8 build announcing `melee` announces `aim`, and the Lua takes its own force-aim). Fix 1 (review-t7b M1): no
-  melee while another standing zombie is listed within STAND_MIN_R of the player (the Lua's press would take that
-  one, its `crowd` end), the ladder's P24-AH rules owning that tick as before; nor at a target in its backoff (below).
+  the floor swing), a `shove` or a `stomp`. Mode `finish` at a fallen pin or for a stomp, else `shove` under a hold
+  or in a shove-and-stomp Fight (`_hold_bars`: `spent`, R2; `shove_only`, but the low fight's full swing when due),
+  else `strike`. Task 7e (ruling P28-H 3, E22: 27 of its 38 melees ran in `shove` mode once the first scratch put
+  `body.armPain` past STRAIN_HARD, and 12 of its 13 bites inside a span came 0.746 to 0.932 s after a shove that
+  knocked nothing down): the arms' pain alone (`arms_hurt`, P24-AP's bar, which `no_swing` keeps for the ladder) no
+  longer selects `shove`, since the melee's swing goes at the reach, where T86 read every swing at a standing zombie
+  lowering it, never at point blank, where P27-L's divided swings lowered nothing. The approach-and-swing Fight (a
+  non-stance one: more than MAX_FIGHT held, the health under the fight line, a trapped character) is dispatched too:
+  its `attack` at the pin is "an attack" (review-t7b's ruling (b): a PZA/1.8 build announcing `melee` announces
+  `aim`, and the Lua takes its own force-aim). Fix 1 (review-t7b M1): no melee while another standing zombie is
+  listed within STAND_MIN_R of the player (the Lua's press would take that one, its `crowd` end), the ladder's P24-AH
+  rules owning that tick as before; nor at a target in its backoff (below).
   Everything above the point stays the ladder's (the pin and its re-pins, P27-N's pin-first, the finish's choice of a
   fallen zombie other than the pin, the fence wait, the edge route, the reposition, the seek, the pull, the advance's
   `toward` legs and walks, the approach); the corner Fight (`point_blank`), the door fight (`only`) and the doorway
@@ -44,12 +49,13 @@ command at its pin. Its state is the Fight's own (`_init_dispatch`), and `fight.
   maneuver (the Lua supersedes its melee), and so does another sender's (`Maneuver.observe`'s `superseded`), as a leg
   is superseded: the flee's hand-over among them.
 - The log: `maneuver` (`Melee.log`: target, mode, sends, step, d) on every choose that dispatches and every observe
-  while it runs, `ladder` (the ladder's command type it replaced), `melee` {resend "early" | "time"} on a re-send.
+  while it runs, `ladder` (the ladder's command type it replaced), `melee` {mode, pain} on every send (P28-H: the
+  frame's `body.armPain`, so a write-up reads the swings under pain), with `resend` "early" | "time" on a re-send.
 """
 from agent.base.planner.maneuvers import Melee
 from agent.base.planner.maneuvers.melee import MeleeInputs
 from agent.base.planner.policies import (KEEP_R, MELEE_BACKOFF_TICKS, MELEE_RELEASE_R, SEEK_SKIP_S, STALL_SWINGS,
-                                         STAND_MIN_R, on_floor, target_id_ok, zdist)
+                                         STAND_MIN_R, arm_pain, on_floor, target_id_ok, zdist)
 
 MELEE_LEGS = ("enter", "back", "stand")   # the ladder's stance legs within KEEP_R a melee replaces
 MELEE_SENDS = ("attack", "shove", "stomp")   # the ladder's sends at its pin a melee replaces (an attack at a fallen
@@ -187,7 +193,7 @@ class FightDispatch:
             return None
         if cmd.TYPE == "stomp" or on_floor(z):
             return "finish"
-        return "shove" if self.no_swing() else "strike"
+        return "shove" if self._hold_bars() else "strike"   # P28-H 3: the arms' pain alone strikes
 
     def _melee_inputs(self, mode, z):
         """The send's `MeleeInputs` at pin `z` (the module docstring), read afresh."""
@@ -213,6 +219,8 @@ class FightDispatch:
             if out is not None or m.over() is None:
                 break
         self.why = dict(self.why, maneuver=m.log(), ladder=cmd.TYPE)
-        if out is not None and m.resend is not None:
-            self.why["melee"] = {"resend": m.resend}
+        if out is not None:
+            self.why["melee"] = {"mode": mode, "pain": arm_pain(self.world)}   # P28-H: the swings under pain read
+            if m.resend is not None:
+                self.why["melee"]["resend"] = m.resend
         return out
