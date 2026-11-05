@@ -5,21 +5,25 @@ rules of `survive.T14_SWITCHES`, each with its killing test, on E23's (`e_day_23
 - P30-A (`SWING_CLOSE`, the Lua's swing close): `test_lua_melee.py`'s P30-A block (the reflex); the melee's
   `closeR` and the maneuver's `swing_close` here.
 - P30-B (`GOAL_CONTINUE`, the goal runner): `test_goals.py`'s Plan 30 block; the switch here.
+- P30-C (`DOOR_HELD`, `door_held.py`): a zombie behind a closed door, a locked gate or a window within DOOR_HELD_R
+  decided on one tick: the stance at the door's post, the open and the meet, or the leave.
 - P30-D (`SNEAK`, `sneak.SneakGait`): the gait near a zombie with no target, upright at a chaser, in a flee and for a
   press, the posture the tick's one command.
 """
+import pytest
+
 from agent.base.planner import survive as S
 from agent.base.planner.goals import ExploreToward
 
 from .fakemod import CAPS_17
-from .test_policies import Rig, grid
-from .test_survive import last, tick
+from .test_policies import Rig, grid, square, zombie
+from .test_survive import last, threat_why, tick
 from .test_survive_g import Src, zd
 
 
 def test_the_iteration_24_switches():
     """`survive.T14_SWITCHES`, each on `Survive` (or a class it derives) and on by default."""
-    assert S.T14_SWITCHES == ("SWING_CLOSE", "GOAL_CONTINUE", "SNEAK")
+    assert S.T14_SWITCHES == ("SWING_CLOSE", "GOAL_CONTINUE", "DOOR_HELD", "SNEAK")
     assert all(getattr(S.Survive, n) is True for n in S.T14_SWITCHES)
 
 
@@ -215,3 +219,173 @@ def test_the_maneuver_logs_the_swing_close_counts_off_its_progress(tmp_path):
     assert m.log()["swing_close"] == {"held": 2, "pressed_again": 1}
     m.progressed({"result": {"step": "stand", "d": 1.3}})
     assert "swing_close" not in m.log()
+
+
+# ================================================================ P30-C: the door held (`DOOR_HELD`, `door_held.py`)
+# F14 (`f_goals_15-20261105-092752`), decision lines 146 and 147: the character at (10732.5732421875, 10641.6025390625),
+# 32307 chasing at (10732.5, 10642.4755859375), 0.876 then 0.906 tiles off, behind the gate's door record at
+# (10732, 10642) (`{"open": false, "locked": true, "barricaded": false}`, the fence row on y 10642 blocked north and not
+# hoppable, x 10729 to 10735 read); the goal ExploreToward (10727, 10645) of line 141, past the gate. The map round it
+# is the test's own (the row blocked x 10729..10738 with its run's end open at x 10728, so the goal's walk goes round
+# it, P25-X's read finding the way; open ground y 10634..10646, so the view's edge lies south, past the gate).
+F14_GATE_ME = (10732.5732421875, 10641.6025390625)
+F14_GATE_Z = (32307, 10732.5, 10642.4755859375)
+LOCKED = {"open": False, "locked": True, "barricaded": False}
+SHUT = {"open": False, "locked": False, "barricaded": False}
+
+
+def gate_ground():
+    out = []
+    for x in range(10726, 10739):
+        for y in range(10634, 10647):
+            if y == 10642 and x >= 10729:
+                out.append(square(x, y, blockN=True, edgeN=True, door=LOCKED if x == 10732 else None))
+            else:
+                out.append(square(x, y))
+    return out
+
+
+def gate_rig(tmp_path, on=True):
+    from agent.base.planner.goals import ExploreToward
+    r = Rig(tmp_path)
+    sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=Src(ExploreToward(10727, 10645)))
+    sv.DOOR_HELD = on
+    r.scan(gate_ground())
+    r.frame(x=F14_GATE_ME[0] - 4.0, y=F14_GATE_ME[1] - 4.0)
+    sv.goals.kit.bind(r.world, r.acts)
+    sv.goals.kit.explore.scanned.add(sv.goals.kit.explore.place())
+    tick(r, sv)   # the goal taken, its walk sent (line 141's)
+    r.answer("accepted")
+    return r, sv
+
+
+def test_f14_s_chaser_behind_the_locked_gate_is_left_and_no_walk_goes_into_the_gate(tmp_path):
+    """P30-C: F14's line 146: 32307 0.876 tiles off behind the locked gate: `door_held` {door (10732, 10642), kind
+    "locked gate", n_behind 1, decision "leave"}; the zombie edge-marked, the goal past the gate ended `failed "door
+    held"`, cooled, its target marked; on the next tick no walk goes south past the gate (the goal pending, the view's
+    edge past the gate refused by the continue)."""
+    r, sv = gate_rig(tmp_path)
+    zid, zx, zy = F14_GATE_Z
+    me = F14_GATE_ME
+    r.frame(x=me[0], y=me[1], zombies=[zombie(zid, zx, zy, me=me)])
+    tick(r, sv)
+    w = threat_why(tmp_path)
+    assert w["door_held"] == {"door": [10732, 10642], "kind": "locked gate", "n_behind": 1, "decision": "leave"}
+    assert sv.edge_marks[zid] == ((10732, 10642, 0), "N")
+    assert sv.goals.history[-1]["state"] == "failed" and sv.goals.history[-1]["reason"] == "door held"
+    assert (10727, 10645) in r.world.stuck
+    r.frame(x=me[0], y=me[1], zombies=[zombie(zid, zx, zy, me=me)])
+    a = tick(r, sv)
+    assert a is None or not (a.type == "walkTo" and a.args["y"] > 10642)
+    assert "door_held" not in threat_why(tmp_path)   # logged on the tick it is decided
+
+
+def test_with_door_held_off_the_goal_walks_on_into_the_gate_as_f14_did(tmp_path):
+    r, sv = gate_rig(tmp_path, on=False)
+    zid, zx, zy = F14_GATE_Z
+    me = F14_GATE_ME
+    r.frame(x=me[0], y=me[1], zombies=[zombie(zid, zx, zy, me=me)])
+    tick(r, sv)
+    assert "door_held" not in threat_why(tmp_path) and sv.goals.current is not None
+    assert sv.goals.current.args() == {"x": 10727, "y": 10645}
+
+
+# F14's lines 1081 to 1105 (the character on the bedroom square (10769, 10633), 32448 at (10770.400390625, 10633.5)
+# 0.90 tiles off behind the door on the west edge of (10770, 10633), its record locked as PZA/1.6 reads it fail-closed:
+# the reposition ran through it) in the test's own shape: a building of room squares x 10760..10769, y 10630..10636, its
+# door on the west edge of the outdoor square (10770, 10633), open ground x 10770..10778.
+def door_ground(door=SHUT):
+    out = []
+    for x in range(10760, 10779):
+        for y in range(10630, 10637):
+            if x <= 10769:
+                out.append(square(x, y, room="bedroom", building=5))
+            elif x == 10770:
+                out.append(square(x, y, blockW=True, edgeW=True, door=door if y == 10633 else None))
+            else:
+                out.append(square(x, y))
+    return out
+
+
+def door_rig(tmp_path, me, zs, health=60.0, caps=None, door=SHUT):
+    from .fakemod import MELEE_CAPS
+    r = Rig(tmp_path, caps=MELEE_CAPS if caps is None else caps)
+    sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=Src(None))
+    r.scan(door_ground(door))
+    r.frame(x=me[0], y=me[1], zombies=[zombie(i, x, y, me=me) for i, x, y in zs], health=health)
+    return r, sv
+
+
+def test_one_zombie_behind_a_closed_door_at_3_tiles_takes_the_stance_at_the_post_then_opens_then_meets(tmp_path):
+    """P30-C (F14's line 1081 in shape, the character outdoors, health 60): one zombie 3.5 tiles off inside behind the
+    closed door: `door_held` {kind "door", n_behind 1, decision "stance_open"}; the stance's leg toward the post (the
+    square beyond the door's outdoor square, (10771, 10633)) facing it; at the post `Interact` open on the door's
+    square; the door read open with the zombie still across, the stance stands facing it; once it is through, the
+    Fight's melee at it."""
+    me = (10773.0, 10633.5)
+    r, sv = door_rig(tmp_path, me, [(9, 10769.5, 10633.5)])
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert w["door_held"] == {"door": [10770, 10633], "kind": "door", "n_behind": 1, "decision": "stance_open"}
+    assert (a.type, a.args["targetId"], w["door_step"], w["leg"]) == ("aim", 9, "post", "door_post")
+    assert a.args["vx"] == -1.0 and a.args["vy"] == 0.0 and a.args["seconds"] == pytest.approx(0.75)
+    r.answer()
+    me = (10771.6, 10633.5)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(9, 10769.5, 10633.5, me=me)], health=60.0)
+    a = tick(r, sv)
+    assert (a.type, a.args) == ("interact", {"x": 10770, "y": 10633, "kind": "open", "filter": "all",
+                                             "maxWeight": 0.0})
+    r.answer()
+    r.event("door", x=10770, y=10633, z=0, open=True, locked=False)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(9, 10769.5, 10633.5, me=me)], health=60.0)
+    a = tick(r, sv)
+    assert (a.type, a.args["vx"], a.args["vy"], threat_why(tmp_path)["door_step"]) == ("aim", 0.0, 0.0, "meet")
+    r.answer()
+    r.frame(x=me[0], y=me[1], zombies=[zombie(9, 10770.6, 10633.5, me=me)], health=60.0)
+    a = tick(r, sv)
+    assert a.type == "melee" and a.args["targetId"] == 9
+
+
+@pytest.mark.parametrize("zs, health", [([(9, 10769.5, 10633.5), (10, 10769.2, 10633.6)], 60.0),
+                                        ([(9, 10769.5, 10633.5)], 15.0)])
+def test_two_behind_or_the_health_under_the_floor_leave_the_door(tmp_path, zs, health):
+    """P30-C: two zombies behind the closed door, or one with the health at 15 (under FLEE_HEALTH_FLOOR 20): `leave`;
+    every zombie behind edge-marked across the door's edge and the door marked held (the routes' wall)."""
+    me = (10773.0, 10633.5)
+    r, sv = door_rig(tmp_path, me, zs, health=health)
+    tick(r, sv)
+    w = threat_why(tmp_path)
+    assert w["door_held"] == {"door": [10770, 10633], "kind": "door", "n_behind": len(zs), "decision": "leave"}
+    assert all(sv.edge_marks[i] == ((10770, 10633, 0), "W") for i, _, _ in zs)
+    assert (10770, 10633, 0) in r.world.marked_doors()
+
+
+def test_inside_a_locked_building_door_is_opened_on_one_zombie_as_f14_s_line_1081(tmp_path):
+    """P30-C inside (F14's geometry: the character on the bedroom square, 32448 0.90 tiles off outside behind the door
+    whose record reads locked, fail-closed): a player inside unlocks it, so `stance_open`, the inside hold giving way;
+    the post the room square one on from the threshold (10768, 10633)."""
+    me = (10769.5, 10633.48828125)
+    r, sv = door_rig(tmp_path, me, [(32448, 10770.400390625, 10633.5)], door=LOCKED)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert w["door_held"]["decision"] == "stance_open" and w["door_held"]["kind"] == "door"
+    assert a.type == "aim" and w["post"] == [10768, 10633]
+
+
+def test_inside_two_behind_leave_nothing_to_the_inside_hold(tmp_path):
+    """P30-C inside: a `leave` is the inside hold's (no `door_held`, no mark): a sheltered character never walks out
+    on a group at its door."""
+    me = (10769.5, 10633.48828125)
+    r, sv = door_rig(tmp_path, me, [(1, 10770.4, 10633.5), (2, 10771.4, 10633.5)], door=LOCKED)
+    tick(r, sv)
+    assert "door_held" not in threat_why(tmp_path) and not sv.edge_marks
+
+
+def test_a_window_between_is_left(tmp_path):
+    """P30-C: a zombie behind a window (F14's 32308, lines 281 to 315, 2.005 tiles off) is a `leave` outdoors."""
+    from agent.base.planner.door_held import portal_between
+    r = Rig(tmp_path)
+    r.scan([square(10770, 10633, blockW=True, edgeW=True, window=LOCKED), square(10769, 10633, room="kitchen",
+                                                                              building=5)])
+    r.frame(x=10770.5, y=10633.5)
+    assert portal_between(r.world, (10770.5, 10633.5), (10769.2, 10633.5)) == (((10770, 10633, 0), "W"), "window")

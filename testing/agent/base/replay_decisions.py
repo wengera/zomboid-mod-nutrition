@@ -132,7 +132,12 @@ count over the standing zombies within DANGER_R: E3 first at line 204, E4 at 390
 E3, E5, F1 and the sixth under ruling P29-H' (FLEE_HELD_STANCE, a flee walk heading at a held zombie dropped: E2 first
 at line 148, E3 at 231, E5 at 221, F1 at 518, the sixth at 527); `pre_t13` reproduces each file before byte for byte
 (`test_replay_decisions.PRE_T13`), and the attribution of every moved line is
-`test_iteration_23_s_hit_rules_move_the_goldens_at_the_many_count_and_the_flee_walk_s_heading`.
+`test_iteration_23_s_hit_rules_move_the_goldens_at_the_many_count_and_the_flee_walk_s_heading`. Plan 30 Task 3's
+iteration 24 re-recorded the six under ruling P30-C (DOOR_HELD, a zombie behind a closed door, a locked gate or a
+window within DOOR_HELD_R decided on one tick: each first at its first `door_held` read, a `leave` at the locked gate
+(10732, 10642): E2 at line 75, E3 at 103, E4 at 261, E5 at 89, F1 and the sixth at 113); `pre_t14` reproduces each
+file before byte for byte (`test_replay_decisions.PRE_T14`), the attribution
+`test_iteration_24_moves_the_goldens_at_the_door_held_read`.
 
 `agreement(artifact_dir, replayed)` compares the replayed log with the record's own decision.log at every line where
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat

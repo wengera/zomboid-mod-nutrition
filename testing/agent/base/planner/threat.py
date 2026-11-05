@@ -10,6 +10,7 @@ from (a pure move): the hold and spent reads (`hold.Hold`), the engage (`engage.
 """
 from agent.base.planner.care import CARE_STILL_TICKS
 from agent.base.planner.care_yield import CareYield
+from agent.base.planner.door_held import ThreatDoorHeld
 from agent.base.planner.doorway import DoorwayStand, stand_ready
 from agent.base.planner.edges import ThreatEdge, crossed
 from agent.base.planner.engage import Engage
@@ -36,7 +37,7 @@ __all__ = ["Threat", "FLEE_HEALTH", "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_F
            "GROUP_NEAR_R", "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "LISTED_R"]
 
 
-class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, ThreatEdge):
+class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, ThreatEdge, ThreatDoorHeld):
     """The threat branch (the module docstring): `Survive`'s mixin, its switches the replay tests' seams."""
 
     ENGAGE = True   # ruling P24-X: one or two within ENGAGE_R are sought, a flee turns to fight at the fight's line
@@ -799,7 +800,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             return "flee", self._flee_reason(held, len(self._danger_near())) or "many"
         steps = self.mode == "flee" and self.flee is not None and (self.flee.running_shelter()
                                                                    or self.flee.running_exit())
-        held_inside = not steps and self._held_inside(held)
+        held_inside = not steps and self._held_inside(held) and self.door_open is None   # P30-C: the open first
         if held_inside and breach is None:
             return "hold", "held_inside"
         reason = self._flee_reason(held, len(self._danger_near()))
@@ -887,6 +888,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.finish_block = None   # Task 36 fix 1: this tick's refusal only (`_finish_chaser` sets it)
         self.held_cut = None       # P29-H': this tick's cut flee walk (`flee.Flee.take_held_cut`)
         self._release_edges()   # P25-X: a zombie refused across a blocked edge, read on the player's side, is free
+        self._door_held_read()   # P30-C: a zombie behind a door within DOOR_HELD_R, decided before the hold counts
         self._held, self._breach_now = [], None
         self._read_spent()
         self._many_tail_read()
@@ -1057,6 +1059,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.edge_marks = self.edge_marks   # P25-X: the refusals across a blocked edge, shared as `unreachable`
             policy.close_left = self.close_left   # P27-J: the shove-only close's refusals across a blocked line
             policy.shove_only = self._shove_only(kind)   # P25-P, P25-S: no swing, no seek
+            policy.door_open = self.door_open   # P30-C: the stance_open plan's steps, this tick's
             policy.crowd = self._inside_crowd() if kind == "cornered" else None   # P26-C
             ans = self._answer(policy)
             self.rest_from = None

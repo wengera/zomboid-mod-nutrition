@@ -192,8 +192,11 @@ def chaser():
 
 
 def fight_rig(tmp_path, cross=True, **k):
+    """F13's Fight at the gate (P29-A's route). Named change, ruling P30-C (Plan 30 Task 3): the chaser behind the
+    gate within DOOR_HELD_R is decided now (`door_held`); the route's cases pinned with `DOOR_HELD` off."""
     r, sv = make(tmp_path)
     sv.ROUTE_CROSS = cross
+    sv.DOOR_HELD = False
     r.scan(gate_map(**k))
     r.frame(x=STALL[0], y=STALL[1], zombies=[chaser()], game_min=648.0)
     return r, sv

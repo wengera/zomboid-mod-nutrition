@@ -321,7 +321,10 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     gait near a zombie that has no target, upright at a chaser, in a flee and for a press, the posture the tick's one
     command (`sneak.py`'s module docstring the rule); P30-A, the melee's `closeR` SWING_CLOSE_R, the Lua's swing at
     a chaser only inside it and a swing that did nothing pressed again with no back leg (`PZAgent_StanceMelee.lua`'s
-    header, its rules 3 and 9; `dispatch.FightDispatch._melee_inputs`); `T14_SWITCHES` (SWING_CLOSE, GOAL_CONTINUE,
+    header, its rules 3 and 9; `dispatch.FightDispatch._melee_inputs`); P30-C, a zombie behind a closed door, a
+    locked gate or a window within DOOR_HELD_R is a decision on one tick, the stance taken at the door's post and the
+    door opened with one behind a door the character can open, else left (edge-marked, the goal past it ended and its
+    target marked) (`door_held.py`'s module docstring the rule); `T14_SWITCHES` (SWING_CLOSE, GOAL_CONTINUE, DOOR_HELD,
     SNEAK).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
@@ -462,9 +465,10 @@ T13_SWITCHES = ("ROUTE_CROSS", "GOAL_STALL", "HEALTH_NEAR", "DRESS_FINISH", "MAN
 # rules (Plan 29 Task 2) on `threat.Threat`: P29-E (HEALTH_NEAR), P29-D (DRESS_FINISH), P29-G (MANY_NEAR), P29-F
 # (FINISH_LONE), P29-C (CLOSE_IDLE, the Fight's `close_idle` rule), P29-H' (FLEE_HELD_STANCE, the Flee's
 # `flee_held_stance` rule)
-T14_SWITCHES = ("SWING_CLOSE", "GOAL_CONTINUE", "SNEAK")
+T14_SWITCHES = ("SWING_CLOSE", "GOAL_CONTINUE", "DOOR_HELD", "SNEAK")
 # survival iteration 24 (Plan 30 Task 3): P30-A on `threat.Threat` (SWING_CLOSE, the Fight's `swing_close` rule); P30-B
-# on `Survive` (GOAL_CONTINUE, copied to the goal runner); P30-D on `sneak.SneakGait` (SNEAK)
+# on `Survive` (GOAL_CONTINUE, copied to the goal runner); P30-C on `door_held.ThreatDoorHeld` (DOOR_HELD); P30-D on
+# `sneak.SneakGait` (SNEAK)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -674,6 +678,7 @@ class Survive(SneakGait, Threat):
         self.last_branch = None   # the branch of the last decision line (a driver's action rows read it at the send)
         self._uses = None         # this tick's `world.by_use()` (`_by_use`)
         self._init_sneak()        # P30-D: the posture sent, this tick's `sneak` why
+        self._init_door_held()    # P30-C: this tick's door read and its plan
 
     # ---------------------------------------------------------------- reading the world
     def _policies(self):
@@ -1192,6 +1197,8 @@ class Survive(SneakGait, Threat):
         stall = getattr(self.goals, "stall_now", None)
         if stall is not None:   # P29-B: the goal's budget end read as a stall this tick, whatever answered
             tried["goal"] = dict(tried.get("goal") or {}, stall=stall)
+        if self.door_held_now is not None:   # P30-C: the door decision read this tick, whatever answered
+            tried["threat"] = dict(tried.get("threat") or {}, door_held=self.door_held_now)
         inputs["branches"] = tried
         return Decision(branch, owner, cmd, inputs)
 

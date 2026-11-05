@@ -171,6 +171,7 @@ import math
 import time
 
 from agent.base.planner.dispatch import FightDispatch
+from agent.base.planner.door_held import FightDoorHeld
 from agent.base.planner.edges import FightEdge
 from agent.base.planner.finish import FightFinish
 from agent.base.planner.policies import (AIM_LEG_S, AIM_R, CIRCLE_TURN, CORNERED_R, DANGER_R,
@@ -206,7 +207,8 @@ FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finis
                      # unless Survive's switch for it is off
 
 
-class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach, FightDispatch, Policy):
+class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach, FightDispatch, FightDoorHeld,
+            Policy):
     """The Fight (the module docstring), with its rules in mixins, the state the Fight's own:
     - `FightPull` (`pull.py`): the pull of a lone chaser and the listing's edge hold (P24-AN, P24-AU);
     - `FightFinish` (`finish.py`): the finish of the fallen and the stomp (P24-AL, P24-AV, P25-B, P25-J, P27-G, P27-H);
@@ -973,6 +975,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             if switch is not None and zid == switch[0]:
                 self.why["seek_switch"] = True
             return fence
+        door = self._door_open_cmd(t)   # P30-C: the stance_open plan's post, open and meet at its zombie
+        if door is not None:
+            return door
         edge = self._edge_answer(t)   # P25-X: a known blocked edge on the line, routed through its door or refused
         if edge is not None:
             if edge[0] == "route":

@@ -240,6 +240,8 @@ class GoalRunner:
         self._continue = None  # (the continued walk's command, its Action once sent, its why) while it may run (P30-B)
         self._cut_target = None   # [x, y] of the last goal's walk when that goal was superseded short of it (P30-B)
         self._walk_target = None  # [x, y] of the running goal's last walk sent (P30-B)
+        self.door_left = None     # this tick's edge a `leave` read past (ruling P30-C, set by the threat branch's
+                                  # read): no continued walk targets a square across it
         self.world = None      # the World of the last observe (a sent walk's square is read off it)
         self._walks = []       # (walk Action, the send's square, the player's position, the goal's {type, args})
         self._ended_now = None
@@ -413,7 +415,8 @@ class GoalRunner:
         """Ruling P30-B (the module docstring): the walk kept going while the source is pending, else None. A walk it
         sent still running holds (None, `continue_now` its target); else a `WalkTo` at a walk toward the last goal's
         cut walk target (`last`), else toward the centre of the view's `edge` square (`edge`), whichever lies beyond
-        WALK_DONE_R of the player; neither, the runner stands (`continue_now` None)."""
+        WALK_DONE_R of the player and not across the edge a P30-C `leave` read this tick (`door_left`); neither, the
+        runner stands (`continue_now` None)."""
         self.continue_now = None
         if not self.goal_continue:
             return None
@@ -425,6 +428,8 @@ class GoalRunner:
         edge = seen.get("edge")
         on_edge = (edge[0] + 0.5, edge[1] + 0.5) if isinstance(edge, (list, tuple)) and len(edge) >= 2 else None
         for target, source in ((self._cut_target, "last"), (on_edge, "edge")):
+            if target is not None and self.door_left is not None and not same_side(self.door_left, (mx, my), target):
+                continue   # P30-C: never a walk past the door the threat branch left
             if target is not None and math.hypot(target[0] - mx, target[1] - my) > WALK_DONE_R:
                 self.continue_now = {"target": [target[0], target[1]], "source": source}
                 cmd = WalkTo(float(target[0]), float(target[1]), "walk")

@@ -305,9 +305,12 @@ def chaser(x, y=200.5):
 
 
 def gate_rig(tmp_path, doors=None, hop=False, zx=104.5, edge=True, cross=True):
-    """`cross` False: ruling P29-A's switch (`ROUTE_CROSS`, Plan 29 Task 1) off, P25-X's route to the far square."""
+    """`cross` False: ruling P29-A's switch (`ROUTE_CROSS`, Plan 29 Task 1) off, P25-X's route to the far square.
+    Named change, ruling P30-C (Plan 30 Task 3): a chaser behind a gate within DOOR_HELD_R is decided now
+    (`door_held`); P25-X's cases pinned with `DOOR_HELD` off."""
     r, sv = make(tmp_path)
     sv.BLOCKED_EDGE = edge
+    sv.DOOR_HELD = False
     sv.ROUTE_CROSS = cross
     r.scan(walled(doors, hop))
     r.frame(x=ME[0], y=ME[1], zombies=[chaser(zx)])

@@ -297,6 +297,9 @@ class World:
         self.door_fails = {}         # door square (x, y, z) -> [(world minute, reason)] of its failures (P24-Z)
         self.door_marks = {}         # door square (x, y, z) -> (world minute, reason, side): marked stuck (P24-Z)
         self.window_marks = {}       # window square (x, y, z) -> (world minute, reason): a window failed (Task 24)
+        self.door_seen = {}          # door square (x, y, z) -> {open, locked} of its last `door` event since the map
+                                     # last read the square (ruling P30-C's door read, `door_held.portal_between`);
+                                     # the planner's, never a line's
         self.worn = None             # me.worn as the last frame that carried one left it (None: none seen yet)
         self.unworn = deque(maxlen=32)   # (item id, frame_n): a held item an item_changed read worn, then not
         self.worn_n = 0              # the frame_n of the last frame that carried me.worn
@@ -416,6 +419,7 @@ class World:
         x, y, z = s["x"], s["y"], s.get("z") or 0
         self.map[(x, y, z)] = s
         self.map_version += 1
+        self.door_seen.pop((x, y, z), None)   # P30-C: the map's read of the square is newer than its door event
         if s.get("building") is not None:
             self.buildings.add(s["building"])
         cs = s.get("containers") or []
@@ -482,6 +486,9 @@ class World:
                 self.met_version += 1
         elif kind == "scan_dropped":
             self.scans_dropped.add(str(line.get("aid")))
+        elif kind == "door" and line.get("x") is not None and line.get("y") is not None:
+            self.door_seen[(line["x"], line["y"], line.get("z") or 0)] = {"open": line.get("open") is True,
+                                                                           "locked": line.get("locked")}   # P30-C
 
     def item_fields(self):
         """Whether the last hello's mod version is 1.5.2 or later: its `item_added` and `item_changed` lines carry `worn`

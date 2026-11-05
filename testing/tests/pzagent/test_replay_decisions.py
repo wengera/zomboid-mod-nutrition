@@ -247,8 +247,8 @@ def pre_t13(sv, keep=()):
 
 def pre_t14(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 30 Task 3 (survival iteration 24): its switches off
-    (`survive.T14_SWITCHES`: SWING_CLOSE, ruling P30-A; GOAL_CONTINUE, P30-B; SNEAK, P30-D), but those named in
-    `keep`; every seam onto an earlier rule reads them off (`pre_t13`)."""
+    (`survive.T14_SWITCHES`: SWING_CLOSE, ruling P30-A; GOAL_CONTINUE, P30-B; DOOR_HELD, P30-C; SNEAK, P30-D), but
+    those named in `keep`; every seam onto an earlier rule reads them off (`pre_t13`)."""
     for name in S.T14_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
@@ -376,9 +376,12 @@ def test_without_the_trailing_read_rule_f1_moves_at_line_498(monkeypatch):
     binder reads a recorded sprint as the run the replay sends (`as_run`), so the flee legs bind to the record's aids
     again and the falsifier is read on the golden's own replay, as before Task 12 (which read it with FLEE_GAIT set
     back to the sprint). Named change, ruling P29-G (Plan 29 Task 2): its `many` count over the standing within
-    DANGER_R moves F1 from line 484, so the falsifier is read with `MANY_NEAR` off (the rule before it)."""
+    DANGER_R moves F1 from line 484, so the falsifier is read with `MANY_NEAR` off (the rule before it). Named change,
+    ruling P30-C (Plan 30 Task 3): its `leave` at the gate moves F1's decisions from line 468, so `DOOR_HELD` is off
+    too."""
     def off(sv):
         sv.MANY_NEAR = False
+        sv.DOOR_HELD = False
     base = {d["line"]: d for d in R.run(run_dir("f1"), mutate=off)}
     monkeypatch.setattr(R._Acts, "ends_current", lambda self, got: False)
     moved = {d["line"]: d for d in R.run(run_dir("f1"), mutate=off)}
@@ -770,8 +773,10 @@ def test_the_pza1_3_records_carry_no_attackers_or_hit_reaction(key):
 # ================================================================ Plan 24 Task 2 fix 2 on the goldens (the review's G1-G3)
 def test_f1_line_540_the_stuck_corner_under_four_sends_the_retry_steer():
     """G1 (fix 1 (1) with the nearest within POINT_BLANK_R): at F1 line 540, four held, the nearest at 0.44 tiles and
-    the stuck read of 537 1.52 s old, the `stuck` corner sends its retry leg, as the record steered there."""
-    g = gold("f1")
+    the stuck read of 537 1.52 s old, the `stuck` corner sends its retry leg, as the record steered there. Named change,
+    ruling P30-C (Plan 30 Task 3): its `leave` at the gate moves F1 from line 468, so the line is read with iteration
+    24 off (`pre_t14_gold`)."""
+    g = pre_t14_gold("f1")
     assert g[537]["why"]["corner_kind"] == "stuck"
     assert g[540]["action"]["type"] == "steer" and g[540]["why"]["group"] == "retry"
 
@@ -2030,9 +2035,11 @@ def test_p28_f_s_planner_side_moves_the_sixth_at_its_follow_up_swing():
     (`fight.Fight.in_stance`, AIM_HOLD_S deleted). Against the sixth's file before it (R2_FROZEN's), the first moved
     line is 440: the follow-up attack at 15885 from 0.7801175874939513 tiles, read from the stance before, is the
     `enter` leg (0, 0) now, and the attack goes on line 441 from 1.0072464647115065 tiles; every later moved line is
-    downstream (open loop). The other five goldens' hellos announce no `aim`, so their Fights never read the stance."""
+    downstream (open loop). The other five goldens' hellos announce no `aim`, so their Fights never read the stance.
+    Named change, ruling P30-C (Plan 30 Task 3): read against the sixth with iteration 24 off (`pre_t14_gold`), whose
+    `door_held` reads moved it from line 113."""
     old = {d["line"]: d for d in json.loads(_r2_frozen_run()[2])["decisions"]}
-    new = gold(SIXTH)
+    new = pre_t14_gold(SIXTH)
     diff = [k for k in sorted(set(old) | set(new)) if old.get(k) != new.get(k)]
     assert diff[0] == R2_MOVED[SIXTH]
     was, now, then = old[440], new[440], new[441]
@@ -2103,8 +2110,9 @@ def test_iteration_23_moves_no_golden(key):
     (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off. Named change, Plan 29 Task 2: Task 2's
     hit rules (`T13_SWITCHES[2:]`) stay on here, since P29-G and P29-H' re-recorded the six (the attribution,
     `test_iteration_23_s_hit_rules_move_the_goldens_at_the_many_count_and_the_flee_walk_s_heading`); the name is
-    Task 1's."""
-    rows = gold(key)
+    Task 1's. Named change, Plan 30 Task 3: read against the goldens with iteration 24 off (`pre_t14_gold`), whose
+    P30-C re-recorded the six."""
+    rows = pre_t14_gold(key)
     assert all((d["why"] or {}).get("blocked_edge", {}).get("action") in (None, "refuse") for d in rows.values())
     off = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
                                                        mutate=lambda sv: pre_t13(sv, keep=S.T13_SWITCHES[2:])))}
@@ -2151,8 +2159,9 @@ def test_iteration_23_s_hit_rules_move_the_goldens_at_the_many_count_and_the_fle
       and F1's parts decode `bleeding` None). FINISH_LONE (P29-F) moves none: its pin's finish needs a zombie read
       `onFloor` (no golden frame carries it), a shove's knock window or a melee (no golden hello announces either).
       CLOSE_IDLE (P29-C) moves none: P27-J's close needs a shove-only Fight, so a build announcing the PZA/1.7 `shove`.
-    A golden no switch moves is its file before iteration 23 byte for byte."""
-    base, got = pre_t13_gold(key), gold(key)
+    A golden no switch moves is its file before iteration 23 byte for byte. Named change, Plan 30 Task 3: read against
+    the goldens with iteration 24 off (`pre_t14_gold`), whose P30-C re-recorded the six."""
+    base, got = pre_t13_gold(key), pre_t14_gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
     if key not in FIRST_T13:
         assert diff == []
@@ -2191,14 +2200,77 @@ def test_an_unbound_melee_ends_done_at_its_seconds():
 
 
 # ================================================================ Plan 30 Task 3: iteration 24 on the goldens
+@functools.lru_cache(maxsize=6)
+def _pre_t14_replayed(key):
+    return json.dumps(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t14), sort_keys=True)
+
+
+def pre_t14_gold(key):
+    """{line: decision} of the replay with iteration 24's switches off: the golden before its re-record."""
+    return {d["line"]: d for d in R.decisions(json.loads(_pre_t14_replayed(key)))}
+
+
+# the goldens as they stood before iteration 24 re-recorded them (Plan 30 Task 3, head 2d3622ef): sha256, base, recorded
+PRE_T14 = {"e2": ("70565f1b2abc016d11d9ec18aea095d21c0ba4eb9e9eeb549722e3a3d38ac398", "2308cf4e", "2026-11-05"),
+           "e3": ("0673248672bd894193b351c26ebb5038c1570b0b1a55690f9945e15e4ddac08c", "9d09d625", "2026-11-05"),
+           "e4": ("dc169846d69eb0b696f9aef5ca945bd9d687901350590d30ab5c38f4815b33e2", "e6b6e8e3", "2026-11-05"),
+           "e5": ("566c61bcb5f0ee9af355c4d112f79bfd5440fcae95117fa4332d0ef55de5386e", "9d09d625", "2026-11-05"),
+           "f1": ("5a1bf679dda5d46d1a2817e9a1efbb8a38ac1481801121df3799563ddc5312bb", "9d09d625", "2026-11-05"),
+           SIXTH: ("8628bd14d538009267067356100e1917aa50b74f1e1a18a62f86d4970243ee01", "9d09d625", "2026-11-05")}
+# the first line each iteration-24 switch moves, alone on, on each golden it moves (P30-C: the first `door_held` read,
+# a `leave` at the locked gate (10732, 10642) on every golden, the gate zombie within DOOR_HELD_R behind it)
+FIRST_T14 = {"e2": {"DOOR_HELD": 75}, "e3": {"DOOR_HELD": 103}, "e4": {"DOOR_HELD": 261}, "e5": {"DOOR_HELD": 89},
+             "f1": {"DOOR_HELD": 113}, SIXTH: {"DOOR_HELD": 113}}
+# every line on each golden whose decision (branch or action) iteration 24 moves
+ACTED_T14 = {"e2": [], "e3": [], "e5": [],
+             "e4": [590, 591, 597, 603, 610, 616, 659, 665, 666, 671, 673, 678, 680, 685, 687, 692, 694, 697, 698, 701,
+                    705, 707, 712, 714, 719, 721, 726, 728, 733, 734, 740, 741, 746, 748, 753, 755, 760, 762, 767, 768,
+                    774, 775, 780, 781, 787, 788, 793, 795, 800, 801, 806, 808, 813, 815, 819, 821, 826, 828, 833, 835,
+                    840, 841, 847, 848, 854, 861, 868, 869, 875],
+             "f1": [468, 469, 470, 471, 472, 473, 474, 475, 476, 477, 478, 479, 480, 481, 485, 528, 532, 535, 537, 540,
+                    541, 542],
+             SIXTH: [468, 469, 470, 471, 472, 473, 474, 479, 481, 483, 485, 487, 491, 493, 498, 499, 532, 533, 534, 536,
+                     537, 540, 541, 542, 543]}
+GATE_LEAVE = {"door": [10732, 10642], "kind": "locked gate", "n_behind": 1, "decision": "leave"}
+
+
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
-def test_iteration_24_moves_no_golden(key):
-    """Survival iteration 24 (Plan 30 Task 3) moves no golden: P30-A (`SWING_CLOSE`) is the melee's `closeR`, and no
-    golden's hello announces `melee` (`test_iteration_22_moves_no_golden`); P30-B (`GOAL_CONTINUE`) is the goal
-    runner's, and every golden's goal branch is the record's (`RecordedGoals`), never the runner's continue nor its hop;
-    P30-D (`SNEAK`) reads only a build announcing PZA/1.9's `sneak`, which no golden's hello nor `HELLO_CAPS` does; the
-    six are
-    byte-identical with `T14_SWITCHES` on (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off
-    (`pre_t14`)."""
-    off = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t14))}
-    assert off == gold(key)
+def test_with_iteration_24_off_the_goldens_are_iteration_23_s(key):
+    """Iteration 24's golden movers are `survive.T14_SWITCHES`: with them off (`pre_t14`) each golden it re-recorded is
+    the file as it stood before byte for byte (its sha256 pinned, `PRE_T14`)."""
+    sha, base, recorded = PRE_T14[key]
+    text = R.golden_text(R.decisions(json.loads(_pre_t14_replayed(key))), base, R.RUNS[key], recorded,
+                         R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == sha
+
+
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_iteration_24_moves_the_goldens_at_the_door_held_read(key):
+    """Survival iteration 24's attribution (Plan 30 Task 3), each switch alone on against the goldens before it
+    (`pre_t14_gold`):
+    - DOOR_HELD (ruling P30-C: a zombie behind a closed door, a locked gate or a window within DOOR_HELD_R decided on
+      one tick) moves all six, each first at its first `door_held` read, a `leave` at the locked gate (10732, 10642)
+      with the gate zombie behind it (`GATE_LEAVE`): E2 line 75, E3 103, E4 261, E5 89, F1 and the sixth 113. On E2, E3
+      and E5 only the why moves (each read logged, the gate zombie already edge-marked out of the hold by P25-X's
+      refusal). On E4 the decisions move from line 590, two lines after a `leave` at the window (10768, 10637) took a
+      zombie behind it out of the `unarmed` flee's group (its centroid, so its heading), every later moved line
+      downstream (open loop); on F1 and the sixth from line 468, where the gate zombie's `leave` left the running
+      Fight's walk at 15885 (7.9 tiles off) with no held zombie within DANGER_R, so the fight was released (P24-X's
+      release, `Engage._released`) and the goal ran. Every moved line logs `door_held` or is downstream of one; each
+      acted line is listed (`ACTED_T14`).
+    - SWING_CLOSE (P30-A) moves none: no golden's hello announces `melee`. GOAL_CONTINUE (P30-B) moves none: the goal
+      branch is the record's (`RecordedGoals`). SNEAK (P30-D) moves none: no golden's hello announces `sneak`.
+    A golden no switch moves is its file before iteration 24 byte for byte."""
+    base, got = pre_t14_gold(key), gold(key)
+    diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
+    assert diff[0] == min(FIRST_T14[key].values())
+    for switch in S.T14_SWITCHES:
+        alone = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
+                                                             mutate=lambda sv: pre_t14(sv, keep=(switch,))))}
+        moved = [k for k in sorted(set(base) | set(alone)) if base.get(k) != alone.get(k)]
+        assert (moved[0] if moved else None) == FIRST_T14[key].get(switch), switch
+    first = FIRST_T14[key]["DOOR_HELD"]
+    assert got[first]["why"]["door_held"] == GATE_LEAVE and "door_held" not in base[first]["why"]
+    acted = [k for k in diff if base[k]["action"] != got[k]["action"] or base[k]["branch"] != got[k]["branch"]]
+    assert acted == ACTED_T14[key]
+    assert all("door_held" not in base[k]["why"] for k in diff)

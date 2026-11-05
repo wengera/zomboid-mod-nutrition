@@ -374,6 +374,15 @@ SWING_CLOSE_R = 1.0       # tiles: the melee's `closeR` (ruling P30-A, the Lua's
                           # leg, while a swing that lands stops the zombie at about 0.95 tiles and takes no hit (the
                           # spec's § 1 reading 1); F14's swings inside a tile (a121 at 0.9472782015800476, a131 at
                           # 0.9590644240379333) knocked down, #4640; the spec's number
+DOOR_HELD_R = 4.0         # tiles: a zombie behind a closed door, a locked gate or a window this near is a decision
+                          # (ruling P30-C, `door_held.ThreatDoorHeld`): F14's 32307 chased at 0.91 tiles behind the
+                          # locked gate (10732, 10642) on decision lines 146 to 192 and its 32448 stood 0.90 tiles
+                          # behind the door (10770, 10633) on line 1081, while the Fight read the line only within
+                          # FIGHT_REACH 2.0 (F14's 32308 behind a window at 2.005 tiles, lines 281 to 315); twice that
+                          # reach, the spec's number
+DOOR_POST_PACE = 2.0      # tiles a second the stance's leg to the door's post is timed at (P30-C): the walk's own pace
+                          # (the Lua's walk, the fake mover's WALK_SPEED), so a slower stance walk falls short of the
+                          # post and is re-aimed, never carried past it into the door; a judgment
 SNEAK_R = 8.0             # tiles: a zombie listed this near with no target makes the gait the sneak's (ruling P30-D,
                           # `sneak.SneakGait`): the jar read's footsteps (#4661: 7 tiles upright, 4 sneaking) plus one
                           # tile, beyond the 4.5 tiles inside which sneaking spots about 2.6 times better at Sneak 0

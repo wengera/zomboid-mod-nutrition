@@ -1004,9 +1004,12 @@ def test_a_threat_still_pre_empts_a_running_sleep(tmp_path):
 
 def test_inside_with_every_held_threat_behind_a_wall_the_threat_branch_holds(tmp_path):
     """M-6: a zombie within DANGER_R whose line is blocked, the character inside: no flee out of the shelter. (Survival
-    2, P23-AJ 1: the zombie moved from 3.0 to 4.0 tiles, outside HOLD_BREAK_R, which breaks the hold at 3.0.)"""
+    2, P23-AJ 1: the zombie moved from 3.0 to 4.0 tiles, outside HOLD_BREAK_R, which breaks the hold at 3.0.) Named
+    change, ruling P30-C (Plan 30 Task 3): one zombie behind the house's door is now opened on (`stance_open`, the
+    inside hold giving way); pinned with `DOOR_HELD` off, the rule before it."""
     from .test_night import house
     r, sv = make(tmp_path)
+    sv.DOOR_HELD = False   # named change, ruling P30-C (Plan 30 Task 3): the rule before it
     r.scan(house(1, 110))
     r.frame(x=111.5, y=201.5, zombies=[zombie(1, 107.5, 201.5)])
     assert tick(r, sv) is None
@@ -3578,9 +3581,11 @@ def test_f1_s_recorded_re_pin_lines_switch_three_times_under_the_margin_not_five
 def test_f1_s_corner_read_stuck_at_537_tries_a_leg_within_one_second():
     """P24-A fix 1 (1) on the F1 golden: the corner taken at 537 reads `stuck` (the leg stood with 15921 at 1.25
     tiles); with four held (GROUP_HOLD_N) its retry leg goes within STUCK_RETRY_GROUP_S of the stuck read, where
-    survival 5 held the corner on (the record's group steer went at 540)."""
+    survival 5 held the corner on (the record's group steer went at 540). Named change, ruling P30-C (Plan 30 Task
+    3): its `leave` at the gate moves the F1 golden from line 468, so the corner is read with iteration 24 off."""
     from agent.base import replay_decisions as R
-    g = {d["line"]: d for d in json.load(open(R.golden_path("f1"), encoding="utf-8"))["decisions"]}
+    from .test_replay_decisions import pre_t14_gold
+    g = pre_t14_gold("f1")
     rows = {k: r for k, r in enumerate(R.replay(F1), 1)}
     assert g[537]["why"]["corner_kind"] == "stuck"
     retry = next(k for k in range(538, 546) if g[k]["why"].get("group") == "retry")

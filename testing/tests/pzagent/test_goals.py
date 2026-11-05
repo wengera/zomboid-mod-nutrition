@@ -574,11 +574,14 @@ def test_a_goal_an_instinct_holds_without_sending_is_superseded_hold_after_the_h
     """M-7: a hold that sends nothing never moves the history, so the mark never reads it; GOAL_HOLD_SUPERSEDE_TICKS
     planner ticks of another branch answering with no send close the goal `superseded` (reason `hold`), never
     `failed "goal budget"`. The hold here is the threat's inside a closed building (M-6). (Survival 2, P23-AJ 1: the
-    zombie moved from 3 to 4 tiles behind the wall, outside HOLD_BREAK_R, which breaks the hold at 3.0.)"""
+    zombie moved from 3 to 4 tiles behind the wall, outside HOLD_BREAK_R, which breaks the hold at 3.0.) Named change,
+    ruling P30-C (Plan 30 Task 3): the one zombie behind the house's door is opened on now; pinned with `DOOR_HELD`
+    off."""
     assert G.GOAL_HOLD_SUPERSEDE_TICKS == 20
     r = Rig(tmp_path)
     r.scan(house(1, 110))
     sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=Src(Rest(120.0)))
+    sv.DOOR_HELD = False   # named change, ruling P30-C (Plan 30 Task 3): the rule before it
     r.frame(x=111.5, y=201.5)
     sv.tick(r.world, r.acts)
     g = sv.goals.current
@@ -596,9 +599,11 @@ def test_a_goal_an_instinct_holds_without_sending_is_superseded_hold_after_the_h
 
 
 def test_a_hold_broken_by_the_goals_own_tick_restarts_the_count(tmp_path):
+    """Named change, ruling P30-C (Plan 30 Task 3): pinned with `DOOR_HELD` off, as the test above."""
     r = Rig(tmp_path)
     r.scan(house(1, 110))
     sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=Src(Rest(120.0)))
+    sv.DOOR_HELD = False   # named change, ruling P30-C (Plan 30 Task 3): the rule before it
     r.frame(x=111.5, y=201.5)
     sv.tick(r.world, r.acts)
     g = sv.goals.current
