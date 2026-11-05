@@ -360,7 +360,10 @@ def test_a_falling_target_health_restarts_the_stand_clock_and_ends_the_advance(t
 
 
 def test_a_kill_restarts_the_stand_on_the_next_target(tmp_path):
+    """Named change, ruling P30-E (Plan 30 Task 3): the stand's steady distance over 2 s ticks is a still read now;
+    pinned with `STILL` off."""
     r, sv = make(tmp_path)
+    sv.STILL = False   # named change, ruling P30-E (Plan 30 Task 3): the rule before it
     r.frame(zombies=[zd(1, 104.0, 200.0, has_target=False), zd(2, 100.0, 204.5, has_target=False)])
     tick(r, sv)
     assert stance_args(r)["targetId"] == 1
@@ -1312,11 +1315,13 @@ def test_a_stance_leg_superseded_re_aims_but_one_that_fails_ends_the_stand_at_on
     superseded leg (this planner's own next send) re-aims; named change (P24-N): STAND_MAX_S is no fallback any
     more, the stand closes in the stance (`advance`) and `standoff` stays unset.
     Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
-    rule before it (the non-stance Fight's walk to a zombie at a run)."""
+    rule before it (the non-stance Fight's walk to a zombie at a run). Named change, ruling P30-E (Plan 30 Task 3):
+    the timed-out leg's 31 s with the distance steady is a still read now; pinned with `STILL` off."""
     for k, end in enumerate(({"state": "failed", "reason": "not loaded"}, "timeout")):
         (tmp_path / str(k)).mkdir()
         r, sv = make(tmp_path / str(k))
         sv.APPROACH_WALK = False
+        sv.STILL = False   # named change, ruling P30-E (Plan 30 Task 3): the rule before it
         r.frame(zombies=[zd(1, 104.0, 200.0)])
         tick(r, sv)
         assert r.cmd()[0] == "aim"

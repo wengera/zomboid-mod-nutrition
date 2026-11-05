@@ -26,6 +26,7 @@ from agent.base.planner.policies import (AIM_R, CLOSING_TICKS, CORNERED_R, CORNE
                                          STUCK_RETRY_S, adoptable, blocked, chasing, exit_plan, in_building, in_reach,
                                          line_to, on_floor, others_behind, seek_allowed, spare, target_id_ok, zdist)
 from agent.base.planner.pull import ThreatPull
+from agent.base.planner.still import ThreatStill
 from agent.base.pza1 import Drop
 from agent.base.world import me_xy
 
@@ -37,7 +38,8 @@ __all__ = ["Threat", "FLEE_HEALTH", "FLEE_HEALTH_PAIR", "REFIGHT_MARGIN", "MAX_F
            "GROUP_NEAR_R", "GROUP_HOLD_N", "STUCK_RETRY_S", "STUCK_RETRY_GROUP_S", "LISTED_R"]
 
 
-class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, ThreatEdge, ThreatDoorHeld):
+class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, ThreatEdge, ThreatDoorHeld,
+             ThreatStill):
     """The threat branch (the module docstring): `Survive`'s mixin, its switches the replay tests' seams."""
 
     ENGAGE = True   # ruling P24-X: one or two within ENGAGE_R are sought, a flee turns to fight at the fight's line
@@ -906,6 +908,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             self._end_flee_episode()
             self.sheltered, self.cornered, self.closing = False, None, (0, None)
             self.stuck_heading, self._nearest_seen = None, []
+            self._still_rec = None   # P30-E: the still read starts again with the next threat
             return
         self._nearest_seen = (self._nearest_seen + [self._nearest_listed()])[-(CARE_STILL_TICKS + 1):]
         if self.flee is not None:   # a shelter or exit step's end read before the hold (the close may have ended),
@@ -1061,7 +1064,19 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.shove_only = self._shove_only(kind)   # P25-P, P25-S: no swing, no seek
             policy.door_open = self.door_open   # P30-C: the stance_open plan's steps, this tick's
             policy.crowd = self._inside_crowd() if kind == "cornered" else None   # P26-C
-            ans = self._answer(policy)
+            still = None if replanned or kind != "fight" or door is not None else self._still_read(held, policy)
+            if still is not None and still[0] == "goal":   # P30-E: the zombie left, the branch passes
+                self.mode, self.fight, self.flee = None, None, None
+                self._end_flee_episode()
+                self.why = {"still": self.still_now, "held": len(held)}
+                return None
+            if still is not None:   # P30-E: the stance's approach at the still zombie
+                self._observe(policy)
+                cmd = policy._stance_leg(still[1], still[2], still[3], kind="toward")
+                self.why = dict(policy.why, still=self.still_now)
+                ans = (policy, cmd)
+            else:
+                ans = self._answer(policy)
             self.rest_from = None
             if self.why.get("low_exit") is not None:   # P27-K2: the low fight left its lone target, the flee next
                 self.low_left.add(self.why["low_exit"]["target"])

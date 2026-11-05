@@ -296,7 +296,10 @@ def test_a_running_fight_turns_to_flee_only_on_the_flee_conditions(tmp_path):
 @pytest.mark.parametrize("build", BUILDS)
 @pytest.mark.parametrize("dist, flees", [(5.0, True), (2.74, True), (1.5, False)])   # 2.74: run 1's standoff
 def test_a_fight_that_does_not_close_in_fight_max_s_flees(tmp_path, monkeypatch, build, dist, flees):
+    """Named change, ruling P30-E (Plan 30 Task 3): the zombie's steady distance with the character unmoved over the
+    20 s is a still read now; pinned with `STILL` off."""
     r, sv = make_build(tmp_path, monkeypatch, build)
+    sv.STILL = False   # named change, ruling P30-E (Plan 30 Task 3): the rule before it
     r.frame(zombies=[zombie(1, 100.0 + dist, 200.0)])
     tick(r, sv)
     r.advance(20.0)

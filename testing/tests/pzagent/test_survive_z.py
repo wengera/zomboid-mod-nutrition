@@ -312,14 +312,15 @@ def test_e17_s_window_act_is_dropped_at_its_stall_and_the_window_noted_stalled()
     the record's own rules. Named change, Plan 27 Task 5: iteration 20's (`survive.T10_SWITCHES`) off with them (P27-G's
     floor swing at a fallen zombie in reach reaches the same lines). Named change, ruling P29-A (Plan 29 Task 1):
     iteration 23's (`survive.T13_SWITCHES`) off with them (the Fight's route at the gate (10747, 10642) on line 142
-    walks to the step beyond its far square at a walk under ROUTE_CROSS)."""
+    walks to the step beyond its far square at a walk under ROUTE_CROSS). Named change, ruling P30-E (Plan 30 Task 3):
+    iteration 24's (`survive.T14_SWITCHES`) off with them (the still read reaches the same lines)."""
     kept = {}
 
     def mutate(sv):
         kept["sv"] = sv
         for name in S.T8_SWITCHES:
             setattr(sv, name, name == "WINDOW_STALL")
-        for name in S.T9_SWITCHES + S.T10_SWITCHES + S.T13_SWITCHES:
+        for name in S.T9_SWITCHES + S.T10_SWITCHES + S.T13_SWITCHES + S.T14_SWITCHES:
             setattr(sv, name, False)
     rows = R.replay(E17, mutate=mutate, upto=394)
     _, rec, _ = e17()

@@ -733,8 +733,10 @@ def test_no_fence_wait_for_an_idle_zombie_on_a_build_without_the_stance_or_switc
 
 def test_past_stand_max_s_the_fence_wait_is_left_as_today(tmp_path):
     """The stand clock (P24-N): STAND_MAX_S with no fall of its health and the advance closes on it round the fence,
-    the wait left (no `fence_wait`)."""
+    the wait left (no `fence_wait`). Named change, ruling P30-E (Plan 30 Task 3): STAND_MAX_S with the distance
+    steady is a still read now; pinned with `STILL` off."""
     r, sv = fence_rig(tmp_path, 104.5)
+    sv.STILL = False   # named change, ruling P30-E (Plan 30 Task 3): the rule before it
     tick(r, sv)
     r.fake.answer({"aim": ["accepted"]})
     r.pump()

@@ -7,6 +7,8 @@ rules of `survive.T14_SWITCHES`, each with its killing test, on E23's (`e_day_23
 - P30-B (`GOAL_CONTINUE`, the goal runner): `test_goals.py`'s Plan 30 block; the switch here.
 - P30-C (`DOOR_HELD`, `door_held.py`): a zombie behind a closed door, a locked gate or a window within DOOR_HELD_R
   decided on one tick: the stance at the door's post, the open and the meet, or the leave.
+- P30-E (`STILL`, `still.ThreatStill`): a held zombie at a steady distance with the character unmoved for STILL_S
+  resolved into the stance's approach, or the goal's walk.
 - P30-D (`SNEAK`, `sneak.SneakGait`): the gait near a zombie with no target, upright at a chaser, in a flee and for a
   press, the posture the tick's one command.
 """
@@ -23,7 +25,7 @@ from .test_survive_g import Src, zd
 
 def test_the_iteration_24_switches():
     """`survive.T14_SWITCHES`, each on `Survive` (or a class it derives) and on by default."""
-    assert S.T14_SWITCHES == ("SWING_CLOSE", "GOAL_CONTINUE", "DOOR_HELD", "SNEAK")
+    assert S.T14_SWITCHES == ("SWING_CLOSE", "GOAL_CONTINUE", "DOOR_HELD", "SNEAK", "STILL")
     assert all(getattr(S.Survive, n) is True for n in S.T14_SWITCHES)
 
 
@@ -389,3 +391,90 @@ def test_a_window_between_is_left(tmp_path):
                                                                               building=5)])
     r.frame(x=10770.5, y=10633.5)
     assert portal_between(r.world, (10770.5, 10633.5), (10769.2, 10633.5)) == (((10770, 10633, 0), "W"), "window")
+
+
+# ================================================================ P30-E: the still read (`STILL`, `still.ThreatStill`)
+# F14 (`f_goals_15-20261105-092752`), decision lines 281 to 315: the melee stood out of reach at 32308, 2.005 tiles off
+# (its progress lines' d 2.0050714015960693), the character at (10743.74, 10638.49), for 16.5 s. The fixture is the
+# shape on open ground (the window F14's zombie stood behind is P30-C's `leave` now), the zombie chasing and not coming,
+# the health 60, a tick 0.5 s.
+F14_STILL_D = 2.0050714015960693
+
+
+def still_rig(tmp_path, zs, health=60.0):
+    from .fakemod import MELEE_CAPS
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=Src(None))
+    r.scan(grid(90, 115, 190, 210))
+    return r, sv
+
+
+def stand_on(r, sv, ticks, me=(100.0, 200.0), zs=((32308, 100.0 + F14_STILL_D, 200.0, True),), health=60.0):
+    """`ticks` planner ticks 0.5 s apart, each frame the character at `me` and the zombies `zs` ((id, x, y,
+    chasing)); every send answered accepted, a melee with its `stand` progress line. The last action and the threat
+    why."""
+    a = None
+    for _ in range(ticks):
+        recs = [dict(zombie(zid, x, y, me=me), hasTarget=chasing) for zid, x, y, chasing in zs]
+        r.frame(x=me[0], y=me[1], zombies=recs, health=health)
+        a = tick(r, sv)
+        if a is not None:
+            r.answer("accepted")
+            if a.type == "melee":
+                r.fake.act(a.aid, "progress", "melee", result={"step": "stand", "d": F14_STILL_D})
+                r.pump()
+        r.advance(0.5)
+    return a, threat_why(r.dir)
+
+
+def test_f14_s_melee_standing_out_of_reach_for_6_s_turns_into_the_stance_s_approach(tmp_path):
+    """P30-E: F14's shape: the melee standing at 32308 2.005 tiles off, the character unmoved, the distance steady:
+    at STILL_S (6 s) the read resolves `approach` (alone within DANGER_R, health 60), the stance's leg toward it (the
+    Fight's `toward` leg), logged `still` {target, d, resolved}; before it, the melee stands."""
+    from agent.base.planner.policies import STILL_S
+    r, sv = still_rig(tmp_path, ())
+    n = int(STILL_S / 0.5)
+    a, w = stand_on(r, sv, n)
+    assert "still" not in w and any(x.type == "melee" for x in r.acts.history)
+    a, w = stand_on(r, sv, 1, me=(100.0, 200.0))
+    assert w["still"] == {"target": 32308, "d": F14_STILL_D, "resolved": "approach"}
+    assert a is not None and a.type in ("aim", "walkTo") and (a.args.get("vx", 1.0) > 0.0 or a.args.get("x", 0) > 100)
+
+
+def test_the_same_with_a_second_zombie_within_danger_r_turns_into_the_goal_s_walk(tmp_path):
+    """P30-E: a second zombie 5 tiles off (within DANGER_R, the test's own): `goal`: the still zombie left (unreachable
+    for UNREACHABLE_S), the threat branch passing, its why `still` {resolved "goal"} with the held count."""
+    from agent.base.planner.policies import STILL_S
+    r, sv = still_rig(tmp_path, ())
+    zs = ((32308, 100.0 + F14_STILL_D, 200.0, True), (2, 100.0, 205.0, False))
+    a, w = stand_on(r, sv, int(STILL_S / 0.5) + 1, zs=zs)
+    row = last(tmp_path)
+    assert w == {"still": {"target": 32308, "d": F14_STILL_D, "resolved": "goal"}, "held": 2}
+    assert row["branch"] != "threat" and sv.mode is None and sv.unreachable[32308] > r.clock()
+
+
+def test_the_character_moving_reads_no_still(tmp_path):
+    """P30-E's falsifier: the character and the zombie moving together (the distance steady, the character 0.3 tiles a
+    tick): no `still` in 8 s."""
+    r, sv = still_rig(tmp_path, ())
+    for k in range(16):
+        y = 200.0 + 0.3 * k
+        a, w = stand_on(r, sv, 1, me=(100.0, y), zs=((32308, 100.0 + F14_STILL_D, y, True),))
+        assert "still" not in w, k
+
+
+def test_a_chaser_closing_with_the_character_unmoved_reads_no_still(tmp_path):
+    """P30-E's distance test: a chaser closing from 5.5 tiles at 0.15 a tick (the character unmoved) reads no `still`
+    in 7 s (its distance falls past STILL_DRIFT_R)."""
+    r, sv = still_rig(tmp_path, ())
+    for i in range(14):
+        a, w = stand_on(r, sv, 1, zs=((7, 105.5 - 0.15 * i, 200.0, True),))
+        assert "still" not in w, i
+
+
+def test_with_still_off_the_melee_stands_on(tmp_path):
+    from agent.base.planner.policies import STILL_S
+    r, sv = still_rig(tmp_path, ())
+    sv.STILL = False
+    a, w = stand_on(r, sv, int(STILL_S / 0.5) + 4)
+    assert "still" not in w and sv.mode == "fight"

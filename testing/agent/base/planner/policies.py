@@ -383,6 +383,14 @@ DOOR_HELD_R = 4.0         # tiles: a zombie behind a closed door, a locked gate 
 DOOR_POST_PACE = 2.0      # tiles a second the stance's leg to the door's post is timed at (P30-C): the walk's own pace
                           # (the Lua's walk, the fake mover's WALK_SPEED), so a slower stance walk falls short of the
                           # post and is re-aimed, never carried past it into the door; a judgment
+STILL_S = 6.0             # wall seconds a held zombie's steady distance with the character unmoved resolves (ruling
+                          # P30-E, `still.ThreatStill`): F14's melee stood at 32308, 2.005 tiles off, on decision lines
+                          # 281 to 315 (`f_goals_15-20261105-092752`; the spec's 16.5 s), seven melee sends 2.5 s apart
+                          # (lines 281, 286, ... 311); two and a half sends of nothing, the spec's number
+STILL_DRIFT_R = 0.3       # tiles the held zombie's distance may drift from the still read's start (P30-E): F14's read
+                          # 2.1849812857308732 then 2.0050714015960693 for the whole stand; the spec's number
+STILL_MOVE_R = 1.0        # tiles the character may move from the read's start (P30-E): "unmoved under a tile", the
+                          # spec's number (F14's character stood at (10743.74, 10638.49) throughout)
 SNEAK_R = 8.0             # tiles: a zombie listed this near with no target makes the gait the sneak's (ruling P30-D,
                           # `sneak.SneakGait`): the jar read's footsteps (#4661: 7 tiles upright, 4 sneaking) plus one
                           # tile, beyond the 4.5 tiles inside which sneaking spots about 2.6 times better at Sneak 0
