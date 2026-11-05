@@ -2076,7 +2076,7 @@ FIRST_T13 = {"e2": {"FLEE_HELD_STANCE": 148}, "e3": {"MANY_NEAR": 204, "FLEE_HEL
              "e4": {"MANY_NEAR": 390}, "e5": {"FLEE_HELD_STANCE": 221},
              "f1": {"MANY_NEAR": 484, "FLEE_HELD_STANCE": 518}, SIXTH: {"MANY_NEAR": 484, "FLEE_HELD_STANCE": 527}}
 # every line on each golden whose decision (branch or action) iteration 23 moves
-ACTED_T13 = {"e2": [148, 149], "e3": [204, 210, 231, 237, 243, 249, 255, 256, 265, 268, 271, 272],
+ACTED_T13 = {"e2": [148, 156, 186, 192], "e3": [204, 210, 231, 237, 243, 249, 255, 256, 265, 268, 271, 272],
              "e4": [447, 449, 450, 454, 455], "e5": [221, 222, 224, 229, 231],
              "f1": [484, 485, 491, 492, 498, 499, 518, 521, 528, 532, 537, 557, 607, 610, 612, 614],
              SIXTH: [484, 485, 491, 492, 498, 499, 527, 532, 537, 540, 557, 607, 610, 612, 614]}
@@ -2129,9 +2129,11 @@ def test_iteration_23_s_hit_rules_move_the_goldens_at_the_many_count_and_the_fle
       the door marked `walled`) moves E2, E3, E5, F1 and the sixth, each first at its first shelter step's or exit's
       walk read heading at a held zombie within AHEAD_CONE or the CORRIDOR_R tube, logged `flee_held_stance` {target,
       heading, bearing, d}: E2 line 148 (exit 3's walk, 12839 2.807 tiles off: the Fight's walk where the walk ran
-      on), E3 231 (building 2's approach, 14926), E5 221 (building 2's approach, 19275), F1 518 (building 2's
-      approach, 15921) and the sixth 527 (the same approach under its `many` flee): the walk dropped, the steer or the
-      fight in its place, every later moved line downstream (open loop). E4's flee walks read no held zombie ahead.
+      on; fix 1, review-t2 M2: its outside square marked `walled`, so no later episode walks exit 3 again, lines 186
+      and 192's `pair` flees among them), E3 231 (building 2's approach, 14926), E5 221 (building 2's approach,
+      19275), F1 518 (building 2's approach, 15921) and the sixth 527 (the same approach under its `many` flee): the
+      walk dropped, the steer or the fight in its place, every later moved line downstream (open loop). E4's flee
+      walks read no held zombie ahead.
     - ROUTE_CROSS (P29-A) and GOAL_STALL (P29-B) move none (`test_iteration_23_moves_no_golden`). HEALTH_NEAR (P29-E)
       moves none: every golden `health` line holds a zombie within DANGER_R. DRESS_FINISH (P29-D) moves none: no golden
       flee commands over a running dressing with nobody within DANGER_R (the sixth's hello alone announces `bandage`,

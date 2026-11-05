@@ -406,12 +406,12 @@ E22_749 = ((10742.3740234375, 10686.2451171875), [(11515, 10748.634765625, 10691
                                                    (11516, 10753.0732421875, 10688.826171875)], 30.81458282470703)
 
 
-def health_flee(tmp_path, on=True, walls=False, parts=None, rag=False):
+def health_flee(tmp_path, on=True, walls=False, parts=None, rag=False, health=None):
     """E22's `health` flee: line 743's frame from a fresh Survive (two within DANGER_R under FLEE_HEALTH: the `health`
     flee's steer at a run, the fresh read of the record's running `many` episode), that steer answered done, then line
     749's frame ticked; `walls`: a wall between the character and 11515 (the test's own: x 10745's west edges, y 10684
-    to 10693, mapped with the squares round it); `parts`: the body's part records; `rag`: a clean rag held. The last
-    tick's action."""
+    to 10693, mapped with the squares round it); `parts`: the body's part records; `rag`: a clean rag held; `health`:
+    both frames' health in place of E22's (the test's own). The last tick's action."""
     from .test_survive_g import hold
     r, sv = make(tmp_path)
     sv.HEALTH_NEAR = on
@@ -421,12 +421,13 @@ def health_flee(tmp_path, on=True, walls=False, parts=None, rag=False):
         r.scan([square(x, y, blockW=x == 10745, edgeW=x == 10745) for x in range(10740, 10751)
                 for y in range(10684, 10694)])
     me, zs, h = E22_743
-    e22_frame(r, me, zs, h, 662.0)
+    e22_frame(r, me, zs, h if health is None else health, 662.0)
     a = tick(r, sv)
     assert a.type == "steer" and a.args["gait"] == "run" and threat_why(tmp_path)["flee"] == "health"
     r.answer()
     r.advance(0.5)
     me, zs, h = E22_749
+    h = h if health is None else health
     wounds = None if parts is None else {"parts": parts, "bleeding": sum(1 for p in parts if p.get("bleeding"))}
     e22_frame(r, me, zs, h, 662.1, wounds=wounds)
     return r, sv, tick(r, sv)
@@ -947,3 +948,45 @@ def test_the_full_iteration_23_switches_and_the_flee_rule():
     assert S.T13_SWITCHES == ("ROUTE_CROSS", "GOAL_STALL", "HEALTH_NEAR", "DRESS_FINISH", "MANY_NEAR", "FINISH_LONE",
                               "CLOSE_IDLE", "FLEE_HELD_STANCE")
     assert "flee_held_stance" in FL.FLEE_RULES and "close_idle" in F.FIGHT_RULES
+
+
+# ---------------------------------------------------------------- fix 1 (review-t2 M1, M2)
+def test_under_the_floor_a_chaser_in_view_keeps_the_health_flee_never_the_pass(tmp_path):
+    """P29-E fix 1 (review-t2 M1, the reviewer's second probe): E22's line 749 at health 15 (the test's own: under
+    FLEE_HEALTH_FLOOR, no low fight), 11515 chasing in view 8.197687115943333 tiles off: no stance to hold, so the
+    `health` flee (P25-S's) runs, never the pass to the lower branches, `health_near` {near 0} logged beside it."""
+    r, sv, a = health_flee(tmp_path, health=15.0)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args["gait"]) == ("steer", "run") and w["flee"] == "health" and sv.mode == "flee"
+    assert w["health_near"] == {"near": 0} and last(tmp_path)["branch"] == "threat"
+
+
+def test_three_chasers_in_view_beyond_danger_r_inside_an_episode_keep_the_flee(tmp_path):
+    """P29-E fix 1 (review-t2 M1, the reviewer's first probe; the test's own frames on line 749's square, health 30):
+    a `many` episode begun at three chasers 2.0 to 3.5 tiles off, then the three at 7.5, 8.06 and 8.56 tiles, every
+    line open: more than MAX_FIGHT in the stance count, so no low fight's stance, and in view, so no pass: the flee
+    runs on (a steer at a run), the threat branch's."""
+    r, sv = make(tmp_path)
+    me = E22_749[0]
+    e22_frame(r, me, [(1, me[0] + 2.0, me[1]), (2, me[0], me[1] + 3.0), (3, me[0] - 3.5, me[1])], 30.0, 662.0)
+    a = tick(r, sv)
+    assert a.type == "steer" and threat_why(tmp_path)["flee"] == "many"
+    r.answer()
+    r.advance(0.5)
+    e22_frame(r, me, [(1, me[0] + 7.5, me[1]), (2, me[0], me[1] + 8.06), (3, me[0] - 8.56, me[1])], 30.0, 662.1)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert last(tmp_path)["branch"] == "threat" and sv.mode == "flee" and w.get("flee") in ("health", "held")
+    assert (a.type, a.args["gait"]) == ("steer", "run")
+
+
+def test_e2_s_cut_exit_is_not_walked_again_by_the_next_episode(tmp_path):
+    """P29-H' fix 1 (review-t2 M2) on E2's re-recorded golden: line 148 cuts exit 3's walk (12839 2.8074181315305675
+    tiles ahead), its outside square (10740, 10635) marked `walled` from inside, and line 149, where the record's next
+    flee episode sent the same walk to (10740.5, 10636.5) at a run again before the fix, sends no such walk; nor does
+    any later line of the golden while the mark stands."""
+    from .test_replay_decisions import gold
+    g = gold("e2")
+    assert g[148]["why"]["flee_held_stance"]["target"] == 12839
+    walk = {"type": "walkTo", "args": {"gait": "run", "x": 10740.5, "y": 10636.5}}
+    assert g[149]["action"] != walk and not any(g[k]["action"] == walk for k in g if k > 148)

@@ -288,10 +288,15 @@ class Flee(Policy):
         (`_cut_leg`'s read); one ahead drops the walk (`_dropped`, so `busy` and the `flip` guard keep nothing) with its
         plan for the episode, as P23-AM 2's stall drop does (`picked` kept, never shunned), the plan's door marked
         `walled` from outside (`World.mark_door`: the next episode's pick leaves it out for DOOR_RETRY_MIN), or the exit
-        refused; kept in `held_cut` {target, heading, bearing, d} (degrees, 0 east, south positive; the nearest ahead),
-        which Survive logs `flee_held_stance`. The hysteresis's fight then meets the zombie in the stance. On F13 it
-        reads at line 412: the heading 14.9 degrees, 28222 5.290 tiles off on 8.3. Cost if wrong: one tick run toward
-        the zombie before the read; a walk whose path would have bent past a held zombie beyond reach given up."""
+        refused and its door (an opening's outside square) marked `walled` from inside, which `policies.exit_plan`
+        refuses for DOOR_RETRY_MIN (fix 1, review-t2 M2: the refusal lived in this Flee's `refused` alone, so E2's
+        re-recorded line 149, the next episode's new Flee, sent exit 3's cut walk again at a run, the fight, flee, cut
+        loop of `fight2-flee-read.md` section 4); kept in `held_cut` {target, heading, bearing, d} (degrees, 0 east,
+        south positive; the nearest ahead), which Survive logs `flee_held_stance`. The hysteresis's fight then meets
+        the zombie in the stance. On F13 it reads at line 412: the heading 14.9 degrees, 28222 5.290 tiles off on 8.3.
+        Cost if wrong: one tick run toward the zombie before the read; a walk whose path would have bent past a held
+        zombie beyond reach given up; a cut exit left out of every way out for DOOR_RETRY_MIN (E2's exit 3 at line
+        148: its later `pair` flees took no way out by it)."""
         w = self._walk_from
         if "flee_held_stance" not in self.rules or w is None:
             return
@@ -319,6 +324,7 @@ class Flee(Policy):
             self._read, self.ended = a, "held_ahead"
             self._drop(False)
         elif a is self._exit_a and self.exit is not None:
+            self.world.mark_door(self.exit["door"] or self.exit["outer"], "walled", "in")   # fix 1, M2: kept past it
             self._exit_read = a
             self._refuse_exit()
 

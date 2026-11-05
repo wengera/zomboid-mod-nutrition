@@ -382,7 +382,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         (b)) flees `held` instead (`many` having been read first)."""
         reason = self._hysteresis(held, n)
         if reason is None and self.health_near is not None and not self._low_fight(n):
-            self.health_pass = True   # P29-E: no stance to hold, the threat branch passes (`_threat_plan`)
+            if self._held_in_view(held):
+                return "health"   # P29-E fix 1 (review-t2 M1): one in view and no stance to hold, P25-S's flee
+            self.health_pass = True   # P29-E: none in view, the threat branch passes (`_threat_plan`)
             return None
         if reason is None and self._behind_walk():
             return "held"
@@ -507,11 +509,18 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         zombie the Fight may target whose straight line is not read blocked (`line_to`: an unscanned end reads None,
         in view): the low fight's stance holds at it (E22's line 749: 11515 chasing 8.197687115943333 tiles off, the
         `health` flee's steer sent at a run), the zombie met where the low fight meets it once it comes within
-        DANGER_R. Under FLEE_HEALTH_FLOOR there is no low fight, so the branch passes (`_flee_reason`)."""
+        DANGER_R. With none of these (under FLEE_HEALTH_FLOOR, more than MAX_FIGHT in the stance count, no `aim` or
+        `shove` announced) and one in view, the `health` flee runs as before; with none in view the branch passes
+        (`_flee_reason`; fix 1, review-t2 M1)."""
         if not (self._health_far(n) and self.world.can("aim")
                 and self._stance_count(self._within(self._hold_r())) <= MAX_FIGHT):
             return False
-        return any(line_to(self.world, z) is not False for _, z in self._reachable_held())
+        return self._held_in_view([z for _, z in self._reachable_held()])
+
+    def _held_in_view(self, zs):
+        """P29-E: a zombie of `zs` whose straight line is not read blocked (`line_to`: an unscanned end reads None, in
+        view)."""
+        return any(line_to(self.world, z) is not False for z in zs)
 
     def _low_left(self):
         """Ruling P27-K2 (`LOW_EXIT`): every zombie within DANGER_R is one the low fight left this threat episode
@@ -791,7 +800,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             fight = None if self._armed() else self._trapped_fight(held, inside)
             return fight or ("flee", reason or "sheltered")
         if reason is None and self.health_pass:
-            return "pass", None   # P29-E: no zombie within DANGER_R and none in view under FLEE_HEALTH: the care's
+            return "pass", None   # P29-E: under FLEE_HEALTH, nobody within DANGER_R and no held zombie in view
         if reason is None:
             reason = self._kept_flee()
             if reason is None:

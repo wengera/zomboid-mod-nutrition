@@ -709,7 +709,9 @@ def exit_plan(world, threats, refused=(), trans=True, windows=False, walkable=Tr
     an unlocked one goes before a locked one at any distance, ruling P26-7d, as `goals.window_pick` ranks); a
     window's record carries `window` and `smash`, its `target` its inside square (`inner`, the walk's end before the
     climb) and its `step` "window" (`flee.Flee._window_step`), `sent` False. Ruling P26-I (`walkable`,
-    `Threat.WINDOW_INNER`): a window whose inside square cannot be stood on is no way out (`night.window_exits`)."""
+    `Threat.WINDOW_INNER`): a window whose inside square cannot be stood on is no way out (`night.window_exits`).
+    Ruling P29-H' (fix 1, review-t2 M2): an exit whose door, or an opening's outside square, the World marks `walled`
+    (`flee.Flee._held_ahead`'s cut walk, `World.mark_door`) is refused while the mark stands, DOOR_RETRY_MIN."""
     N = _night()
     s = world.map.get(N.player_square(world)) or {}
     b = s.get("building")
@@ -718,9 +720,10 @@ def exit_plan(world, threats, refused=(), trans=True, windows=False, walkable=Tr
     ts = [z for z in threats if z.get("x") is not None and z.get("y") is not None]
     me = me_xy(world)
     marked = world.marked_doors()   # Task 18 fix 1, major 4: a marked door stays a way out, ranked after the others
+    walled = {sq for sq in marked if world.door_marks[sq][1] == "walled"}   # P29-H' fix 1: a cut exit, refused
     best = None
     for e in N.exits(world, b, me_floor(world), windows, walkable):
-        if e["outer"] in refused:
+        if e["outer"] in refused or e["outer"] in walled or e["door"] in walled:
             continue
         c = centre(e["outer"])
         if any(math.hypot(z["x"] - c[0], z["y"] - c[1]) < zdist(world, z)
