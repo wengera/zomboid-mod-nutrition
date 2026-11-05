@@ -11,8 +11,9 @@ and P26-5, Plan 26 Task 3: the view's `open` names the goals still open when eve
 ExploreToward at `toward`'s square or, `toward` null, at `edge`'s, and a Stock only when `open` names it); the meaning
 of the view keys the rules read (met, attackers, worn, hit_reaction, tired and night, hold (Plan 25 Task 4: the view's
 `spent` rendered `hold: <kind> <value>`), last_goal with its `cooled` end (Plan 25 Task 4: the runner's cooled
-refusal, `GoalRunner._carried`), and its `shunned` why, ruling P25-G; and `stuck`, ruling P27-F: the square the walks
-could not leave, to answer a goal away from); then that the user message is the view. Ruling
+refusal, `GoalRunner._carried`), and its `shunned` why, ruling P25-G; `stuck`, ruling P27-F: the square the walks
+could not leave, to answer a goal away from; and `stall`, ruling P29-B: the target square of the last goal that ran
+out of time unmoved, never to be answered while it reads); then that the user message is the view. Ruling
 P25-G (Plan 25 Task 7, F4's 67 Shelter answers for its one shunned building): the building line's `s` flag says what
 it means for the choice (not a shelter for SHUN_MIN game minutes; explore along a road or Rest instead), the refusal
 rule names the Shelter of an `s` building, and the strategy's third line never names one. The strategy's third line
@@ -114,5 +115,7 @@ def system(explore_max_tiles):
                  "failed, every door of it tried; passed over for %g game minutes." % (", ".join(WHYS), SHUN_MIN))
     lines.append("`stuck` names a square your walks could not leave and the edge they failed on: answer a goal away "
                  "from it.")   # P27-F: the view's `stuck` (E19's four walks from the gate square, each stuck unmoved)
+    lines.append("`stall` names the target square of the last goal that ran out of time with you not moving: never "
+                 "answer that square while it reads; choose another goal.")   # P29-B: F13's four answers of `edge`
     lines.append("The user message is the view: one `key: value` line per key.")
     return "\n".join(lines) + "\n"

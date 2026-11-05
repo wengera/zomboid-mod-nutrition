@@ -302,7 +302,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   - Survival 25 (iteration 23, F13, `f_goals_14-20261105-021722`; Plan 29 Task 1): P29-A, the route through a door
     (the goal's and the Fight's) walks to the square one step beyond its far square when the map holds it open, the
     Fight's at a walk, and a route leg's end is read by whether it crossed, an uncrossed `done` the door's failure and
-    a marked door wall (`edges.py`'s module docstring the rule); `T13_SWITCHES` (ROUTE_CROSS).
+    a marked door wall (`edges.py`'s module docstring the rule); P29-B, a `goal budget` end with the character moved
+    under STALL_R since the goal began cools the goal and marks its target, the view carrying it as `stall`
+    (`goal_runner.py`'s module docstring the rule); `T13_SWITCHES` (ROUTE_CROSS, GOAL_STALL).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -434,9 +436,9 @@ T11_SWITCHES = ("WOUND_DRESS", "SHOVE_BACK", "DRIFT_STAND", "FLOOR_PAIN", "BUSY_
 # APPROACH_WALK, fix 1's seventh); P28-B1 withdrawn (no switch)
 T12_SWITCHES = ("MELEE",)
 # survival iteration 22 (Plan 28 Task 7b, cut 1 of the maneuver layer): the melee maneuver on `threat.Threat` (MELEE)
-T13_SWITCHES = ("ROUTE_CROSS",)
+T13_SWITCHES = ("ROUTE_CROSS", "GOAL_STALL")
 # survival iteration 23 (Plan 29 Task 1): P29-A on `threat.Threat` beside BLOCKED_EDGE (ROUTE_CROSS: the Fight's
-# `route_cross` rule, copied to the goals' kit)
+# `route_cross` rule, copied to the goals' kit); P29-B on `Survive` (GOAL_STALL, copied to the goal runner)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -497,6 +499,10 @@ class Survive(Threat):
                           # route's first edge, the scripted source then leaving the square by a known way, never a Rest
                           # (`goal_runner.GoalRunner._read_walks`, `ScriptedSource._ways_out`); off, no mark. Set on the
                           # goal runner each tick (`_read`). In T10_SWITCHES
+    GOAL_STALL = True     # ruling P29-B (Plan 29 Task 1): a goal ended `goal budget` with the character moved under
+                          # STALL_R since it began is cooled and its target marked, the view naming it `stall`
+                          # (`goal_runner.GoalRunner._stall`); off, the budget end as before. Set on the goal runner
+                          # each tick (`_read`). In T13_SWITCHES
     STOCK_EARLY = True    # ruling P27-K1 (Plan 27 Task 5): the rag stock's rip on any tick with no zombie within
                           # DANGER_R once the clean dressings fall under RAG_STOCK, a running goal walk superseded for
                           # it (`_care_stock`, `care.Care.early_rip`), and the care yield taking the wound's rip as a
@@ -1052,6 +1058,7 @@ class Survive(Threat):
         self.care.spent_keep = self.SPENT_KEEP   # P27-D: read by the Care's choose
         self.care.stock_early = self.STOCK_EARLY   # P27-K1: read by the threat branch's care yield (`_care_yields`)
         self.goals.stuck_leave = self.STUCK_LEAVE   # P27-F: read by the goal runner's observe, below
+        self.goals.goal_stall = self.GOAL_STALL   # P29-B: read by the goal runner's observe, below
         self.ticks += 1
         self._observed = []
         self._note_failures()
@@ -1142,6 +1149,9 @@ class Survive(Threat):
         mark = getattr(self.goals, "stuck_now", None)
         if mark is not None:   # P27-F: the goal walk's stuck mark read this tick, on the goal why whatever answered
             tried["goal"] = dict(tried.get("goal") or {}, stuck_mark=mark)
+        stall = getattr(self.goals, "stall_now", None)
+        if stall is not None:   # P29-B: the goal's budget end read as a stall this tick, whatever answered
+            tried["goal"] = dict(tried.get("goal") or {}, stall=stall)
         inputs["branches"] = tried
         return Decision(branch, owner, cmd, inputs)
 

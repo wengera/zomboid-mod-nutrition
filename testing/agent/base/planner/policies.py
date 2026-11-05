@@ -313,6 +313,12 @@ ATTACK_MARGIN = 0.35      # tiles past the frame's `weapon.reach` within which t
                           # into zombie 3189, which bit 1.799 s after the line's frame; the controller's number
 WALK_DONE_R = 1.0         # tiles: the Lua's walkTo ends `done` within this of its target (PZAgent_Skills.lua K.DONE_R),
                           # so the advance's walk to the reach (P27-M) targets the point this much nearer the zombie
+STALL_R = 1.0             # tiles: a goal ended `goal budget` with the character's displacement since it began under
+                          # this is a stall (ruling P29-B, GOAL_STALL: `goal_runner.GoalRunner._stall`): F13's stall
+                          # (`f_goals_14-20261105-021722`, #4633, #4634), the four ExploreTowards begun at the gate
+                          # (10747, 10642) on decision lines 823 to 1405, each ending `goal budget` 90.00974249839783
+                          # to 90.52074551582336 wall seconds on with the character 0.0 tiles from where it began;
+                          # WALK_DONE_R, a judgment (the spec's number)
 # survival iteration 21 (Plan 28 Task 3, rulings P28-A to P28-E; F11 `f_goals_12-20261103-144240`)
 WOUND_RESERVE = 1         # clean dressings (bandages and clean rags) the wound step keeps for a bleed: a part reading
                           # `wound`, not bleeding, is dressed only while more than this are held (P28-A): F11's

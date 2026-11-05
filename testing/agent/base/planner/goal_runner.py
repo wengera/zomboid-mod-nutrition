@@ -16,6 +16,16 @@ building on the square's side of the marked edge (its door, else its nearest roo
 nearest unlooted building, else an `ExploreToward` STUCK_LEAVE_R tiles from the square away from the edge, logged
 `leave` {why "stuck", target {type, args}} on the runner's why of that pick. Cost if wrong: a walk away from an edge
 the next session might cross.
+
+Ruling P29-B (`GOAL_STALL`, survival iteration 23; F13, `f_goals_14-20261105-021722`: four ExploreTowards in a row
+begun at the fence gate (10747, 10642) each ended `goal budget` with the character 0.0 tiles from where it began, the
+model's calls reading one position, `last_goal` failed and `cooled` empty, and answering the view's own `edge` square
+again, #4633, #4634): the runner keeps the player's position when it takes a goal (`Goal.start_xy`), and a `goal
+budget` end of a goal with a target of its own (`Goal.stall_target`: an ExploreToward's square) with the character's
+displacement since then under STALL_R is a stall (`_stall`): the goal cooled (GOAL_COOL_S, though it sent) and its
+target marked (`mark_far`: `World.mark_stuck`, so the view's `edge` leaves it), logged `stall` {moved, target} on that
+tick's decision line (`stall_now`), and the view carries the target as `stall` while the goal is cooled (`stalled`).
+Cost if wrong: a far target dropped after one long stall.
 """
 import json
 import math
@@ -27,7 +37,7 @@ from agent.base.planner.goal_policies import ExploreToward, Goal, Kit, LootBuild
 from agent.base.planner.goals import (ARRIVE_R, BUILDING_R, COOL_REASONS, GOAL_COOL_S, GOAL_HOLD_SUPERSEDE_TICKS,
                                       OPTIONAL_FIELDS, REST_S, SCHEMA_PATH, STOCK_KINDS, _num, goal_key, int_id)
 from agent.base.planner.night import player_square
-from agent.base.planner.policies import LOOT_MAX_LEVEL, STUCK_LEAVE_R, STUCK_MARK_MIN, me_xy
+from agent.base.planner.policies import LOOT_MAX_LEVEL, STALL_R, STUCK_LEAVE_R, STUCK_MARK_MIN, me_xy
 from agent.base.planner.view import why_of
 
 
@@ -206,6 +216,9 @@ class GoalRunner:
         self.stuck_leave = True   # ruling P27-F: Survive sets it each tick from its `STUCK_LEAVE`; off, no stuck mark
         self.stuck_marks = {}  # square (x, y, z) -> (world minutes, {edge, square, goal}) of a walk stuck unmoved there
         self.stuck_now = None  # this tick's stuck mark (P27-F), logged on the decision line, else None
+        self.goal_stall = True   # ruling P29-B: Survive sets it each tick from its `GOAL_STALL`; off, no stall read
+        self.stall_now = None  # this observe's stall (P29-B) {moved, target}, logged on the decision line, else None
+        self.stall = None      # (goal_key, target) of the last stall, the view's `stall` while that goal is cooled
         self.world = None      # the World of the last observe (a sent walk's square is read off it)
         self._walks = []       # (walk Action, the send's square, the player's position, the goal's {type, args})
         self._ended_now = None
@@ -250,7 +263,7 @@ class GoalRunner:
         """The kit's bookkeeping and the running goal's pre-emption and budget (the module docstring); Survive calls
         it every tick before its branches."""
         self.actions, self.world = actions, world
-        self._ended_now, self._observed = None, True
+        self._ended_now, self._observed, self.stall_now = None, True, None
         self.kit.observe(world, actions)
         self.kit.read_buildings(world)
         self._read_walks(world, actions)
@@ -264,8 +277,31 @@ class GoalRunner:
             g.end("superseded", "hold")
         elif self.clock() - g.started_wall > g.budget():
             g.end("failed", "goal budget")
+            self._stall(world, g)
         if not g.running:
             self._close(g)
+
+    def _stall(self, world, g):
+        """Ruling P29-B (the module docstring): goal `g` ended `goal budget`; with `goal_stall` on, a target of its own
+        and the player moved under STALL_R since the runner took it, the goal is cooled, its target marked
+        (`mark_far`), the stall logged (`stall_now`) and kept for the view (`stall`)."""
+        target = g.stall_target() if self.goal_stall else None
+        if target is None or g.start_xy is None:
+            return
+        mx, my = me_xy(world)
+        moved = math.hypot(mx - g.start_xy[0], my - g.start_xy[1])
+        if moved >= STALL_R:
+            return
+        g.cool = True
+        g.mark_far(world)
+        self.stall_now = {"moved": moved, "target": list(target)}
+        self.stall = (goal_key(g.TYPE, g.args()), list(target))
+
+    def stalled(self):
+        """Ruling P29-B: the last stall's target [x, y] while its goal is cooled, else None (the view's `stall`)."""
+        if self.stall is None or self.cooled.get(self.stall[0], 0.0) <= self.clock():
+            return None
+        return list(self.stall[1])
 
     def _read_walks(self, world, actions):
         """Ruling P27-F (the module docstring): each goal walk sent (`_walks`) read once at its end; one that ended
@@ -314,12 +350,12 @@ class GoalRunner:
             if g is not None and self.cooled.get(goal_key(g.TYPE, g.args()), 0.0) > self.clock():
                 refused, self.refusal, g = {"type": g.TYPE, "args": g.args()}, self._refusal(g), None
             if g is None:
-                self.why = {"proposed": None, "refused": refused, "ended": ended, "pending": self.pending}
-                if route_end is not None:
-                    self.why["route_end"] = route_end
+                self.why = self._noted({"proposed": None, "refused": refused, "ended": ended, "pending": self.pending},
+                                       route_end)
                 return None
             proposed = g.TYPE
             g.started_wall, g.kit = self.clock(), self.kit   # the budget starts here, never while pending
+            g.start_xy = me_xy(world)   # P29-B: where the goal began, its budget end's stall read
             g.for_hold = bool(seen.get("spent"))   # a Rest under a hold is not "nothing to do here" (`Kit.rested`)
             g.mark = actions.history[-1] if actions.history else None
             self.current, self.hold_ticks = g, 0
@@ -328,14 +364,21 @@ class GoalRunner:
         if not g.running:
             self._close(g)
             cmd = None
-        self.why = dict(g.why, goal=g.TYPE, args=g.args(), state=g.state, reason=g.reason, proposed=proposed,
-                        ended=ended)
-        if route_end is not None:
-            self.why["route_end"] = route_end
+        self.why = self._noted(dict(g.why, goal=g.TYPE, args=g.args(), state=g.state, reason=g.reason,
+                                    proposed=proposed, ended=ended), route_end)
         leave = getattr(self.source, "last_leave", None) if proposed is not None else None
         if leave is not None:
             self.why["leave"] = leave   # P27-F: the source's pick that leaves a marked square
         return cmd
+
+    def _noted(self, why, route_end):
+        """`why` with this tick's route leg end (P29-A, `route_end`) and budget-end stall (P29-B, `stall`), when
+        read."""
+        if route_end is not None:
+            why["route_end"] = route_end
+        if self.stall_now is not None:
+            why["stall"] = self.stall_now
+        return why
 
     def held(self, by_other):
         """Survive's report at the end of each tick: `by_other` when a branch other than the goal answered with no

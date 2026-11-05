@@ -339,11 +339,14 @@ def test_rows_are_the_history_then_the_running_goal(tmp_path):
 
 
 def test_a_goal_past_goal_max_s_is_failed_and_replaced(tmp_path):
+    """Named change, ruling P29-B (Plan 29 Task 1): the character never moves here, so the budget end would be a stall
+    (cooled, its target marked); pinned with the runner's `goal_stall` off, the budget end before it."""
     r = Rig(tmp_path)
     r.frame()
     g = ExploreToward(130, 200)                                          # its walk never ends: no frame pumps it
     src = Src(g, Rest(1.0))
     runner = GoalRunner(src, r.clock)
+    runner.goal_stall = False
     runner.kit.bind(r.world, r.acts)
     runner.kit.explore.scanned.add(runner.kit.explore.place())
     runner.send(runner.tick(r.world, r.acts))

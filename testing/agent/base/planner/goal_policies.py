@@ -98,6 +98,7 @@ class Goal:
         self.mark = None       # the last action sent (by anyone) when the runner took this goal
         self.why = {}          # the goal's inputs to its last choice, logged under the goal branch
         self.sent_n = 0        # commands this goal sent
+        self.start_xy = None   # the player's (x, y) when the runner took this goal (P29-B: its stall read)
         self._read = None      # the last action whose end observe() has read
         self._begun = False
 
@@ -172,6 +173,11 @@ class Goal:
     def sent(self, cmd, action):
         self.last = action
         self.sent_n += 1
+
+    def stall_target(self):
+        """Ruling P29-B: the goal's own target square [x, y] its budget end is read against (`GoalRunner._stall`), else
+        None: a goal with no far target of its own (a Rest stands by design) is never a stall."""
+        return None
 
     def take_route_end(self):
         """Ruling P29-A: the route leg's end read since the last take (`_Legs`'s `route_end`, `edges.route_end`'s why),
@@ -307,6 +313,9 @@ class ExploreToward(_Legs, _Climbing, Goal):
 
     def mark_far(self, world):
         world.mark_stuck(self.x, self.y)
+
+    def stall_target(self):
+        return [self.x, self.y]
 
     def ended(self, world, action):
         leg = self._leg_ended(action, world)

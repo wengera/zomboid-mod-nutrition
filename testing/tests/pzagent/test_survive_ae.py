@@ -13,6 +13,10 @@ answered from the view's `edge` (10748, 10650) (decision line 823 on).
   crossed", "out")`), never "next", logged `route_end` {door, crossed, noted, next, dropped}; the second marks the door,
   which the route then reads as wall: the run's next way, else the goal ends `failed "blocked edge"`, cooled; the
   Fight's route at a walk, never a run.
+- P29-B (`GOAL_STALL`), a budget end that never moved marks its target: F13's calls 14 to 18 (each goal begun at the
+  stall position, 90 s of wall time, the character unmoved): a `goal budget` end with the character moved under
+  STALL_R since the goal began cools the goal and marks its target (`mark_far`), logged `stall` {moved, target}, the
+  next view carrying `stall` (the target) and `cooled` naming the goal.
 """
 from agent.base.planner import edges as E
 from agent.base.planner import survive as S
@@ -260,3 +264,106 @@ def test_the_beyond_square_is_the_far_square_plus_the_edge_s_normal(tmp_path):
     assert E.beyond_square(r.world, (10747, 10642, 0), edge) == (10747, 10643, 0)
     assert E.beyond_square(r.world, (10747, 10641, 0), edge) is None
     assert E.side_of(edge, STALL) == "N" and E.side_of(edge, BEYOND) == "S"
+
+
+# ================================================================ P29-B: a budget end that never moved
+def stall_rig(tmp_path, on=True):
+    """F13's calls 14 to 18: a Survive whose goal (the source's one ExploreToward at the view's `edge`) begins at the
+    stall position, under F13's own route rules (`ROUTE_CROSS` off: the walk to the far square, each `done` read as
+    "next"), `GOAL_STALL` set to `on`."""
+    r = Rig(tmp_path)
+    sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=Src(ExploreToward(*EDGE)))
+    sv.ROUTE_CROSS = False
+    sv.GOAL_STALL = on
+    r.scan(gate_map())
+    r.frame(x=STALL[0], y=STALL[1], game_min=648.0)
+    sv.goals.kit.bind(r.world, r.acts)
+    sv.goals.kit.explore.scanned.add(sv.goals.kit.explore.place())
+    return r, sv
+
+
+def stand(r, sv, at, dt=5.0):
+    """F13's stall: every route walk answered `done` at once, the clock stepped `dt` wall seconds a tick, the character
+    read at `at`, until the goal's budget ends; the last tick's decision line's goal why."""
+    a = tick(r, sv)
+    assert a is not None and (a.type, a.args["x"], a.args["y"]) == ("walkTo", FAR[0], FAR[1])
+    gm = 648.0
+    while not sv.goals.history:
+        if a is not None and a.state not in ("done", "failed", "timeout", "rejected"):
+            r.answer()
+        r.advance(dt)
+        gm += 0.1
+        r.frame(x=at[0], y=at[1], game_min=gm)
+        a = tick(r, sv)
+    from .test_survive import last
+    return (last(r.dir)["inputs"]["branches"].get("goal") or {})
+
+
+def test_the_iteration_23_switches_and_stall_r():
+    """`survive.T13_SWITCHES`: ROUTE_CROSS (P29-A, on `threat.Threat`) and GOAL_STALL (P29-B, on `Survive`, copied to
+    the goal runner each tick), each on by default; STALL_R the Lua walk's done radius."""
+    from agent.base.planner import policies as P
+    assert S.T13_SWITCHES == ("ROUTE_CROSS", "GOAL_STALL")
+    assert all(getattr(S.Survive, n) is True for n in S.T13_SWITCHES)
+    assert P.STALL_R == 1.0 == P.WALK_DONE_R and GoalRunner(Src(None)).goal_stall is True
+
+
+def test_a_budget_end_that_never_moved_marks_its_target_and_the_view_names_it(tmp_path):
+    """P29-B: F13's goal begun at the stall position, its route walks `done` unmoved for 90 s of wall time, the
+    character within 0.3 tiles of where it began: the end is `failed "goal budget"` with `stall` {moved, target} on the
+    line, the goal cooled and its target marked (`mark_far`: `World.stuck`), the next view carrying `stall` (the
+    target, rendered after `last_goal`) and `cooled` naming the goal."""
+    from agent.base.planner import view as V
+    r, sv = stall_rig(tmp_path)
+    at = (STALL[0], STALL[1] - 0.3)
+    w = stand(r, sv, at)
+    row = sv.goals.history[-1]
+    assert (row["type"], row["state"], row["reason"]) == ("ExploreToward", "failed", "goal budget")
+    moved = w["stall"]["moved"]
+    assert abs(moved - 0.3) < 1e-9 and w["stall"] == {"moved": moved, "target": list(EDGE)}
+    assert goal_key("ExploreToward", {"x": EDGE[0], "y": EDGE[1]}) in sv.goals.cooled
+    assert EDGE in r.world.stuck
+    v = sv._view()
+    assert v["stall"] == list(EDGE)
+    assert {"type": "ExploreToward", "args": {"x": EDGE[0], "y": EDGE[1]}} in v["cooled"]
+    lines = V.render(v).splitlines()
+    k = [ln.split(":", 1)[0] for ln in lines]
+    assert k[k.index("last_goal") + 1] == "stall" and "stall: [10748,10650]" in lines
+
+
+def test_a_budget_end_that_moved_2_5_tiles_marks_nothing_as_today(tmp_path):
+    """P29-B's other side: the character 2.5 tiles from where the goal began at its budget end: `failed "goal
+    budget"` with no `stall`, no mark, not cooled (it sent), no `stall` in the view."""
+    r, sv = stall_rig(tmp_path)
+    w = stand(r, sv, (STALL[0], STALL[1] - 2.5))
+    assert sv.goals.history[-1]["reason"] == "goal budget" and "stall" not in w
+    assert sv.goals.cooled == {} and EDGE not in r.world.stuck and "stall" not in sv._view()
+
+
+def test_with_goal_stall_off_a_budget_end_unmoved_marks_nothing(tmp_path):
+    r, sv = stall_rig(tmp_path, on=False)
+    w = stand(r, sv, (STALL[0], STALL[1] - 0.3))
+    assert sv.goals.history[-1]["reason"] == "goal budget" and "stall" not in w
+    assert sv.goals.cooled == {} and EDGE not in r.world.stuck and "stall" not in sv._view()
+    assert sv.goals.goal_stall is False
+
+
+def test_a_rest_s_budget_end_is_never_a_stall(tmp_path):
+    """P29-B reads a goal with a target of its own (`stall_target`: an ExploreToward's square); a Rest stands by
+    design, so its budget end (here a Rest past its budget unread by its own check) is no stall: nothing marked, no
+    `stall` (it is cooled as before, having sent nothing)."""
+    from agent.base.planner.goals import Rest
+    r = Rig(tmp_path)
+    r.frame(x=STALL[0], y=STALL[1])
+    runner = GoalRunner(Src(Rest(5.0)), r.clock)
+    runner.tick(r.world, r.acts)
+    r.advance(200.0)
+    runner.observe(r.world, r.acts)
+    assert runner.history[-1]["reason"] == "goal budget"
+    assert runner.stall_now is None and runner.stalled() is None and not r.world.stuck
+
+
+def test_the_prompt_names_the_stall_square_as_one_not_to_answer():
+    from agent.base.planner import goal_prompt as GP
+    assert ("`stall` names the target square of the last goal that ran out of time with you not moving: never "
+            "answer that square while it reads") in GP.system(60.0)
