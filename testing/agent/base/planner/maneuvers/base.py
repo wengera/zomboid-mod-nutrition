@@ -13,6 +13,8 @@ The cross-tick flags a sequence needs live in the maneuver and die with it (the 
 - `step()`: the next command, or None (a subclass's: it never sends itself).
 - `over()`: None while it runs, else its end (a subclass sets it through `_end`); `drained()`: every action it sent has
   been read terminal, so an owner that dropped it may stop observing it.
+- `take_kills()`, `take_span()`: what its owner takes after each `observe` (running or retired): the target ids it read
+  killed since the last take (default `[]`), and the span it closed since the last take (default None), as `Melee` does.
 - `why`: its own fields; `log()` is `{maneuver: name, ...why}`, what its owner logs on every tick it runs.
 Idempotent within a tick: a second `observe()` with no new line reads nothing.
 """
@@ -66,6 +68,15 @@ class Maneuver:
 
     def progressed(self, line):
         """Hook: one new progress act line of the current action (the whole line, its `result` the skill's)."""
+
+    def take_kills(self):
+        """The target ids this maneuver read killed since the last take; a maneuver that reads kills overrides it."""
+        return []
+
+    def take_span(self):
+        """The span this maneuver closed since the last take, else None; a maneuver that closes spans overrides it
+        (`Melee`: (strikes, health fell or None))."""
+        return None
 
     def step(self):
         """The next command, or None."""

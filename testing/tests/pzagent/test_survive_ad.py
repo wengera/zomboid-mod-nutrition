@@ -30,6 +30,7 @@ from agent.base.pza1 import Scan
 from .fakemod import MELEE_CAPS
 from .test_policies import BAT, Rig, square
 from .test_survive import make, threat_why, tick
+from .test_lua_skills import load
 from .test_survive_q import fr, z
 
 
@@ -896,6 +897,34 @@ def test_interrupted_timeout_and_no_target_back_off_to_the_ladder(tmp_path):
             assert (b.type == "melee") is (k > P.MELEE_BACKOFF_TICKS), (reason, k)
             if b.type != "melee":
                 act(r, b, "done", result={})
+
+
+def test_the_melee_walk_bound_is_the_lua_s_stomp_approach(lua):
+    """Plan 28 close fix 1 (review-close item 13): `MELEE_WALK_S` (the planner-side bound on the walk to a fallen target
+    across re-sends, fix 1's residual `c2b6bae2`) mirrors the stance skill's `K.STOMP_APPROACH_MS`, read here off the
+    loaded Lua; a tune of one side without the other breaks that bound."""
+    load(lua)
+    assert P.MELEE_WALK_S * 1000 == lua.eval("PZA.skills.STOMP_APPROACH_MS")
+
+
+def test_a_maneuver_without_kills_or_a_span_is_observed_whole(tmp_path):
+    """Plan 28 close fix 1 (review-close item 14): `_observe_maneuver` takes kills and a span off every maneuver, so the
+    base defines them (`[]`, None) and a subclass that overrides neither is observed with no AttributeError and no kill
+    read, running and retired."""
+    class Bare(Maneuver):
+        name = "bare"
+
+        def step(self):
+            return None
+
+    r = rig(tmp_path, "done")
+    f = fight(r)
+    dead = []
+    f._read_dead = dead.append
+    f.m = Bare(r.world, r.acts, r.clock)
+    f._spent_m = [Bare(r.world, r.acts, r.clock)]
+    f._observe_maneuver()
+    assert dead == [] and f.m.take_kills() == [] and f.m.take_span() is None
 
 
 def test_the_decision_line_carries_the_ladder_the_re_send_and_the_end(tmp_path):
