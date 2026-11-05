@@ -2,5 +2,6 @@
 `arch-review-cerebellum.md` § 3.5): `base.Maneuver`, one named physical sequence with its own state, one command at a
 time, which a policy holds while it runs (the Fight's `m`)."""
 from agent.base.planner.maneuvers.base import Maneuver
+from agent.base.planner.maneuvers.melee import Melee
 
-__all__ = ["Maneuver"]
+__all__ = ["Maneuver", "Melee"]

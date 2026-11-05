@@ -153,10 +153,23 @@ one table the gates and the other policies import).
   CIRCLE_TURN off the straight away heading, the side last used first while `clear_heading` passes it, else the other,
   else straight away and STEER_TURNS as before (`_circle_turn`, logged `circle` {turn}); two or more standing within
   KEEP_R keep the straight backpedal.
+Survival 24 (survival iteration 22; Plan 28 Task 7b, cut 1 of the maneuver layer; the architecture review
+`arch-review-cerebellum.md` § 3.5; survive.py's docstring the record): the melee maneuver (`dispatch.FightDispatch`,
+its module docstring the rule): with the `melee` rule on (Survive's MELEE) and the build announcing PZA/1.8's `melee`,
+where the ladder (`_ladder`, every rule above) would send an in-reach `aim` leg (`enter`, `back`, `stand` within
+KEEP_R), an `attack`, a `shove`, a `stomp` or a floor swing at its pin within MELEE_RELEASE_R, the Fight starts or
+continues its `Melee` (`m`, `maneuvers.melee`) instead, which Task 7a's Lua skill runs at the client's tick rate:
+mode strike, shove (`no_swing`) or finish (a fallen pin), its `back` heading P28-E's, re-sent with a fresh one before
+MELEE_S runs out (`melee` {resend}); `busy` holds it as it holds a leg, a flee's hand-over supersedes it, its kill is
+read once (`_read_dead`) and a span of strikes with no health fall counts in the no-progress streak. Everything above
+the dispatch point is unchanged, and the corner Fight (`point_blank`), the door fight (`only`), the doorway stand and
+the flee's finish keep the ladder in cut 1; nothing of the ladder is deleted (cut 2 deletes once cut 1 reads no
+worse).
 """
 import math
 import time
 
+from agent.base.planner.dispatch import FightDispatch
 from agent.base.planner.edges import FightEdge
 from agent.base.planner.finish import FightFinish
 from agent.base.planner.policies import (AIM_LEG_S, AIM_R, CIRCLE_TURN, CORNERED_R, DANGER_R,
@@ -183,13 +196,14 @@ FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finis
                "shove_break_run", "blocked_edge", "wounded_swing", "low_swing",
                "floor_finish", "fallen_seek", "shove_close", "low_exit", "attack_reach",
                "point_blank_pin", "busy_retry", "floor_pain", "shove_back",
-               "drift_stand", "circle", "approach_walk")   # survival iterations 13 to 21's Fight rules (P25-A,
-                     # P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H, P27-J, P27-K2;
-                     # fix 2's P27-M and P27-N; P28-D, P28-C, P28-B2, P28-B3, P28-E, the approach walk), each on in
-                     # `rules` unless Survive's switch for it is off
+               "drift_stand", "circle", "approach_walk", "melee")   # survival iterations 13 to 22's Fight
+                     # rules (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H,
+                     # P27-J, P27-K2; fix 2's P27-M and P27-N; P28-D, P28-C, P28-B2, P28-B3, P28-E, the approach walk;
+                     # the melee, cut 1 of the maneuver layer), each on in `rules` unless Survive's switch for it is
+                     # off
 
 
-class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach, Policy):
+class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach, FightDispatch, Policy):
     """The Fight (the module docstring), with its rules in mixins, the state the Fight's own:
     - `FightPull` (`pull.py`): the pull of a lone chaser and the listing's edge hold (P24-AN, P24-AU);
     - `FightFinish` (`finish.py`): the finish of the fallen and the stomp (P24-AL, P24-AV, P25-B, P25-J, P27-G, P27-H);
@@ -197,7 +211,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
       P27-E, P27-J);
     - `FightEdge` (`edges.py`): the route round a blocked edge (P25-X);
     - `FightPin` (`pin.py`): the point-blank pin, a zombie at point blank or attacking never dropped (P27-N, fix 3);
-    - `FightReach` (`reach.py`): the attack within the weapon's reach and the walk to it (P27-M)."""
+    - `FightReach` (`reach.py`): the attack within the weapon's reach and the walk to it (P27-M);
+    - `FightDispatch` (`dispatch.py`): the melee maneuver in the ladder's in-reach sends' place (survival iteration
+      22, cut 1 of the maneuver layer)."""
 
     def __init__(self, world, actions, clock=time.time, unreachable=None, target=None, dead=None):
         super().__init__(world, actions, clock)
@@ -276,6 +292,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
                                             # a miss)
         self._back_leg = None               # (aim action, zombie id) of the last `shove_back` leg (P28-B2), else None
         self._back_left = False             # that leg's target was read beyond POINT_BLANK_R since it was sent
+        self._init_dispatch()   # survival iteration 22: the running maneuver, `m` (`dispatch.FightDispatch`)
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -545,6 +562,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         walk (the approach and swing's, a reposition) holds until it ends."""
         if not super().busy():
             return False
+        if self.last.type == "melee":
+            return self._melee_holds()   # survival iteration 22: the running melee (`dispatch.FightDispatch`)
         if self.last.type in ("attack", "walkTo") and self._finish_gives_way():
             return False   # P25-B: a fallen zombie within FINISH_R is stomped before the attack's walk goes on
         if self.last.type == "walkTo" and self._stance_walk is not None and self._stance_walk[0] is self.last:
@@ -601,12 +620,17 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             return
         self._kill_read = a
         if isinstance(a.result, dict) and a.result.get("targetDead") is True:
-            zid = a.args.get("targetId")
-            if self.world.note_kill(zid):
-                self.kill = zid
-            self.dead[zid] = self.clock() + UNREACHABLE_S   # the controller's ruling on concern 6 (Task 12 fix 1)
-            if zid == self.target:
-                self._unpin()
+            self._read_dead(a.args.get("targetId"))
+
+    def _read_dead(self, zid):
+        """Zombie `zid` read killed by the Fight's own send (an attack's or a leg's `targetDead`, a melee's `kill`):
+        `kill` names it on this observe where the World counts it new, it is skipped as dead for UNREACHABLE_S and
+        unpinned."""
+        if self.world.note_kill(zid):
+            self.kill = zid
+        self.dead[zid] = self.clock() + UNREACHABLE_S   # the controller's ruling on concern 6 (Task 12 fix 1)
+        if zid == self.target:
+            self._unpin()
 
     def observe(self):
         self._drop_pin_read()
@@ -614,6 +638,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         self._observe_edge()
         self._observe_edge_route()
         self._observe_kill()
+        self._observe_maneuver()   # survival iteration 22: the melee's ends, a kill among them (`dispatch.py`)
         self._take_pin_read()   # once a tick: `blocked` and the pin read it on every call (fix 3, minor 4)
         self._observe_leg()
         t = self._target(pin=False)
@@ -848,6 +873,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         if retry is not None and cmd is not None and (cmd.TYPE, getattr(cmd, "targetId", None)) == retry:
             self.why["busy_retry"] = {"target": retry[1], "kind": retry[0]}   # P28-D: the send rejected `busy`, again
             self._busy_retry = None
+        if self._m_end is not None:   # survival iteration 22: the maneuver that ended since the last choose
+            self.why["melee_end"], self._m_end = self._m_end, None
         return cmd
 
     def _repin_point_blank(self):
@@ -885,6 +912,14 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         self.target, self.repositioned = nz[0], False
 
     def _choose(self):
+        """The decision ladder's command (`_ladder`), or at its in-reach sends at the pin the melee maneuver's in its
+        place (`dispatch.FightDispatch._melee_dispatch`, survival iteration 22), but on the choose after an end that
+        gives it back to the ladder (`_m_ladder`)."""
+        cmd = self._ladder()
+        ladder, self._m_ladder = self._m_ladder, False
+        return cmd if ladder else self._melee_dispatch(cmd)
+
+    def _ladder(self):
         self._seek_send, self._walk_kind, self._edge_send = False, None, None
         self._repin_point_blank()
         self._pull_pin()
@@ -935,7 +970,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             if edge[0] == "route":
                 return edge[1]
             read = self.blocked_edge
-            cmd = self._choose()
+            cmd = self._ladder()
             self.why = dict(self.why, marked=zid)
             if "blocked_edge" not in self.why:   # the re-run's own (the routed or the refused second zombie's) stands
                 self.why["blocked_edge"] = read
@@ -953,7 +988,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             if sq is None:   # a second blocked read, or no clear square: the target is unreachable, the next tried
                 self._mark_unreachable(zid)
                 read = self.why
-                cmd = self._choose()
+                cmd = self._ladder()
                 self.why = dict(read if self.why["target"] is None else self.why, marked=zid)
                 return cmd
             self.repositioned = True
@@ -1087,6 +1122,10 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
                                                                          self.trans)), None)
 
     def sent(self, cmd, action):
+        if cmd.TYPE == "melee":
+            self.m.sent(cmd, action)   # survival iteration 22: the maneuver's own send
+        else:
+            self._retire_maneuver()   # the ladder's command in its place: the Lua supersedes the melee
         if cmd.TYPE == "aim":
             self._leg = self.why.get("leg")
             if "shove_back" in self.why:   # P28-B2 (fix 1, M1): the one leg for this miss, held by `busy`
@@ -1103,7 +1142,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         elif cmd.TYPE == "shove":
             self._shoved = True
             self._shove_a[cmd.targetId] = action   # P25-A: its end read by `_shove_missed`
-        elif cmd.TYPE in ("attack", "stomp"):
+        elif cmd.TYPE in ("attack", "stomp", "melee"):
             self._shoved = False
             if cmd.targetId != self._streak_id:   # a new target: its streak starts here
                 self._streak_id, self._streak_h, self.no_progress = cmd.targetId, self._target_health(cmd.targetId), 0

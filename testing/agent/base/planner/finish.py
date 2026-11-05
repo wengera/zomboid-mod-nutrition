@@ -530,6 +530,6 @@ class FightFinish:
             self._walk_kind = "fallen"
             return (WalkTo(*centre((z["x"], z["y"])), "walk"),)
         self._mark_unreachable(zid, SEEK_SKIP_S)
-        cmd = self._choose()
+        cmd = self._ladder()
         self.why = dict(self.why, fallen_seek=dict(read, left=True))
         return (cmd,)

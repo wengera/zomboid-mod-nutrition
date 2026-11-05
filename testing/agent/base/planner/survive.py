@@ -295,6 +295,10 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     (`fight.Fight.floor_swing_barred`, `finish.ThreatFinish._flee_finish`); the spec's 1 (b), the non-stance
     Fight's walk to a zombie beyond FIGHT_REACH or on its approach at a walk (`fight.Fight._choose`, APPROACH_WALK);
     `T11_SWITCHES`.
+  - Survival 24 (iteration 22, cut 1 of the maneuver layer; Plan 28 Task 7b, the architecture review
+    `arch-review-cerebellum.md` § 3.5): the melee maneuver (`maneuvers.Melee`, Task 7a's reflex skill `melee` of
+    PZA/1.8): where the Fight's ladder would send an in-reach stance leg, an attack, a shove, a stomp or a floor swing
+    at its pin, to a build announcing `melee` (`dispatch.FightDispatch`); `T12_SWITCHES` (MELEE).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -424,6 +428,8 @@ T11_SWITCHES = ("WOUND_DRESS", "SHOVE_BACK", "DRIFT_STAND", "FLOOR_PAIN", "BUSY_
 # survival iteration 21 (Plan 28 Task 3): P28-A on `Survive` (WOUND_DRESS, copied to the Care); P28-B2, P28-B3, P28-C,
 # P28-D, P28-E and the spec's 1 (b) on `threat.Threat` (SHOVE_BACK, DRIFT_STAND, FLOOR_PAIN, BUSY_RETRY, CIRCLE,
 # APPROACH_WALK, fix 1's seventh); P28-B1 withdrawn (no switch)
+T12_SWITCHES = ("MELEE",)
+# survival iteration 22 (Plan 28 Task 7b, cut 1 of the maneuver layer): the melee maneuver on `threat.Threat` (MELEE)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -445,7 +451,7 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "NEED_STATS", "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_RETRY_MIN", "FILL_SETTLE_S", "FILL_WANTS",
            "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T3_SWITCHES",
            "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES", "T7_SWITCHES", "T8_SWITCHES", "T9_SWITCHES", "T10_SWITCHES",
-           "T11_SWITCHES"]
+           "T11_SWITCHES", "T12_SWITCHES"]
 
 
 @dataclass

@@ -324,6 +324,18 @@ CIRCLE_TURN = 45.0        # degrees the stance's `back` leg from a lone standing
                           # straight away heading (P28-E, E20's candidate, #4576: the stance's legs walked straight
                           # toward or away from the target): half of STEER_TURNS' 90, the arc keeping the target within
                           # the swing's reach while it follows, a judgment (the spec's number)
+# survival iteration 22 (Plan 28 Task 7b, cut 1 of the maneuver layer: the melee reflex of PZA/1.8, `maneuvers.Melee`)
+MELEE_S = 2.5             # seconds one `melee` runs before the Lua ends it done `time` (its `seconds`): longer than
+                          # AIM_LEG_S 2.0, the stance leg it replaces in reach, by a quarter of it, since each send's
+                          # heading is fresh and a `done time` releases the stance the next send re-takes (Task 7a's
+                          # report, item 10), a judgment
+MELEE_RESEND_MARGIN_S = 0.5   # seconds before MELEE_S (from the running melee's accept) the Fight re-sends it at the
+                          # same target with a fresh `back` heading, so the Lua supersedes a melee still running and
+                          # keeps the stance (Task 7a: only a melee superseding a melee of the same target keeps it):
+                          # one planner tick at the drivers' PLANNER_HZ 2, so a tick lands inside the margin, a judgment
+MELEE_RELEASE_R = KEEP_R + KEEP_MARGIN   # tiles beyond which the melee ends `out of range` (its `releaseR`): the
+                          # running backpedal's own give-way past KEEP_R (`Fight.busy`), the ladder's legs taking the
+                          # target there
 
 
 def place_of(world):

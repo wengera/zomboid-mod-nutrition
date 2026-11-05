@@ -35,6 +35,7 @@ from agent.base.planner import threat as T
 from agent.base import pza1
 from agent.base.pza1 import Shove, Stomp
 
+from .fakemod import DEFAULT_HELLO
 from .test_policies import Rig, square
 from .test_survive import make, threat_why, tick
 from .test_survive_g import care_frame, care_why, garment, hello152, hold, part
@@ -546,7 +547,7 @@ def test_after_shove_repeat_s_the_shove_goes_again(tmp_path):
 
 def test_with_no_aim_announced_the_shove_goes_again(tmp_path):
     """A build announcing no `aim`: the back leg cannot go, so the shove does (amendment 4, `_wounded_leg`'s rule)."""
-    r = Rig(tmp_path, caps=[t for t in pza1.ACTION_TYPES if t != "aim"])
+    r = Rig(tmp_path, caps=[t for t in DEFAULT_HELLO["caps"] if t != "aim"])   # Plan 28 Task 7b: before PZA/1.8
     fr(r, [z(1, 100.0 + A49)], 30.0)
     f = fight(r)
     assert f.step().type == "shove"

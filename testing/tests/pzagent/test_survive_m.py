@@ -10,10 +10,12 @@ from agent.base import pza1
 from agent.base.planner import policies as P
 from agent.base.planner.policies import Fight
 
+from .fakemod import DEFAULT_HELLO
 from .test_policies import Rig, all_sends_valid, zombie
 from .test_survive import make, threat_why, tick
 
-NO_SWINGS = tuple(t for t in pza1.ACTION_TYPES if t not in ("shove", "stomp"))   # a build before PZA/1.7's two
+NO_SWINGS = tuple(t for t in DEFAULT_HELLO["caps"] if t not in ("shove", "stomp"))   # a build before PZA/1.7's two
+# (Plan 28 Task 7b: off the fake's pre-PZA/1.8 caps, so no `melee`, which the schema's types gained at Task 7a)
 
 
 def z(zid, x, y=200.0, floor=False):
@@ -153,7 +155,7 @@ def test_another_standing_zombie_within_min_range_takes_no_shove_or_stomp(tmp_pa
     a = f.step()
     assert (a.type, a.args) == ("attack", {"targetId": 1}) and "shove" not in f.why
     (tmp_path / "b").mkdir()
-    caps = tuple(t for t in pza1.ACTION_TYPES if t != "shove")
+    caps = tuple(t for t in DEFAULT_HELLO["caps"] if t != "shove")   # Plan 28 Task 7b: a pre-PZA/1.8 build's
     r2, f2 = fight(tmp_path / "b", [z(1, 101.0, floor=True), z(2, 100.0, 200.5)], caps=caps)
     a = f2.step()
     assert (a.type, a.args) == ("attack", {"targetId": 1}) and f2.why["floor"] is True

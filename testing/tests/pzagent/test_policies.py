@@ -17,7 +17,8 @@ from .fakemod import DEFAULT_FRAME, FakeMod, bad_args
 
 BAT = {"type": "Base.BaseballBat", "cond": 0.9, "reach": 1.2, "ammo": None}
 PZA15 = ("aim", "climb", "bandage", "rip", "wash", "fill")   # the PZA/1.5 skills (Task 9)
-CAPS_14 = tuple(t for t in fakemod.pza1.ACTION_TYPES if t not in PZA15)   # a PZA/1.4 build's hello caps
+CAPS_14 = tuple(t for t in fakemod.DEFAULT_HELLO["caps"] if t not in PZA15)   # a PZA/1.4 build's hello caps (Plan
+# 28 Task 7b: off the fake's pre-PZA/1.8 caps, so no `melee`, which the schema's types gained at Task 7a)
 
 
 def zombie(zid, x, y, me=(100.0, 200.0)):

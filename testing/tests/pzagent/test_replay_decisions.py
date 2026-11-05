@@ -214,8 +214,19 @@ def pre_t10(sv, keep=()):
 
 def pre_t11(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 28 Task 3 (survival iteration 21): its switches off
-    (`survive.T11_SWITCHES`), but those named in `keep` (the one-switch form `pre_t3`'s tests use)."""
+    (`survive.T11_SWITCHES`), but those named in `keep` (the one-switch form `pre_t3`'s tests use). Plan 28 Task 7b:
+    iteration 22's switch (`pre_t12`) off with them, so every seam onto an earlier rule reads it off."""
     for name in S.T11_SWITCHES:
+        if name not in keep:
+            setattr(sv, name, False)
+    pre_t12(sv)
+
+
+def pre_t12(sv, keep=()):
+    """The replay's mutate seam onto the rules before Plan 28 Task 7b (survival iteration 22): its switch off
+    (`survive.T12_SWITCHES`: MELEE, cut 1 of the maneuver layer), but those named in `keep`; every seam onto an
+    earlier rule reads it off (`pre_t11`)."""
+    for name in S.T12_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
 
@@ -836,7 +847,8 @@ def test_the_replay_ends_an_unbound_aim_at_its_seconds(monkeypatch):
     the tick its target comes inside KEEP_R (111, 2.46 tiles, 2.53 s after 106's leg) and the backpedal it sends
     there is the leg the ended one re-aimed; `end_legs` itself is pinned here on its own.
     Named change, ruling P24-X (Plan 24 Task 18): read on the replay with P24-X off (`pre_x`), the rules it pins
-    being earlier; P24-X re-recorded the golden from its line 1.
+    being earlier; P24-X re-recorded the golden from its line 1. Named change, Plan 28 Task 7b: `melee` joins
+    LEG_TYPES after the two (`test_an_unbound_melee_ends_done_at_its_seconds`).
     """
     from agent.base.actions import Action
     acts = R._Acts(None, {})
@@ -847,7 +859,7 @@ def test_the_replay_ends_an_unbound_aim_at_its_seconds(monkeypatch):
     acts.end_legs(101.9)
     assert leg.state == "sent"
     acts.end_legs(102.0)
-    assert (leg.state, leg.ended_wall, walk.state) == ("done", 102.0, "sent") and R.LEG_TYPES == ("steer", "aim")
+    assert (leg.state, leg.ended_wall, walk.state) == ("done", 102.0, "sent") and R.LEG_TYPES[:2] == ("steer", "aim")
     six = pre_gold(SIXTH)
     assert six[111]["action"]["type"] == "aim" and six[110]["why"]["holding"] == "a12"
     assert six[111]["why"]["leg"] == "back" and six[111]["why"]["dist"] <= P.KEEP_R
@@ -2001,3 +2013,34 @@ def test_p28_f_s_planner_side_moves_the_sixth_at_its_follow_up_swing():
     assert now["action"]["args"]["targetId"] == 15885
     assert then["action"] == {"type": "attack", "args": {"targetId": 15885}}
     assert then["why"]["dist"] == 1.0072464647115065
+
+
+# ================================================================ Plan 28 Task 7b: iteration 22 on the goldens
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_iteration_22_moves_no_golden(key):
+    """Survival iteration 22 (cut 1 of the maneuver layer: the melee maneuver, `dispatch.FightDispatch`, gated on a
+    hello announcing PZA/1.8's `melee`) moves no golden: no golden's record has a hello announcing `melee`, nor does
+    the sixth's added caps (`HELLO_CAPS`: the PZA/1.5 skills), so every Fight sends its ladder's command; the six are
+    byte-identical with MELEE on (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off
+    (`pre_t12`). The refactors beside it (the ladder's body as `Fight._ladder`, the kill read's `_read_dead`, the
+    replay's LEG_TYPES gaining `melee`) move none either."""
+    lines, _ = R.read_record(run_dir(key))
+    hellos = [ln for ln in lines if ln.get("kind") == "hello"]
+    assert hellos and not any("melee" in (h.get("caps") or ()) for h in hellos)
+    assert "melee" not in (R.HELLO_CAPS.get(key) or ())
+    off = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t12))}
+    assert off == gold(key)
+
+
+def test_an_unbound_melee_ends_done_at_its_seconds():
+    """`melee` is one of the replay's LEG_TYPES (Plan 28 Task 7b): an unbound one ends `done`, its result empty, once
+    its `seconds` have passed on the clock, as an unbound stance leg does, so a replayed span is MELEE_S long."""
+    from agent.base.actions import Action
+    assert R.LEG_TYPES == ("steer", "aim", "melee")
+    acts = R._Acts(None, [])
+    a = Action(aid="a1", type="melee", args={"targetId": 9, "seconds": P.MELEE_S}, deadline_s=30.0, sent_wall=100.0)
+    acts.unbound.append(a)
+    acts.end_legs(100.0 + P.MELEE_S - 0.1)
+    assert a.state == "sent"
+    acts.end_legs(100.0 + P.MELEE_S)
+    assert (a.state, a.result, a.ended_wall) == ("done", {}, 100.0 + P.MELEE_S)
