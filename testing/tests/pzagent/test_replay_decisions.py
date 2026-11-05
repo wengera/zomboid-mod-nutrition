@@ -236,7 +236,8 @@ def pre_t12(sv, keep=()):
 def pre_t13(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 29 Task 1 (survival iteration 23): its switches off
     (`survive.T13_SWITCHES`: ROUTE_CROSS, ruling P29-A; GOAL_STALL, P29-B; Task 2's hit rules, HEALTH_NEAR, P29-E, and
-    DRESS_FINISH, P29-D), but those named in `keep`; every seam onto an earlier rule reads them off (`pre_t12`)."""
+    DRESS_FINISH, P29-D; MANY_NEAR, P29-G; FINISH_LONE, P29-F), but those named in `keep`; every seam onto an earlier
+    rule reads them off (`pre_t12`)."""
     for name in S.T13_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
@@ -2121,7 +2122,8 @@ def test_iteration_23_s_hit_rules_move_four_goldens_at_the_many_count(key):
     - ROUTE_CROSS (P29-A) and GOAL_STALL (P29-B) move none (`test_iteration_23_moves_no_golden`). HEALTH_NEAR (P29-E)
       moves none: every golden `health` line holds a zombie within DANGER_R. DRESS_FINISH (P29-D) moves none: no golden
       flee commands over a running dressing with nobody within DANGER_R (the sixth's hello alone announces `bandage`,
-      and F1's parts decode `bleeding` None).
+      and F1's parts decode `bleeding` None). FINISH_LONE (P29-F) moves none: its pin's finish needs a zombie read
+      `onFloor` (no golden frame carries it), a shove's knock window or a melee (no golden hello announces either).
     A golden no switch moves is its file before iteration 23 byte for byte."""
     base, got = pre_t13_gold(key), gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]

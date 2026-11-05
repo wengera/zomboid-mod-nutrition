@@ -207,7 +207,10 @@ def test_the_old_sessions_replays_stomp_the_fallen_their_flees_left(monkeypatch)
     ruling P27-I (Plan 27 Task 5): read with `LISTING_FALLEN` off (with it on, E9's fallen leave the listing and the
     `many` episodes these finishes ran under move).
     Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
-    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    replaces the reads this case pins; pinned with `MANY_NEAR` off.
+    Named change, ruling P29-F (Plan 29 Task 2): the running Fight's finish of its lone fallen pin is kept over
+    the flee this case reads; pinned with `FINISH_LONE` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.FINISH_LONE", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     from .test_survive_o import e9_lines
     got = e9_lines(("LISTING_FALLEN",))

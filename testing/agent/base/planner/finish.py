@@ -533,3 +533,17 @@ class FightFinish:
         cmd = self._ladder()
         self.why = dict(self.why, fallen_seek=dict(read, left=True))
         return (cmd,)
+
+    def finishing(self, zid):
+        """Ruling P29-F (`threat.Threat._finish_lone`): the Fight's finish of zombie `zid` is under way: the frame reads
+        it fallen (`onFloor`), a shove's knock-down at it is in its window (`knocked`, P24-AV), or the running melee at
+        it reads a finish step of the Lua's (`knock_wait`, `stomp_walk`, `stomp`, `floor`) or runs in `finish` mode
+        (`dispatch.FightDispatch._melee_mode`)."""
+        z = self.world.zombies.get(zid)
+        if z is None:
+            return False
+        if on_floor(z) or self.knocked.get(zid, -math.inf) > self.clock():
+            return True
+        m = self.m
+        return (m is not None and m.target == zid and m.running()
+                and (m.mode == "finish" or m.why.get("step") in ("knock_wait", "stomp_walk", "stomp", "floor")))

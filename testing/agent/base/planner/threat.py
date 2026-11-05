@@ -228,6 +228,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     MANY_NEAR = True      # ruling P29-G: the `many` flee's count is the standing zombies within DANGER_R
                           # (`_many_near`), over MAX_FIGHT to begin and at MAX_FIGHT to hold an episode; off, P24-A's
                           # hold radius, DANGER_R and listing counts (P27-I's `_counts_many`)
+    FINISH_LONE = True    # ruling P29-F: the running Fight's finish of a fallen (or knocked) pin, the only zombie within
+                          # DANGER_R, is kept over the `health` and `many` flees (`_finish_lone`); off, the flee
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -380,6 +382,28 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if reason is None and self._behind_walk():
             return "held"
         return reason
+
+    def _finish_lone(self, reason):
+        """Ruling P29-F (`FINISH_LONE`; E22, `e_day_22-20261105-004919`: 11526's melee read its shove's knock-down,
+        `knock_wait` at seq 13233, and line 1471's `many` flee steered away from it, 2.083 tiles off with no other
+        zombie within DANGER_R, its stomp landing later from 2.896 without a kill; 11784's far-finish stomp a227 was
+        superseded by line 1064's `health` steer, #4625): `{target}` when this tick's reason is `health` or `many`, a
+        Fight runs (`mode` fight) whose pin's finish is under way (`Fight.finishing`: read fallen, in a shove's knock
+        window, or the melee at it on a finish step) within FINISH_R, and that pin is the only zombie within DANGER_R:
+        the flee is not taken, the Fight keeps its stomp walk or its melee, logged `finish_lone` {target}; a second
+        zombie within DANGER_R, standing or not, gives the flee as before. Else None. Cost if wrong: a walk to a
+        zombie that rises, the stance meeting it."""
+        f = self.fight
+        if not self.FINISH_LONE or reason not in ("health", "many") or self.mode != "fight" or f is None:
+            return None
+        zid = f.target
+        z = self.world.zombies.get(zid) if zid is not None else None
+        if z is None or z.get("x") is None or z.get("y") is None or zdist(self.world, z) > FINISH_R:
+            return None
+        near = self._within(DANGER_R)
+        if len(near) != 1 or near[0] is not z or not f.finishing(zid):
+            return None
+        return {"target": zid}
 
     def _behind_walk(self):
         """Ruling P24-A (b): the ids listed behind the target the Fight would walk toward (`policies.others_behind`),
@@ -728,6 +752,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.stand_drag, self.stand_inside, self.stand_exit, self.stand_crowd = None, None, None, None
         self.one_exit_refused, self.listing, self.corner_exit = None, None, None
         self.health_near, self.health_pass, self.many_near = None, False, None   # P29-E, P29-G: this tick's
+        self.finish_lone = None   # P29-F: this tick's
         door = self._doorway()
         if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
             return door
@@ -747,6 +772,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if held_inside and breach is None:
             return "hold", "held_inside"
         reason = self._flee_reason(held, len(self._within(DANGER_R)))
+        lone = self._finish_lone(reason)
+        if lone is not None:   # P29-F: the lone fallen pin's finish kept over the `health` or `many` flee
+            self.finish_lone, reason = lone, None
         if breach is not None and (held_inside or (self.sheltered and self.flee.shelter_holds(held))):
             self.broken = breach
             if self._exit_known(held):
@@ -1044,7 +1072,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                        ("doorway_drag", self.stand_drag),
                        ("doorway_inside", self.stand_inside),
                        ("pair_yield", self.pair_yield), ("listing", self.listing), ("corner", self.corner_exit),
-                       ("health_near", self.health_near), ("many_near", self.many_near)):
+                       ("health_near", self.health_near), ("many_near", self.many_near),
+                       ("finish_lone", self.finish_lone)):
             if v is not None:
                 self.why[key] = v
         if self.broken is not None:

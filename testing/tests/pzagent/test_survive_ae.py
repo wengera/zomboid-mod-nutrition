@@ -388,7 +388,7 @@ def e22_frame(r, me, zs, health, game_min, **k):
 
 def test_the_iteration_23_hit_rule_switches():
     """Task 2's switches follow Task 1's in `survive.T13_SWITCHES`, each on `threat.Threat` and on by default."""
-    assert S.T13_SWITCHES[2:] == ("HEALTH_NEAR", "DRESS_FINISH", "MANY_NEAR")
+    assert S.T13_SWITCHES[2:] == ("HEALTH_NEAR", "DRESS_FINISH", "MANY_NEAR", "FINISH_LONE")
     assert all(getattr(T.Threat, n) is True for n in S.T13_SWITCHES[2:])
 
 
@@ -630,3 +630,108 @@ def test_a_many_episode_holds_at_two_standing_and_ends_at_one(tmp_path):
     tick(r, sv)
     w = threat_why(tmp_path)
     assert w.get("flee") != "many" and w["many_near"] == {"n": 1}
+
+
+# ---------------------------------------------------------------- P29-F: the lone fallen pin's finish kept
+# E22's lines 1470 and 1471 (state.log seqs 13229 and 13235, game minute 759): the low fight's melee a317 at 11526 in
+# `shove` mode read its knock-down (`knock_wait`, knockdowns 1, d 1.8991873264312744, seq 13233), and line 1471's
+# `many` flee (the hold radius's count: 11526 2.083 tiles off, 11816 6.96 and 11810 9.22) steered away, superseding it
+# (GUIDE section 4); lines 1062 to 1064 (seqs 9057, 9062, 9070, game minute 704): the low fight's pin 11784 read fallen
+# 2.744 tiles off (the ladder's far-finish stomp a227 sent), then 1.9275 with 11782 standing 5.166 tiles off, where
+# the `health` steer superseded the stomp
+E22_1470 = ((10799.9365234375, 10629.04296875), [(11526, 10799.1337890625, 10630.0185546875),
+                                                  (11816, 10807.29296875, 10630.521484375),
+                                                  (11810, 10810.27734375, 10627.419921875),
+                                                  (11855, 10811.5, 10630.5, False)], 28.006301879882812)
+E22_1471 = ((10800.0400390625, 10628.830078125), [(11526, 10798.7451171875, 10630.4619140625),
+                                                  (11816, 10806.75, 10630.6923828125),
+                                                  (11810, 10809.171875, 10627.5830078125),
+                                                  (11855, 10811.5, 10630.5, False)], 28.01934814453125)
+E22_1062 = ((10704.3720703125, 10658.8505859375), [(11784, 10702.185546875, 10658.7861328125),
+                                                  (11782, 10699.16796875, 10662.6025390625)], 32.931678771972656)
+E22_1063 = ((10704.224609375, 10658.76953125), [(11784, 10701.48046875, 10658.751953125, True, True),
+                                                (11782, 10699.30859375, 10662.4853515625)], 32.931678771972656)
+E22_1064 = ((10703.2265625, 10658.693359375), [(11784, 10701.2998046875, 10658.7470703125, True, True),
+                                               (11782, 10699.5185546875, 10662.2900390625)], 32.96018981933594)
+KNOCK_WAIT = {"step": "knock_wait", "d": 1.8991873264312744, "hp": 0.7210000157356262, "swings": 0, "shoves": 1,
+              "stomps": 0, "floors": 0, "knockdowns": 1, "hits": 0}   # a317's progress line (state.log seq 13233)
+
+
+def knocked_melee(tmp_path, lone=True, many_near=False):
+    """Line 1470 on a build announcing `melee`: the low fight's melee at 11526 sent, accepted and on its `knock_wait`
+    step; then line 1471 ticked with FINISH_LONE `lone` and MANY_NEAR `many_near` (off by default: P29-G already
+    withholds this `many`, so the case reads P29-F alone). (r, sv, the melee, the action)."""
+    from .fakemod import MELEE_CAPS
+    r, sv = make(tmp_path, caps=MELEE_CAPS)
+    sv.FINISH_LONE, sv.MANY_NEAR = lone, many_near
+    me, zs, h = E22_1470
+    e22_frame(r, me, zs, h, 759.0)
+    m = tick(r, sv)
+    assert m.type == "melee" and m.args["targetId"] == 11526 and threat_why(tmp_path)["low_fight"] is True
+    r.fake.act(m.aid, "accepted", "melee")
+    r.fake.act(m.aid, "progress", "melee", result=KNOCK_WAIT)
+    r.pump()
+    r.advance(0.5)
+    me, zs, h = E22_1471
+    e22_frame(r, me, zs, h, 759.1)
+    return r, sv, m, tick(r, sv)
+
+
+def test_e22_s_line_1471_knocked_pin_alone_within_danger_r_keeps_its_melee_over_the_many_flee(tmp_path):
+    """P29-F (`FINISH_LONE`): line 1471's `many` read (the hold radius's three) with the melee's pin 11526 on its
+    `knock_wait` step, the only zombie within DANGER_R: no flee; the Fight holds its melee, nothing sent, logged
+    `finish_lone` {target 11526}."""
+    r, sv, m, a = knocked_melee(tmp_path)
+    w = threat_why(tmp_path)
+    assert a is None and sv.mode == "fight" and w["finish_lone"] == {"target": 11526} and "flee" not in w
+    assert r.acts.current is m
+
+
+def test_with_finish_lone_off_line_1471_s_many_steer_supersedes_the_melee_as_e22_did(tmp_path):
+    r, sv, m, a = knocked_melee(tmp_path, lone=False)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args["gait"]) == ("steer", "run") and w["flee"] == "many" and "finish_lone" not in w
+
+
+def far_stomp(tmp_path, final, health, lone=True):
+    """Lines 1062 and 1063 (the low fight at 11784, then its far-finish stomp at 11784 fallen 2.744 tiles off, sent and
+    accepted), then `final` (me, zombies) at `health`, ticked with FINISH_LONE `lone`. (r, sv, the stomp, the
+    action)."""
+    r, sv = make(tmp_path)
+    sv.FINISH_LONE = lone
+    for k, (me, zs, h) in enumerate((E22_1062, E22_1063)):
+        e22_frame(r, me, zs, h, 704.0 + 0.1 * k)
+        a = tick(r, sv)
+        if a is not None:
+            r.fake.act(a.aid, "accepted", a.type)
+            r.pump()
+        r.advance(0.5)
+    stomp = r.acts.history[-1]
+    assert (stomp.type, stomp.args) == ("stomp", {"targetId": 11784}) and sv.mode == "fight"
+    me, zs = final
+    e22_frame(r, me, zs, health, 704.2)
+    return r, sv, stomp, tick(r, sv)
+
+
+def test_a_lone_fallen_pin_s_stomp_walk_is_kept_over_the_health_flee_under_the_floor(tmp_path):
+    """P29-F: line 1064's frame with 11782 held back 6.5 tiles off on its bearing (beyond DANGER_R) and the health at
+    15 (both the test's own: under FLEE_HEALTH_FLOOR there is no low fight, so the `health` reason): the stomp at the
+    fallen 11784, the only zombie within DANGER_R, runs on, logged `finish_lone` {target 11784}; off, the `health`
+    steer supersedes it."""
+    me = E22_1064[0]
+    final = (me, [E22_1064[1][0], (11782, me[0] - 4.6, me[1] + 4.6)])
+    r, sv, stomp, a = far_stomp(tmp_path, final, 15.0)
+    w = threat_why(tmp_path)
+    assert a is None and w["finish_lone"] == {"target": 11784} and r.acts.current is stomp
+    (tmp_path / "off").mkdir()
+    r2, sv2, stomp2, a2 = far_stomp(tmp_path / "off", final, 15.0, lone=False)
+    assert (a2.type, threat_why(tmp_path / "off")["flee"]) == ("steer", "health")
+
+
+def test_a_second_standing_zombie_within_danger_r_gives_the_health_flee_as_e22_s_line_1064(tmp_path):
+    """P29-F's other side: line 1064 itself, 11782 standing 5.166 tiles off within DANGER_R beside the fallen 11784:
+    the `health` flee's steer supersedes the stomp as in E22, no `finish_lone`."""
+    me, zs, h = E22_1064
+    r, sv, stomp, a = far_stomp(tmp_path, (me, zs), h)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args["gait"]) == ("steer", "run") and w["flee"] == "health" and "finish_lone" not in w
