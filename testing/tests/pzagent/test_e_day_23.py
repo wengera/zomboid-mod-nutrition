@@ -91,7 +91,7 @@ def test_nothing_is_imported_from_a_frozen_driver():
     assert "grade_key=GRADE_KEY" in src and "    DY.grade(out, GRADE_KEY, grade_state)" in src
     assert "from agent.base.grades.e20 import grade_e20" in imports
     assert "    return grade_e20(out, state_dir=out.get(\"state_dir\"))" in src
-    body = src[src.index("\n\nThe driver is thin"):]     # the first docstring paragraph names its lineage (grade_e20)
+    body = src[src.index("\n\nThe driver is thin"):]     # the first docstring paragraph names its lineage (grade_e19)
     assert not re.search(r"grade_e(1[0-9]|[0-9])\b", body) and "gates_e" not in "\n".join(imports)
     assert E.GRADE_KEY == "grade_e20"
     assert E.DY.GRADE_KEY_6 == "grade_e6" and E.DY.GRADE_KEY == "grade_e5"
@@ -455,7 +455,7 @@ def test_a_later_chain_session_holding_the_bat_spawns_none(tmp_path, monkeypatch
 
 # ================================================================ the copy: e_day_22.py's body, its own key
 BASE_SENTENCE = (
-    "the base at `d54bfc1a` (the planner: Plan 29 Task 2, its head at the copy, re-based before the boot) carries "
+    "the base at `6350d9ab` (the planner: Plan 29 Task 2, its head at the copy, re-based before the boot) carries "
     "PZA/1.8 (the `melee` action, its progress lines with a result, the frame's `act.step`; the hello reads `mod` "
     "`1.8`) and survival iteration 23 (the gate, over iteration 22: `ROUTE_CROSS` the route through a door read by "
     "whether it crossed, `GOAL_STALL` a goal budget that never moved read as stuck, `CLOSE_IDLE` the walk to close at "
@@ -511,7 +511,7 @@ def test_the_copy_differs_from_e_day_22_only_in_the_expected_lines():
     assert "iteration 23's eight" in b and "grade_e19" not in b[b.index('out["grade_e20"] is grades'):]
     head = b[:b.index(MARK)]
     assert b.splitlines()[1] == a.splitlines()[1].replace("e_day_21.py's", "e_day_22.py's")
-    for c in ("e_day_22.py", "Plan 29 Task 4", "twenty-third", "PZA/1.8", "grade_e20", "grade_e19", "d54bfc1a", "`melee`",
+    for c in ("e_day_22.py", "Plan 29 Task 4", "twenty-third", "PZA/1.8", "grade_e20", "grade_e19", "6350d9ab", "`melee`",
               "state.1.log", BASE_SENTENCE) + SWITCHES:
         assert c in head, c
     assert "c2b6bae2" not in head and "iteration 22 (the melee" not in head and "Task 7d" not in head
@@ -533,11 +533,11 @@ def test_the_stops_block_names_client_end_after_death():
 
 def test_the_base_sentence_names_the_planner_s_head_at_the_copy():
     """The base sentence's commit is the planner's head the copy was made at (`git log -1 -- testing/agent/base/planner`
-    at Task 4: d54bfc1a, Plan 29 Task 2); the controller re-bases it before the boot, and the commit stands once, in
+    at Task 4: 6350d9ab, Plan 29 Task 2); the controller re-bases it before the boot, and the commit stands once, in
     this sentence, so a re-base is one replacement."""
     first = E.__doc__.splitlines()[0]
     assert BASE_SENTENCE in first
-    assert "the base at `d54bfc1a` (the planner: Plan 29 Task 2, its head at the copy, re-based before the boot)" in first
+    assert "the base at `6350d9ab` (the planner: Plan 29 Task 2, its head at the copy, re-based before the boot)" in first
     assert first.count("re-based") == 1 and "re-based, re-based" not in first
     assert all(w in first for w in SWITCHES)
     assert "carries PZA/1.8 (the `melee` action, its progress lines with a result, the frame's `act.step`; the hello " \
