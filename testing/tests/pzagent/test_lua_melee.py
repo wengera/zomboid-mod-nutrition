@@ -534,6 +534,7 @@ def test_after_a_miss_the_back_leg_walks_the_heading_in_the_stance_facing_the_ta
     run(lua, p, w, 120, stop=lambda: cur_step(lua) != "back")
     walked = 20.0 - w["py"]                                           # from the leg's start, where the player stood
     assert walked >= ARGS["keepR"] - 1.3 - 0.05 - 0.04 and zdist(w) > ARGS["reach"]   # its length, about 1.2 tiles
+    assert walked <= ARGS["keepR"] - 1.3 + 0.05                       # keepR less the leg's starting d, not keepR
     assert cur_step(lua) == "stand" and p.motor["autoWalk"] is False
 
 
@@ -565,7 +566,9 @@ def test_a_blocked_back_leg_ends_after_its_still_ticks_and_the_swing_follows(lua
     assert cur_step(lua) == "back"                                    # the leg's first tick, its start recorded
     run(lua, p, w, 11)
     assert cur_step(lua) == "back"                                    # still 11 ticks
-    run(lua, p, w, 3)
+    run(lua, p, w)
+    assert cur_step(lua) == "face"                                    # the 12th: the leg's end, the swing's face
+    run(lua, p, w, 2)
     assert cur_step(lua) in ("face", "swing") and len(w["presses"]) >= 1
 
 
