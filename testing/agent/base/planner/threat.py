@@ -18,13 +18,14 @@ from agent.base.planner.fight import Fight
 from agent.base.planner.finish import ThreatFinish
 from agent.base.planner.flee import Flee
 from agent.base.planner.hold import Hold
-from agent.base.planner.policies import (AIM_R, CLOSING_TICKS, CORNERED_R, CORNER_FREE_R, DANGER_R, DISENGAGE_R,
-                                         DRAG_DOWN_N, DROP_AT, EDGE_HOLD_TICKS, ENGAGE_R, FIGHT_REACH, FINISH_R,
-                                         FLEE_GAIT, FLEE_HEALTH, FLEE_HEALTH_FLOOR, FLEE_HEALTH_PAIR, FLIP_MIN_S,
-                                         GROUP_HOLD_N, GROUP_NEAR_R, GROUP_R_N, HOLD_BREAK_R, LISTED_R, MANY_LISTED_N,
-                                         MANY_TAIL_TICKS, MAX_FIGHT, POINT_BLANK_R, REFIGHT_MARGIN, STUCK_RETRY_GROUP_S,
-                                         STUCK_RETRY_S, adoptable, blocked, chasing, exit_plan, in_building, in_reach,
-                                         line_to, on_floor, others_behind, seek_allowed, spare, target_id_ok, zdist)
+from agent.base.planner.policies import (AIM_R, BLEED_FAST, CLOSING_TICKS, CORNERED_R, CORNER_FREE_R, DANGER_R,
+                                         DISENGAGE_R, DRAG_DOWN_N, DROP_AT, EDGE_HOLD_TICKS, ENGAGE_R, FIGHT_REACH,
+                                         FINISH_R, FLEE_GAIT, FLEE_HEALTH, FLEE_HEALTH_FLOOR, FLEE_HEALTH_PAIR,
+                                         FLIP_MIN_S, GROUP_HOLD_N, GROUP_NEAR_R, GROUP_R_N, HOLD_BREAK_R, KEEP_R,
+                                         LISTED_R, MANY_LISTED_N, MANY_TAIL_TICKS, MAX_FIGHT, POINT_BLANK_R,
+                                         REFIGHT_MARGIN, STUCK_RETRY_GROUP_S, STUCK_RETRY_S, adoptable, blocked,
+                                         chasing, exit_plan, in_building, in_reach, line_to, on_floor, others_behind,
+                                         seek_allowed, spare, target_id_ok, zdist)
 from agent.base.planner.pull import ThreatPull
 from agent.base.planner.still import ThreatStill
 from agent.base.pza1 import Drop
@@ -241,6 +242,11 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # within DANGER_R, is kept over the `health` and `many` flees (`_finish_lone`); off, the flee
     CLOSE_IDLE = True     # ruling P29-C: P27-J's walk to close goes at an idle target only, a chaser met by the
                           # stance (`shove.FightShove._shove_close`, the Fight's `close_idle` rule); off, at a chaser
+    DRESS_RIDE = True     # ruling P30-F (Plan 30 Task 3; survive.py's docstring, Survival 26; `survive.T14_SWITCHES`):
+                          # a running dressing on a part falling faster than BLEED_FAST a game minute is waited on by
+                          # the flee while no zombie is within KEEP_R (`_dress_waits`, `care_yield.CareYield
+                          # ._bleed_rate`), logged `dress_ride` {part, rate}; off, P29-D's wait with nobody within
+                          # DANGER_R alone
     FLEE_HELD_STANCE = True   # ruling P29-H': a flee walk whose observed heading runs at a held zombie is dropped with
                               # its plan, its door marked `walled`, and the fight meets it in the stance
                               # (`flee.Flee._held_ahead`, the Flee's `flee_held_stance` rule); off, the walk runs on
@@ -889,6 +895,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.bleed_held = False   # P26-L2: this tick's yield the dressing's hold made
         self.finish_block = None   # Task 36 fix 1: this tick's refusal only (`_finish_chaser` sets it)
         self.held_cut = None       # P29-H': this tick's cut flee walk (`flee.Flee.take_held_cut`)
+        self._read_bleed()         # P30-F: each part's health sampled, its bleed's rate read by `_dress_waits`
         self._release_edges()   # P25-X: a zombie refused across a blocked edge, read on the player's side, is free
         self._door_held_read()   # P30-C: a zombie behind a door within DOOR_HELD_R, decided before the hold counts
         self._held, self._breach_now = [], None
@@ -1143,8 +1150,13 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         whose leg ended, `Care.riding`, or a standing one, `Care.busy`) with no zombie within DANGER_R: the flee waits
         on the dressing's end as a running leg holds it, logged `dress_finish` {action, near 0}; a zombie within
         DANGER_R supersedes it as before. Else None. Cost if wrong: a dressing's seconds with a chaser coming from
-        beyond DANGER_R."""
-        if not self.DRESS_FINISH or flee.busy() or self._danger_near():
+        beyond DANGER_R. Ruling P30-F (`DRESS_RIDE`; E23, `e_day_23-20261105-095110`: the neck bite took the health from
+        98.90239715576172 to 49.206119537353516 over 3.7356948852539062 game minutes, #4648, its two riding dressings
+        superseded by the flee's next legs, decision lines 245 and 252, before the third landed): the dressing on a
+        part whose health falls faster than BLEED_FAST a game minute (`_bleed_rate`) is waited on with a zombie within
+        DANGER_R too, superseded only by one within KEEP_R, logged `dress_ride` {part, rate}. Cost if wrong: a
+        dressing's seconds with a chaser at 3 tiles."""
+        if flee.busy():
             return None
         c = self.care
         a = c.riding()
@@ -1152,7 +1164,14 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             a = c.last
         if a is None or a.type != "bandage":
             return None
-        self.why = {"dress_finish": {"action": a.aid, "near": 0}}
+        if self.DRESS_FINISH and not self._danger_near():
+            self.why = {"dress_finish": {"action": a.aid, "near": 0}}
+            return flee, None
+        part = a.args.get("part")
+        rate = self._bleed_rate(part) if self.DRESS_RIDE else None
+        if rate is None or rate <= BLEED_FAST or self._within(KEEP_R):
+            return None
+        self.why = {"dress_ride": {"part": part, "rate": rate}}
         return flee, None
 
     def _shove_only(self, kind):

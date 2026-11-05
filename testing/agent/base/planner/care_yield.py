@@ -6,12 +6,39 @@ in `policies.py`'s table); its state is `Survive`'s own, set in `Survive.__init_
 stays the record of every rule here.
 """
 from agent.base.planner.care import CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, FLEE_CARE_N, FLEE_CARE_S, RIDE_MANY_R, RIDE_R
-from agent.base.planner.policies import DANGER_R, DRAG_DOWN_N, FIGHT_REACH, POINT_BLANK_R, blocked, zdist
+from agent.base.planner.policies import (BLEED_SPAN_MIN, BLEED_WINDOW_MIN, DANGER_R, DRAG_DOWN_N, FIGHT_REACH,
+                                         POINT_BLANK_R, blocked, zdist)
 from agent.base.world import me_xy
+
+
+def _num(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
 class CareYield:
     """The care yield (the module docstring): `Threat`'s mixin."""
+
+    def _read_bleed(self):
+        """Ruling P30-F (`DRESS_RIDE`): each part's health (`body.parts` `h`) sampled this tick at the World's minutes,
+        the samples of the last BLEED_WINDOW_MIN game minutes kept (`_part_h`); a part the frame no longer lists is
+        dropped. Read once a threat read, every tick."""
+        now = self.world.world_minutes()
+        keep = {}
+        for p in (self.world.body or {}).get("parts") or ():
+            i, h = p.get("i"), p.get("h")
+            if not (isinstance(i, int) and _num(h)):
+                continue
+            old = [s for s in self._part_h.get(i, ()) if now - s[0] <= BLEED_WINDOW_MIN and s[0] < now]
+            keep[i] = old + [(now, h)]
+        self._part_h = keep
+
+    def _bleed_rate(self, part):
+        """Ruling P30-F: part `part`'s health fall a game minute over its kept samples (the oldest to this tick's), None
+        with under BLEED_SPAN_MIN game minutes of them."""
+        s = self._part_h.get(part) or ()
+        if len(s) < 2 or s[-1][0] - s[0][0] < BLEED_SPAN_MIN:
+            return None
+        return (s[0][1] - s[-1][1]) / (s[-1][0] - s[0][0])
 
     def _nearest_listed(self):
         """(id, tiles) of the nearest listed zombie with a position (ties by the listing's order), one read dead left

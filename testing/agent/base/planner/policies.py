@@ -391,6 +391,17 @@ STILL_DRIFT_R = 0.3       # tiles the held zombie's distance may drift from the 
                           # 2.1849812857308732 then 2.0050714015960693 for the whole stand; the spec's number
 STILL_MOVE_R = 1.0        # tiles the character may move from the read's start (P30-E): "unmoved under a tile", the
                           # spec's number (F14's character stood at (10743.74, 10638.49) throughout)
+BLEED_FAST = 2.0          # part health a game minute: a dressing on a part falling faster rides through a flee from a
+                          # zombie beyond KEEP_R (ruling P30-F, `threat.Threat._dress_waits`): E23's neck bite
+                          # (`e_day_23-20261105-095110`, game minute 594 on) took the health from 98.90239715576172 to
+                          # 49.206119537353516 over 3.7356948852539062 game minutes (#4648), its part 9 falling about 14
+                          # a game minute, while two riding dressings were superseded by the flee's legs before the
+                          # third landed; a slow bleed (a scratch) falls under 1; the spec's number
+BLEED_WINDOW_MIN = 1.0    # game minutes of a part's health samples the bleed's rate reads (P30-F, `_bleed_rate`): one
+                          # game minute, the rate's own unit, a judgment
+BLEED_SPAN_MIN = 0.2      # game minutes the samples must span before a rate is read (P30-F): a planner tick or more
+                          # at E23's pace (decision lines 238 to 262 over game minutes 594 to 598, about six a game
+                          # minute), a judgment
 SNEAK_R = 8.0             # tiles: a zombie listed this near with no target makes the gait the sneak's (ruling P30-D,
                           # `sneak.SneakGait`): the jar read's footsteps (#4661: 7 tiles upright, 4 sneaking) plus one
                           # tile, beyond the 4.5 tiles inside which sneaking spots about 2.6 times better at Sneak 0

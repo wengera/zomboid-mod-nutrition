@@ -9,6 +9,8 @@ rules of `survive.T14_SWITCHES`, each with its killing test, on E23's (`e_day_23
   decided on one tick: the stance at the door's post, the open and the meet, or the leave.
 - P30-E (`STILL`, `still.ThreatStill`): a held zombie at a steady distance with the character unmoved for STILL_S
   resolved into the stance's approach, or the goal's walk.
+- P30-F (`DRESS_RIDE`, `threat.Threat._dress_waits`): a dressing on a fast bleed waited on by the flee, superseded
+  only within KEEP_R.
 - P30-D (`SNEAK`, `sneak.SneakGait`): the gait near a zombie with no target, upright at a chaser, in a flee and for a
   press, the posture the tick's one command.
 """
@@ -25,7 +27,7 @@ from .test_survive_g import Src, zd
 
 def test_the_iteration_24_switches():
     """`survive.T14_SWITCHES`, each on `Survive` (or a class it derives) and on by default."""
-    assert S.T14_SWITCHES == ("SWING_CLOSE", "GOAL_CONTINUE", "DOOR_HELD", "SNEAK", "STILL")
+    assert S.T14_SWITCHES == ("SWING_CLOSE", "GOAL_CONTINUE", "DOOR_HELD", "SNEAK", "STILL", "DRESS_RIDE")
     assert all(getattr(S.Survive, n) is True for n in S.T14_SWITCHES)
 
 
@@ -478,3 +480,86 @@ def test_with_still_off_the_melee_stands_on(tmp_path):
     sv.STILL = False
     a, w = stand_on(r, sv, int(STILL_S / 0.5) + 4)
     assert "still" not in w and sv.mode == "fight"
+
+
+# ================================================================ P30-F: the dressing under a fast bleed (`DRESS_RIDE`)
+# E23 (`e_day_23-20261105-095110`): the bite at game minute 594 bled part 9 from 98.43 to 55.45 by game minute 597
+# (about 14 a game minute; the body's health 98.90239715576172 to 49.206119537353516 over 3.7356948852539062 game
+# minutes, #4648); the riding bandage a44 (decision line 241) was superseded by the flee's next steer a45 (line 245),
+# a46 (line 248) by its walk a47 (line 252), a49 (line 254) landed. The fixture is the shape with
+# `test_survive_g.flee_leg_rig`'s `health` flee (health 30, `LOW_FIGHT` and `HEALTH_NEAR` off there): the flee's leg
+# from a chaser 5.5 tiles off, the ride started with it 7 tiles off (beyond RIDE_R), then the leg's end with the chaser
+# at `x` tiles and the part's health falling `fall` a game minute (a tick a tenth of a game minute).
+def fast_bleed(tmp_path, x, fall, ride_on=True):
+    from .test_survive_g import care_frame, hold, part
+    from agent.base.planner import care as C
+    from .test_survive import make
+    r, sv = make(tmp_path)
+    sv.LOW_FIGHT, sv.HEALTH_NEAR, sv.DRESS_RIDE = False, False, ride_on
+    hold(r, 10, "Base.Bandage")
+    h = [80.0]
+
+    def frame(zx, gm):
+        care_frame(r, [part(6, h=h[0], bleeding=True, bleedingTime=5.0)], zombies=[zd(1, 100.0 + zx, 200.0)],
+                   health=30.0, game_min=gm)
+    frame(5.5, 600.0)
+    leg = tick(r, sv)
+    assert leg.type == "steer" and threat_why(tmp_path)["flee"] == "health"
+    r.answer("progress")
+    h[0] -= fall * 0.1
+    frame(7.0, 600.1)
+    ride = tick(r, sv)
+    assert (ride.type, ride.args) == ("bandage", {"itemId": 10, "part": 6, "keepMoving": True})
+    r.fake.act(ride.aid, "accepted", "bandage")
+    r.fake.act(leg.aid, "done", "steer", result={})
+    r.pump()
+    h[0] -= fall * 0.2
+    frame(x, 600.3)
+    assert C.RIDE_R < 7.0
+    return r, sv, ride, tick(r, sv)
+
+
+def test_e23_s_fast_bleed_rides_through_the_flee_from_a_chaser_at_5_tiles(tmp_path):
+    """P30-F: the part's health falling 13 a game minute, the leg ended with the chaser 5 tiles off (within DANGER_R,
+    beyond KEEP_R): the flee sends no new leg, logged `dress_ride` {part 6, rate 13}; the dressing runs on."""
+    r, sv, ride, a = fast_bleed(tmp_path, 5.0, 13.0)
+    w = threat_why(tmp_path)
+    assert a is None and w["flee"] == "health" and w["dress_ride"]["part"] == 6
+    assert w["dress_ride"]["rate"] == pytest.approx(13.0) and r.acts.current is ride
+
+
+def test_a_fast_bleed_with_the_chaser_within_keep_r_is_superseded_by_the_flee(tmp_path):
+    from agent.base.planner.policies import KEEP_R
+    r, sv, ride, a = fast_bleed(tmp_path, KEEP_R - 0.5, 13.0)
+    assert (a.type, a.args["gait"]) == ("steer", "run") and "dress_ride" not in threat_why(tmp_path)
+
+
+def test_a_slow_bleed_is_superseded_as_under_p29_d(tmp_path):
+    """P30-F's rate test: the part's health falling 1 a game minute (under BLEED_FAST), the chaser 5 tiles off
+    (within DANGER_R): the flee's steer supersedes the dressing, as P29-D left it."""
+    r, sv, ride, a = fast_bleed(tmp_path, 5.0, 1.0)
+    assert (a.type, a.args["gait"]) == ("steer", "run") and "dress_ride" not in threat_why(tmp_path)
+
+
+def test_with_dress_ride_off_the_fast_bleed_is_superseded_as_e23_s_were(tmp_path):
+    r, sv, ride, a = fast_bleed(tmp_path, 5.0, 13.0, ride_on=False)
+    assert (a.type, a.args["gait"]) == ("steer", "run") and "dress_ride" not in threat_why(tmp_path)
+
+
+def test_the_bleed_rate_reads_the_kept_samples_and_none_under_their_span(tmp_path):
+    """`CareYield._bleed_rate`: the fall a game minute from the oldest kept sample to this tick's; None under
+    BLEED_SPAN_MIN of samples; a sample older than BLEED_WINDOW_MIN dropped."""
+    from agent.base.planner.policies import BLEED_SPAN_MIN, BLEED_WINDOW_MIN
+    from .test_survive_g import care_frame, part
+    from .test_survive import make
+    r, sv = make(tmp_path)
+    for gm, h in ((600.0, 90.0), (600.1, 89.0)):
+        care_frame(r, [part(6, h=h)], game_min=gm)
+        sv._read_bleed()
+    assert BLEED_SPAN_MIN > 0.1 and sv._bleed_rate(6) is None
+    care_frame(r, [part(6, h=86.0)], game_min=600.4)
+    sv._read_bleed()
+    assert sv._bleed_rate(6) == pytest.approx(10.0)
+    care_frame(r, [part(6, h=80.0)], game_min=600.0 + BLEED_WINDOW_MIN + 0.3)
+    sv._read_bleed()
+    assert [s[1] for s in sv._part_h[6]] == [86.0, 80.0] and sv._bleed_rate(6) == pytest.approx(6.0 / 0.9)

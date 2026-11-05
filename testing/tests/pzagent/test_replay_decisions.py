@@ -248,7 +248,8 @@ def pre_t13(sv, keep=()):
 def pre_t14(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 30 Task 3 (survival iteration 24): its switches off
     (`survive.T14_SWITCHES`: SWING_CLOSE, ruling P30-A; GOAL_CONTINUE, P30-B; DOOR_HELD, P30-C; SNEAK, P30-D; STILL,
-    P30-E), but those named in `keep`; every seam onto an earlier rule reads them off (`pre_t13`)."""
+    P30-E; DRESS_RIDE, P30-F), but those named in `keep`; every seam onto an earlier rule reads them off
+    (`pre_t13`)."""
     for name in S.T14_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
@@ -2259,7 +2260,9 @@ def test_iteration_24_moves_the_goldens_at_the_door_held_read(key):
       release, `Engage._released`) and the goal ran. Every moved line logs `door_held` or is downstream of one; each
       acted line is listed (`ACTED_T14`).
     - SWING_CLOSE (P30-A) moves none: no golden's hello announces `melee`. GOAL_CONTINUE (P30-B) moves none: the goal
-      branch is the record's (`RecordedGoals`). SNEAK (P30-D) moves none: no golden's hello announces `sneak`. STILL
+      branch is the record's (`RecordedGoals`). SNEAK (P30-D) moves none: no golden's hello announces `sneak`.
+      DRESS_RIDE (P30-F) moves none: no golden sends a dressing (no decision line's action is a `bandage`), so no
+      flee waits on one. STILL
       (P30-E) moves none: its read is only of a held zombie beyond the swing's reach (F1's and the sixth's line 481
       read 15910 steady at 1.060106611108762 tiles, inside it, while the Fight walked at 15885).
     A golden no switch moves is its file before iteration 24 byte for byte."""
