@@ -228,8 +228,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     MANY_NEAR = True      # ruling P29-G: the `many` flee's count is the standing zombies within DANGER_R
                           # (`_many_near`), over MAX_FIGHT to begin and at MAX_FIGHT to hold an episode; off, P24-A's
                           # hold radius, DANGER_R and listing counts (P27-I's `_counts_many`)
-    FINISH_LONE = True    # ruling P29-F: the running Fight's finish of a fallen (or knocked) pin, the only zombie within
-                          # DANGER_R, is kept over the `health` and `many` flees (`_finish_lone`); off, the flee
+    FINISH_LONE = True    # ruling P29-F: the running Fight's finish of a fallen (or knocked) pin, the only zombie
+                          # within DANGER_R, is kept over the `health` and `many` flees (`_finish_lone`); off, the flee
+    CLOSE_IDLE = True     # ruling P29-C: P27-J's walk to close goes at an idle target only, a chaser met by the
+                          # stance (`shove.FightShove._shove_close`, the Fight's `close_idle` rule); off, at a chaser
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -1159,7 +1161,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("busy_retry", self.BUSY_RETRY), ("floor_pain", self.FLOOR_PAIN),
                                                ("shove_back", self.SHOVE_BACK), ("drift_stand", self.DRIFT_STAND),
                                                ("circle", self.CIRCLE), ("approach_walk", self.APPROACH_WALK),
-                                               ("melee", self.MELEE), ("route_cross", self.ROUTE_CROSS))
+                                               ("melee", self.MELEE), ("route_cross", self.ROUTE_CROSS),
+                                               ("close_idle", self.CLOSE_IDLE))
                          if on)
 
     def _flee_rules(self):

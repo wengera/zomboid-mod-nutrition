@@ -1,8 +1,8 @@
 """The shove at the swing and the corner after a missed shove: the mixin `FightShove` (`fight.Fight`'s: rulings P24-AG
 and P24-AH's shove, P25-A's corner, P25-I's logged third branch, P25-L's break after repeated misses, P26-L1's
 divided swing after them under the `wounded` reason, `_wounded_swing`, P27-E's full swing after them in the low
-fight, `_low_swing`, P27-J's close of a shove-only Fight on a chaser holding beyond point blank, `_shove_close`, and
-P28-B2's back leg after a missed shove, `_shove`).
+fight, `_low_swing`, P27-J's close of a shove-only Fight on a chaser holding beyond point blank, `_shove_close`, as
+P29-C narrows it to an idle target, and P28-B2's back leg after a missed shove, `_shove`).
 Moved out of `fight.py` at Plan 25 Task 8 (`_shove`, `_shove_missed` and `_corner` whole, their rules unchanged; the
 constants in `policies.py`'s table); the state is the `Fight`'s own, and `fight.py`'s module docstring stays the
 record.
@@ -172,9 +172,12 @@ class FightShove:
         """Ruling P27-J (b)'s count, every observe: `_close` (target id, consecutive observes) while the `shove_close`
         rule is on, the Fight is a shove-and-stomp one (`shove_only`) and its target `t` (id, zombie, dist) stands
         chasing (`hasTarget` not read false) beyond POINT_BLANK_R and within DANGER_R with no other zombie there
-        (`_alone`); any other read resets it."""
+        (`_alone`); any other read resets it. Ruling P29-C (`close_idle`): an idle target (`hasTarget` false) counts
+        too, the walk going at it alone (`_shove_close`)."""
+        idle = "close_idle" in self.rules
         if ("shove_close" not in self.rules or self.shove_only is None or t is None or on_floor(t[1])
-                or t[1].get("hasTarget") is False or not POINT_BLANK_R < t[2] <= DANGER_R or not self._alone(t[0])):
+                or (t[1].get("hasTarget") is False and not idle) or not POINT_BLANK_R < t[2] <= DANGER_R
+                or not self._alone(t[0])):
             self._close = None
             return
         n = self._close[1] + 1 if self._close is not None and self._close[0] == t[0] else 1
@@ -198,12 +201,24 @@ class FightShove:
         between) it is left: marked unreachable for SEEK_SKIP_S and in `close_left` (Survive's, which the hold's reads
         leave out, so under the hold the rest resumes), the Fight choosing again without it, `(command,)`, logged
         `shove_close` {..., left True}. None while not due. Cost if wrong: the walk's strain under the hold; a zombie
-        that steps forward as the character does (the backpedal then holds it at KEEP_R as today)."""
+        that steps forward as the character does (the backpedal then holds it at KEEP_R as today).
+        Ruling P29-C (`close_idle`, Survive's CLOSE_IDLE; E22, `e_day_22-20261105-004919`: hits 12 and 13 came at the
+        end of this walk toward 11504 and 11816, each chasing, sent from 4.284030540414437 and 2.09060683534768 tiles
+        off; 11504 read attacking at 0.8911607703527589 tiles while the walk still ran, #4624): the walk goes at an idle
+        target only (`getTarget` nil, the frame's `hasTarget` false: one that will not come), logged `shove_close`
+        {.., idle True}; a chaser's due count is logged `close_held` {target, d} and nothing is walked, the ladder's
+        stance leg and the melee meeting it at the stance's edge (MELEE_RELEASE_R). Cost if wrong: the approach that
+        set up two of E22's knock-downs (a205, a215)."""
         if not self._close_due(t):
             return None
         zid, z, d = t
         read = {"target": zid, "dist": d, "ticks": self._close[1]}
         self._close = None
+        if "close_idle" in self.rules:
+            if z.get("hasTarget") is not False:
+                self.why["close_held"] = {"target": zid, "d": d}   # P29-C: a chaser comes; the stance meets it
+                return None
+            read["idle"] = True
         if line_to(self.world, z) is False:
             self._mark_unreachable(zid, SEEK_SKIP_S)
             self.close_left[zid] = self.clock() + SEEK_SKIP_S

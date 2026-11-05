@@ -388,7 +388,7 @@ def e22_frame(r, me, zs, health, game_min, **k):
 
 def test_the_iteration_23_hit_rule_switches():
     """Task 2's switches follow Task 1's in `survive.T13_SWITCHES`, each on `threat.Threat` and on by default."""
-    assert S.T13_SWITCHES[2:] == ("HEALTH_NEAR", "DRESS_FINISH", "MANY_NEAR", "FINISH_LONE")
+    assert S.T13_SWITCHES[2:] == ("HEALTH_NEAR", "DRESS_FINISH", "MANY_NEAR", "FINISH_LONE", "CLOSE_IDLE")
     assert all(getattr(T.Threat, n) is True for n in S.T13_SWITCHES[2:])
 
 
@@ -735,3 +735,90 @@ def test_a_second_standing_zombie_within_danger_r_gives_the_health_flee_as_e22_s
     r, sv, stomp, a = far_stomp(tmp_path, (me, zs), h)
     w = threat_why(tmp_path)
     assert (a.type, a.args["gait"]) == ("steer", "run") and w["flee"] == "health" and "finish_lone" not in w
+
+
+def test_a_standing_pin_alone_within_danger_r_is_no_finish_and_the_health_flee_runs(tmp_path):
+    """P29-F's finish read (`Fight.finishing`): line 1062's pin 11784 standing 2.19 tiles off, the only zombie within
+    DANGER_R (11782 held back 6.5 tiles off, the test's own), the health then at 15 (the test's own: the `health`
+    reason): no finish is under way, so the `health` flee's steer goes, no `finish_lone`."""
+    r, sv = make(tmp_path)
+    me, zs, h = E22_1062
+    e22_frame(r, me, zs, h, 704.0)
+    a = tick(r, sv)
+    r.fake.act(a.aid, "accepted", a.type)
+    r.pump()
+    r.advance(0.5)
+    e22_frame(r, me, [zs[0], (11782, me[0] - 4.6, me[1] + 4.6)], 15.0, 704.1)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert (a.type, w["flee"]) == ("steer", "health") and "finish_lone" not in w
+
+
+# ---------------------------------------------------------------- P29-C: the walk to close at an idle zombie only
+# E22's lines 1263 to 1268 (state.log seqs 10554 to 10608, game minutes 731 to 732): the low fight held at 11504,
+# chasing and alone within DANGER_R (11480 7.4 to 8.2 tiles off), 5.244 to 4.284030540414437 tiles off, and line 1268
+# sent P27-J's walk a267 at a walk to (10750.5, 10625.5); 11504 read attacking at 0.8911607703527589 tiles during it
+# (seq 10632) and bit at seq 10652 (hit 12, GUIDE section 3)
+E22_CLOSE = [((10747.1865234375, 10624.576171875), 27.64501190185547,
+              [(11504, 10751.9140625, 10626.8447265625), (11480, 10738.9453125, 10624.7734375),
+               (11522, 10738.400390625, 10629.5)]),
+             ((10747.1865234375, 10624.576171875), 27.181793212890625,
+              [(11504, 10751.5966796875, 10626.6865234375), (11480, 10739.33203125, 10624.7626953125),
+               (11522, 10738.400390625, 10629.5)]),
+             ((10747.1865234375, 10624.576171875), 27.181793212890625,
+              [(11504, 10751.5615234375, 10626.6689453125), (11480, 10739.3671875, 10624.76171875),
+               (11522, 10738.400390625, 10629.5)]),
+             ((10747.1865234375, 10624.576171875), 26.718528747558594,
+              [(11504, 10751.349609375, 10626.5634765625), (11480, 10739.61328125, 10624.7548828125),
+               (11522, 10738.400390625, 10629.5)]),
+             ((10747.1865234375, 10624.576171875), 26.718528747558594,
+              [(11504, 10751.2080078125, 10626.4931640625), (11480, 10739.7890625, 10624.75),
+               (11522, 10738.400390625, 10629.5)]),
+             ((10747.169921875, 10624.5517578125), 26.57494354248047,
+              [(11504, 10751.0322265625, 10626.4052734375), (11480, 10740, 10624.744140625),
+               (11522, 10738.400390625, 10629.5)])]
+E22_CLOSE_D = 4.284030540414437   # 11504's distance on line 1268's frame
+
+
+def close_rig(tmp_path, chasing=True, on=True):
+    """E22's six frames of lines 1263 to 1268 (11504 `hasTarget` `chasing`) from a fresh Survive with CLOSE_IDLE `on`,
+    each leg accepted and left running; (r, sv, the last tick's action)."""
+    r, sv = make(tmp_path)
+    sv.CLOSE_IDLE = on
+    a = None
+    for k, (me, h, zs) in enumerate(E22_CLOSE):
+        zs = [(11504, zs[0][1], zs[0][2], chasing)] + zs[1:]
+        e22_frame(r, me, zs, h, 731.0 + 0.1 * k)
+        a = tick(r, sv)
+        if a is not None:
+            r.fake.act(a.aid, "accepted", a.type)
+            r.pump()
+        r.advance(0.5)
+    return r, sv, a
+
+
+def test_e22_s_line_1268_chaser_is_not_walked_to_the_stance_meets_it(tmp_path):
+    """P29-C (`CLOSE_IDLE`): line 1268, 11504 chasing 4.284030540414437 tiles off after SHOVE_CLOSE_TICKS ticks beyond
+    point blank: no `shove_close` walk; logged `close_held` {target, d}, the stance's leg aimed at it (the melee
+    meeting it at MELEE_RELEASE_R on a build announcing it)."""
+    r, sv, a = close_rig(tmp_path)
+    w = threat_why(tmp_path)
+    assert "walkTo" not in [x.type for x in r.acts.history] and "shove_close" not in w
+    assert w["close_held"] == {"target": 11504, "d": E22_CLOSE_D} and w["low_fight"] is True
+    assert a is None or (a.type, a.args["targetId"]) == ("aim", 11504)
+
+
+def test_with_close_idle_off_line_1268_walks_to_the_chaser_as_e22_did(tmp_path):
+    r, sv, a = close_rig(tmp_path, on=False)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args) == ("walkTo", {"x": 10750.5, "y": 10625.5, "gait": "walk"})
+    assert w["shove_close"] == {"target": 11504, "dist": E22_CLOSE_D, "ticks": 6} and "close_held" not in w
+
+
+def test_an_idle_zombie_at_the_same_distance_is_walked_to_as_p27_j_sends_it(tmp_path):
+    """P29-C's other side: the same frames with 11504 idle (`hasTarget` false, the test's own): the walk to the square
+    one short of it on SHOVE_CLOSE_TICKS-th tick, logged `shove_close` {.., idle True}."""
+    r, sv, a = close_rig(tmp_path, chasing=False)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args) == ("walkTo", {"x": 10750.5, "y": 10625.5, "gait": "walk"})
+    assert w["shove_close"] == {"target": 11504, "dist": E22_CLOSE_D, "ticks": 6, "idle": True}

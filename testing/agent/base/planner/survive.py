@@ -310,7 +310,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     by the flee's command while no zombie is within DANGER_R (`threat.Threat._dress_waits`); P29-G, the `many` count
     the standing zombies within DANGER_R (`threat.Threat._many_near`); P29-F, the running Fight's finish of its lone
     fallen pin kept over the `health` and `many` flees (`threat.Threat._finish_lone`, `finish.FightFinish.finishing`);
-    `T13_SWITCHES` (ROUTE_CROSS, GOAL_STALL, HEALTH_NEAR, DRESS_FINISH, MANY_NEAR, FINISH_LONE).
+    P29-C, P27-J's walk to close at an idle target only, a chaser met by the stance (`shove.FightShove._shove_close`);
+    `T13_SWITCHES` (ROUTE_CROSS, GOAL_STALL, HEALTH_NEAR, DRESS_FINISH, MANY_NEAR, FINISH_LONE, CLOSE_IDLE).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -442,11 +443,12 @@ T11_SWITCHES = ("WOUND_DRESS", "SHOVE_BACK", "DRIFT_STAND", "FLOOR_PAIN", "BUSY_
 # APPROACH_WALK, fix 1's seventh); P28-B1 withdrawn (no switch)
 T12_SWITCHES = ("MELEE",)
 # survival iteration 22 (Plan 28 Task 7b, cut 1 of the maneuver layer): the melee maneuver on `threat.Threat` (MELEE)
-T13_SWITCHES = ("ROUTE_CROSS", "GOAL_STALL", "HEALTH_NEAR", "DRESS_FINISH", "MANY_NEAR", "FINISH_LONE")
+T13_SWITCHES = ("ROUTE_CROSS", "GOAL_STALL", "HEALTH_NEAR", "DRESS_FINISH", "MANY_NEAR", "FINISH_LONE",
+                "CLOSE_IDLE")
 # survival iteration 23 (Plan 29 Task 1): P29-A on `threat.Threat` beside BLOCKED_EDGE (ROUTE_CROSS: the Fight's
 # `route_cross` rule, copied to the goals' kit); P29-B on `Survive` (GOAL_STALL, copied to the goal runner); its hit
 # rules (Plan 29 Task 2) on `threat.Threat`: P29-E (HEALTH_NEAR), P29-D (DRESS_FINISH), P29-G (MANY_NEAR), P29-F
-# (FINISH_LONE)
+# (FINISH_LONE), P29-C (CLOSE_IDLE, the Fight's `close_idle` rule)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")

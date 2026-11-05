@@ -557,11 +557,14 @@ def test_a_chasing_zombie_or_one_with_no_target_read_takes_the_hold_fight(tmp_pa
     assert held_off(r, sv, **k).type == "aim" and threat_why(tmp_path)["hold_fight"] is True
 
 
-def test_f10_s_hold_fight_closes_on_a_chaser_holding_beyond_point_blank(tmp_path):
+def test_f10_s_hold_fight_closes_on_a_chaser_holding_beyond_point_blank(tmp_path, monkeypatch):
     """F10's hold fight (lines 656-681: the stance at 27031, the zombie at 2.815809041061751 then 3.1712611313783534 to
     3.393632390072648 tiles for twenty lines, five aim legs and nothing else): the chaser holding 3.3 tiles off, alone:
     the stance stands five ticks, the SHOVE_CLOSE_TICKS-th the leg gives way and the walk to the square one short of it
-    goes at a walk, logged `shove_close` {target, dist, ticks}; arrived at point blank, the shove."""
+    goes at a walk, logged `shove_close` {target, dist, ticks}; arrived at point blank, the shove.
+    Named change, ruling P29-C (Plan 29 Task 2): P27-J's walk to close goes at an idle zombie only now; pinned with
+    `CLOSE_IDLE` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CLOSE_IDLE", False)
     r, sv = make(tmp_path)
     for k in range(P.SHOVE_CLOSE_TICKS - 1):
         a = held_off(r, sv)
@@ -574,10 +577,13 @@ def test_f10_s_hold_fight_closes_on_a_chaser_holding_beyond_point_blank(tmp_path
     assert (a.type, a.args) == ("shove", {"targetId": 1}) and threat_why(tmp_path)["shove"] == "hold"
 
 
-def test_a_chaser_behind_a_wall_is_left_and_the_hold_rests(tmp_path):
+def test_a_chaser_behind_a_wall_is_left_and_the_hold_rests(tmp_path, monkeypatch):
     """The same chaser with a wall on the line (a room square's west edge at x 102, which no P25-X read takes): no walk;
     the target is left (`shove_close` {left True}, marked unreachable) and on the next tick the hold rests (no leg,
-    `rest`) though it stands chasing within DANGER_R."""
+    `rest`) though it stands chasing within DANGER_R.
+    Named change, ruling P29-C (Plan 29 Task 2): P27-J's walk to close goes at an idle zombie only now; pinned with
+    `CLOSE_IDLE` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CLOSE_IDLE", False)
     r, sv = make(tmp_path)
     r.scan([square(x, 200, room="hall" if x == 102 else None, blockW=x == 102) for x in range(99, 106)])
     held_off(r, sv, ticks=P.SHOVE_CLOSE_TICKS)
@@ -587,9 +593,12 @@ def test_a_chaser_behind_a_wall_is_left_and_the_hold_rests(tmp_path):
     assert held_off(r, sv) is None and "rest" in threat_why(tmp_path) and len(r.acts.history) == n
 
 
-def test_the_unarmed_fight_closes_on_a_chaser_and_never_on_an_idle_one(tmp_path):
+def test_the_unarmed_fight_closes_on_a_chaser_and_never_on_an_idle_one(tmp_path, monkeypatch):
     """The unarmed fight (no weapon, health 100: P25-P) at a chaser 3.3 tiles off: the close walk on the
-    SHOVE_CLOSE_TICKS-th tick; at the same zombie idle (`hasTarget` false) eight ticks and no walk."""
+    SHOVE_CLOSE_TICKS-th tick; at the same zombie idle (`hasTarget` false) eight ticks and no walk.
+    Named change, ruling P29-C (Plan 29 Task 2): P27-J's walk to close goes at an idle zombie only now; pinned with
+    `CLOSE_IDLE` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CLOSE_IDLE", False)
     for idle in (False, True):
         d = tmp_path / str(idle)
         d.mkdir()
@@ -604,11 +613,15 @@ def test_the_unarmed_fight_closes_on_a_chaser_and_never_on_an_idle_one(tmp_path)
         assert ("walkTo" in sends(r)) is (not idle) and threat_why(d)["unarmed_fight"] is True
 
 
-def test_the_unarmed_close_is_a_lone_chaser_s_with_a_second_zombie_standing_within_danger_r_no_walk(tmp_path):
+def test_the_unarmed_close_is_a_lone_chaser_s_with_a_second_zombie_standing_within_danger_r_no_walk(tmp_path,
+                                                                                                    monkeypatch):
     """P27-J (b) applies to the lone chasing target: a second zombie 5 tiles off, standing across a blocked fence
     edge (`edge_marks`, out of the hold's count so the unarmed fight still runs, but within DANGER_R for `_alone`):
     the chaser 3.3 tiles off held through SHOVE_CLOSE_TICKS plus two ticks sends no `shove_close` walk; with the
-    second zombie gone the walk goes."""
+    second zombie gone the walk goes.
+    Named change, ruling P29-C (Plan 29 Task 2): P27-J's walk to close goes at an idle zombie only now; pinned with
+    `CLOSE_IDLE` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CLOSE_IDLE", False)
     for second in (True, False):
         d = tmp_path / str(second)
         d.mkdir()
