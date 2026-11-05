@@ -994,3 +994,14 @@ def test_e2_s_cut_exit_is_not_walked_again_by_the_next_episode(tmp_path):
     assert g[148]["why"]["flee_held_stance"]["target"] == 12839
     walk = {"type": "walkTo", "args": {"gait": "run", "x": 10740.5, "y": 10636.5}}
     assert g[149]["action"] != walk and not any(g[k]["action"] == walk for k in g if k > 148)
+
+
+def test_a_fallen_zombie_ahead_of_the_walk_cuts_nothing(tmp_path, monkeypatch):
+    """P29-H' fix 1 (review-t2 m1): the walk's heading is read against the held zombies standing (`Flee._threats`, the
+    fallen left out): line 412 with 28222 read fallen (the test's own) on the walk's heading keeps the walk."""
+    r, sv, walk = f13_walk(tmp_path, monkeypatch)
+    m, zs = F13_FRAMES[412]
+    recs = [dict(zr(zid, x, y, me=m), onFloor=zid == 28222) for zid, x, y in zs]
+    r.frame(x=m[0], y=m[1], zombies=recs, weapon=E22_BAT, health=100.0, game_min=617.1)
+    tick(r, sv)
+    assert "flee_held_stance" not in threat_why(tmp_path) and F13_DOOR not in r.world.marked_doors()
