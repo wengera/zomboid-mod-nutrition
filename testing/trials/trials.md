@@ -1,0 +1,6 @@
+# Trials
+
+The log of Plan 31's exploratory trials (ruling P31-T, CLAUDE.md § 5 "Trials"): one row per boot of `testing/agent/drivers/x_trial.py`, appended by `python tools/trial_score.py <run> --seen "..."`. A trial is not evidence: no row, page or brief cites a line of this table; its run folder stays in `testing/runs/`. The columns: the trial's run id; the variant (`Survive(control=...)`) and the switches it set; the commit the snapshot was made from (`-dirty-<hash>` for a working tree); the fixture; the loop's minutes; kills by the `zombie_dead` events; hits as the frames' reaction runs and the union with the reflex's `hit` steps; hits per kill (the union over the kills; `-` with no kill); the minutes fleeing or retreating; the minutes moving toward a named target; the wounds dressed within one game minute of their first bleeding frame over the wounds taken; the melees superseded before their swing over the melees sent; the end (`death@<game minute>`, `cap`, `crash`, `end`); the health at the end; three lines of what was seen, every wound traced to the press or leg before it.
+
+| trial | variant | commit | fixture | min | kills | hits (runs / union) | hits per kill | min fleeing | min toward target | dressed <1 min | melees superseded | end | health | seen |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
