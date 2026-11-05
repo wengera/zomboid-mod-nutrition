@@ -155,3 +155,20 @@ def test_the_readings_on_f14_are_e21_s_over_the_same_sources():
     r = T21._f14_readings()
     assert {k: json.dumps(g[k], sort_keys=True) for k in NEW21} == {k: json.dumps(r[k], sort_keys=True) for k in NEW21}
     assert E._d(g["goal_wait"]["near_runs"])["lines"] == 181
+
+
+F15 = os.path.join(TESTING, "artifacts", "f_goals_16-20261105-164332")
+
+
+def test_f_grade_12_on_f15_reproduces_the_committed_f_grade_txt_byte_for_byte():
+    """Ruling P26-Q: `f_grade_12.py` on the committed F15 artifact (the first session graded through `grade_f12`, the first
+    with the union hits, the event-matched kills and iteration 24's readings) reproduces its committed `f_grade.txt` byte
+    for byte (CRLF folded), so a drift in any live name read through the grade chain fails here."""
+    p = os.path.join(F15, "f_goals_16.json")
+    if not os.path.isfile(p):
+        pytest.skip("%s is not checked out" % F15)
+    script = os.path.join(TESTING, "agent", "drivers", "f_grade_12.py")
+    r = subprocess.run([sys.executable, script, p], capture_output=True, cwd=TESTING)
+    assert r.returncode == 0
+    want = open(os.path.join(F15, "f_grade.txt"), "rb").read().replace(b"\r\n", b"\n")
+    assert r.stdout.replace(b"\r\n", b"\n") == want
