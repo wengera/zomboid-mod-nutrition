@@ -579,3 +579,20 @@ def test_e_grade_19_refuses_an_argument_it_does_not_define():
     assert "from agent.base.grades.e19 import gate_e19, grade_e19, report_lines_e19" in src
     body = src[src.index('"""', 3):]
     assert "usage: e_grade_19.py" in src and "e18" not in body and "_e18" not in body
+
+
+E22 = os.path.join(TESTING, "artifacts", "e_day_22-20261105-004919")
+
+
+def test_e_grade_19_on_e22_reproduces_the_committed_e_grade_txt_byte_for_byte():
+    """Ruling P26-Q: `e_grade_19.py` on the committed E22 artifact (the first session graded through `grade_e19`, the
+    first with melee spans) reproduces its committed `e_grade.txt` byte for byte (CRLF folded), so a drift in any live
+    name read through the grade chain (`grade_e18` to `grade_e14`, `gates_e`) fails here."""
+    p = os.path.join(E22, "e_day_22.json")
+    if not os.path.isfile(p):
+        pytest.skip("%s is not checked out" % E22)
+    script = os.path.join(TESTING, "agent", "drivers", "e_grade_19.py")
+    r = subprocess.run([sys.executable, script, p], capture_output=True, cwd=TESTING)
+    assert r.returncode == 0
+    want = open(os.path.join(E22, "e_grade.txt"), "rb").read().replace(b"\r\n", b"\n")
+    assert r.stdout.replace(b"\r\n", b"\n") == want
