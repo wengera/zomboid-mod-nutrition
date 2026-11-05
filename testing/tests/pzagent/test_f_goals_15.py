@@ -466,7 +466,7 @@ def test_the_totals_reach_the_llm_record(tmp_path, monkeypatch):
 
 
 BASE_SENTENCE = (
-    "the base at `d54bfc1a` (the planner: Plan 29 Task 2, its head at the copy, re-based before the boot) carries "
+    "the base at `6350d9ab` (the planner: Plan 29 Task 2, its head at the copy, re-based before the boot) carries "
     "PZA/1.8 (the `melee` action, its progress lines with a result, the frame's `act.step`; the hello reads `mod` "
     "`1.8`) and survival iteration 23 (the gate, over iteration 22: `ROUTE_CROSS` the route through a door read by "
     "whether it crossed, `GOAL_STALL` a goal budget that never moved read as stuck, `CLOSE_IDLE` the walk to close at "
@@ -524,7 +524,7 @@ def test_the_driver_is_f_goals_14_py_copied_under_its_own_key_with_grade_f11_wir
     assert doc.splitlines()[1] == "" and doc.splitlines()[2].startswith("The rest of this docstring is f_goals.py")
     assert "unchanged but for the stops and the grade's name" in doc.splitlines()[2]       # the lead-in kept
     assert BASE_SENTENCE in first and "PZA/1.8" in first and "Plan 29 Task 4" in first and "f_goals_14.py" in first
-    assert "d54bfc1a" in first and "869a5749" not in doc and "Task 7d" not in doc and "iteration 22 (the melee" not in doc
+    assert "6350d9ab" in first and "869a5749" not in doc and "Task 7d" not in doc and "iteration 22 (the melee" not in doc
     assert "f_goals_13" not in doc and "grade_f9" not in doc and all(w in first for w in SWITCHES)
     for word in ("f_grade_11.py", "grade_f10", "grades.e20", "agent.base.grades.f11", "stall"):
         assert word in first, word
@@ -549,11 +549,11 @@ def test_the_stops_block_names_client_end_after_death():
 
 def test_the_base_sentence_names_the_planner_s_head_at_the_copy():
     """The base sentence's commit is the planner's head the copy was made at (`git log -1 -- testing/agent/base/planner`
-    at Task 4: d54bfc1a, Plan 29 Task 2); the controller re-bases it before the boot, and the commit stands once, in
+    at Task 4: 6350d9ab, Plan 29 Task 2); the controller re-bases it before the boot, and the commit stands once, in
     this sentence, so a re-base is one replacement."""
     first = F.__doc__.splitlines()[0]
     assert BASE_SENTENCE in first
-    assert "the base at `d54bfc1a` (the planner: Plan 29 Task 2, its head at the copy, re-based before the boot)" in first
+    assert "the base at `6350d9ab` (the planner: Plan 29 Task 2, its head at the copy, re-based before the boot)" in first
     assert first.count("re-based") == 1
     assert "carries PZA/1.8 (the `melee` action, its progress lines with a result, the frame's `act.step`; the hello " \
            "reads `mod` `1.8`)" in first
