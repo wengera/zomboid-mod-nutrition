@@ -802,12 +802,14 @@ def close_rig(tmp_path, chasing=True, on=True):
 def test_e22_s_line_1268_chaser_is_not_walked_to_the_stance_meets_it(tmp_path):
     """P29-C (`CLOSE_IDLE`): line 1268, 11504 chasing 4.284030540414437 tiles off after SHOVE_CLOSE_TICKS ticks beyond
     point blank: no `shove_close` walk; logged `close_held` {target, d}, the stance's leg aimed at it (the melee
-    meeting it at MELEE_RELEASE_R on a build announcing it)."""
+    meeting it at MELEE_RELEASE_R on a build announcing it): the stance's `stand` leg re-aimed at 11504, exact (fix 1,
+    review-t2 m5)."""
     r, sv, a = close_rig(tmp_path)
     w = threat_why(tmp_path)
     assert "walkTo" not in [x.type for x in r.acts.history] and "shove_close" not in w
     assert w["close_held"] == {"target": 11504, "d": E22_CLOSE_D} and w["low_fight"] is True
-    assert a is None or (a.type, a.args["targetId"]) == ("aim", 11504)
+    assert (a.type, a.args) == ("aim", {"vx": 0.0, "vy": 0.0, "seconds": 2.0, "targetId": 11504, "bearing": -1.0})
+    assert w["leg"] == "stand" and [x.type for x in r.acts.history] == ["aim", "aim"]
 
 
 def test_with_close_idle_off_line_1268_walks_to_the_chaser_as_e22_did(tmp_path):
@@ -984,9 +986,11 @@ def test_e2_s_cut_exit_is_not_walked_again_by_the_next_episode(tmp_path):
     """P29-H' fix 1 (review-t2 M2) on E2's re-recorded golden: line 148 cuts exit 3's walk (12839 2.8074181315305675
     tiles ahead), its outside square (10740, 10635) marked `walled` from inside, and line 149, where the record's next
     flee episode sent the same walk to (10740.5, 10636.5) at a run again before the fix, sends no such walk; nor does
-    any later line of the golden while the mark stands."""
-    from .test_replay_decisions import gold
-    g = gold("e2")
+    any later line of the golden while the mark stands. Read on the live replay of E2's record (`replay_decisions`),
+    which the golden is byte for byte, so a broken mark fails here and not only at the golden's byte check."""
+    from agent.base import replay_decisions as R
+    from .test_replay_decisions import run_dir
+    g = {d["line"]: d for d in R.decisions(R.replay(run_dir("e2"), caps=R.HELLO_CAPS.get("e2")))}
     assert g[148]["why"]["flee_held_stance"]["target"] == 12839
     walk = {"type": "walkTo", "args": {"gait": "run", "x": 10740.5, "y": 10636.5}}
     assert g[149]["action"] != walk and not any(g[k]["action"] == walk for k in g if k > 148)

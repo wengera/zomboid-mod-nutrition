@@ -939,8 +939,7 @@ class World:
         if len(fails) < DOOR_FAILS_TO_MARK:
             self.door_fails[sq] = fails
             return False
-        self.door_fails.pop(sq, None)
-        self.door_marks[sq] = (now, reason, side)
+        self.mark_door(sq, reason, side)   # fix 1, review-t2 m3: one writer of `door_marks`
         return True
 
     def mark_door(self, sq, reason, side="out"):

@@ -306,7 +306,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         and while a `many` episode runs MAX_FIGHT hold it (a flip at the line kept off, as P23-AM 1's), so the episode
         ends at one standing or none; the hold radius's count and the listing's (P24-A (a), P24-X) are not read. Cost
         if wrong: a group arriving from beyond DANGER_R, met in the stance until three stand within it."""
-        return sum(1 for z in self._within(DANGER_R) if not on_floor(z) and self._counts_many(z))
+        return sum(1 for z in self._danger_near() if not on_floor(z) and self._counts_many(z))
 
     def _counts_many(self, z):
         """Ruling P24-AD: zombie `z` counts toward `many`: within DANGER_R, or not idle (`hasTarget` not read false: a
@@ -407,7 +407,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         z = self.world.zombies.get(zid) if zid is not None else None
         if z is None or z.get("x") is None or z.get("y") is None or zdist(self.world, z) > FINISH_R:
             return None
-        near = self._within(DANGER_R)
+        near = self._danger_near()
         if len(near) != 1 or near[0] is not z or not f.finishing(zid):
             return None
         return {"target": zid}
@@ -491,7 +491,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         allowed (`LOW_FIGHT` on) with the build announcing `shove`, one zombie within DANGER_R (`n` 1: two or more flee
         `health` as before) and the health at or above FLEE_HEALTH_FLOOR. Its Fight is P25-P's shove-and-stomp fight
         (`Fight.shove_only` "low": the stance, the shove at point blank, the stomp of the fallen, no swing, no seek),
-        logged `low_fight`; the doorway stand's own `health` end is unchanged."""
+        logged `low_fight`; the doorway stand's own `health` end is unchanged. Ruling P29-E (`HEALTH_NEAR`): with none
+        within DANGER_R (`n` 0) too, where the stance may hold at a held zombie in view (`_near_view`)."""
         health = self._health()
         return (self.LOW_FIGHT and health < FLEE_HEALTH and self.world.can("shove") and (n == 1 or self._near_view(n))
                 and health >= FLEE_HEALTH_FLOOR and not self._low_left())
@@ -527,9 +528,19 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         (`low_left`, `shove.FightShove._low_exit`): the low fight is not allowed, so the `health` flee runs."""
         if not (self.LOW_EXIT and self.low_left):
             return False
-        near = self._within(DANGER_R)
+        near = self._danger_near()
         ids = [zid for zid, z in self.world.zombies.items() if any(z is w for w in near)]
         return bool(ids) and all(zid in self.low_left for zid in ids)
+
+    def _danger_near(self):
+        """The zombies within DANGER_R (`_within`), read once a tick for the rules that count them (the threat plan's
+        `n`, P27-K2's `_low_left`, P29-D's `_dress_waits`, P29-F's `_finish_lone`, P29-G's `_many_near`; fix 1,
+        review-t2 m4): read again when the tick, the frame, a kill mark (`dead`) or an edge mark (`edge_marks`, which
+        `_within` leaves out across) has moved since."""
+        key = (self.ticks, self.world.frame_n, len(self.dead), len(self.edge_marks))
+        if self._near_cache is None or self._near_cache[0] != key:
+            self._near_cache = (key, self._within(DANGER_R))
+        return self._near_cache[1]
 
     def _corner_exit(self, held, inside):
         """Ruling P27-K2 (`LOW_EXIT`; F10, `f_goals_11-20261103-075140`: on line 1442, health 11.3414306640625, the
@@ -772,20 +783,20 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             return door
         if self._drag(held, inside):   # P24-A (h): first, whatever the fight or the corner
             self.cornered, self._corner_fight, self.group_steer, self.door = None, None, "drag", None
-            return "flee", self._flee_reason(held, len(self._within(DANGER_R))) or "many"
+            return "flee", self._flee_reason(held, len(self._danger_near())) or "many"
         self.door = self._door_targets() if self.sheltered else None
         if self.door:
             return "door", None
         if self._cornered(held, inside) is not None:
             return "cornered", None
         if self.group_steer:
-            return "flee", self._flee_reason(held, len(self._within(DANGER_R))) or "many"
+            return "flee", self._flee_reason(held, len(self._danger_near())) or "many"
         steps = self.mode == "flee" and self.flee is not None and (self.flee.running_shelter()
                                                                    or self.flee.running_exit())
         held_inside = not steps and self._held_inside(held)
         if held_inside and breach is None:
             return "hold", "held_inside"
-        reason = self._flee_reason(held, len(self._within(DANGER_R)))
+        reason = self._flee_reason(held, len(self._danger_near()))
         lone = self._finish_lone(reason)
         if lone is not None:   # P29-F: the lone fallen pin's finish kept over the `health` or `many` flee
             self.finish_lone, reason = lone, None
@@ -851,7 +862,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if self._armed():
             return "fight", None
         near = min(zdist(self.world, z) for _, z in reach)
-        return ("fight", None) if near <= FIGHT_REACH and self._unarmed_fight(len(self._within(DANGER_R))) else None
+        return ("fight", None) if near <= FIGHT_REACH and self._unarmed_fight(len(self._danger_near())) else None
 
     def _end_flee_episode(self):
         """A flee episode's own flags cleared: its stall origin, its one load drop, its `many` (P23-AM 1), its `health`
@@ -1109,7 +1120,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         on the dressing's end as a running leg holds it, logged `dress_finish` {action, near 0}; a zombie within
         DANGER_R supersedes it as before. Else None. Cost if wrong: a dressing's seconds with a chaser coming from
         beyond DANGER_R."""
-        if not self.DRESS_FINISH or flee.busy() or self._within(DANGER_R):
+        if not self.DRESS_FINISH or flee.busy() or self._danger_near():
             return None
         c = self.care
         a = c.riding()
@@ -1131,7 +1142,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             return None
         if self._hold_lone():
             return "hold"
-        return "low" if self._low_fight(len(self._within(DANGER_R))) else None
+        return "low" if self._low_fight(len(self._danger_near())) else None
 
     def _inside_crowd(self):
         """Ruling P26-C: the running corner's count at point blank when it is an `inside` corner (`corner_kind`) with

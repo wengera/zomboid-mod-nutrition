@@ -104,7 +104,8 @@ from agent.base.planner.policies import (AHEAD_CONE, AHEAD_R, DANGER_R, DISENGAG
                                          STEER_TURNS, STEP_PROBE, STUCK_MOVE, STUCK_NEAR_R, STUCK_SKIP_DEG,
                                          WALK_STALL_S, WIDE_TURNS, WINDOW_STALL_S, Policy, _night, _rotate,
                                          away_vector, centre,
-                                         clear_heading, exit_plan, in_building, in_corridor, line_to, on_post, on_room,
+                                         clear_heading, exit_plan, in_building, in_corridor, line_to, on_floor, on_post,
+                                         on_room,
                                          running, stand_post, target_id_ok, zdist)
 from agent.base.planner.windows import note_window_end
 from agent.base.pza1 import Climb, Interact, Steer, Stop, WalkTo, Window
@@ -270,8 +271,7 @@ class Flee(Policy):
         leg = self._leg
         if leg[0] is self._dropped:
             return
-        far = [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid) and z.get("x") is not None
-               and z.get("y") is not None and NEAR_R < zdist(self.world, z) <= DISENGAGE_R]
+        far = self._far(self.world.zombies.values())
         ahead = {id(z) for z in self._ahead(leg[2], [z for _, z in far])}
         new = sorted((zid for zid, z in far if id(z) in ahead and zid not in leg[3]), key=repr)
         if new:
@@ -284,9 +284,9 @@ class Flee(Policy):
         lines 412 and 413 read no flee reason and were held only by `_kept_flee`'s `flip`; the controller's ruling,
         `fight2-flee-read.md`): while a shelter step's or an exit's walk runs (`_walk_from`), its observed heading (the
         character's displacement since the send, read once it reaches FLEE_HEAD_R: a shorter move, the turn-in, is not
-        read) is passed to `_ahead` (AHEAD_R, AHEAD_CONE, the CORRIDOR_R tube) over the held zombies beyond NEAR_R
-        (`_cut_leg`'s read); one ahead drops the walk (`_dropped`, so `busy` and the `flip` guard keep nothing) with its
-        plan for the episode, as P23-AM 2's stall drop does (`picked` kept, never shunned), the plan's door marked
+        read) is passed to `_ahead` (AHEAD_R, AHEAD_CONE, the CORRIDOR_R tube) over the held zombies (`_threats`, this
+        tick's held list, the fallen left out: fix 1, review-t2 m1) beyond NEAR_R within DISENGAGE_R (`_far`); one
+        ahead drops the walk (`_dropped`, so `busy` and the `flip` guard keep nothing) with its plan for the episode, as P23-AM 2's stall drop does (`picked` kept, never shunned), the plan's door marked
         `walled` from outside (`World.mark_door`: the next episode's pick leaves it out for DOOR_RETRY_MIN), or the exit
         refused and its door (an opening's outside square) marked `walled` from inside, which `policies.exit_plan`
         refuses for DOOR_RETRY_MIN (fix 1, review-t2 M2: the refusal lived in this Flee's `refused` alone, so E2's
@@ -309,8 +309,7 @@ class Flee(Policy):
         if dd < FLEE_HEAD_R:
             return
         v = (dx / dd, dy / dd)
-        far = [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid) and z.get("x") is not None
-               and z.get("y") is not None and NEAR_R < zdist(self.world, z) <= DISENGAGE_R]
+        far = self._far(z for z in self._threats() if not on_floor(z))
         ahead = {id(z) for z in self._ahead(v, [z for _, z in far])}
         hits = sorted(((zdist(self.world, z), repr(zid), zid, z) for zid, z in far if id(z) in ahead))
         if not hits:
@@ -327,6 +326,14 @@ class Flee(Policy):
             self.world.mark_door(self.exit["door"] or self.exit["outer"], "walled", "in")   # fix 1, M2: kept past it
             self._exit_read = a
             self._refuse_exit()
+
+    def _far(self, zs):
+        """(id, record) of the zombie records `zs` the World lists under a wire id, with a position, beyond NEAR_R and
+        within DISENGAGE_R, in their order: the candidates `_cut_leg` (every listed zombie, G1's current records) and
+        `_held_ahead` (the held ones) read `_ahead` over (fix 1, review-t2 m4: one read)."""
+        ids = {id(z): zid for zid, z in self.world.zombies.items()}
+        return [(ids[id(z)], z) for z in zs if target_id_ok(ids.get(id(z))) and z.get("x") is not None
+                and z.get("y") is not None and NEAR_R < zdist(self.world, z) <= DISENGAGE_R]
 
     def take_held_cut(self):
         """P29-H': the walk `_held_ahead` cut since the last take ({target, heading, bearing, d}), else None."""

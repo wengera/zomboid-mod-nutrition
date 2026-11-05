@@ -570,6 +570,7 @@ class Survive(Threat):
         self.health_near = None   # this tick: {near} when the `health` flee was withheld, none within DANGER_R (P29-E)
         self.health_pass = False  # this tick: ... with no stance to hold, so the threat branch passed (P29-E)
         self.many_near = None     # this tick: {n} when the standing count within DANGER_R withheld `many` (P29-G)
+        self._near_cache = None   # (tick key, the zombies within DANGER_R): `Threat._danger_near`'s (review-t2 m4)
         self.finish_lone = None   # this tick: {target} when the lone fallen pin's finish was kept over a flee (P29-F)
         self.held_cut = None      # this tick: {target, heading, bearing, d} of the flee walk cut for a held zombie
                                   # ahead (P29-H')
