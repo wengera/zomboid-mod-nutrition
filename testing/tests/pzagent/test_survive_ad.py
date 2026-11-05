@@ -17,6 +17,8 @@ announcing `melee` only where a test asks (`fakemod.MELEE_CAPS`); each test's ge
   hand-over supersedes it; the corner, the door fight and the doorway stand keep the ladder; without the cap or with
   the rule off the ladder as before.
 """
+import pytest
+
 from agent.base.planner import fight as F
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
@@ -25,7 +27,7 @@ from agent.base.planner.maneuvers import Maneuver, Melee
 from agent.base.pza1 import Scan
 
 from .fakemod import MELEE_CAPS
-from .test_policies import BAT, Rig
+from .test_policies import BAT, Rig, square
 from .test_survive import make, threat_why, tick
 from .test_survive_q import fr, z
 
@@ -599,3 +601,154 @@ def test_the_survive_tick_logs_the_maneuver_s_step_while_it_holds_and_a_flee_han
     b = tick(r, sv)
     assert b is not None and b.type != "melee" and sv.mode == "flee" and sv.fight is None
     assert r.acts.current is b
+
+
+# ================================================================ the mutation pass's cases (Plan 28 Task 7b)
+def test_the_fence_wait_s_leg_within_keep_r_keeps_the_ladder(tmp_path):
+    """The fence wait stays above the dispatch point: a chaser 2.0 tiles off across the fence at x 102 (P25-F's yard),
+    its `stand` leg within KEEP_R goes as the ladder's aim, logged `fence_wait`, no maneuver."""
+    from .test_survive_t import fence_rig
+    r, sv = fence_rig(tmp_path, 102.5, caps=MELEE_CAPS)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "aim" and w["fence_wait"]["leg"] == "stand" and "maneuver" not in w and sv.fight.m is None
+
+
+def test_the_ladder_s_backpedal_at_a_fallen_pin_keeps_the_ladder(tmp_path):
+    """Under a hold with the stomp refused at the fallen pin (`swing_refused`), the finish's backpedal (P24-AP's leg,
+    `_wounded_leg`) is no melee: a finish there would press the refused stomp."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 101.2, floor=True)])
+    f = fight(r, spent=("arms",))
+    f.swing_refused[("stomp", 9)] = r.clock() + P.SWING_SKIP_S
+    a = f.step()
+    assert (a.type, f.why["leg"]) == ("aim", "back") and f.m is None and "maneuver" not in f.why
+
+
+def test_boxed_in_the_back_heading_is_zero(tmp_path):
+    """No clear heading west, north or south of the player (the solid squares round it, the target due east): the
+    `back` heading is (0, 0), the Lua standing in the stance after a miss."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    r.scan([square(x, y, solid=True) for x, y in ((99, 199), (99, 200), (99, 201), (100, 199), (100, 201))])
+    r.frame(x=100.5, y=200.5, zombies=[dict(z(9, 102.5, 200.5), dist=2.0)])
+    a = fight(r).step()
+    assert a.type == "melee" and (a.args["backVx"], a.args["backVy"]) == (0.0, 0.0)
+
+
+def test_floor_swing_is_off_with_the_floor_finish_rule_off(tmp_path):
+    """`floorSwing` needs P27-G's rule (`floor_finish`, the floor swing ahead of the stomp): off, the ladder stomps the
+    fallen pin and the melee's finish goes without it."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 101.2, floor=True)])
+    f = fight(r)
+    f.rules = f.rules - {"floor_finish"}
+    a = f.step()
+    assert (a.type, a.args["mode"], f.why["ladder"]) == ("melee", "finish", "stomp") and "floorSwing" not in a.args
+
+
+def test_no_weapon_takes_the_ladder_s_path_for_one_choose(tmp_path):
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 102.0)])
+    f = fight(r)
+    a = f.step()
+    act(r, a, "rejected", "no weapon")
+    r.advance(0.5)
+    fr(r, [z(9, 102.0)])
+    b = f.step()
+    assert (b.type, f.why["melee_end"]["end"]) == ("aim", "no weapon") and f.melee_off is None
+
+
+@pytest.mark.parametrize("state, reason", [("failed", "not loaded"), ("rejected", "bad args"),
+                                           ("rejected", "unknown type")])
+def test_each_end_of_a_build_that_cannot_run_the_melee_turns_it_off(tmp_path, state, reason):
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 102.0)])
+    f = fight(r)
+    act(r, f.step(), state, reason)
+    r.advance(0.5)
+    fr(r, [z(9, 102.0)])
+    assert f.step().type == "aim" and f.melee_off == reason
+
+
+def test_a_span_whose_health_is_unreadable_restarts_the_streak_and_one_with_no_strike_leaves_it(tmp_path):
+    """The streak's edges: a span reading no `hp1` restarts it (as the ladder's unreadable health does); a span with
+    no strike neither counts nor restarts it, its health unreadable too; one span's swings, floor swings and stomps
+    all count."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 102.0)])
+    f = fight(r)
+    for res, n in (({"swings": 2}, 2), ({"swings": 1, "hp1": None}, 0), ({"swings": 1}, 1), ({"hp1": None}, 1)):
+        a = f.step()
+        act(r, a, "accepted")
+        done(r, a, **res)
+        r.advance(0.5)
+        fr(r, [z(9, 102.0)])
+        f.observe()
+        assert f.no_progress == n, res
+    a = f.step()
+    act(r, a, "accepted")
+    done(r, a, swings=0, floors=1, stomps=1)
+    r.advance(0.5)
+    fr(r, [z(9, 102.0)])
+    assert f.step() is None and 9 in f.unreachable
+
+
+def test_the_re_send_is_timed_from_the_accept(tmp_path):
+    """The early re-send reads the running melee's accept wall: accepted 0.5 s after its send, it is held until
+    MELEE_S - MELEE_RESEND_MARGIN_S after the accept."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 102.0)])
+    f = fight(r)
+    a = f.step()
+    r.advance(0.5)
+    act(r, a, "accepted")
+    r.advance(P.MELEE_S - P.MELEE_RESEND_MARGIN_S - 0.25)
+    fr(r, [z(9, 102.0)])
+    assert f.step() is None
+    r.advance(0.25)
+    fr(r, [z(9, 102.0)])
+    assert f.step().type == "melee" and f.why["melee"] == {"resend": "early"}
+
+
+def test_a_melee_whose_send_another_sender_superseded_sends_nothing_and_ends(tmp_path):
+    """`Melee.step` unobserved: once another sender's action is current, its running melee no longer runs, and the
+    step ends it `superseded` instead of re-sending."""
+    from agent.base.planner.maneuvers.melee import MeleeInputs
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    m = Melee(r.world, r.acts, r.clock, 9)
+    m.inputs = MeleeInputs("strike", 0.0, (0.0, 0.0), False)
+    a = send(r, m)
+    act(r, a, "accepted")
+    r.acts.send(Scan(2))
+    assert m.step() is None and m.over() == "superseded" and m.resend is None
+
+
+def test_a_choose_after_another_sender_s_command_starts_a_new_melee(tmp_path):
+    """The Fight's dispatch on a choose its observe did not precede: the running maneuver's step finds its melee
+    superseded, so the maneuver is retired and a new one sends (no re-send logged)."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 102.0)])
+    f = fight(r)
+    a = f.step()
+    act(r, a, "accepted")
+    first = f.m
+    r.acts.send(Scan(2))
+    cmd = f.choose()
+    assert cmd.TYPE == "melee" and f.m is not first and first in f._spent_m and "melee" not in f.why
+
+
+def test_a_melee_is_the_swing_after_a_shove(tmp_path):
+    """P24-AH's once a swing (`_shoved`, the last swing-like send a shove): a melee clears it as the ladder's attack
+    does, so the finish's shove of a standing zombie at point blank beside the fallen pin goes first (the ladder's,
+    at a zombie that is not the pin)."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 102.0)])
+    f = fight(r)
+    f._shoved = True
+    a = f.step()
+    act(r, a, "accepted")
+    done(r, a)
+    r.advance(0.5)
+    fr(r, [z(9, 101.2, floor=True), z(8, 100.0, 200.9)])
+    b = f.step()
+    assert (b.type, b.args) == ("shove", {"targetId": 8}) and f.why["shove"] == "first"
