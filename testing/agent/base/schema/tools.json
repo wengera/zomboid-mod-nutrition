@@ -540,6 +540,10 @@
           "type": "number",
           "description": "The span after which the melee ends done time with no strike running, in seconds."
         },
+        "closeR": {
+          "type": "number",
+          "description": "PZA/1.9 (Plan 30 Task 3): the distance in tiles inside which a target chasing the player (its getTarget the player, its distance falling) is swung at, read by the swing-close reflex; 0 swings at a chaser within the reach, as before PZA/1.9; negative is bad args."
+        },
         "floorSwing": {
           "type": "boolean",
           "description": "True to let the weapon's floor swing finish a fallen target within the reach (a floor attack multiplies its damage by at least 5, #4374); false stomps.",
@@ -555,7 +559,8 @@
         "releaseR",
         "backVx",
         "backVy",
-        "seconds"
+        "seconds",
+        "closeR"
       ],
       "additionalProperties": false
     }

@@ -103,7 +103,7 @@ class Melee(Maneuver):
         self.mode = i.mode
         cmd = pza1.Melee(targetId=self.target, mode=i.mode, reach=float(i.reach), keepR=KEEP_R, shoveR=SHOVE_SEND_R,
                          releaseR=MELEE_RELEASE_R, backVx=float(i.back[0]), backVy=float(i.back[1]),
-                         seconds=MELEE_S, floorSwing=bool(i.floor_swing))
+                         seconds=MELEE_S, closeR=0.0, floorSwing=bool(i.floor_swing))
         self._log(sends=self.n + 1)
         return cmd
 

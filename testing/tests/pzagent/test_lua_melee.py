@@ -20,7 +20,7 @@ from .test_lua_skills import acts, load, sense, start, states, tick
 from .test_lua_stance import Rec
 
 ARGS = {"targetId": 7, "mode": "strike", "reach": 1.4, "keepR": 2.5, "shoveR": 1.1, "releaseR": 2.75,
-        "backVx": -1.0, "backVy": 0.0, "seconds": 2.5}
+        "backVx": -1.0, "backVy": 0.0, "seconds": 2.5, "closeR": 0.0}
 STRIKES = ("face", "swing", "shove", "stomp", "floor")
 R2 = 1 / math.sqrt(2)
 SCHEMA = os.path.join(ROOT, "testing", "agent", "base", "schema", "pza1.json")
@@ -82,7 +82,8 @@ def walk_dir(p):
 # ---- the command's checks ------------------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("over", [{"mode": "kick"}, {"mode": 3}, {"seconds": 0}, {"reach": "x"}, {"reach": -1},
-                                  {"floorSwing": "yes"}, {"targetId": "z"}, {"backVx": None}])
+                                  {"floorSwing": "yes"}, {"targetId": "z"}, {"backVx": None}, {"closeR": None},
+                                  {"closeR": -0.5}, {"closeR": "x"}])
 def test_melee_with_bad_args_is_rejected(lua, fs, over):
     p, z, w = world(lua)
     a = dict(ARGS)

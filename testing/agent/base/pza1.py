@@ -92,7 +92,7 @@ ACTION_ARGS = {
     "unwear": {"itemId": "int"},
     "shove": {"targetId": "int"},
     "stomp": {"targetId": "int"},
-    "melee": {"targetId": "int", "mode": "meleeMode", "reach": "float", "keepR": "float", "shoveR": "float", "releaseR": "float", "backVx": "float", "backVy": "float", "seconds": "float", "floorSwing": "bool"},
+    "melee": {"targetId": "int", "mode": "meleeMode", "reach": "float", "keepR": "float", "shoveR": "float", "releaseR": "float", "backVx": "float", "backVy": "float", "seconds": "float", "closeR": "float", "floorSwing": "bool"},
     "sneak": {"on": "bool"},
 }
 GAITS = ("walk", "run", "sprint")
@@ -485,6 +485,7 @@ class Melee(_Cmd):
     backVx: float  # The back leg's world heading, x (0 with backVy 0: stand in the stance instead).
     backVy: float  # The back leg's world heading, y.
     seconds: float  # The span after which the melee ends done time with no strike running, in seconds.
+    closeR: float  # PZA/1.9 (Plan 30 Task 3): the distance in tiles inside which a target chasing the player (its getTarget the player, its distance falling) is swung at, read by the swing-close reflex; 0 swings at a chaser within the reach, as before PZA/1.9; negative is bad args.
     floorSwing: bool = False  # True to let the weapon's floor swing finish a fallen target within the reach (a floor attack multiplies its damage by at least 5, #4374); false stomps.
 
 

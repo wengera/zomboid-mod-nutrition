@@ -61,7 +61,7 @@ PZA.schema = {
         unwear = { "itemId" },
         shove = { "targetId" },
         stomp = { "targetId" },
-        melee = { "targetId", "mode", "reach", "keepR", "shoveR", "releaseR", "backVx", "backVy", "seconds", "floorSwing" },
+        melee = { "targetId", "mode", "reach", "keepR", "shoveR", "releaseR", "backVx", "backVy", "seconds", "closeR", "floorSwing" },
         sneak = { "on" },
     },
     gaits = { walk = true, run = true, sprint = true },

@@ -9,18 +9,19 @@
 -- starting "PZAgent_M" would load before PZAgent_Skills.lua. Every Java member through PZA.call (index-first), every
 -- vanilla class index-checked; no goto, no integer format of a float, no # on a Java list.
 --
--- melee {targetId, mode, reach, keepR, shoveR, releaseR, backVx, backVy, seconds, floorSwing}
+-- melee {targetId, mode, reach, keepR, shoveR, releaseR, backVx, backVy, seconds, closeR, floorSwing}
 --   targetId  the zombie (K.zombieById); mode strike (the weapon swing within reach, the shove per the reflexes), shove
 --   (no weapon swing at a standing target) or finish (the target fallen: the stomp or the floor swing only); reach the
 --   swing's distance (0: the held weapon's K.reachOf, read once); keepR the back leg's bound after a miss; shoveR the
 --   shove's distance (shove mode's; strike mode's early shove at a chaser goes within K.STAND_R too, P28-H); releaseR
 --   beyond which it fails out of range; (backVx, backVy) the back leg's world heading, the planner's clear-turned one
---   ((0, 0): stand); seconds the span; floorSwing the floor swing allowed at a fallen target. Every tunable is the
---   planner's argument; the Lua's own constants are the engine's (K.STOMP_R, K.STAND_R, K.SWING_MS, K.FACE_TICKS,
+--   ((0, 0): stand); seconds the span; closeR (PZA/1.9, Plan 30 Task 3) the distance inside which a chasing target is
+--   swung at (0: within the reach, as before); floorSwing the floor swing allowed at a fallen target. Every tunable is
+--   the planner's argument; the Lua's own constants are the engine's (K.STOMP_R, K.STAND_R, K.SWING_MS, K.FACE_TICKS,
 --   K.STOMP_APPROACH_MS) and two of its own below, a steering tolerance and a prefilter, neither a behaviour.
 -- check: the args typed (bad args: targetId a number, mode in the schema's meleeMode enum, PZA.schema.meleeModes, the
---   seven numbers numbers, seconds above 0, reach 0 or more, floorSwing absent or a boolean); the target live and
---   readable (no target), within releaseR (too far); in strike mode a weapon held (no weapon).
+--   eight numbers numbers, seconds above 0, reach and closeR 0 or more, floorSwing absent or a boolean); the target
+--   live and readable (no target), within releaseR (too far); in strike mode a weapon held (no weapon).
 -- tick: the player dead fails dead; the target dead ends done (end dead). The first tick checks the members every step
 --   may call (setForceAim, nullifyAiming, faceThisObject, DoAttack, setDoShove, setAutoWalk, setAutoWalkDirection,
 --   Vector2.new: not loaded) and reads the target's health. Then d, the distance read live from the target object
@@ -91,7 +92,7 @@ K.MELEE_TURN_DOT = 0.985     -- the close's and the stomp walk's heading set aga
 K.MELEE_CROWD_SLACK = 1.0    -- tiles: a record of the last frame farther than K.STAND_R + this is not read live for crowd
 K.MELEE_STILL_TICKS = 12     -- the back leg's walk still (K.STILL_EPS) this many ticks in a row is blocked: its end
 
-local NUMS = { "reach", "keepR", "shoveR", "releaseR", "backVx", "backVy", "seconds" }
+local NUMS = { "reach", "keepR", "shoveR", "releaseR", "backVx", "backVy", "seconds", "closeR" }
 local MEMBERS = { "setForceAim", "nullifyAiming", "faceThisObject", "DoAttack", "setDoShove", "setAutoWalk",
                   "setAutoWalkDirection" }
 local COUNT = { swing = "swings", shove = "shoves", stomp = "stomps", floor = "floors" }
@@ -418,7 +419,7 @@ K.types.melee = {
         for i = 1, #NUMS do
             if type(args[NUMS[i]]) ~= "number" then return false, "bad args" end
         end
-        if args.seconds <= 0 or args.reach < 0 then return false, "bad args" end
+        if args.seconds <= 0 or args.reach < 0 or args.closeR < 0 then return false, "bad args" end
         if fs == nil then fs = false end
         if type(fs) ~= "boolean" then return false, "bad args" end
         local z = K.zombieById(p, id)
@@ -429,6 +430,7 @@ K.types.melee = {
         if mode == "strike" and weaponOf(p) == nil then return false, "no weapon" end
         return true, "", { id = id, z = z, mode = mode, reach = args.reach, keepR = args.keepR, shoveR = args.shoveR,
                            releaseR = args.releaseR, bvx = args.backVx, bvy = args.backVy, seconds = args.seconds,
+                           closeR = args.closeR,
                            floorSwing = fs, startMs = nil, step = nil, lastP = 0, lastD = nil, dMin = nil, hp0 = nil,
                            swings = 0, shoves = 0, stomps = 0, floors = 0, knockdowns = 0, hits = 0, steps = {},
                            face = nil, faceKind = nil, strike = nil, missed = false, knocked = false, inHit = false, walk = nil,
