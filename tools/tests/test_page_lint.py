@@ -305,3 +305,8 @@ def test_process_lessons_take_the_reference_profile(tmp_path):
 def test_the_agent_page_is_capped_at_500():
     assert pl.PAGE_SECTIONS["platform/agent.md"] == ["See also"]
     assert pl.CAPS["platform/agent.md"] == 500      # Plan 26 Task 1: the agent base has its own page, capped like the layer pages
+
+
+def test_the_agent_sessions_page_is_a_readings_page_capped_at_500():
+    assert pl.PAGE_SECTIONS["platform/agent-sessions.md"] == ["See also"]
+    assert pl.CAPS["platform/agent-sessions.md"] == 500      # Plan 30 Task 5: the write-up paragraphs split out of agent.md

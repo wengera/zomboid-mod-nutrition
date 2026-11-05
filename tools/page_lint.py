@@ -4,7 +4,7 @@ and a reference profile for the two tagged reference pages.
 
 Per page: the stamp line; the section set and order for its layer (three pages carry their own set:
 platform/overview.md, areas/open-questions.md with Index, Decisions, Experiments, See also, and platform/agent.md
-with See also only); the <a id> anchors (every register row owned by the page has its anchor on the page; no
+and platform/agent-sessions.md with See also only); the <a id> anchors (every register row owned by the page has its anchor on the page; no
 duplicate); a `## Rules` line has a colon and ends with a tag, a `## Key facts` line ends with a tag; `## Walls and
 bounds` ends with a "Not covered:" line; no narrative marker outside code spans; the prose line count
 against the cap (over the cap fails; under 150 warns, except on facts/other-mods/ pages, whose Key
@@ -52,6 +52,7 @@ PAGE_SECTIONS = {
     "areas/open-questions.md": ["Index", "Decisions", "Experiments", "See also"],
     # the moved agent block is a run of ### write-ups: no rules, walls or open index of its own
     "platform/agent.md": ["See also"],
+    "platform/agent-sessions.md": ["See also"],      # the write-ups split out of agent.md: a readings page of ### write-ups
 }
 # Tagged owners outside the contract's section shape; wall-map.md is a fragment-checked link target only.
 REFERENCE_PAGES = ("reference/datasets.md", "reference/tools.md", "reference/wall-map.md", "reference/research-notes.md",
@@ -63,7 +64,7 @@ OPEN_INDEX = "areas/open-questions.md"
 # whose <a id> anchors are checked like a contract page's.
 CONTRACT_LAYERS = ("areas", "platform", "facts")
 CAPS = {"platform/harness.md": 500, "platform/mod-anatomy.md": 500, "platform/lua-platform.md": 500,
-        "platform/mp-model.md": 500, "platform/agent.md": 500}
+        "platform/mp-model.md": 500, "platform/agent.md": 500, "platform/agent-sessions.md": 500}
 DEFAULT_CAP, FLOOR = 400, 150
 WARN_RULES = ("prose-floor",)
 Finding = collections.namedtuple("Finding", "path line rule detail")
