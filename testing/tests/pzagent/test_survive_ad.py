@@ -947,3 +947,19 @@ def test_the_early_re_send_waits_for_a_strike_in_flight(tmp_path):
     fr(r, [z(9, 101.1)])
     b = f.step()
     assert b.type == "melee" and f.why["melee"] == {"resend": "early"}
+
+
+def test_a_crowd_end_with_the_frame_behind_still_gives_the_ladder_the_choose(tmp_path):
+    """Fix 1 (review-t7b M1): the Lua reads the other zombie live, the frame up to a tenth of a second behind it; with
+    the next frame still listing 8 beyond STAND_MIN_R (0.9 tiles, so the guard reads nothing), the crowd end alone
+    hands that choose to the ladder: its leg, never a fresh melee on the geometry the Lua refused."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 100.4), z(8, 100.0, 200.9)])
+    f = fight(r, target=9)
+    a = f.step()
+    act(r, a, "accepted")
+    act(r, a, "failed", "crowd", result={"id": 8, "d": 0.55})
+    r.advance(0.5)
+    fr(r, [z(9, 100.4), z(8, 100.0, 200.9)])
+    b = f.step()
+    assert b.type == "aim" and f.why["melee_end"]["end"] == "crowd" and f.m is None
