@@ -27,8 +27,8 @@ frames, the events or the order of lines. Every live planner name the readings r
 constant with its source and its value at 56a5ab12 (Plan 28 Task 3's last rule commit; ruling P26-Q,
 `grades/__init__.py`), and every why key read off Task 3's committed code (`care.py` `choose`'s wound step, `shove.py`
 `_shove`, `fight.py` `_choose`, `_circle_turn` and `choose`, `finish.py` `_floor_finish` and `_flee_finish`; the pre-run
-edit of review-t4). No reader reads a switch (`T11_SWITCHES`, nor the coming APPROACH_WALK: P28-C's non-stance walk
-shares FLOOR_PAIN for now and no reading counts it), there is no `shove_early` (P28-B1 withdrawn) and SHOVE_R (1.1 at
+edit of review-t4). No reader reads a switch (`T11_SWITCHES`, APPROACH_WALK among them since fd3a1481: P28-C's non-stance walk
+is its own rule and no reading counts it), there is no `shove_early` (P28-B1 withdrawn) and SHOVE_R (1.1 at
 ab596f41) is read by none. This module imports nothing from `agent.base.planner` or `agent.base.world`; the chain it
 imports (`grades.e17.grade_e17`, which reads live names
 through `e16`, `e15`, `e14` and `gates_e`) is pinned by the regrade tests of the artifacts graded through it. Frozen
