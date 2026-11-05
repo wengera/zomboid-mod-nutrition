@@ -39,6 +39,11 @@
       "type": "string",
       "enum": ["cotton", "denim", "leather"]
     },
+    "meleeMode": {
+      "description": "A melee's mode (PZA/1.8, Plan 28 Task 7a): strike, shove or finish.",
+      "type": "string",
+      "enum": ["strike", "shove", "finish"]
+    },
     "actionType": {
       "description": "A skill type a cmd line names. There is no look action (PZA/1.5, Plan 24 Task 6b, docs/superpowers/specs/2026-10-29-plan-24-jar-reads-2.md section 6): the frames list every zombie the client's cell holds within the sense radius whatever the facing, and turning changes only what the client draws and spots.",
       "type": "string",
@@ -1208,7 +1213,7 @@
       "type": "object",
       "properties": {
         "targetId": {"description": "The zombie's online id.", "type": "integer"},
-        "mode": {"description": "strike (the weapon swing within the reach, the shove per the reflexes), shove (no weapon swing at a standing target: the shove-only fights) or finish (the target is fallen: the stomp or the floor swing only; a target that stands fails stood).", "type": "string"},
+        "mode": {"description": "strike (the weapon swing within the reach, the shove per the reflexes), shove (no weapon swing at a standing target: the shove-only fights) or finish (the target is fallen: the stomp or the floor swing only; a target that stands fails stood).", "$ref": "#/$defs/meleeMode"},
         "reach": {"description": "The swing's distance at a standing target in tiles; 0 takes the held weapon's reach (getMaxRange x getRangeMod x 0.9).", "type": "number"},
         "keepR": {"description": "The back leg after a miss runs while the target is within this, in tiles.", "type": "number"},
         "shoveR": {"description": "The shove's distance in tiles: shove mode's, a chasing closing target's (the early shove) and the point blank after a miss.", "type": "number"},

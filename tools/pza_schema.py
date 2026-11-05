@@ -32,7 +32,10 @@ PY_REL = "testing/agent/base/pza1.py"
 TOOLS_REL = "testing/agent/base/schema/tools.json"
 ENVELOPE = ("kind", "seq", "tick", "wallMs")
 ARG_TYPES = {"integer": "int", "number": "float", "string": "str", "boolean": "bool"}   # bool: PZA/1.5.3
-ARG_ENUMS = ("gait", "ikind", "filter")
+# the $defs enums an argument may refer to, each with its Python constant and its Lua set's key (meleeMode: Plan 28 Task 7a
+# fix 1 residual, review-t7a minor 1): the generated class checks the value, tools.json carries the enum, PZA.schema the set
+ARG_ENUMS = {"gait": ("GAITS", "gaits"), "ikind": ("IKINDS", "ikinds"), "filter": ("FILTERS", "filters"),
+             "meleeMode": ("MELEE_MODES", "meleeModes")}
 LUA_KEYWORDS = frozenset("and break do else elseif end false for function if in local nil not or repeat return then "
                          "true until while".split())
 
@@ -223,6 +226,7 @@ def load(path=SCHEMA):
         "reasons": enum("reason"), "action_types": action_types, "actions": actions, "gaits": enum("gait"),
         "ikinds": enum("ikind"), "filters": enum("filter"), "item_uses": enum("itemUse"), "act_states": enum("actState"),
         "event_kinds": event_kinds, "events": events, "map_modes": enum("mapMode"),
+        "arg_enums": {k: enum(k) for k in ARG_ENUMS},
     }
 
 
@@ -369,9 +373,8 @@ def render_lua(sch=None):
     for t in sch["action_types"]:
         L.append("        %s = %s," % (_lkey(t), _llist([a["name"] for a in sch["actions"][t]["args"]])))
     L.append("    },")
-    L.append("    gaits = %s," % _lset(sch["gaits"]))
-    L.append("    ikinds = %s," % _lset(sch["ikinds"]))
-    L.append("    filters = %s," % _lset(sch["filters"]))
+    for name, (_, key) in ARG_ENUMS.items():
+        L.append("    %s = %s," % (key, _lset(sch["arg_enums"][name])))
     L.append("    states = %s," % _lset(sch["act_states"]))
     L.append("    mapModes = %s," % _lset(sch["map_modes"]))
     L.append("    events = {")
@@ -588,9 +591,6 @@ def merge_delta(frame, base):
     return out
 
 
-_ENUMS = {"gait": GAITS, "ikind": IKINDS, "filter": FILTERS}
-
-
 class _Cmd:
     """A command's args() is its fields in schema order; an enum-typed field is checked on construction."""
     TYPE: ClassVar[str] = ""
@@ -608,7 +608,7 @@ class _Cmd:
                 if not (ACTION_ARGS[self.TYPE][f.name] == "bool" and getattr(self, f.name) is False)}
 '''
 
-PY_TYPES = {"int": "int", "float": "float", "str": "str", "bool": "bool", "gait": "str", "ikind": "str", "filter": "str"}
+PY_TYPES = dict({"int": "int", "float": "float", "str": "str", "bool": "bool"}, **{k: "str" for k in ARG_ENUMS})
 
 
 def _class_name(t):
@@ -635,16 +635,16 @@ def render_py(sch=None):
     P.append("ACTION_TYPES = %s" % _pl(sch["action_types"]))
     P.extend(_pdict("ACTION_ARGS", {t: {a["name"]: a["kind"] for a in sch["actions"][t]["args"]}
                                     for t in sch["action_types"]}, "each action type's arguments and their kinds"))
-    P.append("GAITS = %s" % _pl(sch["gaits"]))
-    P.append("IKINDS = %s" % _pl(sch["ikinds"]))
-    P.append("FILTERS = %s" % _pl(sch["filters"]))
+    for name, (const, _) in ARG_ENUMS.items():
+        P.append("%s = %s" % (const, _pl(sch["arg_enums"][name])))
     P.append("ITEM_USES = %s" % _pl(sch["item_uses"]))
     P.append("ACT_STATES = %s" % _pl(sch["act_states"]))
     P.append("MAP_MODES = %s" % _pl(sch["map_modes"]))
     P.append("EVENT_KINDS = %s" % _pl(sch["event_kinds"]))
     P.extend(_pdict("EVENT_FIELDS", {k: sch["events"][k] for k in sch["event_kinds"]},
                     "each event kind's own fields, flat beside event and gameMin"))
-    P.append(PY_RUNTIME.rstrip("\n"))
+    P.append(PY_RUNTIME.rstrip("\n").replace("\n\n\nclass _Cmd:", "\n\n\n_ENUMS = {%s}\n\n\nclass _Cmd:" % ", ".join(
+        "%s: %s" % (_pl(name), const) for name, (const, _) in ARG_ENUMS.items()), 1))
     for t in sch["action_types"]:
         a = sch["actions"][t]
         P.append("")

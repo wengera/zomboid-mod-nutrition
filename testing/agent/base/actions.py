@@ -15,7 +15,7 @@ from typing import Any, Optional
 from agent.base import pza1
 
 TERMINAL = frozenset(("rejected", "done", "failed", "timeout"))
-_ENUMS = {"gait": pza1.GAITS, "ikind": pza1.IKINDS, "filter": pza1.FILTERS}
+_ENUMS = pza1._ENUMS     # every argument enum the generator lists (ARG_ENUMS; PZA/1.8 adds melee's meleeMode)
 
 
 @dataclasses.dataclass(eq=False)

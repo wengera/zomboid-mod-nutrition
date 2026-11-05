@@ -18,9 +18,9 @@
 --   ((0, 0): stand); seconds the span; floorSwing the floor swing allowed at a fallen target. Every tunable is the
 --   planner's argument; the Lua's own constants are the engine's (K.STOMP_R, K.STAND_R, K.SWING_MS, K.FACE_TICKS,
 --   K.STOMP_APPROACH_MS) and two of its own below, a steering tolerance and a prefilter, neither a behaviour.
--- check: the args typed (bad args: targetId a number, mode one of the three, the seven numbers numbers, seconds above
---   0, reach 0 or more, floorSwing absent or a boolean); the target live and readable (no target), within releaseR (too
---   far); in strike mode a weapon held (no weapon).
+-- check: the args typed (bad args: targetId a number, mode in the schema's meleeMode enum, PZA.schema.meleeModes, the
+--   seven numbers numbers, seconds above 0, reach 0 or more, floorSwing absent or a boolean); the target live and
+--   readable (no target), within releaseR (too far); in strike mode a weapon held (no weapon).
 -- tick: the player dead fails dead; the target dead ends done (end dead). The first tick checks the members every step
 --   may call (setForceAim, nullifyAiming, faceThisObject, DoAttack, setDoShove, setAutoWalk, setAutoWalkDirection,
 --   Vector2.new: not loaded) and reads the target's health. Then d, the distance read live from the target object
@@ -81,7 +81,6 @@ K.MELEE_TURN_DOT = 0.985     -- the close's and the stomp walk's heading set aga
 K.MELEE_CROWD_SLACK = 1.0    -- tiles: a record of the last frame farther than K.STAND_R + this is not read live for crowd
 K.MELEE_STILL_TICKS = 12     -- the back leg's walk still (K.STILL_EPS) this many ticks in a row is blocked: its end
 
-local MODES = { strike = true, shove = true, finish = true }
 local NUMS = { "reach", "keepR", "shoveR", "releaseR", "backVx", "backVy", "seconds" }
 local MEMBERS = { "setForceAim", "nullifyAiming", "faceThisObject", "DoAttack", "setDoShove", "setAutoWalk",
                   "setAutoWalkDirection" }
@@ -403,7 +402,9 @@ end
 K.types.melee = {
     check = function(args, p)
         local id, mode, fs = args.targetId, args.mode, args.floorSwing
-        if type(id) ~= "number" or type(mode) ~= "string" or MODES[mode] ~= true then return false, "bad args" end
+        if type(id) ~= "number" or type(mode) ~= "string" or PZA.schema.meleeModes[mode] ~= true then
+            return false, "bad args"                 -- the schema's meleeMode enum (PZA.schema.meleeModes)
+        end
         for i = 1, #NUMS do
             if type(args[NUMS[i]]) ~= "number" then return false, "bad args" end
         end

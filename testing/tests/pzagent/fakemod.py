@@ -61,7 +61,7 @@ MELEE_CAPS = list(pza1.ACTION_TYPES)      # a PZA/1.8 build's hello caps, melee 
 
 _GROUPS = [f for f, s in pza1.SHAPES["frame"].items() if s[0] == "group"]
 _GROUP_AT = {g: pza1.ORDER["frame"].index(g) for g in _GROUPS}
-_ENUMS = {"gait": pza1.GAITS, "ikind": pza1.IKINDS, "filter": pza1.FILTERS}
+_ENUMS = pza1._ENUMS     # every argument enum the generator lists (ARG_ENUMS; PZA/1.8 adds melee's meleeMode)
 
 
 def bad_args(cmd):

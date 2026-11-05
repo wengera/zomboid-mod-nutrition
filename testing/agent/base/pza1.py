@@ -92,11 +92,12 @@ ACTION_ARGS = {
     "unwear": {"itemId": "int"},
     "shove": {"targetId": "int"},
     "stomp": {"targetId": "int"},
-    "melee": {"targetId": "int", "mode": "str", "reach": "float", "keepR": "float", "shoveR": "float", "releaseR": "float", "backVx": "float", "backVy": "float", "seconds": "float", "floorSwing": "bool"},
+    "melee": {"targetId": "int", "mode": "meleeMode", "reach": "float", "keepR": "float", "shoveR": "float", "releaseR": "float", "backVx": "float", "backVy": "float", "seconds": "float", "floorSwing": "bool"},
 }
 GAITS = ("walk", "run", "sprint")
 IKINDS = ("open", "close", "loot")
 FILTERS = ("food", "water", "weapon", "bandage", "container", "all", "clothing")
+MELEE_MODES = ("strike", "shove", "finish")
 ITEM_USES = ("food", "water", "weapon", "bandage", "other", "container", "clothing")
 ACT_STATES = ("accepted", "rejected", "progress", "done", "failed")
 MAP_MODES = ("full", "delta")
@@ -276,7 +277,7 @@ def merge_delta(frame, base):
     return out
 
 
-_ENUMS = {"gait": GAITS, "ikind": IKINDS, "filter": FILTERS}
+_ENUMS = {"gait": GAITS, "ikind": IKINDS, "filter": FILTERS, "meleeMode": MELEE_MODES}
 
 
 class _Cmd:

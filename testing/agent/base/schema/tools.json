@@ -505,6 +505,11 @@
         },
         "mode": {
           "type": "string",
+          "enum": [
+            "strike",
+            "shove",
+            "finish"
+          ],
           "description": "strike (the weapon swing within the reach, the shove per the reflexes), shove (no weapon swing at a standing target: the shove-only fights) or finish (the target is fallen: the stomp or the floor swing only; a target that stands fails stood)."
         },
         "reach": {

@@ -281,3 +281,25 @@ def test_a_boolean_arg_reaches_every_target_and_an_unknown_arg_type_is_still_ref
     bad.write_text(json.dumps(raw), encoding="utf-8")
     with pytest.raises(ValueError):
         PS.load(str(bad))
+
+
+def test_an_argument_enum_reaches_the_class_check_the_tool_description_and_the_lua_set():
+    """Plan 28 Task 7a fix 1 residual (review-t7a minor 1): melee's mode refers to the $defs enum meleeMode, listed in
+    ARG_ENUMS, so the generated Melee refuses a mode outside it on construction, tools.json carries the enum, and the
+    Lua header holds the set (PZA.schema.meleeModes) the skill's check reads; every ARG_ENUMS enum reaches all three."""
+    assert "meleeMode" in PS.ARG_ENUMS
+    assert _DEFS["args_melee"]["properties"]["mode"]["$ref"] == "#/$defs/meleeMode"
+    assert _DEFS["meleeMode"]["enum"] == ["strike", "shove", "finish"]
+    mod = load_py_module()
+    assert mod.ACTION_ARGS["melee"]["mode"] == "meleeMode" and mod.MELEE_MODES == ("strike", "shove", "finish")
+    args = dict(targetId=7, reach=1.4, keepR=2.5, shoveR=1.1, releaseR=2.75, backVx=-1.0, backVy=0.0, seconds=2.5)
+    assert mod.Melee(mode="shove", **args).args()["mode"] == "shove"
+    with pytest.raises(ValueError):
+        mod.Melee(mode="kick", **args)
+    tools = {t["name"]: t for t in json.loads(PS.render_tools())}
+    mode = tools["melee"]["input_schema"]["properties"]["mode"]
+    assert mode["type"] == "string" and mode["enum"] == ["strike", "shove", "finish"] and mode["description"]
+    lua = PS.render_lua()
+    assert "    meleeModes = { strike = true, shove = true, finish = true }," in lua
+    for enum_name in PS.ARG_ENUMS:
+        assert enum_name in mod._ENUMS
