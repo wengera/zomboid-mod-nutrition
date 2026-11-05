@@ -442,6 +442,17 @@ def test_a_chasing_target_lunging_inside_shove_r_in_one_tick_is_shoved_not_swung
     assert cur_step(lua) == "shove" and len(w["presses"]) == 1 and w["presses"][0]["shove"] is True
 
 
+def test_after_a_miss_an_idle_target_inside_shove_r_is_shoved(lua, fs):
+    """The miss arm of 7 on its own: a target neither chasing nor closing, inside shoveR after a miss, is shoved."""
+    p, z, w = world(lua, zx=11.3, zspeed=0.0, attack_ticks=8)
+    go(lua, p, backVx=0.0, backVy=0.0, seconds=10)
+    run(lua, p, w, 13)
+    assert cur_step(lua) == "back"
+    w["chasing"], w["zx"] = False, 11.0
+    run(lua, p, w, 2)
+    assert len(w["presses"]) == 2 and w["presses"][1]["shove"] is True
+
+
 # ---- 8: the swing ------------------------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("speed", [0.5, 1.2, 2.0])
@@ -522,6 +533,8 @@ def test_an_idle_target_missed_is_backed_off_from_not_closed_on(lua, fs):
     go(lua, p, seconds=10)
     run(lua, p, w, 13)
     assert cur_step(lua) == "back" and walk_dir(p) == pytest.approx((-R2, -R2))   # world (-1, 0), away from it
+    run(lua, p, w, 20)
+    assert ARGS["reach"] < zdist(w) < ARGS["keepR"] and cur_step(lua) == "back"     # past the reach: still the back leg
 
 
 # ---- 10: the close; 11: the stand ----------------------------------------------------------------------------------
