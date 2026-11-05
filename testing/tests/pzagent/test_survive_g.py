@@ -1800,9 +1800,11 @@ def test_the_bandage_runs_under_a_health_flee_and_is_superseded_when_a_zombie_co
     major 2): the zombie (no chaser: `hasTarget` false) reads 3 tiles, then 7 on CARE_STILL_TICKS ticks, the yield
     starting on the last (no fall since the read two ticks before), each flee leg ended before the next tick, and a
     running bandage holds at 3.5 tiles (inside CARE_R,
-    beyond CARE_HOLD_R); the supersede line is CARE_HOLD_R (3.0)."""
+    beyond CARE_HOLD_R); the supersede line is CARE_HOLD_R (3.0). Named change, ruling P29-E (Plan 29 Task 2): the
+    zombie at 7 tiles is beyond DANGER_R, where no `health` flee goes now; pinned with `HEALTH_NEAR` off."""
     r, sv = make(tmp_path)
     sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
+    sv.HEALTH_NEAR = False   # named change, P29-E (Plan 29 Task 2): from beyond DANGER_R no `health` flee; off, it
     hold(r, 10, "Base.Bandage")
     bleed = [part(5, bleeding=True, bleedingTime=5.0)]
     care_frame(r, bleed, zombies=[zd(1, 103.0, 200.0, has_target=False)], health=30.0)
@@ -2041,9 +2043,11 @@ def test_a_still_zombie_at_4_5_is_bandaged_held_at_3_5_and_superseded_at_2_9(tmp
 def test_no_standing_bandage_starts_while_a_flee_leg_runs_from_a_chaser(tmp_path, chases, care):
     """The review's ruling on concern 2: a `health` flee does not block the yield against a zombie that is not
     closing; against a chaser (`hasTarget`) during a running flee leg the standing bandage waits (it would stop the
-    run). Here the leg (a thigh's wound: no ride) runs while the zombie reads 5.5 tiles, then 7 (never closing)."""
+    run). Here the leg (a thigh's wound: no ride) runs while the zombie reads 5.5 tiles, then 7 (never closing).
+    Named change, ruling P29-E (Plan 29 Task 2): at 7 tiles no `health` flee goes now; pinned with `HEALTH_NEAR` off."""
     r, sv = make(tmp_path)
     sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
+    sv.HEALTH_NEAR = False   # named change, P29-E (Plan 29 Task 2): from beyond DANGER_R no `health` flee; off, it
     hold(r, 10, "Base.Bandage")
     thigh = [part(11, bleeding=True, bleedingTime=5.0)]
     for x in (105.5,) + (107.0,) * C.CARE_STILL_TICKS:
@@ -2103,9 +2107,12 @@ def test_a_leg_stays_running_under_the_riding_bandages_sent_after_it_and_nothing
 
 def flee_leg_rig(tmp_path, parts, x, chases=True):
     """A `health` flee (health 30) from one zombie (`hasTarget` `chases`), its steer leg sent at 5.5 tiles and
-    running (progress); then the frame with `parts` bleeding and the zombie at `x` tiles, ticked."""
+    running (progress); then the frame with `parts` bleeding and the zombie at `x` tiles, ticked. Named change, ruling
+    P29-E (Plan 29 Task 2): a zombie beyond DANGER_R takes no `health` flee now; the rig pins the ride with
+    `HEALTH_NEAR` off."""
     r, sv = make(tmp_path)
     sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
+    sv.HEALTH_NEAR = False   # named change, P29-E (Plan 29 Task 2): from beyond DANGER_R no `health` flee; off, it
     hold(r, 10, "Base.Bandage")
     care_frame(r, parts, zombies=[zd(1, 105.5, 200.0, has_target=chases)], health=30.0)
     tick(r, sv)
@@ -2296,10 +2303,12 @@ def test_the_chaser_rule_is_keyed_on_the_flee_episode_not_the_leg_running(tmp_pa
 
 def stopped_ride_rig(tmp_path):
     """Probe B: the chaser at 7, a torso bleeding, a water item held, thirst 0.5 (`need` would drink), the ride sent
-    and answered `failed stopped`; returns (rig, survive, the flee leg, the ride, the torso)."""
+    and answered `failed stopped`; returns (rig, survive, the flee leg, the ride, the torso). Named change, ruling
+    P29-E (Plan 29 Task 2): pinned with `HEALTH_NEAR` off (the chaser at 7 tiles takes no `health` flee now)."""
     torso = [part(6, bleeding=True, bleedingTime=5.0)]
     r, sv = make(tmp_path)
     sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
+    sv.HEALTH_NEAR = False   # named change, P29-E (Plan 29 Task 2): from beyond DANGER_R no `health` flee; off, it
     hold(r, 10, "Base.Bandage")
     hold(r, 20, "Base.WaterBottle", use="water")
     care_frame(r, torso, zombies=[zd(1, 105.5, 200.0)], health=30.0, thirst=0.5)

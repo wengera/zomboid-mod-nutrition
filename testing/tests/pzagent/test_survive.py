@@ -227,8 +227,10 @@ def test_a_running_flee_turns_to_fight_one_or_two_at_the_fights_health_line(tmp_
     before, every flee with two held was kept), one at FLEE_HEALTH or above (one at 45 is fought: before, the refight
     margin held it under 60); the margin stays only for a `health` episode (`test_survive_h`).
     Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
-    rule before it (the non-stance Fight's walk to a zombie at a run)."""
+    rule before it (the non-stance Fight's walk to a zombie at a run). Named change, ruling P29-E (Plan 29 Task 2): the
+    one at 7 tiles under FLEE_HEALTH takes no `health` flee now; the first case pinned with `HEALTH_NEAR` off."""
     r, sv = make(tmp_path, caps=CAPS_14)
+    sv.HEALTH_NEAR = False
     three = [zombie(1, 103.0, 200.0), zombie(2, 103.0, 201.0), zombie(3, 104.0, 200.0)]
     r.frame(zombies=three, health=74.0)
     tick(r, sv)

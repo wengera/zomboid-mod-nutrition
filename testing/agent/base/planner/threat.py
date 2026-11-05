@@ -218,6 +218,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # its far square when the map holds it open, the Fight's at a walk, and reads its end by
                           # whether it crossed, an uncrossed `done` the door's failure and a marked door wall
                           # (`planner/edges.py`: the Fight's `route_cross` rule, the goals' kit); off, P25-X's route
+    # survival iteration 23's hit rules (Plan 29 Task 2; survive.py's docstring, Survival 25): in `survive.T13_SWITCHES`
+    HEALTH_NEAR = True    # ruling P29-E: the `health` flee only from a zombie within DANGER_R; with none there the low
+                          # fight's stance at a held zombie in view, else the threat branch passes to the care
+                          # (`_health_far`, `_near_view`); off, the `health` flee from any held zombie (P25-S)
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -344,6 +348,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         A fight that would walk toward its target with another zombie listed behind it (`_behind_walk`, ruling P24-A
         (b)) flees `held` instead (`many` having been read first)."""
         reason = self._hysteresis(held, n)
+        if reason is None and self.health_near is not None and not self._low_fight(n):
+            self.health_pass = True   # P29-E: no stance to hold, the threat branch passes (`_threat_plan`)
+            return None
         if reason is None and self._behind_walk():
             return "held"
         return reason
@@ -388,13 +395,17 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
 
     def _hysteresis(self, held, n):
         """Plan 21b's hysteresis (the module docstring): the flee reason, else None. `n` is the DANGER_R count (the
-        `pair` rule's); `many` is `_many`."""
+        `pair` rule's); `many` is `_many`. Ruling P29-E (`HEALTH_NEAR`): under FLEE_HEALTH with no zombie within
+        DANGER_R (`_health_far`) no `health` reason, nor a `held` one the health keeps (`_unpaired`), logged
+        `health_near` {near: n}: the low fight's stance at a held zombie in view (`_low_fight`, `_near_view`), else the
+        branch passes (`_flee_reason`'s `health_pass`)."""
         health = self._health()
+        self.health_near = {"near": n} if health < FLEE_HEALTH and self._health_far(n) else None
         if not self._armed() and (not self._unarmed_fight(n) or self._many(held, n)):
             return "unarmed"
         if self._many(held, n):
             return "many"
-        if health < FLEE_HEALTH and not self._low_fight(n):
+        if health < FLEE_HEALTH and not self._low_fight(n) and self.health_near is None:
             return "health"
         if n >= 2 and (health < FLEE_HEALTH_PAIR or self._wounds() > 0):
             fallen = self._pair_finish()   # P25-J (3): the finish of a fallen (or knocked) one goes before the flee
@@ -425,8 +436,27 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         (`Fight.shove_only` "low": the stance, the shove at point blank, the stomp of the fallen, no swing, no seek),
         logged `low_fight`; the doorway stand's own `health` end is unchanged."""
         health = self._health()
-        return (self.LOW_FIGHT and health < FLEE_HEALTH and self.world.can("shove") and n == 1
+        return (self.LOW_FIGHT and health < FLEE_HEALTH and self.world.can("shove") and (n == 1 or self._near_view(n))
                 and health >= FLEE_HEALTH_FLOOR and not self._low_left())
+
+    def _health_far(self, n):
+        """Ruling P29-E (`HEALTH_NEAR`; E22, `e_day_22-20261105-004919`: 138 of the `health` flee's 181 lines read no
+        zombie within DANGER_R and its 32 sends all went at a run, while the low fight's runs under the same health held
+        the third and fourth kills, #4628): no zombie within DANGER_R (`n` 0), so no `health` flee. Cost if wrong: a
+        chaser reaching the stance at health 30."""
+        return self.HEALTH_NEAR and n == 0
+
+    def _near_view(self, n):
+        """Ruling P29-E: with no zombie within DANGER_R (`_health_far`), the stance announced (`aim`: the low fight
+        never walks to a zombie from afar), at most MAX_FIGHT held zombies in its count (`_stance_count`) and a held
+        zombie the Fight may target whose straight line is not read blocked (`line_to`: an unscanned end reads None,
+        in view): the low fight's stance holds at it (E22's line 749: 11515 chasing 8.197687115943333 tiles off, the
+        `health` flee's steer sent at a run), the zombie met where the low fight meets it once it comes within
+        DANGER_R. Under FLEE_HEALTH_FLOOR there is no low fight, so the branch passes (`_flee_reason`)."""
+        if not (self._health_far(n) and self.world.can("aim")
+                and self._stance_count(self._within(self._hold_r())) <= MAX_FIGHT):
+            return False
+        return any(line_to(self.world, z) is not False for _, z in self._reachable_held())
 
     def _low_left(self):
         """Ruling P27-K2 (`LOW_EXIT`): every zombie within DANGER_R is one the low fight left this threat episode
@@ -458,12 +488,13 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                 return "stalled"
             if not self.ENGAGE:   # before P24-X: one held, at the refight margin
                 return "held" if len(held) > 1 or health < FLEE_HEALTH + REFIGHT_MARGIN else None
+            kept = None if self.health_near is not None else "held"   # P29-E: no health keeps a flee from afar
             if not (self._takes_on(len(held)) or self._unarmed_fight(n) or self._low_fight(n)
                     or self._hold_lone()):   # P24-X: the flee turns to fight one or two at the fight's line; P25-P
-                return "held"   # unarmed, P25-S under FLEE_HEALTH, P27-C the hold's lone zombie
+                return kept   # unarmed, P25-S under FLEE_HEALTH, P27-C the hold's lone zombie
             if self.flee_health and health < FLEE_HEALTH + REFIGHT_MARGIN and not self._low_fight(n):
-                return "held"   # the health flee stays, its margin kept (P25-S: but for the low fight)
-            return None
+                return None if self._health_far(n) else "held"   # the health flee stays, its margin kept (P25-S: but
+            return None                                           # for the low fight; P29-E: but from afar)
         if self.mode == "fight" and self.fight.stalled and (self.fight.target_dist() or 0.0) > FIGHT_REACH:
             return "stalled"   # the pinned target's distance: the one the stall clock follows (M3)
         return None
@@ -654,7 +685,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
           `reason` the flee reason, else `broken`.
         - Sheltered with nobody in the doorway: `flee` (the sheltered Flee holds, re-closes or drops), reason
           `sheltered` when no other holds.
-        - Otherwise Plan 21b's hysteresis (`_flee_reason`): `fight` when it reads None, else `flee`.
+        - Otherwise Plan 21b's hysteresis (`_flee_reason`): `fight` when it reads None, else `flee`; ruling P29-E:
+          `pass` when it withheld the `health` flee with no stance to hold (`health_pass`), the branch passing.
         - Fix round 1: a broken hold at a chosen shelter fights only in its doorway or inside (`door`, the review's
           I4); a `flee` on a room square with no way out and no adoption left is the Fight when armed
           (`_trapped_fight`, G3), or unarmed (ruling P25-P) with one zombie within DANGER_R and a reachable one within
@@ -669,6 +701,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.stand_left, self.stand_end, self.stand_wound, self.pair_yield = None, None, None, None
         self.stand_drag, self.stand_inside, self.stand_exit, self.stand_crowd = None, None, None, None
         self.one_exit_refused, self.listing, self.corner_exit = None, None, None
+        self.health_near, self.health_pass = None, False   # P29-E: this tick's
         door = self._doorway()
         if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
             return door
@@ -698,6 +731,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if self.sheltered:   # P25-P: unarmed, a lone zombie in reach of a shelter with no way out is shoved
             fight = None if self._armed() else self._trapped_fight(held, inside)
             return fight or ("flee", reason or "sheltered")
+        if reason is None and self.health_pass:
+            return "pass", None   # P29-E: no zombie within DANGER_R and none in view under FLEE_HEALTH: the care's
         if reason is None:
             reason = self._kept_flee()
             if reason is None:
@@ -843,6 +878,11 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     def _decide(self, held, breach, replanned=False):
         """`_threat_plan`'s decision executed by the Fight or the Flee, logged in `why`."""
         kind, reason = self._threat_plan(held, breach)
+        if kind == "pass":   # P29-E: the threat episode ends, the care branch (and every branch after it) answers
+            self.mode, self.fight, self.flee = None, None, None
+            self._end_flee_episode()
+            self.why = {"health_near": self.health_near, "held": len(held)}
+            return None
         if kind in ("hold", "doorway"):
             self.rest_from = None   # P27-C2 (Task 1 fix 1): held inside or standing a doorway is not the hold's rest
         if kind == "hold":
@@ -977,7 +1017,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                        ("doorway_wound", self.stand_wound), ("doorway_crowd", self.stand_crowd),
                        ("doorway_drag", self.stand_drag),
                        ("doorway_inside", self.stand_inside),
-                       ("pair_yield", self.pair_yield), ("listing", self.listing), ("corner", self.corner_exit)):
+                       ("pair_yield", self.pair_yield), ("listing", self.listing), ("corner", self.corner_exit),
+                       ("health_near", self.health_near)):
             if v is not None:
                 self.why[key] = v
         if self.broken is not None:

@@ -2050,7 +2050,8 @@ def test_iteration_23_moves_no_golden(key):
     far square and reads its end by whether it crossed) moves no golden: no golden's replay sends a route walk (every
     `blocked_edge` the six log is a refusal, which P29-A leaves as it was, and no route leg ends, so no door is noted or
     read marked), and their goal branch is the record's (`RecordedGoals`), never the goals' kit nor the runner's
-    budget end (ruling P29-B, `GOAL_STALL`: no stall is read); the six are
+    budget end (ruling P29-B, `GOAL_STALL`: no stall is read); nor do Task 2's hit rules (P29-E, `HEALTH_NEAR`: no
+    golden line reads the `health` flee with nobody within DANGER_R); the six are
     byte-identical with the switches on (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off
     (`pre_t13`)."""
     rows = gold(key)

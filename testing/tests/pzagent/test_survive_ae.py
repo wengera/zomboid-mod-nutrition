@@ -24,7 +24,7 @@ from agent.base.planner import threat as T
 from agent.base.planner.goals import ExploreToward, GoalRunner, goal_key
 
 from .test_policies import Rig, square
-from .test_survive import make, threat_why, tick
+from .test_survive import last, make, threat_why, tick
 from .test_survive_g import Src
 
 STALL = (10747.7880859375, 10641.6865234375)   # F13's stall position (state.log line 4574 on)
@@ -295,7 +295,6 @@ def stand(r, sv, at, dt=5.0):
         gm += 0.1
         r.frame(x=at[0], y=at[1], game_min=gm)
         a = tick(r, sv)
-    from .test_survive import last
     return (last(r.dir)["inputs"]["branches"].get("goal") or {})
 
 
@@ -303,7 +302,7 @@ def test_the_iteration_23_switches_and_stall_r():
     """`survive.T13_SWITCHES`: ROUTE_CROSS (P29-A, on `threat.Threat`) and GOAL_STALL (P29-B, on `Survive`, copied to
     the goal runner each tick), each on by default; STALL_R the Lua walk's done radius."""
     from agent.base.planner import policies as P
-    assert S.T13_SWITCHES == ("ROUTE_CROSS", "GOAL_STALL")
+    assert S.T13_SWITCHES[:2] == ("ROUTE_CROSS", "GOAL_STALL")
     assert all(getattr(S.Survive, n) is True for n in S.T13_SWITCHES)
     assert P.STALL_R == 1.0 == P.WALK_DONE_R and GoalRunner(Src(None)).goal_stall is True
 
@@ -367,3 +366,104 @@ def test_the_prompt_names_the_stall_square_as_one_not_to_answer():
     from agent.base.planner import goal_prompt as GP
     assert ("`stall` names the target square of the last goal that ran out of time with you not moving: never "
             "answer that square while it reads") in GP.system(60.0)
+
+
+# ================================================================ Task 2: the hit rules (E22's and F13's fixtures)
+E22 = "e_day_22-20261105-004919"
+E22_BAT = {"type": "Base.BaseballBat", "cond": 15, "reach": 1.125, "ammo": 0}   # E22's weapon (state.log seq 7019)
+
+
+def zr(zid, x, y, me, chasing=True, floor=None):
+    """A zombie record at (x, y) as the frames list it: `hasTarget` `chasing`, `onFloor` `floor` (None: not read)."""
+    from .test_policies import zombie
+    return dict(zombie(zid, x, y, me=me), hasTarget=chasing, onFloor=floor)
+
+
+def e22_frame(r, me, zs, health, game_min, **k):
+    """One of E22's frames: the character at `me`, the zombies `zs` ((id, x, y) or (id, x, y, chasing, floor)), E22's
+    bat and the frame's health."""
+    recs = [zr(*z[:3], me=me, chasing=z[3] if len(z) > 3 else True, floor=z[4] if len(z) > 4 else None) for z in zs]
+    r.frame(x=me[0], y=me[1], zombies=recs, weapon=E22_BAT, health=health, game_min=game_min, **k)
+
+
+def test_the_iteration_23_hit_rule_switches():
+    """Task 2's switches follow Task 1's in `survive.T13_SWITCHES`, each on `threat.Threat` and on by default."""
+    assert S.T13_SWITCHES[2:] == ("HEALTH_NEAR",)
+    assert all(getattr(T.Threat, n) is True for n in S.T13_SWITCHES[2:])
+
+
+# ---------------------------------------------------------------- P29-E: the `health` flee only from within DANGER_R
+# E22's line 743 (state.log seq 6981, game minute 662): the `many` flee's group read two within DANGER_R, health
+# 30.72905731201172; line 749 (seq 7019): the `health` flee's steer sent at a run with 11515 chasing 8.197687115943333
+# tiles off and nobody within DANGER_R (11522 10.798 and 11516 11.006 tiles off, beyond the hold), health
+# 30.81458282470703 (GUIDE section 9: 138 of the `health` flee's 181 lines read no zombie within 6 tiles)
+E22_743 = ((10749.9755859375, 10693.3134765625), [(11515, 10751.265625, 10693.32421875),
+                                                   (11516, 10753.5576171875, 10688.5478515625),
+                                                   (11522, 10754.52734375, 10685.47265625)], 30.72905731201172)
+E22_749 = ((10742.3740234375, 10686.2451171875), [(11515, 10748.634765625, 10691.537109375),
+                                                   (11522, 10753.0341796875, 10687.9658203125),
+                                                   (11516, 10753.0732421875, 10688.826171875)], 30.81458282470703)
+
+
+def health_flee(tmp_path, on=True, walls=False, parts=None, rag=False):
+    """E22's `health` flee: line 743's frame from a fresh Survive (two within DANGER_R under FLEE_HEALTH: the `health`
+    flee's steer at a run, the fresh read of the record's running `many` episode), that steer answered done, then line
+    749's frame ticked; `walls`: a wall between the character and 11515 (the test's own: x 10745's west edges, y 10684
+    to 10693, mapped with the squares round it); `parts`: the body's part records; `rag`: a clean rag held. The last
+    tick's action."""
+    from .test_survive_g import hold
+    r, sv = make(tmp_path)
+    sv.HEALTH_NEAR = on
+    if rag:
+        hold(r, 10, "Base.RippedSheets")
+    if walls:
+        r.scan([square(x, y, blockW=x == 10745, edgeW=x == 10745) for x in range(10740, 10751)
+                for y in range(10684, 10694)])
+    me, zs, h = E22_743
+    e22_frame(r, me, zs, h, 662.0)
+    a = tick(r, sv)
+    assert a.type == "steer" and a.args["gait"] == "run" and threat_why(tmp_path)["flee"] == "health"
+    r.answer()
+    r.advance(0.5)
+    me, zs, h = E22_749
+    wounds = None if parts is None else {"parts": parts, "bleeding": sum(1 for p in parts if p.get("bleeding"))}
+    e22_frame(r, me, zs, h, 662.1, wounds=wounds)
+    return r, sv, tick(r, sv)
+
+
+def test_e22_s_health_flee_from_a_chaser_at_8_2_tiles_holds_the_low_fight_s_stance_at_it(tmp_path):
+    """P29-E (`HEALTH_NEAR`): E22's line 749, health 30.81458282470703, nobody within DANGER_R and 11515 chasing in view
+    8.197687115943333 tiles off: no `health` flee; the low fight's stance, an `aim` at 11515 (its legs walk, never run),
+    logged `health_near` {near 0} beside `low_fight`."""
+    r, sv, a = health_flee(tmp_path)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args["targetId"]) == ("aim", 11515) and "gait" not in a.args
+    assert w["fight"] is True and "flee" not in w and w["health_near"] == {"near": 0} and w["low_fight"] is True
+
+
+def test_with_health_near_off_line_749_flees_health_at_a_run_as_e22_did(tmp_path):
+    r, sv, a = health_flee(tmp_path, on=False)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args["gait"]) == ("steer", "run") and w["flee"] == "health" and "health_near" not in w
+
+
+def test_with_none_in_view_the_threat_branch_passes_to_the_care_s_dressing(tmp_path):
+    """P29-E: line 749 with a wall between the character and 11515 (its line read blocked) and a part bleeding with a
+    rag held (the test's own): no flee and no stance; the threat episode ends (`mode` None), logged `health_near`
+    {near 0}, and the care branch's dressing takes the tick."""
+    from .test_survive_g import part
+    r, sv, a = health_flee(tmp_path, walls=True, parts=[part(5, bleeding=True, bleedingTime=5.0)], rag=True)
+    row = last(tmp_path)
+    assert row["branch"] == "care" and (a.type, a.args["part"]) == ("bandage", 5)
+    assert row["inputs"]["branches"]["threat"] == {"health_near": {"near": 0}, "held": 1} and sv.mode is None
+
+
+def test_with_a_zombie_within_danger_r_the_health_flee_runs_as_today(tmp_path):
+    """P29-E's other side: line 743's frame (11515 1.29 and 11516 5.96 tiles off, both within DANGER_R): the `health`
+    flee's steer at a run, no `health_near`, the switch on."""
+    r, sv = make(tmp_path)
+    me, zs, h = E22_743
+    e22_frame(r, me, zs, h, 662.0)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args["gait"]) == ("steer", "run") and w["flee"] == "health" and "health_near" not in w
