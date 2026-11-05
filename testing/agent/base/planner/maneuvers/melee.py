@@ -23,8 +23,11 @@ one where its ladder would send an in-reach command at its pin and sets its `inp
   (`timeout`).
 - The walk to a fallen target (fix 1, review-t7b m1): the Lua's `stomp_walk` fails `out of reach` after
   K.STOMP_APPROACH_MS, but its `seconds` end it first and every send restarts that walk's clock, so the maneuver keeps
-  its own: from the first progress line reading `stomp_walk` (`_walk_since`, reset by any other step), a `done` whose
-  last step is still the walk once MELEE_WALK_S have passed ends the maneuver `out of reach`, as the Lua would.
+  its own: from the first progress line reading `stomp_walk` (`_walk_since`, reset by any other step), an observe
+  whose last step is still the walk once MELEE_WALK_S have passed ends the maneuver `out of reach`, as the Lua would.
+  Read in `observe` (the residual of fix 1's re-review: a check on the `done` alone never fired live, since the early
+  re-send supersedes a walking melee before its `done time`), not in `step`, whose superseded retry would start a
+  fresh maneuver with a fresh clock.
 - `why` (logged by the Fight as `maneuver`): target, mode, sends, and the last progress line's step and distance,
   with its counts once one carries them.
 """
@@ -119,13 +122,18 @@ class Melee(Maneuver):
             self._span = (strikes, hp1 < hp0 if _number(hp0) and _number(hp1) else None)
             if res.get("end") == "dead":
                 self._end = "dead"
-            elif (self._progress.get("step") == "stomp_walk" and self._walk_since is not None
-                  and self.clock() - self._walk_since >= MELEE_WALK_S):
-                self._end = "out of reach"   # fix 1, m1: the Lua's own bound, summed across the sends
             return
         if a.reason == "crowd":
             self.crowd = res
         self._end = a.reason or a.state
+
+    def observe(self):
+        """The base's read, then the walk's bound (the module docstring): the walk to a fallen target still in force
+        MELEE_WALK_S after its first progress line, summed across the sends, ends the maneuver `out of reach`."""
+        super().observe()
+        if (self._end is None and self._progress.get("step") == "stomp_walk" and self._walk_since is not None
+                and self.clock() - self._walk_since >= MELEE_WALK_S):
+            self._end = "out of reach"   # fix 1, m1: the Lua's own bound, summed across the sends
 
     def progressed(self, line):
         res = line.get("result")

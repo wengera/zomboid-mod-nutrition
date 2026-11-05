@@ -963,3 +963,31 @@ def test_a_crowd_end_with_the_frame_behind_still_gives_the_ladder_the_choose(tmp
     fr(r, [z(9, 100.4), z(8, 100.0, 200.9)])
     b = f.step()
     assert b.type == "aim" and f.why["melee_end"]["end"] == "crowd" and f.m is None
+
+
+def test_the_walk_s_bound_fires_across_early_re_sends(tmp_path):
+    """Fix 1's residual (review-t7b re-review): a finish melee walking to a fallen pin it cannot reach is re-sent early
+    every MELEE_S - MELEE_RESEND_MARGIN_S, before any `done`; the walk's bound is read on the observe, summed across the
+    re-sends, so by MELEE_WALK_S of `stomp_walk` the target is unreachable for SEEK_SKIP_S and the ladder takes the
+    next choose."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 102.4, floor=True)])
+    f = fight(r)
+    a = f.step()
+    act(r, a, "accepted")
+    act(r, a, "progress", result={"step": "stomp_walk", "d": 2.4})
+    t0, resends = r.clock(), 0
+    while r.clock() - t0 < P.MELEE_WALK_S - 0.25:
+        r.advance(0.5)
+        fr(r, [z(9, 102.4, floor=True)])
+        b = f.step()
+        assert 9 not in f.unreachable and f.m is not None
+        if b is not None:
+            assert b.type == "melee" and f.why["melee"] == {"resend": "early"}
+            resends += 1
+            act(r, b, "accepted")
+            act(r, b, "progress", result={"step": "stomp_walk", "d": 2.4})
+    r.advance(0.5)
+    fr(r, [z(9, 102.4, floor=True)])
+    assert f.step() is None and f.unreachable[9] == r.clock() + P.SEEK_SKIP_S
+    assert resends >= 1 and f.why["melee_end"]["end"] == "out of reach" and f.m is None
