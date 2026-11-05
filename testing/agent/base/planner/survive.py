@@ -567,7 +567,7 @@ class Survive(Threat):
         self.behind = None        # this tick: the ids listed behind the fight's walk target (P24-A (b)), else None
         self.listed = None        # this tick: the listed count when it alone made `many` (P24-A (a)), else None
         self.listing = None       # this tick: {fallen, across} of the zombies the `many` counts left out (P27-I)
-        self.health_near = None   # this tick: {near} when the `health` flee was withheld, nobody within DANGER_R (P29-E)
+        self.health_near = None   # this tick: {near} when the `health` flee was withheld, none within DANGER_R (P29-E)
         self.health_pass = False  # this tick: ... with no stance to hold, so the threat branch passed (P29-E)
         self.many_near = None     # this tick: {n} when the standing count within DANGER_R withheld `many` (P29-G)
         self.finish_lone = None   # this tick: {target} when the lone fallen pin's finish was kept over a flee (P29-F)
