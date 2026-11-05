@@ -465,7 +465,7 @@ def test_the_totals_reach_the_llm_record(tmp_path, monkeypatch):
     assert "answer_bytes_total" in llm and llm["model"] == "sonnet"
 
 
-BASE_COMMIT = "8901afdb"        # the planner's head at the copy (`git log -1 -- testing/agent/base/planner`); the controller's re-base is this one replacement
+BASE_COMMIT = "e43e1330"   # the planner's head at the copy, re-based before the boot (one constant: review-t4 of Plan 29)
 BASE_SENTENCE = (
     "the base at `%s` (the planner: Plan 30 Task 3, its head at the copy, re-based before the boot) carries "
     "PZA/1.9 (the sneak capability, the awareness fields, the melee's `closeR`; the hello reads `mod` `1.9`) and "
@@ -585,7 +585,7 @@ def test_the_grade_carries_the_iteration_23_readings_and_the_earlier_ones_unread
     r = run_goals(tmp_path, monkeypatch, day_cap_s=5)
     g = r.out["grade_f12"]
     assert g["grade"] == "grade_f12" and "grade_f12_error" not in r.out and "grade_f11" not in r.out
-    # no decision log and no state lines at the boot: every new reading of the four grades (the hits and the melee readings off the
+    # no decision log and no state lines at the boot: every new reading of the grades unread
     # state lines) unread
     for k in NEW17 + NEW18 + NEW16 + NEW19:
         assert g[k] == {"read": False}, k
