@@ -644,8 +644,10 @@ def test_the_p28h_probe_a_chaser_from_three_tiles_in_strike_mode_takes_swings_at
     """Ruling P28-H's probe (E22's live arguments: reach 1.475, shoveR 1.1, keepR 2.5; releaseR 3.5 to start it at 3
     tiles, beyond the live 2.75): a chaser closing from 3 tiles,
     at 1.2 tiles a second (slower than the walk) and at 2.2 (a follower faster than the walk, inside shoveR and closing
-    when the back leg ends), a 12-tick attack and no knockdown, 12 s in strike mode: the first strike a swing at d within
-    the reach, and no shove anywhere beyond K.STAND_R; every swing pressed within the reach."""
+    when the back leg ends), a 12-tick attack and no knockdown, 12 s in strike mode: the first strike a swing at d
+    within the reach, and no shove anywhere beyond K.STAND_R; every swing pressed within the reach. The 1.2 case cannot
+    tell the old code from the new (the reach 1.475 exceeds shoveR, so the old code swung first there too); the gate
+    is falsified by the 2.2 follower alone (review-t7e m5)."""
     p, z, w = world(lua, zx=13.0, zspeed=speed, attack_ticks=12)
     go(lua, p, mode="strike", **dict(PROBE, releaseR=3.5))
     run(lua, p, w, int(12000 / TICK_MS) + 60, stop=lambda: ended(lua))

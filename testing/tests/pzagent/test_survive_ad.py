@@ -9,7 +9,8 @@ announcing `melee` only where a test asks (`fakemod.MELEE_CAPS`); each test's ge
 - `Melee` (`planner/maneuvers/melee.py`) and the `MELEE` switch: with `melee` announced and the rule on, where the
   Fight's ladder would send an in-reach `aim` leg (`enter`, `back`, `stand` within KEEP_R), an `attack`, a `shove`, a
   `stomp` or a floor swing at its pin within MELEE_RELEASE_R, the Fight starts or continues its `Melee` instead
-  (`fight.Fight.m`): each argument from its source (`mode` strike, shove under `no_swing`, finish at a fallen pin;
+  (`fight.Fight.m`): each argument from its source (`mode` strike, shove under `_hold_bars` (P28-H: the arms' pain
+  alone no longer selects it), finish at a fallen pin;
   `reach` the frame's `weapon.reach` plus ATTACK_MARGIN, 0 without one; the `back` heading with P28-E's arc, fresh at
   each send), re-sent MELEE_RESEND_MARGIN_S before MELEE_S runs out (`resend` "early") and after a `done time`
   (`resend` "time"); its ends mapped (`out of range` to the ladder's path, `crowd` to a re-pin to the nearer,
@@ -193,7 +194,7 @@ def test_the_melee_constants_are_the_policies_table_s():
 
 def test_a_standing_fight_s_target_within_keep_r_starts_melee_with_each_argument_from_its_source(tmp_path):
     """A chaser 2.0 tiles off (within FIGHT_REACH, the stance not held): where the ladder sends the `enter` leg, the
-    melee goes: `mode` strike, `reach` the bat's 1.2 plus ATTACK_MARGIN, `keepR` KEEP_R, `shoveR` SHOVE_R,
+    melee goes: `mode` strike, `reach` the bat's 1.2 plus ATTACK_MARGIN, `keepR` KEEP_R, `shoveR` SHOVE_SEND_R (P28-H),
     `releaseR` MELEE_RELEASE_R, `seconds` MELEE_S, `floorSwing` true, the `back` heading the circle's arc off the
     straight away heading; logged `maneuver` {maneuver melee, target, mode, sends 1} beside the ladder's own why."""
     r = Rig(tmp_path, caps=MELEE_CAPS)
@@ -208,7 +209,8 @@ def test_a_standing_fight_s_target_within_keep_r_starts_melee_with_each_argument
 
 
 def test_the_mode_is_shove_under_a_shove_only_fight_or_a_hold(tmp_path):
-    """`mode` shove where the Fight sends no swing (`no_swing`): a shove-and-stomp Fight (`shove_only` "unarmed") or
+    """`mode` shove where the Fight holds a bar (`_hold_bars`, P28-H): a shove-and-stomp Fight (`shove_only`
+    "unarmed") or
     a hold (`spent`): the ladder's backpedal (`_wounded_leg`) is the melee's dispatch point there; both bar the floor
     swing too (`floor_swing_barred`, P28-C), so `floorSwing` is left off."""
     for k in ({"shove_only": "unarmed"}, {"spent": ("arms",)}):
@@ -263,7 +265,8 @@ def test_the_back_leg_within_keep_r_is_the_melee_and_the_stand_beyond_it_the_lad
 
 def test_the_attack_and_the_shove_at_the_pin_are_the_melee(tmp_path):
     """The approach-and-swing Fight's `attack` at its pin 1.0 tiles off is the melee (mode strike); the shove at a
-    chaser at point blank under the arms' pain 30 (P24-AG) is the melee in mode shove (`no_swing`: STRAIN_HARD)."""
+    chaser at point blank under the arms' pain 30 (P24-AG) is the melee in mode strike (ruling P28-H: the arms' pain
+    no longer selects shove mode; the Lua's rule 8 shoves within K.STAND_R in strike mode)."""
     r = rig(tmp_path, "attack")
     fr(r, [z(9, 101.0)])
     f = fight(r, stance=False)

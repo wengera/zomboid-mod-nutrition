@@ -159,8 +159,9 @@ its module docstring the rule): with the `melee` rule on (Survive's MELEE) and t
 where the ladder (`_ladder`, every rule above) would send an in-reach `aim` leg (`enter`, `back`, `stand` within
 KEEP_R), an `attack`, a `shove`, a `stomp` or a floor swing at its pin within MELEE_RELEASE_R, the Fight starts or
 continues its `Melee` (`m`, `maneuvers.melee`) instead, which Task 7a's Lua skill runs at the client's tick rate:
-mode strike, shove (`no_swing`) or finish (a fallen pin), its `back` heading P28-E's, re-sent with a fresh one before
-MELEE_S runs out (`melee` {resend}); `busy` holds it as it holds a leg, a flee's hand-over supersedes it, its kill is
+mode strike, shove (`_hold_bars`: P28-H dropped the arms' pain from the mode) or finish (a fallen pin), its `back`
+heading P28-E's, re-sent with a fresh one before MELEE_S runs out (`melee` {mode, pain} on every send, `resend` on one);
+`busy` holds it as it holds a leg, a flee's hand-over supersedes it, its kill is
 read once (`_read_dead`) and a span of strikes with no health fall counts in the no-progress streak. Everything above
 the dispatch point is unchanged, and the corner Fight (`point_blank`), the door fight (`only`), the doorway stand and
 the flee's finish keep the ladder in cut 1; nothing of the ladder is deleted (cut 2 deletes once cut 1 reads no
