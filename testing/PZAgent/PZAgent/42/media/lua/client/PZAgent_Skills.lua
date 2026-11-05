@@ -361,3 +361,57 @@ K.types.stop = {
 -- PZA/1.5.3 (Task 9 fix 5, ruling P24-R): the act line and the caught-raise count, for PZAgent_Tend.lua's side slot
 -- (K.side: a bandage riding beside a moving leg emits its own act lines, as the runner does for K.cur)
 K.emitAct, K.caught = emitAct, caught
+
+-- ---- sneak {on} (PZA/1.9, Plan 30 Task 1) ---------------------------------------------------------------------------
+-- The planner's posture, not a skill: the sneaking flag is one stored field that nothing clears (the jar read
+-- sneak-jar-read.md, T94.1), so the command records the Motor's want and writes it at once (MO.sneak(on, p):
+-- setSneaking only when isSneaking() differs; PZAgent_Motor.lua's header) and is answered on its tick by one act line,
+-- as Main answers scan and rate, never through the runner: a running skill goes on (a walk plays the crouched sneak
+-- walk under the flag, T94.3) and a held stance is kept (the stance's K.start wrapper releases only on a new K.cur),
+-- and MO.off at a skill's end leaves the flag. Done {ok, sneaking}: sneaking is isSneaking() read after the write
+-- (observed, never the asked value echoed; nil when it answers no boolean), ok whether it reads the asked value. on
+-- absent is false (the wire drops a bool left false, PZA/1.5.3). Rejected bad args (an empty aid, on not a boolean) or
+-- not loaded (the player exposes no setSneaking or isSneaking, index-checked: no want recorded, nothing written); a
+-- raise in the write or the read is failed interrupted and counted in K.errors (S-15), the want kept for the Motor's
+-- next frame. No dead check: the flag on a dead body changes nothing. K.types.sneak holds the handler as `direct` (no
+-- check or tick), so the hello's caps (Main's walk of K.types) name it; K.start is wrapped here, at the end of the
+-- file, and the stance's wrapper (PZAgent_Stance.lua, loaded after) wraps this one.
+local function sneakWrite(on, p)
+    MO.sneak(on, p)
+    local _, now = PZA.call(p, "isSneaking")
+    if type(now) ~= "boolean" then return nil end
+    return now
+end
+
+local function sneakNow(cmd, p)
+    local aid = cmd.aid
+    local on = false
+    if type(cmd.args) == "table" and cmd.args.on ~= nil then on = cmd.args.on end
+    if type(aid) ~= "string" or aid == "" or type(on) ~= "boolean" then
+        emitAct(p, type(aid) == "string" and aid or "", "sneak", "rejected", "bad args")
+        return
+    end
+    if not PZA.field(p, "setSneaking") or not PZA.field(p, "isSneaking") then
+        emitAct(p, aid, "sneak", "rejected", "not loaded")
+        return
+    end
+    local ran, now = pcall(sneakWrite, on, p)
+    if not ran then
+        caught(now)
+        emitAct(p, aid, "sneak", "failed", "interrupted")
+        return
+    end
+    emitAct(p, aid, "sneak", "done", "", { ok = now == on, sneaking = now })
+end
+
+K.types.sneak = { direct = sneakNow }
+
+local startRunner = K.start
+function K.start(cmd, p)
+    local def = type(cmd) == "table" and K.types[cmd.type] or nil
+    if def ~= nil and def.direct ~= nil then
+        def.direct(cmd, p)
+        return
+    end
+    startRunner(cmd, p)
+end

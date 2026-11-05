@@ -1221,3 +1221,89 @@ def test_the_frames_me_carries_force_aim_from_is_force_aim_appended_after_aiming
     q.isForceAim = None
     f = frame(lua, q)
     assert f["me"]["forceAim"] is None and f["me"]["aiming"] is False and "isForceAim" in missing(lua)
+
+
+# ---- PZA/1.9 (Plan 30 Task 1): me.sneaking and me.sneakLevel, the zombie's known, state and behind -------------------
+
+def test_me_carries_the_sneak_flag_and_the_sneak_level(lua):
+    load(lua)
+    p = make_player()
+    f = frame(lua, p)
+    assert (f["me"]["sneaking"], f["me"]["sneakLevel"]) == (False, 0) and missing(lua) == []
+    p.sneak["on"], p.perks["Sneak"] = True, 3
+    f = frame(lua, p)
+    assert (f["me"]["sneaking"], f["me"]["sneakLevel"]) == (True, 3)
+    order = list(lua.eval("PZA.schema.groups.me").values())
+    enc = json.loads(lua.eval("PZA.enc.me(...)", f["me"]))
+    assert enc[order.index("sneaking")] is True and enc[order.index("sneakLevel")] == 3
+
+
+def test_me_sneaking_is_the_players_flag_never_the_motors_want(lua):
+    """Observe, never echo: the want set and the field unmoved reads false."""
+    load(lua)
+    p = make_player()
+    lua.execute("PZA.motor.wantSneak = true")
+    assert frame(lua, p)["me"]["sneaking"] is False
+
+
+def test_each_zombie_carries_known_state_and_behind(lua):
+    load(lua)
+    a, b = make_zombie(1, 11.0, 20.0), make_zombie(2, 14.0, 20.0)
+    a.isTargetLocationKnown, a.getRealState, a.behind = (lambda s: True), (lambda s: "lunge-network"), True
+    b.getRealState = lambda s: None                               # no state string: ""
+    lua.globals()._cell = make_cell(zombies=[a, b])
+    zs = [dict(z) for z in frame(lua, make_player())["zombies"].values()]
+    assert [(z["id"], z["known"], z["state"], z["behind"]) for z in zs] == [(1, True, "lunge-network", True),
+                                                                          (2, False, "", False)]
+    assert missing(lua) == []
+    order = list(lua.eval("PZA.schema.records.zombie").values())
+    assert order[-3:] == ["known", "state", "behind"]
+
+
+def test_the_behind_read_is_the_players_is_behind_of_each_zombie(lua):
+    load(lua)
+    z = make_zombie(1, 11.0, 20.0)
+    asked = []
+    p = make_player()
+    p.isBehind = lambda s, o: asked.append(o) or True
+    lua.globals()._cell = make_cell(zombies=[z])
+    assert frame(lua, p)["zombies"][1]["behind"] is True and asked == [z]
+
+
+def test_absent_sneak_and_awareness_members_leave_the_fields_nil_and_are_named(lua):
+    load(lua)
+    p = make_player()
+    del p.isSneaking, p.getPerkLevel, p.isBehind
+    z = make_zombie(1, 11.0, 20.0)
+    z.isTargetLocationKnown, z.getRealState = None, None
+    lua.globals()._cell = make_cell(zombies=[z])
+    f = frame(lua, p)
+    r = dict(f["zombies"][1])
+    assert "sneaking" not in dict(f["me"]) and "sneakLevel" not in dict(f["me"]) and f["me"]["x"] == 10.0
+    assert "known" not in r and "state" not in r and "behind" not in r and r["hasTarget"] is False
+    assert {"isSneaking", "getPerkLevel", "isBehind", "isTargetLocationKnown", "getRealState"} <= set(missing(lua))
+    lua.execute("Perks = nil")
+    p2 = make_player()
+    assert "sneakLevel" not in dict(frame(lua, p2)["me"]) and "Perks.Sneak" in missing(lua)
+
+
+def test_a_raising_awareness_read_costs_those_fields_alone(lua):
+    load(lua)
+    p = make_player()
+
+    def boom(*a):
+        raise RuntimeError("java raised")
+    p.isSneaking = boom
+    z = make_zombie(1, 11.0, 20.0)
+    z.getRealState = boom
+    lua.globals()._cell = make_cell(zombies=[z])
+    f = frame(lua, p)
+    assert f["me"]["x"] == 10.0 and f["zombies"][1]["id"] == 1 and f["zombies"][1]["hasTarget"] is False
+    assert {"raise:me:sneak", "raise:zombies:aware"} <= set(missing(lua))
+
+
+def test_the_sneak_block_sits_at_the_end_of_sense():
+    """CLAUDE.md section 5: a harness Lua edit appends its new sites at the end of its file."""
+    with open(lua_file("client/PZAgent_Sense.lua"), encoding="utf-8") as f:
+        src = f.read()
+    assert src.index("local function zombiesAware") > src.index("function S.woundOf")

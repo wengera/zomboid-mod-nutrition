@@ -155,3 +155,103 @@ def test_update_reads_force_sprint_after_its_asserts(lua):
     del p.isForceSprint
     fire(lua, p)
     assert lua.eval("PZA.motor.updForceSprint") is None
+
+
+# ---- PZA/1.9 (Plan 30 Task 1): the sneak flag, written once per transition -------------------------------------------
+
+def test_the_sneak_want_starts_false_and_writes_nothing_while_the_flag_agrees(lua):
+    load(lua)
+    p = make_player()
+    assert lua.eval("PZA.motor.wantSneak") is False
+    fire(lua, p, 3)
+    assert p.sneak["sets"] == [] and p.sets == []
+
+
+def test_a_sneak_want_writes_the_flag_once_on_the_transition_and_never_again_while_it_holds(lua):
+    """The flag is a stored field nothing clears (the jar read's T94.1): one setSneaking per transition, never per
+    frame."""
+    load(lua)
+    p = make_player()
+    lua.execute("PZA.motor.sneak(true)")
+    assert lua.eval("PZA.motor.wantSneak") is True and p.sneak["sets"] == []   # no player given: the frame writes it
+    fire(lua, p, 5)
+    assert p.sneak["sets"] == [True] and p.sneak["on"] is True
+    lua.execute("PZA.motor.sneak(true)")                         # the same want again changes nothing
+    fire(lua, p, 3)
+    assert p.sneak["sets"] == [True]
+    lua.execute("PZA.motor.sneak(false)")
+    fire(lua, p, 4)
+    assert p.sneak["sets"] == [True, False] and p.sneak["on"] is False
+    assert p.sets == []                                          # no latch was touched
+
+
+def test_a_sneak_given_the_player_writes_at_once_and_the_frame_adds_nothing(lua):
+    load(lua)
+    p = make_player()
+    lua.eval("PZA.motor.sneak")(True, p)
+    assert p.sneak["sets"] == [True]
+    fire(lua, p, 3)
+    assert p.sneak["sets"] == [True]
+    lua.eval("PZA.motor.sneak")(False, p)
+    lua.eval("PZA.motor.sneak")(False, p)
+    assert p.sneak["sets"] == [True, False]
+
+
+def test_off_leaves_the_sneak_want_and_the_flag(lua):
+    """A stop or a supersede ends a walk, never the sneak: MO.off clears the latches only."""
+    load(lua)
+    p = make_player()
+    lua.execute("PZA.motor.sneak(true); PZA.motor.want('run')")
+    fire(lua, p)
+    lua.eval("PZA.motor.off")(p)
+    assert lua.eval("PZA.motor.wantSneak") is True and p.sneak["on"] is True
+    assert ("setSneaking", False) not in p.sets and p.sneak["sets"] == [True]
+    fire(lua, p, 3)
+    assert p.sneak["sets"] == [True]
+
+
+def test_a_flag_flipped_outside_the_motor_is_written_back_once(lua):
+    """A crouch-key toggle or a save load writes the field (T94.1); the next frame restores the want, once."""
+    load(lua)
+    p = make_player()
+    lua.execute("PZA.motor.sneak(true)")
+    fire(lua, p)
+    p.sneak["on"] = False
+    fire(lua, p, 3)
+    assert p.sneak["sets"] == [True, True]
+
+
+def test_the_sneak_is_written_under_the_stance_too(lua):
+    load(lua)
+    p = make_player()
+    lua.execute("PZA.motor.wantAim = true; PZA.motor.sneak(true)")
+    fire(lua, p, 2)
+    assert p.sneak["sets"] == [True] and p.aim["calls"] == [("setForceAim", True)] * 2
+
+
+def test_a_player_without_the_sneak_members_is_never_written_and_nothing_raises(lua):
+    load(lua)
+    lua.execute(PCALL_COUNTER)
+    p = make_player()
+    del p.isSneaking                                             # unreadable: no write on a guess
+    lua.execute("PZA.motor.sneak(true)")
+    fire(lua, p, 3)
+    assert p.sneak["sets"] == []
+    q = J(getX=lambda s: 1.0)
+    fire(lua, q, 2)
+    lua.eval("PZA.motor.sneak")(False, q)
+    assert lua.eval("PZA.motor.updErrors") == 0 and lua.globals().pcallFails == 0
+
+
+def test_a_raising_sneak_setter_counts_one_error_and_the_latches_are_still_asserted(lua):
+    load(lua)
+    p = make_player()
+    p.setSneaking = boom
+    lua.execute("PZA.motor.want('run'); PZA.motor.sneak(true)")
+    fire(lua, p)
+    assert p.sets == [("setForceRun", True)] and lua.eval("PZA.motor.updErrors") == 1
+    assert lua.eval("PZA.motor.updRunning") is False             # the reads after the latches still landed
+
+
+PCALL_COUNTER = ("pcallFails = 0; local raw = pcall; pcall = function(...) local r = { raw(...) };"
+                 " if not r[1] then pcallFails = pcallFails + 1 end; return unpack(r) end")

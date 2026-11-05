@@ -60,7 +60,7 @@ local function gameMin()
     return (ok and type(m) == "number") and m or 0
 end
 
--- hello's caps: every type this build accepts, the runner's skills and Main's scan and rate, sorted
+-- hello's caps: every type this build accepts (K.types: the skills and PZA/1.9's direct sneak), scan and rate, sorted
 local function caps()
     local out = { "rate", "scan" }
     for k in pairs(PZA.skills.types) do out[#out + 1] = k end

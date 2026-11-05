@@ -374,6 +374,8 @@
   "moving": true,
   "pace": 0,
   "running": false,
+  "sneakLevel": 0,
+  "sneaking": false,
   "sprinting": false,
   "worn": null,
   "x": 107,
@@ -407,12 +409,15 @@
  },
  "zombies": {
   "11": {
+   "behind": false,
    "crawler": false,
    "dist": 2.75,
    "hasTarget": true,
    "health": 1.5,
+   "known": true,
    "onFloor": null,
    "seenWallMs": 1004000,
+   "state": "walktoward",
    "x": 102.75,
    "y": 200
   }

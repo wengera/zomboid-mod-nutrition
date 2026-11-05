@@ -26,7 +26,7 @@ ORDER = {
 }
 # a frame's groups, elidable in a delta
 GROUPS = {
-    "me": ("x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn", "loadedWidth"),
+    "me": ("x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn", "loadedWidth", "sneaking", "sneakLevel"),
     "stats": ("hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature"),
     "body": ("health", "bleeding", "scratched", "bitten", "parts", "armPain", "strain"),
     "load": ("weight", "max", "level", "n"),
@@ -51,7 +51,7 @@ RECORDS = {
     "wornLoc": ("loc", "bite", "scratch", "holes", "cond"),
     "part": ("i", "h", "bleeding", "bleedingTime", "bandaged", "bandageLife", "bandageDirty", "deep", "infected", "wound"),
     "strain": ("l", "r"),
-    "zombie": ("id", "x", "y", "dist", "hasTarget", "crawler", "health", "onFloor"),
+    "zombie": ("id", "x", "y", "dist", "hasTarget", "crawler", "health", "onFloor", "known", "state", "behind"),
     "portal": ("open", "locked", "barricaded"),
     "container": ("type", "n", "items"),
     "water": ("amount", "tainted", "infinite"),
@@ -67,7 +67,7 @@ SHAPES = {
     "map": {"squares": ("list", "square"), "missing": ("vlist", None)},
 }
 REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming", "not a window", "moving", "not worn", "held", "too far", "standing", "dropped", "stood", "out of range", "crowd"))
-ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear", "window", "unwear", "shove", "stomp", "melee")
+ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear", "window", "unwear", "shove", "stomp", "melee", "sneak")
 # each action type's arguments and their kinds
 ACTION_ARGS = {
     "walkTo": {"x": "float", "y": "float", "gait": "gait"},
@@ -93,6 +93,7 @@ ACTION_ARGS = {
     "shove": {"targetId": "int"},
     "stomp": {"targetId": "int"},
     "melee": {"targetId": "int", "mode": "meleeMode", "reach": "float", "keepR": "float", "shoveR": "float", "releaseR": "float", "backVx": "float", "backVy": "float", "seconds": "float", "floorSwing": "bool"},
+    "sneak": {"on": "bool"},
 }
 GAITS = ("walk", "run", "sprint")
 IKINDS = ("open", "close", "loot")
@@ -485,3 +486,10 @@ class Melee(_Cmd):
     backVy: float  # The back leg's world heading, y.
     seconds: float  # The span after which the melee ends done time with no strike running, in seconds.
     floorSwing: bool = False  # True to let the weapon's floor swing finish a fallen target within the reach (a floor attack multiplies its damage by at least 5, #4374); false stomps.
+
+
+@dataclasses.dataclass(frozen=True)
+class Sneak(_Cmd):
+    """Set the sneak posture (PZA/1.9, Plan 30 Task 1): setSneaking(on), written once and held until the next sneak (the flag is one stored field that nothing clears on an attack, a shove, a run, an aim or a hit, T94.1). Not a skill: answered on its tick by one act line, done with the flag read back, so a running skill and a held stance go on (a walk plays the crouched sneak walk under the flag and a run the sneak run, T94.3), and a stop or a skill's end leaves the flag. Rejected bad args (on not a boolean), or not loaded when the player exposes no setSneaking or isSneaking; a raise is failed interrupted. At Sneak 0 or 1 sneaking makes a zombie's spotting chance larger than upright beyond about 4.5 tiles and skips the tripling within it; footsteps carry 4 tiles against 7 and sound one step in four against one in two (T94.4, T94.8)."""
+    TYPE: ClassVar[str] = "sneak"
+    on: bool = False  # True to sneak, false (or absent) to stand upright.

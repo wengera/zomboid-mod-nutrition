@@ -210,3 +210,24 @@ def test_a_melee_through_actions_check_refuses_a_fourth_mode():
     object.__setattr__(m, "mode", "kick")
     with pytest.raises(TypeError):
         actions.check(m)
+
+
+# ---- PZA/1.9 (Plan 30 Task 1): sneak, the posture beside the running skill --------------------------------------------
+
+def test_sneak_sends_the_posture_and_leaves_the_running_walk_current(tmp_path):
+    from agent.base.actions import POSTURES
+    from agent.base.pza1 import Sneak
+    assert POSTURES == frozenset(("sneak",))
+    m, tr, acts, _ = rig(tmp_path)
+    a = acts.send(WalkTo(1, 2))
+    m.answer({"walkTo": ["accepted"]})
+    acts.pump(tr.lines())
+    s = acts.sneak(True)
+    assert json.loads(cmd_txt(tmp_path)) == {"aid": "a2", "seq": 2, "type": "sneak", "args": {"on": True}}
+    assert s.type == "sneak" and acts.current is a and acts.history == [a] and acts.postures == [s]
+    m.answer({"sneak": [{"state": "done", "result": {"ok": True, "sneaking": True}}]})
+    acts.pump(tr.lines())
+    assert s.state == "done" and s.result == {"ok": True, "sneaking": True} and a.state == "accepted"
+    assert acts.current is a
+    up = acts.send(Sneak(False))                                 # through send: a posture all the same
+    assert json.loads(cmd_txt(tmp_path))["args"] == {} and acts.postures == [s, up] and acts.current is a

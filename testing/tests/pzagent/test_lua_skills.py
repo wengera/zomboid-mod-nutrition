@@ -2116,3 +2116,105 @@ def test_interact_loot_container_takes_an_empty_bottle_and_not_a_filled_one_or_a
     start(lua, make_player(), "interact", aid="cont", x=11, y=20, kind="loot", filter="container")
     tick(lua, make_player())
     assert len(g._queue.adds) - before == 1
+
+
+# ---- PZA/1.9 (Plan 30 Task 1): sneak {on}, the posture command answered on its tick ----------------------------------
+
+def test_sneak_is_done_at_once_with_the_flag_read_back_and_written_once(lua, fs):
+    load(lua)
+    p = make_player()
+    start(lua, p, "sneak", aid="s1", on=True)
+    a = acts(lua, fs)
+    assert states(a) == [("s1", "done", "")] and a[0]["type"] == "sneak"
+    assert a[0]["result"] == {"ok": True, "sneaking": True} and a[0]["snapshot"]["me"]["x"] == 10.0
+    assert p.sneak["sets"] == [True] and lua.eval("PZA.motor.wantSneak") is True
+    lua.eval("PZA.motor.onPlayerUpdate")(p)                      # the frame after adds no write
+    start(lua, p, "sneak", aid="s2", on=False)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("s2", "done", "") and a[-1]["result"] == {"ok": True, "sneaking": False}
+    assert p.sneak["sets"] == [True, False] and lua.eval("PZA.skills.cur") is None
+
+
+def test_sneak_keeps_the_running_walk_and_its_gait(lua, fs):
+    """The posture is no skill: the runner's walk goes on (crouched under the flag, T94.3), never superseded."""
+    load(lua)
+    walk_world(lua)
+    p = make_player()
+    start(lua, p, "walkTo", aid="w", x=12, y=20, gait="run")
+    tick(lua, p)
+    start(lua, p, "sneak", aid="s", on=True)
+    assert states(acts(lua, fs)) == [("w", "accepted", ""), ("s", "done", "")]
+    assert lua.eval("PZA.skills.cur.aid") == "w" and lua.eval("PZA.motor.wantRun") is True
+    assert ("setForceRun", False) not in p.sets
+
+
+def test_sneak_keeps_a_held_stance(lua, fs):
+    load(lua)
+    p = make_player()
+    start(lua, p, "aim", aid="a", vx=0, vy=0, seconds=5)
+    tick(lua, p)
+    assert lua.eval("PZA.skills.stance.held") is True
+    start(lua, p, "sneak", aid="s", on=True)
+    assert lua.eval("PZA.skills.stance.held") is True and lua.eval("PZA.skills.cur.aid") == "a"
+    assert ("nullifyAiming", None) not in p.aim["calls"] and p.sneak["sets"] == [True]
+
+
+@pytest.mark.parametrize("args", [{"on": 1}, {"on": "true"}])
+def test_sneak_with_bad_args_is_rejected_and_writes_nothing(lua, fs, args):
+    load(lua)
+    p = make_player()
+    start(lua, p, "sneak", aid="s", **args)
+    a = acts(lua, fs)
+    assert states(a) == [("s", "rejected", "bad args")] and p.sneak["sets"] == []
+    start(lua, p, "sneak", aid="", on=True)
+    assert states(acts(lua, fs))[-1] == ("", "rejected", "bad args") and p.sneak["sets"] == []
+
+
+def test_sneak_with_on_absent_stands_upright(lua, fs):
+    """The wire drops a bool left false (pza1 _Cmd.args, PZA/1.5.3), so Sneak(False) arrives as {}: upright."""
+    load(lua)
+    p = make_player()
+    p.sneak["on"] = True
+    start(lua, p, "sneak", aid="s")
+    a = acts(lua, fs)
+    assert states(a) == [("s", "done", "")] and a[0]["result"] == {"ok": True, "sneaking": False}
+    assert p.sneak["sets"] == [False]
+
+
+def test_sneak_on_a_player_without_the_flag_members_is_rejected_not_loaded(lua, fs):
+    load(lua)
+    p = make_player()
+    del p.setSneaking
+    start(lua, p, "sneak", aid="s", on=True)
+    assert states(acts(lua, fs)) == [("s", "rejected", "not loaded")]
+    assert lua.eval("PZA.motor.wantSneak") is False
+
+
+def test_sneak_whose_write_did_not_take_is_done_ok_false_with_the_flag_observed(lua, fs):
+    """Observe, never echo: sneaking is isSneaking() read after the write, ok whether it reads the asked value."""
+    load(lua)
+    p = make_player()
+    p.setSneaking = lambda s, v: p.sneak["sets"].append(v)      # the field never moves
+    start(lua, p, "sneak", aid="s", on=True)
+    a = acts(lua, fs)
+    assert states(a) == [("s", "done", "")] and a[0]["result"] == {"ok": False, "sneaking": False}
+
+
+def test_a_raising_sneak_is_failed_interrupted_and_counted(lua, fs):
+    load(lua)
+    p = make_player()
+
+    def boom(s, v):
+        raise RuntimeError("setSneaking raised")
+    p.setSneaking = boom
+    start(lua, p, "sneak", aid="s", on=True)
+    assert states(acts(lua, fs)) == [("s", "failed", "interrupted")]
+    assert lua.eval("PZA.skills.errors") == 1 and "setSneaking raised" in lua.eval("PZA.skills.lastError")
+    assert lua.eval("PZA.skills.cur") is None
+
+
+def test_the_sneak_block_sits_at_the_end_of_skills():
+    """CLAUDE.md section 5: a harness Lua edit appends its new sites at the end of its file."""
+    with open(lua_file("client/PZAgent_Skills.lua"), encoding="utf-8") as f:
+        src = f.read()
+    assert src.index("K.types.sneak") > src.index("K.emitAct, K.caught = emitAct, caught")

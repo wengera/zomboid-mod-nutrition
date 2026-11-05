@@ -172,7 +172,11 @@ Plan 23 Task 9 (P23-D, P23-K) adds the planner's reads of the kept map and the i
   window (`note_window_fail`, `window_locked`: the planner's, never a line's). PZA/1.7 (Plan 24 Task 27):
   `loaded_width` is `me.loadedWidth` as the last frame that carried one left it (the client's loaded grid in tiles,
   sent on the first frame and when it changes, null otherwise; None until one does, not in `to_json`): the goals'
-  legs read it (`goals.leg_max`, ruling P24-AI).
+  legs read it (`goals.leg_max`, ruling P24-AI). PZA/1.9 (Plan 30 Task 1): `me` carries `sneaking` (the player's
+  isSneaking(), the posture the `sneak` action writes) and `sneakLevel` (the Sneak perk), and each zombie record
+  `known` (isTargetLocationKnown()), `state` (getRealState(), the owner's state name, "" when none) and `behind` (the
+  player's isBehind(zombie)), kept as the frame sent them (None in a log written before PZA/1.9); `can("sneak")`
+  answers whether the build takes the sneak posture.
   `to_json` carries `emptyIds`, `refusedIds` (the ids excluded now)
   and `noEffectIds` sorted, each only while it is non-empty,
   so a World that never marked one serialises as before (the replay goldens keep their bytes). For the same reason a
@@ -280,7 +284,8 @@ class World:
         self._gm0 = None             # the first gameMin read without a worldAge (world_minutes' fallback origin)
         self.world_age = None        # the frame's worldAge (hours), the clock world_minutes() reads
         self.frame_wall_ms = None
-        self.zombies = {}            # id -> {x, y, dist, hasTarget, crawler, health, seenWallMs}
+        self.zombies = {}            # id -> {x, y, dist, hasTarget, crawler, health, onFloor, known, state, behind,
+                                     # seenWallMs}: the frame's record (PZA/1.9's awareness fields included)
         self.map = {}                # (x, y, z) -> the square dict
         self.containers = {}         # (x, y, z, i) -> {type, n, items, looted}
         self.buildings = set()

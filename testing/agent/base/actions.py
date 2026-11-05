@@ -5,6 +5,9 @@ before anything is written), names it `a<n>`, sends `{seq, aid, type, args}` thr
 `Action`. `pump(lines)` takes the list a transport's `lines()` returned and moves each action by its `act` lines:
 `sent -> accepted -> progress* -> done | failed`, or `rejected`; an action still open past `deadline_s` wall seconds
 from `sent_wall` goes `timeout`, once. The terminal states are final: a late act line is counted in `late_acts`.
+A posture (PZA/1.9, Plan 30 Task 1: `sneak`, `POSTURES`) is answered by the Lua on its tick beside the running skill,
+which it never supersedes, so it is kept in `postures`, never `history`: `current` and every reader of `history` (a
+riding bandage's leg) still see the skill it left running; `sneak(on)` sends one.
 Actions knows the transport's seam only, never its files.
 """
 import dataclasses
@@ -15,6 +18,7 @@ from typing import Any, Optional
 from agent.base import pza1
 
 TERMINAL = frozenset(("rejected", "done", "failed", "timeout"))
+POSTURES = frozenset(("sneak",))   # PZA/1.9: answered on its tick, the running skill kept (PZAgent_Skills.lua)
 _ENUMS = pza1._ENUMS     # every argument enum the generator lists (ARG_ENUMS; PZA/1.8 adds melee's meleeMode)
 
 
@@ -67,7 +71,8 @@ class Actions:
     def __init__(self, transport, clock=time.time):
         self.transport = transport
         self.clock = clock
-        self.history = []           # every action sent, in order
+        self.history = []           # every action sent, in order, but the postures
+        self.postures = []          # every posture sent (PZA/1.9: sneak), in order
         self.unknown_acts = 0       # act lines for an aid never sent
         self.late_acts = 0          # act lines for an action already in a terminal state
         self._n = 0
@@ -80,7 +85,7 @@ class Actions:
         self.transport.send({"seq": self.transport.cmd_seq + 1, "aid": aid, "type": cmd.TYPE, "args": args})
         self._n += 1
         a = Action(aid=aid, type=cmd.TYPE, args=args, deadline_s=deadline_s, sent_wall=self.clock())
-        self.history.append(a)
+        (self.postures if cmd.TYPE in POSTURES else self.history).append(a)
         self._by_aid[aid] = a
         self._open.append(a)
         return a
@@ -88,6 +93,10 @@ class Actions:
     def stop(self):
         """Send Stop(); the earlier action is left for the mod to end (it answers `failed "superseded"`)."""
         return self.send(pza1.Stop())
+
+    def sneak(self, on, deadline_s=30.0):
+        """Send Sneak(on) (PZA/1.9): the posture, written once; the running skill and `current` are left as they are."""
+        return self.send(pza1.Sneak(on), deadline_s)
 
     def pump(self, lines):
         now = self.clock()

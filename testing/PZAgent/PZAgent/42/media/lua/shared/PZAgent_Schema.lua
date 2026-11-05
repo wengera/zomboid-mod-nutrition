@@ -18,7 +18,7 @@ PZA.schema = {
         reply = { "kind", "seq", "tick", "wallMs", "to", "body" },
     },
     groups = {
-        me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn", "loadedWidth" },
+        me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn", "loadedWidth", "sneaking", "sneakLevel" },
         stats = { "hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature" },
         body = { "health", "bleeding", "scratched", "bitten", "parts", "armPain", "strain" },
         load = { "weight", "max", "level", "n" },
@@ -31,7 +31,7 @@ PZA.schema = {
         wornLoc = { "loc", "bite", "scratch", "holes", "cond" },
         part = { "i", "h", "bleeding", "bleedingTime", "bandaged", "bandageLife", "bandageDirty", "deep", "infected", "wound" },
         strain = { "l", "r" },
-        zombie = { "id", "x", "y", "dist", "hasTarget", "crawler", "health", "onFloor" },
+        zombie = { "id", "x", "y", "dist", "hasTarget", "crawler", "health", "onFloor", "known", "state", "behind" },
         portal = { "open", "locked", "barricaded" },
         container = { "type", "n", "items" },
         water = { "amount", "tainted", "infinite" },
@@ -62,6 +62,7 @@ PZA.schema = {
         shove = { "targetId" },
         stomp = { "targetId" },
         melee = { "targetId", "mode", "reach", "keepR", "shoveR", "releaseR", "backVx", "backVy", "seconds", "floorSwing" },
+        sneak = { "on" },
     },
     gaits = { walk = true, run = true, sprint = true },
     ikinds = { open = true, close = true, loot = true },
@@ -161,9 +162,12 @@ PZA.enc.strain = enc_strain
 --   crawler: Whether the zombie crawls.
 --   health: The zombie's health.
 --   onFloor: PZA/1.7 (Plan 24 Task 9 fix 11): true when the zombie lies on the floor, isOnFloor(): knocked down by a shove or a hit and not yet risen, or crawling. Null when it stands, and in logs written before PZA/1.7. A fallen zombie can be stomped (the stomp action) or finished by a weapon swing, which multiplies its damage by at least 5; a standing zombie within the held weapon's MinRange makes the stomp call shove that one instead (the stomp action refuses standing).
+--   known: PZA/1.9 (Plan 30 Task 1): isTargetLocationKnown(), a target and seen just now (the target set and its bonus spot time running or its time since seen flesh under 1); on a client the packet carries the time since seen flesh beside a stale local spot time, so read it as targeted and seen (the jar read sneak-jar-read.md section 3; the owner alone runs the stealth test, T94.7). Null when unread, and in logs written before PZA/1.9.
+--   state: PZA/1.9 (Plan 30 Task 1): getRealState(), the zombie owner's state name the zombie packet carries (a string: idle, walktoward, turnalerted, pathfind, lunge, lunge-network, attack, attack-network, hitreaction, staggerback, getup, onground and others), empty when it answers no string (the jar read sneak-jar-read.md section 3). Null when unread, and in logs written before PZA/1.9.
+--   behind: PZA/1.9 (Plan 30 Task 1): the player's isBehind(zombie), the melee press's own from-behind test: the zombie's forward direction dotted with the unit vector from the player to it above 0.6, about 53 degrees either side of straight behind (T94.9: from behind against a zombie with no target a bat adds 5 to the crit chance, bare hands 30). Null when unread, and in logs written before PZA/1.9.
 local function enc_zombie(t)
     if t == nil then return "null" end
-    return "[" .. v(t.id) .. "," .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.dist) .. "," .. v(t.hasTarget) .. "," .. v(t.crawler) .. "," .. v(t.health) .. "," .. v(t.onFloor) .. "]"
+    return "[" .. v(t.id) .. "," .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.dist) .. "," .. v(t.hasTarget) .. "," .. v(t.crawler) .. "," .. v(t.health) .. "," .. v(t.onFloor) .. "," .. v(t.known) .. "," .. v(t.state) .. "," .. v(t.behind) .. "]"
 end
 PZA.enc.zombie = enc_zombie
 
@@ -245,9 +249,11 @@ PZA.enc.square = enc_square
 --   forceAim: The force-aim flag read after the frame, isForceAim() (PZA/1.5.4, P24-T): re-asserted every frame while the stance is held (the game clears it every frame while its toggle-to-aim option is off), so true when the flag survived the frame (not cleared by a run key or a release), while aiming shows whether the update used it; null in logs written before PZA/1.5.4.
 --   worn: PZA/1.6 (Plan 24 Task 9 fix 9, review-t18 ruling 5): the body locations the worn clothing covers, each with the bite and scratch defence of the Clothing items worn there summed (getWornItems(), a bag left out), in the order the game lists them; null on every frame whose list equals the last one carried, so a reader keeps the last list it saw (the first frame carries it, [] when nothing is worn), and in logs written before PZA/1.6. Read after an item or damage event, on the frame after the hit reaction rises, changes or ends or the attackers count rises from 0 (a zombie attack turned by the clothing makes a hole and no damage event, PZA/1.6.1), and every tenth frame otherwise. A zombie's scratch rolls under the scratch defence summed over the worn items covering the hit part, a bite under the bite defence (capped at 100): compare a garment's item record with the entry at its loc, an entry with holes above 0 counted as less than its bite and scratch.
 --   loadedWidth: PZA/1.7 (Plan 24 Task 9 fix 11): the side in tiles of the square grid of chunks the client holds loaded around the player, getCell():getChunkMap(0):getWidthInTiles() (jar-reads-2 section 13): 104 at a 1280 x 720 window, 152 at 1920 x 1080. A square farther than half of it from the player's chunk on an axis may answer null to getGridSquare, so a walk to it fails no square before any path is asked; a leg of 8 x floor(loadedWidth / 16) - 8 tiles keeps the target inside with a chunk to spare. Carried on the first frame and on a frame where it changed, null otherwise (a reader keeps the last value it saw, as for worn), and in logs written before PZA/1.7.
+--   sneaking: PZA/1.9 (Plan 30 Task 1): the player's sneaking flag, isSneaking(), one stored field that the sneak action writes once per change and nothing clears on an attack, a shove, a run, an aim or a hit (T94.1); read off the player, never the want echoed. Under it the walk gait plays the crouched sneak walk and the run gait the sneak run (T94.3). Null in logs written before PZA/1.9.
+--   sneakLevel: PZA/1.9 (Plan 30 Task 1): the Sneak perk level, getPerkLevel(Perks.Sneak), 0 to 10: the level that sets the sneaking spot factor (T94.4: 1.14 at 0 and 1.08 at 1, above upright beyond the close range, falling to 0.48 at 10). Null in logs written before PZA/1.9.
 local function enc_me(t)
     if t == nil then return "null" end
-    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "," .. v(t.zombiesSeen) .. "," .. v(t.zombiesListed) .. "," .. v(t.hour) .. "," .. v(t.attackers) .. "," .. v(t.hitReaction) .. "," .. v(t.dragDown) .. "," .. v(t.aiming) .. "," .. v(t.forceAim) .. "," .. list(t.worn, enc_wornLoc) .. "," .. v(t.loadedWidth) .. "]"
+    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "," .. v(t.zombiesSeen) .. "," .. v(t.zombiesListed) .. "," .. v(t.hour) .. "," .. v(t.attackers) .. "," .. v(t.hitReaction) .. "," .. v(t.dragDown) .. "," .. v(t.aiming) .. "," .. v(t.forceAim) .. "," .. list(t.worn, enc_wornLoc) .. "," .. v(t.loadedWidth) .. "," .. v(t.sneaking) .. "," .. v(t.sneakLevel) .. "]"
 end
 PZA.enc.me = enc_me
 

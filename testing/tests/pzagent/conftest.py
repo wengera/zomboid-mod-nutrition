@@ -269,13 +269,28 @@ def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_
     p.getWornItems = lambda s: J(size=lambda s2: len(wl), get=lambda s2, i: J(getLocation=lambda s3: wl[i][0],
                                                                              getItem=lambda s3: wl[i][1]))
     p.getWornItem = lambda s, loc: next((it for l, it in wl if l == loc), None)
+    # PZA/1.9 (Plan 30 Task 1): the sneak flag is one stored field (the jar read's T94.1): isSneaking answers
+    # p.sneak["on"] and setSneaking(v) writes it, appending v to p.sneak["sets"]; getPerkLevel(perk) answers
+    # p.perks.get(perk, 0); isBehind(z) answers whether z.behind is True (a test sets it on the zombie)
+    sneak = {"on": False, "sets": []}
+    p.sneak = sneak
+
+    def set_sneaking(s, v):
+        sneak["on"] = v
+        sneak["sets"].append(v)
+    p.setSneaking, p.isSneaking = set_sneaking, lambda s: sneak["on"]
+    perks = {}
+    p.perks = perks
+    p.getPerkLevel = lambda s, perk: perks.get(perk, 0)
+    p.isBehind = lambda s, z: getattr(z, "behind", None) is True
     return p
 
 
 def make_zombie(zid, x, y, dead=False, health=1.0):
     return J(getOnlineID=lambda s: zid, getX=lambda s: x, getY=lambda s: y, isDead=lambda s: dead,
              getTarget=lambda s: None, isCrawling=lambda s: False, getHealth=lambda s: health,
-             isOnFloor=lambda s: False)                                       # PZA/1.7: a standing zombie
+             isOnFloor=lambda s: False,                                       # PZA/1.7: a standing zombie
+             isTargetLocationKnown=lambda s: False, getRealState=lambda s: "idle")   # PZA/1.9: an unaware one
 
 
 def make_cell(zombies=(), squares=None):
@@ -338,6 +353,7 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
     g._cell = make_cell()
     g.CharacterStat = J(**{n: n for n in STAT_NAMES})
     g.MoodleType = J(**{n: n for n in MOODLE_NAMES})
+    g.Perks = J(Sneak="Sneak")                           # PZA/1.9: me.sneakLevel's getPerkLevel(Perks.Sneak)
     g.IsoFlagType = J(HoppableN="HoppableN", HoppableW="HoppableW",   # PZA/1.4: the square's has(flag) reads
                       TallHoppableN="TallHoppableN", TallHoppableW="TallHoppableW")
     g.IsoDirections = J(N="N", S="S", E="E", W="W")                  # PZA/1.5: the climb's facing
@@ -531,7 +547,8 @@ def make_mover(px=10.0, py=20.0, zx=12.0, zy=20.0, zid=7, zspeed=0.0, chasing=Tr
     p.isAttackStarted = lambda s: w["attack"] > 0
     z = J(getOnlineID=lambda s: zid, getX=lambda s: w["zx"], getY=lambda s: w["zy"], isDead=lambda s: w["zdead"],
           getTarget=lambda s: p if w["chasing"] else None, isCrawling=lambda s: False, getHealth=lambda s: w["zhp"],
-          isOnFloor=lambda s: w["floor"], isKnockedDown=lambda s: w["knocked"])
+          isOnFloor=lambda s: w["floor"], isKnockedDown=lambda s: w["knocked"],
+          isTargetLocationKnown=lambda s: w["chasing"], getRealState=lambda s: "idle")   # PZA/1.9
     return p, z, w
 
 

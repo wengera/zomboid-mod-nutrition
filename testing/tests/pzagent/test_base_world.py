@@ -85,10 +85,12 @@ def _write_synthetic(state_dir, sink=None):
         me = dict(DEFAULT_FRAME["me"], x=100.0 + (i // 2) * 0.5, moving=i % 4 != 3)
         stats = dict(DEFAULT_FRAME["stats"], hunger=0.1 if i < 20 else 0.25)
         zs = [{"id": 11, "x": 110.0 - i * 0.25, "y": 200.0, "dist": 10.0 - i * 0.25,
-               "hasTarget": i >= 5, "crawler": False, "health": 1.5, "onFloor": None}]
+               "hasTarget": i >= 5, "crawler": False, "health": 1.5, "onFloor": None,
+               "known": i >= 5, "state": "walktoward" if i >= 5 else "idle", "behind": False}]      # PZA/1.9
         if i < 15:
             zs.append({"id": 12, "x": 104.0, "y": 204.0 - i * 0.25, "dist": 5.5 - i * 0.125,
-                       "hasTarget": True, "crawler": i >= 10, "health": 0.5, "onFloor": None})
+                       "hasTarget": True, "crawler": i >= 10, "health": 0.5, "onFloor": None,
+                       "known": None, "state": None, "behind": None})                            # PZA/1.9: unread
         m.frame(me=me, stats=stats, zombies=zs, gameMin=480.0 + i)
         step()
         if i in (5, 6, 7):
@@ -1104,3 +1106,21 @@ def test_apply_keeps_the_water_record_on_the_square():
     w = _world([_sq(0, 0, water={"amount": 20.0, "tainted": False, "infinite": False}), _sq(1, 0)])
     assert w.map[(0, 0, 0)]["water"] == {"amount": 20.0, "tainted": False, "infinite": False}
     assert w.map[(1, 0, 0)].get("water") is None
+
+
+# -- PZA/1.9 (Plan 30 Task 1): the sneak posture and the zombies' awareness -------------------------------------------
+
+def test_the_world_reads_the_sneak_fields_and_the_zombie_awareness_and_can_sneak():
+    w = World()
+    assert w.can("sneak") is False
+    w.apply({"kind": "hello", "seq": 1, "tick": 0, "wallMs": 0, "proto": "PZA/1", "mod": "1.9", "build": "42.21.0",
+             "user": "agent", "rate": 10, "caps": ["sneak", "walkTo"], "mode": "append"})
+    assert w.can("sneak") is True
+    z = dict(zed(7, 3.0), onFloor=None, known=True, state="walktoward", behind=True)
+    w.apply(frame(1000, [z], me=dict(DEFAULT_FRAME["me"], sneaking=True, sneakLevel=2)))
+    assert (w.me["sneaking"], w.me["sneakLevel"]) == (True, 2)
+    assert (w.zombies[7]["known"], w.zombies[7]["state"], w.zombies[7]["behind"]) == (True, "walktoward", True)
+    old = dict(DEFAULT_FRAME["me"])
+    del old["sneaking"], old["sneakLevel"]                       # a frame before PZA/1.9, as a dict without them
+    w.apply(frame(1100, [zed(7, 2.5)], me=old))
+    assert w.me.get("sneaking") is None and w.zombies[7].get("known") is None
