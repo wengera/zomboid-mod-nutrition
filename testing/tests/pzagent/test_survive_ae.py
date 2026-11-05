@@ -1005,3 +1005,18 @@ def test_a_fallen_zombie_ahead_of_the_walk_cuts_nothing(tmp_path, monkeypatch):
     r.frame(x=m[0], y=m[1], zombies=recs, weapon=E22_BAT, health=100.0, game_min=617.1)
     tick(r, sv)
     assert "flee_held_stance" not in threat_why(tmp_path) and F13_DOOR not in r.world.marked_doors()
+
+
+def test_a_dead_marked_zombie_standing_ahead_of_the_walk_cuts_nothing(tmp_path, monkeypatch):
+    """P29-H' fix 1 residual (review-t2 re-review r1): the walk's heading is read against the held list alone
+    (`Flee._threats`), never every listed zombie: line 412 with 28222 standing on the walk's heading but read dead
+    (`Survive.dead`, so out of the held list) and 28215 held 5 tiles behind the walk (both the test's own): the walk is
+    kept, nothing logged or marked."""
+    r, sv, walk = f13_walk(tmp_path, monkeypatch)
+    sv.dead[28222] = r.clock() + 100.0
+    m, zs = F13_FRAMES[412]
+    recs = [zr(28222, zs[0][1], zs[0][2], me=m), zr(28215, m[0] - 5.0, m[1], me=m)]
+    r.frame(x=m[0], y=m[1], zombies=recs, weapon=E22_BAT, health=100.0, game_min=617.1)
+    tick(r, sv)
+    assert "flee_held_stance" not in threat_why(tmp_path) and F13_DOOR not in r.world.marked_doors()
+    assert sv.flee is not None and sv.flee._dropped is not walk
