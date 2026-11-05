@@ -56,7 +56,8 @@
 --    8. the shove: in shove mode within shoveR; or a target chasing the player (getTarget is the player, T91.1) whose d
 --       fell since the last tick (P28-B1: an unstruck target or one whose miss cleared), within shoveR in shove mode
 --       and in strike mode only within K.STAND_R too, where the engine turns the swing into a shove for the bat
---       (#4372's bound is the weapon's MinRange: 0.61 for the bat, 0.7 or 0.98 for a few weapons): ruling P28-H, the swing before the shove in strike mode, so a chaser at the reach is swung at, never
+--       (#4372's bound is the weapon's MinRange: 0.61 for the bat, 0.7 or 0.98 for a few weapons): ruling P28-H,
+--       the swing before the shove in strike mode, so a chaser at the reach is swung at, never
 --       shoved at shoveR's edge (E22's eight shoves at 1.068 to 1.100 tiles knocked nothing down, nine bites in a row;
 --       E21's swings at a standing zombie from 1.058 tiles on all lowered it); a shove's face, once begun, presses as
 --       a shove while the target stays within shoveR.
