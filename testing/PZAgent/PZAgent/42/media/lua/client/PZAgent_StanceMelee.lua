@@ -37,9 +37,8 @@
 --       (ruling P30-A, Plan 30 Task 3) a swing that left it standing with its health not fallen from the press
 --       (getHealth at the press and at the result, both read) did nothing: no miss, so no back leg, and the swing goes
 --       again by 9 (counted in again at its press, never after a back leg), but within K.STAND_R, where the miss and
---       its back leg stand; a
---       swing cut by a hit reaction before its collision event is such a press (its result read once the reaction
---       ends).
+--       its back leg stand; a swing cut by a hit reaction before its collision event is such a press (its result read
+--       once the reaction ends).
 --    4. d beyond releaseR fails out of range; another standing zombie within K.STAND_R of the player (the engine's press
 --       would take it) fails crowd with result {id, d} (the last frame's records within K.STAND_R + CROWD_SLACK read
 --       live); seconds passed ends done (end time). A running strike or a hit holds the time end until it ends.

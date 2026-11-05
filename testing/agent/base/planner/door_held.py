@@ -102,16 +102,21 @@ def meets_portal(world, a, b, edge):
 
 
 def _same_run(world, hit, edge):
-    """The blocked edge `hit` (holder, side) and the portal's `edge` lie on one run: the same side and row, and every
-    edge from one to the other blocked (a closed door's included)."""
+    """The blocked edge `hit` (holder, side) and the portal's `edge` lie on one run: the same side and row, the hit
+    within DOOR_HELD_R of the portal along it (review-t3 re-review r1: a far hit on a long fence is no way through this
+    portal), and every edge from one to the other mapped on both sides and blocked (a closed door's included; an
+    unmapped gap reads no fence)."""
     (h, side), (p, pside) = hit, edge
     if side != pside or h[2] != p[2] or (side == "N" and h[1] != p[1]) or (side == "W" and h[0] != p[0]):
         return False
     k = 0 if side == "N" else 1
     lo, hi = sorted((h[k], p[k]))
+    if hi - lo > DOOR_HELD_R:
+        return False
     for c in range(lo, hi + 1):
         sq = (c, h[1], h[2]) if side == "N" else (h[0], c, h[2])
-        if not world.blocked(sq, _across(sq, side)):
+        other = _across(sq, side)
+        if sq not in world.map or other not in world.map or not world.blocked(sq, other):
             return False
     return True
 

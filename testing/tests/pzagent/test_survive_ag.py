@@ -604,3 +604,23 @@ def test_the_bleed_rate_reads_the_kept_samples_and_none_under_their_span(tmp_pat
     care_frame(r, [part(6, h=80.0)], game_min=600.0 + BLEED_WINDOW_MIN + 0.3)
     sv._read_bleed()
     assert [s[1] for s in sv._part_h[6]] == [86.0, 80.0] and sv._bleed_rate(6) == pytest.approx(6.0 / 0.9)
+
+
+def test_the_fence_run_counts_only_within_door_held_r_of_the_portal_and_never_across_an_unmapped_gap(tmp_path):
+    """Review-t3 re-review r1 (`door_held._same_run`): a hit on the gate's own fence row counts as the gate's way only
+    within DOOR_HELD_R of the gate along the row, every edge between mapped and blocked; a hit farther along, or one
+    with an unmapped square between, does not (the test's own row: x 10720..10745 blocked north, the gate at 10732)."""
+    from agent.base.planner.door_held import _same_run
+    from agent.base.planner.policies import DOOR_HELD_R
+    gate = ((10732, 10642, 0), "N")
+    rows = [square(x, y, blockN=y == 10642, edgeN=y == 10642, door=LOCKED if (x, y) == (10732, 10642) else None)
+            for x in range(10720, 10746) for y in (10641, 10642)]
+    r = Rig(tmp_path)
+    r.scan(rows)
+    near = int(10732 - DOOR_HELD_R)
+    assert _same_run(r.world, ((near, 10642, 0), "N"), gate)
+    assert not _same_run(r.world, ((near - 1, 10642, 0), "N"), gate)
+    r2 = Rig(tmp_path / "gap")
+    r2.scan([s for s in rows if not (s["x"] == 10730 and s["y"] == 10641)])
+    assert not _same_run(r2.world, ((10729, 10642, 0), "N"), gate)
+    assert _same_run(r2.world, ((10731, 10642, 0), "N"), gate)
