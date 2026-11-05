@@ -78,6 +78,32 @@ def test_an_idle_zombie_at_6_tiles_sneaks_the_seek_s_stance_with_one_sneak_true(
     assert postures(r) == [("sneak", {"on": True})] and sv._sneak_a is None
 
 
+def test_a_done_posture_the_frame_never_confirms_goes_once_more_after_the_confirm_wait(tmp_path):
+    """Fix 1 (review-t3 m9): `Sneak(True)` ended `done` while the frame keeps reading `me.sneaking` false (a player
+    packet clearing the flag, the test's own): not sent again within SNEAK_CONFIRM_S of its done, then once more (and
+    so at most once each SNEAK_CONFIRM_S while the frame never reads it)."""
+    from agent.base.planner.sneak import SNEAK_CONFIRM_S
+    r, sv = sneak_rig(tmp_path)
+    idle = [zd(1, 106.0, 200.0, has_target=False)]
+    r.frame(zombies=idle)
+    tick(r, sv)
+    r.answer("accepted")
+    r.frame(zombies=idle)
+    tick(r, sv)
+    r.answer()
+    done_at = r.clock()
+    sends = []
+    for _ in range(6):   # 3 s
+        r.advance(0.5)
+        r.frame(zombies=idle)
+        a = tick(r, sv)
+        if a is not None and a.type == "sneak":
+            sends.append(r.clock() - done_at)
+            r.answer()
+    assert postures(r)[0] == ("sneak", {"on": True}) and len(postures(r)) == 2
+    assert sends == [SNEAK_CONFIRM_S]
+
+
 def stand_sneaking(tmp_path):
     """`test_an_idle_zombie...`'s character, its frame reading `me.sneaking` true, the Fight's leg ended done."""
     r, sv = sneak_rig(tmp_path)
@@ -309,7 +335,7 @@ def test_with_door_held_off_the_goal_walks_on_into_the_gate_as_f14_did(tmp_path)
     assert sv.goals.current.args() == {"x": 10727, "y": 10645}
 
 
-# F14's lines 1081 to 1105 (the character on the bedroom square (10769, 10633), 32448 at (10770.400390625, 10633.5)
+# F14's lines 1081 to 1105 (the character on the kitchen square (10769, 10633), 32448 at (10770.400390625, 10633.5)
 # 0.90 tiles off behind the door on the west edge of (10770, 10633), its record locked as PZA/1.6 reads it fail-closed:
 # the reposition ran through it) in the test's own shape: a building of room squares x 10760..10769, y 10630..10636, its
 # door on the west edge of the outdoor square (10770, 10633), open ground x 10770..10778.
@@ -380,7 +406,7 @@ def test_two_behind_or_the_health_under_the_floor_leave_the_door(tmp_path, zs, h
 
 
 def test_inside_a_locked_building_door_is_opened_on_one_zombie_as_f14_s_line_1081(tmp_path):
-    """P30-C inside (F14's geometry: the character on the bedroom square, 32448 0.90 tiles off outside behind the door
+    """P30-C inside (F14's geometry: the character on the kitchen square, 32448 0.90 tiles off outside behind the door
     whose record reads locked, fail-closed): a player inside unlocks it, so `stance_open`, the inside hold giving way;
     the post the room square one on from the threshold (10768, 10633)."""
     me = (10769.5, 10633.48828125)

@@ -394,9 +394,12 @@ STILL_MOVE_R = 1.0        # tiles the character may move from the read's start (
 BLEED_FAST = 2.0          # part health a game minute: a dressing on a part falling faster rides through a flee from a
                           # zombie beyond KEEP_R (ruling P30-F, `threat.Threat._dress_waits`): E23's neck bite
                           # (`e_day_23-20261105-095110`, game minute 594 on) took the health from 98.90239715576172 to
-                          # 49.206119537353516 over 3.7356948852539062 game minutes (#4648), its part 9 falling about 14
-                          # a game minute, while two riding dressings were superseded by the flee's legs before the
-                          # third landed; a slow bleed (a scratch) falls under 1; the spec's number
+                          # 49.206119537353516 over 3.7356948852539062 game minutes (#4648), its part 9 falling at the
+                          # rule's own clock (`World.world_minutes`) from 98.43199920654297 (state.log seq 2015, minute
+                          # 174.045296) to 55.45134353637695 (seq 2241, 177.780991), about 11.5 a game minute, 12.40 at
+                          # most over a one-minute window (seq 2080 to 2160; fix 1, review-t3 m7: the integer `gameMin`
+                          # read 14), while two riding dressings were superseded by the flee's legs before the third
+                          # landed; a slow bleed (a scratch) falls under 1; the spec's number
 BLEED_WINDOW_MIN = 1.0    # game minutes of a part's health samples the bleed's rate reads (P30-F, `_bleed_rate`): one
                           # game minute, the rate's own unit, a judgment
 BLEED_SPAN_MIN = 0.2      # game minutes the samples must span before a rate is read (P30-F): a planner tick or more

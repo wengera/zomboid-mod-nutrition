@@ -14,9 +14,12 @@ at 2.005 tiles). E23 (`e_day_23-20261105-095110`), lines 121 to 133: the same ga
   door's state is its last `door` event's where one came since the map last read the square (`World.door_seen`: the
   open the stance sent reads open at once, the map's own edge flags waiting for the next scan).
   Its kind: `door` (a closed door record, neither locked nor barricaded nor marked by P24-Z's failures; from a room
-  square a locked building door too, which a player inside unlocks, PZA/1.6's `locked`), `locked gate` (one that is
-  locked, barricaded or marked, on an outdoor edge: no room square either side), `locked door` (on a building's wall),
-  `window`.
+  square a locked building door too: `ToggleDoorActual` unlocks a locked door for a player inside,
+  `canBeOpenFromInside`, #4367, and F14 opened the door (10770, 10633), recorded locked (fail-closed, PZA/1.6), from
+  the kitchen square (10769, 10633), its map line at seq 10905 reading it open and unlocked; #4367's bound: a door
+  locked but not by key may refuse from one side, the `Interact`'s `locked` end then, two of which mark it (P24-Z) so
+  the read turns it `locked door`), `locked gate` (one that is locked, barricaded or marked, on an outdoor edge: no
+  room square either side), `locked door` (on a building's wall), `window`.
 - `ThreatDoorHeld._door_held_read`, each threat read before the hold is counted (`Threat._threat_read`): the
   zombies listed within DOOR_HELD_R, none read dead, the edge-marked ones included (they are the gate's), whose line
   meets a portal, grouped by that portal; the nearest group's portal decides, on the tick it is read, never a stand
@@ -60,7 +63,9 @@ DOOR_KINDS = ("door", "locked gate", "locked door", "window")
 def portal_between(world, a, b, marked=frozenset(), inside=False):
     """Ruling P30-C's read (the module docstring): `(edge (holder, side), kind)` of the first door or window on the
     straight line from position `a` to `b`, else None (no portal, or a wall or fence met first). A door in `marked`
-    (P24-Z's marked doors) reads locked; `inside` (the player on a room square), a locked building door reads `door`."""
+    (P24-Z's marked doors) reads locked; `inside` (the player on a room square), a locked building door reads `door`
+    (#4367: `ToggleDoorActual` unlocks it for a player inside; F14's door (10770, 10633) opened so, map seq 10905; a
+    door locked but not by key may still refuse, its `locked` end then marking it after two, P24-Z)."""
     seen = getattr(world, "door_seen", None) or {}
     for u, v in world.edge_steps(a, b):
         holder, side = _edge_of(u, v)

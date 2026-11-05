@@ -1120,3 +1120,14 @@ def test_the_close_r_counts_reach_the_done_line(lua, fs):
     run(lua, p, w, 120, stop=lambda: ended(lua))
     r = last(lua, fs)["result"]
     assert r["end"] == "time" and r["held"] == 1 and r["again"] == 0
+
+
+def test_a_swing_after_the_point_blank_back_leg_is_no_press_again(lua, fs):
+    """Fix 1 (review-t3 m2): the press that did nothing at point blank takes the back leg, so the swing after that
+    leg is the mode's own, never counted in `again` (`again`: no back leg between)."""
+    p, z, w = world(lua, zx=10.5, zspeed=0.0, chasing=False, attack_ticks=8)
+    go(lua, p, reach=E23_REACH, closeR=CLOSE_R, seconds=10)
+    run(lua, p, w, 400, stop=lambda: len(w["presses"]) > 1)
+    assert len(w["presses"]) == 2 and "back" in step_seq(lua, fs)
+    run(lua, p, w)
+    assert progress(lua, fs)[-1]["result"]["again"] == 0

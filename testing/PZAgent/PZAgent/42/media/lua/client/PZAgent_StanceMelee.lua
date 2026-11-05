@@ -36,7 +36,8 @@
 --       review-t7a M2: hurt or not, the bites came after strikes that left the zombie standing). With closeR above 0
 --       (ruling P30-A, Plan 30 Task 3) a swing that left it standing with its health not fallen from the press
 --       (getHealth at the press and at the result, both read) did nothing: no miss, so no back leg, and the swing goes
---       again by 9 (counted in again at its press), but within K.STAND_R, where the miss and its back leg stand; a
+--       again by 9 (counted in again at its press, never after a back leg), but within K.STAND_R, where the miss and
+--       its back leg stand; a
 --       swing cut by a hit reaction before its collision event is such a press (its result read once the reaction
 --       ends).
 --    4. d beyond releaseR fails out of range; another standing zombie within K.STAND_R of the player (the engine's press
@@ -362,7 +363,9 @@ local function reflex(p, st, d)
     if st.strike ~= nil then
         if not strikeOver(p, st) then return st.strike.kind end
         strikeResult(p, st)
-        if st.nothing and d <= K.STAND_R then st.missed = true end   -- P30-A: at point blank the back leg stands
+        if st.nothing and d <= K.STAND_R then   -- P30-A: at point blank the back leg stands, and a back leg was
+            st.missed, st.nothing = true, false  -- between, so the next swing is no `again` (fix 1, review-t3 m2)
+        end
     end
     if d > st.releaseR then return "failed", "out of range" end
     local cid, cd = crowd(p, st)
@@ -413,9 +416,9 @@ local function reflex(p, st, d)
         return strike(p, st, "swing")
     end
     if not read then t = targetOf(st) end
-    local closeR = st.shoveR
-    if st.mode == "strike" then closeR = reachOf(p, st) end
-    if t == nil and d > closeR then
+    local closeAt = st.shoveR   -- 10: the close's distance (not st.closeR, the swing close's)
+    if st.mode == "strike" then closeAt = reachOf(p, st) end
+    if t == nil and d > closeAt then
         holdStance(p, st)
         if towardTarget(p, st, "close") then return "close" end
     end

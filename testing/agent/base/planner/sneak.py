@@ -18,7 +18,10 @@ inside it, and footsteps carry 4 tiles against 7 (#4657, #4661). The rule:
   (cmd.txt carries one command a write, so a posture beside another command would be lost): `Sneak(True)` only on a
   tick that sends nothing else (a goal's or a fight's walk already running goes on crouched), `Sneak(False)` in place
   of the tick's command (deferred: the branch answers it again on the next tick, upright), and a posture of the same
-  value already sent is never sent again until the frame reads it or its act line fails (`_sneak_a`, one-shot).
+  value already sent is never sent again until the frame reads it, its act line fails, or SNEAK_CONFIRM_S have passed
+  since its `done` with the frame still reading the other value (`_sneak_a`, one-shot; fix 1, review-t3 m9: a done
+  posture the frame never confirms, a player packet clearing the flag, never blocks that value for the session: the
+  frame's value rules and the posture goes once more).
 - Logged `sneak` {on: the want, near: the zombies within SNEAK_R}, with `sent` true and `deferred` (the tick's own
   command type, or None) on the tick the posture goes, on the decision line's inputs.
 
@@ -29,6 +32,9 @@ from agent.base.pza1 import Sneak, WalkTo
 
 PRESSES = ("melee", "attack", "shove", "stomp")   # a tick's command that strikes at a zombie: the fight runs upright
 POSTURE_FAILS = ("failed", "rejected", "timeout")   # a posture's ends after which its value may be sent again
+SNEAK_CONFIRM_S = 2.0   # wall seconds after a posture's `done` the frame may take to read its value before the value
+                        # may be sent again (fix 1, review-t3 m9): four planner ticks at PLANNER_HZ 2, twenty frames at
+                        # the Lua's 10 Hz, past any frame lag; a judgment
 
 
 class SneakGait:
@@ -62,8 +68,9 @@ class SneakGait:
         self.sneak_now = {"on": want, "near": near}
         on = (self.world.me or {}).get("sneaking") is True
         a = self._sneak_a
-        if a is not None and a.args.get("on", False) == on:
-            self._sneak_a = a = None   # the frame reads what it set
+        if a is not None and (a.args.get("on", False) == on or (
+                a.state == "done" and a.ended_wall is not None and self.clock() - a.ended_wall >= SNEAK_CONFIRM_S)):
+            self._sneak_a = a = None   # the frame reads what it set, or never did within SNEAK_CONFIRM_S (m9)
         if want == on:
             cmd = d.cmd
             if on and cmd is not None and cmd.TYPE == "walkTo" and cmd.gait == "run":

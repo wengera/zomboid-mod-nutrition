@@ -9,7 +9,8 @@ stand). The rule: an open-ground Fight (no corner, no door fight, no doorway sta
 beyond the swing's reach (the Fight's `reach_r`, else FIGHT_REACH: one within it is the fight's, the swing or the
 stance's back leg, never a stand; the replay of F1, `f_goals-20261028-202437`, line 481 read 15910 steady at 1.06 tiles
 while the Fight walked at 15885) and has kept its distance within STILL_DRIFT_R of the read's start, the character
-within STILL_MOVE_R of its own, read on every planner tick for STILL_S wall seconds, resolves (logged `still` {target, d, resolved} on the threat why):
+within STILL_MOVE_R of its own, read on every planner tick for STILL_S wall seconds, resolves (logged `still`
+{target, d, resolved} on the threat why):
 - `approach`, the zombie alone within DANGER_R and the health above FLEE_HEALTH_FLOOR: the stance's leg toward it (the
   Fight's `toward` leg, `fight.Fight._stance_leg`: an aim at it along a clear heading, else the walk the path follower
   takes round the wall), in place of the Fight's own answer;
@@ -60,7 +61,7 @@ class ThreatStill:
         rec[4] = tick   # read on consecutive ticks only: a tick the read skipped starts it again
         if now - rec[1] < STILL_S:
             return None
-        alone = len(self._within(DANGER_R)) <= 1
+        alone = len(self._danger_near()) <= 1   # the once-a-tick DANGER_R count (fix 1, review-t3 m6)
         resolved = "approach" if alone and self._health() > FLEE_HEALTH_FLOOR else "goal"
         self.still_now = {"target": zid, "d": d, "resolved": resolved}
         self._still_rec = None
