@@ -455,7 +455,7 @@ def test_a_later_chain_session_holding_the_bat_spawns_none(tmp_path, monkeypatch
 
 # ================================================================ the copy: e_day_21.py's body, its own key
 BASE_SENTENCE = (
-    "the base at `020ea2fb` (the planner: Plan 28 Task 7b, its head at the copy, re-based) carries PZA/1.8 (the "
+    "the base at `c2b6bae2` (the planner: Plan 28 Task 7b, its head at the boot, re-based, re-based) carries PZA/1.8 (the "
     "`melee` action, its progress lines with a result, the frame's `act.step`; the hello reads `mod` `1.8`) and "
     "survival iteration 22 (the melee reflex, cut 1 of the maneuver layer: the Lua skill `melee` owning one target "
     "from the stance to the kill, the Python `Maneuver` base and `Melee` behind `MELEE`; over iteration 21); the "
@@ -504,7 +504,7 @@ def test_the_copy_differs_from_e_day_21_only_in_the_expected_lines():
     assert "iteration 22 readings" in b and "grade_e18" not in b[b.index('out["grade_e19"] is grades'):]
     head = b[:b.index(MARK)]
     assert b.splitlines()[1] == a.splitlines()[1].replace("e_day_20.py's", "e_day_21.py's")
-    for c in ("e_day_21.py", "Task 7d", "twenty-second", "PZA/1.8", "grade_e19", "grade_e18", "020ea2fb", "`melee`",
+    for c in ("e_day_21.py", "Task 7d", "twenty-second", "PZA/1.8", "grade_e19", "grade_e18", "c2b6bae2", "`melee`",
               "`Maneuver`", "MELEE", "state.1.log", BASE_SENTENCE) + NEW19:
         assert c in head, c
     assert "389d0ae9" not in head and "PZA/1.7.2" not in head and "P28-A" not in head
@@ -527,10 +527,10 @@ def test_the_stops_block_names_client_end_after_death():
 
 def test_the_base_sentence_names_the_planner_s_head_at_the_copy():
     """The base sentence's commit is the planner's head the copy was made at (`git log -1 -- testing/agent/base/planner`
-    at Task 7d: 020ea2fb, Plan 28 Task 7b); the controller re-bases it before the boot."""
+    at Task 7d: c2b6bae2, Plan 28 Task 7b); the controller re-bases it before the boot."""
     first = E.__doc__.splitlines()[0]
     assert BASE_SENTENCE in first
-    assert "the base at `020ea2fb` (the planner: Plan 28 Task 7b, its head at the copy, re-based)" in first
+    assert "the base at `c2b6bae2` (the planner: Plan 28 Task 7b, its head at the boot, re-based, re-based)" in first
     assert "carries PZA/1.8 (the `melee` action, its progress lines with a result, the frame's `act.step`; the hello " \
            "reads `mod` `1.8`)" in first
 
