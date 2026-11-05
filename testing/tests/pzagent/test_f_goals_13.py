@@ -466,7 +466,7 @@ def test_the_totals_reach_the_llm_record(tmp_path, monkeypatch):
 
 
 BASE_SENTENCE = (
-    "the base at `c6fdcd37` (the planner: Plan 28 Task 3, its head at the copy) carries PZA/1.7.2 (the part record's "
+    "the base at `389d0ae9` (the planner: Plan 28 Task 3, its head at the boot, re-based) carries PZA/1.7.2 (the part record's "
     "`wound`, and the attack releasing the stance and pressing one tick after facing, P28-F; the hello reads `mod` "
     "`1.7`) and survival iteration 21 (over iteration 20: P28-A the wound dressed, P28-B the back leg after a missed "
     "shove and the drifted pin's stance, P28-C the floor swing under the arms' pain, P28-D a busy rejection no "
@@ -518,7 +518,7 @@ def test_the_driver_is_f_goals_12_py_copied_under_its_own_key_with_grade_f9_wire
     first = doc.splitlines()[0]
     assert doc.splitlines()[1] == "" and doc.splitlines()[2].startswith("The rest of this docstring is f_goals.py")
     assert BASE_SENTENCE in first and "PZA/1.7.2" in first and "Task 5" in first and "f_goals_12.py" in first
-    assert "c6fdcd37" in first and "0c5da18c" not in doc and "PZA/1.7.1" not in doc and "P27-K1" not in doc
+    assert "389d0ae9" in first and "0c5da18c" not in doc and "PZA/1.7.1" not in doc and "P27-K1" not in doc
     assert "iteration 20 (over" not in doc and "f_goals_11" not in doc
     order = [first.index(x) for x in ("P28-A ", "P28-B ", "P28-C ", "P28-D ", "P28-E ")]
     assert order == sorted(order)           # one clause each, in order
@@ -545,10 +545,10 @@ def test_the_stops_block_names_client_end_after_death():
 
 def test_the_base_sentence_names_the_planner_s_head_at_the_copy():
     """The base sentence's commit is the planner's head the copy was made at (`git log -1 -- testing/agent/base/planner`
-    at Task 5: c6fdcd37, Plan 28 Task 3); the controller re-bases it before the boot."""
+    at Task 5: 389d0ae9, Plan 28 Task 3); the controller re-bases it before the boot."""
     first = F.__doc__.splitlines()[0]
     assert BASE_SENTENCE in first
-    assert "the base at `c6fdcd37` (the planner: Plan 28 Task 3, its head at the copy)" in first
+    assert "the base at `389d0ae9` (the planner: Plan 28 Task 3, its head at the boot, re-based)" in first
 
 
 def test_the_driver_boots_the_agent_fixture_by_day_as_f_goals_12_py_does():
