@@ -1170,3 +1170,68 @@ def test_the_prompt_names_the_hop_minimum():
     from agent.base.planner import goal_prompt as GP
     assert ("An ExploreToward target is at least 12 tiles from pos: a nearer one is walked on along its line toward "
             "edge's square, or to the last known square, so name the far square you mean.") in GP.system(60.0)
+
+
+# ---------------------------------------------------------------- Plan 30 Task 3 fix 1 (review-t3 M2, m1)
+def test_a_failed_extended_hop_cools_the_model_s_short_answer_too(tmp_path):
+    """Fix 1, review-t3 M2: the model's 4-tile hop is extended to `edge` (10760, 10641); that goal fails cooled with
+    its far target marked stuck (a leg's final failure, `_leg_failed`); the model answers the same short square again:
+    refused as cooled (its own key cooled beside the extended one), never re-extended (to the next edge square, the
+    stuck one skipped) and re-run (the E8/F3/F13 loop the cooling exists to stop)."""
+    r, sv = continue_rig(tmp_path, ExploreToward(10744, 10641), ExploreToward(10744, 10641), name="llm")
+    sv.tick(r.world, r.acts)
+    g = sv.goals.current
+    assert g.args() == {"x": F14_EDGE[0], "y": F14_EDGE[1]} and g.answer_key is not None
+    r.answer("accepted")
+    g._leg_failed(r.world)   # the leg's final failure: cooled, its far target marked stuck
+    g.end("failed", "no path")
+    r.frame(x=F14_AT[0], y=F14_AT[1])
+    sv.tick(r.world, r.acts)
+    w = last_line(tmp_path)["inputs"]["branches"]["goal"]
+    assert w["refused"] == {"type": "ExploreToward", "args": {"x": 10744, "y": 10641}} and sv.goals.current is None
+    from agent.base.planner.goal_policies import hop_target
+    again = hop_target(r.world, (10744, 10641), r.world.unexplored_edge())
+    assert again is not None and again != F14_EDGE   # the hop alone would run again, elsewhere
+
+
+def test_a_hop_never_extends_to_a_square_marked_stuck(tmp_path):
+    from agent.base.planner.goal_policies import hop_target
+    r = Rig(tmp_path)
+    f14_ground(r)
+    r.frame(x=F14_AT[0], y=F14_AT[1])
+    assert hop_target(r.world, (10744, 10641), F14_EDGE) == F14_EDGE
+    r.world.mark_stuck(*F14_EDGE)
+    assert hop_target(r.world, (10744, 10641), F14_EDGE) != F14_EDGE
+
+
+def test_a_last_continued_walk_that_ended_clears_its_target_for_the_edge(tmp_path):
+    """Fix 1, review-t3 m1: the cut walk's target walked to (`last`) and the walk ended: the next pending tick walks
+    toward `edge`, never back to the target it walked to."""
+    r, sv = continue_rig(tmp_path, ExploreToward(10750, 10641), None, None, None, at=F14_START)
+    sv.tick(r.world, r.acts)
+    r.answer("accepted")
+    me = (F14_START[0] + 0.5, F14_START[1])
+    r.frame(x=me[0], y=me[1], zombies=[zombie(9, me[0] + 4.0, me[1], me=me)])
+    sv.tick(r.world, r.acts)
+    r.answer()
+    r.frame(x=me[0], y=me[1], zombies=[zombie(9, me[0] - 30.0, me[1], me=me)])
+    sv.tick(r.world, r.acts)
+    assert last_line(tmp_path)["inputs"]["branches"]["goal"]["goal_continue"]["source"] == "last"
+    r.answer()                                      # the continued walk done (the test's own: read where it stood)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(9, me[0] - 30.0, me[1], me=me)])
+    sv.tick(r.world, r.acts)
+    assert last_line(tmp_path)["inputs"]["branches"]["goal"]["goal_continue"]["source"] == "edge"
+
+
+def test_a_continued_walk_that_failed_is_not_sent_again_while_the_edge_reads_the_same(tmp_path):
+    """Fix 1, review-t3 m1: the walk toward `edge` ends `failed "stuck"`: no continued walk to it again, the cooldown
+    past (FAILED_COOLDOWN_TICKS), while the view's edge reads the same square."""
+    from agent.base.planner.survive import FAILED_COOLDOWN_TICKS
+    r, sv = continue_rig(tmp_path, *([None] * 20))
+    a = sv.tick(r.world, r.acts)
+    assert a.type == "walkTo"
+    r.answer("accepted", {"state": "failed", "reason": "stuck"})
+    for _ in range(FAILED_COOLDOWN_TICKS + 2):
+        r.frame(x=F14_AT[0], y=F14_AT[1])
+        sv.tick(r.world, r.acts)
+    assert sum(1 for x in r.acts.history if x.type == "walkTo") == 1

@@ -238,23 +238,24 @@ LOCKED = {"open": False, "locked": True, "barricaded": False}
 SHUT = {"open": False, "locked": False, "barricaded": False}
 
 
-def gate_ground():
+def gate_ground(fence_from=10729):
+    """The gate's ground; `fence_from` the row's first blocked square (its run's open end west of it)."""
     out = []
     for x in range(10726, 10739):
         for y in range(10634, 10647):
-            if y == 10642 and x >= 10729:
+            if y == 10642 and x >= fence_from:
                 out.append(square(x, y, blockN=True, edgeN=True, door=LOCKED if x == 10732 else None))
             else:
                 out.append(square(x, y))
     return out
 
 
-def gate_rig(tmp_path, on=True):
+def gate_rig(tmp_path, on=True, goal=(10727, 10645), fence_from=10729):
     from agent.base.planner.goals import ExploreToward
     r = Rig(tmp_path)
-    sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=Src(ExploreToward(10727, 10645)))
+    sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=Src(ExploreToward(*goal)))
     sv.DOOR_HELD = on
-    r.scan(gate_ground())
+    r.scan(gate_ground(fence_from))
     r.frame(x=F14_GATE_ME[0] - 4.0, y=F14_GATE_ME[1] - 4.0)
     sv.goals.kit.bind(r.world, r.acts)
     sv.goals.kit.explore.scanned.add(sv.goals.kit.explore.place())
@@ -282,6 +283,20 @@ def test_f14_s_chaser_behind_the_locked_gate_is_left_and_no_walk_goes_into_the_g
     a = tick(r, sv)
     assert a is None or not (a.type == "walkTo" and a.args["y"] > 10642)
     assert "door_held" not in threat_why(tmp_path)   # logged on the tick it is decided
+
+
+def test_a_goal_past_the_gate_s_line_whose_way_clears_the_fence_s_end_is_kept(tmp_path):
+    """Fix 1, review-t3 M1: the leave ends only a goal whose way goes through the gate (its line meeting the gate, or
+    the gate's own run of fence): a target south of the gate's line, (10726, 10642), whose line from the character
+    clears the row's open end (the test's own row, blocked from x 10731) is kept running, the leave read beside it."""
+    r, sv = gate_rig(tmp_path, goal=(10726, 10642), fence_from=10731)
+    zid, zx, zy = F14_GATE_Z
+    me = F14_GATE_ME
+    r.frame(x=me[0], y=me[1], zombies=[zombie(zid, zx, zy, me=me)])
+    tick(r, sv)
+    assert threat_why(tmp_path)["door_held"]["decision"] == "leave"
+    assert sv.goals.current is not None and sv.goals.current.running and sv.goals.history == []
+    assert (10726, 10642) not in r.world.stuck
 
 
 def test_with_door_held_off_the_goal_walks_on_into_the_gate_as_f14_did(tmp_path):

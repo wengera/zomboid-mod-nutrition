@@ -38,20 +38,25 @@ send cut the walk; a goal that ended done arrived, one that failed is not walked
 goal replaces the leg (its first send supersedes the walk). The threat branch, above the goal's, pre-empts it as
 before. And the hop (`goal_policies.hop_target`): an `ExploreToward` the model answered (`NAME` "llm") nearer than
 EXPLORE_HOP_MIN is extended along its line toward `edge`, or to the last open square before the first unknown one,
-logged `hop_extended` {from, to} on the line that takes it. Cost if wrong: a walk continued into a situation the model
-would have changed (bounded by the threat branch's pre-emption); a longer hop past a building the model wanted looted.
+logged `hop_extended` {from, to} on the line that takes it; the hop is read before the cooled refusal, which refuses an
+answer whose own key or extended key is cooled, and a failed extended goal cools both (`answer_key`: fix 1, review-t3
+M2, so the model's same short answer after a failed hop is refused as cooled, never re-extended and re-run). Cost if
+wrong: a walk continued into a situation the model would have changed (bounded by the threat branch's pre-emption);
+a longer hop past a building the model wanted looted.
 """
 import json
 import math
 import time
 from typing import Optional, Protocol, runtime_checkable
 
+from agent.base.planner.door_held import meets_portal
 from agent.base.planner.edges import first_edge, same_side
 from agent.base.planner.goal_policies import ExploreToward, Goal, Kit, LootBuilding, Rest, Shelter, Stock, TYPES
 from agent.base.planner.goals import (ARRIVE_R, BUILDING_R, COOL_REASONS, GOAL_COOL_S, GOAL_HOLD_SUPERSEDE_TICKS,
                                       OPTIONAL_FIELDS, REST_S, SCHEMA_PATH, STOCK_KINDS, _num, goal_key, int_id)
 from agent.base.planner.night import player_square
-from agent.base.planner.policies import LOOT_MAX_LEVEL, STALL_R, STUCK_LEAVE_R, STUCK_MARK_MIN, WALK_DONE_R, me_xy
+from agent.base.planner.policies import (LOOT_MAX_LEVEL, PREEMPTED, STALL_R, STUCK_LEAVE_R, STUCK_MARK_MIN,
+                                         WALK_DONE_R, me_xy)
 from agent.base.pza1 import WalkTo
 from agent.base.planner.view import why_of
 
@@ -240,6 +245,7 @@ class GoalRunner:
         self._continue = None  # (the continued walk's command, its Action once sent, its why) while it may run (P30-B)
         self._cut_target = None   # [x, y] of the last goal's walk when that goal was superseded short of it (P30-B)
         self._walk_target = None  # [x, y] of the running goal's last walk sent (P30-B)
+        self._continue_dead = None   # ([x, y], the view's edge then) of a continued walk that failed (fix 1, m1)
         self.door_left = None     # this tick's edge a `leave` read past (ruling P30-C, set by the threat branch's
                                   # read): no continued walk targets a square across it
         self.world = None      # the World of the last observe (a sent walk's square is read off it)
@@ -260,6 +266,9 @@ class GoalRunner:
         self._walk_target = None
         if g.state == "failed" and (g.sent_n == 0 or getattr(g, "cool", False) or g.reason in COOL_REASONS):
             self.cooled[goal_key(g.TYPE, g.args())] = now + GOAL_COOL_S
+            key = getattr(g, "answer_key", None)
+            if key is not None:   # fix 1 (review-t3 M2): the model's own short answer is cooled beside its hop
+                self.cooled[key] = now + GOAL_COOL_S
         self.kit.rested(g)
         self._ended_now, self.current, self.hold_ticks = g, None, 0
 
@@ -372,8 +381,14 @@ class GoalRunner:
             seen = self._carried(view)
             g = self.source.propose(seen)
             self.pending = g is None
-            if g is not None and self.cooled.get(goal_key(g.TYPE, g.args()), 0.0) > self.clock():
-                refused, self.refusal, g = {"type": g.TYPE, "args": g.args()}, self._refusal(g), None
+            hop, answer = None, None
+            if g is not None:   # fix 1 (review-t3 M2): the hop before the cooled read, which reads both keys
+                answer = {"type": g.TYPE, "args": g.args()}
+                hop = self._hop(world, g, seen)
+                g.answer_key = goal_key(answer["type"], answer["args"]) if hop is not None else None
+            if g is not None and any(self.cooled.get(k, 0.0) > self.clock()
+                                     for k in (goal_key(g.TYPE, g.args()), g.answer_key) if k is not None):
+                refused, self.refusal, g = answer, self._refusal(g), None
             if g is None:
                 cmd = self._continue_walk(world, actions, seen) if self.pending else None
                 self.why = self._noted({"proposed": None, "refused": refused, "ended": ended, "pending": self.pending},
@@ -382,7 +397,6 @@ class GoalRunner:
                     self.why["goal_continue"] = self.continue_now   # P30-B: the walk kept going while pending
                 return cmd
             self._continue, self.continue_now = None, None
-            hop = self._hop(world, g, seen)
             proposed = g.TYPE
             g.started_wall, g.kit = self.clock(), self.kit   # the budget starts here, never while pending
             g.start_xy = me_xy(world)   # P29-B: where the goal began, its budget end's stall read
@@ -415,8 +429,11 @@ class GoalRunner:
         """Ruling P30-B (the module docstring): the walk kept going while the source is pending, else None. A walk it
         sent still running holds (None, `continue_now` its target); else a `WalkTo` at a walk toward the last goal's
         cut walk target (`last`), else toward the centre of the view's `edge` square (`edge`), whichever lies beyond
-        WALK_DONE_R of the player and not across the edge a P30-C `leave` read this tick (`door_left`); neither, the
-        runner stands (`continue_now` None)."""
+        WALK_DONE_R of the player and not through the portal a P30-C `leave` read this tick (`door_left`, its line
+        meeting that portal first: fix 1, review-t3 M1); neither, the runner stands (`continue_now` None). Fix 1
+        (review-t3 m1): a continued walk that ended clears the cut target it walked to (done: reached; failed: not
+        walked into again), and a target whose continued walk failed (not superseded) is skipped while the view's
+        `edge` reads as it did then (`_continue_dead`), so a stuck walk is never re-sent once the cooldown passes."""
         self.continue_now = None
         if not self.goal_continue:
             return None
@@ -424,12 +441,18 @@ class GoalRunner:
         if run is not None and run[1] is not None and actions.current is run[1]:
             self.continue_now = dict(run[2])
             return None
-        mx, my = me_xy(world)
         edge = seen.get("edge")
+        if run is not None and run[1] is not None and actions.done(run[1]):
+            self._continued_ended(run, edge)
+        mx, my = me_xy(world)
         on_edge = (edge[0] + 0.5, edge[1] + 0.5) if isinstance(edge, (list, tuple)) and len(edge) >= 2 else None
+        dead = self._continue_dead
         for target, source in ((self._cut_target, "last"), (on_edge, "edge")):
-            if target is not None and self.door_left is not None and not same_side(self.door_left, (mx, my), target):
-                continue   # P30-C: never a walk past the door the threat branch left
+            if target is not None and self.door_left is not None and meets_portal(world, (mx, my), target,
+                                                                                  self.door_left):
+                continue   # P30-C: never a walk through the door the threat branch left
+            if target is not None and dead is not None and list(target) == dead[0] and dead[1] == edge:
+                continue   # fix 1, m1: its walk failed and the view's edge has not moved
             if target is not None and math.hypot(target[0] - mx, target[1] - my) > WALK_DONE_R:
                 self.continue_now = {"target": [target[0], target[1]], "source": source}
                 cmd = WalkTo(float(target[0]), float(target[1]), "walk")
@@ -437,6 +460,16 @@ class GoalRunner:
                 return cmd
         self._continue = None
         return None
+
+    def _continued_ended(self, run, edge):
+        """Fix 1 (review-t3 m1): the continued walk `run` (command, Action, why) ended: a `last` walk clears the cut
+        target whatever its end; one that failed (not superseded by another send) is kept dead with the view's edge."""
+        a, why = run[1], run[2]
+        if why.get("source") == "last":
+            self._cut_target = None
+        if a.state != "done" and not (a.state == "failed" and a.reason == PREEMPTED):
+            self._continue_dead = (list(why["target"]), edge)
+        self._continue = None
 
     def _noted(self, why, route_end):
         """`why` with this tick's route leg end (P29-A, `route_end`) and budget-end stall (P29-B, `stall`), when

@@ -31,9 +31,12 @@ at 2.005 tiles). E23 (`e_day_23-20261105-095110`), lines 121 to 133: the same ga
     player's side the Fight's own ladder and its melee meet it as it comes;
   - `leave` otherwise (a locked gate or door, a window, two or more behind, the health under the floor): each zombie
     behind edge-marked across the portal's edge (`edge_marks`, as `edges.FightEdge._mark_edge` refuses one, so the
-    hold leaves it out while it stays across and the Fight never pins it), the running goal whose target lies past the
-    edge ended `failed "door held"`, cooled, its far target marked (`mark_far`: no walk goes into the gate on the next
-    tick), and a `door` left so marked held (`World.mark_door`, the routes reading it wall for DOOR_RETRY_MIN game
+    hold leaves it out while it stays across and the Fight never pins it), the running goal whose way goes through
+    the portal (`meets_portal`: the straight line from the player to its target, or to its running walk's target,
+    meets this portal, or this portal's run of fence, first; fix 1, review-t3 M1: never every goal on the far side
+    of the edge's whole line) ended
+    `failed "door held"`, cooled, its far target marked (`mark_far`: no walk goes into the gate on the next tick), and
+    a `door` left so marked held (`World.mark_door`, the routes reading it wall for DOOR_RETRY_MIN game
     minutes: the route's next way).
   Logged `door_held` {door, kind, n_behind, decision} on the threat why of the tick the decision is first read
   (whatever answered), again only when the door, the decision or the zombies behind change.
@@ -75,6 +78,37 @@ def portal_between(world, a, b, marked=frozenset(), inside=False):
         if door is None and world.blocked(u, v):
             return None
     return None
+
+
+def meets_portal(world, a, b, edge):
+    """Fix 1 (review-t3 M1): the straight line from position `a` to `b` goes through the portal on `edge` (holder,
+    side): it meets that portal first (`portal_between`, P24-Z's marked doors read locked, so a door the leave marked
+    still reads there), or the first blocked step it meets lies on the portal's own run (the same row of edges, every
+    one between them blocked: `_same_run`), where the path follower takes the portal (F14's goal walk to (10727, 10645)
+    met the gate's fence at (10731, 10642) and stood stuck at the gate). A line that clears the run's end, or meets
+    another wall, does not."""
+    p = portal_between(world, a, b, world.marked_doors())
+    if p is not None:
+        return p[0] == edge
+    for u, v in world.edge_steps(a, b):
+        if world.blocked(u, v):
+            return _same_run(world, _edge_of(u, v), edge)
+    return False
+
+
+def _same_run(world, hit, edge):
+    """The blocked edge `hit` (holder, side) and the portal's `edge` lie on one run: the same side and row, and every
+    edge from one to the other blocked (a closed door's included)."""
+    (h, side), (p, pside) = hit, edge
+    if side != pside or h[2] != p[2] or (side == "N" and h[1] != p[1]) or (side == "W" and h[0] != p[0]):
+        return False
+    k = 0 if side == "N" else 1
+    lo, hi = sorted((h[k], p[k]))
+    for c in range(lo, hi + 1):
+        sq = (c, h[1], h[2]) if side == "N" else (h[0], c, h[2])
+        if not world.blocked(sq, _across(sq, side)):
+            return False
+    return True
 
 
 def door_post(world, edge, me):
@@ -180,13 +214,25 @@ class ThreatDoorHeld:
                 self.edge_marks[zid] = edge
                 self.unreachable[zid] = math.inf
         g = getattr(self.goals, "current", None)
-        target = g.stall_target() if hasattr(g, "stall_target") else None
-        if target is not None and g.running and not same_side(edge, me, (target[0] + 0.5, target[1] + 0.5)):
+        if hasattr(g, "stall_target") and g.running and self._goal_through(g, edge, me):
             g.cool = True
             g.mark_far(self.world)
             g.end("failed", "door held")
         if kind == "door":
             self.world.mark_door(edge[0], "held", "out")
+
+
+    def _goal_through(self, g, edge, me):
+        """Fix 1 (review-t3 M1): goal `g`'s way goes through the portal on `edge` (`meets_portal`) from the player to
+        its target's centre (`stall_target`), or to its running walk's target (a leg or a route's step)."""
+        points = []
+        target = g.stall_target()
+        if target is not None:
+            points.append((target[0] + 0.5, target[1] + 0.5))
+        a = g.last
+        if a is not None and a.type == "walkTo" and not self.actions.done(a):
+            points.append((a.args.get("x"), a.args.get("y")))
+        return any(None not in pt and meets_portal(self.world, me, pt, edge) for pt in points)
 
 
 class FightDoorHeld:

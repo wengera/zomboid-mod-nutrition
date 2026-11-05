@@ -92,13 +92,15 @@ def hop_target(world, to, edge):
     ARRIVE_R of that segment) with `edge` the farther goes to `edge`; any other goes on along its own line from the
     player, a sample every HOP_STEP tiles out to EXPLORE_HOP_MIN, to the last square the map holds open whose straight
     line from the player reads clear (`World.line_clear`, an unscanned square read blocked), stopping at the first that
-    is unknown, solid or walled off; None when that square is the target's own. Cost if wrong: a longer hop past a
-    building the model wanted looted (the prompt still names the buildings)."""
+    is unknown, solid or walled off; None when that square is the target's own, or a square marked stuck (fix 1,
+    review-t3 M2: a hop's far target that failed is never the next hop's). Cost if wrong: a longer hop past a building
+    the model wanted looted (the prompt still names the buildings)."""
     mx, my = me_xy(world)
     d = math.hypot(to[0] - mx, to[1] - my)
     if d >= EXPLORE_HOP_MIN or d <= 0.0:
         return None
-    if edge is not None:
+    stuck = world._stuck_now() if world.stuck else frozenset()
+    if edge is not None and (int(edge[0]), int(edge[1])) not in stuck:
         de = math.hypot(edge[0] - mx, edge[1] - my)
         if de > d and _seg_dist((mx, my), (edge[0], edge[1]), to) <= ARRIVE_R:
             return int(edge[0]), int(edge[1])
@@ -110,7 +112,7 @@ def hop_target(world, to, edge):
         if rec is None or rec.get("solid") or not world.line_clear((mx, my), (sq[0] + 0.5, sq[1] + 0.5)):
             break
         best, s = sq, s + HOP_STEP
-    return best if best is not None and best != (int(to[0]), int(to[1])) else None
+    return best if best is not None and best != (int(to[0]), int(to[1])) and best not in stuck else None
 
 
 # ---------------------------------------------------------------- the goals
