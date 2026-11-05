@@ -367,6 +367,10 @@ EXPLORE_HOP_MIN = 12.0    # tiles: an ExploreToward answer nearer than this is e
                           # 196 to 274, the spec's § 1 reading 2) ran 1 to 6 tiles, each ended in a 7 to 14 s wait with
                           # the character standing over calls of median 4.60 s; a walk of 12 tiles outlasts a median
                           # call at the walk's pace, the spec's number
+SNEAK_R = 8.0             # tiles: a zombie listed this near with no target makes the gait the sneak's (ruling P30-D,
+                          # `sneak.SneakGait`): the jar read's footsteps (#4661: 7 tiles upright, 4 sneaking) plus one
+                          # tile, beyond the 4.5 tiles inside which sneaking spots about 2.6 times better at Sneak 0
+                          # or 1 (#4657); no live case yet (the first sneak session is F15), the spec's number
 
 
 def place_of(world):

@@ -317,8 +317,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
   - Survival 26 (iteration 24, F14, `f_goals_15-20261105-092752`, and E23, `e_day_23-20261105-095110`; Plan 30 Task
     3, the spec `2026-11-05-plan-30-the-intent-design.md` § 2 item 3): P30-B, while the source is pending the goal
     runner keeps a walk going toward the last cut goal walk's target or the view's `edge`, and the model's short
-    ExploreToward hop is extended to EXPLORE_HOP_MIN (`goal_runner.py`'s module docstring the rule); `T14_SWITCHES`
-    (GOAL_CONTINUE).
+    ExploreToward hop is extended to EXPLORE_HOP_MIN (`goal_runner.py`'s module docstring the rule); P30-D, the sneak
+    gait near a zombie that has no target, upright at a chaser, in a flee and for a press, the posture the tick's one
+    command (`sneak.py`'s module docstring the rule); `T14_SWITCHES` (GOAL_CONTINUE, SNEAK).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -402,6 +403,7 @@ from agent.base.planner.policies import (CLOSING_TICKS, CORNER_FREE_R, CORNERED_
                                          FLIP_MIN_S, GROUP_HOLD_N, GROUP_NEAR_R, GROUP_R_N, HOLD_BREAK_R, LISTED_R,
                                          MANY_LISTED_N, MAX_FIGHT, PREEMPTED, REFIGHT_MARGIN, STUCK_REASONS,
                                          STUCK_RETRY_GROUP_S, STUCK_RETRY_S, blocked, chasing, item_id_ok, spare, zdist)
+from agent.base.planner.sneak import SneakGait
 from agent.base.planner.threat import Threat
 from agent.base.planner.view import NEED_MEMORY_S, view
 from agent.base.planner.water import FILL_RETRY_MIN, FILL_SETTLE_S, FILL_WANTS, SOURCE_FAILS, Water
@@ -457,8 +459,9 @@ T13_SWITCHES = ("ROUTE_CROSS", "GOAL_STALL", "HEALTH_NEAR", "DRESS_FINISH", "MAN
 # rules (Plan 29 Task 2) on `threat.Threat`: P29-E (HEALTH_NEAR), P29-D (DRESS_FINISH), P29-G (MANY_NEAR), P29-F
 # (FINISH_LONE), P29-C (CLOSE_IDLE, the Fight's `close_idle` rule), P29-H' (FLEE_HELD_STANCE, the Flee's
 # `flee_held_stance` rule)
-T14_SWITCHES = ("GOAL_CONTINUE",)
-# survival iteration 24 (Plan 30 Task 3): P30-B on `Survive` (GOAL_CONTINUE, copied to the goal runner)
+T14_SWITCHES = ("GOAL_CONTINUE", "SNEAK")
+# survival iteration 24 (Plan 30 Task 3): P30-B on `Survive` (GOAL_CONTINUE, copied to the goal runner); P30-D on
+# `sneak.SneakGait` (SNEAK)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -498,7 +501,7 @@ def _key(typ, args):
     return typ, json.dumps(args, sort_keys=True)
 
 
-class Survive(Threat):
+class Survive(SneakGait, Threat):
     UNWEAR_WOUND = True   # ruling P25-H (Plan 25 Task 7): the care branch's bleeding step unwears a garment to rip on
                           # any quiet care tick (`care.Care._wound`); off, only the idle stock does (P24-AJ). In
                           # T4_SWITCHES, the replay tests' seam onto the goldens before Task 7 (`pre_t4`)
@@ -667,6 +670,7 @@ class Survive(Threat):
         self.why = {}
         self.last_branch = None   # the branch of the last decision line (a driver's action rows read it at the send)
         self._uses = None         # this tick's `world.by_use()` (`_by_use`)
+        self._init_sneak()        # P30-D: the posture sent, this tick's `sneak` why
 
     # ---------------------------------------------------------------- reading the world
     def _policies(self):
@@ -1191,27 +1195,36 @@ class Survive(Threat):
     def _apply(self, d):
         """The Decision's effects: its command sent (through its owner, a policy or the goal runner, else directly:
         the need's consume or fill and the load's drop, each remembered) and watched for its end; the goal runner told
-        whether another branch held without sending (`GoalRunner.held`); `last_branch`; the decision line appended."""
+        whether another branch held without sending (`GoalRunner.held`); `last_branch`; the decision line appended.
+        Ruling P30-D (`sneak.SneakGait._sneak_posture`): a posture due this tick is its one command, sent directly in
+        place of the Decision's (deferred), and a sneaking non-flee walk at a run goes at a walk; logged `sneak`."""
         action = None
-        if d.cmd is not None:
-            action = d.owner.send(d.cmd) if d.owner is not None else self.actions.send(d.cmd)
-            if d.branch == "threat" and d.cmd.TYPE in ("attack", "shove", "stomp"):
+        posture, cmd = self._sneak_posture(d)
+        if posture is not None:
+            action = self._sneak_a = self.actions.send(posture)
+            self._watch.append(action)
+        elif cmd is not None:
+            action = d.owner.send(cmd) if d.owner is not None else self.actions.send(cmd)
+            if d.branch == "threat" and cmd.TYPE in ("attack", "shove", "stomp"):
                 if d.owner is self.flee and ((d.inputs.get("branches") or {}).get("threat") or {}).get("finish") is not None:
                     self._finish_a = action   # P24-AQ: the flee's finish, its end read by `_finish_end`
-                elif d.cmd.TYPE != "stomp":
-                    self.struck[d.cmd.targetId] = self.clock()   # P24-AQ: a struck target
+                elif cmd.TYPE != "stomp":
+                    self.struck[cmd.targetId] = self.clock()   # P24-AQ: a struck target
             if d.owner is None and d.branch == "need":
                 self.need_last = action
-                (self._sent_consume if d.cmd.TYPE == "consume" else self.water.sent)(action)
+                (self._sent_consume if cmd.TYPE == "consume" else self.water.sent)(action)
             elif d.owner is None and d.branch == "load":
                 self.load_last = action
-            if d.branch == "care" and d.cmd.TYPE == "bandage":   # P26-L2: the bleed's yield's dressing, held to its end
+            if d.branch == "care" and cmd.TYPE == "bandage":   # P26-L2: the bleed's yield's dressing, held to its end
                 self.bleed_dressing = action if self.bleed_yield is not None else None
             self._watch.append(action)
+        if self.sneak_now is not None:
+            d.inputs["sneak"] = self.sneak_now   # P30-D
+        sent = posture or cmd
         self.goals.held(d.branch not in (None, "goal") and d.cmd is None)
         self.last_branch = d.branch
         line = {"wall": self.clock(), "gameMin": self.world.game_min, "branch": d.branch, "inputs": d.inputs,
-                "action": {"type": d.cmd.TYPE, "args": d.cmd.args()} if d.cmd is not None else None,
+                "action": {"type": sent.TYPE, "args": sent.args()} if sent is not None else None,
                 "sent": action is not None, "goal": self.goals.line()}
         if self.no_effect is not None:
             line["marks"] = {"itemId": self.no_effect["itemId"], "reason": "no_effect"}
