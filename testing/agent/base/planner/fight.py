@@ -716,8 +716,13 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         shove and the stomp need no weapon, the Lua's K.STAND_R; "low", ruling P25-S, under FLEE_HEALTH the kill with
         the least exposure; "hold", ruling P27-C, the endurance hold's lone zombie), but for the low fight's full swing
         when it is due (ruling P27-E, `_low_swing_due`)."""
-        return (arms_hurt(self.world) or bool(self.spent)
-                or (self.shove_only is not None and not self._low_swing_due()))
+        return arms_hurt(self.world) or self._hold_bars()
+
+    def _hold_bars(self):
+        """The swing's bar beside the arms' pain (fix 1, review-t3 minor 5: `no_swing` and `floor_swing_barred` read
+        it): any hold read this tick (`spent`, R2) or a shove-and-stomp Fight (`shove_only`) but for the low fight's
+        full swing when due (P27-E, `_low_swing_due`)."""
+        return bool(self.spent) or (self.shove_only is not None and not self._low_swing_due())
 
     def floor_swing_barred(self):
         """Ruling P28-C (`floor_pain`, Survive's FLOOR_PAIN; F11, `f_goals_12-20261103-144240`: from the first bite
@@ -731,7 +736,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         would do, bounded to a fallen target in reach."""
         if "floor_pain" not in self.rules:
             return self.no_swing()
-        return bool(self.spent) or (self.shove_only is not None and not self._low_swing_due())
+        return self._hold_bars()
 
     def _drift_stands(self, z, d):
         """Ruling P28-B3 (`drift_stand`, Survive's DRIFT_STAND; F11, `f_goals_12-20261103-144240`: on lines 696 to 705

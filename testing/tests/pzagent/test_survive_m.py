@@ -43,9 +43,9 @@ def fight(tmp_path, zs, arm=None, caps=None, stance=False, pin=None, floor_finis
 
 
 def test_the_swing_constants():
-    """#4372: the bat's MinRange 0.61 (the bare hand's 0.6); the Lua's SHOVE_R 1.5; a refused skill waits as a mark.
-    Named change, ruling P28-B (Plan 28 Task 3): SHOVE_R 1.1, the engine's shove reach (#4592; the Lua's 1.5 a wider
-    bound)."""
+    """#4372: the bat's MinRange 0.61 (the bare hand's 0.6); the planner's SHOVE_R 1.1, the engine's shove reach
+    (#4592; the Lua's K.SHOVE_R 1.5 a wider bound); a refused skill waits as a mark. Named change, ruling P28-B (Plan
+    28 Task 3): SHOVE_R 1.1, where it read the Lua's 1.5."""
     assert (P.STAND_MIN_R, P.SHOVE_R, P.SWING_SKIP_S) == (0.61, 1.1, P.UNREACHABLE_S)
     assert P.SWING_TYPES == ("attack", "aim", "shove", "stomp")
 

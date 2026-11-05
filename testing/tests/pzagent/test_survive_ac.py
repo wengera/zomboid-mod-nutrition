@@ -155,6 +155,22 @@ def test_the_busy_retry_switch():
     assert "BUSY_RETRY" in S.T11_SWITCHES and T.Threat.BUSY_RETRY is True and "busy_retry" in F.FIGHT_RULES
 
 
+def test_survive_logs_busy_retry_on_the_decision_line(tmp_path):
+    """Fix 1, review-t3 minor 4: through Survive, the shove at a chaser at point blank under the arms' pain 30 rejected
+    `busy` is sent again on the next tick, the threat branch's why on the decision line carrying `busy_retry`
+    {target, kind "shove"}."""
+    r, sv = make(tmp_path)
+    fr(r, [z(9, 100.9)], 30.0)
+    a = tick(r, sv)
+    assert a.type == "shove"
+    end(r, a, "rejected", "busy")
+    r.advance(0.5)
+    fr(r, [z(9, 100.9)], 30.0)
+    b = tick(r, sv)
+    assert (b.type, b.args) == ("shove", {"targetId": 9})
+    assert threat_why(tmp_path)["busy_retry"] == {"target": 9, "kind": "shove"}
+
+
 # ================================================================ P28-C: the floor swing under the arms' pain
 def test_f11_s_fallen_zombie_at_point_blank_under_the_arms_pain_takes_the_floor_swing(tmp_path):
     """F11's a136 (line 610): 14630 read fallen 0.9 tiles off, the arms' pain 30 (P24-AP's STRAIN_HARD passed), the
@@ -375,6 +391,13 @@ def test_a_clean_bandage_goes_before_a_rag(tmp_path):
     assert cmd.args()["itemId"] == 10 and c.why["kind"] == "bandage"
 
 
+def test_a_dressed_scratch_is_not_dressed_again(tmp_path):
+    """Fix 1, review-t3 minor 1: the Lua's `wound` stays true on a bandaged scratch; part 4 reading `wound` true and
+    `bandaged` true (its dressing not spent), two clean rags held: nothing sent, no `wound_held`."""
+    r, c = care_rig(tmp_path, RAGS2, [wound4(bandaged=True, bandageLife=0.8, bandageDirty=False)])
+    assert c.choose() is None and c.why.get("reason") != "wound" and "wound_held" not in c.why
+
+
 def test_the_lowest_health_part_is_dressed_first_then_the_least_index(tmp_path):
     """Parts 6 and 8 scratched beside part 4 (F11's three, #4581): the lowest `h` first, ties to the least index."""
     r, c = care_rig(tmp_path, RAGS2, [wound4(), part(8, h=51.0, wound=True), part(6, h=51.0, wound=True)])
@@ -585,6 +608,41 @@ def test_a_fallen_zombie_in_reach_takes_the_drifted_finish_first(tmp_path):
     assert (a.type, a.args) == ("attack", {"targetId": 2}) and f.why["downed"] == 2
 
 
+def test_a_drifted_pin_beyond_danger_r_still_holds_out_of_reach(tmp_path):
+    """Fix 1, review-t3 minor 2: the pin chasing at F11's line 698 distance, 6.8302523792827206 tiles (beyond
+    DANGER_R): nothing sent, `out_of_reach`, no `stance`."""
+    r = Rig(tmp_path)
+    r.frame(zombies=[z(1, 100.0 + 6.8302523792827206)])
+    f = fight(r, point_blank=True, target=1)
+    assert f.step() is None and f.why["out_of_reach"] is True and "stance" not in f.why
+
+
+def test_survive_s_left_over_corner_fight_stands_for_its_drifted_pin(tmp_path):
+    """Fix 1, review-t3 minor 4, F11's line 699 through Survive: the corner's Fight (`point_blank`) swung at 14725 1.2
+    tiles off; the next frame reads it chasing 5.0 tiles off: the threat branch's answer is the standing leg, logged
+    `out_of_reach` with `stance` and `leg` "stand" on the decision line; with `DRIFT_STAND` off nothing is sent there,
+    `out_of_reach` alone."""
+    for on in (True, False):
+        d = tmp_path / str(on)
+        d.mkdir()
+        r, sv = make(d)
+        sv.DRIFT_STAND = on
+        fr(r, [z(14725, 101.2)])
+        a = tick(r, sv)
+        assert a.type == "attack" and sv.fight.point_blank
+        r.answer({"state": "done", "result": {"swings": 1, "attackStarted": True, "meleeDelay": 0.0,
+                                              "targetDead": False}})
+        r.advance(0.5)
+        fr(r, [z(14725, 105.0)])
+        b = tick(r, sv)
+        w = threat_why(d)
+        assert w["fight"] is True and w["out_of_reach"] is True and sv.mode == "fight"
+        if on:
+            assert (b.type, b.args["targetId"]) == ("aim", 14725) and w["stance"] is True and w["leg"] == "stand"
+        else:
+            assert b is None and "stance" not in w
+
+
 def test_the_strike_switches_and_the_shove_reach():
     assert {"SHOVE_BACK", "DRIFT_STAND"} <= set(S.T11_SWITCHES) and T.Threat.SHOVE_BACK and T.Threat.DRIFT_STAND
     assert {"shove_back", "drift_stand"} <= set(F.FIGHT_RULES)
@@ -627,6 +685,20 @@ def test_with_the_first_side_blocked_the_circle_turns_the_other_way(tmp_path):
     r, f = circled(tmp_path, wall=True)
     a = f.step()
     assert cross((-1.0, 0.0), (a.args["vx"], a.args["vy"])) < 0.0 and f.why["circle"] == {"turn": -45.0}
+
+
+def test_the_circle_keeps_the_side_it_turned_once_the_first_side_clears(tmp_path):
+    """Fix 1, review-t3 minor 3: the first leg with +45 blocked turns -45; the wall gone on the second leg (the square
+    re-read open), the leg turns -45 again, the side kept (`_circle_side`), not +45."""
+    r, f = circled(tmp_path, wall=True)
+    a = f.step()
+    assert f.why["circle"] == {"turn": -45.0}
+    end(r, a, "done")
+    r.scan([square(99, 199)])
+    r.advance(P.AIM_LEG_S)
+    r.frame(zombies=[z(1, 102.3)])
+    b = f.step()
+    assert f.why["circle"] == {"turn": -45.0} and cross((-1.0, 0.0), (b.args["vx"], b.args["vy"])) < 0.0
 
 
 @pytest.mark.parametrize("case", ["two", "off"])
