@@ -1,20 +1,21 @@
 """grades.e21 -- the chain sessions' grade, pass 21 (Plan 30 Task 4): `grade_e21` is `grades.e20.grade_e20` under
-"grade_e21" with the hits and the kills read as the plan's measure counts them (the spec
-`2026-11-05-plan-30-the-intent-design.md` section 1 reading 5, #4638, #4639) and one reading per rule of survival
-iteration 24 (Plan 30 Task 3, `T14_SWITCHES`) with the standing minutes, each read off the frames, the state log's act
-lines and events, the artifact's actions and the decision log's why fields:
+"grade_e21" with the hits and the kills read as the plan's measure counts them (ruling P29-K's grade change, the hits'
+frame gap; the spec `2026-11-05-plan-30-the-intent-design.md` section 1 reading 5, #4638, #4639) and one reading per
+rule of survival iteration 24 (Plan 30 Task 3, `T14_SWITCHES`) with the standing minutes, each read off the frames,
+the state log's act lines and events, the artifact's actions and the decision log's why fields:
 
   hits_union     the hits as the union of the frames' reaction runs (`e18._hit_runs`'s start rule) with the reflex's
                  `hit` steps (a melee's progress lines, one per run of consecutive `hit` steps), a step within one
-                 frame interval of a run joining it: the 10 Hz frames miss a reaction shorter than their step (F14's
-                 a104, a128 and a212: #4638), and `per_kill_union` over `kills_matched`.
+                 frame interval of a run joining it: the 10 Hz frames miss a reaction shorter than their step (P29-K;
+                 F14's a104, a128 and a212: #4638), and `per_kill_union` over `kills_matched.planner`.
   kills_matched  the kills read whole (`e20.e_kills_whole`) and a `zombie_dead` event no act or done line names matched
                  to the last killing press whose swing event came within MATCH_FRAMES frames before it at the dead
                  zombie within the press's reach (F14's 32434 beside the ladder's floor attack a59 at 32433, #4639).
   sneak          P30-D, the sneak gait (`SNEAK`): the frames' `me.sneaking` (PZA/1.9) by game minute, the sneak walk's
                  speed, the zombies passed within SNEAK_R with no target change, the first change under it.
-  goal_wait      P30-B, no standing on a model wait (`GOAL_CONTINUE`): the pending lines, those unmoved with a zombie
-                 within NEAR_R, the explore hops' lengths, the continued walk's and the extended hop's lines.
+  goal_wait      P30-B, no standing on a model wait (`GOAL_CONTINUE`): the standing on the wait (`unmoved_near_s`, the
+                 plan's reading), the desk read's pending runs near a zombie (`near_runs`, movement not read), the
+                 explore hops' lengths, the continued walk's and the extended hop's lines.
   door_held      P30-C, the door held (`DOOR_HELD`): the decisions by kind and decision, the stance's door steps, the
                  kills within DOOR_KILL_S after a `stance_open`.
   swing_close    P30-A, the swing close (`SWING_CLOSE`): the Lua's `held` and `again`, the back steps after a press by
@@ -25,23 +26,31 @@ lines and events, the artifact's actions and the decision log's why fields:
                  stretch's first position and a zombie within NEAR_R on every line, by the stretch's branch (the form
                  of Plan 29's desk read `pause-and-door-read.md` section A.1).
 
-A rule's reading is {"read": False} without its source (a decision log, frames carrying `me.sneaking`, a melee span)
-and reads False on a source no line of which carries the rule's own field (a log written before iteration 24, F14's
-and E23's); `goal_wait` and `swing_close` keep their measures beside `read` False (the baselines the plan's measure
-compares: the minutes standing on a model wait, the bites in a back step), as `e20.e_goal_stall` keeps its ends. A key
-marked reading counts what the log, the frames or the artifact states; one marked inference reads an effect off the
-order of lines or the walls.
+A rule's reading is {"read": False} without its source (a decision log; for `sneak` frames carrying `me.sneaking`, for
+`swing_close` a melee span) and reads False on a source no line of which carries the rule's own field (a log written
+before iteration 24, F14's and E23's). The rule's own field is the planner's log of the rule firing, never the
+instrument: `sneak` reads True only on a log carrying `inputs.sneak` (logged with the `sneak` cap and the switch on)
+and `swing_close` only on a melee sent with `closeR` above 0 (the switch on); the instrument, PZA/1.9's `me.sneaking`
+and the Lua's `held`/`again` (present with the rule off too), is named apart as `capable`. Under `read` False the
+rule's own firing leaves read None (`goal_wait`'s `continued` and `extended`, `swing_close`'s `held`, `again` and
+`lines`, `sneak`'s `postures`), and the measures stay (the baselines the plan's measure compares: the standing on a
+model wait, the bites in a back step, the sneak's minutes), as `e20.e_goal_stall` keeps its ends. A key marked reading
+counts what the log, the frames or the artifact states; one marked inference reads an effect off the order of lines or
+the walls. The clocks: a decision line's `wall` is the planner's epoch seconds, a state-log line's `wallMs` the Lua's
+epoch milliseconds, one host clock (a frame is joined to a line as the frame at or before `wall` x 1000, `gates_e`
+`_frame_at`); a frame interval is the frames' own `wallMs` gaps; a game minute is the frame's or the line's `gameMin`.
 
 Every live planner name read here is copied below as a frozen constant with its source and its value at 8901afdb
 (Plan 30 Task 3's last commit; ruling P26-Q, `grades/__init__.py`); the why keys are read off Task 3's committed code
 at that commit (`goal_runner.py` `tick`'s `goal_continue` and `hop_extended`, `survive.py` `_apply`'s `sneak` and
 `_decide`'s `door_held`, `door_held.py` `_door_open_cmd`'s `door_step`, `threat.py` `_decide`'s `still` and
-`_dress_waits`' `dress_ride`, `maneuvers/melee.py` `_log`'s `swing_close`), the frame's and the act lines' shapes off the schema (`schema/pza1.json`
-`me.sneaking`, the zombie's `hasTarget` and `state`, `result_melee_step` `held` and `again`, PZA/1.9) and the step
-names and reaches off the Lua (`PZAgent_StanceMelee.lua`, `PZAgent_Stance.lua`). This module imports nothing from
-`agent.base.planner` or `agent.base.world`; the chain it imports (`grades.e20.grade_e20`, which reads live names
-through `e19` to `e14` and `gates_e`) is pinned by the regrade tests of the artifacts graded through it. Frozen once an
-artifact carries its output; `gates_e`, `grades/e14.py` to `grades/e20.py` and every driver stay untouched."""
+`_dress_waits`' `dress_ride`, `maneuvers/melee.py` `_log`'s `swing_close`), the frame's and the act lines' shapes off
+the schema (`schema/pza1.json` `me.sneaking`, the zombie's `hasTarget` and `state`, `args_melee.closeR`,
+`result_melee_step` `held` and `again`, PZA/1.9), the step names off the Lua (`PZAgent_StanceMelee.lua`) and the
+presses' reaches off the engine's rows (#4592). This module imports nothing from `agent.base.planner` or
+`agent.base.world`; the chain it imports (`grades.e20.grade_e20`, which reads live names through `e19` to `e14` and
+`gates_e`) is pinned by the regrade tests of the artifacts graded through it. Frozen once an artifact carries its
+output; `gates_e`, `grades/e14.py` to `grades/e20.py` and every driver stay untouched."""
 import bisect
 import math
 import statistics
@@ -56,8 +65,12 @@ from agent.base.grades import e20 as G20
 SNEAK_R = 8.0          # planner/policies.py:405 (P30-D): tiles, a zombie listed this near and no chaser: the sneak
 STILL_DRIFT_R = 0.3    # planner/policies.py:390 (P30-E): tiles of drift read as unmoved (the goal wait's stand)
 STILL_MOVE_R = 1.0     # planner/policies.py:392 (P30-E): "unmoved under a tile" (the standing stretch's bound)
-SHOVE_R = 1.5          # PZAgent_Stance.lua:639 `K.SHOVE_R`: tiles, a target farther is too far for a shove
-STOMP_R = 0.5          # PZAgent_Stance.lua:640 `K.STOMP_R`: tiles, the stomp walks to under this
+SHOVE_REACH = 1.1      # #4592: the shove's hit list, a standing target's nearest point under the bare hands' MaxRange
+SHOVE_LUNGE = 0.20000000298023224   # #4592: added against a zombie lunging at the shover from under 2 tiles
+SHOVE_R = SHOVE_REACH + SHOVE_LUNGE   # tiles: the shove's widest hit list (#4592's 1.3000000029802322, arithmetic)
+STOMP_R = 0.6000000238418579   # #4592 (#4372's): tiles, the floor target the stomp plays at; the engine reads the
+                               # nearest of head, pelvis and position, this grade the position (`e18._zd`)
+CLOSE_KEY = "closeR"   # schema `args_melee.closeR` (PZA/1.9): a melee sent with it above 0 is the swing close's (P30-A)
 LINE_S = 0.5           # driverlib/day.py:85 `PLANNER_HZ` 2: wall seconds one decision line stands for
 HIT_STEP = "hit"       # PZAgent_StanceMelee.lua:359: the reflex's step on a tick its own hit reaction read is set
 BACK_STEP = "back"     # PZAgent_StanceMelee.lua:311: the back leg's step
@@ -70,7 +83,11 @@ STANCE_OPEN = "stance_open"  # door_held.py:139: the decision that opens the doo
 # The grade's own numbers.
 MATCH_LADDER = ("attack", "stomp", "shove")   # the ladder's presses an event is matched to (the spec's 4)
 MATCH_STEPS = ("swing", "floor", "stomp")     # the melee's press steps an event is matched to (a shove kills nothing)
-MATCH_FRAMES = 8       # frames: a death this many frames or fewer after a press's swing event is that press's
+MATCH_FRAMES = 12      # frames: a death this many frames or fewer after a press's swing event is that press's. On
+                       # F14 and E23 the deaths the whole read names trail their own press's swing event by 2 to 11
+                       # frames (F14's 32338 at 11, a35's floor swing seq 2687 to its death seq 2703; E23's 26241 at
+                       # 2), and no unnamed death has a false candidate within 13; a death past it reads unmatched,
+                       # so `agree` False (the brief's 8 widened to cover 11, review-t4 m2)
 NEAR_R = 10.0          # tiles: a zombie this near makes a stand a stand near a zombie (the desk read's 10 tiles)
 STAND_LINES = 20       # decision lines: a stretch this long is a standing stretch (the desk read's 20)
 DOOR_KILL_S = 60.0     # wall seconds after a `stance_open` a kill is counted to the door (the task's amendments)
@@ -210,7 +227,8 @@ def _press_kind(t, step):
 
 
 def _reach(t, step, arg, f):
-    """The press's reach in tiles: a stomp's STOMP_R and a shove's SHOVE_R (the ladder's or the melee's), an attack's
+    """The press's reach in tiles: a stomp's STOMP_R and a shove's SHOVE_R (the ladder's or the melee's: the engine's
+    hit list, #4592, not the Lua's send gates K.STOMP_R 0.5 and K.SHOVE_R 1.5), an attack's
     the frame's `weapon.reach` (the engine's, max range times range mod), a melee swing's or floor swing's its `reach`
     argument when above 0, else the frame's weapon reach; None for any other press."""
     kind = step if t == MELEE else t
@@ -341,14 +359,16 @@ def _legs(out, lines, frames, walls):
 
 
 def e_sneak(out, L, lines, frames):
-    """P30-D, the sneak gait (`SNEAK`): {read, frames, minutes, seconds, walk_speed, legs, near, passed, noticed,
-    chasing, first_change, postures} ({"read": False} without a frame reading `me.sneaking` a boolean: a log before
-    PZA/1.9). Reading, off the frames: `frames` those sneaking, `minutes` their distinct game minutes, `seconds` the
-    wall gaps from each to the next frame; the zombies listed within SNEAK_R (`e18._zd`) on a sneaking frame (`near`
+    """P30-D, the sneak gait (`SNEAK`): {read, capable, frames, minutes, seconds, walk_speed, legs, near, passed,
+    noticed, chasing, first_change, postures} ({"read": False} without a frame reading `me.sneaking` a boolean: a log
+    before PZA/1.9). `capable` True (the frames carry the instrument); `read` True only on a decision log a line of
+    which carries `inputs.sneak` (the rule's own log, written with the `sneak` cap and the switch on: survive.py:1237),
+    else False with the frames' measures kept and `postures` None. Reading, off the frames: `frames` those sneaking,
+    `minutes` their distinct game minutes, `seconds` the wall gaps from each to the next frame; the zombies listed within SNEAK_R (`e18._zd`) on a sneaking frame (`near`
     their count): `passed` those never reading `hasTarget` true on one, `noticed` those reading it true after not,
     `chasing` those reading it true on their first, `first_change` {seq, id, d, state} the first `noticed` frame;
     `legs` (`_legs`) and `walk_speed` the median speed of the sneak walks (gait SNEAK_GAIT, speed above 0: a leg stood
-    still is no walk); `postures` the decision lines' `inputs.sneak` sends by `on` (None without a log)."""
+    still is no walk); `postures` the decision lines' `inputs.sneak` sends by `on` (None unread)."""
     if not any(isinstance(E._d(E._d(f).get("me")).get("sneaking"), bool) for f in frames):
         return {"read": False}
     walls = [E._n(f.get("wallMs")) for f in frames]
@@ -376,14 +396,15 @@ def e_sneak(out, L, lines, frames):
                     first = {"seq": f.get("seq"), "id": zid, "d": d, "state": q.get("state")}
     legs = _legs(out, lines, frames, walls)
     speeds = [r["speed"] for r in legs if r["gait"] == SNEAK_GAIT and r["speed"] is not None and r["speed"] > 0]
+    logs = [E._d(ln.get("inputs")).get("sneak") for ln in (L.rows if L is not None else [])]
+    logs = [x for x in logs if isinstance(x, dict)]
     postures = None
-    if L is not None:
+    if logs:
         postures = {"on": 0, "off": 0}
-        for ln in L.rows:
-            s = E._d(E._d(ln.get("inputs")).get("sneak"))
-            if s.get("sent") is True:
-                postures["on" if s.get("on") is True else "off"] += 1
-    return {"read": True, "frames": n, "minutes": len(mins), "seconds": secs,
+        for x in logs:
+            if x.get("sent") is True:
+                postures["on" if x.get("on") is True else "off"] += 1
+    return {"read": bool(logs), "capable": True, "frames": n, "minutes": len(mins), "seconds": secs,
             "walk_speed": statistics.median(speeds) if speeds else None, "legs": legs, "near": len(order),
             "passed": [z for z in order if last[z] == "idle"], "noticed": [z for z in order if last[z] == "noticed"],
             "chasing": [z for z in order if last[z] == "chasing"], "first_change": first, "postures": postures}
@@ -393,12 +414,17 @@ def e_sneak(out, L, lines, frames):
 def e_goal_wait(L):
     """P30-B, no standing on a model wait (`GOAL_CONTINUE`): {read, lines, runs, seconds, unmoved, unmoved_near,
     unmoved_near_s, near_runs, hops, continued, extended} ({"read": False} without a decision log; `read` False with
-    the measures on a log no line of which carries `goal_continue` or `hop_extended`). Reading, on the goal why
-    (`inputs.branches.goal`): `lines` those reading `pending` true, `runs` their runs, `seconds` the runs' spans (the
-    last line's wall less the first's, and one LINE_S); `unmoved` the pending lines whose position (the inputs' x, y)
-    lies within STILL_DRIFT_R of the line before's, `unmoved_near` those whose frame (the frame at or before the line)
-    lists a zombie within NEAR_R, `unmoved_near_s` them at LINE_S each; `near_runs` {runs, lines, s} the pending runs
-    with a zombie within NEAR_R on the frame at their first or last line (the desk read's section A.2 form); `hops`
+    the measures on a log no line of which carries `goal_continue` or `hop_extended`, `continued` and `extended` then
+    None). Reading, on the goal why (`inputs.branches.goal`): `lines` those reading `pending` true, `runs` their runs,
+    `seconds` the runs' spans (the last line's wall less the first's, and one LINE_S); `unmoved` the pending lines whose
+    position (the inputs' x, y) lies within STILL_DRIFT_R of the line before's (line to line at the planner's 2 Hz, so
+    any walk slower than STILL_DRIFT_R / LINE_S, 0.6 tiles a second, reads unmoved: read `sneak.walk_speed` before
+    citing this against a sneaking wait), `unmoved_near` those whose frame (the frame at or before the line) lists a
+    zombie within NEAR_R, `unmoved_near_s` them at LINE_S each: THE STANDING ON THE WAIT, the plan's reading (F14's
+    baseline 118 lines, 59.0 s); `near_runs` {runs, lines, s} Plan 29's desk read section A.2 reproduced, the pending
+    runs with a zombie within NEAR_R on the frame at their first or last line, movement not read: under P30-B the goal
+    stays pending while the continued walk runs, so the rule working does not lower it (F14's 19 runs, 181 lines,
+    90.1 s: the spec's "F14's 90 s"), never the plan's reading; `hops`
     the distance from the line's position to each ExploreToward taken (`proposed`; its `args` target, extended or not:
     `goal_policies.py:341` `_dist`); `continued` {lines, sent, by_source} the lines carrying `goal_continue` {target,
     source}, those sending its walkTo, by source; `extended` {lines, lengths} the lines carrying `hop_extended` {from,
@@ -441,12 +467,13 @@ def e_goal_wait(L):
             ext["lines"] += 1
             f, t = G20._xy(h.get("from")), G20._xy(h.get("to"))
             ext["lengths"].append(_hyp(t, f) if f is not None and t is not None else None)
-    return {"read": bool(cont["lines"] or ext["lines"]), "lines": sum(pend), "runs": len(runs),
+    read = bool(cont["lines"] or ext["lines"])
+    return {"read": read, "lines": sum(pend), "runs": len(runs),
             "seconds": sum(_span_s(rows[a:b + 1]) for a, b in runs), "unmoved": unmoved, "unmoved_near": near_n,
             "unmoved_near_s": near_n * LINE_S,
             "near_runs": {"runs": len(nr), "lines": sum(b - a + 1 for a, b in nr),
                           "s": sum(_span_s(rows[a:b + 1]) for a, b in nr)},
-            "hops": hops, "continued": cont, "extended": ext}
+            "hops": hops, "continued": cont if read else None, "extended": ext if read else None}
 
 
 # ---------------------------------------------------------------- P30-C, the door held
@@ -498,10 +525,13 @@ def _last_count(s, key):
     return next((E._n(r.get(key)) for r in reversed(res) if E._n(r.get(key)) is not None), None)
 
 
-def e_swing_close(L, lines, rows):
-    """P30-A, the swing close (`SWING_CLOSE`): {read, held, again, lines, back, bites_in_back} ({"read": False} without
-    a melee span; `read` False with the measures on spans no line of which carries `held` or `again`). Reading, off
-    the melee's act lines (`e19._spans`): `held` and `again` each span's last count summed (PZA/1.9's
+def e_swing_close(out, L, lines, rows):
+    """P30-A, the swing close (`SWING_CLOSE`): {read, capable, held, again, lines, back, bites_in_back} ({"read":
+    False} without a melee span). `read` True only when the artifact's actions carry a melee sent with `closeR` above 0
+    (CLOSE_KEY: the rule's own send, the switch on; dispatch.py's `_melee_inputs` sends 0 with it off), else False with
+    `held`, `again` and `lines` None and the measures kept; `capable` whether a melee act line carries `held` or
+    `again` (the instrument, PZA/1.9's Lua, present with the rule off too). Reading, off the melee's act lines
+    (`e19._spans`): `held` and `again` each span's last count summed (PZA/1.9's
     `result_melee_step`: the stance held at a chaser beyond closeR, the swings pressed again after one that did
     nothing); `lines` the decision lines whose threat why's `maneuver` carries `swing_close` {held, pressed_again}
     (None without a log). Inference off the order of lines: `back` {after_landed, after_nothing, no_press} each entry
@@ -512,7 +542,9 @@ def e_swing_close(L, lines, rows):
     spans = G19._spans(lines)
     if not spans:
         return {"read": False}
-    read = any(_last_count(s, k) is not None for s in spans for k in ("held", "again"))
+    capable = any(_last_count(s, k) is not None for s in spans for k in ("held", "again"))
+    read = any(E._d(a).get("type") == MELEE and (E._n(E._d(E._d(a).get("args")).get(CLOSE_KEY)) or 0) > 0
+               for a in E._l(E._d(E._d(out).get("loop")).get("actions")))
     held = sum(int(_last_count(s, "held") or 0) for s in spans)
     again = sum(int(_last_count(s, "again") or 0) for s in spans)
     back = {"after_landed": 0, "after_nothing": 0, "no_press": 0}
@@ -540,7 +572,10 @@ def e_swing_close(L, lines, rows):
     n = None
     if L is not None:
         n = sum(1 for ln in L.rows if isinstance(E._d(L.why(ln).get("maneuver")).get("swing_close"), dict))
-    return {"read": read, "held": held, "again": again, "lines": n, "back": back, "bites_in_back": bites}
+    if not read:
+        held = again = n = None
+    return {"read": read, "capable": capable, "held": held, "again": again, "lines": n, "back": back,
+            "bites_in_back": bites}
 
 
 # ---------------------------------------------------------------- P30-E, the still; P30-F, the dress ride
@@ -664,7 +699,7 @@ def readings_e21(out, decision_lines, lines):
     km = e_kills_matched(out, lines)
     hu = e_hits_union(frames, lines, km["planner"])
     return {"hits_union": hu, "kills_matched": km, "sneak": e_sneak(out, L, lines, frames), "goal_wait": e_goal_wait(L),
-            "door_held": e_door_held(L, lines), "swing_close": e_swing_close(L, lines, hu.get("rows")),
+            "door_held": e_door_held(L, lines), "swing_close": e_swing_close(out, L, lines, hu.get("rows")),
             "still": e_still(L), "dress_ride": e_dress_ride(L), "standing": e_standing(L)}
 
 
@@ -689,7 +724,8 @@ def lines_e21(g):
     d, c, st, r, sd = (E._d(g.get(x)) for x in ("door_held", "swing_close", "still", "dress_ride", "standing"))
     out = []
     out.append("hits union (P30, the union of the reaction runs and the hit steps) [reading]: %s reaction runs, %s hit "
-               "step runs; [inference] %s joined to a run, %s attacks landed, %s a kill over %s kills" % (
+               "step runs; [inference] %s joined to a run, %s attacks landed, %s a kill over %s kills matched "
+               "(`kills_matched.planner`)" % (
                    u.get("runs"), u.get("steps"), u.get("joined"), u.get("union"), _f(u.get("per_kill_union")),
                    u.get("kills")) if u.get("read") else
                "hits union (P30, the union of the reaction runs and the hit steps): no frames read")
@@ -699,24 +735,31 @@ def lines_e21(g):
                    [(m.get("id"), m.get("aid"), m.get("type"), m.get("step"), m.get("frames_before")) for m in
                     E._l(k.get("matched"))], k.get("by_source"), k.get("unmatched"), k.get("planner"),
                    k.get("planner_ids"), k.get("agree")))
-    out.append("sneak (iteration 24, P30-D) [reading]: %s frames sneaking over %s game minutes (%s s); the sneak walk "
-               "%s tiles a second over %s legs; zombies within SNEAK_R %s: passed %s, noticed %s (first %s), chasing "
-               "%s; postures sent %s" % (
-                   s.get("frames"), s.get("minutes"), _f(s.get("seconds")), _f(s.get("walk_speed")),
-                   len(E._l(s.get("legs"))), s.get("near"), s.get("passed"), s.get("noticed"), s.get("first_change"),
-                   s.get("chasing"), s.get("postures")) if s.get("read") else _unread("sneak (iteration 24, P30-D)"))
+    if s.get("capable"):
+        head = ("sneak (iteration 24, P30-D) [reading]: postures sent %s; " % (s.get("postures"),) if s.get("read")
+                else _unread("sneak (iteration 24, P30-D)") + " (the frames carry me.sneaking); ")
+        out.append(head + "[reading] %s frames sneaking over %s game minutes (%s s); the sneak walk %s tiles a second "
+                   "over %s legs; zombies within SNEAK_R %s: passed %s, noticed %s (first %s), chasing %s" % (
+                       s.get("frames"), s.get("minutes"), _f(s.get("seconds")), _f(s.get("walk_speed")),
+                       len(E._l(s.get("legs"))), s.get("near"), s.get("passed"), s.get("noticed"),
+                       s.get("first_change"), s.get("chasing")))
+    else:
+        out.append(_unread("sneak (iteration 24, P30-D)"))
     if "lines" in w:
+        cont, ext = E._d(w.get("continued")), E._d(w.get("extended"))
         head = ("goal wait (iteration 24, P30-B) [reading]: %s continued-walk lines (%s sent, by source %s), %s hops "
-                "extended by %s; " % (E._d(w.get("continued")).get("lines"), E._d(w.get("continued")).get("sent"),
-                                      E._d(w.get("continued")).get("by_source"), E._d(w.get("extended")).get("lines"),
-                                      E._d(w.get("extended")).get("lengths"))
-                if w.get("read") else _unread("goal wait (iteration 24, P30-B)") + "; [reading] ")
+                "extended by %s; " % (cont.get("lines"), cont.get("sent"), cont.get("by_source"), ext.get("lines"),
+                                      ext.get("lengths"))
+                if w.get("read") else _unread("goal wait (iteration 24, P30-B)") + "; ")
         nr = E._d(w.get("near_runs"))
-        out.append(head + "%s lines pending in %s runs (%s s), %s unmoved, %s of them near a zombie (%s s); %s runs "
-                   "with a zombie within NEAR_R at an end, %s lines (%s s); the explore hops %s" % (
-                       w.get("lines"), w.get("runs"), _f(w.get("seconds")), w.get("unmoved"), w.get("unmoved_near"),
-                       _f(w.get("unmoved_near_s")), nr.get("runs"), nr.get("lines"), _f(nr.get("s")),
-                       [round(h, 2) for h in E._l(w.get("hops"))]))
+        out.append(head + "[reading] the standing on the wait (the plan's reading): %s pending lines unmoved near a "
+                   "zombie (%s s), unmoved under STILL_DRIFT_R %s tiles from the line before (a walk under %s tiles a "
+                   "second reads unmoved: read the sneak walk's speed first); %s lines pending in %s runs (%s s), %s "
+                   "unmoved; [the desk read's A.2, movement not read, never the plan's reading] %s runs pending with a "
+                   "zombie within NEAR_R at an end, %s lines (%s s); the explore hops %s" % (
+                       w.get("unmoved_near"), _f(w.get("unmoved_near_s")), STILL_DRIFT_R, STILL_DRIFT_R / LINE_S,
+                       w.get("lines"), w.get("runs"), _f(w.get("seconds")), w.get("unmoved"), nr.get("runs"),
+                       nr.get("lines"), _f(nr.get("s")), [round(h, 2) for h in E._l(w.get("hops"))]))
     else:
         out.append(_unread("goal wait (iteration 24, P30-B)"))
     out.append("door held (iteration 24, P30-C) [reading]: %s decisions by kind %s, by decision %s, by both %s at %s; "
@@ -728,7 +771,7 @@ def lines_e21(g):
         b = E._d(c.get("back"))
         head = ("swing close (iteration 24, P30-A) [reading]: %s stances held at a chaser, %s swings pressed again "
                 "(%s why lines); " % (c.get("held"), c.get("again"), c.get("lines")) if c.get("read") else
-                _unread("swing close (iteration 24, P30-A)") + "; ")
+                _unread("swing close (iteration 24, P30-A)") + " (capable %s); " % (c.get("capable"),))
         out.append(head + "[inference] the back steps after a landed press %s, after a press that did nothing %s, "
                    "with no press %s; %s hits in a back step" % (
                        b.get("after_landed"), b.get("after_nothing"), b.get("no_press"), c.get("bites_in_back")))

@@ -10,7 +10,6 @@ attack a59 (the kills 7 with the events agreeing) and E23's one, the twelve stan
 `pause-and-door-read.md` section A.1 (eight on F14, four on E23) and its 181 pending lines (90.1 s) with a zombie
 within 10 tiles, iteration 24's readings unread (both sessions predate the rules), and every inherited key equal to
 the committed `e_grade.txt`'s, through the function and through `e_grade_21.py`."""
-import ast
 import functools
 import json
 import math
@@ -135,8 +134,9 @@ def W(t):
 def kills_lines(all_match=False):
     """In log order, the character at (10, 10). m1's done `kill` of 8 (the whole read). The ladder's attack a1 at 5:
     its swing event, then three frames, the third listing 6 fallen at 0.4 tiles (the weapon's reach 1.2), then 6's
-    death: matched to a1. The shove s1 at 7, 7 at 2.0 tiles on the frame after its swing event (beyond K.SHOVE_R 1.5),
-    then 7's death: unmatched. The stomp k1 at 9 (9 at 0.3), eleven frames, then 9's death: past MATCH_FRAMES,
+    death: matched to a1. The shove s1 at 7, 7 at 2.0 tiles on the frame after its swing event (beyond the shove's
+    widest hit list, #4592's 1.3), then 7's death: unmatched. The stomp k1 at 9 (9 at 0.3), fourteen frames, then 9's
+    death: past MATCH_FRAMES 12,
     unmatched. The finish melee m2 at 10 (its reach 1.3): its floor step's swing event, the frame after listing 11 at
     0.3, 11's death: matched to the melee's floor step. The shove-mode m3 at 12: its shove step's swing event, 12 at
     0.2, 12's death: a melee shove is no killing press, unmatched. With `all_match` only 8, 6 and 11 die."""
@@ -157,7 +157,7 @@ def kills_lines(all_match=False):
     out += [actl("s1", "shove", "done", 12.3, {"knockdown": False}),
             actl("k1", "stomp", "accepted", 13.0), swing_ev(13.05),
             fr(13.1, zombies=[z(9, 10.3, 10.0, onFloor=True)], act={"aid": "k1", "state": "accepted", "step": None})]
-    out += [fr(13.1 + k / 10.0, zombies=[z(9, 10.3, 10.0, onFloor=True)]) for k in range(1, 11)]
+    out += [fr(13.1 + k / 10.0, zombies=[z(9, 10.3, 10.0, onFloor=True)]) for k in range(1, 14)]
     if not all_match:
         out.append(dead(14.15, 9))
     out += [actl("k1", "stomp", "done", 14.2, {"hit": True, "targetDead": False}),
@@ -204,12 +204,27 @@ def test_the_kills_agree_once_every_death_is_matched_and_read_the_loop_results_w
         1, [], None, None, "loop.results")
 
 
+def test_a_death_eleven_frames_after_its_press_is_matched_inside_match_frames():
+    """review-t4 m2: F14's 32338 died 11 frames after its own press's swing event (a35's floor swing, seq 2687 to
+    2703); a death that late beside another press's target is matched, and one 13 frames late is not."""
+    def lines(n):
+        out = [actl("a1", "attack", "accepted", 1.0), swing_ev(1.05)]
+        out += [fr(1.1 + k / 10.0, zombies=[z(6, 10.4, 10.0, onFloor=True)],
+                   act={"aid": "a1", "state": "accepted", "step": None} if k == 0 else None) for k in range(n)]
+        return out + [dead(1.1 + n / 10.0, 6)]
+    a = T14.artifact([row("a1", "attack", 1.0, targetId=5)], [])
+    k11, k13 = G.e_kills_matched(a, lines(11)), G.e_kills_matched(a, lines(13))
+    assert [(r["id"], r["frames_before"]) for r in k11["matched"]] == [(6, 11)] and k11["agree"] is True
+    assert k13["matched"] == [] and k13["unmatched"] == [6] and k13["agree"] is False
+
+
 def test_the_press_reach_is_the_presses_own():
     f = fr(0.0)
-    assert G._reach("attack", None, None, f) == 1.2 and G._reach("shove", None, None, f) == G.SHOVE_R == 1.5
-    assert G._reach("stomp", None, None, f) == G.STOMP_R == 0.5 and G._reach("melee", "stomp", 1.3, f) == 0.5
+    shove, stomp = 1.1 + 0.20000000298023224, 0.6000000238418579     # #4592: the engine's hit lists
+    assert G._reach("attack", None, None, f) == 1.2 and G._reach("shove", None, None, f) == G.SHOVE_R == shove
+    assert G._reach("stomp", None, None, f) == G.STOMP_R == stomp and G._reach("melee", "stomp", 1.3, f) == stomp
     assert G._reach("melee", "swing", 1.3, f) == 1.3 and G._reach("melee", "floor", 0.0, f) == 1.2
-    assert G._reach("melee", "shove", 1.3, f) == 1.5 and G._reach("aim", None, None, f) is None
+    assert G._reach("melee", "shove", 1.3, f) == shove and G._reach("aim", None, None, f) is None
 
 
 # ================================================================ P30-D, the sneak
@@ -278,9 +293,20 @@ def test_the_sneak_reads_unread_on_frames_before_pza_1_9_and_counts_no_minute_up
     assert G.e_sneak(T14.artifact(), None, [], []) == {"read": False}
     up = [fr(0.0, zombies=[z(1, 12.0, 10.0)]), fr(0.5, zombies=[z(1, 12.0, 10.0)])]
     s = G.e_sneak(T14.artifact(), None, up, E._frame_index(up)[1])
-    assert (s["read"], s["frames"], s["minutes"], s["seconds"], s["near"], s["walk_speed"]) == (
-        True, 0, 0, 0.0, 0, None)
-    assert s["postures"] is None and sneak_read(log=False)["postures"] is None
+    assert (s["read"], s["capable"], s["frames"], s["minutes"], s["seconds"], s["near"], s["walk_speed"]) == (
+        False, True, 0, 0, 0.0, 0, None)
+    assert s["postures"] is None
+
+
+def test_the_sneak_reads_true_only_on_the_rule_s_own_log_the_frames_alone_the_capability():
+    """review-t4 m3: `me.sneaking` is PZA/1.9's instrument, present with SNEAK off; the rule's own field is the
+    decision line's `inputs.sneak`."""
+    s, lines = sneak_read(log=False), sneak_lines()
+    assert (s["read"], s["capable"], s["minutes"], s["postures"]) == (False, True, 3, None)
+    a = T14.artifact(sneak_actions(), [])
+    c = G.e_sneak(a, E._Lines(a, CLEAN, lines), lines, E._frame_index(lines)[1])
+    assert (c["read"], c["capable"], c["minutes"], c["postures"]) == (False, True, 3, None)
+    assert sneak_read()["read"] is True and sneak_read()["capable"] is True
 
 
 # ================================================================ P30-B, the goal wait
@@ -333,7 +359,7 @@ def test_the_goal_wait_reads_the_pending_lines_the_stands_near_a_zombie_the_hops
 def test_the_goal_wait_keeps_its_measures_unread_without_the_rule_s_lines_and_reads_unread_without_a_log():
     g = goal_read(rule=False)
     assert g["read"] is False and {k: g[k] for k in WAIT} == WAIT
-    assert g["continued"] == {"lines": 0, "sent": 0, "by_source": {}} and g["extended"] == {"lines": 0, "lengths": []}
+    assert g["continued"] is None and g["extended"] is None      # the rule's own leaves unread (review-t4 m4)
     assert G.e_goal_wait(None) == {"read": False}
 
 
@@ -400,11 +426,27 @@ def close_log():
             line(2, 53.2, {"fight": True, "maneuver": {"maneuver": "melee"}}, None, sent=False)]
 
 
-def close_read(rule=True, log=True):
-    lines = close_lines(rule)
-    L = E._Lines(T14.artifact(), close_log(), lines) if log else None
+def close_actions(close_r=1.0):
+    """The three melees as sent: `closeR` SWING_CLOSE_R 1.0 with the rule on, 0.0 with it off (dispatch.py)."""
+    return [row(aid, "melee", t, targetId=n, mode=mode, reach=0.0, closeR=close_r)
+            for aid, t, n, mode in (("m1", 50.0, 4, "strike"), ("m2", 53.0, 5, "shove"), ("m3", 54.0, 6, "strike"))]
+
+
+def close_read(rule=True, log=True, close_r=None, lines=None):
+    lines = close_lines(rule) if lines is None else lines
+    a = T14.artifact(close_actions((1.0 if rule else 0.0) if close_r is None else close_r), [])
+    L = E._Lines(a, close_log(), lines) if log else None
     rows = G.e_hits_union(E._frame_index(lines)[1], lines, 0)["rows"]
-    return G.e_swing_close(L, lines, rows)
+    return G.e_swing_close(a, L, lines, rows)
+
+
+def again_only():
+    """close_lines with `held` dropped from every line: a span carrying `again` alone."""
+    lines = close_lines()
+    for ln in lines:
+        if ln.get("kind") == "act":
+            ln.get("result", {}).pop("held", None)
+    return lines
 
 
 BACK = {"after_landed": 1, "after_nothing": 2, "no_press": 1}
@@ -418,9 +460,20 @@ def test_the_swing_close_reads_the_lua_s_held_and_again_the_back_steps_by_the_pr
 
 def test_the_swing_close_keeps_the_back_steps_unread_without_held_or_again():
     s = close_read(rule=False)
-    assert (s["read"], s["held"], s["again"]) == (False, 0, 0)
+    assert (s["read"], s["capable"], s["held"], s["again"], s["lines"]) == (False, False, None, None, None)
     assert s["back"] == BACK and s["bites_in_back"] == 2
     assert close_read(log=False)["lines"] is None
+
+
+def test_the_swing_close_reads_true_only_on_a_melee_sent_with_closer_above_0():
+    """review-t4 m3 and m6: the Lua's `held`/`again` are PZA/1.9's instrument (`capable`), carried with the rule off;
+    the rule's own field is the send's `closeR` above 0. A span carrying `again` alone is capable."""
+    off = close_read(close_r=0.0)
+    assert (off["read"], off["capable"], off["held"], off["again"], off["lines"]) == (False, True, None, None, None)
+    assert off["back"] == BACK
+    a = close_read(lines=again_only())
+    assert (a["read"], a["capable"], a["held"], a["again"]) == (True, True, 0, 1)
+    assert close_read(rule=False, lines=again_only(), close_r=0.0)["capable"] is True
 
 
 # ================================================================ P30-E, the still; P30-F, the dress ride
@@ -536,6 +589,10 @@ def test_report_lines_e21_names_gate_e21_then_one_line_per_reading():
                               "(iteration 24, P30-F", "(P30, the standing")):
         assert tag in ln, (tag, ln)
     assert "[reading]" in tail[3] and "pending" in tail[3]
+    assert "the standing on the wait (the plan's reading): 4 pending lines unmoved near a zombie (2.000 s)" in tail[3]
+    assert "[the desk read's A.2, movement not read, never the plan's reading] 2 runs" in tail[3]
+    assert "a walk under 0.6 tiles a second reads unmoved" in tail[3]
+    assert "kills matched (`kills_matched.planner`)" in tail[0]
     off = grade(log=None)["report_lines"][-G.N_LINES:]
     assert all("no line read" in ln for ln in off[2:])
     renamed = G.report_lines_e21(dict(g, gate={"pass": True}))
@@ -556,9 +613,10 @@ def test_the_module_imports_no_live_planner_or_world_name_and_holds_its_own_copi
     assert not any(m.startswith(("agent.base.planner", "agent.base.world")) for m in names), names
     ns = vars(G)
     assert (ns["SNEAK_R"], ns["STILL_DRIFT_R"], ns["STILL_MOVE_R"], ns["SHOVE_R"], ns["STOMP_R"]) == (
-        8.0, 0.3, 1.0, 1.5, 0.5)
+        8.0, 0.3, 1.0, 1.1 + 0.20000000298023224, 0.6000000238418579)
     assert (ns["MATCH_FRAMES"], ns["NEAR_R"], ns["STAND_LINES"], ns["DOOR_KILL_S"], ns["LINE_S"]) == (
-        8, 10.0, 20, 60.0, 0.5)
+        12, 10.0, 20, 60.0, 0.5)
+    assert (ns["SHOVE_REACH"], ns["SHOVE_LUNGE"], ns["CLOSE_KEY"]) == (1.1, 0.20000000298023224, "closeR")
     assert ns["MATCH_LADDER"] == ("attack", "stomp", "shove") and ns["MATCH_STEPS"] == ("swing", "floor", "stomp")
     assert ns["PRESS_STEPS"] == ("swing", "shove", "stomp", "floor") and (ns["HIT_STEP"], ns["BACK_STEP"]) == (
         "hit", "back")
@@ -584,6 +642,14 @@ def _mutated(name, edit):
 
 
 MUTANTS = [
+    ("e_swing_close", lambda b: b.replace('for k in ("held", "again")', 'for k in ("held",)'),
+     lambda: close_read(lines=again_only())["capable"] is True),
+    ("e_swing_close", lambda b: b.replace("or 0) > 0", "or 0) >= 0"),
+     lambda: close_read(close_r=0.0)["read"] is False),
+    ("e_sneak", lambda b: b.replace("read\": bool(logs)", "read\": True"),
+     lambda: sneak_read(log=False)["read"] is False),
+    ("e_goal_wait", lambda b: b.replace("cont if read else None", "cont"),
+     lambda: goal_read(rule=False)["continued"] is None),
     ("e_hits_union", lambda b: b.replace("len(runs) + len(steps) - joined", "len(runs) + len(steps)"),
      lambda: union_read()["union"] == 6),
     ("_joins", lambda b: b.replace("lo <= w <= hi", "lo < w < hi"), lambda: union_read()["joined"] == 2),
@@ -633,7 +699,7 @@ def _close_kd():
                 ln["result"]["hp"] == 1.5 and ln["wallMs"] < int((T0 + 50.5) * 1000):
             ln["result"].update(hp=2.0, knockdowns=1)
     rows = G.e_hits_union(E._frame_index(lines)[1], lines, 0)["rows"]
-    return G.e_swing_close(None, lines, rows)["back"]
+    return G.e_swing_close(T14.artifact(), None, lines, rows)["back"]
 
 
 def _ride_split():
@@ -690,7 +756,8 @@ def unread_rules(g):
     plain = all(g[k] == {"read": False} for k in ("sneak", "door_held", "still", "dress_ride"))
     return plain and g["goal_wait"]["read"] is False and g["swing_close"]["read"] is False and \
         set(g["goal_wait"]) == set(WAIT) | {"read", "continued", "extended"} and \
-        set(g["swing_close"]) == {"read", "held", "again", "lines", "back", "bites_in_back"}
+        set(g["swing_close"]) == {"read", "capable", "held", "again", "lines", "back", "bites_in_back"} and \
+        g["swing_close"]["held"] is None and g["goal_wait"]["continued"] is None
 
 
 def test_on_f14_the_union_reads_the_eight_attacks_that_landed_and_the_seventh_kill_is_matched_to_a59():
@@ -724,6 +791,7 @@ def test_on_f14_the_standing_reads_the_desk_read_s_eight_stretches_and_the_wait_
     assert (w["lines"], w["near_runs"]["runs"], w["near_runs"]["lines"]) == (275, 19, 181)
     assert w["near_runs"]["s"] == pytest.approx(90.1, abs=0.05) and w["seconds"] == pytest.approx(137.0, abs=1.0)
     assert len(w["hops"]) == 8 and w["hops"][2] == 5.404340020749572    # line 168's own `dist` (`_dist`)
+    assert (w["unmoved_near"], w["unmoved_near_s"]) == (118, 59.0)   # the plan's reading (review-t4 M1): F15 reads this
     assert unread_rules(r)
 
 
@@ -775,8 +843,8 @@ def test_e_grade_21_refuses_an_argument_it_does_not_define():
     assert "usage: e_grade_21.py" in src and "e20" not in body and "_e20" not in body
 
 
-def test_the_frozen_chain_is_untouched():
-    """Ruling P26-Q: grade_e21 reads grade_e20 through its function (no edit of the frozen modules: the task's
-    diffstat), and its own readers through no name of the frozen chain but those it imports."""
+def test_grade_e21_reads_grade_e20_through_its_function():
+    """Ruling P26-Q: grade_e21 reads grade_e20 through its function and defines none of the chain's (the frozen
+    modules' diffstat is the task's lane file's, never this test's)."""
     src = open(G.__file__, encoding="utf-8").read()
     assert "G20.grade_e20(" in src and "def grade_e20" not in src and math.isclose(G.LINE_S, 0.5)
