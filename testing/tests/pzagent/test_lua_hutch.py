@@ -313,6 +313,11 @@ def test_the_clear_log_is_one_line_a_hutch_per_hutch_log_s_while_every_clear_cou
     guard(lua)
     lines = clears(w)
     assert len(lines) == 3 and "clear 7, 4 unlogged since the last line" in lines[2]
+    g._clock["ms"] += 10000                                      # the controller's residual (review-t1c fix 1): the
+    amap.d[2] = None                                             # unlogged count resets after a line
+    guard(lua)
+    lines = clears(w)
+    assert len(lines) == 4 and "clear 8, 0 unlogged since the last line" in lines[3]
 
 
 # ---- absent members --------------------------------------------------------------------------------------------------
