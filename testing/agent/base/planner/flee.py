@@ -286,7 +286,8 @@ class Flee(Policy):
         character's displacement since the send, read once it reaches FLEE_HEAD_R: a shorter move, the turn-in, is not
         read) is passed to `_ahead` (AHEAD_R, AHEAD_CONE, the CORRIDOR_R tube) over the held zombies (`_threats`, this
         tick's held list, the fallen left out: fix 1, review-t2 m1) beyond NEAR_R within DISENGAGE_R (`_far`); one
-        ahead drops the walk (`_dropped`, so `busy` and the `flip` guard keep nothing) with its plan for the episode, as P23-AM 2's stall drop does (`picked` kept, never shunned), the plan's door marked
+        ahead drops the walk (`_dropped`, so `busy` and the `flip` guard keep nothing) with its plan for the episode,
+        as P23-AM 2's stall drop does (`picked` kept, never shunned), the plan's door marked
         `walled` from outside (`World.mark_door`: the next episode's pick leaves it out for DOOR_RETRY_MIN), or the exit
         refused and its door (an opening's outside square) marked `walled` from inside, which `policies.exit_plan`
         refuses for DOOR_RETRY_MIN (fix 1, review-t2 M2: the refusal lived in this Flee's `refused` alone, so E2's
