@@ -26,6 +26,20 @@ displacement since then under STALL_R is a stall (`_stall`): the goal cooled (GO
 target marked (`mark_far`: `World.mark_stuck`, so the view's `edge` leaves it), logged `stall` {moved, target} on that
 tick's decision line (`stall_now`), and the view carries the target as `stall` while the goal is cooled (`stalled`).
 Cost if wrong: a far target dropped after one long stall.
+
+Ruling P30-B (`GOAL_CONTINUE`, survival iteration 24; F14, `f_goals_15-20261105-092752`: the goal was pending on 275
+decision lines, 181 of them with a zombie within 10 tiles, the character standing through each call, over 28 calls of
+median 4.60 s; the model's ExploreToward hops ran 1 to 6 tiles, each followed by a 7 to 14 s wait standing, decision
+lines 196 to 274): while the source is pending and no goal runs, the runner keeps a walk going (`_continue_walk`):
+toward the last goal's walk target when that goal was superseded short of it (`last`: a threat's or another branch's
+send cut the walk; a goal that ended done arrived, one that failed is not walked into again), else toward the view's
+`edge` square (`edge`), at a walk, re-sent only when none is running, logged `goal_continue` {target, source "last" or
+"edge"} on each such line (`continue_now`); within WALK_DONE_R of both, the runner stands as before. The answer's
+goal replaces the leg (its first send supersedes the walk). The threat branch, above the goal's, pre-empts it as
+before. And the hop (`goal_policies.hop_target`): an `ExploreToward` the model answered (`NAME` "llm") nearer than
+EXPLORE_HOP_MIN is extended along its line toward `edge`, or to the last open square before the first unknown one,
+logged `hop_extended` {from, to} on the line that takes it. Cost if wrong: a walk continued into a situation the model
+would have changed (bounded by the threat branch's pre-emption); a longer hop past a building the model wanted looted.
 """
 import json
 import math
@@ -37,7 +51,8 @@ from agent.base.planner.goal_policies import ExploreToward, Goal, Kit, LootBuild
 from agent.base.planner.goals import (ARRIVE_R, BUILDING_R, COOL_REASONS, GOAL_COOL_S, GOAL_HOLD_SUPERSEDE_TICKS,
                                       OPTIONAL_FIELDS, REST_S, SCHEMA_PATH, STOCK_KINDS, _num, goal_key, int_id)
 from agent.base.planner.night import player_square
-from agent.base.planner.policies import LOOT_MAX_LEVEL, STALL_R, STUCK_LEAVE_R, STUCK_MARK_MIN, me_xy
+from agent.base.planner.policies import LOOT_MAX_LEVEL, STALL_R, STUCK_LEAVE_R, STUCK_MARK_MIN, WALK_DONE_R, me_xy
+from agent.base.pza1 import WalkTo
 from agent.base.planner.view import why_of
 
 
@@ -219,6 +234,12 @@ class GoalRunner:
         self.goal_stall = True   # ruling P29-B: Survive sets it each tick from its `GOAL_STALL`; off, no stall read
         self.stall_now = None  # this observe's stall (P29-B) {moved, target}, logged on the decision line, else None
         self.stall = None      # (goal_key, target) of the last stall, the view's `stall` while that goal is cooled
+        self.goal_continue = True   # ruling P30-B: Survive sets it each tick from its `GOAL_CONTINUE`; off, a pending
+                                    # source stands the character and no answer's hop is extended
+        self.continue_now = None   # this tick's continued walk (P30-B) {target, source}, logged, else None
+        self._continue = None  # (the continued walk's command, its Action once sent, its why) while it may run (P30-B)
+        self._cut_target = None   # [x, y] of the last goal's walk when that goal was superseded short of it (P30-B)
+        self._walk_target = None  # [x, y] of the running goal's last walk sent (P30-B)
         self.world = None      # the World of the last observe (a sent walk's square is read off it)
         self._walks = []       # (walk Action, the send's square, the player's position, the goal's {type, args})
         self._ended_now = None
@@ -233,6 +254,8 @@ class GoalRunner:
     def _close(self, g):
         now = self.clock()
         self.history.append(dict(g.row(), startS=self._s(g.started_wall), endS=self._s(now), source=self._name()))
+        self._cut_target = self._walk_target if g.state == "superseded" else None   # P30-B: `last`
+        self._walk_target = None
         if g.state == "failed" and (g.sent_n == 0 or getattr(g, "cool", False) or g.reason in COOL_REASONS):
             self.cooled[goal_key(g.TYPE, g.args())] = now + GOAL_COOL_S
         self.kit.rested(g)
@@ -350,9 +373,14 @@ class GoalRunner:
             if g is not None and self.cooled.get(goal_key(g.TYPE, g.args()), 0.0) > self.clock():
                 refused, self.refusal, g = {"type": g.TYPE, "args": g.args()}, self._refusal(g), None
             if g is None:
+                cmd = self._continue_walk(world, actions, seen) if self.pending else None
                 self.why = self._noted({"proposed": None, "refused": refused, "ended": ended, "pending": self.pending},
                                        route_end)
-                return None
+                if self.continue_now is not None:
+                    self.why["goal_continue"] = self.continue_now   # P30-B: the walk kept going while pending
+                return cmd
+            self._continue, self.continue_now = None, None
+            hop = self._hop(world, g, seen)
             proposed = g.TYPE
             g.started_wall, g.kit = self.clock(), self.kit   # the budget starts here, never while pending
             g.start_xy = me_xy(world)   # P29-B: where the goal began, its budget end's stall read
@@ -369,7 +397,41 @@ class GoalRunner:
         leave = getattr(self.source, "last_leave", None) if proposed is not None else None
         if leave is not None:
             self.why["leave"] = leave   # P27-F: the source's pick that leaves a marked square
+        if proposed is not None and hop is not None:
+            self.why["hop_extended"] = hop   # P30-B: the model's short hop extended
         return cmd
+
+    def _hop(self, world, g, seen):
+        """Ruling P30-B (the module docstring): the model's ExploreToward answer `g` (the source's `NAME` "llm")
+        extended (`ExploreToward.extend_hop` toward the view's `edge`); its `hop_extended` {from, to}, else None."""
+        if not (self.goal_continue and self._name() == "llm" and g.TYPE == "ExploreToward"):
+            return None
+        edge = seen.get("edge")
+        return g.extend_hop(world, edge if isinstance(edge, (list, tuple)) and len(edge) >= 2 else None)
+
+    def _continue_walk(self, world, actions, seen):
+        """Ruling P30-B (the module docstring): the walk kept going while the source is pending, else None. A walk it
+        sent still running holds (None, `continue_now` its target); else a `WalkTo` at a walk toward the last goal's
+        cut walk target (`last`), else toward the centre of the view's `edge` square (`edge`), whichever lies beyond
+        WALK_DONE_R of the player; neither, the runner stands (`continue_now` None)."""
+        self.continue_now = None
+        if not self.goal_continue:
+            return None
+        run = self._continue
+        if run is not None and run[1] is not None and actions.current is run[1]:
+            self.continue_now = dict(run[2])
+            return None
+        mx, my = me_xy(world)
+        edge = seen.get("edge")
+        on_edge = (edge[0] + 0.5, edge[1] + 0.5) if isinstance(edge, (list, tuple)) and len(edge) >= 2 else None
+        for target, source in ((self._cut_target, "last"), (on_edge, "edge")):
+            if target is not None and math.hypot(target[0] - mx, target[1] - my) > WALK_DONE_R:
+                self.continue_now = {"target": [target[0], target[1]], "source": source}
+                cmd = WalkTo(float(target[0]), float(target[1]), "walk")
+                self._continue = (cmd, None, self.continue_now)
+                return cmd
+        self._continue = None
+        return None
 
     def _noted(self, why, route_end):
         """`why` with this tick's route leg end (P29-A, `route_end`) and budget-end stall (P29-B, `stall`), when
@@ -388,8 +450,13 @@ class GoalRunner:
     def send(self, cmd):
         action = self.actions.send(cmd)
         g = self.current
+        run = self._continue
+        if g is None and run is not None and cmd is run[0]:
+            self._continue = (cmd, action, run[2])   # P30-B: the continued walk, held while it runs
         if g is not None:
             g.sent(cmd, action)
+            if cmd.TYPE == "walkTo":
+                self._walk_target = [cmd.x, cmd.y]   # P30-B: the walk a supersede would cut
             sq = player_square(self.world) if cmd.TYPE == "walkTo" and self.world is not None else None
             if sq is not None:   # P27-F: the square and position the walk left from, its end read by `_read_walks`
                 self._walks.append((action, sq, me_xy(self.world), {"type": g.TYPE, "args": g.args()}))

@@ -237,8 +237,19 @@ def pre_t13(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 29 Task 1 (survival iteration 23): its switches off
     (`survive.T13_SWITCHES`: ROUTE_CROSS, ruling P29-A; GOAL_STALL, P29-B; Task 2's hit rules, HEALTH_NEAR, P29-E, and
     DRESS_FINISH, P29-D; MANY_NEAR, P29-G; FINISH_LONE, P29-F; CLOSE_IDLE, P29-C; FLEE_HELD_STANCE, P29-H'), but those
-    named in `keep`; every seam onto an earlier rule reads them off (`pre_t12`)."""
+    named in `keep`; every seam onto an earlier rule reads them off (`pre_t12`). Plan 30 Task 3: iteration 24's switches
+    (`pre_t14`) off with them, so every seam onto an earlier rule reads them off."""
     for name in S.T13_SWITCHES:
+        if name not in keep:
+            setattr(sv, name, False)
+    pre_t14(sv)
+
+
+def pre_t14(sv, keep=()):
+    """The replay's mutate seam onto the rules before Plan 30 Task 3 (survival iteration 24): its switches off
+    (`survive.T14_SWITCHES`: GOAL_CONTINUE, ruling P30-B), but those named in `keep`; every seam onto an earlier rule
+    reads them off (`pre_t13`)."""
+    for name in S.T14_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
 
@@ -2177,3 +2188,14 @@ def test_an_unbound_melee_ends_done_at_its_seconds():
     assert a.state == "sent"
     acts.end_legs(100.0 + P.MELEE_S)
     assert (a.state, a.result, a.ended_wall) == ("done", {}, 100.0 + P.MELEE_S)
+
+
+# ================================================================ Plan 30 Task 3: iteration 24 on the goldens
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_iteration_24_moves_no_golden(key):
+    """Survival iteration 24 (Plan 30 Task 3) moves no golden: P30-B (`GOAL_CONTINUE`) is the goal runner's, and every
+    golden's goal branch is the record's (`RecordedGoals`), never the runner's continue nor its hop; the six are
+    byte-identical with `T14_SWITCHES` on (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off
+    (`pre_t14`)."""
+    off = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t14))}
+    assert off == gold(key)

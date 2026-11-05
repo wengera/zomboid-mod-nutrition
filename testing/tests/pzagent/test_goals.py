@@ -995,3 +995,173 @@ def test_a_rest_proposed_under_a_hold_does_not_widen_the_woods(tmp_path):
         runner.current.end("done", "rested")
         runner.tick(r.world, r.acts, {})
         assert runner.kit.rests == rests, spent
+
+
+# ================================================================ Plan 30 Task 3: P30-B, no standing on a model wait
+# F14 (`f_goals_15-20261105-092752`), decision lines 207 to 252: the model's ExploreToward hop to (10741, 10641) ended
+# done at (10740.51, 10641.5) on line 225, then 27 lines pending with the character standing until the next answer
+# (10747, 10641) on line 253; the grid below is the test's own: an open 41 x 43 tile ground round F14's position, its
+# east edge square (10760, 10641) the view's `edge`, 19.5 tiles off
+F14_START = (10737.51, 10641.5)   # line 222, the hop's walk sent from here
+F14_AT = (10740.51, 10641.5)      # line 225 on, the hop done
+F14_EDGE = (10760, 10641)
+
+
+def f14_ground(r):
+    """The test's own open ground x 10720..10760, y 10620..10662 (its edge, the nearest square with an unmapped
+    neighbour, (10760, 10641) from F14's position)."""
+    from .test_policies import grid
+    r.scan(grid(10720, 10760, 10620, 10662))
+
+
+class Waiting:
+    """A source answering its script in order: None is pending (P23-AC), a goal is answered; then pending."""
+
+    def __init__(self, *script, name="slow"):
+        self.script, self.NAME = list(script), name
+
+    def propose(self, view):
+        return self.script.pop(0) if self.script else None
+
+
+def continue_rig(tmp_path, *script, name="slow", at=F14_AT):
+    r = Rig(tmp_path)
+    f14_ground(r)
+    sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=Waiting(*script, name=name))
+    r.frame(x=at[0], y=at[1])
+    sv.goals.kit.bind(r.world, r.acts)
+    sv.goals.kit.explore.scanned.add(sv.goals.kit.explore.place())   # the place scanned: the goal walks at once
+    return r, sv
+
+
+def last_line(tmp_path):
+    return json.loads((tmp_path / "decision.log").read_text(encoding="utf-8").splitlines()[-1])
+
+
+def test_f14_s_wait_after_a_done_hop_walks_on_toward_the_edge_never_standing(tmp_path):
+    """P30-B (`GOAL_CONTINUE`): F14's shape: the hop to (10741, 10641) arrives done and the source goes pending: the
+    runner walks on toward the view's `edge` square's centre at a walk, logged `goal_continue` {target, source "edge"};
+    while that walk runs it is held (no re-send, the why kept); the answer's walk supersedes it."""
+    r, sv = continue_rig(tmp_path, ExploreToward(10741, 10641), None, None, ExploreToward(10750, 10641),
+                         at=F14_START)
+    a = sv.tick(r.world, r.acts)
+    assert (a.type, a.args) == ("walkTo", {"x": 10741, "y": 10641, "gait": "walk"})
+    r.answer()
+    r.frame(x=F14_AT[0], y=F14_AT[1])
+    a = sv.tick(r.world, r.acts)
+    d = last_line(tmp_path)
+    assert (a.type, a.args) == ("walkTo", {"x": 10760.5, "y": 10641.5, "gait": "walk"})
+    assert d["branch"] == "goal" and d["sent"] is True and d["goal"]["state"] == "done"   # the hop's end, F14's 225
+    assert d["inputs"]["branches"]["goal"]["goal_continue"] == {"target": [10760.5, 10641.5], "source": "edge"}
+    r.answer("accepted")
+    r.frame(x=F14_AT[0] + 0.6, y=F14_AT[1])
+    assert sv.tick(r.world, r.acts) is None
+    d = last_line(tmp_path)
+    assert d["sent"] is False and d["inputs"]["branches"]["goal"]["goal_continue"]["source"] == "edge"
+    r.frame(x=F14_AT[0] + 1.2, y=F14_AT[1])
+    a = sv.tick(r.world, r.acts)
+    assert (a.type, a.args["x"]) == ("walkTo", 10750) and sv.goals.current.TYPE == "ExploreToward"
+    assert "goal_continue" not in last_line(tmp_path)["inputs"]["branches"]["goal"]
+
+
+def test_with_goal_continue_off_the_pending_tick_stands_as_f14_did(tmp_path):
+    r, sv = continue_rig(tmp_path, ExploreToward(10741, 10641), None, at=F14_START)
+    sv.GOAL_CONTINUE = False
+    sv.tick(r.world, r.acts)
+    r.answer()
+    r.frame(x=F14_AT[0], y=F14_AT[1])
+    assert sv.tick(r.world, r.acts) is None
+    d = last_line(tmp_path)
+    assert d["sent"] is False and d["inputs"]["branches"]["goal"]["pending"] is True
+    assert "goal_continue" not in d["inputs"]["branches"]["goal"]
+
+
+def test_a_goal_walk_cut_by_the_threat_is_walked_on_toward_its_target_while_pending(tmp_path):
+    """P30-B: the goal's walk to (10750, 10641) is superseded by the threat branch's stance at a zombie 4 tiles off
+    (the test's own); with the zombie gone 30 tiles off and the source pending the runner walks on toward the cut
+    walk's target, `goal_continue` {source "last"}."""
+    r, sv = continue_rig(tmp_path, ExploreToward(10750, 10641), None, None, at=F14_START)
+    sv.tick(r.world, r.acts)
+    r.answer("accepted")
+    me = (F14_START[0] + 0.5, F14_START[1])
+    r.frame(x=me[0], y=me[1], zombies=[zombie(9, me[0] + 4.0, me[1], me=me)])
+    a = sv.tick(r.world, r.acts)
+    assert last_line(tmp_path)["branch"] == "threat" and a is not None
+    r.answer()                                       # the stance leg ends, the zombie gone 30 tiles off
+    r.frame(x=me[0], y=me[1], zombies=[zombie(9, me[0] - 30.0, me[1], me=me)])
+    a = sv.tick(r.world, r.acts)
+    d = last_line(tmp_path)
+    assert (a.type, a.args) == ("walkTo", {"x": 10750.0, "y": 10641.0, "gait": "walk"})
+    assert d["inputs"]["branches"]["goal"]["goal_continue"] == {"target": [10750, 10641], "source": "last"}
+    assert sv.goals.history[-1]["state"] == "superseded"
+
+
+def test_a_zombie_within_danger_r_while_pending_is_the_threat_branch_s_as_today(tmp_path):
+    r, sv = continue_rig(tmp_path, None, None)
+    sv.tick(r.world, r.acts)
+    assert last_line(tmp_path)["inputs"]["branches"]["goal"]["goal_continue"]["source"] == "edge"
+    r.answer("accepted")
+    me = F14_AT
+    r.frame(x=me[0], y=me[1], zombies=[zombie(9, me[0] + 3.0, me[1], me=me)])
+    sv.tick(r.world, r.acts)
+    d = last_line(tmp_path)
+    assert d["branch"] == "threat" and d["inputs"]["branches"]["threat"]["fight"] is True
+
+
+def test_with_neither_target_beyond_the_walk_s_done_radius_the_runner_stands(tmp_path):
+    """P30-B: no cut walk and the character on the edge square's centre: no continue (`continue_now` None)."""
+    r, sv = continue_rig(tmp_path, None, at=(F14_EDGE[0] + 0.5, F14_EDGE[1] + 0.5))
+    assert sv.tick(r.world, r.acts) is None
+    assert "goal_continue" not in last_line(tmp_path)["inputs"]["branches"]["goal"]
+
+
+def test_the_model_s_four_tile_hop_along_the_line_to_edge_is_extended_to_edge(tmp_path):
+    """P30-B's hop (`goal_policies.hop_target`): the model (`NAME` "llm") answers ExploreToward 4 tiles east along the
+    line to `edge` 19.5 tiles out: the goal's target is `edge`, logged `hop_extended` {from, to}, the walk sent to
+    it."""
+    r, sv = continue_rig(tmp_path, ExploreToward(10744, 10641), name="llm")
+    a = sv.tick(r.world, r.acts)
+    w = last_line(tmp_path)["inputs"]["branches"]["goal"]
+    assert w["hop_extended"] == {"from": [10744, 10641], "to": list(F14_EDGE)}
+    assert sv.goals.current.args() == {"x": F14_EDGE[0], "y": F14_EDGE[1]} and a.args["x"] == F14_EDGE[0]
+
+
+def test_a_hop_off_the_edge_s_line_goes_on_along_its_own_to_the_hop_minimum_or_the_last_known_square(tmp_path):
+    """P30-B: a hop 3 tiles north (off the line to `edge`) goes on north to EXPLORE_HOP_MIN tiles from the player; on a
+    ground whose map ends 5 tiles north it stops on the last mapped square; a target 13.5 tiles out is kept."""
+    from agent.base.planner.goal_policies import hop_target
+    from .test_policies import grid
+    r = Rig(tmp_path)
+    f14_ground(r)
+    r.frame(x=F14_AT[0], y=F14_AT[1])
+    assert hop_target(r.world, (10740, 10638), F14_EDGE) == (10738, 10630)   # 11.537 tiles out, the last sample
+    r2 = Rig(tmp_path / "short")
+    r2.scan(grid(10730, 10750, 10636, 10646))
+    r2.frame(x=F14_AT[0], y=F14_AT[1])
+    assert hop_target(r2.world, (10740, 10638), None) == (10739, 10636)
+    assert hop_target(r2.world, (10740, 10628), None) is None
+
+
+def test_a_scripted_or_far_hop_is_never_extended(tmp_path):
+    """P30-B's hop is the model's (`NAME` "llm") alone: the scripted order's ExploreToward (a door's, an edge's) is
+    kept; and a model hop already at EXPLORE_HOP_MIN or farther is kept."""
+    r, sv = continue_rig(tmp_path, ExploreToward(10744, 10641))
+    sv.tick(r.world, r.acts)
+    assert sv.goals.current.args() == {"x": 10744, "y": 10641}
+    assert "hop_extended" not in last_line(tmp_path)["inputs"]["branches"]["goal"]
+    r2, sv2 = continue_rig(tmp_path / "far", ExploreToward(10753, 10641), name="llm")
+    sv2.tick(r2.world, r2.acts)
+    assert sv2.goals.current.args() == {"x": 10753, "y": 10641}
+
+
+def test_with_goal_continue_off_the_model_s_hop_is_kept(tmp_path):
+    r, sv = continue_rig(tmp_path, ExploreToward(10744, 10641), name="llm")
+    sv.GOAL_CONTINUE = False
+    sv.tick(r.world, r.acts)
+    assert sv.goals.current.args() == {"x": 10744, "y": 10641}
+
+
+def test_the_prompt_names_the_hop_minimum():
+    from agent.base.planner import goal_prompt as GP
+    assert ("An ExploreToward target is at least 12 tiles from pos: a nearer one is walked on along its line toward "
+            "edge's square, or to the last known square, so name the far square you mean.") in GP.system(60.0)

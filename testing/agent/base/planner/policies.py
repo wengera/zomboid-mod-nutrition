@@ -361,6 +361,12 @@ FLEE_HEAD_R = 0.3         # tiles: a flee walk's observed heading (the character
                           # (`f_goals_14-20261105-021722`) moved 0.058 tiles at -117 degrees on its turn-in frame (seq
                           # 3155) and 0.377 at 14.9 degrees by decision line 412 (seq 3159), so under it the turn-in
                           # would read as the heading; FLEE_CLOSE_TICKS (the spec's closing count) is not added
+# survival iteration 24 (Plan 30 Task 3, rulings P30-A to P30-F; the spec `2026-11-05-plan-30-the-intent-design.md` § 1)
+EXPLORE_HOP_MIN = 12.0    # tiles: an ExploreToward answer nearer than this is extended along its line (ruling P30-B,
+                          # `goal_policies.hop_target`): F14's model hops (`f_goals_15-20261105-092752`, decision lines
+                          # 196 to 274, the spec's § 1 reading 2) ran 1 to 6 tiles, each ended in a 7 to 14 s wait with
+                          # the character standing over calls of median 4.60 s; a walk of 12 tiles outlasts a median
+                          # call at the walk's pace, the spec's number
 
 
 def place_of(world):

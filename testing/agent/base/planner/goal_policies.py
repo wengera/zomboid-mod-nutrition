@@ -14,8 +14,8 @@ from agent.base.planner.goals import (ARRIVE_R, GOAL_MAX_S, LEG_CHUNK, LEG_MAX, 
                                       held_of, looted, open_uses, wanted_uses, window_pick)
 from agent.base.planner.night import (SHUN_MIN, door_blocked, hop_after, player_square, shelter_ended, shelter_plan,
                                       shelter_step)
-from agent.base.planner.policies import (Explore, LOOT_MAX_LEVEL, LootHouse, PREEMPTED, SCAN_R, centre, me_floor, me_xy,
-                                         place_of)
+from agent.base.planner.policies import (EXPLORE_HOP_MIN, Explore, LOOT_MAX_LEVEL, LootHouse, PREEMPTED, SCAN_R,
+                                         _seg_dist, centre, me_floor, me_xy, place_of)
 from agent.base.planner.windows import note_window_end
 from agent.base.pza1 import Climb, Scan, WalkTo, Window
 
@@ -79,6 +79,38 @@ class Kit:
         """The buildings shunned within SHUN_MIN game minutes of `world.world_minutes()` (I-1)."""
         now = world.world_minutes()
         return {b for b, at in self.shunned.items() if now - at < SHUN_MIN}
+
+
+HOP_STEP = 0.5   # tiles between the samples `hop_target` reads along a hop's line (half a square: no square skipped)
+
+
+def hop_target(world, to, edge):
+    """Ruling P30-B's hop (`GOAL_CONTINUE`, survival iteration 24; F14, `f_goals_15-20261105-092752`: the model's
+    ExploreToward hops ran 1 to 6 tiles, each ended in a 7 to 14 s wait with the character standing while the next
+    call ran, decision lines 196 to 274): the square an answer's target `to` (x, y) is extended to, else None. A target
+    at EXPLORE_HOP_MIN tiles or more is kept; one lying along the line from the player to the view's `edge` (within
+    ARRIVE_R of that segment) with `edge` the farther goes to `edge`; any other goes on along its own line from the
+    player, a sample every HOP_STEP tiles out to EXPLORE_HOP_MIN, to the last square the map holds open whose straight
+    line from the player reads clear (`World.line_clear`, an unscanned square read blocked), stopping at the first that
+    is unknown, solid or walled off; None when that square is the target's own. Cost if wrong: a longer hop past a
+    building the model wanted looted (the prompt still names the buildings)."""
+    mx, my = me_xy(world)
+    d = math.hypot(to[0] - mx, to[1] - my)
+    if d >= EXPLORE_HOP_MIN or d <= 0.0:
+        return None
+    if edge is not None:
+        de = math.hypot(edge[0] - mx, edge[1] - my)
+        if de > d and _seg_dist((mx, my), (edge[0], edge[1]), to) <= ARRIVE_R:
+            return int(edge[0]), int(edge[1])
+    ux, uy = (to[0] - mx) / d, (to[1] - my) / d
+    floor, best, s = me_floor(world), None, d + HOP_STEP
+    while s <= EXPLORE_HOP_MIN + 1e-9:
+        sq = (int(math.floor(mx + ux * s)), int(math.floor(my + uy * s)))
+        rec = world.map.get((sq[0], sq[1], floor))
+        if rec is None or rec.get("solid") or not world.line_clear((mx, my), (sq[0] + 0.5, sq[1] + 0.5)):
+            break
+        best, s = sq, s + HOP_STEP
+    return best if best is not None and best != (int(to[0]), int(to[1])) else None
 
 
 # ---------------------------------------------------------------- the goals
@@ -317,6 +349,16 @@ class ExploreToward(_Legs, _Climbing, Goal):
 
     def stall_target(self):
         return [self.x, self.y]
+
+    def extend_hop(self, world, edge):
+        """Ruling P30-B (`GOAL_CONTINUE`): the model's answer's target moved to `hop_target`'s square when that reads
+        one, logged by the runner as `hop_extended` {from, to}; the dict, else None (the target kept)."""
+        to = hop_target(world, (self.x, self.y), edge)
+        if to is None:
+            return None
+        frm = [self.x, self.y]
+        self.x, self.y = to
+        return {"from": frm, "to": [self.x, self.y]}
 
     def ended(self, world, action):
         leg = self._leg_ended(action, world)

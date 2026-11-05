@@ -314,6 +314,11 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     P29-H', a flee walk whose observed heading runs at a held zombie dropped with its plan, its door marked `walled`,
     the fight meeting the zombie in the stance (`flee.Flee._held_ahead`); `T13_SWITCHES` (ROUTE_CROSS, GOAL_STALL,
     HEALTH_NEAR, DRESS_FINISH, MANY_NEAR, FINISH_LONE, CLOSE_IDLE, FLEE_HELD_STANCE).
+  - Survival 26 (iteration 24, F14, `f_goals_15-20261105-092752`, and E23, `e_day_23-20261105-095110`; Plan 30 Task
+    3, the spec `2026-11-05-plan-30-the-intent-design.md` § 2 item 3): P30-B, while the source is pending the goal
+    runner keeps a walk going toward the last cut goal walk's target or the view's `edge`, and the model's short
+    ExploreToward hop is extended to EXPLORE_HOP_MIN (`goal_runner.py`'s module docstring the rule); `T14_SWITCHES`
+    (GOAL_CONTINUE).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -452,6 +457,8 @@ T13_SWITCHES = ("ROUTE_CROSS", "GOAL_STALL", "HEALTH_NEAR", "DRESS_FINISH", "MAN
 # rules (Plan 29 Task 2) on `threat.Threat`: P29-E (HEALTH_NEAR), P29-D (DRESS_FINISH), P29-G (MANY_NEAR), P29-F
 # (FINISH_LONE), P29-C (CLOSE_IDLE, the Fight's `close_idle` rule), P29-H' (FLEE_HELD_STANCE, the Flee's
 # `flee_held_stance` rule)
+T14_SWITCHES = ("GOAL_CONTINUE",)
+# survival iteration 24 (Plan 30 Task 3): P30-B on `Survive` (GOAL_CONTINUE, copied to the goal runner)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -473,7 +480,7 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "NEED_STATS", "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_RETRY_MIN", "FILL_SETTLE_S", "FILL_WANTS",
            "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T3_SWITCHES",
            "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES", "T7_SWITCHES", "T8_SWITCHES", "T9_SWITCHES", "T10_SWITCHES",
-           "T11_SWITCHES", "T12_SWITCHES", "T13_SWITCHES"]
+           "T11_SWITCHES", "T12_SWITCHES", "T13_SWITCHES", "T14_SWITCHES"]
 
 
 @dataclass
@@ -516,6 +523,10 @@ class Survive(Threat):
                           # STALL_R since it began is cooled and its target marked, the view naming it `stall`
                           # (`goal_runner.GoalRunner._stall`); off, the budget end as before. Set on the goal runner
                           # each tick (`_read`). In T13_SWITCHES
+    GOAL_CONTINUE = True  # ruling P30-B (Plan 30 Task 3): while the source is pending the runner keeps a walk going
+                          # toward the last cut goal walk's target or the view's `edge`, and the model's short hop is
+                          # extended (`goal_runner.GoalRunner._continue_walk`, `_hop`); off, the character stands
+                          # through each call. Set on the goal runner each tick (`_read`). In T14_SWITCHES
     STOCK_EARLY = True    # ruling P27-K1 (Plan 27 Task 5): the rag stock's rip on any tick with no zombie within
                           # DANGER_R once the clean dressings fall under RAG_STOCK, a running goal walk superseded for
                           # it (`_care_stock`, `care.Care.early_rip`), and the care yield taking the wound's rip as a
@@ -1080,6 +1091,7 @@ class Survive(Threat):
         self.care.stock_early = self.STOCK_EARLY   # P27-K1: read by the threat branch's care yield (`_care_yields`)
         self.goals.stuck_leave = self.STUCK_LEAVE   # P27-F: read by the goal runner's observe, below
         self.goals.goal_stall = self.GOAL_STALL   # P29-B: read by the goal runner's observe, below
+        self.goals.goal_continue = self.GOAL_CONTINUE   # P30-B: read by the goal runner's tick
         self.ticks += 1
         self._observed = []
         self._note_failures()
