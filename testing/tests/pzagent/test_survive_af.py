@@ -37,7 +37,7 @@ def test_a_loot_s_stall_target_is_its_last_walk_s_square_else_none():
     g = LootBuilding(1)
     assert g.stall_target() is None
     g.last = act("a1", "walkTo", x=FAR[0], y=FAR[1], gait="walk")
-    assert g.stall_target() == list(FAR)
+    assert g.stall_target() == [10747, 10642]   # the integer square under the walk's centre FAR (review-t1 fix 1 r1)
     g.last = act("a2", "interact", x=LOOT_SQ[0], y=LOOT_SQ[1], kind="loot", filter="bandage", maxWeight=8.0)
     assert g.stall_target() is None
 
@@ -80,9 +80,9 @@ def test_a_loot_whose_route_walks_end_done_unmoved_for_its_budget_is_a_stall(tmp
     r, sv, w = loot_stall(tmp_path, (STALL[0], STALL[1] - 0.3))
     row = sv.goals.history[-1]
     assert (row["type"], row["state"], row["reason"]) == ("LootBuilding", "failed", "goal budget")
-    assert w["stall"]["target"] == list(FAR) and abs(w["stall"]["moved"] - 0.3) < 1e-9
+    assert w["stall"]["target"] == [10747, 10642] and abs(w["stall"]["moved"] - 0.3) < 1e-9   # the integer square (r1)
     assert goal_key("LootBuilding", {"building": 1}) in sv.goals.cooled
-    assert sv._view()["stall"] == list(FAR) and not r.world.stuck
+    assert sv._view()["stall"] == [10747, 10642] and not r.world.stuck   # the integer square (r1)
 
 
 def test_a_loot_whose_last_send_was_a_loot_interact_is_no_stall(tmp_path):
@@ -98,7 +98,7 @@ def test_a_loot_whose_last_send_was_a_loot_interact_is_no_stall(tmp_path):
     assert runner.stall_now is None and runner.stall is None and not getattr(g, "cool", False)
     g.last = act("a4", "walkTo", x=FAR[0], y=FAR[1], gait="walk")
     runner._stall(r.world, g)
-    assert runner.stall_now == {"moved": 0.0, "target": list(FAR)} and g.cool is True
+    assert runner.stall_now == {"moved": 0.0, "target": [10747, 10642]} and g.cool is True   # the integer square (r1)
 
 
 # ================================================================ M2: the need's fill route read by crossing

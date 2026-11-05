@@ -452,7 +452,10 @@ class LootBuilding(_Legs, _Looting, Goal):
         a = self.last
         if a is None or a.type != "walkTo":
             return None
-        return [a.args.get("x"), a.args.get("y")]
+        x, y = a.args.get("x"), a.args.get("y")
+        if x is None or y is None:
+            return None
+        return [int(x // 1), int(y // 1)]   # the integer square, as edge, stuck and the explore stall read (fix 1 r1)
 
     def _window_ended(self, world, action):
         """A window action's end (Task 24): done leaves the route (the character stands inside; the care branch reads the
