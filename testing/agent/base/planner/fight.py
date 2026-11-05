@@ -272,6 +272,10 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         self._busy_retry = None             # (shove or stomp, zombie id) of the last send rejected `busy`, until the
                                             # next send of that kind at that id or another end at it (P28-D)
         self._circle_side = 1               # the side the last circling `back` leg turned (+1 first, -1), kept (P28-E)
+        self._backed = {}                   # zombie id -> the missed shove a `shove_back` leg answered (P28-B2: one leg
+                                            # a miss)
+        self._back_leg = None               # (aim action, zombie id) of the last `shove_back` leg (P28-B2), else None
+        self._back_left = False             # that leg's target was read beyond POINT_BLANK_R since it was sent
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -393,6 +397,13 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         refuses the aim `no target`, so the Fight walks toward it as the approach and swing does and takes the stance
         once inside)."""
         return self.standing() and d <= AIM_R
+
+    def _observe_back(self, t):
+        """Ruling P28-B2 (fix 1, M1): while the last `shove_back` leg runs, a read of its target beyond POINT_BLANK_R
+        marks it left (`_back_left`), so its return within POINT_BLANK_R gives the leg way to the shove (`busy`)."""
+        if (self._back_leg is not None and self.last is self._back_leg[0] and not self.actions.done(self.last)
+                and t is not None and t[0] == self._back_leg[1] and t[2] > POINT_BLANK_R):
+            self._back_left = True
 
     def _observe_stand(self, t):
         """The stand clock (ruling P24-G 1, as P24-N rules its end): restarted by a new target (a kill or a re-pin)
@@ -552,6 +563,10 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             return read is not None and read[0] == self._fence_leg
         if self.point_blank and self._leg == "stand":   # P28-B3: the drifted pin's stand holds while it comes
             return t[2] > CORNERED_R and self._drift_stands(t[1], t[2])
+        if self._back_leg is not None and self.last is self._back_leg[0]:   # P28-B2 (fix 1, M1): the leg after a miss
+            if t[2] <= POINT_BLANK_R:   # held at point blank until the target left it, then the shove on its return
+                return not self._back_left
+            return t[2] <= KEEP_R + KEEP_MARGIN   # held whatever `no_swing` reads (the sore band too)
         if self._leg == "back" and self.no_swing():   # P24-AP, R2: the wounded backpedal holds until point blank
             return POINT_BLANK_R < t[2] <= KEEP_R + KEEP_MARGIN
         if t[2] <= FIGHT_REACH or not self.stance_at(t[2]):
@@ -602,6 +617,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         self._take_pin_read()   # once a tick: `blocked` and the pin read it on every call (fix 3, minor 4)
         self._observe_leg()
         t = self._target(pin=False)
+        self._observe_back(t)   # P28-B2 (fix 1, M1)
         self._observe_stand(t)
         self._observe_seek(t)
         self._observe_fallen(t)   # P27-H
@@ -1062,6 +1078,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
     def sent(self, cmd, action):
         if cmd.TYPE == "aim":
             self._leg = self.why.get("leg")
+            if "shove_back" in self.why:   # P28-B2 (fix 1, M1): the one leg for this miss, held by `busy`
+                self._backed[cmd.targetId] = self._shove_a.get(cmd.targetId)
+                self._back_leg, self._back_left = (action, cmd.targetId), False
             self._fence_leg = self.why["fence_wait"]["leg"] if "fence_wait" in self.why else None   # P25-F
             if self._leg == "pull":
                 self._pulled = cmd.targetId   # P24-AN: kept to DISENGAGE_R from here (`_pull_waits`)

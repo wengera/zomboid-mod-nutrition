@@ -411,11 +411,11 @@ def test_the_wound_dress_switch_and_reserve():
 A49 = 0.9786915268854448   # F11's a49 shoved 14725 this far off, `knockdown` false, the bite 0.804 s later (#4580)
 
 
-def shoved(tmp_path, on=True):
-    """F11's a49 simplified: one zombie standing A49 tiles off under the arms' pain 30; the Fight's first send is the
-    shove (P24-AG), ended done `knockdown` false; 1.0 s later the next frame. Returns (r, f)."""
+def shoved(tmp_path, on=True, arm=30.0):
+    """F11's a49 simplified: one zombie standing A49 tiles off under the arms' pain `arm` (30, F11's); the Fight's
+    first send is the shove (P24-AG), ended done `knockdown` false; 1.0 s later the next frame. Returns (r, f)."""
     r = Rig(tmp_path)
-    fr(r, [z(1, 100.0 + A49)], 30.0)
+    fr(r, [z(1, 100.0 + A49)], arm)
     f = fight(r)
     if not on:
         f.rules = f.rules - {"shove_back"}
@@ -423,8 +423,59 @@ def shoved(tmp_path, on=True):
     assert (a.type, a.args) == ("shove", {"targetId": 1})
     r.answer(DONE_SHOVE)
     r.advance(1.0)
-    fr(r, [z(1, 100.0 + A49)], 30.0)
+    fr(r, [z(1, 100.0 + A49)], arm)
     return r, f
+
+
+def backed(tmp_path, arm=30.0):
+    """`shoved`, then the `shove_back` leg sent and accepted (running). Returns (r, f, the leg)."""
+    r, f = shoved(tmp_path, arm=arm)
+    a = f.step()
+    assert a.type == "aim" and f.why["shove_back"]["target"] == 1
+    accept(r, a)
+    return r, f, a
+
+
+def test_the_back_leg_holds_while_its_target_stays_at_point_blank(tmp_path):
+    """Fix 1, review-t3 M1: one leg a miss: the next tick inside the leg's span, the target still at point blank (it
+    has not left it), sends nothing new, the leg running."""
+    r, f, a = backed(tmp_path)
+    r.advance(0.5)
+    fr(r, [z(1, 100.0 + A49)], 30.0)
+    assert f.step() is None and r.acts.current is a
+
+
+def test_the_shove_goes_once_the_target_comes_back_within_point_blank(tmp_path):
+    """The leg held while the target stands 1.3 tiles off (it left point blank); 0.5 s later it is back at 0.8 tiles,
+    inside SHOVE_REPEAT_S of the miss: the shove, no second back leg."""
+    r, f, a = backed(tmp_path)
+    r.advance(0.5)
+    fr(r, [z(1, 101.3)], 30.0)
+    assert f.step() is None and r.acts.current is a
+    r.advance(0.5)
+    fr(r, [z(1, 100.8)], 30.0)
+    b = f.step()
+    assert (b.type, b.args) == ("shove", {"targetId": 1}) and "shove_back" not in f.why
+
+
+def test_after_the_back_leg_ends_the_shove_goes_inside_the_window(tmp_path):
+    """The leg ended (its AIM_LEG_S) with the target at point blank, still inside SHOVE_REPEAT_S of the miss: the shove,
+    never a second leg for the same miss."""
+    r, f, a = backed(tmp_path)
+    end(r, a, "done")
+    r.advance(0.5)
+    fr(r, [z(1, 100.0 + A49)], 30.0)
+    b = f.step()
+    assert (b.type, b.args) == ("shove", {"targetId": 1}) and "shove_back" not in f.why
+
+
+def test_under_the_sore_band_the_back_leg_is_held_too(tmp_path):
+    """The arms' pain 15 (STRAIN_SOFT to STRAIN_HARD: the shove at point blank, the swing not barred): the leg is held
+    0.5 s later at 1.2 tiles, nothing sent, where the swing went before fix 1."""
+    r, f, a = backed(tmp_path, arm=15.0)
+    r.advance(0.5)
+    fr(r, [z(1, 101.2)], 15.0)
+    assert f.step() is None and r.acts.current is a and not f.no_swing()
 
 
 def test_f11_s_shove_that_knocked_nothing_down_is_followed_by_the_back_leg(tmp_path):

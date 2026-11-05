@@ -39,8 +39,11 @@ class FightShove:
         tiles, #4580): after a missed point-blank shove at `zid` (`_shove_missed`, within SHOVE_REPEAT_S), where the
         corner and the breaks answer nothing (`corner` {kind "shove"}), the stance's `back` leg aimed at it goes in the
         second shove's place (`_stance_leg`, as `_wounded_leg`'s), logged `shove_back` {target, missed}; with no `aim`
-        announced the shove again; once SHOVE_REPEAT_S has passed since the miss, the shove. Cost if wrong: the
-        backpedal's half tile given up after each miss."""
+        announced the shove again; once SHOVE_REPEAT_S has passed since the miss, the shove. Fix 1 (review-t3 M1): one
+        leg a miss (`_backed`: the missed shove it answered), held by `Fight.busy` within KEEP_R + KEEP_MARGIN
+        whatever `no_swing` reads, and at point blank until the target has left it, so the shove goes again once the
+        target comes back within POINT_BLANK_R or the leg ends. Cost if wrong: the backpedal's half tile given up
+        after each miss."""
         low = self._low_swing(zid)   # P27-E: the low fight's full swing after the failed shoves, within FIGHT_REACH
         if low is not None:
             return low
@@ -60,7 +63,8 @@ class FightShove:
             brk = self._run_break(zid, z, sore)   # P25-T: a miss on record at any spacing consults the breaks
             if brk is not None:
                 return brk
-        if blank and "shove_back" in self.rules and self._shove_missed(zid) and self.world.can("aim"):
+        if (blank and "shove_back" in self.rules and self._shove_missed(zid) and self.world.can("aim")
+                and self._backed.get(zid) is not self._shove_a.get(zid)):   # fix 1, M1: one leg for each miss
             self.why["shove_back"] = {"target": zid, "missed": self._missed_n(zid)}   # P28-B2: back off, not again
             return self._stance_leg(zid, z, d, kind="back")
         if blank and self._swing_ok("shove", zid) and self._standing_near(STAND_MIN_R, (zid,)) is None:
