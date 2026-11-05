@@ -209,6 +209,12 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # next tick sends it again (`fight.Fight._observe_swing`); off, SWING_SKIP_S's refusal
     # survival iteration 22 (Plan 28 Task 7b; survive.py's docstring, Survival 24): in `survive.T12_SWITCHES` (the
     # replay tests' `pre_t12`)
+    # survival iteration 24 (Plan 30 Task 3; survive.py's docstring, Survival 26): in `survive.T14_SWITCHES` (the
+    # replay tests' `pre_t14`)
+    SWING_CLOSE = True    # ruling P30-A: the melee's `closeR` is SWING_CLOSE_R, so the Lua swings at a chaser only
+                          # inside it and presses a swing that did nothing again with no back leg (the Fight's
+                          # `swing_close` rule, `dispatch.FightDispatch._melee_inputs`); off, `closeR` 0: the swing at
+                          # the reach and the back leg after every miss, as before
     MELEE = True          # cut 1 of the maneuver layer: where the Fight's ladder would send an in-reach stance leg,
                           # an attack, a shove, a stomp or a floor swing at its pin, the melee maneuver to a build
                           # announcing `melee` (`dispatch.FightDispatch`); off, the ladder's command
@@ -1187,7 +1193,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("shove_back", self.SHOVE_BACK), ("drift_stand", self.DRIFT_STAND),
                                                ("circle", self.CIRCLE), ("approach_walk", self.APPROACH_WALK),
                                                ("melee", self.MELEE), ("route_cross", self.ROUTE_CROSS),
-                                               ("close_idle", self.CLOSE_IDLE))
+                                               ("close_idle", self.CLOSE_IDLE),
+                                               ("swing_close", self.SWING_CLOSE))
                          if on)
 
     def _flee_rules(self):

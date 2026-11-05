@@ -367,6 +367,13 @@ EXPLORE_HOP_MIN = 12.0    # tiles: an ExploreToward answer nearer than this is e
                           # 196 to 274, the spec's § 1 reading 2) ran 1 to 6 tiles, each ended in a 7 to 14 s wait with
                           # the character standing over calls of median 4.60 s; a walk of 12 tiles outlasts a median
                           # call at the walk's pace, the spec's number
+SWING_CLOSE_R = 1.0       # tiles: the melee's `closeR` (ruling P30-A, the Lua's swing close): a chasing target is swung
+                          # at only inside this, and a swing that did nothing is pressed again while it stays inside:
+                          # E23's five misses (`e_day_23-20261105-095110`, #4649, #4650) went at 1.231863021850586 to
+                          # 1.4385623931884766 tiles (a125 at 1.4342941045761108), each followed by a bite in the back
+                          # leg, while a swing that lands stops the zombie at about 0.95 tiles and takes no hit (the
+                          # spec's § 1 reading 1); F14's swings inside a tile (a121 at 0.9472782015800476, a131 at
+                          # 0.9590644240379333) knocked down, #4640; the spec's number
 SNEAK_R = 8.0             # tiles: a zombie listed this near with no target makes the gait the sneak's (ruling P30-D,
                           # `sneak.SneakGait`): the jar read's footsteps (#4661: 7 tiles upright, 4 sneaking) plus one
                           # tile, beyond the 4.5 tiles inside which sneaking spots about 2.6 times better at Sneak 0

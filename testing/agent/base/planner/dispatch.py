@@ -28,7 +28,8 @@ command at its pin. Its state is the Fight's own (`_init_dispatch`), and `fight.
   ATTACK_MARGIN), 0 where it reads none (the Lua's `K.reachOf`); `back` the stance's `back` heading
   (`Fight._back_heading`: away from the held threats, P28-E's arc from a lone standing zombie within KEEP_R, else
   STEER_TURNS to a clear one), (0, 0) where none is clear; `floorSwing` with the `floor_finish` rule on (P27-G, the
-  floor swing ahead of the stomp) and the floor swing not barred (`floor_swing_barred`, P28-C).
+  floor swing ahead of the stomp) and the floor swing not barred (`floor_swing_barred`, P28-C); `closeR` SWING_CLOSE_R
+  with the `swing_close` rule on (ruling P30-A, Plan 30 Task 3: the Lua's swing close), else 0 (the rule off).
 - `busy` (`_melee_holds`): a running melee holds until its re-send is due (`Melee.resend_due`), its target is no
   longer the pin, P27-N's pin-first would take a marked zombie (`_pin_marked`, the target not among `_pin_free`: fix
   1, review-t7b M2, so a marked attacker at point blank is pinned on its own tick as on the ladder, whose stance leg
@@ -55,7 +56,7 @@ command at its pin. Its state is the Fight's own (`_init_dispatch`), and `fight.
 from agent.base.planner.maneuvers import Melee
 from agent.base.planner.maneuvers.melee import MeleeInputs
 from agent.base.planner.policies import (KEEP_R, MELEE_BACKOFF_TICKS, MELEE_RELEASE_R, SEEK_SKIP_S, STALL_SWINGS,
-                                         STAND_MIN_R, arm_pain, on_floor, target_id_ok, zdist)
+                                         STAND_MIN_R, SWING_CLOSE_R, arm_pain, on_floor, target_id_ok, zdist)
 
 MELEE_LEGS = ("enter", "back", "stand")   # the ladder's stance legs within KEEP_R a melee replaces
 MELEE_SENDS = ("attack", "shove", "stomp")   # the ladder's sends at its pin a melee replaces (an attack at a fallen
@@ -199,7 +200,8 @@ class FightDispatch:
         """The send's `MeleeInputs` at pin `z` (the module docstring), read afresh."""
         back = self._back_heading(z)
         return MeleeInputs(mode, self.reach_r() or 0.0, back if back is not None else (0.0, 0.0),
-                           "floor_finish" in self.rules and not self.floor_swing_barred())
+                           "floor_finish" in self.rules and not self.floor_swing_barred(),
+                           SWING_CLOSE_R if "swing_close" in self.rules else 0.0)
 
     def _melee_dispatch(self, cmd):
         """The ladder's `cmd`, or at the dispatch point the running maneuver's next command (a new `Melee` where none

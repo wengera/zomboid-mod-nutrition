@@ -198,10 +198,11 @@ FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finis
                "floor_finish", "fallen_seek", "shove_close", "low_exit", "attack_reach",
                "point_blank_pin", "busy_retry", "floor_pain", "shove_back",
                "drift_stand", "circle", "approach_walk", "melee",
-               "route_cross", "close_idle")   # survival iterations 13 to 23's Fight
+               "route_cross", "close_idle", "swing_close")   # survival iterations 13 to 24's Fight
                      # rules (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H,
                      # P27-J, P27-K2; fix 2's P27-M and P27-N; P28-D, P28-C, P28-B2, P28-B3, P28-E, the approach walk;
-                     # the melee, cut 1 of the maneuver layer; P29-A's route, P29-C's close), each on in `rules`
+                     # the melee, cut 1 of the maneuver layer; P29-A's route, P29-C's close; P30-A's swing close),
+                     # each on in `rules`
                      # unless Survive's switch for it is off
 
 

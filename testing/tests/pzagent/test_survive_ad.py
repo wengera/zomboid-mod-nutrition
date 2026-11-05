@@ -177,10 +177,11 @@ def done(r, a, **res):
     act(r, a, "done", result=dict(DONE_TIME, **res))
 
 
-def want(target, mode="strike", reach=STRIKE_R, back=ARC, floor=True):
-    """A melee's wire args: `floorSwing` left off when False (`pza1._Cmd.args`)."""
+def want(target, mode="strike", reach=STRIKE_R, back=ARC, floor=True, close=P.SWING_CLOSE_R):
+    """A melee's wire args: `floorSwing` left off when False (`pza1._Cmd.args`); `closeR` SWING_CLOSE_R (ruling P30-A,
+    Plan 30 Task 3: the Fight's `swing_close` rule on)."""
     out = {"targetId": target, "mode": mode, "reach": reach, "keepR": P.KEEP_R, "shoveR": P.SHOVE_SEND_R,
-           "releaseR": P.MELEE_RELEASE_R, "backVx": back[0], "backVy": back[1], "seconds": P.MELEE_S, "closeR": 0.0}
+           "releaseR": P.MELEE_RELEASE_R, "backVx": back[0], "backVy": back[1], "seconds": P.MELEE_S, "closeR": close}
     if floor:
         out["floorSwing"] = True
     return out

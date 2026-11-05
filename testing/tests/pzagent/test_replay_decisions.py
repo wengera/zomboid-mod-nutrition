@@ -247,8 +247,8 @@ def pre_t13(sv, keep=()):
 
 def pre_t14(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 30 Task 3 (survival iteration 24): its switches off
-    (`survive.T14_SWITCHES`: GOAL_CONTINUE, ruling P30-B; SNEAK, P30-D), but those named in `keep`; every seam onto an
-    earlier rule reads them off (`pre_t13`)."""
+    (`survive.T14_SWITCHES`: SWING_CLOSE, ruling P30-A; GOAL_CONTINUE, P30-B; SNEAK, P30-D), but those named in
+    `keep`; every seam onto an earlier rule reads them off (`pre_t13`)."""
     for name in S.T14_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
@@ -2193,9 +2193,11 @@ def test_an_unbound_melee_ends_done_at_its_seconds():
 # ================================================================ Plan 30 Task 3: iteration 24 on the goldens
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
 def test_iteration_24_moves_no_golden(key):
-    """Survival iteration 24 (Plan 30 Task 3) moves no golden: P30-B (`GOAL_CONTINUE`) is the goal runner's, and every
-    golden's goal branch is the record's (`RecordedGoals`), never the runner's continue nor its hop; P30-D (`SNEAK`)
-    reads only a build announcing PZA/1.9's `sneak`, which no golden's hello nor `HELLO_CAPS` does; the six are
+    """Survival iteration 24 (Plan 30 Task 3) moves no golden: P30-A (`SWING_CLOSE`) is the melee's `closeR`, and no
+    golden's hello announces `melee` (`test_iteration_22_moves_no_golden`); P30-B (`GOAL_CONTINUE`) is the goal
+    runner's, and every golden's goal branch is the record's (`RecordedGoals`), never the runner's continue nor its hop;
+    P30-D (`SNEAK`) reads only a build announcing PZA/1.9's `sneak`, which no golden's hello nor `HELLO_CAPS` does; the
+    six are
     byte-identical with `T14_SWITCHES` on (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off
     (`pre_t14`)."""
     off = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t14))}

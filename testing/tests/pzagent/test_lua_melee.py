@@ -785,7 +785,7 @@ def test_a_progress_line_on_every_step_change_carries_the_step_distance_health_a
     run(lua, p, w, 40, stop=lambda: len(w["presses"]) > 0)
     pr = progress(lua, fs)
     assert [x["result"]["step"] for x in pr] == ["stand", "face", "swing"]
-    keys = {"step", "d", "hp", "swings", "shoves", "stomps", "floors", "knockdowns", "hits"}
+    keys = {"step", "d", "hp", "swings", "shoves", "stomps", "floors", "knockdowns", "hits", "held", "again"}   # P30-A
     assert all(set(x["result"]) == keys for x in pr)
     assert pr[-1]["result"]["swings"] == 1 and pr[0]["result"]["hp"] == 1.0
     assert pr[0]["result"]["d"] == pytest.approx(2.0 - 1.5 * TICK_MS / 1000.0)
@@ -1013,3 +1013,110 @@ def test_a_target_member_raising_never_propagates_and_releases_the_stance(lua, f
     assert (end["state"], end["reason"]) == ("failed", "interrupted"), member
     assert lua.eval("PZA.skills.errors") >= 1
     assert_released(lua, p)
+
+
+# ---- P30-A: the swing close (closeR; Plan 30 Task 3, survival iteration 24) --------------------------------------
+# E23 (`e_day_23-20261105-095110`): a125's swing went at 1.4342941045761108 tiles at a chaser (a130 at
+# 1.4385623931884766, a131 at 1.4340101480484009), each left it standing and the bite came in the back leg after it
+# (the guide's section 3); F14 (`f_goals_15-20261105-092752`): swings inside a tile knocked down (a121 at
+# 0.9472782015800476, a131 at 0.9590644240379333). The fixtures are the fake mover's, at E23's reach (the bat's 1.475).
+E23_REACH = 1.475
+CLOSE_R = 1.0   # the planner's SWING_CLOSE_R
+
+
+def test_e23_s_chaser_at_1_43_is_held_in_the_stance_and_swung_at_inside_close_r(lua, fs):
+    """P30-A: a chaser closing through the reach (1.475) is not swung at at 1.43 (E23's a125); the stance holds
+    (`stand`, one run counted in `held`), and the swing's face and press go once it is inside closeR (1.0)."""
+    p, z, w = world(lua, zx=11.6, zspeed=0.6, chasing=True)
+    go(lua, p, reach=E23_REACH, closeR=CLOSE_R, seconds=10)
+    run(lua, p, w, 400, stop=lambda: len(w["presses"]) > 0)
+    assert len(w["presses"]) == 1 and lua.eval("PZA.skills.STAND_R") < w["presses"][0]["d"] <= CLOSE_R
+    seq = step_seq(lua, fs)
+    assert seq[:3] == ["stand", "face", "swing"] and progress(lua, fs)[-1]["result"]["held"] == 1
+
+
+def test_with_close_r_0_the_chaser_is_swung_at_the_reach_as_before(lua, fs):
+    """P30-A's falsifier: closeR 0 (the planner's SWING_CLOSE off) presses at the reach, as E23 did."""
+    p, z, w = world(lua, zx=11.6, zspeed=0.6, chasing=True)
+    go(lua, p, reach=E23_REACH, seconds=10)
+    run(lua, p, w, 400, stop=lambda: len(w["presses"]) > 0)
+    assert CLOSE_R < w["presses"][0]["d"] <= E23_REACH
+
+
+def test_an_idle_target_at_1_4_is_swung_at_the_reach_as_today(lua, fs):
+    p, z, w = world(lua, zx=11.4, zspeed=0.0, chasing=False)
+    go(lua, p, reach=E23_REACH, closeR=CLOSE_R)
+    run(lua, p, w, 4)
+    assert len(w["presses"]) == 1 and w["presses"][0]["d"] == pytest.approx(1.4)
+
+
+def test_a_chaser_that_stops_closing_at_1_3_is_swung_at_the_reach(lua, fs):
+    """P30-A reads the chase as the target's getTarget the player and its distance falling: one standing still at 1.3
+    (its distance not falling) is swung at within the reach."""
+    p, z, w = world(lua, zx=11.3, zspeed=0.0, chasing=True)
+    go(lua, p, reach=E23_REACH, closeR=CLOSE_R)
+    run(lua, p, w, 4)
+    assert len(w["presses"]) == 1 and w["presses"][0]["d"] == pytest.approx(1.3)
+
+
+def test_a_swing_that_did_nothing_at_0_9_is_pressed_again_with_no_back_leg(lua, fs):
+    """P30-A: a swing at a standing chaser 0.9 tiles off whose result reads it standing, its health not fallen (the
+    fake's miss): no back leg; the swing again at the cadence (`again` 1), the stance never walking back."""
+    p, z, w = world(lua, zx=10.9, zspeed=0.0, chasing=True, attack_ticks=8)
+    go(lua, p, reach=E23_REACH, closeR=CLOSE_R, seconds=10)
+    run(lua, p, w, 60, stop=lambda: len(w["presses"]) > 1)
+    assert len(w["presses"]) == 2 and "back" not in step_seq(lua, fs) and w["walk"] is None
+    run(lua, p, w)
+    assert progress(lua, fs)[-1]["result"]["again"] == 1
+
+
+def test_a_swing_that_lowered_the_health_takes_the_back_leg_as_today(lua, fs):
+    """P30-A's other side: the result reads the health fallen from the press (a landed hit, the zombie staggered):
+    the back leg (P28-B2's), as before."""
+    p, z, w = world(lua, zx=10.9, zspeed=0.0, chasing=True, attack_ticks=8)
+
+    def hurt(wd, shove):
+        wd["zhp"] -= 0.2
+    w["on_attack"] = hurt
+    go(lua, p, reach=E23_REACH, closeR=CLOSE_R, seconds=10)
+    run(lua, p, w, 14)
+    assert len(w["presses"]) == 1 and cur_step(lua) == "back"
+
+
+def test_a_swing_that_did_nothing_at_point_blank_takes_the_back_leg(lua, fs):
+    """P30-A: within K.STAND_R (0.6) the back leg stands after a press that did nothing."""
+    p, z, w = world(lua, zx=10.5, zspeed=0.0, chasing=False, attack_ticks=8)
+    go(lua, p, reach=E23_REACH, closeR=CLOSE_R, seconds=10)
+    run(lua, p, w, 14)
+    assert len(w["presses"]) == 1 and cur_step(lua) == "back"
+
+
+def test_shove_mode_s_miss_takes_the_back_leg_as_p28_b2(lua, fs):
+    p, z, w = world(lua, zx=10.9, zspeed=0.0, chasing=False, attack_ticks=8)
+    go(lua, p, mode="shove", reach=E23_REACH, closeR=CLOSE_R, seconds=10)
+    run(lua, p, w, 14)
+    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is True and cur_step(lua) == "back"
+
+
+def test_a_swing_cut_by_a_hit_reaction_is_a_press_that_did_nothing(lua, fs):
+    """Task 2's refinement (T95.2: a hit reaction leaves the melee state before the 25 % collision event, no damage):
+    the reaction ends the swing with the health unfallen; once it ends no back leg, the swing again inside closeR."""
+    p, z, w = world(lua, zx=10.9, zspeed=0.0, chasing=True, attack_ticks=30)
+    go(lua, p, reach=E23_REACH, closeR=CLOSE_R, seconds=10)
+    run(lua, p, w, 3)
+    assert cur_step(lua) == "swing"
+    p.combat["hitReaction"] = "Bite"
+    run(lua, p, w, 5)
+    assert cur_step(lua) == "hit"
+    p.combat["hitReaction"] = ""
+    run(lua, p, w, 60, stop=lambda: len(w["presses"]) > 1)
+    assert len(w["presses"]) == 2 and "back" not in step_seq(lua, fs)
+
+
+def test_the_close_r_counts_reach_the_done_line(lua, fs):
+    """`held` and `again` on the done line (P30-A's counts, the planner's `swing_close`)."""
+    p, z, w = world(lua, zx=11.6, zspeed=0.3, chasing=True)
+    go(lua, p, reach=E23_REACH, closeR=CLOSE_R, seconds=1.0)
+    run(lua, p, w, 120, stop=lambda: ended(lua))
+    r = last(lua, fs)["result"]
+    assert r["end"] == "time" and r["held"] == 1 and r["again"] == 0

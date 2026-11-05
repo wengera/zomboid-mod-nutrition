@@ -30,7 +30,9 @@ one where its ladder would send an in-reach command at its pin and sets its `inp
   re-send supersedes a walking melee before its `done time`), not in `step`, whose superseded retry would start a
   fresh maneuver with a fresh clock.
 - `why` (logged by the Fight as `maneuver`): target, mode, sends, and the last progress line's step and distance,
-  with its counts once one carries them.
+  with its counts once one carries them, and `swing_close` {held, pressed_again} (ruling P30-A: the Lua's `held` and
+  `again`, the stance held at a chaser beyond `closeR` and the swings pressed again after one that did nothing) once a
+  progress line carries them.
 """
 import dataclasses
 import time
@@ -43,6 +45,7 @@ from agent.base.planner.policies import (KEEP_R, MELEE_RELEASE_R, MELEE_RESEND_M
 STRIKE_KEYS = ("swings", "floors", "stomps")   # a span's strikes the no-progress streak counts: the ladder's attack
                                                # (the swing and the floor swing) and its stomp (`Fight.observe`)
 COUNT_KEYS = ("swings", "shoves", "stomps", "floors", "knockdowns", "hits")   # the progress line's counts, logged
+CLOSE_KEYS = (("held", "held"), ("again", "pressed_again"))   # P30-A's counts -> `swing_close`'s keys
 STRIKE_STEPS = ("face", "swing", "shove", "stomp", "floor")   # the Lua's strike steps (PZAgent_StanceMelee.lua's
                                                               # header: each from its face to its result), in which no
                                                               # early re-send goes (fix 1, review-t7c M1)
@@ -55,6 +58,7 @@ class MeleeInputs:
     reach: float        # the swing's distance at a standing target, 0 for the Lua's own (`K.reachOf`)
     back: tuple         # the back leg's world heading (vx, vy); (0, 0) stands
     floor_swing: bool   # the weapon's floor swing at a fallen target allowed
+    close_r: float = 0.0   # the swing close's distance (ruling P30-A, SWING_CLOSE_R), 0 for the rule off
 
 
 def _number(v):
@@ -103,7 +107,7 @@ class Melee(Maneuver):
         self.mode = i.mode
         cmd = pza1.Melee(targetId=self.target, mode=i.mode, reach=float(i.reach), keepR=KEEP_R, shoveR=SHOVE_SEND_R,
                          releaseR=MELEE_RELEASE_R, backVx=float(i.back[0]), backVy=float(i.back[1]),
-                         seconds=MELEE_S, closeR=0.0, floorSwing=bool(i.floor_swing))
+                         seconds=MELEE_S, closeR=float(i.close_r), floorSwing=bool(i.floor_swing))
         self._log(sends=self.n + 1)
         return cmd
 
@@ -161,3 +165,5 @@ class Melee(Maneuver):
         self.why = {"target": self.target, "mode": self.mode, "sends": self.n if sends is None else sends,
                     "step": self._progress.get("step"), "d": self.d}
         self.why.update({k: self._progress[k] for k in COUNT_KEYS if k in self._progress})
+        if all(k in self._progress for k, _ in CLOSE_KEYS):
+            self.why["swing_close"] = {name: self._progress[k] for k, name in CLOSE_KEYS}   # P30-A

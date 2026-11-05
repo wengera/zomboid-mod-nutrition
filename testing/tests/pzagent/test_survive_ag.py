@@ -2,6 +2,8 @@
 rules of `survive.T14_SWITCHES`, each with its killing test, on E23's (`e_day_23-20261105-095110`), F14's
 (`f_goals_15-20261105-092752`) and fabricated fixtures, each fixture's line named where it is the artifact's.
 
+- P30-A (`SWING_CLOSE`, the Lua's swing close): `test_lua_melee.py`'s P30-A block (the reflex); the melee's
+  `closeR` and the maneuver's `swing_close` here.
 - P30-B (`GOAL_CONTINUE`, the goal runner): `test_goals.py`'s Plan 30 block; the switch here.
 - P30-D (`SNEAK`, `sneak.SneakGait`): the gait near a zombie with no target, upright at a chaser, in a flee and for a
   press, the posture the tick's one command.
@@ -17,7 +19,7 @@ from .test_survive_g import Src, zd
 
 def test_the_iteration_24_switches():
     """`survive.T14_SWITCHES`, each on `Survive` (or a class it derives) and on by default."""
-    assert S.T14_SWITCHES == ("GOAL_CONTINUE", "SNEAK")
+    assert S.T14_SWITCHES == ("SWING_CLOSE", "GOAL_CONTINUE", "SNEAK")
     assert all(getattr(S.Survive, n) is True for n in S.T14_SWITCHES)
 
 
@@ -177,3 +179,39 @@ def test_a_sneaking_walk_at_a_run_goes_at_a_walk_but_a_flee_s_keeps_its_run(tmp_
     sv.flee = flee
     posture, cmd = sv._sneak_posture(S.Decision("threat", flee, WalkTo(90.5, 200.5, "run"), {}))
     assert posture.TYPE == "sneak" and posture.on is False and cmd is None
+
+
+# ================================================================ P30-A: the swing close (`SWING_CLOSE`, the closeR)
+def test_the_melee_carries_close_r_swing_close_r_and_zero_with_the_rule_off(tmp_path):
+    """P30-A: the Fight's melee sends `closeR` SWING_CLOSE_R (1.0) with its `swing_close` rule on (Survive's
+    SWING_CLOSE, in `_fight_rules`); off, 0 (the Lua's rule off: the swing at the reach, as E23's)."""
+    from agent.base.planner import fight as F
+    from agent.base.planner import policies as P
+    from .fakemod import MELEE_CAPS
+    from .test_survive_q import fr, z
+    assert P.SWING_CLOSE_R == 1.0 and "swing_close" in F.FIGHT_RULES
+    for on, close in ((True, 1.0), (False, 0.0)):
+        r = Rig(tmp_path / str(on), caps=MELEE_CAPS)
+        fr(r, [z(9, 102.0)])
+        f = F.Fight(r.world, r.acts, r.clock)
+        f.stance = True
+        if not on:
+            f.rules = f.rules - {"swing_close"}
+        a = f.step()
+        assert (a.type, a.args["closeR"]) == ("melee", close), on
+    off = type("Off", (), {n: getattr(S.Survive, n) for n in [r.upper() for r in F.FIGHT_RULES]})()
+    off.SWING_CLOSE = False
+    assert "swing_close" not in S.Survive._fight_rules(off)
+
+
+def test_the_maneuver_logs_the_swing_close_counts_off_its_progress(tmp_path):
+    """P30-A's why: the progress line's `held` and `again` logged `swing_close` {held, pressed_again} on the
+    maneuver's log (Task 4's reader)."""
+    from agent.base.planner.maneuvers import Melee
+    from .fakemod import MELEE_CAPS
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    m = Melee(r.world, r.acts, r.clock, 9)
+    m.progressed({"result": {"step": "stand", "d": 1.3, "swings": 1, "held": 2, "again": 1}})
+    assert m.log()["swing_close"] == {"held": 2, "pressed_again": 1}
+    m.progressed({"result": {"step": "stand", "d": 1.3}})
+    assert "swing_close" not in m.log()

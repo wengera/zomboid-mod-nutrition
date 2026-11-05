@@ -882,7 +882,7 @@
         "stomps": {"description": "The stomps (the shove pair at the fallen target) pressed so far.", "type": "integer"},
         "floors": {"description": "The weapon's floor swings at the fallen target pressed so far.", "type": "integer"},
         "knockdowns": {"description": "The swings and shoves whose end read the target knocked down (isKnockedDown(), a tick after the attack ended).", "type": "integer"},
-        "hits": {"description": "The runs of the player's hit reaction read so far (a new run counts one: a zombie attack reaching the damage roll, a defended one included, #4292).", "type": "integer"},
+        "hits": {"description": "The runs of the player's hit reaction read so far (a new run counts one: a zombie attack reaching the damage roll, a defended one included, #4292).", "type": "integer"}, "held": {"description": "PZA/1.9 (Plan 30 Task 3, the swing close): the runs of ticks the stance was held at a target chasing the player beyond closeR inside the reach, the swing waiting (0 with closeR 0).", "type": "integer"}, "again": {"description": "PZA/1.9 (Plan 30 Task 3, the swing close): the swings pressed after a swing that left the target standing with its health not fallen, no back leg between (0 with closeR 0).", "type": "integer"},
         "hp0": {"description": "The target's health, getHealth(), on the first tick; absent when it could not be read.", "type": "number"},
         "hp1": {"description": "The target's health at the end; absent when it could not be read.", "type": "number"},
         "dMin": {"description": "The least distance from the player to the target read over the span, in tiles.", "type": "number"},
@@ -905,7 +905,7 @@
         "stomps": {"description": "The stomps (the shove pair at the fallen target) pressed so far.", "type": "integer"},
         "floors": {"description": "The weapon's floor swings at the fallen target pressed so far.", "type": "integer"},
         "knockdowns": {"description": "The swings and shoves whose end read the target knocked down (isKnockedDown(), a tick after the attack ended).", "type": "integer"},
-        "hits": {"description": "The runs of the player's hit reaction read so far (a new run counts one: a zombie attack reaching the damage roll, a defended one included, #4292).", "type": "integer"}
+        "hits": {"description": "The runs of the player's hit reaction read so far (a new run counts one: a zombie attack reaching the damage roll, a defended one included, #4292).", "type": "integer"}, "held": {"description": "PZA/1.9 (Plan 30 Task 3, the swing close): the runs of ticks the stance was held at a target chasing the player beyond closeR inside the reach, the swing waiting (0 with closeR 0).", "type": "integer"}, "again": {"description": "PZA/1.9 (Plan 30 Task 3, the swing close): the swings pressed after a swing that left the target standing with its health not fallen, no back leg between (0 with closeR 0).", "type": "integer"}
       }
     },
     "result_sneak": {
