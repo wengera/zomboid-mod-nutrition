@@ -681,7 +681,7 @@ def test_bandage_takes_keep_moving_a_bool_defaulting_false_and_the_ride_reasons_
         with pytest.raises(TypeError):
             actions.check(pza1.Bandage(50, keepMoving=bad))
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
-    assert d["reason"]["enum"][-13:-10] == ["leg part", "stopped", "aiming"]        # PZA/1.6, 1.7 and 1.8 append after them
+    assert d["reason"]["enum"][-13:-10] == ["leg part", "stopped", "aiming"]        # PZA/1.6, 1.7, 1.8 append after
     assert {"leg part", "stopped", "aiming"} <= pza1.REASONS
     tools = {t["name"]: t for t in json.load(open(os.path.join(ROOT, "testing", "agent", "base", "schema", "tools.json"),
                                                    encoding="utf-8"))}
@@ -836,7 +836,8 @@ def test_the_e7_log_decodes_with_worn_clothing_and_locked_absent(tmp_path):
 
 def test_window_is_an_action_with_its_args_result_and_reason():
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
-    assert pza1.ACTION_TYPES[-6:-4] == ("wear", "window") and d["reason"]["enum"][-10] == "not a window"   # PZA/1.8 appends
+    assert pza1.ACTION_TYPES[-6:-4] == ("wear", "window")                     # PZA/1.8 appends melee
+    assert d["reason"]["enum"][-10] == "not a window"                           # and the reasons out of range, crowd
     assert pza1.ACTION_ARGS["window"] == {"x": "int", "y": "int", "smash": "bool"}
     assert set(d["result_window"]["properties"]) == {"smashed", "opened", "cut", "wounds"}
     body = {"kind": "act", "seq": 3, "tick": 1, "wallMs": 2, "aid": "a1", "type": "window", "state": "done",

@@ -87,6 +87,7 @@ def test_the_first_tick_with_a_player_writes_hello_the_first_sight_and_one_flush
     assert [l["kind"] for l in out] == ["hello", "event", "event"]
     hello = out[0]
     caps = sorted(lua.eval("PZA.schema.actions").keys())   # every action, sleep's skill included since Plan 23 Task 8
+    # PZA/1.8 (Plan 28 Task 7a): the mod version the hello reads
     assert hello["proto"] == "PZA/1" and hello["mod"] == "1.8" and hello["user"] == "admin"
     assert hello["caps"] == caps and hello["rate"] == 10 and hello["mode"] == "append" and hello["build"] == ""
     assert sorted(list(lua.eval("PZA.skills.types").keys()) + ["rate", "scan"]) == caps

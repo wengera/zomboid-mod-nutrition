@@ -198,7 +198,7 @@ local function action(p)
     return { class = cls, n = #q }
 end
 
--- act: the runner's K.status() ({aid, state}, nil when idle), nil while PZAgent_Skills.lua is not loaded
+-- act: the runner's K.status() ({aid, state, step}, nil when idle), nil while PZAgent_Skills.lua is not loaded
 local function act()
     local K = PZA.skills
     if K == nil or K.status == nil then return nil end
