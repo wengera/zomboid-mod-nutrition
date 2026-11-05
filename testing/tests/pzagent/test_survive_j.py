@@ -4,14 +4,15 @@ window past a stuck door and the goal descriptions' want order are `test_survive
 skills."""
 import pytest
 
-from agent.base import pza1
 from agent.base.planner import care as C
 
+from .fakemod import DEFAULT_HELLO
 from .test_policies import all_sends_valid, zombie
 from .test_survive import decisions, last, make, tick
 from .test_survive_g import care_why, hold
 
-CAPS_15 = tuple(t for t in pza1.ACTION_TYPES if t not in ("wear", "window"))   # a PZA/1.5 build: no wear, no window
+CAPS_15 = tuple(t for t in DEFAULT_HELLO["caps"] if t not in ("wear", "window"))   # a PZA/1.5 build: no wear, no
+# window (Plan 28 Task 7b fix 1, a named fixture correction: off the fake's PZA/1.7 caps, so no PZA/1.8 `melee`)
 JACKET = "base:jacket"
 PANTS = "base:pants"
 

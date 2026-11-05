@@ -595,11 +595,12 @@ def test_a_stand_s_stalled_walk_with_no_fence_on_its_line_re_routes_to_the_adjac
 
 def test_a_build_without_climb_re_routes_to_the_adjacent_square_even_against_a_fence(tmp_path):
     """The climb is sent only to a build announcing it: the fence on the line, the hello without `climb`: the
-    `reachable_adjacent` square as before."""
-    from agent.base import pza1
+    `reachable_adjacent` square as before. Plan 28 Task 7b fix 1, a named fixture correction: the build's caps off the
+    fake's PZA/1.7 caps (no PZA/1.8 `melee`, which a build without `climb` cannot announce)."""
+    from .fakemod import DEFAULT_HELLO
     from .test_policies import square
     from .test_survive import group
-    r, sv = make(tmp_path, caps=tuple(t for t in pza1.ACTION_TYPES if t != "climb"))
+    r, sv = make(tmp_path, caps=tuple(t for t in DEFAULT_HELLO["caps"] if t != "climb"))
     stand_walk(r, sv)
     r.scan([square(101, 201, blockW=True, hopW=True)])
     a = stall(r, sv, group(0.1), 1.0)

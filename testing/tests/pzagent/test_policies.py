@@ -45,7 +45,7 @@ class Rig:
     """The fake mod, the transport, a World and Actions in one state dir, on one injected clock."""
 
     def __init__(self, tmp_path, now=1000.0, caps=None):
-        """`caps` the hello's (default every type the schema names, as the fake mod's DEFAULT_HELLO; CAPS_14 a
+        """`caps` the hello's (default the fake mod's DEFAULT_HELLO, the PZA/1.7 build's literal caps; CAPS_14 a
         PZA/1.4 build, on which the planner sends none of the PZA/1.5 skills: `World.can`, ruling P24-G)."""
         self.t = {"now": now}
         self.clock = lambda: self.t["now"]

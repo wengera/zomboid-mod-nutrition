@@ -7,12 +7,11 @@ import math
 
 import pytest
 
-from agent.base import pza1
 from agent.base.planner import care as C
 from agent.base.planner import goals as G
 from agent.base.world import World
 
-from .fakemod import DEFAULT_FRAME
+from .fakemod import DEFAULT_FRAME, DEFAULT_HELLO
 from .test_policies import Rig, all_sends_valid, zombie
 from .test_survive import last, make, tick
 from .test_survive_g import care_frame, care_why, part
@@ -211,7 +210,9 @@ def test_one_unwear_per_item_per_wear_retry_min(tmp_path):
 
 
 def test_a_build_without_unwear_unwears_nothing(tmp_path):
-    caps = tuple(t for t in pza1.ACTION_TYPES if t != "unwear")
+    """Plan 28 Task 7b fix 1, a named fixture correction: the build's caps off the fake's PZA/1.7 caps (no PZA/1.8
+    `melee`, which a build without `unwear` cannot announce)."""
+    caps = tuple(t for t in DEFAULT_HELLO["caps"] if t != "unwear")
     r, sv = unwear_rig(tmp_path, caps=caps)
     tick(r, sv)
     assert not any(a.type == "unwear" for a in r.acts.history) and care_why(tmp_path).get("want") == "bandage"

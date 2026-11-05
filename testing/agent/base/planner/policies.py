@@ -336,6 +336,14 @@ MELEE_RESEND_MARGIN_S = 0.5   # seconds before MELEE_S (from the running melee's
 MELEE_RELEASE_R = KEEP_R + KEEP_MARGIN   # tiles beyond which the melee ends `out of range` (its `releaseR`): the
                           # running backpedal's own give-way past KEEP_R (`Fight.busy`), the ladder's legs taking the
                           # target there
+MELEE_WALK_S = 4.0        # seconds the melee's walk to a fallen target (its `stomp_walk` step) may run, summed across
+                          # its sends, before the Fight reads it `out of reach` (Plan 28 Task 7b fix 1, review-t7b m1):
+                          # the Lua's own bound, K.STOMP_APPROACH_MS 4000 (PZAgent_Stance.lua), which a melee never
+                          # reaches alone since its `seconds` (MELEE_S) end it first and each send restarts the walk
+MELEE_BACKOFF_TICKS = 10  # planner ticks after a melee ended `interrupted`, `timeout` or `no target` in which no melee
+                          # goes at that target, the ladder's command going instead (fix 1, review-t7b m2): Survive's
+                          # FAILED_COOLDOWN_TICKS, the cooling of a failed command, mirrored (survive.py imports this
+                          # module, so it cannot be read from there)
 
 
 def place_of(world):

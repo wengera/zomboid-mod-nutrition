@@ -10,14 +10,21 @@ one where its ladder would send an in-reach command at its pin and sets its `inp
   MELEE_RELEASE_R, `seconds` MELEE_S); None while the running melee is not yet due its re-send. The re-send
   (`resend`): "early" once MELEE_S - MELEE_RESEND_MARGIN_S have passed since the running melee's accept (its
   `acked_wall`, else its `sent_wall`), so the Lua supersedes a melee of the same target and keeps the stance (Task
-  7a's report, item 10: a `done` releases it); "time" after a `done time` (the stance taken again).
+  7a's report, item 10: a `done` releases it), but never while the last progress line's step is a strike's
+  (STRIKE_STEPS: fix 1, review-t7c M1, a re-send would supersede the swing or shove in flight and lose its end), going
+  on the first tick after it; "time" after a `done time` (the stance taken again).
 - The ends (`ended`): a `done` whose result reads `kill` true names its target in the kills its owner takes
   (`take_kills`), whichever of its sends it was (an early re-send's predecessor too); the current send's `done`
   ends the maneuver `dead` when its `end` reads dead, else (`time`, or a replay's result-less done) it goes on, its
   span (`take_span`: the strikes, the swings, floor swings and stomps, and whether the target's health fell from
   `hp0` to `hp1`, None when either is unreadable) read by the owner's no-progress streak; any other end of the current
-  send ends it with its reason (`out of range`, `crowd` with its result kept in `crowd`, `stood`, `superseded`,
-  `not loaded`, `interrupted`, a rejection's `too far`, `no target`, `no weapon`), or its state (`timeout`).
+  send ends it with its reason (`out of range`, `crowd` with its result kept in `crowd`, `stood`, `out of reach`,
+  `superseded`, `not loaded`, `interrupted`, a rejection's `too far`, `no target`, `no weapon`), or its state
+  (`timeout`).
+- The walk to a fallen target (fix 1, review-t7b m1): the Lua's `stomp_walk` fails `out of reach` after
+  K.STOMP_APPROACH_MS, but its `seconds` end it first and every send restarts that walk's clock, so the maneuver keeps
+  its own: from the first progress line reading `stomp_walk` (`_walk_since`, reset by any other step), a `done` whose
+  last step is still the walk once MELEE_WALK_S have passed ends the maneuver `out of reach`, as the Lua would.
 - `why` (logged by the Fight as `maneuver`): target, mode, sends, and the last progress line's step and distance,
   with its counts once one carries them.
 """
@@ -26,11 +33,15 @@ import time
 
 from agent.base import pza1
 from agent.base.planner.maneuvers.base import Maneuver
-from agent.base.planner.policies import KEEP_R, MELEE_RELEASE_R, MELEE_RESEND_MARGIN_S, MELEE_S, SHOVE_R
+from agent.base.planner.policies import (KEEP_R, MELEE_RELEASE_R, MELEE_RESEND_MARGIN_S, MELEE_S, MELEE_WALK_S,
+                                         SHOVE_R)
 
 STRIKE_KEYS = ("swings", "floors", "stomps")   # a span's strikes the no-progress streak counts: the ladder's attack
                                                # (the swing and the floor swing) and its stomp (`Fight.observe`)
 COUNT_KEYS = ("swings", "shoves", "stomps", "floors", "knockdowns", "hits")   # the progress line's counts, logged
+STRIKE_STEPS = ("face", "swing", "shove", "stomp", "floor")   # the Lua's strike steps (PZAgent_StanceMelee.lua's
+                                                              # header: each from its face to its result), in which no
+                                                              # early re-send goes (fix 1, review-t7c M1)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -62,11 +73,13 @@ class Melee(Maneuver):
         self._progress = {}     # the last progress line's result
         self._kills = []        # the target ids a `done` {kill} read, not yet taken
         self._span = None       # the current send's `done` span, not yet taken
+        self._walk_since = None   # the wall of the first progress line of the running walk to a fallen target
 
     def resend_due(self):
-        """The running melee has run MELEE_S - MELEE_RESEND_MARGIN_S since its accept (else its send)."""
+        """The running melee has run MELEE_S - MELEE_RESEND_MARGIN_S since its accept (else its send), and its last
+        progress line's step is no strike's (STRIKE_STEPS: the strike's end is read first)."""
         a = self.action
-        if a is None or not self.running():
+        if a is None or not self.running() or self._progress.get("step") in STRIKE_STEPS:
             return False
         t0 = a.acked_wall if a.acked_wall is not None else a.sent_wall
         return self.clock() - t0 >= MELEE_S - MELEE_RESEND_MARGIN_S
@@ -106,6 +119,9 @@ class Melee(Maneuver):
             self._span = (strikes, hp1 < hp0 if _number(hp0) and _number(hp1) else None)
             if res.get("end") == "dead":
                 self._end = "dead"
+            elif (self._progress.get("step") == "stomp_walk" and self._walk_since is not None
+                  and self.clock() - self._walk_since >= MELEE_WALK_S):
+                self._end = "out of reach"   # fix 1, m1: the Lua's own bound, summed across the sends
             return
         if a.reason == "crowd":
             self.crowd = res
@@ -116,6 +132,10 @@ class Melee(Maneuver):
         if isinstance(res, dict):
             self._progress = res
             self.d = res.get("d")
+            if res.get("step") != "stomp_walk":
+                self._walk_since = None
+            elif self._walk_since is None:
+                self._walk_since = self.clock()
             self._log()
 
     def take_kills(self):

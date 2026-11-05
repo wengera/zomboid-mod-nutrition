@@ -15,7 +15,6 @@
 """
 import pytest
 
-from agent.base import pza1
 from agent.base.planner import care as C
 from agent.base.planner import goals as G
 from agent.base.planner import llm as L
@@ -24,6 +23,7 @@ from agent.base.planner.goals import GoalRunner, LootBuilding, Shelter
 from agent.base.planner.night import SHUN_MIN
 from agent.base.planner.survive import Survive
 
+from .fakemod import DEFAULT_HELLO
 from .test_goals import Src, inside
 from .test_night import house
 from .test_policies import FRIDGE, Rig, all_sends_valid
@@ -221,7 +221,9 @@ def test_with_the_switch_off_the_idle_stock_unwears_as_before(tmp_path):
 
 
 def test_a_build_without_unwear_has_the_bleeding_step_want_the_bandage(tmp_path):
-    caps = tuple(t for t in pza1.ACTION_TYPES if t != "unwear")
+    """Plan 28 Task 7b fix 1, a named fixture correction: the build's caps off the fake's PZA/1.7 caps (no PZA/1.8
+    `melee`, which a build without `unwear` cannot announce)."""
+    caps = tuple(t for t in DEFAULT_HELLO["caps"] if t != "unwear")
     r, sv = unwear_rig(tmp_path, caps=caps)
     tick(r, sv)
     assert not any(a.type == "unwear" for a in r.acts.history) and care_why(tmp_path).get("want") == "bandage"

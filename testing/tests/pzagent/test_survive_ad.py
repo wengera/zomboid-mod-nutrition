@@ -423,22 +423,89 @@ def test_too_far_takes_the_ladder_s_path_as_out_of_range_does(tmp_path):
     assert (b.type, f.why["leg"]) == ("aim", "enter") and f.why["melee_end"]["end"] == "too far"
 
 
-def test_crowd_re_pins_to_the_other_zombie_when_it_is_the_nearer(tmp_path):
-    """`failed crowd` {id, d}: the other standing zombie the engine's press would take is pinned when it is nearer
-    than the target, and the next melee goes at it; one reported farther leaves the pin."""
-    for crowd_d, pin in ((0.5, 8), (1.4, 9)):
-        r = rig(tmp_path, str(pin))
-        fr(r, [z(9, 101.0), z(8, 100.0, 200.5)])
+def test_crowd_re_pins_to_the_other_zombie_the_lua_reports_nearer(tmp_path):
+    """`failed crowd` {id, d}: the other standing zombie the engine's press would take (within K.STAND_R 0.6, where
+    the Lua fails it) is pinned when it is nearer than the target, and the next melee goes at it. Fix 1 (review-t7b
+    M1): the geometry the Lua reports, 8 closing from 0.9 tiles to 0.55 while pin 9 stands 1.0 off."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 101.0), z(8, 100.0, 200.9)])
+    f = fight(r, target=9)
+    a = f.step()
+    assert (a.type, a.args["targetId"]) == ("melee", 9)
+    act(r, a, "accepted")
+    act(r, a, "failed", "crowd", result={"id": 8, "d": 0.55})
+    r.advance(0.5)
+    fr(r, [z(9, 101.0), z(8, 100.0, 200.55)])
+    b = f.step()
+    assert (b.type, b.args["targetId"], f.target) == ("melee", 8, 8) and f.why["melee_end"]["end"] == "crowd"
+
+
+def test_a_crowd_end_that_re_pins_nothing_gives_the_ladder_its_press(tmp_path):
+    """Fix 1 (review-t7b M1, the loop's probe): pin 9 at 0.4 tiles, 8 closing to 0.55 (the Lua's `crowd`, 8 not the
+    nearer): no fresh melee on that geometry. The crowd end hands the next choose to the ladder (`_m_ladder`), and while
+    8 stands within STAND_MIN_R of the player no melee is dispatched (`_melee_mode`): over six ticks the ladder's leg
+    and its swing go as with the rule off, never a melee that the Lua would fail `crowd` with no press."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 100.4), z(8, 100.0, 200.9)])
+    f = fight(r, target=9)
+    a = f.step()
+    assert (a.type, a.args["targetId"]) == ("melee", 9)
+    act(r, a, "accepted")
+    act(r, a, "failed", "crowd", result={"id": 8, "d": 0.55})
+    sends = []
+    for k in range(6):
+        r.advance(0.5)
+        fr(r, [z(9, 100.4), z(8, 100.0, 200.55)])
+        b = f.step()
+        if k == 0:
+            assert f.why["melee_end"]["end"] == "crowd" and f.target == 9
+        if b is not None:
+            sends.append((b.type, b.args.get("targetId")))
+            act(r, b, "accepted")
+            if b.type != "aim":
+                act(r, b, "done", result={"attackStarted": True, "knockdown": False, "targetDead": False})
+    assert ("attack", 9) in sends and not any(t == "melee" for t, _ in sends) and f.m is None
+
+
+def test_no_melee_while_another_standing_zombie_is_within_stand_min_r(tmp_path):
+    """Fix 1 (review-t7b M1): a second standing zombie within STAND_MIN_R of the player keeps the ladder's command (its
+    P24-AH rules own that tick, the Lua's press would take that zombie); a fallen one there, or one beyond it, does
+    not."""
+    for i, (other, melee) in enumerate(((z(8, 100.0, 200.55), False), (z(8, 100.0, 200.55, floor=True), True),
+                                        (z(8, 100.0, 200.7), True))):
+        r = rig(tmp_path, str(i))
+        fr(r, [z(9, 101.0), other])
         f = fight(r, target=9)
         a = f.step()
-        assert a.args["targetId"] == 9
-        act(r, a, "accepted")
-        act(r, a, "failed", "crowd", result={"id": 8, "d": crowd_d})
-        r.advance(0.5)
-        fr(r, [z(9, 101.0), z(8, 100.0, 200.5)])
-        b = f.step()
-        assert (b.type, b.args["targetId"], f.target) == ("melee", pin, pin)
-        assert f.why["melee_end"]["end"] == "crowd"
+        assert (a.type == "melee") is melee, other
+
+
+def test_a_marked_attacker_at_point_blank_re_pins_through_a_running_melee_on_its_tick(tmp_path):
+    """Fix 1 (review-t7b M2): a running melee at pin 9 (1.5 tiles off) gives way to P27-N's pin-first on the tick a
+    marked zombie at 0.8 tiles is read attacking (`_pin_marked`, its target not among `_pin_free`), so the Fight pins
+    it at +0.5 s as the ladder does, not at the re-send; the pin itself marked at point blank holds the melee."""
+    r = rig(tmp_path, "other")
+    fr(r, [z(9, 101.5)])
+    f = fight(r)
+    a = f.step()
+    assert (a.type, a.args["targetId"]) == ("melee", 9)
+    act(r, a, "accepted")
+    r.advance(0.5)
+    f.unreachable[8] = r.clock() + P.UNREACHABLE_S
+    fr(r, [z(9, 101.5), z(8, 100.0, 200.8)], attackers=1, hit_reaction="Bite")
+    assert not f.busy()
+    f.step()
+    assert f.target == 8 and f.why["pin"] == {"why": "point_blank"}
+    r = rig(tmp_path, "self")
+    fr(r, [z(9, 100.8)])
+    f = fight(r)
+    a = f.step()
+    assert (a.type, a.args["targetId"]) == ("melee", 9)
+    act(r, a, "accepted")
+    r.advance(0.5)
+    f.unreachable[9] = r.clock() + P.UNREACHABLE_S
+    fr(r, [z(9, 100.8)], attackers=1, hit_reaction="Bite")
+    assert f.busy() and f.step() is None and f.target == 9
 
 
 def test_a_finish_whose_target_stood_takes_the_ladder_and_the_strike(tmp_path):
@@ -752,3 +819,131 @@ def test_a_melee_is_the_swing_after_a_shove(tmp_path):
     fr(r, [z(9, 101.2, floor=True), z(8, 100.0, 200.9)])
     b = f.step()
     assert (b.type, b.args) == ("shove", {"targetId": 8}) and f.why["shove"] == "first"
+
+
+# ================================================================ fix 1 (review-t7b): the minors
+def test_out_of_reach_marks_the_fallen_target_and_takes_the_ladder(tmp_path):
+    """Fix 1 (review-t7b m1): `failed out of reach` (the stomp's walk to a fallen target did not close) leaves the
+    target unreachable for SEEK_SKIP_S, as the ladder's failed stomp walk is left, and the next choose is the
+    ladder's."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 102.4, floor=True)])
+    f = fight(r)
+    a = f.step()
+    assert (a.type, a.args["mode"]) == ("melee", "finish")
+    act(r, a, "accepted")
+    act(r, a, "failed", "out of reach")
+    r.advance(0.5)
+    fr(r, [z(9, 102.4, floor=True)])
+    assert f.step() is None and f.unreachable[9] == r.clock() + P.SEEK_SKIP_S
+    assert f.why["melee_end"]["end"] == "out of reach" and f.m is None
+
+
+def test_the_walk_to_a_fallen_target_is_bounded_across_the_sends(tmp_path):
+    """Fix 1 (review-t7b m1): the Lua's `seconds` (MELEE_S) end a melee before its walk's own bound
+    (K.STOMP_APPROACH_MS) and each send restarts that walk, so the maneuver keeps the walk's clock: a `done` whose last
+    step is still `stomp_walk` MELEE_WALK_S after the walk's first progress line ends it `out of reach`, the target
+    marked; a walk that reached its stomp in between restarts the clock."""
+    for reached in (False, True):
+        r = rig(tmp_path, str(reached))
+        fr(r, [z(9, 102.4, floor=True)])
+        f = fight(r)
+        a = f.step()
+        act(r, a, "accepted")
+        act(r, a, "progress", result={"step": "stomp_walk", "d": 2.4})
+        f.observe()
+        r.advance(P.MELEE_S)
+        done(r, a)
+        fr(r, [z(9, 102.4, floor=True)])
+        b = f.step()
+        assert b.type == "melee" and f.why["melee"] == {"resend": "time"}
+        act(r, b, "accepted")
+        act(r, b, "progress", result={"step": "stomp" if reached else "stomp_walk", "d": 1.6})
+        act(r, b, "progress", result={"step": "stomp_walk", "d": 1.6})
+        r.advance(P.MELEE_WALK_S - P.MELEE_S)
+        done(r, b)
+        fr(r, [z(9, 102.4, floor=True)])
+        c = f.step()
+        if reached:
+            assert c.type == "melee" and 9 not in f.unreachable
+        else:
+            assert c is None and f.why["melee_end"]["end"] == "out of reach" and 9 in f.unreachable
+
+
+def test_interrupted_timeout_and_no_target_back_off_to_the_ladder(tmp_path):
+    """Fix 1 (review-t7b m2): a melee ended `interrupted`, `timeout` or `no target` leaves its target to the ladder for
+    MELEE_BACKOFF_TICKS planner ticks (Survive's FAILED_COOLDOWN_TICKS), logged `melee_end` {.., backoff}; the tick
+    after them dispatches again."""
+    assert P.MELEE_BACKOFF_TICKS == S.FAILED_COOLDOWN_TICKS
+    for state, reason in (("failed", "interrupted"), ("timeout", ""), ("rejected", "no target")):
+        r = rig(tmp_path, state)
+        fr(r, [z(9, 102.0)])
+        f = fight(r)
+        a = f.step()
+        if state == "timeout":
+            a.state = "timeout"
+        else:
+            act(r, a, state, reason)
+        for k in range(1, P.MELEE_BACKOFF_TICKS + 2):
+            r.advance(0.5)
+            fr(r, [z(9, 102.0)])
+            b = f.step()
+            if k == 1:
+                assert f.why["melee_end"]["end"] == (reason or "timeout") and f.why["melee_end"]["backoff"] == 10
+            assert (b.type == "melee") is (k > P.MELEE_BACKOFF_TICKS), (reason, k)
+            if b.type != "melee":
+                act(r, b, "done", result={})
+
+
+def test_the_decision_line_carries_the_ladder_the_re_send_and_the_end(tmp_path):
+    """Fix 1 (review-t7b m3): Survive's decision line (the threat branch's why) carries `ladder` on the dispatching
+    tick, `melee` {resend "early"} on the early re-send, and `melee_end` {.., end} on the choose after an end."""
+    r, sv = make(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 102.0)])
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert a.type == "melee" and w["ladder"] == "aim" and "melee" not in w and "melee_end" not in w
+    act(r, a, "accepted")
+    r.advance(P.MELEE_S - P.MELEE_RESEND_MARGIN_S)
+    fr(r, [z(9, 102.0)])
+    b = tick(r, sv)
+    assert b.type == "melee" and threat_why(tmp_path)["melee"] == {"resend": "early"}
+    act(r, b, "accepted")
+    act(r, b, "failed", "out of range")
+    r.advance(0.5)
+    fr(r, [z(9, 102.6)])
+    c = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert c.type == "aim" and w["melee_end"]["end"] == "out of range" and w["melee_end"]["sends"] == 2
+
+
+def test_the_fake_s_default_caps_are_the_pza1_7_build_s_literal_list():
+    """Fix 1 (review-t7b m4): `fakemod.DEFAULT_HELLO`'s caps are a literal list (`CAPS_17`), the schema's types as they
+    stood before PZA/1.8's `melee`; `MELEE_CAPS` adds it."""
+    from . import fakemod
+    from agent.base import pza1
+    pre = pza1.ACTION_TYPES[:pza1.ACTION_TYPES.index("melee")]
+    assert tuple(fakemod.DEFAULT_HELLO["caps"]) == fakemod.CAPS_17 == pre
+    assert fakemod.MELEE_CAPS == list(fakemod.CAPS_17) + ["melee"]
+
+
+def test_the_early_re_send_waits_for_a_strike_in_flight(tmp_path):
+    """Fix 1 (review-t7c M1): a swing pressed 1.9 s after the accept (its progress line's step `swing`) holds the
+    early re-send past MELEE_S - MELEE_RESEND_MARGIN_S, so the Lua reads the strike's end; the first tick after the
+    strike (its step `back`) re-sends."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 101.0)])
+    f = fight(r)
+    a = f.step()
+    act(r, a, "accepted")
+    r.advance(1.9)
+    act(r, a, "progress", result={"step": "swing", "d": 1.0})
+    r.advance(0.1)
+    fr(r, [z(9, 101.0)])
+    assert f.step() is None and f.busy() and f.m.action is a
+    r.advance(0.2)
+    act(r, a, "progress", result={"step": "back", "d": 1.1})
+    r.advance(0.1)
+    fr(r, [z(9, 101.1)])
+    b = f.step()
+    assert b.type == "melee" and f.why["melee"] == {"resend": "early"}

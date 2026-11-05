@@ -53,11 +53,15 @@ def square(**fields):
 
 
 # PZA/1.8 (Plan 28 Task 7a): the melee reflex is announced only where a test asks (hello(caps=...), or MELEE_CAPS), so a
-# fake hello reads as every build before PZA/1.8's did and a planner gated on World.can("melee") stays off by default
+# fake hello reads as every build before PZA/1.8's did and a planner gated on World.can("melee") stays off by default.
+# Plan 28 Task 7b fix 1 (review-t7b m4): the default caps are the PZA/1.7 build's, a literal list, never derived from
+# the schema's ACTION_TYPES (a later type would leak into every fixture that derives an older build from them)
 MELEE_TYPES = ("melee",)
+CAPS_17 = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim",
+           "climb", "bandage", "rip", "wash", "fill", "wear", "window", "unwear", "shove", "stomp")   # PZA/1.7.x's
 DEFAULT_HELLO = {"proto": pza1.PROTO, "mod": "fake", "build": "42.21.0", "user": "agent", "rate": 10,
-                 "caps": [t for t in pza1.ACTION_TYPES if t not in MELEE_TYPES]}
-MELEE_CAPS = list(pza1.ACTION_TYPES)      # a PZA/1.8 build's hello caps, melee included
+                 "caps": list(CAPS_17)}
+MELEE_CAPS = list(CAPS_17) + list(MELEE_TYPES)      # a PZA/1.8 build's hello caps, melee included
 
 _GROUPS = [f for f, s in pza1.SHAPES["frame"].items() if s[0] == "group"]
 _GROUP_AT = {g: pza1.ORDER["frame"].index(g) for g in _GROUPS}

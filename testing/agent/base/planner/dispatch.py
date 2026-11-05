@@ -10,39 +10,54 @@ command at its pin. Its state is the Fight's own (`_init_dispatch`), and `fight.
   `stand` within KEEP_R at a standing pin (the fence wait's leg excepted), an `attack` (the swing, or at a fallen pin
   the floor swing), a `shove` or a `stomp`. Mode `finish` at a fallen pin or for a stomp, else `shove` where the
   Fight swings at nothing (`no_swing`: a hold, the arms' pain at STRAIN_HARD, a shove-and-stomp Fight), else
-  `strike`. Everything above the point stays the ladder's (the pin and its re-pins, P27-N's pin-first, the finish's
-  choice of a fallen zombie other than the pin, the fence wait, the edge route, the reposition, the seek, the pull,
-  the advance's `toward` legs and walks, the approach); the corner Fight (`point_blank`), the door fight (`only`) and
-  the doorway stand (`doorway`) keep the ladder whole in cut 1, and the flee's finish is the threat branch's own.
+  `strike`. The approach-and-swing Fight (a non-stance one: more than MAX_FIGHT held, the health under the fight
+  line, a trapped character) is dispatched too: its `attack` at the pin is "an attack" (review-t7b's ruling (b): a
+  PZA/1.8 build announcing `melee` announces `aim`, and the Lua takes its own force-aim). Fix 1 (review-t7b M1): no
+  melee while another standing zombie is listed within STAND_MIN_R of the player (the Lua's press would take that
+  one, its `crowd` end), the ladder's P24-AH rules owning that tick as before; nor at a target in its backoff (below).
+  Everything above the point stays the ladder's (the pin and its re-pins, P27-N's pin-first, the finish's choice of a
+  fallen zombie other than the pin, the fence wait, the edge route, the reposition, the seek, the pull, the advance's
+  `toward` legs and walks, the approach); the corner Fight (`point_blank`), the door fight (`only`) and the doorway
+  stand (`doorway`) keep the ladder whole in cut 1, and the flee's finish is the threat branch's own.
 - The inputs (`_melee_inputs`, read at every send): `reach` the Fight's `reach_r` (the frame's `weapon.reach` plus
   ATTACK_MARGIN), 0 where it reads none (the Lua's `K.reachOf`); `back` the stance's `back` heading
   (`Fight._back_heading`: away from the held threats, P28-E's arc from a lone standing zombie within KEEP_R, else
   STEER_TURNS to a clear one), (0, 0) where none is clear; `floorSwing` with the `floor_finish` rule on (P27-G, the
   floor swing ahead of the stomp) and the floor swing not barred (`floor_swing_barred`, P28-C).
 - `busy` (`_melee_holds`): a running melee holds until its re-send is due (`Melee.resend_due`), its target is no
-  longer the pin, or the finish would take another fallen zombie (`_finishable`); its own pin fallen, it holds (the
-  Lua's floor reflexes).
+  longer the pin, P27-N's pin-first would take a marked zombie (`_pin_marked`, the target not among `_pin_free`: fix
+  1, review-t7b M2, so a marked attacker at point blank is pinned on its own tick as on the ladder, whose stance leg
+  gives way within FIGHT_REACH on every tick), or the finish would take another fallen zombie (`_finishable`); its
+  own pin fallen, it holds (the Lua's floor reflexes).
 - The ends (`_observe_maneuver`, every observe, after the kill read): a kill on any send of the maneuver, or of one
   it retired (`_spent_m`), is the Fight's kill (`_read_dead`), once; a `done` span with strikes and no health fall
   counts them in the no-progress streak STALL_SWINGS reads (`_melee_span`); `out of range`, `too far` and
-  `no weapon` give the next choose to the ladder whatever it sends (`_m_ladder`); `crowd` {id, d} re-pins to that
-  zombie when it is the nearer (`_melee_crowd`); `not loaded`, `bad args` and `unknown type` (a build that cannot run
-  it) end the melee for the rest of the Fight (`melee_off`, as a failed stance leg ends the stand); every end is
-  logged `melee_end` {.., end} by the next choose. A ladder command sent in its place retires the maneuver (the Lua
-  supersedes its melee), and so does another sender's (`Maneuver.observe`'s `superseded`), as a leg is superseded:
-  the flee's hand-over among them.
+  `no weapon` give the next choose to the ladder whatever it sends (`_m_ladder`); `out of reach` (the walk to a
+  fallen target that did not close, the Lua's or `Melee`'s own bound across its sends: fix 1, m1) leaves the target
+  unreachable for SEEK_SKIP_S, as the ladder's failed stomp walk is left, and gives the next choose to the ladder;
+  `crowd` {id, d} re-pins to that zombie when it is the nearer (`_melee_crowd`), else gives the next choose to the
+  ladder (fix 1, M1: never a fresh melee on the geometry the Lua just refused); `not loaded`, `bad args` and
+  `unknown type` (a build that cannot run it) end the melee for the rest of the Fight (`melee_off`, as a failed
+  stance leg ends the stand); `interrupted`, `timeout` and `no target` leave that target to the ladder for
+  MELEE_BACKOFF_TICKS planner ticks (`_m_backoff`, fix 1, m2: Survive's FAILED_COOLDOWN_TICKS), logged `backoff`;
+  every end is logged `melee_end` {.., end} by the next choose. A ladder command sent in its place retires the
+  maneuver (the Lua supersedes its melee), and so does another sender's (`Maneuver.observe`'s `superseded`), as a leg
+  is superseded: the flee's hand-over among them.
 - The log: `maneuver` (`Melee.log`: target, mode, sends, step, d) on every choose that dispatches and every observe
   while it runs, `ladder` (the ladder's command type it replaced), `melee` {resend "early" | "time"} on a re-send.
 """
 from agent.base.planner.maneuvers import Melee
 from agent.base.planner.maneuvers.melee import MeleeInputs
-from agent.base.planner.policies import KEEP_R, MELEE_RELEASE_R, STALL_SWINGS, on_floor, target_id_ok, zdist
+from agent.base.planner.policies import (KEEP_R, MELEE_BACKOFF_TICKS, MELEE_RELEASE_R, SEEK_SKIP_S, STALL_SWINGS,
+                                         STAND_MIN_R, on_floor, target_id_ok, zdist)
 
 MELEE_LEGS = ("enter", "back", "stand")   # the ladder's stance legs within KEEP_R a melee replaces
 MELEE_SENDS = ("attack", "shove", "stomp")   # the ladder's sends at its pin a melee replaces (an attack at a fallen
                                              # pin is the floor swing)
 LADDER_ENDS = ("out of range", "too far", "no weapon")   # a melee's ends that give the next choose to the ladder
 OFF_ENDS = ("not loaded", "bad args", "unknown type")    # ... that end the melee for the rest of the Fight
+BACKOFF_ENDS = ("interrupted", "timeout", "no target")   # ... that leave its target to the ladder for
+                                                         # MELEE_BACKOFF_TICKS (fix 1, review-t7b m2)
 
 
 def _number(v):
@@ -58,6 +73,7 @@ class FightDispatch:
         self._m_end = None                  # the last ended maneuver's log and end, logged by the next choose
         self._m_ladder = False              # the next choose is the ladder's whatever it sends (an `out of range`)
         self.melee_off = None               # the end after which no melee goes for the rest of the Fight, else None
+        self._m_backoff = {}                # zombie id -> planner ticks left in which no melee goes at it (fix 1, m2)
 
     def _retire_maneuver(self):
         """The running maneuver is dropped, its sends' ends still read (`_spent_m`)."""
@@ -66,7 +82,9 @@ class FightDispatch:
             self.m = None
 
     def _observe_maneuver(self):
-        """The maneuvers' ends (the module docstring), every observe after `_observe_kill`."""
+        """The maneuvers' ends (the module docstring), every observe after `_observe_kill` (Survive's `_observe`: once a
+        tick, so the backoff counts planner ticks)."""
+        self._m_backoff = {zid: n - 1 for zid, n in self._m_backoff.items() if n > 1}
         for m in ([self.m] if self.m is not None else []) + self._spent_m:
             m.observe()
             for zid in m.take_kills():
@@ -87,10 +105,17 @@ class FightDispatch:
         self._retire_maneuver()
         if end in LADDER_ENDS:
             self._m_ladder = True
+        elif end == "out of reach":   # fix 1, m1: as the ladder's failed stomp walk, its target left SEEK_SKIP_S
+            self._mark_unreachable(m.target, SEEK_SKIP_S)
+            self._m_ladder = True
         elif end == "crowd":
-            self._melee_crowd(m)
+            if not self._melee_crowd(m):
+                self._m_ladder = True   # fix 1, M1: no fresh melee on the same geometry; the ladder's press
         elif end in OFF_ENDS:
             self.melee_off = end
+        elif end in BACKOFF_ENDS:
+            self._m_backoff[m.target] = MELEE_BACKOFF_TICKS
+            self._m_end["backoff"] = MELEE_BACKOFF_TICKS
 
     def _melee_span(self, zid, span):
         """A `done` span at `zid` (strikes, health fell or None): strikes with no health fall count in the
@@ -113,18 +138,20 @@ class FightDispatch:
     def _melee_crowd(self, m):
         """A `crowd` end (`m.crowd` {id, d}: another standing zombie within the press's reach, K.STAND_R): that zombie
         is pinned when the Fight may target it and it is nearer than the target (the last progress line's distance,
-        else the frame's), so the next melee goes at it; else the pin holds."""
+        else the frame's), so the next melee goes at it; else the pin holds. True when it re-pinned."""
         res = m.crowd or {}
         zid, d = res.get("id"), res.get("d")
         zs = self.world.zombies
         if (not target_id_ok(zid) or not _number(d) or zid not in zs or zid in self.blocked()
                 or (self.only is not None and zid not in self.only)):
-            return
+            return False
         t = zs.get(m.target)
         near = m.d if _number(m.d) else (zdist(self.world, t) if t is not None and t.get("x") is not None
                                          and t.get("y") is not None else None)
         if near is None or d < near:
             self.target, self.repositioned = zid, False
+            return True
+        return False
 
     def _melee_holds(self):
         """`busy` for the running melee (the module docstring)."""
@@ -134,6 +161,8 @@ class FightDispatch:
         t = self._target(pin=False)
         if t is None or t[0] != m.target:
             return False
+        if self._pin_marked() and m.target not in self._pin_free():
+            return False   # fix 1, M2: P27-N's pin-first takes a marked attacker on its own tick, as on the ladder
         fin = self._finishable()
         return not fin or fin[0][0] == m.target
 
@@ -147,8 +176,10 @@ class FightDispatch:
         if z is None or z.get("x") is None or z.get("y") is None:
             return None
         d = zdist(self.world, z)
-        if d > MELEE_RELEASE_R:
+        if d > MELEE_RELEASE_R or self._m_backoff.get(zid):
             return None
+        if self._standing_near(STAND_MIN_R, (zid,)) is not None:
+            return None   # fix 1, M1: the Lua's press would take that one (its `crowd`): the ladder's P24-AH rules
         if cmd.TYPE == "aim":
             if "fence_wait" in self.why or self.why.get("leg") not in MELEE_LEGS or d > KEEP_R or on_floor(z):
                 return None
