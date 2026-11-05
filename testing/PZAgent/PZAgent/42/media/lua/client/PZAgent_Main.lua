@@ -1,5 +1,5 @@
--- PZAgent_Main.lua — the one OnTick hook (spec § 8, Plan 22 Task 6). The tick order: player → init → poll → skills →
--- sense → map → flush. No player means nothing is polled, emitted or flushed. The first tick with a player is the init
+-- PZAgent_Main.lua — the one OnTick hook (spec § 8, Plan 22 Task 6). The tick order: player → init → the hutch guard
+-- (P28-G, PZAgent_Hutch.lua, under its own pcall) → poll → skills → sense → map → flush. No player means nothing is polled, emitted or flushed. The first tick with a player is the init
 -- tick: the Link initialised (M.init), hello, the inventory's first sight as item_added events queued in the Link's
 -- backlog (under its own pcall: M.ready is set after hello, so a raise there is one lua_error, never a re-init) and
 -- one flush, and nothing else.
