@@ -2136,7 +2136,7 @@ def test_sneak_is_done_at_once_with_the_flag_read_back_and_written_once(lua, fs)
 
 
 def test_sneak_keeps_the_running_walk_and_its_gait(lua, fs):
-    """The posture is no skill: the runner's walk goes on (crouched under the flag, T94.3), never superseded."""
+    """The posture is no skill: the runner's walk goes on (crouched under the flag, #4656), never superseded."""
     load(lua)
     walk_world(lua)
     p = make_player()

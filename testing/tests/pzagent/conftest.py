@@ -269,7 +269,7 @@ def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_
     p.getWornItems = lambda s: J(size=lambda s2: len(wl), get=lambda s2, i: J(getLocation=lambda s3: wl[i][0],
                                                                              getItem=lambda s3: wl[i][1]))
     p.getWornItem = lambda s, loc: next((it for l, it in wl if l == loc), None)
-    # PZA/1.9 (Plan 30 Task 1): the sneak flag is one stored field (the jar read's T94.1): isSneaking answers
+    # PZA/1.9 (Plan 30 Task 1): the sneak flag is one stored field (the jar read's #4654): isSneaking answers
     # p.sneak["on"] and setSneaking(v) writes it, appending v to p.sneak["sets"]; getPerkLevel(perk) answers
     # p.perks.get(perk, 0); isBehind(z) answers whether z.behind is True (a test sets it on the zombie)
     sneak = {"on": False, "sets": []}

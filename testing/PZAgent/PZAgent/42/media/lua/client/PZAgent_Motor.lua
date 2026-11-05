@@ -20,7 +20,7 @@
 -- stance's owner (PZAgent_Stance.lua) sets wantAim when it holds the stance and clears it at the release; MO.off leaves
 -- it, so a stance kept past an attack's end is still held. No run latch is asserted under it: a run would only be
 -- dropped by the aiming (updateInternal2 L2596-L2599), and the stance walks.
--- The sneak (PZA/1.9, Plan 30 Task 1; the jar read sneak-jar-read.md, T94.1): the opposite case. The sneaking flag is
+-- The sneak (PZA/1.9, Plan 30 Task 1; the jar read sneak-jar-read.md, #4654): the opposite case. The sneaking flag is
 -- one stored field on the character that only the crouch key's toggle (IsoPlayer.updateSneakKey, after OnPlayerUpdate),
 -- the save load and the player packet's reader write, and nothing clears on an attack, a shove, a run, an aim or a hit,
 -- so it is never re-asserted per frame: MO.sneak(on[, p]) records PZA.motor.wantSneak (and, given the player, writes
@@ -28,7 +28,7 @@
 -- only when isSneaking() reads a boolean that differs: one write per transition, and one more only when something
 -- outside the motor flipped the field (a crouch press, a load). An unreadable flag is never written on a guess. MO.off
 -- leaves wantSneak and the flag: a stop or a supersede ends a walk, never the sneak, which is the planner's posture.
--- Under the flag the walk plays the crouched sneak walk and the run latch the sneak run (T94.3). The frame's
+-- Under the flag the walk plays the crouched sneak walk and the run latch the sneak run (#4656). The frame's
 -- me.sneaking is Sense's own isSneaking() read (the stored field reads the same in either tick: observed, never the
 -- want echoed).
 PZA.motor = PZA.motor or { wantRun = false, wantSprint = false, wantAim = false, wantSneak = false, upd = 0,

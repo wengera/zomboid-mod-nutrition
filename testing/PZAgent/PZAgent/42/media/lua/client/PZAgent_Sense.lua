@@ -962,13 +962,13 @@ end
 
 -- me.sneaking and me.sneakLevel, and the zombie record's known, state and behind (PZA/1.9, Plan 30 Task 1; the jar read
 -- sneak-jar-read.md section 3). sneaking is the player's isSneaking(), the one stored field the Motor writes on a
--- transition (T94.1): it reads the same in this tick as after the update, so the frame observes the field, never the
--- Motor's want. sneakLevel is getPerkLevel(Perks.Sneak), the level that sets getSneakSpotMod (T94.4); a nil Perks.Sneak
+-- transition (#4654): it reads the same in this tick as after the update, so the frame observes the field, never the
+-- Motor's want. sneakLevel is getPerkLevel(Perks.Sneak), the level that sets getSneakSpotMod (#4657); a nil Perks.Sneak
 -- leaves it nil, named in missing. Per listed zombie, read through the frame's own object map (S.zobj): known is
 -- isTargetLocationKnown() (a target and seen just now: on a client the packet's timeSinceSeenFlesh beside a stale local
 -- bonusSpotTime, so usable as "targeted and seen", the read's inference); state is getRealState(), the owner's state
 -- name the zombie packet carries (a String: "idle", "walktoward", "lunge-network", "attack-network", ...), "" when it
--- answers no string; behind is the player's isBehind(z), the melee press's own from-behind test (T94.9: the zombie's
+-- answers no string; behind is the player's isBehind(z), the melee press's own from-behind test (#4662: the zombie's
 -- forward dotted with the unit vector from the player to it above 0.6). getTargetSeenTime() and isTargetVisible() are
 -- not read (unreliable on a client, the read's section 3). An absent member leaves its field nil on every record and is
 -- named in missing; each block runs under its own guard, so a raise costs its fields (raise:me:sneak,

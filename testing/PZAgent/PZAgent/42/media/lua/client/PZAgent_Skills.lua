@@ -364,10 +364,10 @@ K.emitAct, K.caught = emitAct, caught
 
 -- ---- sneak {on} (PZA/1.9, Plan 30 Task 1) ---------------------------------------------------------------------------
 -- The planner's posture, not a skill: the sneaking flag is one stored field that nothing clears (the jar read
--- sneak-jar-read.md, T94.1), so the command records the Motor's want and writes it at once (MO.sneak(on, p):
+-- sneak-jar-read.md, #4654), so the command records the Motor's want and writes it at once (MO.sneak(on, p):
 -- setSneaking only when isSneaking() differs; PZAgent_Motor.lua's header) and is answered on its tick by one act line,
 -- as Main answers scan and rate, never through the runner: a running skill goes on (a walk plays the crouched sneak
--- walk under the flag, T94.3) and a held stance is kept (the stance's K.start wrapper releases only on a new K.cur),
+-- walk under the flag, #4656) and a held stance is kept (the stance's K.start wrapper releases only on a new K.cur),
 -- and MO.off at a skill's end leaves the flag. Done {ok, sneaking}: sneaking is isSneaking() read after the write
 -- (observed, never the asked value echoed; nil when it answers no boolean), ok whether it reads the asked value. on
 -- absent is false (the wire drops a bool left false, PZA/1.5.3). Rejected bad args (an empty aid, on not a boolean) or

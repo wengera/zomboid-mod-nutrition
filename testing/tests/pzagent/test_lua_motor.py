@@ -168,7 +168,7 @@ def test_the_sneak_want_starts_false_and_writes_nothing_while_the_flag_agrees(lu
 
 
 def test_a_sneak_want_writes_the_flag_once_on_the_transition_and_never_again_while_it_holds(lua):
-    """The flag is a stored field nothing clears (the jar read's T94.1): one setSneaking per transition, never per
+    """The flag is a stored field nothing clears (the jar read's #4654): one setSneaking per transition, never per
     frame."""
     load(lua)
     p = make_player()
@@ -211,7 +211,7 @@ def test_off_leaves_the_sneak_want_and_the_flag(lua):
 
 
 def test_a_flag_flipped_outside_the_motor_is_written_back_once(lua):
-    """A crouch-key toggle or a save load writes the field (T94.1); the next frame restores the want, once."""
+    """A crouch-key toggle or a save load writes the field (#4654); the next frame restores the want, once."""
     load(lua)
     p = make_player()
     lua.execute("PZA.motor.sneak(true)")
