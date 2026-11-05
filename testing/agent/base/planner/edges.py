@@ -31,14 +31,29 @@ the shelter and loot routes own them, and the engage leaves a zombie inside a bu
   then the target) or the goal ends `failed "blocked edge"` (cooled: `cool`, as a leg's final failure).
 Logged `blocked_edge` {edge: [x, y, side], door: [x, y] | None, action: refuse | route | drop} on the line (the
 Fight's why, the goal's, the need's `fill`).
+
+Ruling P29-A (`ROUTE_CROSS`, survival iteration 23; F13, `f_goals_14-20261105-021722`: 131.48134231567383 game minutes
+at the closed, unlocked fence gate (10747, 10642), every route walk to its far square's centre (10747.5, 10642.5),
+0.8629818220113737 tiles from where the character stood, inside the Lua walk's done radius, so it ended `done` on its
+first tick unmoved and was read as "next", #4633), the goal's route (`GoalEdge`) and the Fight's (`FightEdge`, the
+`route_cross` rule): the walk targets the square one step beyond the door's far square (`beyond_square`: the far
+square plus the edge's unit normal, the shared `policies._beyond` read of an exit), the far square's centre only when
+the map does not hold that square open; the Fight's route goes at a walk, never a run. A route leg's end is read by
+whether it crossed (`same_side` of the leg's start and the frame's position), never by `done`: one ended `done` on its
+start's side is the door's failure (`World.note_door_fail(door, "not crossed", "out")`, P24-Z's store: the second
+within DOOR_RETRY_MIN marks the door), and `edge_read` with `marked` (the marked doors) reads a marked door as wall,
+so the next route takes the run's next way, else the goal ends `failed "blocked edge"`, cooled, and the Fight refuses
+its target. Logged `route` {door, target, beyond, start_side} on the route's send and `route_end` {door, crossed,
+noted, next: the way the route reads now or None, dropped: no way left} on the line that reads the leg's end.
 """
 import math
 
-from agent.base.planner.policies import DISENGAGE_R, PREEMPTED, centre
+from agent.base.planner.policies import DISENGAGE_R, PREEMPTED, _beyond, centre
 from agent.base.pza1 import WalkTo
 from agent.base.world import me_xy
 
-__all__ = ["edge_read", "edge_why", "same_side", "crossed", "first_edge", "FightEdge", "ThreatEdge", "GoalEdge"]
+__all__ = ["edge_read", "edge_why", "same_side", "crossed", "first_edge", "beyond_square", "side_of", "route_target",
+           "route_end", "FightEdge", "ThreatEdge", "GoalEdge"]
 
 
 def _edge_of(p, q):
@@ -96,8 +111,11 @@ def _door_on(world, holder, side):
     return s["door"]
 
 
-def _passable(rec):
-    return rec is not None and not rec.get("locked") and not rec.get("barricaded")
+def _passable(world, sq, side, marked=frozenset()):
+    """The door record on the edge `side` of square `sq` is a way through: neither `locked` nor `barricaded`, and the
+    door not in `marked` (ruling P29-A: a door marked within DOOR_RETRY_MIN, `World.marked_doors`, is wall)."""
+    rec = _door_on(world, sq, side)
+    return rec is not None and not rec.get("locked") and not rec.get("barricaded") and sq not in marked
 
 
 def _across(sq, side):
@@ -105,12 +123,12 @@ def _across(sq, side):
     return (sq[0], sq[1] - 1, sq[2]) if side == "N" else (sq[0] - 1, sq[1], sq[2])
 
 
-def _run_ways(world, holder, side, reach):
+def _run_ways(world, holder, side, reach, marked=frozenset()):
     """The ways past the run of blocked `side` edges through `holder` (along x for a north edge, along y for a west
     one), out to `reach` tiles each way: `("door", sq)` for each square keeping an unlocked door record on it, and
     `("end", sq)` for the first square each way whose edge is crossable (not blocked, or hoppable: the run's end, walked
     round or climbed). A square, or the one across its edge, the map does not hold ends the read that way unread (an
-    unscanned stretch is no way known)."""
+    unscanned stretch is no way known). A door in `marked` is wall (P29-A)."""
     dx, dy = (1, 0) if side == "N" else (0, 1)
     out = []
     for sign, k0 in ((1, 0), (-1, 1)):
@@ -120,7 +138,7 @@ def _run_ways(world, holder, side, reach):
             other = _across(sq, side)
             if sq not in world.map or other not in world.map:
                 break
-            door = _passable(_door_on(world, sq, side))
+            door = _passable(world, sq, side, marked)
             if door:
                 out.append(("door", sq))
             if not world.blocked(other, sq, climb=True):
@@ -138,23 +156,23 @@ def _via(holder, side, b):
     return holder if b[0] >= holder[0] else (holder[0] - 1, holder[1], holder[2])
 
 
-def edge_read(world, a, b, reach):
+def edge_read(world, a, b, reach, marked=frozenset()):
     """Ruling P25-X: None when the straight line from position `a` to `b` crosses no known blocked outdoor edge, or
     crosses one whose run is walked round (its nearest way, `_run_ways` within `reach` of the crossing, is the run's
     end: iteration 15's walk round a wall and its reposition stand); else `{edge: (holder, side), door: the square
     keeping the unlocked door record that passes it, else None, via: the square on `b`'s side of that door, else
     None}`: the crossed edge's own door when it reads unlocked, else the nearest way to the player when it is a door;
     with no way within `reach` the edge is a wall (door None: refused or dropped). A locked or barricaded door record is
-    wall."""
+    wall, and so is a door square in `marked` (ruling P29-A: the route's callers pass `World.marked_doors()`)."""
     edge = _crossed(world, a, b)
     if edge is None:
         return None
     holder, side = edge
-    if _passable(_door_on(world, holder, side)):
+    if _passable(world, holder, side, marked):
         door = holder
     else:
         mx, my = me_xy(world)
-        ways = _run_ways(world, holder, side, reach)
+        ways = _run_ways(world, holder, side, reach, marked)
         way = min(ways, key=lambda w: (math.hypot(w[1][0] + 0.5 - mx, w[1][1] + 0.5 - my), w)) if ways else None
         if way is not None and way[0] == "end":
             return None
@@ -178,6 +196,62 @@ def same_side(edge, p, q):
     return (p[0] < x) == (q[0] < x)
 
 
+def side_of(edge, p):
+    """The side of the edge `(holder, side)`'s line position `p` lies on: "N" or "S" of a north edge, "W" or "E" of a
+    west edge (ruling P29-A: a route leg's start side, logged)."""
+    (x, y, _), side = edge
+    if side == "N":
+        return "N" if p[1] < y else "S"
+    return "W" if p[0] < x else "E"
+
+
+def beyond_square(world, far, edge):
+    """Ruling P29-A: the square one step beyond the route's far square `far` across the door's edge `(door, side)`, the
+    far square plus the edge's unit normal, when the map holds it open (`policies._beyond`, the exit's read: mapped,
+    not solid nor `solidTrans`, no room, the step from `far` not blocked), else None. The shared helper, not a copy."""
+    door, side = edge
+    near = _across(door, side) if far == door else door
+    return _beyond(world, near, far)
+
+
+def route_target(world, read):
+    """Ruling P29-A: `(the route walk's target (x, y), beyond)` of an `edge_read` read with a way (`via`): the centre of
+    `beyond_square` when the map holds it open (beyond True), else the far square's centre (beyond False)."""
+    sq = beyond_square(world, read["via"], (read["door"], read["edge"][1]))
+    return (centre(sq), True) if sq is not None else (centre(read["via"]), False)
+
+
+def _route(world, read, start):
+    """P29-A's route record of an `edge_read` read with a way, the leg starting at `start`: `{edge: the door's (door,
+    side), door, start, target, beyond}`."""
+    target, beyond = route_target(world, read)
+    return {"edge": (read["door"], read["edge"][1]), "door": read["door"], "start": start, "target": target,
+            "beyond": beyond}
+
+
+def _route_why(route):
+    """The `route` why of a route record (`_route`): {door: [x, y], target: [x, y], beyond, start_side}."""
+    door, target = route["door"], route["target"]
+    return {"door": [door[0], door[1]], "target": [target[0], target[1]], "beyond": route["beyond"],
+            "start_side": side_of(route["edge"], route["start"])}
+
+
+def route_end(world, route, toward, reach):
+    """Ruling P29-A: the end of a route leg (`_route`'s record) that ended `done`, read by whether it crossed (the
+    frame's position on the other side of the door's edge from the leg's start): one on the start's side notes the
+    door's failure (`World.note_door_fail(door, "not crossed", "out")`). Returns the `route_end` why {door, crossed,
+    noted, next, dropped}: `next` the door the route reads now toward `toward` within `reach` (the marked doors wall),
+    else None, `dropped` True when that read finds the edge with no way left."""
+    me = me_xy(world)
+    crossed = not same_side(route["edge"], route["start"], me)
+    if not crossed:
+        world.note_door_fail(route["door"], "not crossed", "out")
+    read = edge_read(world, me, toward, reach, marked=world.marked_doors())
+    door = None if read is None else read["door"]
+    return {"door": [route["door"][0], route["door"][1]], "crossed": crossed, "noted": not crossed,
+            "next": None if door is None else [door[0], door[1]], "dropped": read is not None and door is None}
+
+
 class FightEdge:
     """The Fight's side of ruling P25-X (the module docstring): `edge_marks` (zombie id -> the edge it was refused
     across) Survive shares across its Fights, as `unreachable`."""
@@ -187,12 +261,17 @@ class FightEdge:
         crossing a known blocked edge is routed (`("route", WalkTo)` of the door's far square at a run) when an unlocked
         door record passes it within DISENGAGE_R of the crossing (but for a chaser the pull draws, P24-AN: it walks
         away and the chaser comes round by the door), else refused (`("refuse", None)`: the target marked,
-        `_mark_edge`); None with no such edge, or one walked round (`edge_read`). Sets `blocked_edge` for the why."""
+        `_mark_edge`); None with no such edge, or one walked round (`edge_read`). Sets `blocked_edge` for the why.
+        With the `route_cross` rule on (ruling P29-A, the module docstring): a marked door is wall, the walk goes at a
+        walk to `route_target`'s square (the step beyond the far square when open), logged `route`."""
         self._edge_send, self.blocked_edge = None, None
         if "blocked_edge" not in self.rules or self.point_blank or self.only is not None:
             return None
         zid, z, d = t
-        read = edge_read(self.world, me_xy(self.world), (z["x"], z["y"]), DISENGAGE_R)
+        cross = "route_cross" in self.rules
+        me = me_xy(self.world)
+        read = edge_read(self.world, me, (z["x"], z["y"]), DISENGAGE_R,
+                         marked=self.world.marked_doors() if cross else frozenset())
         if read is None:
             return None
         if read["via"] is None:
@@ -202,9 +281,14 @@ class FightEdge:
         if self.pull_centroid(t) is not None:
             return None   # P24-AN's pull walks away from the group: the chaser comes round by the door itself
         self.blocked_edge = edge_why(read, "route")
-        self._edge_send = (zid, read["edge"])
         self.why = {"target": zid, "pinned": True, "dist": d, "blocked_edge": self.blocked_edge}
-        return "route", WalkTo(*centre(read["via"]), "run")
+        if not cross:
+            self._edge_send = (zid, read["edge"], None)
+            return "route", WalkTo(*centre(read["via"]), "run")
+        route = _route(self.world, read, me)
+        self._edge_send = (zid, read["edge"], route)
+        self.why["route"] = _route_why(route)
+        return "route", WalkTo(route["target"][0], route["target"][1], "walk")   # P29-A: never a run
 
     def _mark_edge(self, zid, edge):
         """The target refused across `edge`: unreachable until `ThreatEdge._release_edges` reads it on the player's
@@ -217,12 +301,19 @@ class FightEdge:
             self._unpin()
 
     def _observe_edge_route(self):
-        """A route walk (`_edge_walk`) that ended any way but done or superseded marks its target across its edge."""
+        """A route walk (`_edge_walk`) that ended any way but done or superseded marks its target across its edge. One
+        sent under `route_cross` (P29-A) that ended done is read by whether it crossed (`route_end` toward its target,
+        kept in `_route_end` for the next choose's why)."""
         w = self._edge_walk
         if w is None or not self.actions.done(w[0]):
             return
         self._edge_walk = None
-        a, zid, edge = w
+        a, zid, edge, route = w
+        if a.state == "done" and route is not None:
+            z = self.world.zombies.get(zid) or {}
+            toward = (z["x"], z["y"]) if z.get("x") is not None and z.get("y") is not None else route["target"]
+            self._route_end = route_end(self.world, route, toward, DISENGAGE_R)
+            return
         if a.state != "done" and not (a.state == "failed" and a.reason == PREEMPTED):
             self._mark_edge(zid, edge)
 
@@ -247,7 +338,9 @@ class ThreatEdge:
 
 
 class GoalEdge:
-    """The goal legs' side of ruling P25-X (`goal_policies._Legs`): `_edge_cmd`."""
+    """The goal legs' side of ruling P25-X (`goal_policies._Legs`): `_edge_cmd`; and of ruling P29-A: `edge_route`,
+    the running route leg's record (`_route`'s, with the goal's `toward` and the `reach`), read at its end by
+    `_route_ended`."""
 
     def _edge_cmd(self, world, x, y, reach):
         """With the kit's `blocked_edge` on: the goal's target (x, y) beyond a known blocked edge is routed through
@@ -261,7 +354,9 @@ class GoalEdge:
         takes down to LEG_MIN)."""
         if not self.kit.blocked_edge:
             return None
-        read = edge_read(world, me_xy(world), (x, y), reach)
+        cross = self.kit.route_cross
+        me = me_xy(world)
+        read = edge_read(world, me, (x, y), reach, marked=world.marked_doors() if cross else frozenset())
         if read is None:
             return None
         if read["via"] is None:
@@ -269,6 +364,30 @@ class GoalEdge:
             self.cool = True
             self.end("failed", "blocked edge")
             return None
-        self.leg = centre(read["via"])
-        self.why = dict(self.why, blocked_edge=edge_why(read, "route"), leg=[self.leg[0], self.leg[1]])
+        if not cross:
+            self.leg = centre(read["via"])
+            self.why = dict(self.why, blocked_edge=edge_why(read, "route"), leg=[self.leg[0], self.leg[1]])
+            return WalkTo(self.leg[0], self.leg[1], "walk")
+        route = _route(world, read, me)   # P29-A: the step beyond the far square when open
+        self.edge_route = dict(route, toward=(x, y), reach=reach)
+        self.leg = route["target"]
+        self.why = dict(self.why, blocked_edge=edge_why(read, "route"), leg=[self.leg[0], self.leg[1]],
+                        route=_route_why(route))
         return WalkTo(self.leg[0], self.leg[1], "walk")
+
+    def _route_ended(self, world, action):
+        """Ruling P29-A: the running route leg's (`edge_route`) end, `action` its walk. None when no route leg ran, or
+        its walk ended other than done (the caller reads the leg as before); else its end read by whether it crossed
+        (`route_end`, kept in `route_end` for the runner's why) and "next" (the next choose routes by the way it reads
+        now, or walks on once crossed), the goal first ended `failed "blocked edge"`, cooled, when the read finds no
+        way left on the edge."""
+        route, self.edge_route = self.edge_route, None
+        if route is None or action.state != "done":
+            return None
+        end = route_end(world, route, route["toward"], route["reach"])
+        self.route_end = end
+        if end["dropped"]:
+            self.why = dict(self.why, route_end=end)
+            self.cool = True
+            self.end("failed", "blocked edge")
+        return "next"

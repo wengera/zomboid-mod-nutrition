@@ -304,14 +304,16 @@ def test_e17_s_window_act_is_dropped_at_its_stall_and_the_window_noted_stalled()
     the flee's finish takes any fallen zombie, so E17's replay stomps 2419 at line 259 (fallen 4.49 tiles off under the
     `many` flee, never struck) and every later aid shifts; iteration 19's switches (`survive.T9_SWITCHES`) are off here,
     the record's own rules. Named change, Plan 27 Task 5: iteration 20's (`survive.T10_SWITCHES`) off with them (P27-G's
-    floor swing at a fallen zombie in reach reaches the same lines)."""
+    floor swing at a fallen zombie in reach reaches the same lines). Named change, ruling P29-A (Plan 29 Task 1):
+    iteration 23's (`survive.T13_SWITCHES`) off with them (the Fight's route at the gate (10747, 10642) on line 142
+    walks to the step beyond its far square at a walk under ROUTE_CROSS)."""
     kept = {}
 
     def mutate(sv):
         kept["sv"] = sv
         for name in S.T8_SWITCHES:
             setattr(sv, name, name == "WINDOW_STALL")
-        for name in S.T9_SWITCHES + S.T10_SWITCHES:
+        for name in S.T9_SWITCHES + S.T10_SWITCHES + S.T13_SWITCHES:
             setattr(sv, name, False)
     rows = R.replay(E17, mutate=mutate, upto=394)
     _, rec, _ = e17()

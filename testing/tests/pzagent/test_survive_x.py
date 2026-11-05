@@ -304,9 +304,11 @@ def chaser(x, y=200.5):
     return dict(dz(1, x, y, me=ME), hasTarget=True)
 
 
-def gate_rig(tmp_path, doors=None, hop=False, zx=104.5, edge=True):
+def gate_rig(tmp_path, doors=None, hop=False, zx=104.5, edge=True, cross=True):
+    """`cross` False: ruling P29-A's switch (`ROUTE_CROSS`, Plan 29 Task 1) off, P25-X's route to the far square."""
     r, sv = make(tmp_path)
     sv.BLOCKED_EDGE = edge
+    sv.ROUTE_CROSS = cross
     r.scan(walled(doors, hop))
     r.frame(x=ME[0], y=ME[1], zombies=[chaser(zx)])
     return r, sv
@@ -339,7 +341,8 @@ def test_a_chaser_across_a_locked_gate_is_refused_and_marked_until_it_comes_roun
 
 
 def test_an_unlocked_gate_on_the_crossed_edge_routes_the_seek_through_it(tmp_path):
-    r, sv = gate_rig(tmp_path, {200: UNLOCKED})
+    """Named change, ruling P29-A (Plan 29 Task 1): pinned with `ROUTE_CROSS` off, P25-X's route before it."""
+    r, sv = gate_rig(tmp_path, {200: UNLOCKED}, cross=False)
     a = tick(r, sv)
     w = door_why(r)
     assert (a.type, a.args) == ("walkTo", {"x": 102.5, "y": 200.5, "gait": "run"})
@@ -348,8 +351,9 @@ def test_an_unlocked_gate_on_the_crossed_edge_routes_the_seek_through_it(tmp_pat
 
 def test_a_locked_gate_with_an_unlocked_one_on_the_wall_s_run_routes_through_the_unlocked_one(tmp_path):
     """E15's fence row: the gate on the line locked, an unlocked door record 3 squares along the wall: the seek walks
-    to the far side of the unlocked door, never across the locked one; a route walk that fails marks the target."""
-    r, sv = gate_rig(tmp_path, {200: LOCKED, 203: UNLOCKED})
+    to the far side of the unlocked door, never across the locked one; a route walk that fails marks the target.
+    Named change, ruling P29-A (Plan 29 Task 1): pinned with `ROUTE_CROSS` off, P25-X's route before it."""
+    r, sv = gate_rig(tmp_path, {200: LOCKED, 203: UNLOCKED}, cross=False)
     a = tick(r, sv)
     w = door_why(r)
     assert (a.type, a.args) == ("walkTo", {"x": 102.5, "y": 203.5, "gait": "run"})
@@ -374,7 +378,7 @@ def test_with_blocked_edge_off_the_seek_is_iteration_15_s(tmp_path):
     assert (a.type, a.args["x"]) == ("walkTo", 104.5) and "blocked_edge" not in w and not sv.edge_marks   # across
 
 
-def _goal(tmp_path, doors):
+def _goal(tmp_path, doors, cross=True):
     from agent.base.planner.goals import ExploreToward, GoalRunner
     from .test_policies import Rig
     from .test_survive_g import Src
@@ -382,13 +386,15 @@ def _goal(tmp_path, doors):
     r.scan(walled(doors))
     r.frame(x=ME[0], y=ME[1])
     runner = GoalRunner(Src(ExploreToward(x=108, y=200)), r.clock)
+    runner.kit.route_cross = cross   # P29-A's switch (Survive's ROUTE_CROSS)
     runner.kit.bind(r.world, r.acts)
     runner.kit.explore.scanned.add(runner.kit.explore.place())
     return r, runner
 
 
 def test_a_goal_beyond_the_wall_walks_a_leg_to_the_unlocked_door_then_its_target(tmp_path):
-    r, runner = _goal(tmp_path, {200: LOCKED, 203: UNLOCKED})
+    """Named change, ruling P29-A (Plan 29 Task 1): pinned with `ROUTE_CROSS` off, P25-X's route before it."""
+    r, runner = _goal(tmp_path, {200: LOCKED, 203: UNLOCKED}, cross=False)
     runner.send(runner.tick(r.world, r.acts))
     assert r.cmd() == ("walkTo", {"x": 102.5, "y": 203.5, "gait": "walk"})
     assert runner.current.why["blocked_edge"] == {"edge": [102, 200, "W"], "door": [102, 203], "action": "route"}
@@ -432,9 +438,10 @@ def test_e7_s_walk_round_the_fence_row_routes_through_its_unlocked_door():
     """E7's record (the review's blocker of Plan 24 Task 18): the seek on 533, 8.07 tiles off across the fixture's
     fence row (its north edges on y 10642), whose nearest way is the unlocked door record at (10747, 10642): at line
     49 the walk goes to that door's far square at a run, logged `blocked_edge` {route}, where iteration 15 walked
-    round the wall at 533's square (`test_survive_h.test_e7_lines_52_to_73_...`, `edge` False); held from line 50."""
+    round the wall at 533's square (`test_survive_h.test_e7_lines_52_to_73_...`, `edge` False); held from line 50.
+    Named change, ruling P29-A (Plan 29 Task 1): pinned with `ROUTE_CROSS` off, P25-X's route before it."""
     from .test_survive_h import _e7_lines
-    rows, _ = _e7_lines(50, engage_any=True)
+    rows, _ = _e7_lines(50, engage_any=True, cross=False)
     w = rows[48]["inputs"]["branches"]["threat"]
     assert rows[48]["action"] == {"type": "walkTo", "args": {"gait": "run", "x": 10747.5, "y": 10642.5}}
     assert w["blocked_edge"] == {"action": "route", "door": [10747, 10642], "edge": [10739, 10642, "N"]}
@@ -510,8 +517,10 @@ def _two_walls(tmp_path):
 def test_the_refusal_s_why_never_overwrites_the_routed_second_zombie_s_blocked_edge(tmp_path):
     """Minor 2: the nearer zombie is refused (marked, the choose re-run), the second routed through the unlocked door:
     the tick's action is the route walk and the logged `blocked_edge` is the route's own (door [102, 210]),
-    `marked` the refused id; not the first zombie's refusal over a route walk."""
+    `marked` the refused id; not the first zombie's refusal over a route walk. Named change, ruling P29-A (Plan 29
+    Task 1): pinned with `ROUTE_CROSS` off, P25-X's route before it."""
     r, sv = _two_walls(tmp_path)
+    sv.ROUTE_CROSS = False
     a = tick(r, sv)
     w = door_why(r)
     assert (a.type, a.args) == ("walkTo", {"x": 102.5, "y": 210.5, "gait": "run"})

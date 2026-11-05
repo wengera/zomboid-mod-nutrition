@@ -225,8 +225,19 @@ def pre_t11(sv, keep=()):
 def pre_t12(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 28 Task 7b (survival iteration 22): its switch off
     (`survive.T12_SWITCHES`: MELEE, cut 1 of the maneuver layer), but those named in `keep`; every seam onto an
-    earlier rule reads it off (`pre_t11`)."""
+    earlier rule reads it off (`pre_t11`). Plan 29 Task 1: iteration 23's switches (`pre_t13`) off with it, so every
+    seam onto an earlier rule reads them off."""
     for name in S.T12_SWITCHES:
+        if name not in keep:
+            setattr(sv, name, False)
+    pre_t13(sv)
+
+
+def pre_t13(sv, keep=()):
+    """The replay's mutate seam onto the rules before Plan 29 Task 1 (survival iteration 23): its switches off
+    (`survive.T13_SWITCHES`: ROUTE_CROSS, ruling P29-A), but those named in `keep`; every seam onto an earlier rule
+    reads them off (`pre_t12`)."""
+    for name in S.T13_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
 
@@ -2030,6 +2041,21 @@ def test_iteration_22_moves_no_golden(key):
     assert "melee" not in (R.HELLO_CAPS.get(key) or ())
     off = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t12))}
     assert off == gold(key)
+
+
+# ================================================================ Plan 29 Task 1: iteration 23 on the goldens
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_iteration_23_moves_no_golden(key):
+    """Survival iteration 23's Task 1 (ruling P29-A, `ROUTE_CROSS`: the route through a door walks one step beyond its
+    far square and reads its end by whether it crossed) moves no golden: no golden's replay sends a route walk (every
+    `blocked_edge` the six log is a refusal, which P29-A leaves as it was, and no route leg ends, so no door is noted or
+    read marked), and their goal branch is the record's (`RecordedGoals`), never the goals' kit; the six are
+    byte-identical with the switches on (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off
+    (`pre_t13`)."""
+    rows = gold(key)
+    assert all((d["why"] or {}).get("blocked_edge", {}).get("action") in (None, "refuse") for d in rows.values())
+    off = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t13))}
+    assert off == rows
 
 
 def test_an_unbound_melee_ends_done_at_its_seconds():

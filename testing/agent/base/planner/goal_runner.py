@@ -299,10 +299,11 @@ class GoalRunner:
             self.observe(world, actions)
         self._observed = False
         ended = self.history[-1] if self._ended_now is not None else None
-        proposed, refused = None, None
+        proposed, refused, route_end = None, None, None
         g = self.current
         if g is not None:
             g.observe(world, actions, self.clock)
+            route_end = g.take_route_end()   # P29-A: a route leg's end read this tick, on this line's why
             if not g.running:
                 self._close(g)
                 ended = self.history[-1]
@@ -314,6 +315,8 @@ class GoalRunner:
                 refused, self.refusal, g = {"type": g.TYPE, "args": g.args()}, self._refusal(g), None
             if g is None:
                 self.why = {"proposed": None, "refused": refused, "ended": ended, "pending": self.pending}
+                if route_end is not None:
+                    self.why["route_end"] = route_end
                 return None
             proposed = g.TYPE
             g.started_wall, g.kit = self.clock(), self.kit   # the budget starts here, never while pending
@@ -321,11 +324,14 @@ class GoalRunner:
             g.mark = actions.history[-1] if actions.history else None
             self.current, self.hold_ticks = g, 0
         cmd = g.step(world, actions, self.clock)
+        route_end = g.take_route_end() or route_end
         if not g.running:
             self._close(g)
             cmd = None
         self.why = dict(g.why, goal=g.TYPE, args=g.args(), state=g.state, reason=g.reason, proposed=proposed,
                         ended=ended)
+        if route_end is not None:
+            self.why["route_end"] = route_end
         leave = getattr(self.source, "last_leave", None) if proposed is not None else None
         if leave is not None:
             self.why["leave"] = leave   # P27-F: the source's pick that leaves a marked square

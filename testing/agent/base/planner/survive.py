@@ -299,6 +299,10 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     `arch-review-cerebellum.md` § 3.5): the melee maneuver (`maneuvers.Melee`, Task 7a's reflex skill `melee` of
     PZA/1.8): where the Fight's ladder would send an in-reach stance leg, an attack, a shove, a stomp or a floor swing
     at its pin, to a build announcing `melee` (`dispatch.FightDispatch`); `T12_SWITCHES` (MELEE).
+  - Survival 25 (iteration 23, F13, `f_goals_14-20261105-021722`; Plan 29 Task 1): P29-A, the route through a door
+    (the goal's and the Fight's) walks to the square one step beyond its far square when the map holds it open, the
+    Fight's at a walk, and a route leg's end is read by whether it crossed, an uncrossed `done` the door's failure and
+    a marked door wall (`edges.py`'s module docstring the rule); `T13_SWITCHES` (ROUTE_CROSS).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -430,6 +434,9 @@ T11_SWITCHES = ("WOUND_DRESS", "SHOVE_BACK", "DRIFT_STAND", "FLOOR_PAIN", "BUSY_
 # APPROACH_WALK, fix 1's seventh); P28-B1 withdrawn (no switch)
 T12_SWITCHES = ("MELEE",)
 # survival iteration 22 (Plan 28 Task 7b, cut 1 of the maneuver layer): the melee maneuver on `threat.Threat` (MELEE)
+T13_SWITCHES = ("ROUTE_CROSS",)
+# survival iteration 23 (Plan 29 Task 1): P29-A on `threat.Threat` beside BLOCKED_EDGE (ROUTE_CROSS: the Fight's
+# `route_cross` rule, copied to the goals' kit)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -451,7 +458,7 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "NEED_STATS", "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_RETRY_MIN", "FILL_SETTLE_S", "FILL_WANTS",
            "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T3_SWITCHES",
            "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES", "T7_SWITCHES", "T8_SWITCHES", "T9_SWITCHES", "T10_SWITCHES",
-           "T11_SWITCHES", "T12_SWITCHES"]
+           "T11_SWITCHES", "T12_SWITCHES", "T13_SWITCHES"]
 
 
 @dataclass
@@ -936,6 +943,7 @@ class Survive(Threat):
         self.goals.kit.wants = tuple(u for u in KIT_WANTS if now - self.need_marks.get(u, -math.inf) <= NEED_MEMORY_S)
         self.goals.kit.shelter_legs = self.SHELTER_LEGS   # P25-N
         self.goals.kit.blocked_edge = self.BLOCKED_EDGE   # P25-X
+        self.goals.kit.route_cross = self.ROUTE_CROSS   # P29-A
         cmd = self.goals.tick(self.world, self.actions, self._view)
         self.why = dict(self.goals.why)
         if cmd is not None:

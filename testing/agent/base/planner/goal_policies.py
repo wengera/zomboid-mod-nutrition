@@ -35,6 +35,8 @@ class Kit:
         self.wants = ()   # the uses a loot takes first (Survive's need marks, `survive.KIT_WANTS`: P24-AB)
         self.shelter_legs = True   # ruling P25-N: a Shelter approaches a far door in legs (Survive's SHELTER_LEGS)
         self.blocked_edge = True   # ruling P25-X: a target beyond a known blocked edge routed or dropped (`_edge_cmd`)
+        self.route_cross = True    # ruling P29-A: the route walks beyond the door and reads its end by the crossing
+                                   # (Survive's ROUTE_CROSS, set each tick)
 
     def rested(self, goal):
         """A goal ended: a Rest ended rested counts one, REST_N in a row widening the woods radius by WOODS_STEP up
@@ -171,6 +173,13 @@ class Goal:
         self.last = action
         self.sent_n += 1
 
+    def take_route_end(self):
+        """Ruling P29-A: the route leg's end read since the last take (`_Legs`'s `route_end`, `edges.route_end`'s why),
+        else None; cleared, so the runner logs it on the one line that read it."""
+        end = getattr(self, "route_end", None)
+        self.route_end = None
+        return end
+
 
 class _Climbing:
     """The route climb's goal side (ruling P24-G 4; lifted out of `ExploreToward` at Task 10 fix 1, minor 9, for the
@@ -225,14 +234,18 @@ class _Legs(GoalEdge):
     re-sent shorter; at LEG_MIN a `no square` fails the goal. A leg's `no square` never marks a square stuck
     (`Explore.sent`'s `leg`), so the far target stays the goal's. `_legs()` once at the start; `_leg_cmd(world, x, y)`
     the leg toward (x, y), else None when it lies within `leg_len` (the direct walk is the goal's own); `_leg_ended(
-    action)` "next" (go on), "fail" (the leg's own failure: the goal reads it) or None (not a leg). Ruling P25-X
+    action, world)` "next" (go on), "fail" (the leg's own failure: the goal reads it) or None (not a leg). Ruling P25-X
     (`edges.GoalEdge._edge_cmd`, `_edge_leg`): a target beyond a known blocked edge is first routed through its unlocked
-    door, the route a leg, or the goal ends `failed "blocked edge"`, cooled."""
+    door, the route a leg, or the goal ends `failed "blocked edge"`, cooled. Ruling P29-A (the kit's `route_cross`): a
+    route leg ended done is read by whether it crossed (`edges.GoalEdge._route_ended`, given the `world`), never as
+    "next" by its `done` alone."""
 
     def _legs(self):
         self.leg_len = None      # tiles: the next leg's length, None for the full `leg_max` (P24-AI: read at each leg)
         self.leg = None          # (x, y) of the leg the last choose sent, else None
         self.cool = False        # a leg failed for good: the runner cools the goal though it sent (`GoalRunner._close`)
+        self.edge_route = None   # P29-A: the running route leg's record (`edges.GoalEdge._edge_cmd`), else None
+        self.route_end = None    # P29-A: its end's `route_end` why, until the runner takes it (`Goal.take_route_end`)
 
     def _leg_cmd(self, world, x, y):
         if self.leg_len is None:
@@ -250,10 +263,14 @@ class _Legs(GoalEdge):
         """P25-X's route toward (x, y) within the leg length (`leg_max`), else None (`_edge_cmd`)."""
         return self._edge_cmd(world, x, y, leg_max(world))
 
-    def _leg_ended(self, action):
+    def _leg_ended(self, action, world=None):
         if self.leg is None or action.type != "walkTo" or (action.args.get("x"), action.args.get("y")) != self.leg:
             return None
         self.leg = None
+        route = self._route_ended(world, action) if world is not None else None   # P29-A: crossed or a door failure
+        if route is not None:
+            self.leg_len = None
+            return route
         if action.state == "done":
             self.leg_len = None   # the full length again, read off the window at the next leg
             return "next"
@@ -292,7 +309,7 @@ class ExploreToward(_Legs, _Climbing, Goal):
         world.mark_stuck(self.x, self.y)
 
     def ended(self, world, action):
-        leg = self._leg_ended(action)
+        leg = self._leg_ended(action, world)
         if leg == "next":
             return
         if action.type == "walkTo":
@@ -382,7 +399,7 @@ class LootBuilding(_Legs, _Looting, Goal):
         """A loot failed `not adjacent` makes the route due (P24-Z); a route step's end is read into its plan
         (`night.shelter_ended`), `shun` (no door left) failing the goal `no door`; a leg toward a far container
         (P24-AC) goes on, or fails the goal under its reason."""
-        leg = self._leg_ended(action)
+        leg = self._leg_ended(action, world)
         if leg is not None:
             if leg == "fail":
                 self._leg_failed(world)
@@ -536,7 +553,7 @@ class Shelter(_Legs, _Climbing, Goal):
         elif self._stuck(world, action):
             self.why = dict(self.why, ended="climb")
             return
-        leg = self._leg_ended(action)
+        leg = self._leg_ended(action, world)
         if leg is not None:
             self.why = dict(self.why, ended="leg")
             if leg == "fail":

@@ -893,17 +893,18 @@ def test_a_seek_aim_leg_gives_way_to_a_nearer_zombie(tmp_path):
 E7 = "e_day_7-20261029-140813"
 
 
-def _e7_lines(upto, engage_any=False, no_give=False, iteration_10=False, edge=True):
+def _e7_lines(upto, engage_any=False, no_give=False, iteration_10=False, edge=True, cross=True):
     """E7 replayed to `upto`: the rows, and per tick {walk: the running stance walk's target id else None, zs:
     {zombie id: tiles}}. `engage_any`: the engage as built at 9c477f80 (every zombie within ENGAGE_R engageable), so
     the review's walk at line 52 is reproduced; `no_give`: the blocker's mutant (the walk never gives way);
     `iteration_10`: Task 32's switches off (`Survive.PULL`, `DOORWAY`, `TRANS`); `edge` False: P25-X's switch off
-    (`Survive.BLOCKED_EDGE`, Plan 25 Task 14)."""
+    (`Survive.BLOCKED_EDGE`, Plan 25 Task 14); `cross` False: P29-A's (`Survive.ROUTE_CROSS`, Plan 29 Task 1)."""
     from agent.base import replay_decisions as R
     out = {}
 
     def m(sv):
         sv.BLOCKED_EDGE = edge
+        sv.ROUTE_CROSS = cross
         if engage_any or iteration_10:
             sv.PULL = sv.DOORWAY = sv.TRANS = False
         if engage_any:

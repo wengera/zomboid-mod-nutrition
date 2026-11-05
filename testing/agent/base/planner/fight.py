@@ -197,7 +197,8 @@ FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finis
                "shove_break_run", "blocked_edge", "wounded_swing", "low_swing",
                "floor_finish", "fallen_seek", "shove_close", "low_exit", "attack_reach",
                "point_blank_pin", "busy_retry", "floor_pain", "shove_back",
-               "drift_stand", "circle", "approach_walk", "melee")   # survival iterations 13 to 22's Fight
+               "drift_stand", "circle", "approach_walk", "melee",
+               "route_cross")   # survival iterations 13 to 23's Fight
                      # rules (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H,
                      # P27-J, P27-K2; fix 2's P27-M and P27-N; P28-D, P28-C, P28-B2, P28-B3, P28-E, the approach walk;
                      # the melee, cut 1 of the maneuver layer), each on in `rules` unless Survive's switch for it is
@@ -272,8 +273,11 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         self._miss_run = {}                 # zombie id -> its missed shoves since its last knock-down (P25-T)
         self.edge_marks = {}                # Survive shares its own: zombie id -> the blocked edge it was refused
                                             # across (P25-X, `edges.FightEdge`), released by the threat branch
-        self._edge_send = None              # (target id, edge) of the route walk the running choose returns (P25-X)
-        self._edge_walk = None              # (walk, target id, edge) of the last route walk sent, until its end is read
+        self._edge_send = None              # (target id, edge, route) of the route walk the running choose returns
+                                            # (P25-X; the route record P29-A's, else None)
+        self._edge_walk = None              # (walk, target id, edge, P29-A's route record or None) of the last route
+                                            # walk sent, until its end is read
+        self._route_end = None              # P29-A: the route walk's end read by observe (`route_end`), for the why
         self.blocked_edge = None            # this choose's `blocked_edge` why (P25-X), else None
         self.shove_only = None              # Survive sets it each tick: why the Fight is the shove and the stomp
                                             # alone, "unarmed" (P25-P), "low" (P25-S) or "hold" (P27-C), else None:
@@ -876,6 +880,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             self._busy_retry = None
         if self._m_end is not None:   # survival iteration 22: the maneuver that ended since the last choose
             self.why["melee_end"], self._m_end = self._m_end, None
+        if self._route_end is not None:   # P29-A: the route walk's end read since the last choose
+            self.why["route_end"], self._route_end = self._route_end, None
         return cmd
 
     def _repin_point_blank(self):

@@ -123,7 +123,10 @@ at line 440: the follow-up attack at 15885 from 0.7801175874939513 tiles is the 
 on line 441 from 1.0072464647115065 tiles, every later moved line downstream (open loop); with no switch, `pre_t11`
 reproduces every golden's file before iteration 21 but the sixth's, whose sha256 `PRE_T11` pins against the file the
 last build reading the hold holds (`test_replay_decisions.R2_FROZEN`, 361324b7), where that file and the three older
-seams' sixth cases (PRE_AD, PRE_AG, PRE_AN) re-run.
+seams' sixth cases (PRE_AD, PRE_AG, PRE_AN) re-run. Plan 28 Task 7b's iteration 22 (MELEE) and Plan 29 Task 1's
+iteration 23 (P29-A's ROUTE_CROSS: no golden's replay sends a route walk) moved no golden: `T12_SWITCHES` and
+`T13_SWITCHES` off (`pre_t12`, `pre_t13`) and on are byte-identical (`test_iteration_22_moves_no_golden`,
+`test_iteration_23_moves_no_golden`).
 
 `agreement(artifact_dir, replayed)` compares the replayed log with the record's own decision.log at every line where
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat

@@ -212,6 +212,12 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     MELEE = True          # cut 1 of the maneuver layer: where the Fight's ladder would send an in-reach stance leg,
                           # an attack, a shove, a stomp or a floor swing at its pin, the melee maneuver to a build
                           # announcing `melee` (`dispatch.FightDispatch`); off, the ladder's command
+    # survival iteration 23 (Plan 29 Task 1; survive.py's docstring, Survival 25): in `survive.T13_SWITCHES` (the
+    # replay tests' `pre_t13`)
+    ROUTE_CROSS = True    # ruling P29-A: a route through a door (BLOCKED_EDGE's) walks to the square one step beyond
+                          # its far square when the map holds it open, the Fight's at a walk, and reads its end by
+                          # whether it crossed, an uncrossed `done` the door's failure and a marked door wall
+                          # (`planner/edges.py`: the Fight's `route_cross` rule, the goals' kit); off, P25-X's route
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -1022,7 +1028,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         return flee.busy() and flee.last.args.get("gait") == "walk"
 
     def _fight_rules(self):
-        """The iterations 13 to 22 Fight rules (`fight.FIGHT_RULES`, iteration 20's fix 2 included) whose switch is on:
+        """The iterations 13 to 23 Fight rules (`fight.FIGHT_RULES`, iteration 20's fix 2 included) whose switch is on:
         the Fight's `rules`."""
         return frozenset(rule for rule, on in (("corner_break", self.CORNER_BREAK), ("finish_first", self.FINISH_FIRST),
                                                ("ride_wait", self.RIDE_WAIT), ("fence_wait", self.FENCE_WAIT),
@@ -1037,7 +1043,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("busy_retry", self.BUSY_RETRY), ("floor_pain", self.FLOOR_PAIN),
                                                ("shove_back", self.SHOVE_BACK), ("drift_stand", self.DRIFT_STAND),
                                                ("circle", self.CIRCLE), ("approach_walk", self.APPROACH_WALK),
-                                               ("melee", self.MELEE))
+                                               ("melee", self.MELEE), ("route_cross", self.ROUTE_CROSS))
                          if on)
 
     def _flee_rules(self):
