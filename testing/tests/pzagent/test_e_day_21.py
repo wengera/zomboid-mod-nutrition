@@ -455,7 +455,7 @@ def test_a_later_chain_session_holding_the_bat_spawns_none(tmp_path, monkeypatch
 
 # ================================================================ the copy: e_day_20.py's body, its own key
 BASE_SENTENCE = (
-    "the base at `c6fdcd37` (the planner: Plan 28 Task 3, its head at the copy) carries PZA/1.7.2 (the part record's "
+    "the base at `389d0ae9` (the planner: Plan 28 Task 3, its head at the boot, re-based) carries PZA/1.7.2 (the part record's "
     "`wound`, and the attack releasing the stance and pressing one tick after facing, P28-F; the hello reads `mod` "
     "`1.7`) and survival iteration 21 (over iteration 20: P28-A the wound dressed, P28-B the back leg after a missed "
     "shove and the drifted pin's stance, P28-C the floor swing under the arms' pain, P28-D a busy rejection no "
@@ -503,7 +503,7 @@ def test_the_copy_differs_from_e_day_20_only_in_the_expected_lines():
     assert "pass 18 readings" in b and "grade_e17" not in b[b.index('out["grade_e18"] is grades'):]
     head = b[:b.index(MARK)]
     assert b.splitlines()[1] == a.splitlines()[1].replace("e_day_19.py's", "e_day_20.py's")
-    for c in ("e_day_20.py", "twenty-first", "PZA/1.7.2", "grade_e18", "grade_e17", "c6fdcd37", "P28-A", "P28-B",
+    for c in ("e_day_20.py", "twenty-first", "PZA/1.7.2", "grade_e18", "grade_e17", "389d0ae9", "P28-A", "P28-B",
               "P28-C", "P28-D", "P28-E", "P28-F", "state.1.log", BASE_SENTENCE) + NEW18:
         assert c in head, c
     assert "acb1e294" not in head and "PZA/1.7.1" not in head and "P27-F" not in head
@@ -528,10 +528,10 @@ def test_the_stops_block_names_client_end_after_death():
 
 def test_the_base_sentence_names_the_planner_s_head_at_the_copy():
     """The base sentence's commit is the planner's head the copy was made at (`git log -1 -- testing/agent/base/planner`
-    at Task 5: c6fdcd37, Plan 28 Task 3); the controller re-bases it before the boot."""
+    at Task 5: 389d0ae9, Plan 28 Task 3); the controller re-bases it before the boot."""
     first = E.__doc__.splitlines()[0]
     assert BASE_SENTENCE in first
-    assert "the base at `c6fdcd37` (the planner: Plan 28 Task 3, its head at the copy)" in first
+    assert "the base at `389d0ae9` (the planner: Plan 28 Task 3, its head at the boot, re-based)" in first
 
 
 def test_the_grade_wired_is_grade_e18_of_the_grades_module():
