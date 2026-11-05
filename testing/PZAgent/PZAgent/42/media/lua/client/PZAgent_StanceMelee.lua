@@ -13,7 +13,7 @@
 --   targetId  the zombie (K.zombieById); mode strike (the weapon swing within reach, the shove per the reflexes), shove
 --   (no weapon swing at a standing target) or finish (the target fallen: the stomp or the floor swing only); reach the
 --   swing's distance (0: the held weapon's K.reachOf, read once); keepR the back leg's bound after a miss; shoveR the
---   shove's distance (shove mode's, the early shove's at a chasing target, the point blank after a miss); releaseR
+--   shove's distance (shove mode's; strike mode's early shove at a chaser goes within K.STAND_R too, P28-H); releaseR
 --   beyond which it fails out of range; (backVx, backVy) the back leg's world heading, the planner's clear-turned one
 --   ((0, 0): stand); seconds the span; floorSwing the floor swing allowed at a fallen target. Every tunable is the
 --   planner's argument; the Lua's own constants are the engine's (K.STOMP_R, K.STAND_R, K.SWING_MS, K.FACE_TICKS,
@@ -50,12 +50,17 @@
 --       answered by the swing in strike mode; the shove at shoveR in shove mode). Boxed in with no clear heading
 --       ((0, 0), what the planner sends then), the melee strikes back to back, as P28-B2's planner residual rules the
 --       shove-back (its leg only with a clear heading, else the strike), confirmed by the controller: review-t7a's
---       re-review probe read 13 shoves in shove mode, 12 of them at 0.45 tiles, over 8 s with no back step. The
---       exposure the other way: a follower faster than the walk gets about 0.6 s at point blank during a full leg.
+--       re-review probe read 13 shoves in shove mode, 12 of them at 0.45 tiles, over 8 s with no back step; in strike
+--       mode those strikes are swings, a shove only at a chaser closing within K.STAND_R (rule 8). The exposure the
+--       other way: a follower faster than the walk gets about 0.6 s at point blank during a full leg.
 --    8. the shove: in shove mode within shoveR; or a target chasing the player (getTarget is the player, T91.1) whose d
---       fell since the last tick, within shoveR (P28-B1: an unstruck target or one whose miss cleared); a shove's face,
---       once begun, presses as a shove while the target stays within shoveR.
---    9. the swing: in strike mode within the reach.
+--       fell since the last tick (P28-B1: an unstruck target or one whose miss cleared), within shoveR in shove mode
+--       and in strike mode only within K.STAND_R too, where the engine would turn the swing into a shove anyway
+--       (#4372): ruling P28-H, the swing before the shove in strike mode, so a chaser at the reach is swung at, never
+--       shoved at shoveR's edge (E22's eight shoves at 1.068 to 1.100 tiles knocked nothing down, nine bites in a row;
+--       E21's swings at a standing zombie from 1.058 tiles on all lowered it); a shove's face, once begun, presses as
+--       a shove while the target stays within shoveR.
+--    9. the swing: in strike mode within the reach (a chaser inside shoveR but beyond K.STAND_R included, P28-H).
 --   10. an idle target (getTarget nil) beyond the reach (shoveR in shove mode): close on it at a walk in the stance.
 --   11. otherwise stand in the stance, facing it.
 --   Every press (swing, shove, stomp, floor) faces the target with the stance released (the aimed player faces the
@@ -360,9 +365,9 @@ local function reflex(p, st, d)
         clearMiss(st)
     end
     local t, read = nil, false
-    if d <= st.shoveR then
+    if d <= st.shoveR then                    -- 8; in strike mode the chaser's shove only within K.STAND_R (P28-H)
         if st.mode == "shove" or st.faceKind == "shove" then return strike(p, st, "shove") end
-        if st.lastD ~= nil and d < st.lastD then
+        if d <= K.STAND_R and st.lastD ~= nil and d < st.lastD then
             t, read = targetOf(st), true
             if t ~= nil and t == p then return strike(p, st, "shove") end
         end

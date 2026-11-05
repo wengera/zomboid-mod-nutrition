@@ -410,12 +410,28 @@ def test_shove_mode_shoves_at_shove_r_and_never_beyond(lua, fs):
     assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is True
 
 
-def test_a_chasing_target_closing_to_shove_r_is_shoved_in_strike_mode(lua, fs):
-    """P28-B1 inside the reflex: with the reach (0.8) under shoveR, a chasing target closing inside 1.1 is shoved."""
+def test_in_strike_mode_a_chasing_target_closing_through_shove_r_is_swung_at_within_the_reach_not_shoved(lua, fs):
+    """Ruling P28-H (2): in strike mode the swing comes before the shove. With the reach (0.8) under shoveR (1.1), a
+    chasing target closing through 1.1 is not shoved at shoveR (P28-B1's early shove, E22's shoves at 1.068 to 1.100
+    that knocked nothing down); it is swung at within the reach, beyond K.STAND_R."""
     p, z, w = world(lua, zx=11.6, zspeed=1.2, chasing=True)
     go(lua, p, reach=0.8)
     run(lua, p, w, 60, stop=lambda: len(w["presses"]) > 0)
-    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is True and w["presses"][0]["d"] <= 1.1
+    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is False
+    assert lua.eval("PZA.skills.STAND_R") < w["presses"][0]["d"] <= 0.8
+    assert "shove" not in step_seq(lua, fs)
+
+
+def test_in_strike_mode_a_chasing_target_lunging_inside_stand_r_is_shoved(lua, fs):
+    """Ruling P28-H (2): the strike-mode shove stays within K.STAND_R (0.6), where the engine would turn the swing into
+    a shove anyway (#4372): a chaser lunging from 1.6 to 0.5 in one tick, closing, is shoved."""
+    p, z, w = world(lua, zx=11.6, chasing=True)
+    go(lua, p)
+    run(lua, p, w, 2)
+    assert cur_step(lua) == "stand"
+    w["zx"] = 10.5
+    run(lua, p, w, 2)
+    assert cur_step(lua) == "shove" and len(w["presses"]) == 1 and w["presses"][0]["shove"] is True
 
 
 def test_an_idle_target_at_the_same_distance_is_not_shoved(lua, fs):
@@ -444,13 +460,27 @@ def test_after_a_miss_a_follower_at_point_blank_meets_the_back_leg_to_its_end_th
     assert seq.index("back") < len(seq) - 1 and "shove" not in seq
 
 
-def test_a_chasing_target_lunging_inside_shove_r_in_one_tick_is_shoved_not_swung(lua, fs):
-    """The order of 7 before 8 (P28-B1): F11's chaser read 1.29 then 0.63 a planner tick later; here 1.6 then 1.0 in one
-    client tick, inside the reach and shoveR, chasing and closing: the shove."""
+def test_in_strike_mode_a_chasing_target_lunging_to_1_0_is_swung_at_not_shoved(lua, fs):
+    """Ruling P28-H (2)'s falsifier: in strike mode a chaser lunging from 1.6 to 1.0 in one client tick, inside the
+    reach (1.4) and shoveR (1.1), chasing and closing, beyond K.STAND_R: no shove, the swing (its face, the press a tick
+    later, no shove flag)."""
     p, z, w = world(lua, zx=11.6, chasing=True)
     go(lua, p)
     run(lua, p, w, 2)
     assert cur_step(lua) == "stand"
+    w["zx"] = 11.0
+    run(lua, p, w)
+    assert cur_step(lua) == "face" and w["presses"] == []
+    run(lua, p, w)
+    assert cur_step(lua) == "swing" and len(w["presses"]) == 1 and w["presses"][0]["shove"] is False
+    assert ("setDoShove", True) not in p.sets
+
+
+def test_in_shove_mode_a_chasing_target_lunging_to_1_0_is_shoved(lua, fs):
+    """Ruling P28-H (2) gates the swing-first order on strike mode only: the same lunge in shove mode is shoved."""
+    p, z, w = world(lua, zx=11.6, chasing=True)
+    go(lua, p, mode="shove")
+    run(lua, p, w, 2)
     w["zx"] = 11.0
     run(lua, p, w, 2)
     assert cur_step(lua) == "shove" and len(w["presses"]) == 1 and w["presses"][0]["shove"] is True
@@ -606,6 +636,27 @@ def test_the_review_probe_reads_a_back_leg_between_every_two_strikes(lua, fs, mo
             between = [m for m in marks if m[0] == "back" and a[1] < m[1] < b[1]]
             if a[2] and b[2] and (b[1] - a[1]) * TICK_MS < 3000:
                 assert between, (a, b)
+
+
+@pytest.mark.parametrize("speed", [1.2, 2.2])
+def test_the_p28h_probe_a_chaser_from_three_tiles_in_strike_mode_takes_swings_at_reach_never_a_shove_at_shove_r(
+        lua, fs, speed):
+    """Ruling P28-H's probe (E22's live arguments: reach 1.475, shoveR 1.1, keepR 2.5; releaseR 3.5 to start it at 3
+    tiles, beyond the live 2.75): a chaser closing from 3 tiles,
+    at 1.2 tiles a second (slower than the walk) and at 2.2 (a follower faster than the walk, inside shoveR and closing
+    when the back leg ends), a 12-tick attack and no knockdown, 12 s in strike mode: the first strike a swing at d within
+    the reach, and no shove anywhere beyond K.STAND_R; every swing pressed within the reach."""
+    p, z, w = world(lua, zx=13.0, zspeed=speed, attack_ticks=12)
+    go(lua, p, mode="strike", **dict(PROBE, releaseR=3.5))
+    run(lua, p, w, int(12000 / TICK_MS) + 60, stop=lambda: ended(lua))
+    presses = w["presses"]
+    stand_r = lua.eval("PZA.skills.STAND_R")
+    assert len(presses) >= 3, presses
+    assert presses[0]["shove"] is False and presses[0]["d"] <= PROBE["reach"]
+    assert all(x["d"] <= stand_r for x in presses if x["shove"]), presses
+    assert all(x["d"] <= PROBE["reach"] for x in presses if not x["shove"]), presses
+    if speed > 2.0:                                                   # the follower: swings inside shoveR, not shoves
+        assert any(stand_r < x["d"] <= PROBE["shoveR"] and not x["shove"] for x in presses), presses
 
 
 def test_an_idle_target_missed_is_backed_off_from_not_closed_on(lua, fs):
