@@ -76,15 +76,33 @@ local function read(pl, name)
     return nil
 end
 
--- the sneak want onto the player: setSneaking only when isSneaking() reads a boolean that differs (the header's sneak)
+-- the sneak want onto the player: setSneaking only when isSneaking() reads a boolean that differs (the header's sneak).
+-- A raising setter is re-raised (the handler counts it in updErrors, the sneak command answers failed interrupted) and
+-- counted in MO.sneakRaises; after SNEAK_RAISES raises in a row the want drops to the flag as read, so the Motor stops
+-- trying and the next frame's me.sneaking shows the truth (review-t1 minor 3). A write that runs, or a new want,
+-- resets the count.
+MO.SNEAK_RAISES = 3
+MO.sneakRaises = MO.sneakRaises or 0
 local function applySneak(pl)
     local ok, on = PZA.call(pl, "isSneaking")
-    if ok and type(on) == "boolean" and on ~= MO.wantSneak then PZA.call(pl, "setSneaking", MO.wantSneak) end
+    if not ok or type(on) ~= "boolean" or on == MO.wantSneak then return end
+    local ran, err = pcall(PZA.call, pl, "setSneaking", MO.wantSneak)
+    if ran then
+        MO.sneakRaises = 0
+        return
+    end
+    MO.sneakRaises = MO.sneakRaises + 1
+    if MO.sneakRaises >= MO.SNEAK_RAISES then
+        MO.wantSneak = on
+        MO.sneakRaises = 0
+    end
+    error(err, 0)
 end
 
 -- the planner's sneak posture (PZA/1.9): the want recorded, and written at once when the player is given
 function MO.sneak(on, p)
     MO.wantSneak = on == true
+    MO.sneakRaises = 0
     if p ~= nil then applySneak(p) end
 end
 

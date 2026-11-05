@@ -849,7 +849,7 @@ def test_window_is_an_action_with_its_args_result_and_reason():
     assert pza1.decode(json.loads(pza1.encode("act", body))) == body
 
 
-# ---- PZA/1.9 (Plan 30 Task 1): sneak, me's sneaking and sneakLevel, the zombie record's known, state and behind -------
+# ---- PZA/1.9 (Plan 30 Task 1): sneak, me's sneaking and sneakLevel, the zombie record's known, state and behind ------
 
 def test_sneak_is_the_last_action_with_its_bool_arg_and_its_result():
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]

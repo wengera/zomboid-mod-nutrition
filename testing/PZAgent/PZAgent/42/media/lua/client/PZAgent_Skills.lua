@@ -1,6 +1,6 @@
 -- PZAgent_Skills.lua — the skill runner and its skills (Plan 22 spec § 7): skills, not machines. A command
 -- {seq, aid, type, args} from the Link's poll starts one skill, a bounded engine action with a typed result; the
--- planner owns every decision between skills. Each skill is K.types[type] = { check, tick }:
+-- planner owns every decision between skills. Each skill is K.types[type] = { check, tick } (or { direct }, below):
 --   check(args, p) -> ok, reason, st   validates and converts the decoded args; st is the skill's private state
 --   tick(p, st) -> nil | "done", result | "failed", reason[, result] | "progress", result   one tick; never emits
 --   stop(p, st, reason)   optional: the runner calls it at a skill's end in any state but done (failed with its reason,
@@ -173,8 +173,8 @@ end
 
 -- a command from the Link's poll; it emits, and returns nothing the caller needs. A command with an empty aid is
 -- rejected bad args, an unknown type unknown type, a dead player dead (but for stop; a dead check that raises is
--- rejected interrupted, S-15), a failed check its reason;
--- otherwise a running skill ends failed superseded (its line first) and the new one starts with accepted.
+-- rejected interrupted, S-15), a failed check its reason (a { direct } type, PZA/1.9's sneak, is answered on its tick
+-- by the wrapper at the end of the file); otherwise a running skill ends failed superseded, the new one accepted.
 function K.start(cmd, p)
     local aid, typ = cmd.aid, cmd.type
     if type(aid) ~= "string" or aid == "" then

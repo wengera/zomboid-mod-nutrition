@@ -33,8 +33,8 @@ checked before re-recording. All five were re-recorded under "PZA/1.9: me's snea
 known, state and behind" (Plan 30 Task 1): the logs decode with those fields null, which the World's final me and
 zombie records carry; with the null keys dropped (me's two in all five, the zombie's three in the three whose final
 World lists a zombie: 2, 2 and 5 zombies) and the JSON re-serialised as to_json does, each hashed to its previous
-golden, checked before re-recording. Before recording, each streamed replay's JSON was checked equal to the whole-file replay
-of `world.replay` at 19ee80ca (the function this module's replay replaced).
+golden, checked before re-recording. Before recording, each streamed replay's JSON was checked equal to the
+whole-file replay of `world.replay` at 19ee80ca (the function this module's replay replaced).
 
 The frame counts, from each guide (the driver's `frames.n` plus the frames after its last read):
 - x4_link-20261027-171916/GUIDE.md:13: "The driver read 7505 frames ... the 28 frames seq 8034-8061 came after its

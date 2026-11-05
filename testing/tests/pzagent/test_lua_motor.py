@@ -255,3 +255,43 @@ def test_a_raising_sneak_setter_counts_one_error_and_the_latches_are_still_asser
 
 PCALL_COUNTER = ("pcallFails = 0; local raw = pcall; pcall = function(...) local r = { raw(...) };"
                  " if not r[1] then pcallFails = pcallFails + 1 end; return unpack(r) end")
+
+
+def test_a_setter_raising_sneak_raises_times_in_a_row_drops_the_want_to_the_flag(lua):
+    """Review-t1 minor 3: after MO.SNEAK_RAISES raises in a row the want drops to the flag as read, so the Motor stops
+    trying; every raise stays counted in updErrors."""
+    load(lua)
+    p = make_player()
+    tries = []
+
+    def raising(s, v):
+        tries.append(v)
+        raise RuntimeError("setSneaking raised")
+    p.setSneaking = raising
+    assert lua.eval("PZA.motor.SNEAK_RAISES") == 3
+    lua.execute("PZA.motor.sneak(true)")
+    fire(lua, p, 2)
+    assert tries == [True, True] and lua.eval("PZA.motor.wantSneak") is True
+    fire(lua, p, 4)
+    assert tries == [True] * 3 and lua.eval("PZA.motor.wantSneak") is False
+    assert lua.eval("PZA.motor.updErrors") == 3 and lua.eval("PZA.motor.sneakRaises") == 0
+    lua.execute("PZA.motor.sneak(true)")                          # a new want tries again
+    fire(lua, p)
+    assert tries == [True] * 4 and lua.eval("PZA.motor.sneakRaises") == 1
+
+
+def test_a_write_that_runs_resets_the_raise_count(lua):
+    load(lua)
+    p = make_player()
+    boom = {"on": True}
+
+    def flaky(s, v):
+        if boom["on"]:
+            raise RuntimeError("setSneaking raised")
+        p.sneak["on"] = v
+    p.setSneaking = flaky
+    lua.execute("PZA.motor.sneak(true)")
+    fire(lua, p, 2)
+    boom["on"] = False
+    fire(lua, p)
+    assert p.sneak["on"] is True and lua.eval("PZA.motor.sneakRaises") == 0 and lua.eval("PZA.motor.wantSneak") is True

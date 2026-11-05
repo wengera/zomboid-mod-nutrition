@@ -212,7 +212,7 @@ def test_a_melee_through_actions_check_refuses_a_fourth_mode():
         actions.check(m)
 
 
-# ---- PZA/1.9 (Plan 30 Task 1): sneak, the posture beside the running skill --------------------------------------------
+# ---- PZA/1.9 (Plan 30 Task 1): sneak, the posture beside the running skill -------------------------------------------
 
 def test_sneak_sends_the_posture_and_leaves_the_running_walk_current(tmp_path):
     from agent.base.actions import POSTURES
