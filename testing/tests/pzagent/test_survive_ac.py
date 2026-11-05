@@ -9,8 +9,9 @@ names.
 - P28-D, a `busy` rejection is no refusal (`BUSY_RETRY`): a shove or a stomp `rejected` `busy` leaves no
   `swing_refused` record; the next send of that kind at that id is logged `busy_retry` {target, kind}.
 - P28-C, the floor swing under the arms' pain (`FLOOR_PAIN`): the swing at a fallen zombie within FIGHT_REACH barred by
-  a hold or a shove-only Fight, never by `arms_hurt` alone (logged `floor_finish` {.., pain}); the non-stance Fight's
-  walk to a zombie beyond FIGHT_REACH at a walk (logged `leg` "walk").
+  a hold or a shove-only Fight, never by `arms_hurt` alone (logged `floor_finish` {.., pain}); in its section the
+  spec's 1 (b) (`APPROACH_WALK`, its own switch since fix 1): the non-stance Fight's walk to a zombie beyond
+  FIGHT_REACH, or on the approach after unstarted swings, at a walk (logged `leg` "walk").
 - P28-A, the wound dressed (`WOUND_DRESS`): a part reading `wound`, not bleeding and not bandaged, dressed with the best
   clean dressing while more than WOUND_RESERVE are held and no zombie is within DANGER_R (logged `reason` "wound"),
   else `wound_held` {part, clean}; nothing to dress it beyond the reserve and no garment marks the want `bandage`.
@@ -245,7 +246,8 @@ def test_the_flee_s_finish_under_a_hold_still_stomps(tmp_path, hold):
 
 def test_the_non_stance_fight_walks_to_a_zombie_beyond_fight_reach(tmp_path):
     """The spec's 1 (b) (ruling P27-9; E20's a190 ran 1.762922801715824 tiles into 3189, #4571): the approach-and-swing
-    Fight's walk to a zombie beyond FIGHT_REACH goes at a walk, logged `leg` "walk"; with the rule off at a run."""
+    Fight's walk to a zombie beyond FIGHT_REACH goes at a walk, logged `leg` "walk"; with the `approach_walk` rule off
+    (Survive's APPROACH_WALK, fix 1's seventh switch) at a run."""
     for on in (True, False):
         d = tmp_path / str(on)
         d.mkdir()
@@ -253,7 +255,7 @@ def test_the_non_stance_fight_walks_to_a_zombie_beyond_fight_reach(tmp_path):
         r.frame(zombies=[z(7, 105.6, 200.2)])
         f = fight(r)
         if not on:
-            f.rules = f.rules - {"floor_pain"}
+            f.rules = f.rules - {"approach_walk"}
         f.step()
         assert r.cmd() == ("walkTo", {"x": 105.5, "y": 200.5, "gait": "walk" if on else "run"})
         assert (f.why.get("leg") == "walk") is on
@@ -261,6 +263,30 @@ def test_the_non_stance_fight_walks_to_a_zombie_beyond_fight_reach(tmp_path):
 
 def test_the_floor_pain_switch():
     assert "FLOOR_PAIN" in S.T11_SWITCHES and T.Threat.FLOOR_PAIN is True and "floor_pain" in F.FIGHT_RULES
+
+
+def test_the_approach_after_two_unstarted_swings_walks_too(tmp_path):
+    """The spec's 1 (b)'s second case (review-t3 minor 6): the approach after MISSES_TO_APPROACH attacks whose swing did
+    not start, at a zombie within FIGHT_REACH, goes at a walk under `approach_walk`, at a run with it off."""
+    for on in (True, False):
+        d = tmp_path / str(on)
+        d.mkdir()
+        r = Rig(d)
+        r.frame(zombies=[z(7, 101.5)])
+        f = fight(r)
+        if not on:
+            f.rules = f.rules - {"approach_walk"}
+        for _ in range(P.MISSES_TO_APPROACH):
+            assert f.step().type == "attack"
+            r.answer({"state": "done", "result": {"swings": 0, "attackStarted": False, "meleeDelay": 0.0,
+                                                  "targetDead": False}})
+        f.step()
+        assert r.cmd() == ("walkTo", {"x": 101.5, "y": 200.5, "gait": "walk" if on else "run"})
+        assert f.why["approach"] is True and (f.why.get("leg") == "walk") is on
+
+
+def test_the_approach_walk_switch():
+    assert "APPROACH_WALK" in S.T11_SWITCHES and T.Threat.APPROACH_WALK is True and "approach_walk" in F.FIGHT_RULES
 
 
 # ================================================================ P28-A: the wound dressed
@@ -567,7 +593,8 @@ def test_the_iteration_21_switches_and_constants():
     """The six switches (P28-B1 withdrawn, amendment 1), each on; WOUND_DRESS on `Survive`, the five others on
     `threat.Threat` in the Fight's rules, each switch off dropping its own rule alone; the constants."""
     import types
-    assert S.T11_SWITCHES == ("WOUND_DRESS", "SHOVE_BACK", "DRIFT_STAND", "FLOOR_PAIN", "BUSY_RETRY", "CIRCLE")
+    assert S.T11_SWITCHES == ("WOUND_DRESS", "SHOVE_BACK", "DRIFT_STAND", "FLOOR_PAIN", "BUSY_RETRY", "CIRCLE",
+                              "APPROACH_WALK")
     assert "T11_SWITCHES" in S.__all__ and S.Survive.WOUND_DRESS is True
     names = S.T11_SWITCHES[1:]
     assert all(getattr(T.Threat, n) is True for n in names) and {n.lower() for n in names} <= set(F.FIGHT_RULES)

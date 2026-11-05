@@ -139,9 +139,10 @@ one table the gates and the other policies import).
   until the next send of that kind at that id, logged `busy_retry` {target, kind} (`_observe_swing`, `choose`).
   P28-C, the floor swing under the arms' pain: the swing at a fallen zombie within FIGHT_REACH (the finish's
   `_floor_finish`, the floor strike after a refused stomp) is barred by a hold or a shove-only Fight, never by
-  `arms_hurt` alone (`floor_swing_barred`), logged `floor_finish` {.., pain}; in its commit the walk to a zombie beyond
-  FIGHT_REACH of a Fight not in the stance goes at a walk, never a run (the spec's 1 (b), ruling P27-9: E20's a190
-  ran 1.762922801715824 tiles into 3189, #4571), logged `leg` "walk".
+  `arms_hurt` alone (`floor_swing_barred`), logged `floor_finish` {.., pain}. The approach walk (the spec's 1 (b),
+  ruling P27-9: E20's a190 ran 1.762922801715824 tiles into 3189, #4571; Survive's APPROACH_WALK since fix 1): a
+  Fight not in the stance walks at a walk, never a run, to a zombie beyond FIGHT_REACH and on the approach after
+  MISSES_TO_APPROACH unstarted swings, logged `leg` "walk".
   P28-B (the strike before the zombie's attack; F11's #4580; P28-B1's early shove withdrawn by the jar read, the
   engine's shove reach 1.1 the point-blank band itself, #4592, so SHOVE_R reads 1.1): B2, after a missed point-blank
   shove the stance's `back` leg in the second shove's place (`shove.FightShove._shove`, logged `shove_back`); B3, a
@@ -182,10 +183,10 @@ FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finis
                "shove_break_run", "blocked_edge", "wounded_swing", "low_swing",
                "floor_finish", "fallen_seek", "shove_close", "low_exit", "attack_reach",
                "point_blank_pin", "busy_retry", "floor_pain", "shove_back",
-               "drift_stand", "circle")   # survival iterations 13 to 21's Fight rules (P25-A, P25-B, P25-D, P25-F;
-                     # P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H, P27-J, P27-K2; fix 2's P27-M and
-                     # P27-N; P28-D, P28-C, P28-B2, P28-B3, P28-E), each on in `rules` unless Survive's switch for it
-                     # is off
+               "drift_stand", "circle", "approach_walk")   # survival iterations 13 to 21's Fight rules (P25-A,
+                     # P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H, P27-J, P27-K2;
+                     # fix 2's P27-M and P27-N; P28-D, P28-C, P28-B2, P28-B3, P28-E, the approach walk), each on in
+                     # `rules` unless Survive's switch for it is off
 
 
 class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach, Policy):
@@ -954,7 +955,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
                 self.why.update({"seek": True, "leg": "walk"})
                 self._walk_kind = "far" if self.standing() else None   # fix 1: it gives way within AIM_R
                 return WalkTo(*centre((z["x"], z["y"])), "walk")
-            if "floor_pain" in self.rules:   # P28-C's commit, the spec's 1 (b): the walk to a zombie, never a run
+            if "approach_walk" in self.rules:   # the spec's 1 (b): beyond FIGHT_REACH or on the approach, a walk
                 self.why["leg"] = "walk"
                 return WalkTo(*centre((z["x"], z["y"])), "walk")
             return WalkTo(*centre((z["x"], z["y"])), "run")

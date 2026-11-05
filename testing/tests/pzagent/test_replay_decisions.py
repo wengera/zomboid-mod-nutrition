@@ -1911,10 +1911,10 @@ PRE_T11 = {"e2": ("90cea8a29fc7e8cedc6376a775587deb72d59f5942224bf75c30aad6fba46
 # P28-F's planner side (the stance not read held after an attack), the sixth's follow-up attack at 15885 from
 # 0.7801175874939513 tiles now its `enter` leg, the attack on line 441 from 1.0072464647115065 tiles
 R2_MOVED = {SIXTH: 440}
-# the first line each iteration-21 switch moves, alone on, on each golden it moves (P28-C's commit: the approach-and-
-# swing Fight's first walk to a zombie beyond FIGHT_REACH, at a walk where the run went)
-FIRST_T11 = {"e2": {"FLOOR_PAIN": 146}, "e3": {"FLOOR_PAIN": 170}, "e4": {"FLOOR_PAIN": 302},
-             "f1": {"FLOOR_PAIN": 164}}
+# the first line each iteration-21 switch moves, alone on, on each golden it moves (APPROACH_WALK, the spec's 1 (b):
+# the approach-and-swing Fight's first walk to a zombie beyond FIGHT_REACH, at a walk where the run went)
+FIRST_T11 = {"e2": {"APPROACH_WALK": 146}, "e3": {"APPROACH_WALK": 170}, "e4": {"APPROACH_WALK": 302},
+             "f1": {"APPROACH_WALK": 164}}
 # every line on each golden whose decision (branch or action) iteration 21 moves: the approach walks' gait alone
 ACTED_T11 = {"e2": [146, 156, 210], "e3": [170, 203], "e4": [302, 334, 371], "f1": [164, 223, 318, 353, 432, 516]}
 
@@ -1943,13 +1943,15 @@ def test_with_iteration_21_off_the_goldens_are_iteration_20_s(key):
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
 def test_iteration_21_moves_four_goldens_at_the_approach_walk(key):
     """Survival iteration 21's attribution, each switch alone on against the goldens before it (`pre_t11_gold`):
-    - FLOOR_PAIN (P28-C, and in its commit the spec's 1 (b), ruling P27-9: the walk to a zombie beyond FIGHT_REACH of
-      a Fight not in the stance at a walk, never a run) moves E2, E3, E4 and F1, each first at its first approach walk
+    - APPROACH_WALK (the spec's 1 (b), ruling P27-9, landed in P28-C's commit and its own switch since fix 1: the walk
+      to a zombie beyond FIGHT_REACH of a Fight not in the stance at a walk, never a run, and so the approach after
+      unstarted swings) moves E2, E3, E4 and F1, each first at its first approach walk
       (E2 line 146 at 12788 from 4.231606567324637 tiles, E3 170, E4 302, F1 164): `gait` "walk" where the record ran,
       logged `leg` "walk"; every moved decision is such a walk's gait (`ACTED_T11`), the other moved lines the
       `holding` lines under it carrying the same `leg` why. E5's replayed Fights send no walk beyond FIGHT_REACH, and
-      the sixth's hello announces the stance, whose walks already go at a walk. The floor swing under the pain reads
-      `onFloor` and `body.armPain`, which no golden's frames carry.
+      the sixth's hello announces the stance, whose walks already go at a walk.
+    - FLOOR_PAIN (P28-C) moves none: the floor swing under the pain reads `onFloor` and `body.armPain`, which no
+      golden's frames carry.
     - WOUND_DRESS (P28-A) moves none: its step reads a part's `wound` (PZA/1.7.2), which no golden ring decodes.
     - SHOVE_BACK (P28-B2) moves none: its back leg follows a shove, which needs a build announcing the PZA/1.7 `shove`,
       and no golden's hello does. DRIFT_STAND (P28-B3) moves none: no replayed golden tick reads a cornered Fight's

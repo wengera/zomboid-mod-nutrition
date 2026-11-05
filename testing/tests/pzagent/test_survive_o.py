@@ -287,14 +287,14 @@ def test_idle_zombies_held_beyond_danger_r_keep_the_pull_s_stance(tmp_path):
     MAX_FIGHT): the stance counts only the standing ones within DANGER_R or chasing (`_stance_count`: one), so the pull
     leg holds; with STANCE_LISTED off (the rule Task 32 landed) the three turn the stance off and the Fight runs at the
     chaser.
-    Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
-    Fight's walk to a zombie at a run)."""
+    Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
+    rule before it (the non-stance Fight's walk to a zombie at a run)."""
     zs = [zd(1, 107.0, 200.0), zd(2, 107.0, 202.0, has_target=False), zd(3, 109.0, 196.0, has_target=False)]
     for case in ("on", "off"):
         (tmp_path / case).mkdir()
         r, sv = make(tmp_path / case)
         sv.STANCE_LISTED = case == "on"
-        sv.FLOOR_PAIN = False
+        sv.APPROACH_WALK = False
         r.frame(zombies=zs)
         leg = tick(r, sv)                                   # sought within ENGAGE_R: the chaser and the idle one at 7.3
         assert leg.type == "aim" and why(tmp_path / case)["leg"] == "pull"
@@ -323,9 +323,9 @@ def test_e9_s_line_342_keeps_the_pull_s_leg(tmp_path):
     """E9 replayed at HEAD: line 341 sends the pull leg at 7479 (8.15 tiles); at 342, where Task 32's stance gate read
     three held (7594 fallen at 7.43 on the tick before, 7474 idle at 9.17) and ran at the chaser, the leg holds. With
     STANCE_LISTED off the run comes back (the review's line 342).
-    Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
-    Fight's walk to a zombie at a run)."""
-    got, old = e9_lines(), e9_lines(("STANCE_LISTED", "FLOOR_PAIN"))
+    Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
+    rule before it (the non-stance Fight's walk to a zombie at a run)."""
+    got, old = e9_lines(), e9_lines(("STANCE_LISTED", "APPROACH_WALK"))
     assert got[341]["why"]["leg"] == "pull" and got[341]["why"]["target"] == 7479
     assert got[342]["action"] is None and got[342]["why"]["leg"] == "pull" and "holding" in got[342]["why"]
     assert old[342]["action"]["type"] == "walkTo" and old[342]["action"]["args"]["gait"] == "run"

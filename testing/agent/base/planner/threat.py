@@ -201,8 +201,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # (`fight.Fight._circle_turn`); off, the straight backpedal
     FLOOR_PAIN = True     # ruling P28-C: the swing at a fallen zombie within FIGHT_REACH is barred by a hold or a
                           # shove-only Fight, never by the arms' pain alone (`fight.Fight.floor_swing_barred`,
-                          # `finish.ThreatFinish._flee_finish`), and the non-stance Fight's walk to a zombie beyond
-                          # FIGHT_REACH goes at a walk (the spec's 1 (b)); off, P24-AP's bar and the run
+                          # `finish.ThreatFinish._flee_finish`); off, P24-AP's bar
+    APPROACH_WALK = True  # the spec's 1 (b) (ruling P27-9, landed in P28-C's commit, its own switch since fix 1): a
+                          # Fight not in the stance walks at a walk, never a run, to a zombie beyond FIGHT_REACH and on
+                          # the approach after MISSES_TO_APPROACH unstarted swings (`fight.Fight._choose`); off, the run
     BUSY_RETRY = True     # ruling P28-D: a shove or a stomp rejected `busy` records no refusal at its target, so the
                           # next tick sends it again (`fight.Fight._observe_swing`); off, SWING_SKIP_S's refusal
 
@@ -1029,7 +1031,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("point_blank_pin", self.POINT_BLANK_PIN),
                                                ("busy_retry", self.BUSY_RETRY), ("floor_pain", self.FLOOR_PAIN),
                                                ("shove_back", self.SHOVE_BACK), ("drift_stand", self.DRIFT_STAND),
-                                               ("circle", self.CIRCLE))
+                                               ("circle", self.CIRCLE), ("approach_walk", self.APPROACH_WALK))
                          if on)
 
     def _flee_rules(self):

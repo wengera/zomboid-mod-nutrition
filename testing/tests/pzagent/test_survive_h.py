@@ -294,8 +294,8 @@ def test_two_sought_are_the_fight_not_a_group_behind_it_but_a_third_listed_beyon
 def test_a_seek_beyond_aim_r_walks_at_a_walk_and_a_failed_seek_walk_marks_its_target(tmp_path):
     """The seek beyond AIM_R (the Lua refuses the aim there) is a walk at a walk, never a run; a seek walk (that one,
     or the walk round a wall) failed for a walk reason marks the target unreachable, as an attack's walk does.
-    Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
-    Fight's walk to a zombie at a run)."""
+    Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
+    rule before it (the non-stance Fight's walk to a zombie at a run)."""
     r = Rig(tmp_path)
     r.frame(zombies=[zd(1, 112.5, 200.0)])
     f = P.Fight(r.world, r.acts, r.clock)
@@ -313,7 +313,7 @@ def test_a_seek_beyond_aim_r_walks_at_a_walk_and_a_failed_seek_walk_marks_its_ta
     assert f.unreachable.get(1, 0) > r.clock() and f.target is None
     g = P.Fight(r.world, r.acts, r.clock)
     g.stance = True
-    g.rules = g.rules - {"floor_pain"}
+    g.rules = g.rules - {"approach_walk"}
     assert g.choose().gait == "run"                                       # not sought: the approach at a run
 
 

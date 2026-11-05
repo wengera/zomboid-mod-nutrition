@@ -269,10 +269,10 @@ def test_a_running_stance_gives_way_to_the_flee_when_a_third_comes(tmp_path):
 
 def test_a_pza_1_4_build_is_never_sent_the_stance(tmp_path):
     """`World.can`: a hello whose caps lack `aim` (every decision golden's artifact) keeps the approach walk.
-    Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
-    Fight's walk to a zombie at a run)."""
+    Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
+    rule before it (the non-stance Fight's walk to a zombie at a run)."""
     r, sv = make(tmp_path, caps=CAPS_14)
-    sv.FLOOR_PAIN = False
+    sv.APPROACH_WALK = False
     r.frame(zombies=[zd(1, 104.0, 200.0)])
     tick(r, sv)
     assert r.cmd() == ("walkTo", {"x": 104.5, "y": 200.5, "gait": "run"})
@@ -395,10 +395,10 @@ def test_two_held_under_flee_health_pair_with_one_within_danger_r_fight_by_the_a
     """The pair rule reads the DANGER_R count (one here, so the hysteresis fights); the stance reads the held count:
     two held at health 50 (under FLEE_HEALTH_PAIR) is no standing fight: the running stance leg gives way to the
     approach walk once the hold radius (DISENGAGE_R while the fight runs) holds the second.
-    Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
-    Fight's walk to a zombie at a run)."""
+    Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
+    rule before it (the non-stance Fight's walk to a zombie at a run)."""
     r, sv = make(tmp_path)
-    sv.FLOOR_PAIN = False
+    sv.APPROACH_WALK = False
     r.frame(zombies=[zd(1, 104.0, 200.0), zd(2, 92.0, 200.0)], health=50.0)
     tick(r, sv)
     assert r.cmd()[0] == "aim"                                              # one held within DANGER_R
@@ -1311,12 +1311,12 @@ def test_a_stance_leg_superseded_re_aims_but_one_that_fails_ends_the_stand_at_on
     sets `standoff` at once, so the next choose is the approach walk rather than STAND_MAX_S of re-sent legs; a
     superseded leg (this planner's own next send) re-aims; named change (P24-N): STAND_MAX_S is no fallback any
     more, the stand closes in the stance (`advance`) and `standoff` stays unset.
-    Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
-    Fight's walk to a zombie at a run)."""
+    Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
+    rule before it (the non-stance Fight's walk to a zombie at a run)."""
     for k, end in enumerate(({"state": "failed", "reason": "not loaded"}, "timeout")):
         (tmp_path / str(k)).mkdir()
         r, sv = make(tmp_path / str(k))
-        sv.FLOOR_PAIN = False
+        sv.APPROACH_WALK = False
         r.frame(zombies=[zd(1, 104.0, 200.0)])
         tick(r, sv)
         assert r.cmd()[0] == "aim"

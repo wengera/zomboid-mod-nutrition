@@ -97,10 +97,10 @@ def test_survive_is_a_planner(tmp_path):
 
 # ================================================================ threat
 def test_threat_fights_when_armed_and_at_most_two_within_danger_r(tmp_path):
-    """Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
-    Fight's walk to a zombie at a run)."""
+    """Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
+    rule before it (the non-stance Fight's walk to a zombie at a run)."""
     r, sv = make(tmp_path, caps=CAPS_14)
-    sv.FLOOR_PAIN = False
+    sv.APPROACH_WALK = False
     r.frame(zombies=[zombie(1, 104.0, 200.0), zombie(2, 100.0, 205.0)])
     a = tick(r, sv)
     assert a is not None and r.cmd() == ("walkTo", {"x": 104.5, "y": 200.5, "gait": "run"})
@@ -120,10 +120,10 @@ def test_threat_ignores_a_zombie_beyond_engage_r(tmp_path):
 
 @pytest.mark.parametrize("engage", [5.5, 6.0])           # 6.0: the `<= DANGER_R` boundary
 def test_a_threat_engaged_at_six_tiles_holds_beyond_six_within_ten(tmp_path, engage):
-    """Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
-    Fight's walk to a zombie at a run)."""
+    """Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
+    rule before it (the non-stance Fight's walk to a zombie at a run)."""
     r, sv = make(tmp_path, caps=CAPS_14)
-    sv.FLOOR_PAIN = False
+    sv.APPROACH_WALK = False
     r.scan([inside(101, 200, containers=[CRATE])])
     r.frame(zombies=[zombie(1, 100.0 + engage, 200.0)])
     tick(r, sv)
@@ -226,8 +226,8 @@ def test_a_running_flee_turns_to_fight_one_or_two_at_the_fights_health_line(tmp_
     (`_takes_on`): two held turn to fight at FLEE_HEALTH_PAIR or above (two at 7 tiles at 55 are held, at 74 fought:
     before, every flee with two held was kept), one at FLEE_HEALTH or above (one at 45 is fought: before, the refight
     margin held it under 60); the margin stays only for a `health` episode (`test_survive_h`).
-    Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
-    Fight's walk to a zombie at a run)."""
+    Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
+    rule before it (the non-stance Fight's walk to a zombie at a run)."""
     r, sv = make(tmp_path, caps=CAPS_14)
     three = [zombie(1, 103.0, 200.0), zombie(2, 103.0, 201.0), zombie(3, 104.0, 200.0)]
     r.frame(zombies=three, health=74.0)
@@ -250,7 +250,7 @@ def test_a_running_flee_turns_to_fight_one_or_two_at_the_fights_health_line(tmp_
     assert r.cmd()[0] == "steer" and threat_why(tmp_path)["flee"] == "health"
     (tmp_path / "b").mkdir()
     r2, sv2 = make(tmp_path / "b", caps=CAPS_14)
-    sv2.FLOOR_PAIN = False
+    sv2.APPROACH_WALK = False
     r2.frame(zombies=three, health=74.0)
     tick(r2, sv2)
     r2.answer()
@@ -260,7 +260,7 @@ def test_a_running_flee_turns_to_fight_one_or_two_at_the_fights_health_line(tmp_
     assert r2.cmd() == ("walkTo", {"x": 107.5, "y": 200.5, "gait": "run"}) and sv2.mode == "fight"
     (tmp_path / "c").mkdir()
     r3, sv3 = make(tmp_path / "c", caps=CAPS_14)
-    sv3.FLOOR_PAIN = False
+    sv3.APPROACH_WALK = False
     r3.frame(zombies=three, health=74.0)
     tick(r3, sv3)
     r3.answer()
@@ -887,10 +887,10 @@ def test_twenty_ticks_of_a_looting_world_never_send_all(tmp_path):
 # Task 10's review (M3): the Fight's stall clock follows the pinned target, so the stall guard reads its distance.
 @pytest.mark.parametrize("build", BUILDS)
 def test_the_stall_reads_the_pinned_targets_distance_not_the_nearest_zombies(tmp_path, monkeypatch, build):
-    """Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
-    Fight's walk to a zombie at a run)."""
+    """Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
+    rule before it (the non-stance Fight's walk to a zombie at a run)."""
     r, sv = make_build(tmp_path, monkeypatch, build)
-    sv.FLOOR_PAIN = False
+    sv.APPROACH_WALK = False
     r.frame(zombies=[zombie(1, 105.0, 200.0)])
     tick(r, sv)
     assert sv.fight.target == 1 and r.cmd() == ("walkTo", {"x": 105.5, "y": 200.5, "gait": "run"})
@@ -1470,11 +1470,11 @@ def test_the_survival_2_constants():
 def test_a_held_threat_within_hold_break_r_breaks_the_inside_hold_whatever_its_line_reads(tmp_path, zx, holds):
     """Rule 1: the west door closed, the zombie behind the west wall; at 2.9 tiles the hold breaks. The only way
     out (the closed door) runs at it, so with one held the Fight takes it (the broken hold's fallback).
-    Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
-    Fight's walk to a zombie at a run)."""
+    Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
+    rule before it (the non-stance Fight's walk to a zombie at a run)."""
     from .test_night import house
     r, sv = make(tmp_path, caps=CAPS_14)
-    sv.FLOOR_PAIN = False
+    sv.APPROACH_WALK = False
     r.scan(house(1, 110))
     me = (111.5, 201.5)
     r.frame(x=me[0], y=me[1], zombies=[zombie(1, zx, 201.5, me=me)])
@@ -1597,10 +1597,10 @@ def test_a_flee_on_a_room_square_with_no_way_out_and_the_nearest_at_three_tiles_
                                                                                                        weapon):
     """Survival 2's "no door known, the nearest at 3 tiles: the steer", turned by fix round 1 (G3, M4): armed, the
     Fight on the nearest; unarmed, the trapped hold (no command): never a steer into the room's walls.
-    Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
-    Fight's walk to a zombie at a run)."""
+    Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
+    rule before it (the non-stance Fight's walk to a zombie at a run)."""
     r, sv = make(tmp_path)
-    sv.FLOOR_PAIN = False
+    sv.APPROACH_WALK = False
     r.scan(closed_room())
     me = (100.5, 204.5)
     zs = [zombie(1, 100.5, 201.5, me=me), zombie(2, 101.5, 201.5, me=me), zombie(3, 102.5, 201.6, me=me)]
@@ -1651,12 +1651,12 @@ def test_an_exit_through_a_closed_door_walks_first_opens_after_a_failed_walk_and
     done with the frame still inside refuses that way out; with none left the building is adopted (the south door
     open toward the group, its re-close guarded) and dropped, the flee holds `trapped` that tick, and the next tick
     is the trapped fight (G3).
-    Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
-    Fight's walk to a zombie at a run)."""
+    Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
+    rule before it (the non-stance Fight's walk to a zombie at a run)."""
     from .test_night import CLOSED, OPEN
     from .test_policies import two_door_house
     r, sv = make(tmp_path)
-    sv.FLOOR_PAIN = False
+    sv.APPROACH_WALK = False
     r.scan(two_door_house(north=CLOSED))
     me = (111.5, 201.5)
     south = lambda me: [zombie(1, 111.5, 205.5, me=me), zombie(2, 110.5, 205.5, me=me),
@@ -2295,10 +2295,10 @@ def test_a_many_flee_whose_count_falls_to_one_within_danger_r_stays_a_flee_until
     """Ruling P23-AM 1: two of the three die; the last at 4 tiles at full health. HEAD turned to fight it at once
     (one held, health over the margin); the `many` episode reads the hold radius and the nearest within DANGER_R, so
     it steers on; with that zombie at 7 tiles the fight resumes.
-    Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
-    Fight's walk to a zombie at a run)."""
+    Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
+    rule before it (the non-stance Fight's walk to a zombie at a run)."""
     r, sv = make(tmp_path, caps=CAPS_14)
-    sv.FLOOR_PAIN = False
+    sv.APPROACH_WALK = False
     zs = many_yard(r)
     tick(r, sv)
     r.answer()
@@ -2318,10 +2318,10 @@ def test_a_fight_walk_never_supersedes_a_flee_leg_sent_under_flip_min_s_ago(tmp_
     """Ruling P23-AM 1, FLIP_MIN_S: the `many` steer runs; one second in, two have died and the last stands 7 tiles
     off: the hysteresis would fight, but the leg is held (`flip`, nothing sent); once the leg ended the fight's walk
     goes.
-    Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
-    Fight's walk to a zombie at a run)."""
+    Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
+    rule before it (the non-stance Fight's walk to a zombie at a run)."""
     r, sv = make_build(tmp_path, monkeypatch, build)
-    sv.FLOOR_PAIN = False
+    sv.APPROACH_WALK = False
     many_yard(r)
     tick(r, sv)
     leg = r.acts.history[-1]
@@ -3158,8 +3158,8 @@ def test_four_listed_within_twelve_tiles_are_many_whatever_the_count_within_six(
     """P24-A (a) (#4268: E5's group was listed at the 12-tile edge while the branch counted within 6): one zombie
     within DANGER_R and three more listed within LISTED_R, none behind the first: `many`, logged `listed` 4; with
     three listed the fight goes.
-    Named change, ruling P28-C (Plan 28 Task 3): pinned with `FLOOR_PAIN` off, the rule before it (the non-stance
-    Fight's walk to a zombie at a run)."""
+    Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
+    rule before it (the non-stance Fight's walk to a zombie at a run)."""
     r, sv = make(tmp_path, caps=CAPS_14)
     zs = [zombie(1, 105.0, 200.0), zombie(2, 100.0, 210.0), zombie(3, 91.0, 203.0), zombie(4, 100.0, 188.5)]
     r.frame(zombies=zs)
@@ -3169,7 +3169,7 @@ def test_four_listed_within_twelve_tiles_are_many_whatever_the_count_within_six(
     assert last(tmp_path)["inputs"]["threats"] == 1
     (tmp_path / "b").mkdir()
     r2, sv2 = make(tmp_path / "b", caps=CAPS_14)
-    sv2.FLOOR_PAIN = False
+    sv2.APPROACH_WALK = False
     r2.frame(zombies=zs[:3])
     tick(r2, sv2)
     w = threat_why(tmp_path / "b")
