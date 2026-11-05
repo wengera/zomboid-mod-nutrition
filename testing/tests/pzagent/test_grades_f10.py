@@ -143,3 +143,20 @@ def test_f_grade_10_refuses_an_argument_it_does_not_define():
     assert "from agent.base.grades.f10 import grade_f10" in src and "usage: f_grade_10.py" in src
     body = src[src.index('"""', 3):]
     assert "grade_f9" not in body and "f_grade_9" not in body
+
+
+F13 = os.path.join(TESTING, "artifacts", "f_goals_14-20261105-021722")
+
+
+def test_f_grade_10_on_f13_reproduces_the_committed_f_grade_txt_byte_for_byte():
+    """Ruling P26-Q: `f_grade_10.py` on the committed F13 artifact (the first LLM session graded through `grade_f10`,
+    the first with melee spans) reproduces its committed `f_grade.txt` byte for byte (CRLF folded), so a drift in any
+    live name read through the grade chain (`grade_f9` to `grade_f7`, `gates_f`, `gates_e`) fails here."""
+    p = os.path.join(F13, "f_goals_14.json")
+    if not os.path.isfile(p):
+        pytest.skip("%s is not checked out" % F13)
+    script = os.path.join(TESTING, "agent", "drivers", "f_grade_10.py")
+    r = subprocess.run([sys.executable, script, p], capture_output=True, cwd=TESTING)
+    assert r.returncode == 0
+    want = open(os.path.join(F13, "f_grade.txt"), "rb").read().replace(b"\r\n", b"\n")
+    assert r.stdout.replace(b"\r\n", b"\n") == want
