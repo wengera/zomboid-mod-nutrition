@@ -30,11 +30,11 @@ LIVE = "pzagent/admin/state.log"
 CMD = "pzagent/admin/cmd.txt"
 SKILL_FILES = ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZAgent_Motor.lua",
                "client/PZAgent_Sense.lua", "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua",
-               "client/PZAgent_Stance.lua", "client/PZAgent_Tend.lua")
+               "client/PZAgent_Stance.lua", "client/PZAgent_StanceMelee.lua", "client/PZAgent_Tend.lua")
 MAIN_FILES = ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZAgent_Main.lua",
               "client/PZAgent_Map.lua", "client/PZAgent_Motor.lua", "client/PZAgent_Sense.lua",
               "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua",
-              "client/PZAgent_Stance.lua", "client/PZAgent_Tend.lua")
+              "client/PZAgent_Stance.lua", "client/PZAgent_StanceMelee.lua", "client/PZAgent_Tend.lua")
 VANILLA = ("ISTimedActionQueue", "ISWalkToTimedAction", "ISOpenCloseDoor", "ISOpenCloseWindow",
            "ISInventoryTransferAction", "ISEatFoodAction", "ISDrinkFluidAction", "ISDropWorldItemAction",
            "ISEquipWeaponAction", "Vector2", "ISWorldObjectContextMenu", "UIManager", "ISClimbOverFence",
@@ -67,6 +67,8 @@ VALID = {
     "unwear": ("unwear", {"itemId": 1005}),              # PZA/1.7 (Task 9 fix 11)
     "shove": ("shove", {"targetId": 5}),
     "stomp": ("stomp", {"targetId": 5}),
+    "melee": ("melee", {"targetId": 5, "mode": "strike", "reach": 1.4, "keepR": 2.5, "shoveR": 1.1,   # PZA/1.8
+                        "releaseR": 2.75, "backVx": -1.0, "backVy": 0.0, "seconds": 2.5}),
     "scan": ("scan", {"r": 3}),
     "rate": ("rate", {"hz": 5}),
 }
@@ -209,7 +211,7 @@ def test_the_pcall_counter_counts_a_caught_raise():
 # find no inventory (none held), wear (PZA/1.6) too; window (PZA/1.6) queues its open, which the fake queue never
 # runs, so its WINDOW_MS runs out (interrupted)
 # PZA/1.7: unwear finds no inventory item (none held); shove finds no setDoShove (not loaded); stomp's world zombie
-# does not lie on the floor (not valid)
+# does not lie on the floor (not valid); PZA/1.8: melee in strike mode finds no weapon reader (no weapon)
 BARE = {"walkTo": ("failed", "stuck"), "steer": ("failed", "not loaded"), "attack": ("rejected", "no weapon"),
         "open": ("failed", "locked"), "loot": ("failed", "interrupted"), "equip": ("rejected", "none held"),
         "eat": ("rejected", "none held"), "drink": ("rejected", "none held"), "drop": ("rejected", "none held"),
@@ -217,7 +219,7 @@ BARE = {"walkTo": ("failed", "stuck"), "steer": ("failed", "not loaded"), "attac
         "climb": ("failed", "interrupted"), "bandage": ("rejected", "none held"), "rip": ("rejected", "none held"),
         "wash": ("rejected", "none held"), "fill": ("rejected", "none held"), "wear": ("rejected", "none held"),
         "window": ("failed", "interrupted"), "unwear": ("rejected", "none held"), "shove": ("failed", "not loaded"),
-        "stomp": ("rejected", "not valid")}
+        "stomp": ("rejected", "not valid"), "melee": ("rejected", "no weapon")}
 
 
 def test_the_bare_table_covers_every_skill_case():
@@ -291,14 +293,16 @@ def test_s_frame_on_a_raising_player_returns_a_frame_and_names_the_missing():
 # aim walks its vector through the auto-walk, which needs Vector2 (not loaded); climb needs ISClimbOverFence; the care
 # skills need ISApplyBandage, OnNewCraft, ISWashClothing and ISTakeWaterAction, and wear ISWearClothing; window's open needs ISOpenCloseWindow (PZA/1.6)
 # PZA/1.7: the full player's jacket is not worn, so unwear is refused not worn before it needs ISUnequipAction (test_lua_pza17
-# fails it not loaded on a worn one); shove finds no setDoShove, stomp's zombie stands (not valid)
+# fails it not loaded on a worn one); shove finds no setDoShove, stomp's zombie stands (not valid); PZA/1.8: melee's
+# first tick finds no setDoShove on the full player (and no Vector2): not loaded
 ABSENT = {"walkTo": ("failed", "no path"), "steer": ("failed", "not loaded"), "open": ("failed", "not loaded"),
           "loot": ("failed", "not loaded"), "equip": ("failed", "not loaded"), "eat": ("failed", "not loaded"),
           "drink": ("failed", "not loaded"), "drop": ("failed", "not loaded"), "stop": ("done", ""),
           "sleep": ("failed", "interrupted"), "aim": ("failed", "not loaded"), "climb": ("failed", "not loaded"),
           "bandage": ("failed", "not loaded"), "rip": ("failed", "not loaded"), "wash": ("failed", "not loaded"),
           "fill": ("failed", "not loaded"), "wear": ("failed", "not loaded"), "window": ("failed", "not loaded"),
-          "unwear": ("rejected", "not worn"), "shove": ("failed", "not loaded"), "stomp": ("rejected", "not valid")}
+          "unwear": ("rejected", "not worn"), "shove": ("failed", "not loaded"), "stomp": ("rejected", "not valid"),
+          "melee": ("failed", "not loaded")}
 
 
 @pytest.mark.parametrize("case", SKILL_CASES)

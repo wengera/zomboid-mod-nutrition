@@ -1,5 +1,6 @@
 """The lupa host for PZAgent's Lua: Python stubs stand in for the Java globals (ruling P21-3)."""
 import json
+import math
 import os
 import sys
 import pytest
@@ -472,3 +473,93 @@ def agent_fixture(tmp_path, monkeypatch):
     root = write_agent_fixtures(tmp_path / "fixtures")
     monkeypatch.setattr(fx, "FIXTURES", str(root))
     return root
+
+
+# ---- the melee reflex's kinematic fake (PZA/1.8, Plan 28 Task 7a; the architecture review's section 4.1) -------------
+WALK_SPEED = 2.0          # tiles a second: the walk (#4197), the player's auto-walk speed in the fake
+TICK_MS = 17              # one client tick on the fake clock (about 60 Hz)
+ZOMBIE_STOP_R = 0.45      # tiles: a chasing zombie stops closing here (the fake keeps the two bodies apart)
+
+
+def zdist(w):
+    """The planar distance from the player to the zombie in the world w."""
+    return math.hypot(w["zx"] - w["px"], w["zy"] - w["py"])
+
+
+def make_mover(px=10.0, py=20.0, zx=12.0, zy=20.0, zid=7, zspeed=0.0, chasing=True, weapon="bat", attack_ticks=20,
+               windup_ticks=None, hit_ticks=30, bite_r=0.9, dist_member=True):
+    """A player and one zombie whose positions and states live in the dict w, moved by step_world once a client tick
+    (before the OnTick that runs the runner, as the engine's update precedes OnTick): the zombie closes on the player at
+    w["zspeed"] tiles a second while w["chasing"] (its getTarget answers the player then, None otherwise) and it neither
+    lies nor is knocked down, stopping at ZOMBIE_STOP_R; the player moves along its auto-walk at WALK_SPEED, the
+    direction read back from setAutoWalkDirection's input-space vector through the inverse of K.inputVector
+    (updateMovementFromInput's x = iy + ix, y = iy - ix, normalised). DoAttack records {tick, shove (the setDoShove
+    flag then), d, aiming (the force-aim then)} into w["presses"] (and p.attacks), starts an attack that reads
+    isAttackStarted true for w["attack_ticks"] ticks, and calls w["on_attack"](w, shove) when set (a test's knockdown or
+    health fall; none by default: a miss). A scripted zombie attack: with w["windup"] a tick count, a chasing standing
+    zombie within w["bite_r"] (#4290's 0.9) for that many ticks in a row sets the player's hit reaction ("Bite") for
+    w["hit_ticks"] ticks, counted in w["bites"]. The zombie's isDead, getHealth, isOnFloor and isKnockedDown answer
+    w["zdead"], w["zhp"], w["floor"] and w["knocked"], which a test toggles. dist_member gives the player the engine's
+    DistToProper (the planar distance, T91.3); False leaves it absent (the four position reads)."""
+    w = {"px": px, "py": py, "zx": zx, "zy": zy, "zspeed": zspeed, "chasing": chasing, "zdead": False, "zhp": 1.0,
+         "knocked": False, "floor": False, "attack": 0, "attack_ticks": attack_ticks, "windup": windup_ticks,
+         "wound": 0, "hit": 0, "hit_ticks": hit_ticks, "bite_r": bite_r, "bites": 0, "on_attack": None,
+         "presses": [], "tick": 0, "shove": False, "walk": None}
+    p = make_player(weapon=make_weapon() if weapon == "bat" else weapon)
+    p.getX, p.getY = (lambda s: w["px"]), (lambda s: w["py"])
+    if dist_member:
+        p.DistToProper = lambda s, o: math.hypot(o.getX(o) - w["px"], o.getY(o) - w["py"])
+
+    def do_attack(s, f):
+        p.attacks.append(f)
+        w["presses"].append({"tick": w["tick"], "shove": w["shove"], "d": zdist(w), "aiming": p.aim["force"]})
+        w["attack"] = w["attack_ticks"]
+        if w["on_attack"] is not None:
+            w["on_attack"](w, w["shove"])
+        return True
+
+    def set_shove(s, v):
+        w["shove"] = v
+        p.sets.append(("setDoShove", v))
+
+    def set_dir(s, v):
+        p.sets.append(("setAutoWalkDirection", v))
+        wx, wy = v.y + v.x, v.y - v.x
+        n = math.hypot(wx, wy)
+        w["walk"] = (wx / n, wy / n) if n > 0 else None
+    p.DoAttack, p.setDoShove, p.setAutoWalkDirection = do_attack, set_shove, set_dir
+    p.isAttackStarted = lambda s: w["attack"] > 0
+    z = J(getOnlineID=lambda s: zid, getX=lambda s: w["zx"], getY=lambda s: w["zy"], isDead=lambda s: w["zdead"],
+          getTarget=lambda s: p if w["chasing"] else None, isCrawling=lambda s: False, getHealth=lambda s: w["zhp"],
+          isOnFloor=lambda s: w["floor"], isKnockedDown=lambda s: w["knocked"])
+    return p, z, w
+
+
+def step_world(w, p):
+    """One client tick of the fake engine (make_mover's): the attack and the hit reaction count down, the player walks
+    its auto-walk, the zombie closes, and the zombie's scripted attack winds up."""
+    w["tick"] += 1
+    dt = TICK_MS / 1000.0
+    if w["attack"] > 0:
+        w["attack"] -= 1
+    if w["hit"] > 0:
+        w["hit"] -= 1
+        if w["hit"] == 0:
+            p.combat["hitReaction"] = ""
+    if p.motor["autoWalk"] and w["walk"] is not None:
+        w["px"] += w["walk"][0] * WALK_SPEED * dt
+        w["py"] += w["walk"][1] * WALK_SPEED * dt
+    d = zdist(w)
+    standing = not w["floor"] and not w["knocked"] and not w["zdead"]
+    if w["chasing"] and standing and d > ZOMBIE_STOP_R and w["zspeed"] > 0:
+        step = min(w["zspeed"] * dt, d - ZOMBIE_STOP_R)
+        w["zx"] += (w["px"] - w["zx"]) / d * step
+        w["zy"] += (w["py"] - w["zy"]) / d * step
+    if w["windup"] is not None and w["chasing"] and standing and w["hit"] == 0 and zdist(w) < w["bite_r"]:
+        w["wound"] += 1
+        if w["wound"] >= w["windup"]:
+            p.combat["hitReaction"] = "Bite"
+            w["hit"], w["wound"] = w["hit_ticks"], 0
+            w["bites"] += 1
+    else:
+        w["wound"] = 0

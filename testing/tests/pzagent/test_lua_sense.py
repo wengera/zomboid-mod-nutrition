@@ -84,6 +84,8 @@ def test_the_frames_groups_have_exactly_the_schemas_keys(lua):
         if grp == "me":
             want.remove("worn")                                  # PZA/1.6: elided on a frame whose list is unchanged
             want.remove("loadedWidth")                           # PZA/1.7: carried once read and changed, the fake cell has no chunk map
+        if grp == "act":
+            want.remove("step")                                  # PZA/1.8: the melee's step, nil for another skill
         assert sorted(f[grp].keys()) == sorted(want), grp
     unbandaged = {"bandageLife", "bandageDirty"}                 # PZA/1.5: nil on an unbandaged part
     assert sorted(f["body"]["parts"][1].keys()) == sorted(set(d["part"]["x-order"]) - unbandaged)

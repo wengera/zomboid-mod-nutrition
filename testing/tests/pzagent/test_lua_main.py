@@ -18,7 +18,7 @@ def load(lua):
     for f in ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZAgent_Main.lua",
               "client/PZAgent_Map.lua", "client/PZAgent_Motor.lua", "client/PZAgent_Sense.lua",
               "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua",
-              "client/PZAgent_Stance.lua", "client/PZAgent_Tend.lua"):
+              "client/PZAgent_Stance.lua", "client/PZAgent_StanceMelee.lua", "client/PZAgent_Tend.lua"):
         lua.execute(open(lua_file(f), encoding="utf-8").read())
 
 
@@ -87,7 +87,7 @@ def test_the_first_tick_with_a_player_writes_hello_the_first_sight_and_one_flush
     assert [l["kind"] for l in out] == ["hello", "event", "event"]
     hello = out[0]
     caps = sorted(lua.eval("PZA.schema.actions").keys())   # every action, sleep's skill included since Plan 23 Task 8
-    assert hello["proto"] == "PZA/1" and hello["mod"] == "1.7" and hello["user"] == "admin"
+    assert hello["proto"] == "PZA/1" and hello["mod"] == "1.8" and hello["user"] == "admin"
     assert hello["caps"] == caps and hello["rate"] == 10 and hello["mode"] == "append" and hello["build"] == ""
     assert sorted(list(lua.eval("PZA.skills.types").keys()) + ["rate", "scan"]) == caps
     assert [(e["event"], e["itemId"], e["fullType"]) for e in out[1:]] == [("item_added", 1000, "Base.Bread"),
@@ -138,7 +138,7 @@ def test_at_rate_10_a_positional_frame_every_6th_tick_with_the_previous_ticks_ms
     assert frames[0]["cost"]["tickMaxMs"] == 5 and frames[0]["cost"]["over5"] == 1  # ticks 1-5 (tick 1 is the init)
     assert [f["cost"]["tickMaxMs"] for f in frames[1:]] == [11, 17, 23, 29, 35]    # ticks 6-11, 12-17, ...
     assert [f["cost"]["over5"] for f in frames[1:]] == [6] * 5
-    assert frames[0]["act"] == {"aid": "a1", "state": "accepted"}
+    assert frames[0]["act"] == {"aid": "a1", "state": "accepted", "step": None}   # PZA/1.8 appends step
     assert all(f["cost"]["dropped"] == 0 for f in frames)
 
 

@@ -32,13 +32,14 @@ GROUPS = {
     "load": ("weight", "max", "level", "n"),
     "weapon": ("type", "cond", "reach", "ammo"),
     "action": ("class", "n"),
-    "act": ("aid", "state"),
+    "act": ("aid", "state", "step"),
     "cost": ("tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped", "pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs", "maxPollMs", "maxStartMs"),
 }
 # a group's or record's oldest arity (before its appended fields): a shorter array of it, down to this, decodes with the trailing fields None
 PRIOR = {
     "me": 11,
     "body": 5,
+    "act": 2,
     "cost": 8,
     "wornLoc": 3,
     "part": 2,
@@ -65,8 +66,8 @@ SHAPES = {
     "square": {"door": ("rec", "portal"), "window": ("rec", "portal"), "containers": ("list", "container"), "floor": ("vlist", None), "water": ("rec", "water")},
     "map": {"squares": ("list", "square"), "missing": ("vlist", None)},
 }
-REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming", "not a window", "moving", "not worn", "held", "too far", "standing", "dropped", "stood"))
-ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear", "window", "unwear", "shove", "stomp")
+REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming", "not a window", "moving", "not worn", "held", "too far", "standing", "dropped", "stood", "out of range", "crowd"))
+ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear", "window", "unwear", "shove", "stomp", "melee")
 # each action type's arguments and their kinds
 ACTION_ARGS = {
     "walkTo": {"x": "float", "y": "float", "gait": "gait"},
@@ -91,6 +92,7 @@ ACTION_ARGS = {
     "unwear": {"itemId": "int"},
     "shove": {"targetId": "int"},
     "stomp": {"targetId": "int"},
+    "melee": {"targetId": "int", "mode": "str", "reach": "float", "keepR": "float", "shoveR": "float", "releaseR": "float", "backVx": "float", "backVy": "float", "seconds": "float", "floorSwing": "bool"},
 }
 GAITS = ("walk", "run", "sprint")
 IKINDS = ("open", "close", "loot")
@@ -466,3 +468,19 @@ class Stomp(_Cmd):
     """Stomp a zombie lying on the floor: walk to under 0.5 tiles of it by the auto-walk, then the shove's pair of calls, which the engine turns into a floor attack (the option autoProneAtk, created true): damage (0.7 to 1.0 + 0.2 x Strength) times the shoes' stomp power (0.5 barefoot, 1 sneakers, 2.5 army boots), strain on the right leg only. The target must be a listed live zombie within 6 tiles (no target) that reads isOnFloor() (not valid for a standing one); send it only to a fallen zombie within about 2 tiles, since the walk lasts 4 s. The target is re-read on every tick of the walk and at the swing: one that has risen ends the action failed stood, with no shove sent; refused standing while any other standing zombie is within the held weapon's MinRange (0.6 tiles bare-handed), checked again at the swing (failed standing): the call would shove that one. Fails out of reach when the walk does not close in on the target in time. Done when the swing ended and a frame after, with `hit`."""
     TYPE: ClassVar[str] = "stomp"
     targetId: int  # The fallen zombie's online id.
+
+
+@dataclasses.dataclass(frozen=True)
+class Melee(_Cmd):
+    """The melee reflex (PZA/1.8, Plan 28 Task 7a): owns one zombie from the combat stance to the kill at the client's tick rate for up to seconds, each tick reading the target's distance live and taking the first reflex that matches: a hit reaction holds (no press); a running strike holds and its end is read (a knockdown, a health fall; a strike that left the target standing and unhurt is a miss); beyond releaseR it fails out of range; another standing zombie within 0.6 tiles fails crowd; seconds passed ends done time; a fallen target takes the floor swing (floorSwing, a weapon, within the reach), else the stomp within 0.5 tiles, else a walk to it (failed out of reach after 4 s); a knockdown not yet on the floor is waited on; then the shove (shove mode within shoveR, a chasing target closing within shoveR, or after a miss within shoveR), the swing (strike mode within the reach, not after a miss), the back leg after a miss within keepR along (backVx, backVy) in the stance facing the target, the close at a walk in the stance on an idle target beyond the reach, else the stand in the stance facing it. Every press faces the target a tick before it and goes with the stance released (the aimed player faces the cursor, #4589). Progress lines on every step change carry the step and the counts; the frame's act.step names it. Rejected no target (unknown, dead or unreadable), too far (beyond releaseR), no weapon (strike mode, nothing held); a finish whose target stands fails stood. A melee re-sent at the same target keeps the stance; its end releases it."""
+    TYPE: ClassVar[str] = "melee"
+    targetId: int  # The zombie's online id.
+    mode: str  # strike (the weapon swing within the reach, the shove per the reflexes), shove (no weapon swing at a standing target: the shove-only fights) or finish (the target is fallen: the stomp or the floor swing only; a target that stands fails stood).
+    reach: float  # The swing's distance at a standing target in tiles; 0 takes the held weapon's reach (getMaxRange x getRangeMod x 0.9).
+    keepR: float  # The back leg after a miss runs while the target is within this, in tiles.
+    shoveR: float  # The shove's distance in tiles: shove mode's, a chasing closing target's (the early shove) and the point blank after a miss.
+    releaseR: float  # Beyond this the melee fails out of range, in tiles; a target beyond it is rejected too far.
+    backVx: float  # The back leg's world heading, x (0 with backVy 0: stand in the stance instead).
+    backVy: float  # The back leg's world heading, y.
+    seconds: float  # The span after which the melee ends done time with no strike running, in seconds.
+    floorSwing: bool = False  # True to let the weapon's floor swing finish a fallen target within the reach (a floor attack multiplies its damage by at least 5, #4374); false stomps.

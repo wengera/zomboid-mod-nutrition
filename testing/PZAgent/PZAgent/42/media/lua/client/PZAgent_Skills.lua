@@ -2,13 +2,13 @@
 -- {seq, aid, type, args} from the Link's poll starts one skill, a bounded engine action with a typed result; the
 -- planner owns every decision between skills. Each skill is K.types[type] = { check, tick }:
 --   check(args, p) -> ok, reason, st   validates and converts the decoded args; st is the skill's private state
---   tick(p, st) -> nil | "done", result | "failed", reason   one tick of the running skill; a skill never emits
+--   tick(p, st) -> nil | "done", result | "failed", reason[, result] | "progress", result   one tick; never emits
 --   stop(p, st, reason)   optional: the runner calls it at a skill's end in any state but done (failed with its reason,
 --                         superseded included), after MO.off and before the act line, under pcall (a raise counted in
 --                         K.errors, never propagated); sleep's wakes the character (ruling P23-AB)
 -- The runner owns every act line (PZA.emit("act", {aid, type, state, reason, result, snapshot}), the schema's act
--- shape): accepted and progress carry result {} and no snapshot; rejected, failed and done carry K.snapshot(p);
--- reason is "" unless rejected or failed; result is {} unless done. At every end (done, failed, superseded) the runner
+-- shape): accepted and progress carry no snapshot, rejected, failed and done K.snapshot(p); reason is "" unless rejected or
+-- failed; result is {} but at done, a skill's own progress and a failure the skill gave one (PZA/1.8). At every end (done, failed, superseded) the runner
 -- calls MO.off(p), and on every failure it clears the vanilla timed-action queue. A dead player is rejected for every
 -- type but stop (a dead body's running skill can still be stopped). Every Java member is reached through PZA.call, and
 -- every vanilla class and its member are index-checked before the call. A raise inside a skill's check or tick (ruling
@@ -215,11 +215,11 @@ function K.start(cmd, p)
     emitAct(p, aid, typ, "accepted")
 end
 
--- one tick of the running skill; a progress line at most every PROGRESS_MS while it runs
+-- one tick of the running skill; a heartbeat progress line (result {}) at most every PROGRESS_MS, and one now with the skill's result when its tick answers "progress", result (PZA/1.8)
 function K.tick(p)
     local cur = K.cur
     if cur == nil then return end
-    local ran, state, out = pcall(cur.def.tick, p, cur.st)
+    local ran, state, out, res = pcall(cur.def.tick, p, cur.st)
     if not ran then
         caught(state)
         finish(p, cur, "failed", "interrupted")
@@ -230,22 +230,22 @@ function K.tick(p)
         return
     end
     if state == "failed" then
-        finish(p, cur, "failed", out)
+        finish(p, cur, "failed", out, res)
         return
     end
     local now = PZA.now()
-    if now - cur.lastProgress >= K.PROGRESS_MS then
+    if state == "progress" or now - cur.lastProgress >= K.PROGRESS_MS then
         cur.lastProgress = now
         cur.state = "progress"
-        emitAct(p, cur.aid, cur.type, "progress")
+        emitAct(p, cur.aid, cur.type, "progress", "", state == "progress" and out or nil)
     end
 end
 
--- the frame's act group: the running skill's aid and its last emitted state, nil when idle
+-- the frame's act group: the running skill's aid, its last emitted state and (PZA/1.8) the melee's step, nil when idle
 function K.status()
     local cur = K.cur
     if cur == nil then return nil end
-    return { aid = cur.aid, state = cur.state }
+    return { aid = cur.aid, state = cur.state, step = cur.type == "melee" and cur.st.step or nil }
 end
 
 -- world → input space: the inverse of IsoPlayer.updateMovementFromInput @136-157 L3025-L3026 (42.21: playerMoveDir.x = iy + ix, playerMoveDir.y = iy - ix), the length kept as an input length; ix = L(ux - uy)/sqrt 2, iy = L(ux + uy)/sqrt 2 (probe X1, GUIDE.md L85; #4199)

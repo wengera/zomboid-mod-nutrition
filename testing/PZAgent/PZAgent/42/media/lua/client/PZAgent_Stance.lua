@@ -21,10 +21,12 @@ local isDead, dist, clearQueue, posOf = K.isDead, K.dist, K.clearQueue, W.posOf
 -- true), and the path follower will not climb while aiming (#4289), so the stance lives only under an aim and the
 -- attack it hands over to:
 --   an aim holds it from its first tick and releases it at its end (done, failed, superseded), except when an attack
---   supersedes it (K.start below names the starting type in K.starting): the attack's own first tick then releases it,
+--   or (PZA/1.8) a melee supersedes it (K.start below names the starting type in K.starting, the command in
+--   K.startingCmd): the melee keeps it (PZAgent_StanceMelee.lua releases it before each press); the attack's own first tick then releases it,
 --   whatever the distance (ruling P28-F: the aimed player faces the mouse, #4589), and its swing faces and presses a
 --   tick later unaimed (PZAgent_SkillsWorld.lua's attackApproach), its approach walk, if any, running unaimed too;
---   any other skill started (walkTo, steer, climb, a care skill, stop) releases it (K.start's wrapper).
+--   any other skill started (walkTo, steer, climb, a care skill, stop) releases it (K.start's wrapper); a melee
+--   superseded by a melee of the same target keeps it (its stop hook), any other end of a melee releases it.
 -- So no stance outlives the skill holding it: P28-F deleted the idle hold (AIM_HOLD_MS, K.tick's wrapper) that kept
 -- one past an attack's swing, a state no path reaches once the attack's first tick releases it (review-t1b R1).
 -- K.stance.held is the mod's own record of a stance it set; a release is one nullifyAiming under pcall (S-15: a raise
@@ -163,26 +165,31 @@ K.types.aim = {
         end
         return nil
     end,
-    -- every end but done: the stance released, unless an attack supersedes the aim (its first tick releases it)
+    -- every end but done: the stance released, unless an attack (its first tick releases it) or a melee (PZA/1.8: it
+    -- holds the stance between its presses) supersedes the aim
     stop = function(p, st, reason)
         if st.startMs == nil then return end
-        if reason == "superseded" and K.starting == "attack" then return end
+        if reason == "superseded" and (K.starting == "attack" or K.starting == "melee") then return end
         release(p)
     end,
 }
 
--- the runner's start, wrapped: K.starting names the type being started while the base start runs (the aim's stop hook
--- reads it), and a held stance is released when the start began a skill (K.cur changed) that is not an aim or an
--- attack. A rejected command changes nothing, so it leaves the running skill and its stance as they were (PZA/1.5.1,
--- Task 9 review minor 4). Main and the tests call K.start through the table.
+-- the runner's start, wrapped: K.starting names the type being started and K.startingCmd the command while the base
+-- start runs (the aim's and the melee's stop hooks read them), and a held stance is released when the start began a
+-- skill (K.cur changed) that is not an aim, an attack or (PZA/1.8) a melee. A rejected command changes nothing, so it
+-- leaves the running skill and its stance as they were (PZA/1.5.1, Task 9 review minor 4). Main and the tests call
+-- K.start through the table.
 local startBase = K.start
 function K.start(cmd, p)
     K.starting = type(cmd) == "table" and cmd.type or nil
+    K.startingCmd = type(cmd) == "table" and cmd or nil
     local before = K.cur
     startBase(cmd, p)
-    K.starting = nil
+    K.starting, K.startingCmd = nil, nil
     local cur = K.cur
-    if ST.held and cur ~= before and cur ~= nil and cur.type ~= "aim" and cur.type ~= "attack" then release(p) end
+    if ST.held and cur ~= before and cur ~= nil and cur.type ~= "aim" and cur.type ~= "attack" and cur.type ~= "melee" then
+        release(p)
+    end
 end
 
 -- the attack's tick, wrapped (ruling P28-F, Plan 28 Task 1b): a held stance is released on the attack's first tick
@@ -817,3 +824,8 @@ K.types.stomp = {
         if st.swungAt ~= nil then releaseShove(p) end
     end,
 }
+
+-- ---- the helpers the melee reflex shares (PZA/1.8, Plan 28 Task 7a) ----------------------------------------------------
+-- PZAgent_StanceMelee.lua loads after this file (client files load by name, case-insensitively, #0850: "pzagent_stance."
+-- before "pzagent_stancemelee") and reaches these locals through K; appended here (CLAUDE.md section 5).
+K.onFloor, K.knockedDown, K.releaseShove = onFloor, knockedDown, releaseShove

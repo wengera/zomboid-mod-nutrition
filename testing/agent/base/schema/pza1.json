@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "pza1.json",
   "title": "PZA/1",
-  "description": "The one source of the PZAgent protocol PZA/1 (Plan 22 spec section 4); tools/pza_schema.py generates the Lua header, the Python module and the LLM tool descriptions from it. A definition whose x-encoding is positional describes the decoded object; on the wire its values travel as a JSON array in x-order, a kind's array opening with the kind string. A group's fields are only appended at the end of its x-order (PZA/1.1, PZAgent 1.1: me and cost; PZA/1.2, PZAgent 1.2: me's hour and the square record's edges; PZA/1.3, PZAgent 1.3: the death event; PZA/1.4, PZAgent 1.4: me's attackers, hitReaction and dragDown and the square record's hopN and hopW, ruling P24-C; PZAgent 1.4.1: the item use container, appended to its enum, and water read only for drinkable water, ruling P24-F; PZA/1.5, PZAgent 1.5: the actions aim, climb, bandage, rip, wash and fill, the square record's water, me's aiming and the part record's bleeding, bleedingTime, bandaged, bandageLife, bandageDirty, deep and infected, ruling P24-G; PZA/1.5.1, PZAgent 1.5.1: the item_changed event and the reason in bag, appended to their enums, Plan 24 Task 9 fix 1; PZA/1.5.3, PZAgent 1.5.3: bandage's keepMoving, its result's walking and the reasons leg part, stopped and aiming, appended to their enum, Plan 24 Task 9 fix 5, ruling P24-R; PZA/1.5.4, PZAgent 1.5.4: me's forceAim and the aim result's heldFrames and ticks, Plan 24 Task 9 fix 6, ruling P24-T; PZAgent 1.5.5: bandage's keepMoving description only, Plan 24 Task 9 fix 7; PZAgent 1.5.6: the me.forceAim and water.infinite descriptions only, Plan 24 Task 9 fix 8; PZA/1.6, PZAgent 1.6: the item use clothing and the loot filter clothing, appended to their enums, item_added's and item_changed's clothing record, me's worn, the door event's locked, the portal's locked read fail-closed, and the actions wear and window with the reason not a window, Plan 24 Task 9 fix 9, review-t18 ruling 5; PZA/1.7.2, PZAgent 1.7.2: the part record's wound, Plan 28 Task 1), so a reader tolerates appended fields: a group or record array from its x-prior arity up to its x-order decodes with the trailing fields null.",
+  "description": "The one source of the PZAgent protocol PZA/1 (Plan 22 spec section 4); tools/pza_schema.py generates the Lua header, the Python module and the LLM tool descriptions from it. A definition whose x-encoding is positional describes the decoded object; on the wire its values travel as a JSON array in x-order, a kind's array opening with the kind string. A group's fields are only appended at the end of its x-order (PZA/1.1, PZAgent 1.1: me and cost; PZA/1.2, PZAgent 1.2: me's hour and the square record's edges; PZA/1.3, PZAgent 1.3: the death event; PZA/1.4, PZAgent 1.4: me's attackers, hitReaction and dragDown and the square record's hopN and hopW, ruling P24-C; PZAgent 1.4.1: the item use container, appended to its enum, and water read only for drinkable water, ruling P24-F; PZA/1.5, PZAgent 1.5: the actions aim, climb, bandage, rip, wash and fill, the square record's water, me's aiming and the part record's bleeding, bleedingTime, bandaged, bandageLife, bandageDirty, deep and infected, ruling P24-G; PZA/1.5.1, PZAgent 1.5.1: the item_changed event and the reason in bag, appended to their enums, Plan 24 Task 9 fix 1; PZA/1.5.3, PZAgent 1.5.3: bandage's keepMoving, its result's walking and the reasons leg part, stopped and aiming, appended to their enum, Plan 24 Task 9 fix 5, ruling P24-R; PZA/1.5.4, PZAgent 1.5.4: me's forceAim and the aim result's heldFrames and ticks, Plan 24 Task 9 fix 6, ruling P24-T; PZAgent 1.5.5: bandage's keepMoving description only, Plan 24 Task 9 fix 7; PZAgent 1.5.6: the me.forceAim and water.infinite descriptions only, Plan 24 Task 9 fix 8; PZA/1.6, PZAgent 1.6: the item use clothing and the loot filter clothing, appended to their enums, item_added's and item_changed's clothing record, me's worn, the door event's locked, the portal's locked read fail-closed, and the actions wear and window with the reason not a window, Plan 24 Task 9 fix 9, review-t18 ruling 5; PZA/1.7.2, PZAgent 1.7.2: the part record's wound, Plan 28 Task 1; PZA/1.8, PZAgent 1.8: the action melee with its args, its result and the reasons out of range and crowd, appended to their enums, act lines of state progress or failed carrying a result, and act_now's step, Plan 28 Task 7a), so a reader tolerates appended fields: a group or record array from its x-prior arity up to its x-order decodes with the trailing fields null.",
   "x-proto": "PZA/1",
   "x-kinds": ["hello", "frame", "map", "event", "act", "reply"],
   "oneOf": [
@@ -42,7 +42,7 @@
     "actionType": {
       "description": "A skill type a cmd line names. There is no look action (PZA/1.5, Plan 24 Task 6b, docs/superpowers/specs/2026-10-29-plan-24-jar-reads-2.md section 6): the frames list every zombie the client's cell holds within the sense radius whatever the facing, and turning changes only what the client draws and spots.",
       "type": "string",
-      "enum": ["walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear", "window", "unwear", "shove", "stomp"]
+      "enum": ["walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear", "window", "unwear", "shove", "stomp", "melee"]
     },
     "actState": {
       "description": "A skill's lifecycle state.",
@@ -52,7 +52,7 @@
     "reason": {
       "description": "The closed set of reasons a skill is rejected or fails with.",
       "type": "string",
-      "enum": ["bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming", "not a window", "moving", "not worn", "held", "too far", "standing", "dropped", "stood"]
+      "enum": ["bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming", "not a window", "moving", "not worn", "held", "too far", "standing", "dropped", "stood", "out of range", "crowd"]
     },
     "eventKind": {
       "description": "The kind of an engine event line.",
@@ -241,13 +241,15 @@
       "x-role": "group",
       "x-group": "act",
       "x-encoding": "positional",
-      "x-order": ["aid", "state"],
+      "x-prior": 2,
+      "x-order": ["aid", "state", "step"],
       "type": "object",
       "properties": {
         "aid": {"description": "The skill's action id.", "type": "string"},
-        "state": {"description": "The skill's state.", "$ref": "#/$defs/actState"}
+        "state": {"description": "The skill's state.", "$ref": "#/$defs/actState"},
+        "step": {"description": "PZA/1.8 (Plan 28 Task 7a): the melee reflex's step in force when the frame was read (face, swing, shove, stomp, floor, stomp_walk, knock_wait, back, close, stand or hit, as its progress lines name them: the step of the client tick that ran before the frame's read); null for every other skill, and in logs written before PZA/1.8.", "type": "string"}
       },
-      "required": ["aid", "state"]
+      "required": ["aid", "state", "step"]
     },
     "cost": {
       "description": "The mod's own cost on the client.",
@@ -623,7 +625,7 @@
         "type": {"description": "The skill's type.", "$ref": "#/$defs/actionType"},
         "state": {"description": "The skill's new state.", "$ref": "#/$defs/actState"},
         "reason": {"description": "Why it was rejected or failed, empty otherwise.", "anyOf": [{"$ref": "#/$defs/reason"}, {"const": ""}]},
-        "result": {"description": "The skill's result, its fields by type.", "anyOf": [
+        "result": {"description": "The skill's result, its fields by type: a done line's, and (PZA/1.8) a progress line's when the skill gives one (melee's step and counts; the runner's once-a-second heartbeat of another skill carries {}) and a failed line's when the skill gives one (melee's crowd).", "anyOf": [
           {"$ref": "#/$defs/result_walkTo"}, {"$ref": "#/$defs/result_steer"}, {"$ref": "#/$defs/result_attack"},
           {"$ref": "#/$defs/result_interact"}, {"$ref": "#/$defs/result_equip"}, {"$ref": "#/$defs/result_consume"},
           {"$ref": "#/$defs/result_drop"}, {"$ref": "#/$defs/result_stop"}, {"$ref": "#/$defs/result_scan"},
@@ -631,7 +633,7 @@
           {"$ref": "#/$defs/result_climb"}, {"$ref": "#/$defs/result_bandage"}, {"$ref": "#/$defs/result_rip"},
           {"$ref": "#/$defs/result_wash"}, {"$ref": "#/$defs/result_fill"}, {"$ref": "#/$defs/result_wear"},
           {"$ref": "#/$defs/result_window"}, {"$ref": "#/$defs/result_unwear"}, {"$ref": "#/$defs/result_shove"},
-          {"$ref": "#/$defs/result_stomp"}]},
+          {"$ref": "#/$defs/result_stomp"}, {"$ref": "#/$defs/result_melee"}, {"$ref": "#/$defs/result_melee_step"}]},
         "snapshot": {"description": "The player's state when the line was written.", "$ref": "#/$defs/snapshot"}
       },
       "required": ["kind", "seq", "tick", "wallMs", "aid", "type", "state", "reason", "result", "snapshot"]
@@ -856,6 +858,45 @@
         "targetDead": {"description": "Whether the target is dead.", "type": "boolean"}
       }
     },
+    "result_melee": {
+      "description": "A melee's result (PZA/1.8, Plan 28 Task 7a): a done line carries end, kill, the counts, hp0, hp1, dMin and steps; a progress line carries step, d, hp and the counts (result_melee_step); a failed crowd line carries id and d.",
+      "x-role": "result",
+      "x-type": "melee",
+      "type": "object",
+      "properties": {
+        "end": {"description": "Why it ended done: dead (the target read dead) or time (seconds passed with no strike running).", "type": "string"},
+        "kill": {"description": "Whether the target read dead at the end.", "type": "boolean"},
+        "swings": {"description": "The weapon swings pressed at the standing target so far.", "type": "integer"},
+        "shoves": {"description": "The shoves pressed so far.", "type": "integer"},
+        "stomps": {"description": "The stomps (the shove pair at the fallen target) pressed so far.", "type": "integer"},
+        "floors": {"description": "The weapon's floor swings at the fallen target pressed so far.", "type": "integer"},
+        "knockdowns": {"description": "The swings and shoves whose end read the target knocked down (isKnockedDown(), a tick after the attack ended).", "type": "integer"},
+        "hits": {"description": "The runs of the player's hit reaction read so far (a new run counts one: a zombie attack reaching the damage roll, a defended one included, #4292).", "type": "integer"},
+        "hp0": {"description": "The target's health, getHealth(), on the first tick; absent when it could not be read.", "type": "number"},
+        "hp1": {"description": "The target's health at the end; absent when it could not be read.", "type": "number"},
+        "dMin": {"description": "The least distance from the player to the target read over the span, in tiles.", "type": "number"},
+        "steps": {"description": "The client ticks spent in each step, by the step's name (the progress lines' names).", "type": "object"},
+        "step": {"description": "A progress line's: the step now in force.", "type": "string"},
+        "d": {"description": "A progress line's: the distance to the target in tiles on the tick it was written; a crowd line's: the other zombie's distance.", "type": "number"},
+        "hp": {"description": "A progress line's: the target's health on that tick.", "type": "number"},
+        "id": {"description": "A failed crowd line's: the online id of the other standing zombie within 0.6 tiles of the player (K.STAND_R), whom the engine's press would take; the planner re-pins.", "type": "integer"}
+      }
+    },
+    "result_melee_step": {
+      "description": "A melee's progress line's result (PZA/1.8): written on every step change and once a second while a step holds (the skill's own heartbeat, so every melee progress line carries one).",
+      "type": "object",
+      "properties": {
+        "step": {"description": "The step now in force: face (the swing's face, a tick before its press), swing, shove, stomp, floor (each from its face to its result), stomp_walk, knock_wait, back, close, stand or hit.", "type": "string"},
+        "d": {"description": "The distance to the target in tiles on the tick it was written, read live from the target object.", "type": "number"},
+        "hp": {"description": "The target's health on that tick.", "type": "number"},
+        "swings": {"description": "The weapon swings pressed at the standing target so far.", "type": "integer"},
+        "shoves": {"description": "The shoves pressed so far.", "type": "integer"},
+        "stomps": {"description": "The stomps (the shove pair at the fallen target) pressed so far.", "type": "integer"},
+        "floors": {"description": "The weapon's floor swings at the fallen target pressed so far.", "type": "integer"},
+        "knockdowns": {"description": "The swings and shoves whose end read the target knocked down (isKnockedDown(), a tick after the attack ended).", "type": "integer"},
+        "hits": {"description": "The runs of the player's hit reaction read so far (a new run counts one: a zombie attack reaching the damage roll, a defended one included, #4292).", "type": "integer"}
+      }
+    },
     "result_fill": {
       "description": "A fill's result.",
       "x-role": "result",
@@ -898,7 +939,7 @@
           {"$ref": "#/$defs/args_drop"}, {"$ref": "#/$defs/args_stop"}, {"$ref": "#/$defs/args_scan"},
           {"$ref": "#/$defs/args_rate"}, {"$ref": "#/$defs/args_sleep"}, {"$ref": "#/$defs/args_aim"},
           {"$ref": "#/$defs/args_climb"}, {"$ref": "#/$defs/args_bandage"}, {"$ref": "#/$defs/args_rip"},
-          {"$ref": "#/$defs/args_wash"}, {"$ref": "#/$defs/args_fill"}]}
+          {"$ref": "#/$defs/args_wash"}, {"$ref": "#/$defs/args_fill"}, {"$ref": "#/$defs/args_melee"}]}
       },
       "required": ["seq", "aid", "type", "args"]
     },
@@ -1158,6 +1199,26 @@
         "targetId": {"description": "The fallen zombie's online id.", "type": "integer"}
       },
       "required": ["targetId"],
+      "additionalProperties": false
+    },
+    "args_melee": {
+      "description": "The melee reflex (PZA/1.8, Plan 28 Task 7a): owns one zombie from the combat stance to the kill at the client's tick rate for up to seconds, each tick reading the target's distance live and taking the first reflex that matches: a hit reaction holds (no press); a running strike holds and its end is read (a knockdown, a health fall; a strike that left the target standing and unhurt is a miss); beyond releaseR it fails out of range; another standing zombie within 0.6 tiles fails crowd; seconds passed ends done time; a fallen target takes the floor swing (floorSwing, a weapon, within the reach), else the stomp within 0.5 tiles, else a walk to it (failed out of reach after 4 s); a knockdown not yet on the floor is waited on; then the shove (shove mode within shoveR, a chasing target closing within shoveR, or after a miss within shoveR), the swing (strike mode within the reach, not after a miss), the back leg after a miss within keepR along (backVx, backVy) in the stance facing the target, the close at a walk in the stance on an idle target beyond the reach, else the stand in the stance facing it. Every press faces the target a tick before it and goes with the stance released (the aimed player faces the cursor, #4589). Progress lines on every step change carry the step and the counts; the frame's act.step names it. Rejected no target (unknown, dead or unreadable), too far (beyond releaseR), no weapon (strike mode, nothing held); a finish whose target stands fails stood. A melee re-sent at the same target keeps the stance; its end releases it.",
+      "x-role": "args",
+      "x-type": "melee",
+      "type": "object",
+      "properties": {
+        "targetId": {"description": "The zombie's online id.", "type": "integer"},
+        "mode": {"description": "strike (the weapon swing within the reach, the shove per the reflexes), shove (no weapon swing at a standing target: the shove-only fights) or finish (the target is fallen: the stomp or the floor swing only; a target that stands fails stood).", "type": "string"},
+        "reach": {"description": "The swing's distance at a standing target in tiles; 0 takes the held weapon's reach (getMaxRange x getRangeMod x 0.9).", "type": "number"},
+        "keepR": {"description": "The back leg after a miss runs while the target is within this, in tiles.", "type": "number"},
+        "shoveR": {"description": "The shove's distance in tiles: shove mode's, a chasing closing target's (the early shove) and the point blank after a miss.", "type": "number"},
+        "releaseR": {"description": "Beyond this the melee fails out of range, in tiles; a target beyond it is rejected too far.", "type": "number"},
+        "backVx": {"description": "The back leg's world heading, x (0 with backVy 0: stand in the stance instead).", "type": "number"},
+        "backVy": {"description": "The back leg's world heading, y.", "type": "number"},
+        "seconds": {"description": "The span after which the melee ends done time with no strike running, in seconds.", "type": "number"},
+        "floorSwing": {"description": "True to let the weapon's floor swing finish a fallen target within the reach (a floor attack multiplies its damage by at least 5, #4374); false stomps.", "type": "boolean", "default": false}
+      },
+      "required": ["targetId", "mode", "reach", "keepR", "shoveR", "releaseR", "backVx", "backVy", "seconds"],
       "additionalProperties": false
     }
   }

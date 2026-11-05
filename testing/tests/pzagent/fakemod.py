@@ -52,8 +52,12 @@ def square(**fields):
     return out
 
 
+# PZA/1.8 (Plan 28 Task 7a): the melee reflex is announced only where a test asks (hello(caps=...), or MELEE_CAPS), so a
+# fake hello reads as every build before PZA/1.8's did and a planner gated on World.can("melee") stays off by default
+MELEE_TYPES = ("melee",)
 DEFAULT_HELLO = {"proto": pza1.PROTO, "mod": "fake", "build": "42.21.0", "user": "agent", "rate": 10,
-                 "caps": list(pza1.ACTION_TYPES)}
+                 "caps": [t for t in pza1.ACTION_TYPES if t not in MELEE_TYPES]}
+MELEE_CAPS = list(pza1.ACTION_TYPES)      # a PZA/1.8 build's hello caps, melee included
 
 _GROUPS = [f for f, s in pza1.SHAPES["frame"].items() if s[0] == "group"]
 _GROUP_AT = {g: pza1.ORDER["frame"].index(g) for g in _GROUPS}

@@ -24,7 +24,7 @@ PZA.schema = {
         load = { "weight", "max", "level", "n" },
         weapon = { "type", "cond", "reach", "ammo" },
         action = { "class", "n" },
-        act = { "aid", "state" },
+        act = { "aid", "state", "step" },
         cost = { "tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped", "pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs", "maxPollMs", "maxStartMs" },
     },
     records = {
@@ -37,7 +37,7 @@ PZA.schema = {
         water = { "amount", "tainted", "infinite" },
         square = { "x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN", "hopW", "water" },
     },
-    reasons = { ["bad args"] = true, ["unknown type"] = true, dead = true, ["no square"] = true, ["no path"] = true, stuck = true, superseded = true, ["not loaded"] = true, ["no target"] = true, ["no weapon"] = true, ["out of reach"] = true, ["no door"] = true, locked = true, ["not adjacent"] = true, ["no container"] = true, empty = true, ["no match"] = true, ["none held"] = true, ["not valid"] = true, interrupted = true, ["not safe"] = true, ["not allowed"] = true, busy = true, ["not hoppable"] = true, fell = true, failed = true, ["no wound"] = true, worn = true, ["not cotton"] = true, ["needs tool"] = true, ["not dirty"] = true, ["no source"] = true, ["no water"] = true, ["not a container"] = true, full = true, ["in bag"] = true, ["leg part"] = true, stopped = true, aiming = true, ["not a window"] = true, moving = true, ["not worn"] = true, held = true, ["too far"] = true, standing = true, dropped = true, stood = true },
+    reasons = { ["bad args"] = true, ["unknown type"] = true, dead = true, ["no square"] = true, ["no path"] = true, stuck = true, superseded = true, ["not loaded"] = true, ["no target"] = true, ["no weapon"] = true, ["out of reach"] = true, ["no door"] = true, locked = true, ["not adjacent"] = true, ["no container"] = true, empty = true, ["no match"] = true, ["none held"] = true, ["not valid"] = true, interrupted = true, ["not safe"] = true, ["not allowed"] = true, busy = true, ["not hoppable"] = true, fell = true, failed = true, ["no wound"] = true, worn = true, ["not cotton"] = true, ["needs tool"] = true, ["not dirty"] = true, ["no source"] = true, ["no water"] = true, ["not a container"] = true, full = true, ["in bag"] = true, ["leg part"] = true, stopped = true, aiming = true, ["not a window"] = true, moving = true, ["not worn"] = true, held = true, ["too far"] = true, standing = true, dropped = true, stood = true, ["out of range"] = true, crowd = true },
     actions = {
         walkTo = { "x", "y", "gait" },
         steer = { "vx", "vy", "seconds", "gait" },
@@ -61,6 +61,7 @@ PZA.schema = {
         unwear = { "itemId" },
         shove = { "targetId" },
         stomp = { "targetId" },
+        melee = { "targetId", "mode", "reach", "keepR", "shoveR", "releaseR", "backVx", "backVy", "seconds", "floorSwing" },
     },
     gaits = { walk = true, run = true, sprint = true },
     ikinds = { open = true, close = true, loot = true },
@@ -313,9 +314,10 @@ PZA.enc.action = enc_action
 -- group act: The current skill.
 --   aid: The skill's action id.
 --   state: The skill's state.
+--   step: PZA/1.8 (Plan 28 Task 7a): the melee reflex's step in force when the frame was read (face, swing, shove, stomp, floor, stomp_walk, knock_wait, back, close, stand or hit, as its progress lines name them: the step of the client tick that ran before the frame's read); null for every other skill, and in logs written before PZA/1.8.
 local function enc_act(t)
     if t == nil then return "null" end
-    return "[" .. v(t.aid) .. "," .. v(t.state) .. "]"
+    return "[" .. v(t.aid) .. "," .. v(t.state) .. "," .. v(t.step) .. "]"
 end
 PZA.enc.act = enc_act
 

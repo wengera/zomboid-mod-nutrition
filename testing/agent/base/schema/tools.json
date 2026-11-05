@@ -492,5 +492,67 @@
       ],
       "additionalProperties": false
     }
+  },
+  {
+    "name": "melee",
+    "description": "The melee reflex (PZA/1.8, Plan 28 Task 7a): owns one zombie from the combat stance to the kill at the client's tick rate for up to seconds, each tick reading the target's distance live and taking the first reflex that matches: a hit reaction holds (no press); a running strike holds and its end is read (a knockdown, a health fall; a strike that left the target standing and unhurt is a miss); beyond releaseR it fails out of range; another standing zombie within 0.6 tiles fails crowd; seconds passed ends done time; a fallen target takes the floor swing (floorSwing, a weapon, within the reach), else the stomp within 0.5 tiles, else a walk to it (failed out of reach after 4 s); a knockdown not yet on the floor is waited on; then the shove (shove mode within shoveR, a chasing target closing within shoveR, or after a miss within shoveR), the swing (strike mode within the reach, not after a miss), the back leg after a miss within keepR along (backVx, backVy) in the stance facing the target, the close at a walk in the stance on an idle target beyond the reach, else the stand in the stance facing it. Every press faces the target a tick before it and goes with the stance released (the aimed player faces the cursor, #4589). Progress lines on every step change carry the step and the counts; the frame's act.step names it. Rejected no target (unknown, dead or unreadable), too far (beyond releaseR), no weapon (strike mode, nothing held); a finish whose target stands fails stood. A melee re-sent at the same target keeps the stance; its end releases it.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "targetId": {
+          "type": "integer",
+          "description": "The zombie's online id."
+        },
+        "mode": {
+          "type": "string",
+          "description": "strike (the weapon swing within the reach, the shove per the reflexes), shove (no weapon swing at a standing target: the shove-only fights) or finish (the target is fallen: the stomp or the floor swing only; a target that stands fails stood)."
+        },
+        "reach": {
+          "type": "number",
+          "description": "The swing's distance at a standing target in tiles; 0 takes the held weapon's reach (getMaxRange x getRangeMod x 0.9)."
+        },
+        "keepR": {
+          "type": "number",
+          "description": "The back leg after a miss runs while the target is within this, in tiles."
+        },
+        "shoveR": {
+          "type": "number",
+          "description": "The shove's distance in tiles: shove mode's, a chasing closing target's (the early shove) and the point blank after a miss."
+        },
+        "releaseR": {
+          "type": "number",
+          "description": "Beyond this the melee fails out of range, in tiles; a target beyond it is rejected too far."
+        },
+        "backVx": {
+          "type": "number",
+          "description": "The back leg's world heading, x (0 with backVy 0: stand in the stance instead)."
+        },
+        "backVy": {
+          "type": "number",
+          "description": "The back leg's world heading, y."
+        },
+        "seconds": {
+          "type": "number",
+          "description": "The span after which the melee ends done time with no strike running, in seconds."
+        },
+        "floorSwing": {
+          "type": "boolean",
+          "description": "True to let the weapon's floor swing finish a fallen target within the reach (a floor attack multiplies its damage by at least 5, #4374); false stomps.",
+          "default": false
+        }
+      },
+      "required": [
+        "targetId",
+        "mode",
+        "reach",
+        "keepR",
+        "shoveR",
+        "releaseR",
+        "backVx",
+        "backVy",
+        "seconds"
+      ],
+      "additionalProperties": false
+    }
   }
 ]

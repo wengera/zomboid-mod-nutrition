@@ -422,7 +422,7 @@ def test_a_frame_and_its_delta_decode_through_pza1(lua, fs):
     f1["load"] = {"weight": 19.555, "max": 12, "level": 3, "n": 37}
     f1["weapon"] = None
     f1["action"] = {"class": 'IS"Walk\\Toé', "n": 2}
-    f1["act"] = {"aid": "a3", "state": "progress"}
+    f1["act"] = {"aid": "a3", "state": "progress", "step": None}         # PZA/1.8: step null but for a melee
     f1["zombies"] = [{"id": 11, "x": 12.5, "y": 13.0, "dist": 2.5, "hasTarget": True, "crawler": False, "health": 0.75, "onFloor": None},
                      {"id": 12, "x": 14.25, "y": 9, "dist": 4.0, "hasTarget": False, "crawler": True, "health": 1,
                       "onFloor": True}]
