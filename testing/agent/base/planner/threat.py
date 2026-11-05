@@ -225,6 +225,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     DRESS_FINISH = True   # ruling P29-D: a running dressing is not superseded by the flee's command while no zombie is
                           # within DANGER_R, the flee waiting on its end (`_dress_waits`); off, the flee's next command
                           # supersedes it
+    MANY_NEAR = True      # ruling P29-G: the `many` flee's count is the standing zombies within DANGER_R
+                          # (`_many_near`), over MAX_FIGHT to begin and at MAX_FIGHT to hold an episode; off, P24-A's
+                          # hold radius, DANGER_R and listing counts (P27-I's `_counts_many`)
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -268,7 +271,14 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         makes `many` by MANY_LISTED_N. Ruling P27-B (`MANY_TAIL`): the episode's tail, read once a tick in
         `_threat_read` (`_many_tail_read`), clears `flee_many`, so this clause no longer holds the flee after it.
         Ruling P27-I (`LISTING_FALLEN`): neither count takes a zombie `_left_out` names (fallen, or across a known
-        blocked edge out of the hold radius)."""
+        blocked edge out of the hold radius). Ruling P29-G (`MANY_NEAR`): the read is `_many_near`'s alone."""
+        if self.MANY_NEAR:   # P29-G
+            hold = 1 if self.mode == "flee" and self.flee_many else 0
+            return self._many_near() > MAX_FIGHT - hold, None
+        return self._many_read_p27(held, n)
+
+    def _many_read_p27(self, held, n):
+        """`_many_read` before ruling P29-G: the hold radius's, the DANGER_R count's and the listing's reads."""
         counted = [z for z in held if self._counts_many(z)]
         if self.mode == "flee" and self.flee_many:
             near = len(counted) > MAX_FIGHT or min(zdist(self.world, z) for z in held) <= DANGER_R
@@ -280,6 +290,16 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if len(listed) < MANY_LISTED_N or (self.ENGAGE and self._pressing(listed) <= MAX_FIGHT):
             return False, None
         return True, len(listed)
+
+    def _many_near(self):
+        """Ruling P29-G (`MANY_NEAR`; E22, `e_day_22-20261105-004919`: on 145 of the `many` flee's 198 lines at most one
+        standing zombie stood within 6 tiles, #4628; line 1341's `many` read three within DANGER_R, two of them lying
+        fallen; E21's and F12's fifth readings): the count the `many` rule reads, the zombies standing (not `onFloor`)
+        within DANGER_R that `_counts_many` takes (one `_left_out` names aside). `many` is more than MAX_FIGHT of them,
+        and while a `many` episode runs MAX_FIGHT hold it (a flip at the line kept off, as P23-AM 1's), so the episode
+        ends at one standing or none; the hold radius's count and the listing's (P24-A (a), P24-X) are not read. Cost
+        if wrong: a group arriving from beyond DANGER_R, met in the stance until three stand within it."""
+        return sum(1 for z in self._within(DANGER_R) if not on_floor(z) and self._counts_many(z))
 
     def _counts_many(self, z):
         """Ruling P24-AD: zombie `z` counts toward `many`: within DANGER_R, or not idle (`hasTarget` not read false: a
@@ -337,10 +357,13 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         return sum(1 for z in zs if zdist(self.world, z) <= DISENGAGE_R or z.get("hasTarget") is True)
 
     def _many(self, held, n):
-        """`_many_read`'s `many`, its `listed` kept for the decision's why (logged `listed`)."""
+        """`_many_read`'s `many`, its `listed` kept for the decision's why (logged `listed`); ruling P29-G: a tick
+        whose `many` the reads before it made and `_many_near` does not, logged `many_near` {n}."""
         many, listed = self._many_read(held, n)
         if listed is not None:
             self.listed = listed
+        if self.MANY_NEAR and not many and self._many_read_p27(held, n)[0]:
+            self.many_near = {"n": self._many_near()}   # P29-G: the standing count that withheld it
         out = self._listing_out() if self.LISTING_FALLEN else None
         if out is not None:
             self.listing = out   # P27-I: the zombies the counts left out, on the decision's why
@@ -704,7 +727,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.stand_left, self.stand_end, self.stand_wound, self.pair_yield = None, None, None, None
         self.stand_drag, self.stand_inside, self.stand_exit, self.stand_crowd = None, None, None, None
         self.one_exit_refused, self.listing, self.corner_exit = None, None, None
-        self.health_near, self.health_pass = None, False   # P29-E: this tick's
+        self.health_near, self.health_pass, self.many_near = None, False, None   # P29-E, P29-G: this tick's
         door = self._doorway()
         if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
             return door
@@ -1021,7 +1044,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                        ("doorway_drag", self.stand_drag),
                        ("doorway_inside", self.stand_inside),
                        ("pair_yield", self.pair_yield), ("listing", self.listing), ("corner", self.corner_exit),
-                       ("health_near", self.health_near)):
+                       ("health_near", self.health_near), ("many_near", self.many_near)):
             if v is not None:
                 self.why[key] = v
         if self.broken is not None:
@@ -1037,10 +1060,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         steers at a run, four of them on lines reading no zombie within 6 tiles, lines 463, 470, 536 and 542, while the
         four parts bled undressed 9.315 to 19.103 game minutes, #4627): `(flee, None)` when the Flee would choose (no
         leg of its own running, `busy`) while the care's dressing runs (a `bandage` accepted and not ended: the ride
-        whose leg ended, `Care.riding`, or a standing one, `Care.busy`) with no zombie within DANGER_R: the flee waits on
-        the dressing's end as a running leg holds it, logged `dress_finish` {action, near 0}; a zombie within DANGER_R
-        supersedes it as before. Else None. Cost if wrong: a dressing's seconds with a chaser coming from beyond
-        DANGER_R."""
+        whose leg ended, `Care.riding`, or a standing one, `Care.busy`) with no zombie within DANGER_R: the flee waits
+        on the dressing's end as a running leg holds it, logged `dress_finish` {action, near 0}; a zombie within
+        DANGER_R supersedes it as before. Else None. Cost if wrong: a dressing's seconds with a chaser coming from
+        beyond DANGER_R."""
         if not self.DRESS_FINISH or flee.busy() or self._within(DANGER_R):
             return None
         c = self.care

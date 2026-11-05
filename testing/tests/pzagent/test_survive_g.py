@@ -1832,10 +1832,13 @@ def test_the_bandage_runs_under_a_health_flee_and_is_superseded_when_a_zombie_co
     all_sends_valid(r)
 
 
-def test_no_yield_to_the_care_under_a_group_or_with_nothing_to_tend(tmp_path):
+def test_no_yield_to_the_care_under_a_group_or_with_nothing_to_tend(tmp_path, monkeypatch):
     """The `many` reason (four listed within LISTED_R, the nearest at 6) keeps the threat's tick; so does a bleeding
     part with no bandage, rag or rippable garment held (the threat never stands down for nothing), and a PZA/1.4
-    build."""
+    build.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = make(tmp_path)
     hold(r, 10, "Base.Bandage")
     zs = [zd(1, 106.0, 200.0), zd(2, 100.0, 207.0), zd(3, 93.0, 200.0), zd(4, 100.0, 193.0)]

@@ -167,10 +167,13 @@ def test_without_the_stance_nothing_is_pulled(tmp_path):
 
 
 # ================================================================ P24-AN: the listing's count
-def test_the_listing_counts_a_zombie_only_within_danger_r_or_chasing(tmp_path):
+def test_the_listing_counts_a_zombie_only_within_danger_r_or_chasing(tmp_path, monkeypatch):
     """Four listed within LISTED_R, three of them beyond DANGER_R reading no `hasTarget` (a frame without the field):
     no `many` by the listing (P24-AD extended from the flee's count to the listing's); chasing, they make it; with
-    IDLE off (the rules before P24-AD) every zombie counts."""
+    IDLE off (the rules before P24-AD) every zombie counts.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     def unread(zid, x, y):
         z = zd(zid, x, y)
         z["hasTarget"] = None
@@ -319,12 +322,15 @@ def test_a_fallen_zombie_is_no_count_toward_the_stance(tmp_path):
     assert len(held) == 3 and sv._stance_count(held) == 2
 
 
-def test_e9_s_line_342_keeps_the_pull_s_leg(tmp_path):
+def test_e9_s_line_342_keeps_the_pull_s_leg(tmp_path, monkeypatch):
     """E9 replayed at HEAD: line 341 sends the pull leg at 7479 (8.15 tiles); at 342, where Task 32's stance gate read
     three held (7594 fallen at 7.43 on the tick before, 7474 idle at 9.17) and ran at the chaser, the leg holds. With
     STANCE_LISTED off the run comes back (the review's line 342).
     Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
-    rule before it (the non-stance Fight's walk to a zombie at a run)."""
+    rule before it (the non-stance Fight's walk to a zombie at a run).
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     got, old = e9_lines(), e9_lines(("STANCE_LISTED", "APPROACH_WALK"))
     assert got[341]["why"]["leg"] == "pull" and got[341]["why"]["target"] == 7479
     assert got[342]["action"] is None and got[342]["why"]["leg"] == "pull" and "holding" in got[342]["why"]

@@ -126,9 +126,11 @@ last build reading the hold holds (`test_replay_decisions.R2_FROZEN`, 361324b7),
 seams' sixth cases (PRE_AD, PRE_AG, PRE_AN) re-run. Plan 28 Task 7b's iteration 22 (MELEE) and Plan 29 Task 1's
 iteration 23 (P29-A's ROUTE_CROSS: no golden's replay sends a route walk; P29-B's GOAL_STALL: the record's goals,
 `RecordedGoals`, end no goal by its budget) moved no golden: `T12_SWITCHES` and `T13_SWITCHES` off (`pre_t12`,
-`pre_t13`) and on are byte-identical (`test_iteration_22_moves_no_golden`, `test_iteration_23_moves_no_golden`); and so
-did Task 2's hit rules in the same tuple (P29-E's HEALTH_NEAR: no golden line reads the `health` flee with nobody within
-DANGER_R).
+`pre_t13`) and on are byte-identical (`test_iteration_22_moves_no_golden`, `test_iteration_23_moves_no_golden`). Plan
+29 Task 2's hit rules, in the same tuple, re-recorded E3, E4, F1 and the sixth under ruling P29-G (MANY_NEAR, the `many`
+count over the standing zombies within DANGER_R: E3 first at line 204, E4 at 390, F1 and the sixth at 484); `pre_t13`
+reproduces each file before byte for byte (`test_replay_decisions.PRE_T13`), and the attribution of every moved line
+is `test_iteration_23_s_hit_rules_move_four_goldens_at_the_many_count`.
 
 `agreement(artifact_dir, replayed)` compares the replayed log with the record's own decision.log at every line where
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat

@@ -227,10 +227,13 @@ def test_with_floor_pain_off_the_floor_swing_s_bar_is_no_swing(tmp_path):
     assert f.floor_swing_barred() is True
 
 
-def test_the_many_flee_s_finish_swings_at_a_fallen_zombie_under_the_arms_pain(tmp_path):
+def test_the_many_flee_s_finish_swings_at_a_fallen_zombie_under_the_arms_pain(tmp_path, monkeypatch):
     """P27-G's flee finish under the arms' pain 30: a zombie fallen 1.8 tiles off (beyond CORNERED_R, within
     FIGHT_REACH), GROUP3 chasing 7.5 off (the `many` flee): the finish is the attack, kind `floor_finish`, logged
-    {target, health, pain 30}; with `FLOOR_PAIN` off the stomp."""
+    {target, health, pain 30}; with `FLOOR_PAIN` off the stomp.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     for on in (True, False):
         d = tmp_path / str(on)
         d.mkdir()
@@ -249,9 +252,12 @@ def test_the_many_flee_s_finish_swings_at_a_fallen_zombie_under_the_arms_pain(tm
 
 
 @pytest.mark.parametrize("hold", [{"strain": STIFF}, {"endurance": 0.6897225379943848}])
-def test_the_flee_s_finish_under_a_hold_still_stomps(tmp_path, hold):
+def test_the_flee_s_finish_under_a_hold_still_stomps(tmp_path, hold, monkeypatch):
     """The same `many` flee with a hold beside the pain (the arms' stiffness past STIFF_HARD, or E18's endurance
-    0.6897225379943848, R2): the hold bars the swing at the fallen one, the stomp goes."""
+    0.6897225379943848, R2): the hold bars the swing at the fallen one, the stomp goes.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = make(tmp_path)
     sv.LISTING_FALLEN = False
     fr(r, [z(1, 101.8, floor=True)] + GROUP3, 30.0, **hold)

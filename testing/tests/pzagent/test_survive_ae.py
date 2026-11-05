@@ -388,7 +388,7 @@ def e22_frame(r, me, zs, health, game_min, **k):
 
 def test_the_iteration_23_hit_rule_switches():
     """Task 2's switches follow Task 1's in `survive.T13_SWITCHES`, each on `threat.Threat` and on by default."""
-    assert S.T13_SWITCHES[2:] == ("HEALTH_NEAR", "DRESS_FINISH")
+    assert S.T13_SWITCHES[2:] == ("HEALTH_NEAR", "DRESS_FINISH", "MANY_NEAR")
     assert all(getattr(T.Threat, n) is True for n in S.T13_SWITCHES[2:])
 
 
@@ -559,3 +559,74 @@ def test_survive_copies_route_cross_to_the_water_chain_and_pre_t13_turns_it_off(
     r2.frame(thirst=0.5)
     tick(r2, sv2)
     assert sv2.water.route_cross is False
+
+
+# ---------------------------------------------------------------- P29-G: the `many` count over the standing
+# E22's line 1340 (state.log seq 11776, game minute 741): the `health` flee from 11855 and 11856, both read fallen 3.57
+# and 3.6 tiles off (11810 chasing 6.17, 11527 and 11526 idle beyond DANGER_R); line 1341 (seq 11783): 11810 came to
+# 5.93 tiles and the `many` flee read three within DANGER_R, one of them standing (GUIDE section 9: at most one standing
+# within 6 tiles on 145 of the `many` flee's 198 lines)
+E22_1340 = ((10789.0009765625, 10625.439453125), [(11855, 10789.2705078125, 10629, False, True),
+                                                   (11856, 10789.5009765625, 10629, False, True),
+                                                   (11810, 10784.1396484375, 10621.6416015625),
+                                                   (11527, 10794.5029296875, 10633.3896484375, False),
+                                                   (11526, 10796.2607421875, 10633.287109375, False)],
+            26.294525146484375)
+E22_1341 = ((10789.990234375, 10624.7216796875), [(11856, 10789.5009765625, 10629, False, True),
+                                                   (11855, 10789.2705078125, 10629, False, True),
+                                                   (11810, 10784.7451171875, 10621.9580078125),
+                                                   (11527, 10794.5029296875, 10633.3896484375, False),
+                                                   (11526, 10796.2607421875, 10633.287109375, False)],
+            26.3076171875)
+
+
+def standing(zs, ids):
+    """The records `zs` with the zombies `ids` read standing (`onFloor` None), the test's own."""
+    return [(z[0], z[1], z[2], z[3] if len(z) > 3 else True) if z[0] in ids else z for z in zs]
+
+
+def many_rig(tmp_path, second, on=True, first=E22_1340):
+    """`first` (line 1340's frame by default) then `second` from a fresh Survive with MANY_NEAR `on`, each leg answered
+    done before the next tick; the second tick's threat why."""
+    r, sv = make(tmp_path)
+    sv.MANY_NEAR = on
+    for k, (me, zs, h) in enumerate((first, second)):
+        e22_frame(r, me, zs, h, 741.0 + 0.1 * k)
+        if tick(r, sv) is not None:
+            r.answer()
+        r.advance(0.5)
+    return r, sv, threat_why(tmp_path)
+
+
+def test_e22_s_line_1341_three_within_danger_r_one_standing_makes_no_many(tmp_path):
+    """P29-G (`MANY_NEAR`): line 1341, 11810 standing 5.93 tiles off and 11856 and 11855 fallen within DANGER_R: no
+    `many`, logged `many_near` {n 1}; the `health` flee runs on (the DANGER_R count three, no low fight)."""
+    r, sv, w = many_rig(tmp_path, E22_1341)
+    assert w.get("flee") != "many" and w["many_near"] == {"n": 1} and sv.flee_many is False
+    assert w["flee"] == "health"
+
+
+def test_with_many_near_off_line_1341_flees_many_as_e22_did(tmp_path):
+    r, sv, w = many_rig(tmp_path, E22_1341, on=False)
+    assert w["flee"] == "many" and "many_near" not in w
+
+
+def test_three_standing_within_danger_r_make_many_as_today(tmp_path):
+    """P29-G's other side: line 1341 with 11856 and 11855 read standing (the test's own): three standing within
+    DANGER_R, `many`, no `many_near`."""
+    me, zs, h = E22_1341
+    r, sv, w = many_rig(tmp_path, (me, standing(zs, (11855, 11856)), h))
+    assert w["flee"] == "many" and "many_near" not in w and sv.flee_many is True
+
+
+def test_a_many_episode_holds_at_two_standing_and_ends_at_one(tmp_path):
+    """P29-G's hysteresis: the episode begun at three standing (line 1341's three read standing) holds while two stand
+    within DANGER_R (11855 read fallen again) and reads no `many` at one standing (both fallen: line 1341 itself),
+    logged `many_near` {n 1}."""
+    me, zs, h = E22_1341
+    r, sv, w = many_rig(tmp_path, (me, standing(zs, (11856,)), h), first=(me, standing(zs, (11855, 11856)), h))
+    assert w["flee"] == "many" and "many_near" not in w
+    e22_frame(r, me, zs, h, 741.2)
+    tick(r, sv)
+    w = threat_why(tmp_path)
+    assert w.get("flee") != "many" and w["many_near"] == {"n": 1}

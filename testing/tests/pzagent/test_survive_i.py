@@ -357,9 +357,12 @@ def fight_on(tmp_path):
     return r, sv
 
 
-def test_three_held_with_two_idle_beyond_danger_r_is_no_many_the_fight_stands(tmp_path):
+def test_three_held_with_two_idle_beyond_danger_r_is_no_many_the_fight_stands(tmp_path, monkeypatch):
     """P24-AD (E8's fight 1): one chasing at 5 tiles, two idle at 8 and 9.5 (all within the hold radius): no `many`,
-    the fight stands; the two waking (chasing) is `many` on that tick."""
+    the fight stands; the two waking (chasing) is `many` on that tick.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = fight_on(tmp_path)
     r.frame(zombies=[zi(1, 105.0, 200.0), zi(2, 100.0, 208.0, chasing=False), zi(3, 90.5, 200.0, chasing=False)])
     tick(r, sv)
@@ -370,7 +373,10 @@ def test_three_held_with_two_idle_beyond_danger_r_is_no_many_the_fight_stands(tm
     assert threat_why(tmp_path)["flee"] == "many" and r.cmd()[0] == "steer"
 
 
-def test_three_chasing_held_is_many(tmp_path):
+def test_three_chasing_held_is_many(tmp_path, monkeypatch):
+    """Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = fight_on(tmp_path)
     r.frame(zombies=[zi(1, 105.0, 200.0), zi(2, 100.0, 208.0), zi(3, 90.5, 200.0)])
     tick(r, sv)
@@ -385,9 +391,12 @@ def test_an_idle_zombie_inside_danger_r_still_counts(tmp_path):
     assert threat_why(tmp_path)["flee"] == "many"
 
 
-def test_the_listing_counts_an_idle_zombie_only_inside_danger_r(tmp_path):
+def test_the_listing_counts_an_idle_zombie_only_inside_danger_r(tmp_path, monkeypatch):
     """P24-AD on the listing (MANY_LISTED_N within LISTED_R): one chasing at 5, one chasing at 9, two idle at 10 and 11
-    are no `many` (two counted); with the two chasing, four listed and four pressing: `many` `listed`."""
+    are no `many` (two counted); with the two chasing, four listed and four pressing: `many` `listed`.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = fight_on(tmp_path)
     far = [zi(3, 110.0, 200.0, chasing=False), zi(4, 100.0, 211.0, chasing=False)]
     r.frame(zombies=[zi(1, 105.0, 200.0), zi(2, 91.0, 200.0)] + far)
@@ -399,8 +408,11 @@ def test_the_listing_counts_an_idle_zombie_only_inside_danger_r(tmp_path):
     assert (many, listed) == (True, 4)
 
 
-def test_a_frame_with_no_has_target_counts_every_zombie_as_before(tmp_path):
-    """P24-AD reads `hasTarget` false only: a frame that does not carry it (PZA/1.3's records) counts as before."""
+def test_a_frame_with_no_has_target_counts_every_zombie_as_before(tmp_path, monkeypatch):
+    """P24-AD reads `hasTarget` false only: a frame that does not carry it (PZA/1.3's records) counts as before.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = fight_on(tmp_path)
     zs = [zi(1, 105.0, 200.0), zi(2, 100.0, 208.0), zi(3, 90.5, 200.0)]
     for z in zs[1:]:
@@ -413,7 +425,10 @@ def test_a_frame_with_no_has_target_counts_every_zombie_as_before(tmp_path):
 def test_e8_line_170_s_many_flee_is_now_the_fight(monkeypatch):
     """P24-AD on E8's record (replayed to line 170, the fight 1 `many` flee: 16318 chasing at 7.497342719768519,
     16316 and 16317 idle at 9.45 and 9.95): the replay fights on; with every zombie counted (the rule before) it flees
-    `many` as the record did."""
+    `many` as the record did.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     rep = R.replay(E8, upto=170)
     w = rep[169]["inputs"]["branches"]["threat"]
     assert rep[169]["branch"] == "threat" and w.get("fight") is True and "flee" not in w
@@ -509,10 +524,13 @@ def test_a_done_leg_and_a_halved_leg_cool_nothing(tmp_path):
 
 
 # ================================================================ Task 21 fix 1: AD-M6 on the flee_many episode
-def test_a_many_flee_episode_ends_on_the_filtered_held_count(tmp_path):
+def test_a_many_flee_episode_ends_on_the_filtered_held_count(tmp_path, monkeypatch):
     """Review-t21 minor 4 (mutant AD-M6): a `flee_many` episode running, one zombie chasing at 8 tiles and two idle at 8
     and 9.5 (all within the hold radius, beyond DANGER_R): two of the three are idle, so the held count over MAX_FIGHT
-    is one counted, not three, and the episode reads no `many`; with the two chasing it still does."""
+    is one counted, not three, and the episode reads no `many`; with the two chasing it still does.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = make(tmp_path)
     r.frame(zombies=[zi(1, 108.0, 200.0), zi(2, 100.0, 208.0, chasing=False), zi(3, 90.5, 200.0, chasing=False)])
     sv.mode, sv.flee_many = "flee", True

@@ -309,14 +309,17 @@ def chaser_by(tmp_path, target_x, chaser, caps=None, off=()):
     return r, sv, tick(r, sv)
 
 
-def test_e9_s_line_334_geometry_a_chaser_within_keep_r_of_the_target_refuses_the_finish(tmp_path):
+def test_e9_s_line_334_geometry_a_chaser_within_keep_r_of_the_target_refuses_the_finish(tmp_path, monkeypatch):
     """The deferred minor 5 of review-t32-fix1 (E9's line 334: 7474 fallen 4.62 tiles off, 7479 standing and chasing
     2.16 tiles from it, 1.97 beyond it along y, 6.49 from the player; here 1.96 from the target): the 4.6-tile stomp
     walk would end at the chaser; the finish is refused (logged `finish_block`) and the flee runs. An idle zombie
     there refuses nothing. E9's own line: `test_survive_q.test_e9_s_7474_at_line_334_is_refused_for_7479_by_it`.
     Named change, ruling P27-A (Plan 27 Task 1): the chaser's reach from the fallen one is FINISH_CLEAR_R, so GROUP3's
     zombie 2, 2.88 tiles from the target, refuses the idle case's stomp too; that case is pinned with `FLEE_FINISH` off,
-    the rule before it."""
+    the rule before it.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv, a = chaser_by(tmp_path, 104.62, z(5, 106.49, 200.6))
     w = threat_why(tmp_path)
     assert a.type == "steer" and "finish" not in w and w["flee"] == "many"
@@ -326,9 +329,12 @@ def test_e9_s_line_334_geometry_a_chaser_within_keep_r_of_the_target_refuses_the
     assert (a2.type, a2.args) == ("stomp", {"targetId": 1})
 
 
-def test_finish_block_is_this_tick_s_only_never_logged_stale_on_a_later_line(tmp_path):
+def test_finish_block_is_this_tick_s_only_never_logged_stale_on_a_later_line(tmp_path, monkeypatch):
     """Task 36 fix 1, major 1: a refused finish logs `finish_block`; the next lines (no zombie, then a lone one at 7
-    tiles, a fight line) carry none."""
+    tiles, a fight line) carry none.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv, a = chaser_by(tmp_path, 104.62, z(5, 106.49, 200.6))
     assert "finish_block" in threat_why(tmp_path)
     n = len(decisions(tmp_path))
@@ -342,9 +348,12 @@ def test_finish_block_is_this_tick_s_only_never_logged_stale_on_a_later_line(tmp
     assert all("finish_block" not in d["inputs"]["branches"].get("threat", {}) for d in later)
 
 
-def test_a_fallen_target_with_the_nearest_standing_four_tiles_off_it_is_finished(tmp_path):
+def test_a_fallen_target_with_the_nearest_standing_four_tiles_off_it_is_finished(tmp_path, monkeypatch):
     """The nearest standing chaser 4 tiles beyond the fallen target (7 from the player, beyond DANGER_R and KEEP_R of
-    the target): the stomp goes."""
+    the target): the stomp goes.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv, a = chaser_by(tmp_path, 103.0, z(5, 107.0, 200.0))
     assert (a.type, a.args) == ("stomp", {"targetId": 1}) and "finish_block" not in threat_why(tmp_path)
 

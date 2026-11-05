@@ -264,11 +264,14 @@ def test_a_standing_zombie_within_danger_r_keeps_the_flee_as_today(tmp_path):
     assert tick(r, sv).type == "steer" and "finish" not in threat_why(tmp_path)
 
 
-def test_a_fallen_zombie_never_struck_is_left(tmp_path):
+def test_a_fallen_zombie_never_struck_is_left(tmp_path, monkeypatch):
     """At 1.9 tiles (beyond CORNERED_R, whose `walk` corner would take a zombie at 1.5 first, struck or not). Named
     change, ruling P27-A (Plan 27 Task 1): the struck test is dropped, so a fallen zombie never struck is stomped
     (`test_survive_aa`); pinned with `FLEE_FINISH` off, the rule before it. Named change, ruling P27-I (Plan 27 Task
-    5): `LISTING_FALLEN` off too (GROUP3's three and the fallen one make `many` only with the fallen counted)."""
+    5): `LISTING_FALLEN` off too (GROUP3's three and the fallen one make `many` only with the fallen counted).
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = make(tmp_path, caps=CAPS_14)
     sv.FLEE_FINISH = False
     sv.LISTING_FALLEN = False
@@ -350,9 +353,12 @@ def test_finish_r_reaches_e9_s_7474_at_line_334_s_geometry(tmp_path):
     assert tick(r2, sv2).type == "steer"                                # beyond FINISH_R: the flee as today
 
 
-def test_beyond_fight_reach_a_refused_stomp_takes_no_floor_strike(tmp_path):
+def test_beyond_fight_reach_a_refused_stomp_takes_no_floor_strike(tmp_path, monkeypatch):
     """The floor strike swings from where the player stands: within FIGHT_REACH only; a stomp refused at 4 tiles is
-    followed by the flee."""
+    followed by the flee.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = struck(tmp_path)
     zs = [z(1, 104.0, floor=True)] + GROUP3
     fr(r, zs)
@@ -362,7 +368,7 @@ def test_beyond_fight_reach_a_refused_stomp_takes_no_floor_strike(tmp_path):
     assert tick(r, sv).type == "steer"
 
 
-def test_e9_s_7474_at_line_334_is_refused_for_7479_by_it():
+def test_e9_s_7474_at_line_334_is_refused_for_7479_by_it(monkeypatch):
     """E9 replayed at HEAD. Named change, Task 36 (P24-AV, the deferred minor 5 of review-t32-fix1): line 334, where
     Task 32 fix 1 sent the finishing stomp at 7474 (fallen 4.62 tiles off, the nearest standing 6.49), now refuses it:
     7479 stands chasing 2.16 tiles from 7474 (within KEEP_R; the review read its 1.97-tile offset along y), so the walk
@@ -370,7 +376,10 @@ def test_e9_s_7474_at_line_334_is_refused_for_7479_by_it():
     1.24 to 5.73 tiles, always had a standing zombie within DANGER_R (1.57 to 2.26 tiles), so no reach finishes it
     under P24-AQ's condition (the review's major 5). Named change, ruling P27-A (Plan 27 Task 1): the finish takes any
     fallen zombie, so E9's HEAD replay stomps 7479 at line 274 and 7481 at line 363, neither struck
-    (`test_survive_aa`); pinned with `FLEE_FINISH` off, the rule before it."""
+    (`test_survive_aa`); pinned with `FLEE_FINISH` off, the rule before it.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     from .test_survive_o import e9_lines
     got = e9_lines(("FLEE_FINISH",))
     w = got[334]["why"]

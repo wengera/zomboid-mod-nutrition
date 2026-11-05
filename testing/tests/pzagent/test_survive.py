@@ -155,9 +155,12 @@ def test_with_no_threat_running_a_zombie_at_seven_tiles_is_no_threat_to_the_unar
     assert last(tmp_path / "b")["branch"] == "threat" and threat_why(tmp_path / "b")["fight"] is True
 
 
-def test_the_too_many_count_reads_the_hold_radius_during_a_fight(tmp_path):
+def test_the_too_many_count_reads_the_hold_radius_during_a_fight(tmp_path, monkeypatch):
     """P23-AG ruling 2 (E1's fight 2: engaged with one, fled only once four were within 6): a fight engaged at 5 tiles
-    with two more closing from 8 and 9 turns to a flee before they are within 6."""
+    with two more closing from 8 and 9 turns to a flee before they are within 6.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = make(tmp_path, caps=CAPS_14)
     r.frame(zombies=[zombie(1, 105.0, 200.0)])
     tick(r, sv)                                              # fight: a walk to it, left current
@@ -1410,7 +1413,10 @@ def test_the_sheltered_hold_survives_a_threat_on_an_unmapped_square(tmp_path):
     assert threat_why(tmp_path)["step"] == "done" and sv.flee.sheltered is True
 
 
-def test_a_door_fight_that_steps_off_the_room_drops_the_stale_flee(tmp_path):
+def test_a_door_fight_that_steps_off_the_room_drops_the_stale_flee(tmp_path, monkeypatch):
+    """Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     from .test_night import OPEN
     r, sv = make(tmp_path)
     me = sheltered(r, sv)
@@ -1740,12 +1746,15 @@ def test_a_running_exit_walk_is_pre_empted_by_the_corner(tmp_path, held):
     assert sv.flee._dropped is None and r.acts.history[-1] is walk and sv.flee._exit_a is walk
 
 
-def test_a_held_threat_within_hold_break_r_breaks_the_sheltered_hold_too(tmp_path):
+def test_a_held_threat_within_hold_break_r_breaks_the_sheltered_hold_too(tmp_path, monkeypatch):
     """Rule 1 on the chosen shelter (iteration 1's sheltered hold): the door closed, zombie 1 at 2.7 tiles outside
     the west wall, its line blocked; the only way out runs at it and four are held, so the plan is dropped (never
     the hold that let E2's zombie close); fix round 1: the adoption re-reads the same closed door, drops, and the flee
     holds, `trapped`, with no command, for the corner to fight at melee range. Survival 3 (ruling P23-AM 1): the
-    episode began `many` and a held threat is within DANGER_R, so its reason stays `many` (once `held`)."""
+    episode began `many` and a held threat is within DANGER_R, so its reason stays `many` (once `held`).
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = make(tmp_path)
     me = sheltered(r, sv)
     zs = [zombie(1, 109.8, 200.5, me=me)] + group(8.0, me)[1:]
@@ -2116,7 +2125,7 @@ def _e3_sequential(idle=True):
     return [a for a in r.acts.history], {ln: (row, a) for ln, (row, a) in out.items()}
 
 
-def test_e3_after_the_first_many_flee_no_fight_walk_supersedes_it_while_the_group_is_held():
+def test_e3_after_the_first_many_flee_no_fight_walk_supersedes_it_while_the_group_is_held(monkeypatch):
     """Ruling P23-AM 1 on E3's lines 230-253 through one Survive (the recorded inputs, a steer leg answered `done`
     FLEE_S after its send): line 230 engages 14930 (one threat); at 231 four are held and the `many` flee takes the
     kitchen door's approach (amendment 5 and fix round 1's R2: building 2's open south door) at a sprint (rule 3).
@@ -2129,7 +2138,10 @@ def test_e3_after_the_first_many_flee_no_fight_walk_supersedes_it_while_the_grou
     read with P24-AD off (`idle_off`): an idle zombie of that listing stands beyond DANGER_R, so with P24-AD on line
     230's flee reads `held`, not `many`. Named change, ruling P27-I (Plan 27 Task 5): read with P27-I off too
     (`listing_off`): with it on, line 234's listing leaves out a zombie across the fence row and the flee reads
-    `held`, not `steps`."""
+    `held`, not `steps`.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     sent, out = _e3_sequential(idle=False)
     why230 = out[230][0]["inputs"]["branches"]["threat"]
     assert why230["flee"] == "many" and why230["listed"] == 4 and "fight" not in why230
@@ -2150,14 +2162,17 @@ def test_e3_after_the_first_many_flee_no_fight_walk_supersedes_it_while_the_grou
     assert a.type == "steer" and d["inputs"]["branches"]["threat"]["ended"] == "stalled"
 
 
-def test_e3_a_group_gathering_on_a_walk_corner_is_steered_from_not_fought_standing():
+def test_e3_a_group_gathering_on_a_walk_corner_is_steered_from_not_fought_standing(monkeypatch):
     """Fix round 1, G1, on E3's lines 254-284 through the same one Survive. Named change, ruling P23-AP 2: fix round
     1's `walk` corner took 14926 alone at 258 (1.08 tiles) with four held, and ended for the steer at 271 (three
     within CORNERED_R); now four held are a group (GROUP_HOLD_N) from 258: no corner, the running sprint leg is held
     (`group` "hold"), and at 260 (the leg's FLEE_S out) the next sprint leg goes. The recorded frames never move the
     player, so that leg stands, and at 263, WALK_STALL_S after it with 14918 in reach, R1 reads it stuck: the `stuck`
     corner's attack on 14918 (0.55 tiles), as rule 4 rules after a stuck leg; no attack before it. Named change,
-    ruling P24-A (a): no fight walk at 230, so the running leg is a2 (a3 before)."""
+    ruling P24-A (a): no fight walk at 230, so the running leg is a2 (a3 before).
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     sent, out = _e3_sequential()
     for line in (258, 259):
         d, a = out[line]
@@ -2207,12 +2222,16 @@ def e3_on_the_enter_step(r, sv, w):
     sv.flee.plan, sv.flee.picked = e3_recorded_plan(w), True
 
 
-def test_e3_the_enter_walk_standing_with_a_threat_within_danger_r_is_dropped_and_a_sprint_steer_follows(tmp_path):
+def test_e3_the_enter_walk_standing_with_a_threat_within_danger_r_is_dropped_and_a_sprint_steer_follows(tmp_path,
+                                                                                                         monkeypatch):
     """Rulings P23-AM 2 and 3 on E3's lines 247-255, the recorded plan at its `enter` step (`e3_recorded_plan`): the
     enter walk to (10724.5, 10629.5) goes at a sprint (`many`, endurance 0.97). The frame moves the player west until
     line 251 (125.09 s), then it stands; at 253 (0.98 s still) no held threat is within DANGER_R, at 254 (1.42 s)
     14918 is at 5.94 tiles: the walk is dropped (`stalled`), the plan with it for the episode, and the steer goes at
-    once, a sprint (the group beyond SPRINT_R). The recorded walk stood until 275, the group at 0.48 tiles."""
+    once, a sprint (the group beyond SPRINT_R). The recorded walk stood until 275, the group at 0.48 tiles.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv, out = e3_replay(tmp_path, 247, 255, setup=e3_on_the_enter_step)
     enter = out[247][1]
     assert enter.args == {"x": 10724.5, "y": 10629.5, "gait": "run"}
@@ -2293,12 +2312,15 @@ def test_with_no_endurance_read_a_many_flee_runs_every_leg(tmp_path):
     assert gaits == ["run"] * 9
 
 
-def test_a_many_flee_whose_count_falls_to_one_within_danger_r_stays_a_flee_until_it_is_beyond(tmp_path):
+def test_a_many_flee_whose_count_falls_to_one_within_danger_r_stays_a_flee_until_it_is_beyond(tmp_path, monkeypatch):
     """Ruling P23-AM 1: two of the three die; the last at 4 tiles at full health. HEAD turned to fight it at once
     (one held, health over the margin); the `many` episode reads the hold radius and the nearest within DANGER_R, so
     it steers on; with that zombie at 7 tiles the fight resumes.
     Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
-    rule before it (the non-stance Fight's walk to a zombie at a run)."""
+    rule before it (the non-stance Fight's walk to a zombie at a run).
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = make(tmp_path, caps=CAPS_14)
     sv.APPROACH_WALK = False
     zs = many_yard(r)
@@ -2393,9 +2415,12 @@ def test_a_shelter_walk_that_stands_step_stall_s_with_a_threat_within_danger_r_i
     assert sv.flee.plan is None and sv.flee.picked and sv.night.shunned == {} and walk.state == "accepted"
 
 
-def test_a_shelter_walk_that_moves_or_stands_with_no_threat_within_danger_r_is_kept(tmp_path):
+def test_a_shelter_walk_that_moves_or_stands_with_no_threat_within_danger_r_is_kept(tmp_path, monkeypatch):
     """Rule 2's limits: a walk that moved 0.5 tiles in each half second is kept; one that stands with the group held
-    at 7 to 8 tiles (the `many` episode holds them) waits the Lua's own stuck time."""
+    at 7 to 8 tiles (the `many` episode holds them) waits the Lua's own stuck time.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = make(tmp_path)
     walk = stall_shelter(r, sv)
     for k in range(1, 5):
@@ -3156,12 +3181,15 @@ def test_the_survival_5_constants():
     assert not hasattr(P, "EXIT_STALL_S") and not hasattr(P, "STEP_STALL_S")
 
 
-def test_four_listed_within_twelve_tiles_are_many_whatever_the_count_within_six(tmp_path):
+def test_four_listed_within_twelve_tiles_are_many_whatever_the_count_within_six(tmp_path, monkeypatch):
     """P24-A (a) (#4268: E5's group was listed at the 12-tile edge while the branch counted within 6): one zombie
     within DANGER_R and three more listed within LISTED_R, none behind the first: `many`, logged `listed` 4; with
     three listed the fight goes.
     Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
-    rule before it (the non-stance Fight's walk to a zombie at a run)."""
+    rule before it (the non-stance Fight's walk to a zombie at a run).
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = make(tmp_path, caps=CAPS_14)
     zs = [zombie(1, 105.0, 200.0), zombie(2, 100.0, 210.0), zombie(3, 91.0, 203.0), zombie(4, 100.0, 188.5)]
     r.frame(zombies=zs)
@@ -3280,7 +3308,7 @@ def f1_walk_corner(r, sv, w):
     sv.fight.point_blank, sv.fight.mark_free_r = True, 0.0
 
 
-def test_f1_s_last_fight_the_walk_corner_yields_to_health_at_the_first_line_under_40(tmp_path):
+def test_f1_s_last_fight_the_walk_corner_yields_to_health_at_the_first_line_under_40(tmp_path, monkeypatch):
     """P24-A (c) on F1's lines 600-612 (the recorded worlds; the record's `walk` corner on 15921 set up as it ran):
     the corner holds while health reads 69.5 to 44.3; at 607, the first line under FLEE_HEALTH (33.8), it yields
     (`yield` "health") and the flee goes, its reason `many` (four listed within LISTED_R, (a), read before
@@ -3288,7 +3316,10 @@ def test_f1_s_last_fight_the_walk_corner_yields_to_health_at_the_first_line_unde
     at 610 (`stalled`) for a sprint steer. The record swung on to health 0.9. Named change, ruling P24-AD (Task 21):
     read with P24-AD off (`idle_off`); with it on, the listing of four holds idle zombies beyond DANGER_R, so 607's
     flee reads `health`, a walk sent there too. Named change, ruling P27-I (Plan 27 Task 5): read with P27-I off
-    (`listing_off`): with it on, 607's listing leaves out a zombie across the fence row and the flee reads `health`."""
+    (`listing_off`): with it on, 607's listing leaves out a zombie across the fence row and the flee reads `health`.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     def setup(r, sv, w):
         f1_walk_corner(r, sv, w)
         idle_off(r, sv, w)

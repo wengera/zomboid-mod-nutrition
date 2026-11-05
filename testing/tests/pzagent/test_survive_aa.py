@@ -118,11 +118,15 @@ def test_the_many_case_of_p24_aq_still_stomps_and_logs_the_struck_read(tmp_path)
     assert w["flee_finish"] == {"reason": "many", "struck": True, "clear": 7.5}
 
 
-def test_a_fallen_zombie_never_struck_under_the_many_flee_is_stomped_and_with_the_switch_off_left(tmp_path):
+def test_a_fallen_zombie_never_struck_under_the_many_flee_is_stomped_and_with_the_switch_off_left(tmp_path,
+                                                                                                  monkeypatch):
     """E18's line 939 (30452 fallen off its window climb 2.053499872133796 tiles off under the `many` flee, never
     struck, no stomp sent): the struck test dropped, it is stomped; with `FLEE_FINISH` off, P24-AQ leaves it. Named
     change, ruling P27-I (Plan 27 Task 5): pinned with `LISTING_FALLEN` off (GROUP3's three and the fallen one make
-    `many` only with the fallen counted)."""
+    `many` only with the fallen counted).
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = make(tmp_path)
     sv.LISTING_FALLEN = False
     fr(r, [z(30452, 102.053499872133796, floor=True)] + GROUP3)
@@ -138,10 +142,13 @@ def test_a_fallen_zombie_never_struck_under_the_many_flee_is_stomped_and_with_th
     assert tick(r2, sv2).type == "steer" and "finish" not in threat_why(tmp_path / "off")
 
 
-def test_a_fallen_zombie_whose_one_stomp_is_spent_leaves_the_next_one_in_reach_to_be_finished(tmp_path):
+def test_a_fallen_zombie_whose_one_stomp_is_spent_leaves_the_next_one_in_reach_to_be_finished(tmp_path, monkeypatch):
     """Review minor 1 (P24-AQ's case, `test_survive_q`, with a second fallen zombie): 1 fallen at 1.5 tiles is stomped
     once and survives (the stomp done, no `stood`, its end None), 9 fallen at 3.0 tiles with the clearance kept: the
-    next tick's stomp is at 9, not silence at the spent 1."""
+    next tick's stomp is at 9, not silence at the spent 1.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = struck(tmp_path)
     zs = [z(1, 101.5, floor=True), z(9, 103.0, floor=True)] + GROUP3
     fr(r, zs)
@@ -155,10 +162,13 @@ def test_a_fallen_zombie_whose_one_stomp_is_spent_leaves_the_next_one_in_reach_t
     assert (a.type, a.args) == ("stomp", {"targetId": 9}) and w["finish"] == 9 and w["flee"] == "many"
 
 
-def test_the_flee_finish_logs_the_tick_s_own_flee_reason(tmp_path):
+def test_the_flee_finish_logs_the_tick_s_own_flee_reason(tmp_path, monkeypatch):
     """Review minor 5 (E18's line 1649, `e18_1649`; P24-AQ's `GROUP3` with the nearest standing zombie then fallen): a
     `strain` tick logs `flee_finish` reason "strain"; a tick of a `many` episode that now reads `unarmed` (the weapon
-    gone) logs "unarmed", not "many"."""
+    gone) logs "unarmed", not "many".
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = make(tmp_path)
     fr(r, e18_1649(), endurance=HOLD_E)
     tick(r, sv)
@@ -190,12 +200,15 @@ def test_the_pair_flee_s_finish_is_the_flee_finish_logged_pair(tmp_path):
 
 
 
-def test_the_old_sessions_replays_stomp_the_fallen_their_flees_left():
+def test_the_old_sessions_replays_stomp_the_fallen_their_flees_left(monkeypatch):
     """The replays at HEAD of the old sessions the rule reaches (open loop): E9's stomps 7479 at line 274 (fallen 4.42
     tiles off, the nearest standing 10.25) and 7481 at line 363 (4.45, the nearest standing 7.42) under the `many`
     flee, neither struck; with `FLEE_FINISH` off neither goes (P24-AQ: no finish on E9's replay at all). Named change,
     ruling P27-I (Plan 27 Task 5): read with `LISTING_FALLEN` off (with it on, E9's fallen leave the listing and the
-    `many` episodes these finishes ran under move)."""
+    `many` episodes these finishes ran under move).
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     from .test_survive_o import e9_lines
     got = e9_lines(("LISTING_FALLEN",))
     fin = {k: (d["why"]["finish"], d["why"]["flee_finish"]) for k, d in got.items() if d["why"].get("finish")}
@@ -230,10 +243,13 @@ def strung_tick(r, sv, tmp_path, zs=STRUNG):
     return threat_why(tmp_path)
 
 
-def test_a_many_episode_strung_out_for_many_tail_ticks_ends_and_the_lone_one_is_fought(tmp_path):
+def test_a_many_episode_strung_out_for_many_tail_ticks_ends_and_the_lone_one_is_fought(tmp_path, monkeypatch):
     """The group strung out (one chasing 5 tiles off, the rest idle 11.5 off: E18's 168 `many` lines with one or none
     within DANGER_R): three ticks the episode holds (`many`), the fourth ends it, logged `many_tail` {ticks 4, standing
-    1, pressing 1}, and the lone one is fought by the ordinary rules."""
+    1, pressing 1}, and the lone one is fought by the ordinary rules.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = many_episode(tmp_path)
     for k in range(P.MANY_TAIL_TICKS - 1):
         w = strung_tick(r, sv, tmp_path)
@@ -243,9 +259,12 @@ def test_a_many_episode_strung_out_for_many_tail_ticks_ends_and_the_lone_one_is_
     assert sv.mode == "fight" and w["fight"] is True and "flee" not in w and not sv.flee_many
 
 
-def test_three_strung_out_ticks_then_a_second_within_danger_r_resets_the_count(tmp_path):
+def test_three_strung_out_ticks_then_a_second_within_danger_r_resets_the_count(tmp_path, monkeypatch):
     """Three strung-out ticks, then a second zombie standing within DANGER_R: the count resets (the episode never ends
-    while two stand within DANGER_R), so three more strung-out ticks still flee `many` and the fourth ends it."""
+    while two stand within DANGER_R), so three more strung-out ticks still flee `many` and the fourth ends it.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = many_episode(tmp_path)
     for _ in range(3):
         assert strung_tick(r, sv, tmp_path)["flee"] == "many"
@@ -257,9 +276,12 @@ def test_three_strung_out_ticks_then_a_second_within_danger_r_resets_the_count(t
     assert strung_tick(r, sv, tmp_path)["many_tail"]["ticks"] == 4
 
 
-def test_with_many_tail_off_the_strung_out_episode_holds(tmp_path):
+def test_with_many_tail_off_the_strung_out_episode_holds(tmp_path, monkeypatch):
     """`test_a_many_episode_strung_out_for_many_tail_ticks_ends_and_the_lone_one_is_fought`'s geometry (`STRUNG`) with
-    `MANY_TAIL` off: six strung-out ticks and the `many` episode holds, no `many_tail`."""
+    `MANY_TAIL` off: six strung-out ticks and the `many` episode holds, no `many_tail`.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = many_episode(tmp_path)
     sv.MANY_TAIL = False
     for _ in range(6):

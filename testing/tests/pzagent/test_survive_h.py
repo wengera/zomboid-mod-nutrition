@@ -98,11 +98,14 @@ def test_three_within_engage_r_are_not_sought_and_three_within_danger_r_are_fled
     assert r2.cmd()[0] == "steer" and threat_why(tmp_path / "b")["flee"] == "many"
 
 
-def test_four_listed_pressing_are_no_seek_but_two_fought_while_two_stand_off_are(tmp_path):
+def test_four_listed_pressing_are_no_seek_but_two_fought_while_two_stand_off_are(tmp_path, monkeypatch):
     """The `many` reason live is no seek: MANY_LISTED_N listed within LISTED_R with more than MAX_FIGHT of them
     pressing (`_pressing`: within ENGAGE_R or chasing), two within ENGAGE_R and two chasing at 11 tiles. The E7
     write-up's reading (Task 18): each of E7's fights fled four listed, two of them standing off at 11.6 and 11.8
-    tiles, not chasing; with the two far ones standing (`hasTarget` false) the pair is sought."""
+    tiles, not chasing; with the two far ones standing (`hasTarget` false) the pair is sought.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = make(tmp_path)
     r.frame(zombies=[zd(1, 108.0, 200.0), zd(2, 100.0, 209.0), zd(3, 111.0, 201.0), zd(4, 89.0, 200.0)])
     tick(r, sv)
@@ -115,13 +118,16 @@ def test_four_listed_pressing_are_no_seek_but_two_fought_while_two_stand_off_are
     assert last(tmp_path / "b")["branch"] == "threat" and threat_why(tmp_path / "b")["fight"] is True
 
 
-def test_e7_s_first_fight_is_fought_and_e5_s_horde_is_fought_under_p24_ad_and_fled_with_idle_off(tmp_path):
+def test_e7_s_first_fight_is_fought_and_e5_s_horde_is_fought_under_p24_ad_and_fled_with_idle_off(tmp_path, monkeypatch):
     """The listing's two cases off the records (the E7 write-up, Task 18): E7's line 68 (the pair at 3.1 and 6.2
     tiles chasing, two more listed at 11.6 and 11.8 standing): the fight stays on (before P24-X the `many` flee,
     `listed` 4); E5's line 220 (4.9 chasing, 10.4 and 11.3 chasing, 11.7 and 11.9 standing): three press, the
     `many` flee on the listing as before. Named change, ruling P24-AD (Task 21): the two standing at 11.7 and 11.9
     (idle, beyond DANGER_R) leave the listing's count, three counted under MANY_LISTED_N: E5's line 220 is fought
-    (read so with `IDLE` on), the `many` flee as before with `IDLE` off, and with all five chasing."""
+    (read so with `IDLE` on), the `many` flee as before with `IDLE` off, and with all five chasing.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = make(tmp_path, caps=CAPS_14)
     e7 = [zd(1, 103.1, 200.0), zd(2, 100.0, 206.2), zd(3, 88.4, 200.0, has_target=False),
           zd(4, 100.0, 188.2, has_target=False)]

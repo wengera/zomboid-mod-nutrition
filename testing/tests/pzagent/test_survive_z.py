@@ -94,11 +94,14 @@ def test_the_iteration_18_switches():
 
 
 # ================================================ P26-I: a window way out needs a walkable inside square
-def test_e17_s_counter_window_reads_solid_trans_with_its_counter_and_its_locked_record():
+def test_e17_s_counter_window_reads_solid_trans_with_its_counter_and_its_locked_record(monkeypatch):
     """The reading the rule rests on: line 380's map holds the window square (10720, 10634) as a kitchen room square of
     building 2, `solidTrans` true with a `counter` container, `solid` false, its window locked on its west edge, and
     the outdoor square west of it walkable; the replay agrees with the record's line 380 (the `inside` end, the
-    window way out) with iteration 18 off."""
+    window way out) with iteration 18 off.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     w = e17_world(380)
     s = w.map[COUNTER]
     assert (s["room"], s["building"], s["solid"], s["solidTrans"]) == ("kitchen", 2, False, True)
@@ -147,9 +150,12 @@ def test_world_stood_on_is_the_one_walkability_read_of_the_window_exits():
     assert e17_world(380, solidTrans=False).stood_on(COUNTER)
 
 
-def test_e17_s_inside_end_reads_trapped_with_the_counter_window_left_out():
+def test_e17_s_inside_end_reads_trapped_with_the_counter_window_left_out(monkeypatch):
     """E17 replayed to line 380 with P26-I alone on: the stand's `inside` end finds no way out and reads `trapped`
-    (`doorway_exit` {end inside, exit trapped}), no walk to the counter."""
+    (`doorway_exit` {end inside, exit trapped}), no walk to the counter.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     row = e17_replay(380, WINDOW_INNER=True)[379]
     w = threat(row)
     assert w["doorway_left"] == "inside" and w["doorway_exit"] == {"end": "inside", "exit": "trapped"}
@@ -456,13 +462,16 @@ def test_with_the_switch_off_six_held_leave_the_stand_standing(tmp_path):
     assert w["doorway_left"] == "crowd" and w["doorway_crowd"] == {"n": 6}
 
 
-def test_e17_replayed_on_iteration_18_ends_its_stand_crowd_at_line_364():
+def test_e17_replayed_on_iteration_18_ends_its_stand_crowd_at_line_364(monkeypatch):
     """E17 replayed with iteration 18 on: the stand began at line 362 as the record's (two held within DANGER_R), and
     ends `crowd` at line 364, the first of its lines to read four within DANGER_R, 16 lines before the record's
     `inside` end at 380; no zombie is on the kitchen or its door square there (seven held, all outside), so under ruling
     P26-K2 the end takes the close: the interact `close` at the door (10721, 10638) is sent and `doorway_exit` reads
     {crowd, close} (iteration 18's first reading ended it `trapped`; the replay is open loop from here: its next lines
-    are counterfactual)."""
+    are counterfactual).
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     rows = e17_replay(364, WINDOW_INNER=True, WINDOW_STALL=True, STAND_CROWD=True)
     _, rec, _ = e17()
     assert threat(rows[361])["leg"] == "stand" and rows[361]["inputs"]["threats"] == 2

@@ -363,10 +363,13 @@ def test_without_the_trailing_read_rule_f1_moves_at_line_498(monkeypatch):
     steer a tick early, where the record still ran a60. Named change, Task 12 fix 1 (the review's minor 5): the
     binder reads a recorded sprint as the run the replay sends (`as_run`), so the flee legs bind to the record's aids
     again and the falsifier is read on the golden's own replay, as before Task 12 (which read it with FLEE_GAIT set
-    back to the sprint)."""
-    base = {d["line"]: d for d in R.run(run_dir("f1"))}
+    back to the sprint). Named change, ruling P29-G (Plan 29 Task 2): its `many` count over the standing within
+    DANGER_R moves F1 from line 484, so the falsifier is read with `MANY_NEAR` off (the rule before it)."""
+    def off(sv):
+        sv.MANY_NEAR = False
+    base = {d["line"]: d for d in R.run(run_dir("f1"), mutate=off)}
     monkeypatch.setattr(R._Acts, "ends_current", lambda self, got: False)
-    moved = {d["line"]: d for d in R.run(run_dir("f1"))}
+    moved = {d["line"]: d for d in R.run(run_dir("f1"), mutate=off)}
     diff = [k for k in sorted(set(base) | set(moved)) if base.get(k) != moved.get(k)]
     assert diff[0] == 498 and base[498]["action"] is None and moved[498]["action"]["type"] == "steer"
 
@@ -1948,14 +1951,15 @@ def test_with_iteration_21_off_the_goldens_are_iteration_20_s(key):
     the file as it stood before byte for byte (its sha256 pinned, `PRE_T11`), and every other golden is its file
     now. Named change, fix 1's R2 (P28-F's planner side, no switch): the sixth (`R2_MOVED`) is its file now with the
     switches off too, and its file before (its sha256 in `PRE_T11`) is the file R2_FROZEN's archive holds, which that
-    build replays byte for byte (`r2_frozen`)."""
+    build replays byte for byte (`r2_frozen`). Named change, Plan 29 Task 2: "its file now" is the golden with
+    iteration 23 off (`pre_t13_gold`), whose P29-G re-recorded four."""
     if key in R2_MOVED:
-        assert pre_t11_gold(key) == gold(key)
+        assert pre_t11_gold(key) == pre_t13_gold(key)
         r2_frozen("test_the_sixth_golden_is_f1_s_inputs_with_the_pza1_5_caps_reproduced_byte_for_byte")
         assert hashlib.sha256(_r2_frozen_run()[2].encode("utf-8")).hexdigest() == PRE_T11[key][0]
         return
     if key not in PRE_T11:
-        assert pre_t11_gold(key) == gold(key)
+        assert pre_t11_gold(key) == pre_t13_gold(key)
         return
     sha, base, recorded = PRE_T11[key]
     text = R.golden_text(R.decisions(json.loads(_pre_t11_replayed(key))), base, R.RUNS[key], recorded,
@@ -1985,8 +1989,9 @@ def test_iteration_21_moves_four_goldens_at_the_approach_walk(key):
       and `stomp`, and no golden's hello does.
     A golden no switch moves is its file before iteration 21 byte for byte, but the sixth: fix 1's R2 (P28-F's planner
     side, no switch) re-recorded it, so `pre_t11` reproduces its file now and its file before is pinned by `PRE_T11`'s
-    sha256 on R2_FROZEN's archive (`test_p28_f_s_planner_side_moves_the_sixth_at_its_follow_up_swing`)."""
-    base, got = pre_t11_gold(key), gold(key)
+    sha256 on R2_FROZEN's archive (`test_p28_f_s_planner_side_moves_the_sixth_at_its_follow_up_swing`). Named change,
+    Plan 29 Task 2: read against the goldens with iteration 23 off (`pre_t13_gold`), whose P29-G re-recorded four."""
+    base, got = pre_t11_gold(key), pre_t13_gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
     if key not in FIRST_T11:
         assert diff == []
@@ -2034,31 +2039,106 @@ def test_iteration_22_moves_no_golden(key):
     the sixth's added caps (`HELLO_CAPS`: the PZA/1.5 skills), so every Fight sends its ladder's command; the six are
     byte-identical with MELEE on (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off
     (`pre_t12`). The refactors beside it (the ladder's body as `Fight._ladder`, the kill read's `_read_dead`, the
-    replay's LEG_TYPES gaining `melee`) move none either."""
+    replay's LEG_TYPES gaining `melee`) move none either. Named change, Plan 29 Task 2: read against the goldens with
+    iteration 23 off (`pre_t13_gold`), whose P29-G re-recorded four."""
     lines, _ = R.read_record(run_dir(key))
     hellos = [ln for ln in lines if ln.get("kind") == "hello"]
     assert hellos and not any("melee" in (h.get("caps") or ()) for h in hellos)
     assert "melee" not in (R.HELLO_CAPS.get(key) or ())
     off = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t12))}
-    assert off == gold(key)
+    assert off == pre_t13_gold(key)
 
 
-# ================================================================ Plan 29 Task 1: iteration 23 on the goldens
+# ================================================================ Plan 29: iteration 23 on the goldens
+@functools.lru_cache(maxsize=6)
+def _pre_t13_replayed(key):
+    return json.dumps(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t13), sort_keys=True)
+
+
+def pre_t13_gold(key):
+    """{line: decision} of the replay with iteration 23's switches off: the golden before its re-record."""
+    return {d["line"]: d for d in R.decisions(json.loads(_pre_t13_replayed(key)))}
+
+
+# the goldens as they stood before iteration 23 re-recorded them (Plan 28's close): sha256, base, recorded
+PRE_T13 = {"e3": ("071091035506608c8be230e41182e0bd845f75ade43ab57a83e1c911fac18aa7", "f229e492", "2026-11-04"),
+           "e4": ("415b17d4b89581f787d7aad5f2869dcaef622112de5b9f990c85500001c70483", "f229e492", "2026-11-04"),
+           "f1": ("99037dd794ed197afd6212393dc194d64b587ff5e0b4b3a4b37730a68331b03d", "f229e492", "2026-11-04"),
+           SIXTH: ("f5e2782cc4fbc9a2c6343e68e4e23a2d6007fc5871944deb14c11e2cb258c5b3", "388a3c1a", "2026-11-04")}
+# the first line each iteration-23 switch moves, alone on, on each golden it moves (P29-G's count over the standing
+# within DANGER_R: the first `many` the hold radius's, the DANGER_R count's or an episode's read made with at most one
+# standing within it)
+FIRST_T13 = {"e3": {"MANY_NEAR": 204}, "e4": {"MANY_NEAR": 390}, "f1": {"MANY_NEAR": 484},
+             SIXTH: {"MANY_NEAR": 484}}
+# every line on each golden whose decision (branch or action) iteration 23 moves
+ACTED_T13 = {"e3": [204, 210, 242, 243, 253, 255, 260, 261, 263, 265, 268, 271, 272],
+             "e4": [447, 449, 450, 454, 455], "f1": [484, 485, 491, 492, 498, 499],
+             SIXTH: [484, 485, 491, 492, 498, 499]}
+
+
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
 def test_iteration_23_moves_no_golden(key):
     """Survival iteration 23's Task 1 (ruling P29-A, `ROUTE_CROSS`: the route through a door walks one step beyond its
     far square and reads its end by whether it crossed) moves no golden: no golden's replay sends a route walk (every
     `blocked_edge` the six log is a refusal, which P29-A leaves as it was, and no route leg ends, so no door is noted or
     read marked), and their goal branch is the record's (`RecordedGoals`), never the goals' kit nor the runner's
-    budget end (ruling P29-B, `GOAL_STALL`: no stall is read); nor do Task 2's hit rules (P29-E, `HEALTH_NEAR`: no
-    golden line reads the `health` flee with nobody within DANGER_R; P29-D, `DRESS_FINISH`: no golden's flee would
-    command over a running dressing with nobody within DANGER_R, five hellos announcing no `bandage`); the six are
-    byte-identical with the switches on (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off
-    (`pre_t13`)."""
+    budget end (ruling P29-B, `GOAL_STALL`: no stall is read): the six are byte-identical with Task 1's switches on
+    (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off. Named change, Plan 29 Task 2: Task 2's
+    hit rules (`T13_SWITCHES[2:]`) stay on here, since P29-G re-recorded four (the attribution,
+    `test_iteration_23_s_hit_rules_move_four_goldens_at_the_many_count`); the name is Task 1's."""
     rows = gold(key)
     assert all((d["why"] or {}).get("blocked_edge", {}).get("action") in (None, "refuse") for d in rows.values())
-    off = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t13))}
+    off = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
+                                                       mutate=lambda sv: pre_t13(sv, keep=S.T13_SWITCHES[2:])))}
     assert off == rows
+
+
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_with_iteration_23_off_the_goldens_are_iteration_22_s(key):
+    """Iteration 23's golden movers are `survive.T13_SWITCHES`: with them off (`pre_t13`) a golden it re-recorded is
+    the file as it stood before byte for byte (its sha256 pinned, `PRE_T13`), and every other golden is its file
+    now."""
+    if key not in PRE_T13:
+        assert pre_t13_gold(key) == gold(key)
+        return
+    sha, base, recorded = PRE_T13[key]
+    text = R.golden_text(R.decisions(json.loads(_pre_t13_replayed(key))), base, R.RUNS[key], recorded,
+                         R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == sha
+
+
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_iteration_23_s_hit_rules_move_four_goldens_at_the_many_count(key):
+    """Survival iteration 23's attribution, each switch alone on against the goldens before it (`pre_t13_gold`):
+    - MANY_NEAR (ruling P29-G: the `many` flee's count the standing zombies within DANGER_R, over MAX_FIGHT to begin
+      an episode, MAX_FIGHT to hold one) moves E3, E4, F1 and the sixth, each first at its first `many` read with at
+      most one standing within DANGER_R where the reads before it made one: E3 line 204 (one standing, `many_near`
+      {n 1}: the Fight's walk held where the `many` steer went), E4 line 390 (an episode's tick held by the nearest
+      within DANGER_R, one standing: the `held` reason on the running leg, the decision unmoved; its decisions move
+      from line 447), F1 and the sixth line 484 (one standing: the Fight held where the `many` steer went); every
+      moved line logs `many_near` or is downstream of one (open loop), each acted line listed (`ACTED_T13`). E2 and
+      E5 read no `many` the count leaves.
+    - ROUTE_CROSS (P29-A) and GOAL_STALL (P29-B) move none (`test_iteration_23_moves_no_golden`). HEALTH_NEAR (P29-E)
+      moves none: every golden `health` line holds a zombie within DANGER_R. DRESS_FINISH (P29-D) moves none: no golden
+      flee commands over a running dressing with nobody within DANGER_R (the sixth's hello alone announces `bandage`,
+      and F1's parts decode `bleeding` None).
+    A golden no switch moves is its file before iteration 23 byte for byte."""
+    base, got = pre_t13_gold(key), gold(key)
+    diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
+    if key not in FIRST_T13:
+        assert diff == []
+        return
+    assert diff[0] == min(FIRST_T13[key].values())
+    for switch in S.T13_SWITCHES:
+        alone = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
+                                                             mutate=lambda sv: pre_t13(sv, keep=(switch,))))}
+        moved = [k for k in sorted(set(base) | set(alone)) if base.get(k) != alone.get(k)]
+        assert (moved[0] if moved else None) == FIRST_T13[key].get(switch), switch
+    first = FIRST_T13[key]["MANY_NEAR"]
+    assert base[first]["why"]["flee"] == "many" and got[first]["why"]["many_near"]["n"] <= 1
+    acted = [k for k in diff if base[k]["action"] != got[k]["action"] or base[k]["branch"] != got[k]["branch"]]
+    assert acted == ACTED_T13[key]
+    assert all("many_near" not in base[k]["why"] for k in diff)
 
 
 def test_an_unbound_melee_ends_done_at_its_seconds():

@@ -314,10 +314,13 @@ def test_a_running_strike_at_a_zombie_it_knocked_down_beyond_reach_is_held_no_st
     assert w["strike_runs"] == {"target": 1, "aid": a.aid} and "stomp" not in w and "stomp" not in sends(r)
 
 
-def test_the_many_flee_s_finish_swings_at_a_fallen_zombie_within_reach(tmp_path):
+def test_the_many_flee_s_finish_swings_at_a_fallen_zombie_within_reach(tmp_path, monkeypatch):
     """E19's flee finish (P27-A's two firings under `many`, each a stomp refused `busy` and the floor strike the kill):
     a zombie fallen 1.8 tiles off (beyond CORNERED_R, within FIGHT_REACH) never struck, GROUP3 chasing 7.5 off: the
-    flee's finish is the attack (kind `floor_finish`, logged `floor_finish`); fallen 3.5 off, the stomp."""
+    flee's finish is the attack (kind `floor_finish`, logged `floor_finish`); fallen 3.5 off, the stomp.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = make(tmp_path)
     sv.LISTING_FALLEN = False   # P27-I off: GROUP3 makes `many` with the fallen one counted
     fr(r, [fallen(101.8)] + GROUP3)
@@ -437,10 +440,13 @@ FALLEN_TWO = [z(2, 100.0, 207.0, floor=True), z(3, 100.0, 192.0, floor=True)]   
 STANDING_FAR = z(4, 110.538954093041877)   # E19's 20944, standing and chasing 10.538954093041877 tiles off
 
 
-def test_e19_s_line_386_two_fallen_in_the_listing_make_no_many(tmp_path):
+def test_e19_s_line_386_two_fallen_in_the_listing_make_no_many(tmp_path, monkeypatch):
     """E19's line 386 (the listing's count of four began a new `many` episode: two of the four it counted read fallen):
     the target 4 tiles off, two fallen 7 and 8 off, a standing chaser 10.54 off: the fallen are left out, two counted,
-    no `many`: the fight, logged `listing` {fallen 2, across 0}; with `LISTING_FALLEN` off, `many` on the listing."""
+    no `many`: the fight, logged `listing` {fallen 2, across 0}; with `LISTING_FALLEN` off, `many` on the listing.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = make(tmp_path)
     fr(r, [TARGET] + FALLEN_TWO + [STANDING_FAR])
     tick(r, sv)
@@ -461,12 +467,15 @@ def fence_row(r):
     r.scan([square(x, 200, blockW=x == 106) for x in range(99, 113)])
 
 
-def test_e19_s_gate_zombie_across_the_fence_out_of_the_hold_is_left_out_of_the_listing(tmp_path):
+def test_e19_s_gate_zombie_across_the_fence_out_of_the_hold_is_left_out_of_the_listing(tmp_path, monkeypatch):
     """E19's 20923, the gate zombie across the fence row, counted at line 386: here a chaser 11 tiles east across the
     fence (beyond the hold radius), the target 4 off and two chasers 9.5 north and south: three counted, no `many`,
     logged `listing` {fallen 0, across 1}; across a fence within the hold radius (DANGER_R's, no threat policy running)
     it counts: with the fence at x 103 and the chaser 4.5 tiles east beyond it, the target 4 tiles north, the four make
-    `many`."""
+    `many`.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = make(tmp_path)
     fence_row(r)
     far = [z(5, 100.0, 209.5), z(6, 100.0, 190.5)]
@@ -490,9 +499,12 @@ def test_e19_s_gate_zombie_across_the_fence_out_of_the_hold_is_left_out_of_the_l
     assert w["flee"] == "many" and "listing" not in w
 
 
-def test_the_held_count_leaves_the_fallen_out_during_a_fight(tmp_path):
+def test_the_held_count_leaves_the_fallen_out_during_a_fight(tmp_path, monkeypatch):
     """A running fight (mode fight, the hold radius DISENGAGE_R): its standing target 2.4 tiles off and two fallen
-    chasers 7 and 8 off: the held count reads one, not three over MAX_FIGHT: no `many`; with the switch off, `many`."""
+    chasers 7 and 8 off: the held count reads one, not three over MAX_FIGHT: no `many`; with the switch off, `many`.
+    Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
+    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     for on in (True, False):
         d = tmp_path / str(on)
         d.mkdir()
