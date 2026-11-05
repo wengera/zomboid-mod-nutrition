@@ -3,7 +3,8 @@
 -- tick: the Link initialised (M.init), hello, the inventory's first sight as item_added events queued in the Link's
 -- backlog (under its own pcall: M.ready is set after hello, so a raise there is one lua_error, never a re-init) and
 -- one flush, and nothing else.
--- Every later tick: the poll every third tick (L.POLL_EVERY, P23-4; scan{r} and rate{hz} answered here by one act line, ruling P22-5; every
+-- Every later tick: the hutch guard first (PZAgent_Hutch.lua, ruling P28-G: a loaded fixture hutch's animal map
+-- cleared of a null, under its own pcall), then the poll every third tick (L.POLL_EVERY, P23-4; scan{r} and rate{hz} answered here by one act line, ruling P22-5; every
 -- other command to the runner, K.start), the running skill's tick (K.tick), every max(1, floor(60 / S.RATE)) ticks
 -- the events and the frame read (S.events, or S.frame on the first), the map (the scan job's next part while a job
 -- runs, else, on the watch's ticks (MP.watchDue: every 6th whatever the rate), its next squares), an overflow event
@@ -177,6 +178,21 @@ local function mapRaised(err)
     end
 end
 
+-- the hutch guard (Plan 28 Task 1c, ruling P28-G: PZAgent_Hutch.lua), once a ready tick before the poll, under its own
+-- pcall: a raise stands the guard down (H.off), counts in H.errors, is named raise:hutch in H.missing and reports as Main
+-- reports any raise; the tick goes on. Absent when the file is not loaded (a test host without it); its ms is the
+-- body's, tickMs, in no phase of its own
+local function hutchStep()
+    local H = PZA.hutch
+    if H == nil or H.guard == nil then return end
+    local ok, err = pcall(H.guard, PZA.tick)
+    if ok then return end
+    H.off = true
+    H.errors = (H.errors or 0) + 1
+    PZA.missing(H.missing, "raise:hutch")
+    reportError(err)
+end
+
 local function body()
     PZA.tick = PZA.tick + 1
     local p = getPlayer()
@@ -186,6 +202,7 @@ local function body()
         M.init(u or "admin", p)
         return
     end
+    hutchStep()
     local L, K, S = PZA.link, PZA.skills, PZA.sense
     local tp = PZA.now()
     local cmd = L.poll(PZA.tick)
