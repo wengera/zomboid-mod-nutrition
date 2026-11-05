@@ -183,6 +183,32 @@ def test_the_kills_read_zero_on_a_clean_log():
                  "agree": True, "source": "act lines"}
 
 
+FIGHTS = [{"startS": 2.5, "end": {"endS": 3.2}}, {"startS": 3.6, "end": {"endS": 4.5}}, {"startS": 5.0, "end": None}]
+
+
+def fought(log=True):
+    """The cut2 fixture with three fights: 2.5 to 3.2 (m2's kill of 8, sent at 2.0 and done at 3.0: placed by its done
+    line, never its send), 3.6 to 4.5 (k1's kill of 9, sent at 3.85; m3's kill of the same zombie at 4.0 not counted
+    twice) and from 5.0 (a1's kill of 5, sent at 5.0)."""
+    a = T14.artifact(cut2_actions(), [])
+    a["loop"]["fights"] = list(FIGHTS)
+    return G.grade_e20(a, decision_lines=cut2_log() if log else None, lines=cut2_lines())
+
+
+def test_the_per_fight_kills_are_read_whole_a_melee_kill_placed_by_its_done_line_the_frozen_kept_in_legacy():
+    g = fought()
+    k = g["kills"]
+    assert k["per_fight"] == [1, 1, 1] and k["legacy_planner"]["per_fight"] == [0, 1, 1]
+    loop = T14.artifact(cut2_actions(), [])["loop"]
+    loop["fights"] = list(FIGHTS)
+    st = E.e_standing_2(loop, E._results(loop))
+    sk = sum(k["per_fight"][r["fight"]] for r in st["rows"])
+    assert (k["standing_kills"], k["per_standing_fight"]) == (sk, sk / st["n"] if st["n"] else None)
+    assert G._kill_s(True, {"wallMs": None}, {"endedS": 4.0, "sentS": 3.0}, None) == 4.0
+    assert G._kill_s(False, {"wallMs": 1}, {"endedS": 4.0, "sentS": 3.0}, 0.0) == 3.0
+    assert "whole too: per fight [1, 1, 1]" in g["report_lines"][-G.N_LINES]
+
+
 # ================================================================ the facing over every press
 def _t(n=0, unread=0, **pts):
     off = {str(i): 0 for i in range(5)}
@@ -262,9 +288,10 @@ def rules_log():
     """One block per rule (the why keys as Tasks 1 and 2 committed them): P29-A's three route legs (the goal's, the
     Fight's, the fill's; a holding line and a LootBuilding's string `route` not a leg) and four `route_end`s (two
     uncrossed on the goal, one routing to the run's next way; one crossed on the Fight; one dropped on the fill);
-    P29-B's two budget ends, one a `stall`, and a `stuck` end; P29-C's idle walk, a chaser's walk (the rule off) and
-    two `close_held`; P29-D's two `dress_finish`; P29-E's `health_near` on a stance, a care pass, a flee and a goal
-    pass; P29-F's `finish_lone`; P29-G's three `many_near`; P29-H''s `flee_held_stance`."""
+    P29-B's two budget ends, one a `stall`, and a `stuck` end; P29-C's idle walk, a chaser's walk (the rule off), an
+    idle target's `left` line (its walk the Fight's next choice, no close) and two `close_held`; P29-D's two
+    `dress_finish`; P29-E's `health_near` on a stance, a care pass, a flee and a goal pass; P29-F's `finish_lone`;
+    P29-G's three `many_near`; P29-H''s `flee_held_stance`."""
     gw = {"goal": "ExploreToward", "state": "running"}
     end = lambda door, crossed, nxt, dropped: {"door": door, "crossed": crossed, "noted": not crossed,  # noqa: E731
                                                "next": nxt, "dropped": dropped}
@@ -293,6 +320,9 @@ def rules_log():
                          "shove_close": {"target": 3, "dist": 2.0, "ticks": 4, "idle": True}}, walk(11.5, 10.5)),
         aline_(13, 7.5, {"target": 3, "pinned": True, "dist": 4.2,
                          "shove_close": {"target": 3, "dist": 4.2, "ticks": 4}}, walk(12.5, 10.5)),
+        aline_(27, 7.75, {"target": 3, "pinned": True, "dist": 2.0,
+                          "shove_close": {"target": 3, "dist": 2.0, "ticks": 4, "idle": True, "left": True}},
+               walk(9.5, 10.5)),
         aline_(14, 8.0, {"fight": True, "close_held": {"target": 11504, "d": 4.284030540414437}}, _act("aim")),
         aline_(15, 8.5, {"fight": True, "close_held": {"target": 11504, "d": 3.9}}, None, sent=False),
         aline_(16, 9.0, {"dress_finish": {"action": "a9", "near": 0}}, None, sent=False),
@@ -326,18 +356,26 @@ def test_each_rule_of_iteration_23_reads_its_why_field_s_lines():
     assert {k: g[k] for k in RULES} == READ
 
 
+def unread(g, ends=0):
+    """Every rule reading of `g` unread: {"read": False}, `goal_stall` keeping its budget ends where a decision log was
+    read (review-t3 m3; `ends` None without a log)."""
+    return all(g[k] == ({"read": False, "ends": ends} if k == "goal_stall" and ends is not None else {"read": False})
+               for k in RULES)
+
+
 def test_each_rule_reads_unread_on_a_log_carrying_none_of_its_lines_and_without_a_log():
-    assert all(grade(log=CLEAN)[k] == {"read": False} for k in RULES)
-    assert all(grade(log=None)[k] == {"read": False} for k in RULES)
-    assert all(cut2()[k] == {"read": False} for k in RULES)
+    assert unread(grade(log=CLEAN)) and unread(grade(log=None), ends=None) and unread(cut2())
+    assert "(0 budget ends)" in grade(log=CLEAN)["report_lines"][-G.N_LINES + 4]
 
 
 def test_a_rule_reads_when_its_one_line_is_there_alone():
     log = rules_log()
     assert G.e_route_cross(E._Lines(T14.artifact(), [log[7]], []))["ends"] == 1
-    assert G.e_goal_stall(E._Lines(T14.artifact(), [log[10]], [])) == {"read": False}   # an end, no stall
+    assert G.e_goal_stall(E._Lines(T14.artifact(), [log[10]], [])) == {"read": False, "ends": 1}   # no stall
     assert G.e_close_idle(E._Lines(T14.artifact(), [log[12]], []))["walks"] == 1
     assert G.e_close_idle(E._Lines(T14.artifact(), [log[13]], [])) == {"read": False}  # the legacy walk alone
+    left = next(ln for ln in log if E._threat_why(ln).get("shove_close", {}).get("left") is True)
+    assert G.e_close_idle(E._Lines(T14.artifact(), [left], [])) == {"read": False}      # a `left` line is no walk
 
 
 # ================================================================ grade_e20 over grade_e19
@@ -452,9 +490,13 @@ P = lambda: cut2()["pain_swings"]                                             # 
 RL = lambda k: grade(log=rules_log())[k]                                      # noqa: E731
 
 MUTANTS = [
-    ("e_kills_whole", lambda b: b.replace("if zid in seen:", "if False:"), lambda: K() == KILLS),
-    ("e_kills_whole", lambda b: b.replace('res.get("kill") is True', 'res.get("end") is not None'),
+    ("_kill_rows", lambda b: b.replace("if zid in seen:", "if False:"), lambda: K() == KILLS),
+    ("_kill_rows", lambda b: b.replace('res.get("kill") is True', 'res.get("end") is not None'),
      lambda: K() == KILLS),
+    ("_kill_rows", lambda b: b.replace("_kill_s(side is melee, r, a, t0)", "_kill_s(False, r, a, t0)"),
+     lambda: fought()["kills"]["per_fight"] == [1, 1, 1]),
+    ("_whole", lambda b: b.replace("kills.update(_per_fight(out, _kill_rows(out, lines)[0]))", "pass"),
+     lambda: fought()["kills"]["per_fight"] == [1, 1, 1]),
     ("e_kills_whole", lambda b: b.replace("set(ids) == set(events)", "True"),
      lambda: G.e_kills_whole(T14.artifact(cut2_actions(), []), _no_dead_5())["agree"] is False),
     ("_whole", lambda b: b.replace("_per(runs, n)", "_per(runs, n + 1)"), lambda: cut2()["hits"]["per_kill"] == 1 / 3),
@@ -522,13 +564,17 @@ def _e22():
 
 def test_grade_e20_on_e22_reads_the_four_melee_kills_whole_with_the_events_agreeing():
     """E22's four kills are each a melee's done `kill` (the T88 write-up's section 1): `kills.planner` 4 where the
-    frozen read took 0, the events agreeing; the hits 14 over 4."""
+    frozen read took 0, the events agreeing; the hits 14 over 4; each placed in its fight by its done line (the frozen
+    `per_fight` all 0, kept under `legacy_planner`)."""
     p = _e22()
     g = G.grade_e20(EG20.load(p), None, EG20.load_log(p), state_dir=EG20._dir(p))
     k = g["kills"]
     assert (k["planner"], k["events"], k["agree"], k["ladder"]) == (4, 4, True, [])
     assert sorted(k["melee"]) == sorted(k["event_ids"]) == sorted(k["planner_ids"]) == [11479, 11516, 11531, 11602]
     assert k["legacy_planner"]["planner"] == 0 and g["hits"]["runs"] == 14 and g["hits"]["per_kill"] == 3.5
+    per = k["per_fight"]      # the guide's section 1: 11479 and 11531 in fight 3, 11516 in 25, 11602 in 26
+    assert sum(per) == 4 and {i: n for i, n in enumerate(per) if n} == {3: 2, 25: 1, 26: 1}
+    assert sum(k["legacy_planner"]["per_fight"]) == 0 and k["standing_kills"] == 4
     assert g["hits"]["legacy"]["per_kill"] is None
 
 
@@ -554,7 +600,7 @@ def test_grade_e20_on_e22_reads_every_melee_press_facing_and_the_swings_under_th
 def test_grade_e20_on_e22_reads_iteration_23_s_rules_unread_and_keeps_every_grade_e19_key():
     p = _e22()
     g = G.grade_e20(EG20.load(p), None, EG20.load_log(p), state_dir=EG20._dir(p))
-    assert g["grade"] == "grade_e20" and all(g[k] == {"read": False} for k in RULES)
+    assert g["grade"] == "grade_e20" and unread(g, ends=0)
     mine = json.loads(json.dumps(EG20.finite(g), sort_keys=True, allow_nan=False))
     lines, committed = _committed(E22, "e_grade.txt")
     assert to_e19(mine) == committed and g["report_lines"][:-G.N_LINES] == lines

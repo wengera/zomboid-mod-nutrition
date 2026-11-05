@@ -56,7 +56,7 @@ LADDER_STRIKES = {"attack": "swings", "shove": "shoves", "stomp": "stomps"}    #
 MELEE_STRIKES = {"swing": "swings", "shove": "shoves", "stomp": "stomps", "floor": "floors"}   # COUNT's map
 TALLIES = ("swings", "shoves", "stomps", "floors")
 SITES = ("goal", "threat", "need")   # the branches whose why logs a P29-A route (the goal, the Fight, the fill)
-BUDGET = "goal budget"               # goal_runner.py:284's end reason (GOAL_MAX_S)
+BUDGET = "goal budget"               # goal_runner.py:279's end reason (GOAL_MAX_S)
 RULES = ("route_cross", "goal_stall", "close_idle", "dress_finish", "health_near", "finish_lone", "many_near",
          "flee_held")
 NEW = ("facing_all", "pain_swings") + RULES
@@ -68,13 +68,14 @@ def _per(n, k):
 
 
 # ---------------------------------------------------------------- the kills, whole
-def e_kills_whole(out, lines):
-    """The kills read whole (P29-J): {planner, planner_ids, melee, ladder, events, event_ids, agree, source}. Reading:
-    `ladder` the zombies whose SWING_TYPES send's act line read `targetDead` true (`gates_e._act_kills`'s read, copied),
-    `melee` those whose melee act line read `kill` true (its done line: `result_melee`), each target off the artifact's
-    loop.actions by aid; `planner_ids` the union in act order, one zombie once, `planner` its count; without state
-    lines the same off loop.results (`source`). `event_ids` the `zombie_dead` events (None without lines) and `agree`
-    whether the two sets are equal (None without lines)."""
+def _kill_rows(out, lines):
+    """([(zombie id, loop second)], melee ids, ladder ids, source): the kills off the act lines (`source` "act
+    lines"), else off loop.results ("loop.results"). Reading: `ladder` the zombies whose SWING_TYPES send's line read
+    `targetDead` true (`gates_e._act_kills`'s read, copied), `melee` those whose melee line read `kill` true (its done
+    line: `result_melee`), each target off the artifact's loop.actions by aid, each side's zombie once; the union in act
+    order, one zombie once, each with its loop second: a ladder kill's send (`sentS`, as `_act_kills` places it), a
+    melee kill's done line (its wallMs on the loop clock, `gates_e._loop_start_s`; off loop.results its row's
+    `endedS`), so a melee re-sent at its zombie is placed where it killed."""
     loop = E._d(E._d(out).get("loop"))
     acts = {a.get("aid"): a for a in (E._d(x) for x in E._l(loop.get("actions")))}
     if lines:
@@ -82,7 +83,8 @@ def e_kills_whole(out, lines):
             "act lines"
     else:
         rows, source = [E._d(r) for r in E._l(loop.get("results")) if isinstance(r, dict)], "loop.results"
-    seen, ids, melee, ladder = set(), [], [], []
+    t0 = E._loop_start_s(out)
+    seen, got, melee, ladder = set(), [], [], []
     for r in rows:
         t, res = r.get("type"), E._d(r.get("result"))
         if t == MELEE and res.get("kill") is True:
@@ -91,7 +93,8 @@ def e_kills_whole(out, lines):
             side = ladder
         else:
             continue
-        zid = E._d(E._d(acts.get(r.get("aid"))).get("args")).get("targetId")
+        a = E._d(acts.get(r.get("aid")))
+        zid = E._d(a.get("args")).get("targetId")
         if zid is None:
             continue
         if zid not in side:
@@ -99,19 +102,58 @@ def e_kills_whole(out, lines):
         if zid in seen:
             continue
         seen.add(zid)
-        ids.append(zid)
+        got.append((zid, _kill_s(side is melee, r, a, t0)))
+    return got, melee, ladder, source
+
+
+def _kill_s(is_melee, r, a, t0):
+    """The loop second a kill is placed at (`_kill_rows`): a ladder kill's `sentS`; a melee kill's done line's wallMs
+    on the loop clock, else its row's `endedS`, else its `sentS`."""
+    if not is_melee:
+        return E._n(a.get("sentS"))
+    w = E._n(r.get("wallMs"))
+    if w is not None and t0 is not None:
+        return w / 1000.0 - t0
+    ended = E._n(a.get("endedS"))
+    return ended if ended is not None else E._n(a.get("sentS"))
+
+
+def e_kills_whole(out, lines):
+    """The kills read whole (P29-J): {planner, planner_ids, melee, ladder, events, event_ids, agree, source}
+    (`_kill_rows`): `planner_ids` the union in act order, one zombie once, `planner` its count; `event_ids` the
+    `zombie_dead` events (None without lines) and `agree` whether the two sets are equal (None without lines)."""
+    got, melee, ladder, source = _kill_rows(out, lines)
+    ids = [z for z, _ in got]
     events = E._dead_events(lines) if lines else None
     return {"planner": len(ids), "planner_ids": ids, "melee": melee, "ladder": ladder,
             "events": len(events) if events is not None else None, "event_ids": events,
             "agree": (set(ids) == set(events)) if events is not None else None, "source": source}
 
 
+def _per_fight(out, kills):
+    """{per_fight, standing_kills, per_standing_fight} over the whole kills [(id, loop second)], as `gates_e.e_kills_9`
+    derives them over the act-line kills: each `loop.fights` row's kills within its startS (less
+    FIGHT_WINDOW_SLACK_S) to its `end.endS` (`gates_e._kills_in`), the standing fights' sum (`gates_e.e_standing_2`)
+    and that sum over their count."""
+    loop = E._d(E._d(out).get("loop"))
+    per = []
+    for f in (f for f in E._l(loop.get("fights")) if isinstance(f, dict)):
+        s, e = E._n(f.get("startS")), E._n(E._d(f.get("end")).get("endS"))
+        per.append(E._kills_in(kills, s - E.FIGHT_WINDOW_SLACK_S, e) if s is not None else 0)
+    standing = E.e_standing_2(loop, E._results(loop))
+    sk = sum(per[r["fight"]] for r in standing["rows"] if r["fight"] < len(per))
+    return {"per_fight": per, "standing_kills": sk,
+            "per_standing_fight": sk / standing["n"] if standing["n"] else None}
+
+
 def _whole(g, out, lines):
-    """(kills, hits) of grade dict `g` read whole: `kills` the frozen read with `e_kills_whole`'s leaves over it and
-    the frozen read whole under `legacy_planner`; `hits` (when read) with `kills`, `per_kill` and `wounds_per_kill`
-    over the whole count, the frozen three under `legacy`."""
+    """(kills, hits) of grade dict `g` read whole: `kills` the frozen read with `e_kills_whole`'s leaves and the
+    per-fight leaves over the whole kills (`_per_fight`: `per_fight`, `standing_kills`, `per_standing_fight`) over it,
+    the frozen read whole only under `legacy_planner`; `hits` (when read) with `kills`, `per_kill` and
+    `wounds_per_kill` over the whole count, the frozen three under `legacy`."""
     old = E._d(g.get("kills"))
     kills = dict(old, **e_kills_whole(out, lines))
+    kills.update(_per_fight(out, _kill_rows(out, lines)[0]))
     kills["legacy_planner"] = old
     hits = E._d(g.get("hits"))
     if hits.get("read") is not True:
@@ -351,9 +393,9 @@ def e_route_cross(L):
 
 def e_goal_stall(L):
     """P29-B, a budget end that never moved (`GOAL_STALL`): {read, ends, marked, targets} ({"read": False} without a
-    decision log or a line carrying `stall`). Reading: `ends` the goal whys whose `ended` reads the BUDGET reason,
-    `marked` the lines whose goal why carries `stall` {moved, target} (`goal_runner._noted`, Survive's `_decide`: the
-    tick the end read as stuck), `targets` their targets in order."""
+    decision log; {"read": False, ends} on a log no line of which carries `stall`). Reading: `ends` the goal whys
+    whose `ended` reads the BUDGET reason, `marked` the lines whose goal why carries `stall` {moved, target}
+    (`goal_runner._noted`, Survive's `_decide`: the tick the end read as stuck), `targets` their targets in order."""
     if L is None:
         return {"read": False}
     ends, targets = 0, []
@@ -364,7 +406,7 @@ def e_goal_stall(L):
         if isinstance(s, dict):
             targets.append(s.get("target"))
     if not targets:
-        return {"read": False}
+        return {"read": False, "ends": ends}   # the budget ends kept for the write-up (review-t3 m3)
     return {"read": True, "ends": ends, "marked": len(targets), "targets": targets}
 
 
@@ -381,11 +423,11 @@ def e_close_idle(L):
         w = L.why(ln)
         held += 1 if isinstance(w.get("close_held"), dict) else 0
         sc = w.get("shove_close")
-        if not isinstance(sc, dict) or not E._sent(ln, "walkTo"):
-            continue
+        if not isinstance(sc, dict) or not E._sent(ln, "walkTo") or sc.get("left") is True:
+            continue   # a `left` line's walk is the Fight's next choice, never the close (shove.py:224-227)
         if sc.get("idle") is True:
             walks += 1
-        elif sc.get("left") is not True:
+        else:
             chasing += 1
     if not walks and not held:
         return {"read": False}
@@ -499,7 +541,8 @@ def _tl(t):
 def _rule_line(name, g, fmt, keys):
     r = E._d(g.get(name))
     if not r.get("read"):
-        return "%s: no line read (no decision log, or no line carrying its why)" % fmt.split(" [")[0]
+        ends = " (%s budget ends)" % r["ends"] if "ends" in r else ""
+        return "%s: no line read (no decision log, or no line carrying its why)%s" % (fmt.split(" [")[0], ends)
     return fmt % tuple(r.get(k) for k in keys)
 
 
@@ -507,10 +550,11 @@ def lines_e20(g):
     """The kills line, then one report line per pass 20 reading (`NEW`), each clause marked reading or inference."""
     k, h, fa, ps = E._d(g.get("kills")), E._d(g.get("hits")), E._d(g.get("facing_all")), E._d(g.get("pain_swings"))
     out = [("kills whole (P29-J) [reading]: %s kills %s (melee %s, ladder %s) against %s zombie_dead events %s, agree "
-            "%s (the frozen read %s); %s reaction runs, %s a kill" % (
+            "%s (the frozen read %s); whole too: per fight %s, %s on the standing fights (%s a standing fight); %s "
+            "reaction runs, %s a kill" % (
                 k.get("planner"), k.get("planner_ids"), k.get("melee"), k.get("ladder"), k.get("events"),
-                k.get("event_ids"), k.get("agree"), E._d(k.get("legacy_planner")).get("planner"), h.get("runs"),
-                h.get("per_kill")))]
+                k.get("event_ids"), k.get("agree"), E._d(k.get("legacy_planner")).get("planner"), k.get("per_fight"),
+                k.get("standing_kills"), k.get("per_standing_fight"), h.get("runs"), h.get("per_kill")))]
     if fa.get("read"):
         bs = E._d(fa.get("by_source"))
         lad, mel = E._d(bs.get("ladder")), E._d(bs.get("melee"))
@@ -526,8 +570,8 @@ def lines_e20(g):
     if ps.get("read"):
         u, a, n = E._d(ps.get("under")), E._d(ps.get("at_or_above")), E._d(ps.get("unread"))
         out.append("pain swings (P29-J) [reading]: the melee's swings sent under STRAIN_HARD %s, at or above %s, the "
-                   "pain unread %s; [inference] off the melee's next line: lowered %s / %s / %s, knock-downs %s / %s / "
-                   "%s, killed %s / %s / %s" % (
+                   "pain unread %s; [inference] off the melee's next line (its own `hp`/`hp1`, `knockdowns`, `kill`): "
+                   "lowered %s / %s / %s, knock-downs %s / %s / %s, killed %s / %s / %s" % (
                        u.get("swings"), a.get("swings"), n.get("swings"), u.get("lowered"), a.get("lowered"),
                        n.get("lowered"), u.get("knockdowns"), a.get("knockdowns"), n.get("knockdowns"),
                        u.get("killed"), a.get("killed"), n.get("killed")))

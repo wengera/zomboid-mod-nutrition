@@ -147,13 +147,16 @@ def test_grade_f11_on_f3_reads_every_grade_f10_key_unchanged():
 
 def test_grade_f11_on_f13_reads_the_four_kills_whole_two_a_side_with_the_events_agreeing():
     """F13's four kills (the T89 write-up's section 1): 28222 and 28215 by the ladder's floor swings (`targetDead`, the
-    frozen read's 2), 28219 and 28212 by the strike-mode melees a195 and a230 (`kill`); no hit: 0 a kill over 4."""
+    frozen read's 2), 28219 and 28212 by the strike-mode melees a195 and a230 (`kill`), placed in fights 3 and 4 by
+    their done lines (the frozen `per_fight` [0, 0, 2, 0, 0, 0] kept under `legacy_planner`); no hit: 0 a kill over
+    4."""
     g = _grade(F13, "f_goals_14", G.grade_f11)
     k = g["kills"]
     assert (k["planner"], k["events"], k["agree"]) == (4, 4, True)
     assert k["melee"] == [28219, 28212] and k["ladder"] == [28222, 28215]
     assert k["planner_ids"] == k["event_ids"] == [28222, 28215, 28219, 28212] and k["legacy_planner"]["planner"] == 2
     assert (g["hits"]["runs"], g["hits"]["kills"], g["hits"]["per_kill"]) == (0, 4, 0.0)
+    assert k["per_fight"] == [0, 0, 2, 1, 1, 0] and k["legacy_planner"]["per_fight"] == [0, 0, 2, 0, 0, 0]
 
 
 def test_grade_f11_on_f13_reads_the_eleven_melee_swings_facing_and_under_the_pain():
@@ -174,7 +177,7 @@ def test_grade_f11_on_f13_reads_the_eleven_melee_swings_facing_and_under_the_pai
 
 def test_grade_f11_on_f13_keeps_every_grade_f10_key_as_the_committed_f_grade_txt_and_reads_the_rules_unread():
     g = _grade(F13, "f_goals_14", G.grade_f11)
-    assert g["grade"] == "grade_f11" and all(g[k] == {"read": False} for k in G20.RULES + ("stall_views",))
+    assert g["grade"] == "grade_f11" and T20.unread(g, ends=5) and g["stall_views"] == {"read": False}
     lines, committed = _committed(F13, "f_grade.txt")
     mine = to_f10(json.loads(json.dumps(FG11.finite(g), sort_keys=True, allow_nan=False)))
     assert mine == committed and g["report_lines"][:-G.N_LINES] == lines
