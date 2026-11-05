@@ -67,7 +67,7 @@ STILL_DRIFT_R = 0.3    # planner/policies.py:390 (P30-E): tiles of drift read as
 STILL_MOVE_R = 1.0     # planner/policies.py:392 (P30-E): "unmoved under a tile" (the standing stretch's bound)
 SHOVE_REACH = 1.1      # #4592: the shove's hit list, a standing target's nearest point under the bare hands' MaxRange
 SHOVE_LUNGE = 0.20000000298023224   # #4592: added against a zombie lunging at the shover from under 2 tiles
-SHOVE_R = SHOVE_REACH + SHOVE_LUNGE   # tiles: the shove's widest hit list (#4592's 1.3000000029802322, arithmetic)
+SHOVE_R = SHOVE_REACH + SHOVE_LUNGE   # tiles: the shove's widest hit list (#4592's 1.3000000029802323, arithmetic)
 STOMP_R = 0.6000000238418579   # #4592 (#4372's): tiles, the floor target the stomp plays at; the engine reads the
                                # nearest of head, pelvis and position, this grade the position (`e18._zd`)
 CLOSE_KEY = "closeR"   # schema `args_melee.closeR` (PZA/1.9): a melee sent with it above 0 is the swing close's (P30-A)
@@ -364,7 +364,8 @@ def e_sneak(out, L, lines, frames):
     before PZA/1.9). `capable` True (the frames carry the instrument); `read` True only on a decision log a line of
     which carries `inputs.sneak` (the rule's own log, written with the `sneak` cap and the switch on: survive.py:1237),
     else False with the frames' measures kept and `postures` None. Reading, off the frames: `frames` those sneaking,
-    `minutes` their distinct game minutes, `seconds` the wall gaps from each to the next frame; the zombies listed within SNEAK_R (`e18._zd`) on a sneaking frame (`near`
+    `minutes` their distinct game minutes, `seconds` the wall gaps from each to the next frame;
+    the zombies listed within SNEAK_R (`e18._zd`) on a sneaking frame (`near`
     their count): `passed` those never reading `hasTarget` true on one, `noticed` those reading it true after not,
     `chasing` those reading it true on their first, `first_change` {seq, id, d, state} the first `noticed` frame;
     `legs` (`_legs`) and `walk_speed` the median speed of the sneak walks (gait SNEAK_GAIT, speed above 0: a leg stood
