@@ -356,6 +356,11 @@ SHOVE_SEND_R = 0.9        # tiles: the melee's `shoveR` (Plan 28 Task 7e, ruling
                           # (`e_day_22-20261105-004919`, the fight at game minutes 611 to 621) knocked nothing down nine
                           # bites in a row, against F11's and F12's at 0.16 to 0.98 that knocked down 8 of 33 and 8 of
                           # 36; SHOVE_R stays the planner's refusal bound, the controller's number
+FLEE_HEAD_R = 0.3         # tiles: a flee walk's observed heading (the character's displacement since its send) is read
+                          # once it reaches this (ruling P29-H', Plan 29 Task 2, `flee.Flee._held_ahead`): F13's fight 2
+                          # (`f_goals_14-20261105-021722`) moved 0.058 tiles at -117 degrees on its turn-in frame (seq
+                          # 3155) and 0.377 at 14.9 degrees by decision line 412 (seq 3159), so under it the turn-in
+                          # would read as the heading; FLEE_CLOSE_TICKS (the spec's closing count) is not added
 
 
 def place_of(world):

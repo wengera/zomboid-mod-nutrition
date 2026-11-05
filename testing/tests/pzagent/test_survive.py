@@ -2140,7 +2140,10 @@ def test_e3_after_the_first_many_flee_no_fight_walk_supersedes_it_while_the_grou
     (`listing_off`): with it on, line 234's listing leaves out a zombie across the fence row and the flee reads
     `held`, not `steps`.
     Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
-    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    replaces the reads this case pins; pinned with `MANY_NEAR` off.
+    Named change, ruling P29-H' (Plan 29 Task 2): the flee walk read heading at a held zombie is dropped now;
+    pinned with `FLEE_HELD_STANCE` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.FLEE_HELD_STANCE", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     sent, out = _e3_sequential(idle=False)
     why230 = out[230][0]["inputs"]["branches"]["threat"]
@@ -2171,7 +2174,10 @@ def test_e3_a_group_gathering_on_a_walk_corner_is_steered_from_not_fought_standi
     corner's attack on 14918 (0.55 tiles), as rule 4 rules after a stuck leg; no attack before it. Named change,
     ruling P24-A (a): no fight walk at 230, so the running leg is a2 (a3 before).
     Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
-    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    replaces the reads this case pins; pinned with `MANY_NEAR` off.
+    Named change, ruling P29-H' (Plan 29 Task 2): the flee walk read heading at a held zombie is dropped now;
+    pinned with `FLEE_HELD_STANCE` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.FLEE_HELD_STANCE", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     sent, out = _e3_sequential()
     for line in (258, 259):
@@ -2230,7 +2236,10 @@ def test_e3_the_enter_walk_standing_with_a_threat_within_danger_r_is_dropped_and
     14918 is at 5.94 tiles: the walk is dropped (`stalled`), the plan with it for the episode, and the steer goes at
     once, a sprint (the group beyond SPRINT_R). The recorded walk stood until 275, the group at 0.48 tiles.
     Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
-    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    replaces the reads this case pins; pinned with `MANY_NEAR` off.
+    Named change, ruling P29-H' (Plan 29 Task 2): the flee walk read heading at a held zombie is dropped now;
+    pinned with `FLEE_HELD_STANCE` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.FLEE_HELD_STANCE", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv, out = e3_replay(tmp_path, 247, 255, setup=e3_on_the_enter_step)
     enter = out[247][1]

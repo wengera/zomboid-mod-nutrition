@@ -311,7 +311,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     the standing zombies within DANGER_R (`threat.Threat._many_near`); P29-F, the running Fight's finish of its lone
     fallen pin kept over the `health` and `many` flees (`threat.Threat._finish_lone`, `finish.FightFinish.finishing`);
     P29-C, P27-J's walk to close at an idle target only, a chaser met by the stance (`shove.FightShove._shove_close`);
-    `T13_SWITCHES` (ROUTE_CROSS, GOAL_STALL, HEALTH_NEAR, DRESS_FINISH, MANY_NEAR, FINISH_LONE, CLOSE_IDLE).
+    P29-H', a flee walk whose observed heading runs at a held zombie dropped with its plan, its door marked `walled`,
+    the fight meeting the zombie in the stance (`flee.Flee._held_ahead`); `T13_SWITCHES` (ROUTE_CROSS, GOAL_STALL,
+    HEALTH_NEAR, DRESS_FINISH, MANY_NEAR, FINISH_LONE, CLOSE_IDLE, FLEE_HELD_STANCE).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -444,11 +446,12 @@ T11_SWITCHES = ("WOUND_DRESS", "SHOVE_BACK", "DRIFT_STAND", "FLOOR_PAIN", "BUSY_
 T12_SWITCHES = ("MELEE",)
 # survival iteration 22 (Plan 28 Task 7b, cut 1 of the maneuver layer): the melee maneuver on `threat.Threat` (MELEE)
 T13_SWITCHES = ("ROUTE_CROSS", "GOAL_STALL", "HEALTH_NEAR", "DRESS_FINISH", "MANY_NEAR", "FINISH_LONE",
-                "CLOSE_IDLE")
+                "CLOSE_IDLE", "FLEE_HELD_STANCE")
 # survival iteration 23 (Plan 29 Task 1): P29-A on `threat.Threat` beside BLOCKED_EDGE (ROUTE_CROSS: the Fight's
 # `route_cross` rule, copied to the goals' kit); P29-B on `Survive` (GOAL_STALL, copied to the goal runner); its hit
 # rules (Plan 29 Task 2) on `threat.Threat`: P29-E (HEALTH_NEAR), P29-D (DRESS_FINISH), P29-G (MANY_NEAR), P29-F
-# (FINISH_LONE), P29-C (CLOSE_IDLE, the Fight's `close_idle` rule)
+# (FINISH_LONE), P29-C (CLOSE_IDLE, the Fight's `close_idle` rule), P29-H' (FLEE_HELD_STANCE, the Flee's
+# `flee_held_stance` rule)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -568,6 +571,8 @@ class Survive(Threat):
         self.health_pass = False  # this tick: ... with no stance to hold, so the threat branch passed (P29-E)
         self.many_near = None     # this tick: {n} when the standing count within DANGER_R withheld `many` (P29-G)
         self.finish_lone = None   # this tick: {target} when the lone fallen pin's finish was kept over a flee (P29-F)
+        self.held_cut = None      # this tick: {target, heading, bearing, d} of the flee walk cut for a held zombie
+                                  # ahead (P29-H')
         self.stand_left = None    # this tick: the end the doorway stand's plan was dropped on and its Flee kept: `off`
                                   # (P24-AO fix 1), or an end that walks out (P25-W)
         self.stand_end = None     # this tick: any end the doorway stand took (`doorway_left`): the why only

@@ -128,9 +128,11 @@ iteration 23 (P29-A's ROUTE_CROSS: no golden's replay sends a route walk; P29-B'
 `RecordedGoals`, end no goal by its budget) moved no golden: `T12_SWITCHES` and `T13_SWITCHES` off (`pre_t12`,
 `pre_t13`) and on are byte-identical (`test_iteration_22_moves_no_golden`, `test_iteration_23_moves_no_golden`). Plan
 29 Task 2's hit rules, in the same tuple, re-recorded E3, E4, F1 and the sixth under ruling P29-G (MANY_NEAR, the `many`
-count over the standing zombies within DANGER_R: E3 first at line 204, E4 at 390, F1 and the sixth at 484); `pre_t13`
-reproduces each file before byte for byte (`test_replay_decisions.PRE_T13`), and the attribution of every moved line
-is `test_iteration_23_s_hit_rules_move_four_goldens_at_the_many_count`.
+count over the standing zombies within DANGER_R: E3 first at line 204, E4 at 390, F1 and the sixth at 484), then E2,
+E3, E5, F1 and the sixth under ruling P29-H' (FLEE_HELD_STANCE, a flee walk heading at a held zombie dropped: E2 first
+at line 148, E3 at 231, E5 at 221, F1 at 518, the sixth at 527); `pre_t13` reproduces each file before byte for byte
+(`test_replay_decisions.PRE_T13`), and the attribution of every moved line is
+`test_iteration_23_s_hit_rules_move_the_goldens_at_the_many_count_and_the_flee_walk_s_heading`.
 
 `agreement(artifact_dir, replayed)` compares the replayed log with the record's own decision.log at every line where
 the replayed World holds the recorded world inputs (`WORLD_INPUTS` equal) and either side answered from the threat

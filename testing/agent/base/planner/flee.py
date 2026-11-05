@@ -90,6 +90,9 @@ constants and record unchanged; the constants stay in `policies.py`).
   `_other_exit` alike.
   Ruling P26-J (`window_stall`, `WINDOW_STALL`): the window act is stall-read as the walk is (WINDOW_STALL_S,
   `_stall_limit`), a stalled one refused `stalled`; a first `interrupted` end is sent once more (`_window_ended`).
+  Survival 25 (ruling P29-H', the `flee_held_stance` rule, Survive's `FLEE_HELD_STANCE`): a shelter step's or an
+  exit's walk is heading-read on every observe once it has moved FLEE_HEAD_R, and one running at a held zombie is
+  dropped with its plan, the door marked `walled` (`_held_ahead`).
   The switches reach the Flee as one `rules` frozenset (`FLEE_RULES`, each on unless Survive's switch for it is off:
   `threat.Threat._flee_rules`), as the Fight's do (`fight.FIGHT_RULES`).
 """
@@ -97,7 +100,7 @@ import math
 import time
 
 from agent.base.planner.policies import (AHEAD_CONE, AHEAD_R, DANGER_R, DISENGAGE_R, DOOR_CLEAR_R, DOOR_WALK_S,
-                                         FLEE_GAIT, FLEE_S, NEAR_R, PREEMPTED, SHELTER_FLEE_R, STEER_PROBE,
+                                         FLEE_GAIT, FLEE_HEAD_R, FLEE_S, NEAR_R, PREEMPTED, SHELTER_FLEE_R, STEER_PROBE,
                                          STEER_TURNS, STEP_PROBE, STUCK_MOVE, STUCK_NEAR_R, STUCK_SKIP_DEG,
                                          WALK_STALL_S, WIDE_TURNS, WINDOW_STALL_S, Policy, _night, _rotate,
                                          away_vector, centre,
@@ -109,9 +112,9 @@ from agent.base.world import me_floor, me_xy
 
 __all__ = ["Flee", "FLEE_RULES"]
 
-FLEE_RULES = ("door_walk", "window_exit", "stand_second_exit", "window_inner", "window_stall")   # the Flee's rules
-                     # of survival iterations 13, 17 and 18 (P25-E; P26-A, P26-B; P26-I, P26-J), each Survive's switch
-                     # lower-cased and on in `rules` unless that switch is off
+FLEE_RULES = ("door_walk", "window_exit", "stand_second_exit", "window_inner", "window_stall",
+              "flee_held_stance")   # the Flee's rules of survival iterations 13, 17, 18 and 23 (P25-E; P26-A, P26-B;
+                     # P26-I, P26-J; P29-H'), each Survive's switch lower-cased and on in `rules` unless it is off
 
 
 class Flee(Policy):
@@ -151,6 +154,8 @@ class Flee(Policy):
         self.rules = frozenset(FLEE_RULES)   # Survive sets it each tick: the FLEE_RULES its switches leave on
         self.door_walk = None    # this observe: {stall, end} when a stand's walk stalled (P25-E), else None
         self.walking_out = None  # the doorway stand's end this Flee walks out on (P25-W: `walk_out`), else None
+        self._walk_from = None   # (Action, (x, y) at its send) of the last shelter step's or exit's walk (P29-H')
+        self.held_cut = None     # {target, heading, bearing, d} of the walk `_held_ahead` cut, till Survive takes it
 
     @property
     def sheltered(self):
@@ -212,6 +217,7 @@ class Flee(Policy):
         if self._leg is not None and running(self.actions, self._leg[0]):
             self._leg_anchor, self._leg_still = self._still_for(self._leg_anchor)
             self._cut_leg()
+        self._held_ahead()   # P29-H': a walk heading at a held zombie dropped
         a = self._step
         if a is None or a is self._read or self.plan is None:
             return
@@ -270,6 +276,56 @@ class Flee(Policy):
         new = sorted((zid for zid, z in far if id(z) in ahead and zid not in leg[3]), key=repr)
         if new:
             self._dropped, self._cut = leg[0], new
+
+    def _held_ahead(self):
+        """Ruling P29-H' (`flee_held_stance`; F13, `f_goals_14-20261105-021722`, fight 2: the `held` flee's walk a140 to
+        building 2's door 19.1 tiles west ran east-south-east, the engine's path heading 20.7 degrees for the east gate,
+        and 28222 came from 6.198 tiles at the send to 0.568 four lines later, where the walk corner's attack took it;
+        lines 412 and 413 read no flee reason and were held only by `_kept_flee`'s `flip`; the controller's ruling,
+        `fight2-flee-read.md`): while a shelter step's or an exit's walk runs (`_walk_from`), its observed heading (the
+        character's displacement since the send, read once it reaches FLEE_HEAD_R: a shorter move, the turn-in, is not
+        read) is passed to `_ahead` (AHEAD_R, AHEAD_CONE, the CORRIDOR_R tube) over the held zombies beyond NEAR_R
+        (`_cut_leg`'s read); one ahead drops the walk (`_dropped`, so `busy` and the `flip` guard keep nothing) with its
+        plan for the episode, as P23-AM 2's stall drop does (`picked` kept, never shunned), the plan's door marked
+        `walled` from outside (`World.mark_door`: the next episode's pick leaves it out for DOOR_RETRY_MIN), or the exit
+        refused; kept in `held_cut` {target, heading, bearing, d} (degrees, 0 east, south positive; the nearest ahead),
+        which Survive logs `flee_held_stance`. The hysteresis's fight then meets the zombie in the stance. On F13 it
+        reads at line 412: the heading 14.9 degrees, 28222 5.290 tiles off on 8.3. Cost if wrong: one tick run toward
+        the zombie before the read; a walk whose path would have bent past a held zombie beyond reach given up."""
+        w = self._walk_from
+        if "flee_held_stance" not in self.rules or w is None:
+            return
+        a, start = w
+        if a is self._dropped or not running(self.actions, a) or (a is not self._step and a is not self._exit_a):
+            return
+        mx, my = me_xy(self.world)
+        dx, dy = mx - start[0], my - start[1]
+        dd = math.hypot(dx, dy)
+        if dd < FLEE_HEAD_R:
+            return
+        v = (dx / dd, dy / dd)
+        far = [(zid, z) for zid, z in self.world.zombies.items() if target_id_ok(zid) and z.get("x") is not None
+               and z.get("y") is not None and NEAR_R < zdist(self.world, z) <= DISENGAGE_R]
+        ahead = {id(z) for z in self._ahead(v, [z for _, z in far])}
+        hits = sorted(((zdist(self.world, z), repr(zid), zid, z) for zid, z in far if id(z) in ahead))
+        if not hits:
+            return
+        d, _, zid, z = hits[0]
+        self._dropped = a
+        self.held_cut = {"target": zid, "heading": math.degrees(math.atan2(v[1], v[0])),
+                         "bearing": math.degrees(math.atan2(z["y"] - my, z["x"] - mx)), "d": d}
+        if a is self._step and self.plan is not None:
+            self.world.mark_door(self.door(), "walled", "out")
+            self._read, self.ended = a, "held_ahead"
+            self._drop(False)
+        elif a is self._exit_a and self.exit is not None:
+            self._exit_read = a
+            self._refuse_exit()
+
+    def take_held_cut(self):
+        """P29-H': the walk `_held_ahead` cut since the last take ({target, heading, bearing, d}), else None."""
+        out, self.held_cut = self.held_cut, None
+        return out
 
     def _still_for(self, anchor):
         """`(anchor, seconds)`: the anchor `(wall, (x, y))` moved on to now when the player has moved STUCK_MOVE or
@@ -802,6 +858,8 @@ class Flee(Policy):
         return Steer(heading[0], heading[1], FLEE_S, self.gait)   # P24-O: a run, never a sprint (P25-C: a walk)
 
     def sent(self, cmd, action):
+        if cmd.TYPE == "walkTo" and self._chosen in ("step", "exit"):
+            self._walk_from = (action, me_xy(self.world))   # P29-H': the walk's heading read from here
         if self._chosen == "step":
             self._step, self._step_anchor = action, (self.clock(), me_xy(self.world))
         elif self._chosen == "close":

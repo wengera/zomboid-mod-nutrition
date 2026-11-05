@@ -232,6 +232,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # within DANGER_R, is kept over the `health` and `many` flees (`_finish_lone`); off, the flee
     CLOSE_IDLE = True     # ruling P29-C: P27-J's walk to close goes at an idle target only, a chaser met by the
                           # stance (`shove.FightShove._shove_close`, the Fight's `close_idle` rule); off, at a chaser
+    FLEE_HELD_STANCE = True   # ruling P29-H': a flee walk whose observed heading runs at a held zombie is dropped with
+                              # its plan, its door marked `walled`, and the fight meets it in the stance
+                              # (`flee.Flee._held_ahead`, the Flee's `flee_held_stance` rule); off, the walk runs on
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -856,6 +859,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.bleed_yield = None   # P26-D: this tick's yield the bleed's rule made
         self.bleed_held = False   # P26-L2: this tick's yield the dressing's hold made
         self.finish_block = None   # Task 36 fix 1: this tick's refusal only (`_finish_chaser` sets it)
+        self.held_cut = None       # P29-H': this tick's cut flee walk (`flee.Flee.take_held_cut`)
         self._release_edges()   # P25-X: a zombie refused across a blocked edge, read on the player's side, is free
         self._held, self._breach_now = [], None
         self._read_spent()
@@ -879,6 +883,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if self.flee is not None:   # a shelter or exit step's end read before the hold (the close may have ended),
             self.flee.threats = held   # over this tick's held records (the stall's and the stuck leg's DANGER_R and
             self._observe(self.flee)   # STUCK_NEAR_R reads: before P24-A (g) the first read saw the last tick's)
+            self.held_cut = self.flee.take_held_cut()   # P29-H': its walk cut for a held zombie ahead
         self._held, self._breach_now = held, self._breach(held)
 
     def _many_tail_read(self):
@@ -1075,7 +1080,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                        ("doorway_inside", self.stand_inside),
                        ("pair_yield", self.pair_yield), ("listing", self.listing), ("corner", self.corner_exit),
                        ("health_near", self.health_near), ("many_near", self.many_near),
-                       ("finish_lone", self.finish_lone)):
+                       ("finish_lone", self.finish_lone), ("flee_held_stance", self.held_cut)):
             if v is not None:
                 self.why[key] = v
         if self.broken is not None:
@@ -1166,11 +1171,12 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                          if on)
 
     def _flee_rules(self):
-        """The iterations 13, 17 and 18 Flee rules (`flee.FLEE_RULES`) whose switch is on: the Flee's `rules`."""
+        """The iterations 13, 17, 18 and 23 Flee rules (`flee.FLEE_RULES`) whose switch is on: the Flee's `rules`."""
         return frozenset(rule for rule, on in (("door_walk", self.DOOR_WALK), ("window_exit", self.WINDOW_EXIT),
                                                ("stand_second_exit", self.STAND_SECOND_EXIT),
                                                ("window_inner", self.WINDOW_INNER),
-                                               ("window_stall", self.WINDOW_STALL))
+                                               ("window_stall", self.WINDOW_STALL),
+                                               ("flee_held_stance", self.FLEE_HELD_STANCE))
                          if on)
 
     def _door_targets(self):

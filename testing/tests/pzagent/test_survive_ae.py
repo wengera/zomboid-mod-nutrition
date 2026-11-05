@@ -388,7 +388,8 @@ def e22_frame(r, me, zs, health, game_min, **k):
 
 def test_the_iteration_23_hit_rule_switches():
     """Task 2's switches follow Task 1's in `survive.T13_SWITCHES`, each on `threat.Threat` and on by default."""
-    assert S.T13_SWITCHES[2:] == ("HEALTH_NEAR", "DRESS_FINISH", "MANY_NEAR", "FINISH_LONE", "CLOSE_IDLE")
+    assert S.T13_SWITCHES[2:] == ("HEALTH_NEAR", "DRESS_FINISH", "MANY_NEAR", "FINISH_LONE", "CLOSE_IDLE",
+                                  "FLEE_HELD_STANCE")
     assert all(getattr(T.Threat, n) is True for n in S.T13_SWITCHES[2:])
 
 
@@ -822,3 +823,127 @@ def test_an_idle_zombie_at_the_same_distance_is_walked_to_as_p27_j_sends_it(tmp_
     w = threat_why(tmp_path)
     assert (a.type, a.args) == ("walkTo", {"x": 10750.5, "y": 10625.5, "gait": "walk"})
     assert w["shove_close"] == {"target": 11504, "dist": E22_CLOSE_D, "ticks": 6, "idle": True}
+
+
+# ---------------------------------------------------------------- P29-H': the flee walk read by its heading
+# F13's fight 2 (`f_goals_14-20261105-021722`; the controller's reading `fight2-flee-read.md`): decision line 411
+# (state.log seq 3152, game minute 617) sent the `held` flee's walk a140 at a run to building 2's door's approach square
+# (10721.5, 10638.5), 19.1 tiles west, 28215 listed behind the Fight's target 28222; the engine's path ran
+# east-south-east, line 412 (seq 3159) reading the character 0.377 tiles on at 14.9 degrees and 28222 5.290 tiles off on
+# 8.3, lines 412 and 413 (seq 3163) held by `flip`, and line 414 (seq 3170) the walk corner's attack at 28222 from
+# 0.5680346003457373 tiles. 28181, across the x 10735 tall fence (the listing's `across`), is left out of the frames
+# here (the test's own: no fence is mapped).
+F13 = "f_goals_14-20261105-021722"
+F13_DOOR = (10721, 10638, 0)   # building 2's exterior door, open, on its square's north edge (state.log at seq 3152)
+F13_FRAMES = {411: ((10740.5908203125, 10638.919921875), [(28222, 10746.716796875, 10639.865234375),
+                                                          (28215, 10752.39453125, 10639.560546875)]),
+              412: ((10740.955078125, 10639.0166015625), [(28222, 10746.189453125, 10639.779296875),
+                                                          (28215, 10752.16015625, 10639.560546875)]),
+              413: ((10742.4921875, 10639.6005859375), [(28222, 10745.767578125, 10639.7314453125),
+                                                        (28215, 10751.97265625, 10639.560546875)]),
+              414: ((10744.9130859375, 10640.521484375), [(28222, 10744.9921875, 10639.958984375),
+                                                          (28215, 10751.69140625, 10639.5771484375)])}
+
+
+def building_2():
+    """Building 2's kitchen squares by its exterior door (x 10720 to 10722, y 10635 to 10637, `room` kitchen,
+    `building` 2) and the door square (10721, 10638) north-edged and open, as the World held them at seq 3152; the
+    open ground x 10719 to 10723 on y 10638 to 10640 (the test's own map stops there)."""
+    out = [square(x, y, room="kitchen", building=2) for x in range(10720, 10723) for y in range(10635, 10638)]
+    for x in range(10719, 10724):
+        for y in range(10638, 10641):
+            door = {"open": True, "locked": False, "barricaded": False} if (x, y) == F13_DOOR[:2] else None
+            out.append(square(x, y, door=door, edgeN=y == 10638 and x in (10720, 10721, 10722, 10723),
+                              blockN=y == 10638 and x != F13_DOOR[0]))
+    return out
+
+
+def f13_frame(r, line, me=None):
+    m, zs = F13_FRAMES[line]
+    me = m if me is None else me
+    recs = [zr(zid, x, y, me=me) for zid, x, y in zs]
+    r.frame(x=me[0], y=me[1], zombies=recs, weapon=E22_BAT, health=100.0, game_min=617.0 + 0.1 * (line - 411))
+
+
+def f13_walk(tmp_path, monkeypatch, on=True):
+    """Line 411 from a fresh Survive over building 2's squares, the `held` reason forced for that tick (the test's
+    seam: the pull fight's `behind` read of 28215 is the twelve lines of pull before it): the walk to the door's
+    approach square at a run, accepted and running. (r, sv, the walk)."""
+    r, sv = make(tmp_path)
+    sv.FLEE_HELD_STANCE = on
+    r.scan(building_2())
+    f13_frame(r, 411)
+    monkeypatch.setattr(sv, "_flee_reason", lambda held, n: "held")
+    walk = tick(r, sv)
+    monkeypatch.undo()
+    assert (walk.type, walk.args) == ("walkTo", {"x": 10721.5, "y": 10638.5, "gait": "run"})
+    w = threat_why(tmp_path)
+    assert (w["flee"], w["shelter"], w["step"]) == ("held", 2, "approach")
+    r.fake.act(walk.aid, "accepted", "walkTo")
+    r.pump()
+    r.advance(0.54)
+    return r, sv, walk
+
+
+def test_f13_s_line_412_walk_heading_at_28222_is_dropped_and_the_stance_meets_it(tmp_path, monkeypatch):
+    """P29-H' (`FLEE_HELD_STANCE`): line 412, the walk west read heading 14.9 degrees after 0.377 tiles, 28222 5.290
+    tiles off on 8.3 degrees (inside AHEAD_CONE): the walk dropped with its plan, logged `flee_held_stance` {target,
+    heading, bearing, d}, building 2's door marked `walled` from outside, no `flip` keep; the fight's stance `aim` at
+    28222 goes, superseding the walk."""
+    r, sv, walk = f13_walk(tmp_path, monkeypatch)
+    f13_frame(r, 412)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    cut = w["flee_held_stance"]
+    assert cut["target"] == 28222 and abs(cut["heading"] - 14.9) < 0.1 and abs(cut["bearing"] - 8.3) < 0.1
+    assert abs(cut["d"] - 5.289648927890628) < 1e-9
+    assert F13_DOOR in r.world.marked_doors("out") and r.world.door_marks[F13_DOOR][1] == "walled"
+    assert "flee" not in w and w["fight"] is True and sv.mode == "fight"
+    assert (a.type, a.args["targetId"]) == ("aim", 28222) and r.acts.current is a
+
+
+def test_with_flee_held_stance_off_the_walk_runs_to_f13_s_corner_at_line_414(tmp_path, monkeypatch):
+    """The switch off, F13 as it ran: lines 412 and 413 hold the walk by `flip` (nothing sent), and line 414's walk
+    corner attacks 28222 from 0.5680346003457373 tiles."""
+    r, sv, walk = f13_walk(tmp_path, monkeypatch, on=False)
+    for line in (412, 413):
+        f13_frame(r, line)
+        assert tick(r, sv) is None and threat_why(tmp_path)["flee"] == "flip", line
+        r.advance(0.5)
+    f13_frame(r, 414)
+    a = tick(r, sv)
+    w = threat_why(tmp_path)
+    assert (a.type, a.args) == ("attack", {"targetId": 28222}) and w["corner_kind"] == "walk"
+    assert F13_DOOR not in r.world.marked_doors()
+
+
+def test_a_walk_heading_away_from_the_held_zombie_is_kept(tmp_path, monkeypatch):
+    """P29-H': the walk read 0.4 tiles west of its send (the test's own frame: the path toward the door), 28222 behind
+    it: kept, `flip` holding it as before, nothing marked."""
+    r, sv, walk = f13_walk(tmp_path, monkeypatch)
+    me = F13_FRAMES[411][0]
+    f13_frame(r, 412, me=(me[0] - 0.4, me[1]))
+    assert tick(r, sv) is None and threat_why(tmp_path)["flee"] == "flip"
+    assert "flee_held_stance" not in threat_why(tmp_path) and F13_DOOR not in r.world.marked_doors()
+
+
+def test_a_move_under_flee_head_r_is_not_read(tmp_path, monkeypatch):
+    """P29-H': the character 0.2 tiles on along line 412's heading (under FLEE_HEAD_R 0.3, the test's own frame): no
+    heading is read, the walk kept."""
+    from agent.base.planner import policies as P
+    assert P.FLEE_HEAD_R == 0.3
+    r, sv, walk = f13_walk(tmp_path, monkeypatch)
+    me = F13_FRAMES[411][0]
+    f13_frame(r, 412, me=(me[0] + 0.2 * 0.9664, me[1] + 0.2 * 0.2571))
+    assert tick(r, sv) is None and threat_why(tmp_path)["flee"] == "flip"
+    assert "flee_held_stance" not in threat_why(tmp_path)
+
+
+def test_the_full_iteration_23_switches_and_the_flee_rule():
+    """`survive.T13_SWITCHES` whole: Task 1's two and Task 2's six, in the rulings' commit order; the Flee's
+    `flee_held_stance` rule its switch's, and the Fight's `close_idle` its."""
+    from agent.base.planner import fight as F
+    from agent.base.planner import flee as FL
+    assert S.T13_SWITCHES == ("ROUTE_CROSS", "GOAL_STALL", "HEALTH_NEAR", "DRESS_FINISH", "MANY_NEAR", "FINISH_LONE",
+                              "CLOSE_IDLE", "FLEE_HELD_STANCE")
+    assert "flee_held_stance" in FL.FLEE_RULES and "close_idle" in F.FIGHT_RULES

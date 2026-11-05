@@ -236,8 +236,8 @@ def pre_t12(sv, keep=()):
 def pre_t13(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 29 Task 1 (survival iteration 23): its switches off
     (`survive.T13_SWITCHES`: ROUTE_CROSS, ruling P29-A; GOAL_STALL, P29-B; Task 2's hit rules, HEALTH_NEAR, P29-E, and
-    DRESS_FINISH, P29-D; MANY_NEAR, P29-G; FINISH_LONE, P29-F; CLOSE_IDLE, P29-C), but those named in `keep`; every
-    seam onto an earlier rule reads them off (`pre_t12`)."""
+    DRESS_FINISH, P29-D; MANY_NEAR, P29-G; FINISH_LONE, P29-F; CLOSE_IDLE, P29-C; FLEE_HELD_STANCE, P29-H'), but those
+    named in `keep`; every seam onto an earlier rule reads them off (`pre_t12`)."""
     for name in S.T13_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
@@ -1953,7 +1953,7 @@ def test_with_iteration_21_off_the_goldens_are_iteration_20_s(key):
     now. Named change, fix 1's R2 (P28-F's planner side, no switch): the sixth (`R2_MOVED`) is its file now with the
     switches off too, and its file before (its sha256 in `PRE_T11`) is the file R2_FROZEN's archive holds, which that
     build replays byte for byte (`r2_frozen`). Named change, Plan 29 Task 2: "its file now" is the golden with
-    iteration 23 off (`pre_t13_gold`), whose P29-G re-recorded four."""
+    iteration 23 off (`pre_t13_gold`), whose P29-G and P29-H' re-recorded the six."""
     if key in R2_MOVED:
         assert pre_t11_gold(key) == pre_t13_gold(key)
         r2_frozen("test_the_sixth_golden_is_f1_s_inputs_with_the_pza1_5_caps_reproduced_byte_for_byte")
@@ -1991,7 +1991,8 @@ def test_iteration_21_moves_four_goldens_at_the_approach_walk(key):
     A golden no switch moves is its file before iteration 21 byte for byte, but the sixth: fix 1's R2 (P28-F's planner
     side, no switch) re-recorded it, so `pre_t11` reproduces its file now and its file before is pinned by `PRE_T11`'s
     sha256 on R2_FROZEN's archive (`test_p28_f_s_planner_side_moves_the_sixth_at_its_follow_up_swing`). Named change,
-    Plan 29 Task 2: read against the goldens with iteration 23 off (`pre_t13_gold`), whose P29-G re-recorded four."""
+    Plan 29 Task 2: read against the goldens with iteration 23 off (`pre_t13_gold`), whose P29-G and P29-H'
+    re-recorded the six."""
     base, got = pre_t11_gold(key), pre_t13_gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
     if key not in FIRST_T11:
@@ -2041,7 +2042,7 @@ def test_iteration_22_moves_no_golden(key):
     byte-identical with MELEE on (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off
     (`pre_t12`). The refactors beside it (the ladder's body as `Fight._ladder`, the kill read's `_read_dead`, the
     replay's LEG_TYPES gaining `melee`) move none either. Named change, Plan 29 Task 2: read against the goldens with
-    iteration 23 off (`pre_t13_gold`), whose P29-G re-recorded four."""
+    iteration 23 off (`pre_t13_gold`), whose P29-G and P29-H' re-recorded the six."""
     lines, _ = R.read_record(run_dir(key))
     hellos = [ln for ln in lines if ln.get("kind") == "hello"]
     assert hellos and not any("melee" in (h.get("caps") or ()) for h in hellos)
@@ -2062,19 +2063,23 @@ def pre_t13_gold(key):
 
 
 # the goldens as they stood before iteration 23 re-recorded them (Plan 28's close): sha256, base, recorded
-PRE_T13 = {"e3": ("071091035506608c8be230e41182e0bd845f75ade43ab57a83e1c911fac18aa7", "f229e492", "2026-11-04"),
+PRE_T13 = {"e2": ("22079b3cfd05424afc223ba8cbe04ca0a2a1042dee718665715ee052c45a9812", "f229e492", "2026-11-04"),
+           "e3": ("071091035506608c8be230e41182e0bd845f75ade43ab57a83e1c911fac18aa7", "f229e492", "2026-11-04"),
            "e4": ("415b17d4b89581f787d7aad5f2869dcaef622112de5b9f990c85500001c70483", "f229e492", "2026-11-04"),
+           "e5": ("dec025ecd9f457472e9cc4be440455c59a81be15f1b2086f6e4fbce78f40c166", "2625cb96", "2026-11-03"),
            "f1": ("99037dd794ed197afd6212393dc194d64b587ff5e0b4b3a4b37730a68331b03d", "f229e492", "2026-11-04"),
            SIXTH: ("f5e2782cc4fbc9a2c6343e68e4e23a2d6007fc5871944deb14c11e2cb258c5b3", "388a3c1a", "2026-11-04")}
 # the first line each iteration-23 switch moves, alone on, on each golden it moves (P29-G's count over the standing
 # within DANGER_R: the first `many` the hold radius's, the DANGER_R count's or an episode's read made with at most one
-# standing within it)
-FIRST_T13 = {"e3": {"MANY_NEAR": 204}, "e4": {"MANY_NEAR": 390}, "f1": {"MANY_NEAR": 484},
-             SIXTH: {"MANY_NEAR": 484}}
+# standing within it; P29-H': the first shelter step's or exit's walk read heading at a held zombie)
+FIRST_T13 = {"e2": {"FLEE_HELD_STANCE": 148}, "e3": {"MANY_NEAR": 204, "FLEE_HELD_STANCE": 231},
+             "e4": {"MANY_NEAR": 390}, "e5": {"FLEE_HELD_STANCE": 221},
+             "f1": {"MANY_NEAR": 484, "FLEE_HELD_STANCE": 518}, SIXTH: {"MANY_NEAR": 484, "FLEE_HELD_STANCE": 527}}
 # every line on each golden whose decision (branch or action) iteration 23 moves
-ACTED_T13 = {"e3": [204, 210, 242, 243, 253, 255, 260, 261, 263, 265, 268, 271, 272],
-             "e4": [447, 449, 450, 454, 455], "f1": [484, 485, 491, 492, 498, 499],
-             SIXTH: [484, 485, 491, 492, 498, 499]}
+ACTED_T13 = {"e2": [148, 149], "e3": [204, 210, 231, 237, 243, 249, 255, 256, 265, 268, 271, 272],
+             "e4": [447, 449, 450, 454, 455], "e5": [221, 222, 224, 229, 231],
+             "f1": [484, 485, 491, 492, 498, 499, 518, 521, 528, 532, 537, 557, 607, 610, 612, 614],
+             SIXTH: [484, 485, 491, 492, 498, 499, 527, 532, 537, 540, 557, 607, 610, 612, 614]}
 
 
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
@@ -2085,8 +2090,9 @@ def test_iteration_23_moves_no_golden(key):
     read marked), and their goal branch is the record's (`RecordedGoals`), never the goals' kit nor the runner's
     budget end (ruling P29-B, `GOAL_STALL`: no stall is read): the six are byte-identical with Task 1's switches on
     (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off. Named change, Plan 29 Task 2: Task 2's
-    hit rules (`T13_SWITCHES[2:]`) stay on here, since P29-G re-recorded four (the attribution,
-    `test_iteration_23_s_hit_rules_move_four_goldens_at_the_many_count`); the name is Task 1's."""
+    hit rules (`T13_SWITCHES[2:]`) stay on here, since P29-G and P29-H' re-recorded the six (the attribution,
+    `test_iteration_23_s_hit_rules_move_the_goldens_at_the_many_count_and_the_flee_walk_s_heading`); the name is
+    Task 1's."""
     rows = gold(key)
     assert all((d["why"] or {}).get("blocked_edge", {}).get("action") in (None, "refuse") for d in rows.values())
     off = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
@@ -2109,7 +2115,7 @@ def test_with_iteration_23_off_the_goldens_are_iteration_22_s(key):
 
 
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
-def test_iteration_23_s_hit_rules_move_four_goldens_at_the_many_count(key):
+def test_iteration_23_s_hit_rules_move_the_goldens_at_the_many_count_and_the_flee_walk_s_heading(key):
     """Survival iteration 23's attribution, each switch alone on against the goldens before it (`pre_t13_gold`):
     - MANY_NEAR (ruling P29-G: the `many` flee's count the standing zombies within DANGER_R, over MAX_FIGHT to begin
       an episode, MAX_FIGHT to hold one) moves E3, E4, F1 and the sixth, each first at its first `many` read with at
@@ -2119,6 +2125,13 @@ def test_iteration_23_s_hit_rules_move_four_goldens_at_the_many_count(key):
       from line 447), F1 and the sixth line 484 (one standing: the Fight held where the `many` steer went); every
       moved line logs `many_near` or is downstream of one (open loop), each acted line listed (`ACTED_T13`). E2 and
       E5 read no `many` the count leaves.
+    - FLEE_HELD_STANCE (ruling P29-H': a flee walk whose observed heading runs at a held zombie dropped with its plan,
+      the door marked `walled`) moves E2, E3, E5, F1 and the sixth, each first at its first shelter step's or exit's
+      walk read heading at a held zombie within AHEAD_CONE or the CORRIDOR_R tube, logged `flee_held_stance` {target,
+      heading, bearing, d}: E2 line 148 (exit 3's walk, 12839 2.807 tiles off: the Fight's walk where the walk ran
+      on), E3 231 (building 2's approach, 14926), E5 221 (building 2's approach, 19275), F1 518 (building 2's
+      approach, 15921) and the sixth 527 (the same approach under its `many` flee): the walk dropped, the steer or the
+      fight in its place, every later moved line downstream (open loop). E4's flee walks read no held zombie ahead.
     - ROUTE_CROSS (P29-A) and GOAL_STALL (P29-B) move none (`test_iteration_23_moves_no_golden`). HEALTH_NEAR (P29-E)
       moves none: every golden `health` line holds a zombie within DANGER_R. DRESS_FINISH (P29-D) moves none: no golden
       flee commands over a running dressing with nobody within DANGER_R (the sixth's hello alone announces `bandage`,
@@ -2137,11 +2150,17 @@ def test_iteration_23_s_hit_rules_move_four_goldens_at_the_many_count(key):
                                                              mutate=lambda sv: pre_t13(sv, keep=(switch,))))}
         moved = [k for k in sorted(set(base) | set(alone)) if base.get(k) != alone.get(k)]
         assert (moved[0] if moved else None) == FIRST_T13[key].get(switch), switch
-    first = FIRST_T13[key]["MANY_NEAR"]
-    assert base[first]["why"]["flee"] == "many" and got[first]["why"]["many_near"]["n"] <= 1
+    if "MANY_NEAR" in FIRST_T13[key]:
+        first = FIRST_T13[key]["MANY_NEAR"]
+        assert base[first]["why"]["flee"] == "many" and got[first]["why"]["many_near"]["n"] <= 1
+    if "FLEE_HELD_STANCE" in FIRST_T13[key]:
+        first = FIRST_T13[key]["FLEE_HELD_STANCE"]
+        cut = got[first]["why"]["flee_held_stance"]
+        assert base[first]["why"]["step"] in ("approach", "walk") and base[first]["why"].get("holding")
+        assert set(cut) == {"target", "heading", "bearing", "d"} and cut["d"] <= P.AHEAD_R
     acted = [k for k in diff if base[k]["action"] != got[k]["action"] or base[k]["branch"] != got[k]["branch"]]
     assert acted == ACTED_T13[key]
-    assert all("many_near" not in base[k]["why"] for k in diff)
+    assert all("many_near" not in base[k]["why"] and "flee_held_stance" not in base[k]["why"] for k in diff)
 
 
 def test_an_unbound_melee_ends_done_at_its_seconds():

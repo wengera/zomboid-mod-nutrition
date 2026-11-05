@@ -943,6 +943,13 @@ class World:
         self.door_marks[sq] = (now, reason, side)
         return True
 
+    def mark_door(self, sq, reason, side="out"):
+        """The door at square `sq` (x, y, z) marked at once from `side` (`door_marks`, standing DOOR_RETRY_MIN game
+        minutes in `marked_doors`), its failure count cleared: ruling P29-H' (`flee.Flee._held_ahead`: the door of a
+        flee walk cut for running at a held zombie, `walled`). The planner's, never a line's; not in `to_json`."""
+        self.door_fails.pop(sq, None)
+        self.door_marks[sq] = (self.world_minutes(), reason, side)
+
     def mark_worn(self, item_id):
         """Ruling P26-E (F5, `f_goals_6-20261030-192251`: five wears of trousers worn since a6, each `rejected` `worn`):
         the held item a wear the Lua rejected `worn` set `worn` True on its record, the refusal read as the garment's
