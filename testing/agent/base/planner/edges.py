@@ -46,6 +46,15 @@ so the next route takes the run's next way, else the goal ends `failed "blocked 
 target and the need's fill passes the source over (`water.Water`, fix 1's M2: the fill's route walk read the same
 way). Logged `route` {door, target, beyond, start_side} on the route's send and `route_end` {door, crossed,
 noted, next: the way the route reads now or None, dropped: no way left} on the line that reads the leg's end.
+Fix 1 (review-t1 m1): every end of a route walk but a supersede is read by its side, so one that ended `failed` on its
+start's side notes the door too; its goal is still decided by the leg's own logic (`_Legs._leg_ended`: no hop,
+`_leg_failed` cools it and marks its far target) and the Fight still marks its target across the edge, and a goal walk
+that ended `failed "stuck"` unmoved is also the runner's P27-F stuck mark (`goal_runner.GoalRunner._read_walks`): the
+two reads fire on one walk in separate stores, the door's failure count (`World.door_fails`, `door_marks`) and the
+square's mark (`stuck_marks`). A route record is read only against its own walk (the target the record names) and is
+dropped at the next route read (review-t1 m2), so a later leg's end is never read against a superseded route's start.
+The goal reads a route leg's end on the first tick its branch runs after it (review-t1 m3: only a hold that sends
+nothing delays it, under GOAL_HOLD_SUPERSEDE_TICKS, the character barely moving meanwhile).
 """
 import math
 
@@ -191,10 +200,7 @@ def edge_why(read, action):
 def same_side(edge, p, q):
     """Positions `p` and `q` lie on one side of the line the edge `(holder, side)` runs along (a north edge's y, a west
     edge's x)."""
-    (x, y, _), side = edge
-    if side == "N":
-        return (p[1] < y) == (q[1] < y)
-    return (p[0] < x) == (q[0] < x)
+    return side_of(edge, p) == side_of(edge, q)
 
 
 def side_of(edge, p):
@@ -303,19 +309,20 @@ class FightEdge:
 
     def _observe_edge_route(self):
         """A route walk (`_edge_walk`) that ended any way but done or superseded marks its target across its edge. One
-        sent under `route_cross` (P29-A) that ended done is read by whether it crossed (`read_route_end` toward its
-        target, kept in `_route_end` for the next choose's why)."""
+        sent under `route_cross` (P29-A) that ended any way but superseded is read by whether it crossed
+        (`read_route_end` toward its target, kept in `_route_end` for the next choose's why): an uncrossed one notes
+        the door, a failed one marks its target as well (fix 1, m1)."""
         w = self._edge_walk
         if w is None or not self.actions.done(w[0]):
             return
         self._edge_walk = None
         a, zid, edge, route = w
-        if a.state == "done" and route is not None:
+        preempted = a.state == "failed" and a.reason == PREEMPTED
+        if route is not None and not preempted:
             z = self.world.zombies.get(zid) or {}
             toward = (z["x"], z["y"]) if z.get("x") is not None and z.get("y") is not None else route["target"]
             self._route_end = read_route_end(self.world, route, toward, DISENGAGE_R)
-            return
-        if a.state != "done" and not (a.state == "failed" and a.reason == PREEMPTED):
+        if a.state != "done" and not preempted:
             self._mark_edge(zid, edge)
 
 
@@ -355,6 +362,7 @@ class GoalEdge:
         takes down to LEG_MIN)."""
         if not self.kit.blocked_edge:
             return None
+        self.edge_route = None   # fix 1, m2: a superseded route's record is never read against a later leg
         cross = self.kit.route_cross
         me = me_xy(world)
         read = edge_read(world, me, (x, y), reach, marked=world.marked_doors() if cross else frozenset())
@@ -377,16 +385,21 @@ class GoalEdge:
         return WalkTo(self.leg[0], self.leg[1], "walk")
 
     def _route_ended(self, world, action):
-        """Ruling P29-A: the running route leg's (`edge_route`) end, `action` its walk. None when no route leg ran, or
-        its walk ended other than done (the caller reads the leg as before); else its end read by whether it crossed
-        (`read_route_end`, kept in `route_end` for the runner's why) and "next" (the next choose routes by the way it
-        reads now, or walks on once crossed), the goal first ended `failed "blocked edge"`, cooled, when the read finds
-        no way left on the edge."""
+        """Ruling P29-A: the running route leg's (`edge_route`) end, `action` its walk. None when no route leg ran,
+        `action` is not its walk (its target not the record's) or was superseded; else its end read by whether it
+        crossed (`read_route_end`, kept in `route_end` for the runner's why: an uncrossed one notes the door, fix 1's m1
+        a `failed` one too), then None for a walk that ended other than done (the caller reads the leg as before: the
+        module docstring's stuck-mark interplay), else "next" (the next choose routes by the way it reads now, or walks
+        on once crossed), the goal first ended `failed "blocked edge"`, cooled, when the read finds no way left."""
         route, self.edge_route = self.edge_route, None
-        if route is None or action.state != "done":
+        if route is None or (action.args.get("x"), action.args.get("y")) != tuple(route["target"]):
+            return None
+        if action.state == "failed" and action.reason == PREEMPTED:
             return None
         end = read_route_end(world, route, route["toward"], route["reach"])
         self.route_end = end
+        if action.state != "done":
+            return None
         if end["dropped"]:
             self.why = dict(self.why, route_end=end)
             self.cool = True

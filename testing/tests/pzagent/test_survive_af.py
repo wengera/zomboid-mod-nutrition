@@ -168,3 +168,78 @@ def test_with_route_cross_off_the_fill_walks_to_the_far_square_and_reads_done_as
     fill_done(r, sv, STALL, 648.5)
     assert r.cmd() == ("walkTo", {"x": FAR[0], "y": FAR[1], "gait": "walk"})
     assert "route_end" not in need_why(tmp_path)["fill"] and GATE not in r.world.door_fails
+
+
+# ================================================================ m1: a failed end on the start's side
+def test_a_route_leg_failed_stuck_at_the_stall_is_counted_on_the_gate(tmp_path):
+    """m1: the goal's route leg ended `failed "stuck"` with the character at the stall (its start's side): the gate's
+    failure counted (`World.door_fails`), `route_end` {crossed False, noted True} on the line; the leg's own logic
+    decides the goal as before (no hop: `failed "stuck"`, cooled), and the runner's P27-F stuck mark reads the same
+    walk in its own store."""
+    r, runner = goal_rig(tmp_path)
+    step(r, runner)
+    r.answer({"state": "failed", "reason": "stuck"})
+    r.frame(x=STALL[0], y=STALL[1], game_min=648.5)
+    runner.tick(r.world, r.acts)
+    assert [x[1] for x in r.world.door_fails[GATE]] == ["not crossed"]
+    assert runner.why["route_end"]["crossed"] is False and runner.why["route_end"]["noted"] is True
+    row = runner.history[-1]
+    assert (row["state"], row["reason"]) == ("failed", "stuck")
+    assert goal_key("ExploreToward", {"x": EDGE[0], "y": EDGE[1]}) in runner.cooled
+    assert runner.stuck_now is not None   # P27-F's mark, its own store
+
+
+def test_the_fight_s_route_failed_on_its_start_side_notes_the_gate_and_marks_the_target(tmp_path):
+    from .test_survive_ae import chaser, fight_rig
+    r, sv = fight_rig(tmp_path)
+    tick(r, sv)
+    r.answer({"state": "failed", "reason": "stuck"})
+    r.frame(x=STALL[0], y=STALL[1], zombies=[chaser()], game_min=648.5)
+    tick(r, sv)
+    assert [x[1] for x in r.world.door_fails[GATE]] == ["not crossed"]
+    assert sv.edge_marks.get(1) == ((10747, 10642, 0), "N")
+
+
+def test_a_superseded_route_leg_notes_nothing(tmp_path):
+    from agent.base.planner.policies import PREEMPTED
+    r, runner = goal_rig(tmp_path)
+    step(r, runner)
+    g = runner.current
+    a = g.last
+    a.state, a.reason = "failed", PREEMPTED
+    assert g._route_ended(r.world, a) is None and GATE not in r.world.door_fails and g.edge_route is None
+
+
+# ================================================================ m2: the stale route cleared
+def test_a_route_read_that_finds_no_edge_clears_the_stale_route(tmp_path):
+    """m2: a route leg superseded (its end never read), then a route read from across the gate finding no edge: the
+    old record is cleared, so the next leg's `done` is read as a plain leg (no `route_end`, nothing noted)."""
+    r, runner = goal_rig(tmp_path)
+    step(r, runner)
+    g = runner.current
+    assert g.edge_route is not None
+    r.frame(x=BEYOND[0], y=BEYOND[1], game_min=648.5)
+    assert g._edge_cmd(r.world, EDGE[0], EDGE[1], 40.0) is None and g.edge_route is None
+    g.leg = (EDGE[0], EDGE[1])
+    a = act("a9", "walkTo", x=EDGE[0], y=EDGE[1], gait="walk")
+    a.state = "done"
+    r.frame(x=STALL[0], y=STALL[1], game_min=649.0)
+    assert g._leg_ended(a, r.world) == "next" and g.take_route_end() is None and GATE not in r.world.door_fails
+
+
+def test_the_route_end_reads_only_its_own_walk(tmp_path):
+    """m2's second guard: a walk whose target is not the route record's is never read against it."""
+    r, runner = goal_rig(tmp_path)
+    step(r, runner)
+    g = runner.current
+    a = act("a8", "walkTo", x=EDGE[0], y=EDGE[1], gait="walk")
+    a.state = "done"
+    assert g._route_ended(r.world, a) is None and GATE not in r.world.door_fails
+
+
+def test_leg_done_helper_still_reads_the_route(tmp_path):
+    """The fixture's own read (`test_survive_ae.leg_done`) after the fix: an uncrossed `done` noted once."""
+    r, runner = goal_rig(tmp_path)
+    step(r, runner)
+    leg_done(r, runner, STALL)
+    assert [x[1] for x in r.world.door_fails[GATE]] == ["not crossed"]
