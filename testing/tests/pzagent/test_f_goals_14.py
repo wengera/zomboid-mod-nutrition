@@ -466,7 +466,7 @@ def test_the_totals_reach_the_llm_record(tmp_path, monkeypatch):
 
 
 BASE_SENTENCE = (
-    "the base at `020ea2fb` (the planner: Plan 28 Task 7b, its head at the copy, re-based) carries PZA/1.8 (the "
+    "the base at `869a5749` (the planner: Plan 28 Task 7b, re-based to its head at the boot) carries PZA/1.8 (the "
     "`melee` action, its progress lines with a result, the frame's `act.step`; the hello reads `mod` `1.8`) and "
     "survival iteration 22 (the melee reflex, cut 1 of the maneuver layer: the Lua skill `melee` owning one target "
     "from the stance to the kill, the Python `Maneuver` base and `Melee` behind `MELEE`; over iteration 21), the goal "
@@ -517,7 +517,7 @@ def test_the_driver_is_f_goals_13_py_copied_under_its_own_key_with_grade_f10_wir
     assert doc.splitlines()[1] == "" and doc.splitlines()[2].startswith("The rest of this docstring is f_goals.py")
     assert "unchanged but for the stops and the grade's name" in doc.splitlines()[2]       # the lead-in kept
     assert BASE_SENTENCE in first and "PZA/1.8" in first and "Task 7d" in first and "f_goals_13.py" in first
-    assert "020ea2fb" in first and "389d0ae9" not in doc and "PZA/1.7.2" not in doc and "P28-A" not in doc
+    assert "869a5749" in first and "389d0ae9" not in doc and "PZA/1.7.2" not in doc and "P28-A" not in doc
     assert "iteration 21 (over" not in doc and "f_goals_12" not in doc
     for word in NEW19 + ("f_grade_10.py", "grade_f9", "grades.e19", "agent.base.grades.f10"):
         assert word in first, word
@@ -542,10 +542,10 @@ def test_the_stops_block_names_client_end_after_death():
 
 def test_the_base_sentence_names_the_planner_s_head_at_the_copy():
     """The base sentence's commit is the planner's head the copy was made at (`git log -1 -- testing/agent/base/planner`
-    at Task 7d: 020ea2fb, Plan 28 Task 7b); the controller re-bases it before the boot."""
+    at Task 7d: 869a5749, Plan 28 Task 7b); the controller re-bases it before the boot."""
     first = F.__doc__.splitlines()[0]
     assert BASE_SENTENCE in first
-    assert "the base at `020ea2fb` (the planner: Plan 28 Task 7b, its head at the copy, re-based)" in first
+    assert "the base at `869a5749` (the planner: Plan 28 Task 7b, re-based to its head at the boot)" in first
     assert "carries PZA/1.8 (the `melee` action, its progress lines with a result, the frame's `act.step`; the hello " \
            "reads `mod` `1.8`)" in first
 
@@ -572,7 +572,7 @@ def test_the_grade_carries_the_iteration_22_readings_and_the_earlier_ones_unread
     r = run_goals(tmp_path, monkeypatch, day_cap_s=5)
     g = r.out["grade_f10"]
     assert g["grade"] == "grade_f10" and "grade_f10_error" not in r.out and "grade_f9" not in r.out
-    # no decision log and no state lines at the boot: all twenty-two readings (the hits and the melee readings off the
+    # no decision log and no state lines at the boot: every new reading of the four grades (the hits and the melee readings off the
     # state lines) unread
     for k in NEW17 + NEW18 + NEW16 + NEW19:
         assert g[k] == {"read": False}, k
