@@ -42,8 +42,10 @@ class FightShove:
         announced the shove again; once SHOVE_REPEAT_S has passed since the miss, the shove. Fix 1 (review-t3 M1): one
         leg a miss (`_backed`: the missed shove it answered), held by `Fight.busy` within KEEP_R + KEEP_MARGIN
         whatever `no_swing` reads, and at point blank until the target has left it, so the shove goes again once the
-        target comes back within POINT_BLANK_R or the leg ends. Cost if wrong: the backpedal's half tile given up
-        after each miss."""
+        target comes back within POINT_BLANK_R or the leg ends. Its residual (the re-review of fix 1): the leg goes
+        only with a clear heading (`Fight._back_heading`); boxed in with none (it would be `Aim(0, 0)`, standing in
+        contact for AIM_LEG_S under M1's hold) the shove goes as before the rule, no `shove_back` logged. Cost if
+        wrong: the backpedal's half tile given up after each miss."""
         low = self._low_swing(zid)   # P27-E: the low fight's full swing after the failed shoves, within FIGHT_REACH
         if low is not None:
             return low
@@ -64,7 +66,8 @@ class FightShove:
             if brk is not None:
                 return brk
         if (blank and "shove_back" in self.rules and self._shove_missed(zid) and self.world.can("aim")
-                and self._backed.get(zid) is not self._shove_a.get(zid)):   # fix 1, M1: one leg for each miss
+                and self._backed.get(zid) is not self._shove_a.get(zid)   # fix 1, M1: one leg for each miss
+                and self._back_probe(z)):   # its residual: only with a clear heading, else the shove
             self.why["shove_back"] = {"target": zid, "missed": self._missed_n(zid)}   # P28-B2: back off, not again
             return self._stance_leg(zid, z, d, kind="back")
         if blank and self._swing_ok("shove", zid) and self._standing_near(STAND_MIN_R, (zid,)) is None:
@@ -81,6 +84,14 @@ class FightShove:
             return None
         self.why.update({"shove": "second", "shoveTarget": sid, "shoveDist": sd, "second": second[0]})
         return Shove(sid)
+
+    def _back_probe(self, z):
+        """The `back` leg from `z` has a clear heading (`Fight._back_heading` not None), read without a trace: the
+        why and the circle's kept side are left as they were (the leg itself reads them again)."""
+        why, side = dict(self.why), self._circle_side
+        ok = self._back_heading(z) is not None
+        self.why, self._circle_side = why, side
+        return ok
 
     def _wounded_swing(self, zid, z):
         """Ruling P26-L1 (F8, `f_goals_9-20261102-181937`: its last fight's one standing zombie, 28762, health

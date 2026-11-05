@@ -1037,10 +1037,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         elif kind == "enter" and not named and self._reach_walk_due(z, d):
             return self._reach_walk(zid, z, d)   # P27-M: the advance on an idle target within FIGHT_REACH
         elif kind == "back":
-            ts = [q for q in (self.threats or [z]) if q.get("x") is not None and q.get("y") is not None]
-            away = away_vector(self.world, [(q["x"], q["y"]) for q in ts])
-            lone = "circle" in self.rules and away is not None and len(self._standing(KEEP_R)) == 1
-            v = self._circle_turn(away) if lone else self._clear_turn(away)   # P28-E: the arc from a lone zombie
+            v = self._back_heading(z)
         elif kind == "pull":
             c = self.pull_centroid(t)
             v = self._clear_turn(away_vector(self.world, [c]))
@@ -1055,6 +1052,15 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         if kind == "seek":
             self.why["seek"] = True
         return Aim(vx, vy, AIM_LEG_S, targetId=zid)
+
+    def _back_heading(self, z):
+        """The `back` leg's heading from target `z` (`_stance_leg`): `away_vector` of the held threats (else `z`),
+        turned by CIRCLE_TURN from a lone standing zombie within KEEP_R (P28-E, `_circle_turn`), else by STEER_TURNS
+        (`_clear_turn`); None when no heading is clear (the leg then stands)."""
+        ts = [q for q in (self.threats or [z]) if q.get("x") is not None and q.get("y") is not None]
+        away = away_vector(self.world, [(q["x"], q["y"]) for q in ts])
+        lone = "circle" in self.rules and away is not None and len(self._standing(KEEP_R)) == 1
+        return self._circle_turn(away) if lone else self._clear_turn(away)   # P28-E: the arc from a lone zombie
 
     def _circle_turn(self, a):
         """Ruling P28-E (`circle`, Survive's CIRCLE; E20, `e_day_20-20261103-121340`'s candidate, #4576: the stance's

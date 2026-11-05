@@ -492,6 +492,23 @@ def test_after_the_back_leg_ends_the_shove_goes_inside_the_window(tmp_path):
     assert (b.type, b.args) == ("shove", {"targetId": 1}) and "shove_back" not in f.why
 
 
+def test_boxed_in_with_no_clear_heading_the_missed_shove_is_shoved_again(tmp_path):
+    """The re-review of fix 1's residual: the character walled in on all eight neighbours (no heading `clear_heading`
+    passes, so the back leg would be `Aim(0, 0)`, standing in contact for AIM_LEG_S): after the missed shove the shove
+    goes again, no `aim`, no `shove_back` logged."""
+    r = Rig(tmp_path)
+    r.scan([square(x, y, solid=True) for x in (99, 100, 101) for y in (199, 200, 201) if (x, y) != (100, 200)])
+    fr(r, [z(1, 100.0 + A49)], 30.0)
+    f = fight(r)
+    assert f.step().type == "shove"
+    r.answer(DONE_SHOVE)
+    r.advance(1.0)
+    fr(r, [z(1, 100.0 + A49)], 30.0)
+    b = f.step()
+    assert (b.type, b.args) == ("shove", {"targetId": 1}) and "shove_back" not in f.why
+    assert "aim" not in [a.type for a in r.acts.history]
+
+
 def test_under_the_sore_band_the_back_leg_is_held_too(tmp_path):
     """The arms' pain 15 (STRAIN_SOFT to STRAIN_HARD: the shove at point blank, the swing not barred): the leg is held
     0.5 s later at 1.2 tiles, nothing sent, where the swing went before fix 1."""
