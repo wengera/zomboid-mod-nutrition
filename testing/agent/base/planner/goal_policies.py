@@ -175,8 +175,9 @@ class Goal:
         self.sent_n += 1
 
     def stall_target(self):
-        """Ruling P29-B: the goal's own target square [x, y] its budget end is read against (`GoalRunner._stall`), else
-        None: a goal with no far target of its own (a Rest stands by design) is never a stall."""
+        """Ruling P29-B: the goal's walk target [x, y] its budget end is read against (`GoalRunner._stall`), else
+        None: a goal with no walk target (a Rest stands by design; a Stock's loot walks itself) is never a stall.
+        ExploreToward its square; LootBuilding its last walk's (fix 1, M1); Shelter its plan's door square."""
         return None
 
     def take_route_end(self):
@@ -443,6 +444,16 @@ class LootBuilding(_Legs, _Looting, Goal):
         """The uses in the order the loot takes them (`_wants` first)."""
         return wanted_uses(world, self._wants())
 
+    def stall_target(self):
+        """Ruling P29-B (fix 1, M1): the square of the walk this loot last sent (a route or a leg target, or a walk to
+        a container), else None when its last send was not a `walkTo`: a loot working through one room's containers
+        (each an `interact` the Lua walks to) for its budget is no stall. `mark_far` stays a no-op (the cooling and the
+        view's `stall` square are the stall's reads)."""
+        a = self.last
+        if a is None or a.type != "walkTo":
+            return None
+        return [a.args.get("x"), a.args.get("y")]
+
     def _window_ended(self, world, action):
         """A window action's end (Task 24): done leaves the route (the character stands inside; the care branch reads the
         wounds from the frame's body parts whatever `cut` says, the result's `cut` being unreliable in multiplayer: it is
@@ -544,6 +555,13 @@ class Shelter(_Legs, _Climbing, Goal):
         if self.plan is None:
             self.why = {"building": self.building, "plan": None}
             self._shun(world, "no plan")
+
+    def stall_target(self):
+        """Ruling P29-B (fix 1, M1): the plan's current door square [x, y], else None (no plan)."""
+        if self.plan is None:
+            return None
+        door = self.plan["doors"][self.plan["door_i"]]
+        return [door[0], door[1]]
 
     def _shun(self, world, reason="shun"):
         self.kit.shunned[self.building] = world.world_minutes()

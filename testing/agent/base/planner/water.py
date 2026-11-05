@@ -34,6 +34,15 @@ third steps when no `water` item is held, which `survive.Survive._need` runs aft
   unlocked door record on that edge's run within the leg length (the walk to its far square first, `walk`), else
   passed over for the next; with every one passed over the vessel is kept and the want is `water_source`. Logged
   `blocked_edge` in the need's `fill` why.
+- Ruling P29-A for the fill (Plan 29 Task 1 fix 1, review-t1 M2: from F13's stall position the fill's walk to the
+  gate's far square's centre lay 0.86 tiles off, inside the Lua walk's done radius, and its `done` was read as
+  arrival, so the next plan re-sent it with no budget behind it): with `route_cross` on (Survive's ROUTE_CROSS) the
+  route reads a marked door as wall (`World.marked_doors`), walks to `edges.route_target`'s square (one step beyond
+  the far square when the map holds it open), keeps the route record with the walk (`walk`), and reads the walk's
+  end by whether it crossed (`edges.read_route_end`, any end but a supersede: an uncrossed one notes the door, the
+  second within DOOR_RETRY_MIN marks it, so the next plan takes the run's next way or passes the source over), logged
+  `route` on the send and `route_end` in the next plan's `fill` why; a failed walk still leaves its source out. Off,
+  P25-X's walk to the far square.
 - `sent(action)` remembers the need's fill: its action, and the vessel's `item_changed` count at the send; or its walk
   to a source (`walk`).
 - `wants(marks, now)`: the goal layer's wants beside `water` (FILL_WANTS) on a tick the need found no water held: the
@@ -43,7 +52,7 @@ import math
 import time
 
 from agent.base.planner.care import DRY_REASONS
-from agent.base.planner.edges import edge_read, edge_why
+from agent.base.planner.edges import edge_read, edge_why, read_route_end, route_record, route_why
 from agent.base.planner.goal_policies import leg_max
 from agent.base.planner.goals import LEG_SQ_MARGIN
 from agent.base.planner.policies import PREEMPTED, STUCK_REASONS, centre, item_id_ok
@@ -78,16 +87,24 @@ class Water:
         self.actions = actions
         self.clock = clock
         self.fills = {}   # vessel id -> {action, read, at, base, done_wall}: the need's fills (P24-G 3)
-        self.walk = None  # (walk Action, source square) of the need's walk to a far source until its end is read (P24-AW)
+        self.walk = None  # (walk Action, source square, P29-A's route record or None) of the need's walk to a far
+                          # source or through a door, until its end is read (P24-AW)
         self.why = None   # this tick: the plan's fill or want, logged in the need's why
         self.blocked_edge = True   # Survive sets it each tick (its BLOCKED_EDGE switch, ruling P25-X)
+        self.route_cross = True    # ruling P29-A for the fill (fix 1, M2): the route walked beyond the door, its end
+                                   # read by the crossing
+        self.route_end = None      # P29-A: the last route walk's end (`read_route_end`), until a plan's why logs it
+        self._route = None         # P29-A: the route record of the plan's walk, kept by `sent`
 
     def check(self):
         """Each fill's end, once, and the walk's to a far source (the module docstring)."""
         if self.walk is not None and self.actions.done(self.walk[0]):
-            a, sq = self.walk
+            a, sq, route = self.walk
             self.walk = None
-            if a.state != "done" and not (a.state == "failed" and a.reason == PREEMPTED):
+            preempted = a.state == "failed" and a.reason == PREEMPTED
+            if route is not None and not preempted:   # P29-A: crossed, or the door's failure noted
+                self.route_end = read_route_end(self.world, route, centre(sq), leg_max(self.world))
+            if a.state != "done" and not preempted:
                 self.world.mark_dry(sq)   # P24-AW: a walk to it that failed leaves the source out (SOURCE_RETRY_MIN)
         now = self.world.world_minutes()
         for iid, f in list(self.fills.items()):
@@ -128,7 +145,15 @@ class Water:
         return sorted((i for i, f in self.fills.items() if "done_wall" in f), key=str)
 
     def plan(self, by_use):
-        """The second step's `Fill`, else None (the module docstring), `why` set."""
+        """The second step's `Fill`, else None (the module docstring), `why` set; the last route walk's end not yet
+        logged (`route_end`, P29-A) laid on that why."""
+        self._route = None
+        cmd = self._plan(by_use)
+        if self.route_end is not None and self.why is not None:
+            self.why["route_end"], self.route_end = self.route_end, None
+        return cmd
+
+    def _plan(self, by_use):
         if not self.world.can("fill"):
             return None
         held = [i for i in by_use["container"] if item_id_ok(i)]
@@ -153,8 +178,13 @@ class Water:
         (d, sq, _), route = pick
         self.why = {"vessel": min(vessels), "source": [sq[0], sq[1]], "dist": d}
         if route is not None:
-            self.why.update(walk=[route[0][0], route[0][1]], blocked_edge=route[1])
-            return WalkTo(*centre(route[0]), "walk")
+            via, why, rec = route
+            if rec is not None:   # P29-A: the step beyond the far square when open, the record kept by `sent`
+                self._route = rec
+                self.why.update(walk=[rec["target"][0], rec["target"][1]], blocked_edge=why, route=route_why(rec))
+                return WalkTo(rec["target"][0], rec["target"][1], "walk")
+            self.why.update(walk=[via[0], via[1]], blocked_edge=why)
+            return WalkTo(*centre(via), "walk")
         if d <= FILL_WALK_R:
             return Fill(min(vessels), sq[0], sq[1])
         beside = self.world.reachable_adjacent(centre(sq), sq[2])   # P24-AW: the walk first, beside the source
@@ -165,19 +195,22 @@ class Water:
     def _past_edges(self, near):
         """Ruling P25-X: the first of the loaded sources `near` (nearest first) whose straight line crosses no known
         blocked edge, `(source, None)`, or one crossing an edge an unlocked door record passes within the leg length
-        (`leg_max`), `(source, (the door's far square, its why))`: the walk there goes first (`sent` keeps it as the
-        walk to that source); each one with no such door passed over (`drop`). `(None, the last drop's why)` when every
-        one is; with `blocked_edge` off, `(near[0], None)`."""
+        (`leg_max`), `(source, (the door's far square, its why, P29-A's route record or None))`: the walk there goes
+        first (`sent` keeps it as the walk to that source); each one with no such door passed over (`drop`). `(None,
+        the last drop's why)` when every one is; with `blocked_edge` off, `(near[0], None)`. With `route_cross` on a
+        marked door is wall (P29-A)."""
         if not self.blocked_edge:
             return (near[0], None), None
         dropped = None
         me = me_xy(self.world)
+        marked = self.world.marked_doors() if self.route_cross else frozenset()
         for src in near:
-            read = edge_read(self.world, me, centre(src[1]), leg_max(self.world))
+            read = edge_read(self.world, me, centre(src[1]), leg_max(self.world), marked=marked)
             if read is None:
                 return (src, None), None
             if read["via"] is not None:
-                return (src, (read["via"], edge_why(read, "route"))), None
+                rec = route_record(self.world, read, me) if self.route_cross else None
+                return (src, (read["via"], edge_why(read, "route"), rec)), None
             dropped = edge_why(read, "drop")
         return None, dropped
 
@@ -200,7 +233,7 @@ class Water:
         its walk to a far source (P24-AW), the source the plan's `why` named."""
         if action.type == "walkTo":
             src = (self.why or {}).get("source")
-            self.walk = (action, (src[0], src[1], me_floor(self.world)))
+            self.walk = (action, (src[0], src[1], me_floor(self.world)), self._route)
             return
         iid = action.args.get("itemId")
         self.fills[iid] = {"action": action, "read": False, "at": None, "base": self.world.changes.get(iid, 0)}

@@ -416,9 +416,12 @@ def test_a_goal_beyond_the_wall_with_no_unlocked_door_fails_blocked_edge_and_is_
 
 def test_a_water_source_beyond_the_wall_is_reached_through_its_door_or_passed_over(tmp_path):
     """The need's fill (E15's 17 fills at building 2's laundry, beyond the gate): a source across the wall is walked
-    to through the unlocked door first; with the door locked it is passed over for a source on the player's side."""
+    to through the unlocked door first; with the door locked it is passed over for a source on the player's side.
+    Named change, ruling P29-A for the fill (Plan 29 Task 1 fix 1, review-t1 M2): pinned with the Water's
+    `route_cross` off, P25-X's fill route before it."""
     from .test_survive_g import hold, need_why, source
     r, sv = make(tmp_path)
+    sv.water.route_cross = False
     r.scan(walled({200: LOCKED, 203: UNLOCKED}) + [source(108, 199)])
     hold(r, 5, "Base.PopEmpty", use="container")
     r.frame(x=ME[0], y=ME[1], thirst=0.2)

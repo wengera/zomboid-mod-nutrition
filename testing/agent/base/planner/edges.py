@@ -42,8 +42,9 @@ the map does not hold that square open; the Fight's route goes at a walk, never 
 whether it crossed (`same_side` of the leg's start and the frame's position), never by `done`: one ended `done` on its
 start's side is the door's failure (`World.note_door_fail(door, "not crossed", "out")`, P24-Z's store: the second
 within DOOR_RETRY_MIN marks the door), and `edge_read` with `marked` (the marked doors) reads a marked door as wall,
-so the next route takes the run's next way, else the goal ends `failed "blocked edge"`, cooled, and the Fight refuses
-its target. Logged `route` {door, target, beyond, start_side} on the route's send and `route_end` {door, crossed,
+so the next route takes the run's next way, else the goal ends `failed "blocked edge"`, cooled, the Fight refuses its
+target and the need's fill passes the source over (`water.Water`, fix 1's M2: the fill's route walk read the same
+way). Logged `route` {door, target, beyond, start_side} on the route's send and `route_end` {door, crossed,
 noted, next: the way the route reads now or None, dropped: no way left} on the line that reads the leg's end.
 """
 import math
@@ -53,7 +54,7 @@ from agent.base.pza1 import WalkTo
 from agent.base.world import me_xy
 
 __all__ = ["edge_read", "edge_why", "same_side", "crossed", "first_edge", "beyond_square", "side_of", "route_target",
-           "route_end", "FightEdge", "ThreatEdge", "GoalEdge"]
+           "route_record", "route_why", "read_route_end", "FightEdge", "ThreatEdge", "GoalEdge"]
 
 
 def _edge_of(p, q):
@@ -221,23 +222,23 @@ def route_target(world, read):
     return (centre(sq), True) if sq is not None else (centre(read["via"]), False)
 
 
-def _route(world, read, start):
+def route_record(world, read, start):
     """P29-A's route record of an `edge_read` read with a way, the leg starting at `start`: `{edge: the door's (door,
-    side), door, start, target, beyond}`."""
+    side), door, start, target, beyond}` (the goal's, the Fight's and the need's fill's route walks)."""
     target, beyond = route_target(world, read)
     return {"edge": (read["door"], read["edge"][1]), "door": read["door"], "start": start, "target": target,
             "beyond": beyond}
 
 
-def _route_why(route):
-    """The `route` why of a route record (`_route`): {door: [x, y], target: [x, y], beyond, start_side}."""
+def route_why(route):
+    """The `route` why of a route record (`route_record`): {door: [x, y], target: [x, y], beyond, start_side}."""
     door, target = route["door"], route["target"]
     return {"door": [door[0], door[1]], "target": [target[0], target[1]], "beyond": route["beyond"],
             "start_side": side_of(route["edge"], route["start"])}
 
 
-def route_end(world, route, toward, reach):
-    """Ruling P29-A: the end of a route leg (`_route`'s record) that ended `done`, read by whether it crossed (the
+def read_route_end(world, route, toward, reach):
+    """Ruling P29-A: the end of a route leg (`route_record`'s record) that ended `done`, read by whether it crossed (the
     frame's position on the other side of the door's edge from the leg's start): one on the start's side notes the
     door's failure (`World.note_door_fail(door, "not crossed", "out")`). Returns the `route_end` why {door, crossed,
     noted, next, dropped}: `next` the door the route reads now toward `toward` within `reach` (the marked doors wall),
@@ -285,9 +286,9 @@ class FightEdge:
         if not cross:
             self._edge_send = (zid, read["edge"], None)
             return "route", WalkTo(*centre(read["via"]), "run")
-        route = _route(self.world, read, me)
+        route = route_record(self.world, read, me)
         self._edge_send = (zid, read["edge"], route)
-        self.why["route"] = _route_why(route)
+        self.why["route"] = route_why(route)
         return "route", WalkTo(route["target"][0], route["target"][1], "walk")   # P29-A: never a run
 
     def _mark_edge(self, zid, edge):
@@ -302,8 +303,8 @@ class FightEdge:
 
     def _observe_edge_route(self):
         """A route walk (`_edge_walk`) that ended any way but done or superseded marks its target across its edge. One
-        sent under `route_cross` (P29-A) that ended done is read by whether it crossed (`route_end` toward its target,
-        kept in `_route_end` for the next choose's why)."""
+        sent under `route_cross` (P29-A) that ended done is read by whether it crossed (`read_route_end` toward its
+        target, kept in `_route_end` for the next choose's why)."""
         w = self._edge_walk
         if w is None or not self.actions.done(w[0]):
             return
@@ -312,7 +313,7 @@ class FightEdge:
         if a.state == "done" and route is not None:
             z = self.world.zombies.get(zid) or {}
             toward = (z["x"], z["y"]) if z.get("x") is not None and z.get("y") is not None else route["target"]
-            self._route_end = route_end(self.world, route, toward, DISENGAGE_R)
+            self._route_end = read_route_end(self.world, route, toward, DISENGAGE_R)
             return
         if a.state != "done" and not (a.state == "failed" and a.reason == PREEMPTED):
             self._mark_edge(zid, edge)
@@ -339,7 +340,7 @@ class ThreatEdge:
 
 class GoalEdge:
     """The goal legs' side of ruling P25-X (`goal_policies._Legs`): `_edge_cmd`; and of ruling P29-A: `edge_route`,
-    the running route leg's record (`_route`'s, with the goal's `toward` and the `reach`), read at its end by
+    the running route leg's record (`route_record`'s, with the goal's `toward` and the `reach`), read at its end by
     `_route_ended`."""
 
     def _edge_cmd(self, world, x, y, reach):
@@ -368,23 +369,23 @@ class GoalEdge:
             self.leg = centre(read["via"])
             self.why = dict(self.why, blocked_edge=edge_why(read, "route"), leg=[self.leg[0], self.leg[1]])
             return WalkTo(self.leg[0], self.leg[1], "walk")
-        route = _route(world, read, me)   # P29-A: the step beyond the far square when open
+        route = route_record(world, read, me)   # P29-A: the step beyond the far square when open
         self.edge_route = dict(route, toward=(x, y), reach=reach)
         self.leg = route["target"]
         self.why = dict(self.why, blocked_edge=edge_why(read, "route"), leg=[self.leg[0], self.leg[1]],
-                        route=_route_why(route))
+                        route=route_why(route))
         return WalkTo(self.leg[0], self.leg[1], "walk")
 
     def _route_ended(self, world, action):
         """Ruling P29-A: the running route leg's (`edge_route`) end, `action` its walk. None when no route leg ran, or
         its walk ended other than done (the caller reads the leg as before); else its end read by whether it crossed
-        (`route_end`, kept in `route_end` for the runner's why) and "next" (the next choose routes by the way it reads
-        now, or walks on once crossed), the goal first ended `failed "blocked edge"`, cooled, when the read finds no
-        way left on the edge."""
+        (`read_route_end`, kept in `route_end` for the runner's why) and "next" (the next choose routes by the way it
+        reads now, or walks on once crossed), the goal first ended `failed "blocked edge"`, cooled, when the read finds
+        no way left on the edge."""
         route, self.edge_route = self.edge_route, None
         if route is None or action.state != "done":
             return None
-        end = route_end(world, route, route["toward"], route["reach"])
+        end = read_route_end(world, route, route["toward"], route["reach"])
         self.route_end = end
         if end["dropped"]:
             self.why = dict(self.why, route_end=end)
