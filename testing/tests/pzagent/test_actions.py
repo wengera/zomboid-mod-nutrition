@@ -189,3 +189,24 @@ def test_an_act_after_done_counts_late_and_changes_nothing(tmp_path):
     acts.pump(tr.lines())
     assert (a.state, a.result, a.ended_wall) == ("done", {}, 1001.0)
     assert acts.late_acts == 1 and acts.unknown_acts == 0
+
+
+@pytest.mark.parametrize("mode", ["strike", "shove", "finish"])
+def test_a_melee_through_actions_check_takes_the_three_modes(mode):
+    """PZA/1.8 (Plan 28 Task 7a fix 1 residuals, review-t7a re-review residual 3): the melee's mode is the schema's
+    meleeMode enum, which actions.check reads through the generated _ENUMS."""
+    from agent.base import actions
+    from agent.base.pza1 import Melee
+    m = Melee(7, mode, 1.475, 2.5, 1.1, 2.75, -1.0, 0.0, 2.5)
+    assert actions.check(m)["mode"] == mode
+
+
+def test_a_melee_through_actions_check_refuses_a_fourth_mode():
+    """The refusal is actions.check's own: the class's construction check is passed first, then a fourth mode set on
+    the frozen command reaches the check."""
+    from agent.base import actions
+    from agent.base.pza1 import Melee
+    m = Melee(7, "strike", 1.475, 2.5, 1.1, 2.75, -1.0, 0.0, 2.5)
+    object.__setattr__(m, "mode", "kick")
+    with pytest.raises(TypeError):
+        actions.check(m)

@@ -26,7 +26,7 @@ local isDead, dist, clearQueue, posOf = K.isDead, K.dist, K.clearQueue, W.posOf
 --   whatever the distance (ruling P28-F: the aimed player faces the mouse, #4589), and its swing faces and presses a
 --   tick later unaimed (PZAgent_SkillsWorld.lua's attackApproach), its approach walk, if any, running unaimed too;
 --   any other skill started (walkTo, steer, climb, a care skill, stop) releases it (K.start's wrapper); a melee
---   superseded by a melee of the same target keeps it (its stop hook), any other end of a melee releases it.
+--   superseded by a melee of the same target or by an aim keeps it (its stop hook); any other melee end releases it.
 -- So no stance outlives the skill holding it: P28-F deleted the idle hold (AIM_HOLD_MS, K.tick's wrapper) that kept
 -- one past an attack's swing, a state no path reaches once the attack's first tick releases it (review-t1b R1).
 -- K.stance.held is the mod's own record of a stance it set; a release is one nullifyAiming under pcall (S-15: a raise

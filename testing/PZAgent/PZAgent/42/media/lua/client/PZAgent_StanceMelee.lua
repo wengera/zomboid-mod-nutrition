@@ -47,7 +47,11 @@
 --       strike; never shove, shove, shove). The miss clears when the leg has run to its end (the player walked keepR
 --       less d at its start, or stood still MELEE_STILL_TICKS ticks: blocked), when the heading is none ((0, 0)), or
 --       when the target leaves keepR; then the next strike is the mode's own (P25-A: a shove read no knockdown is
---       answered by the swing in strike mode; the shove at shoveR in shove mode).
+--       answered by the swing in strike mode; the shove at shoveR in shove mode). Boxed in with no clear heading
+--       ((0, 0), what the planner sends then), the melee strikes back to back, as P28-B2's planner residual rules the
+--       shove-back (its leg only with a clear heading, else the strike), confirmed by the controller: review-t7a's
+--       re-review probe read 13 shoves in shove mode, 12 of them at 0.45 tiles, over 8 s with no back step. The
+--       exposure the other way: a follower faster than the walk gets about 0.6 s at point blank during a full leg.
 --    8. the shove: in shove mode within shoveR; or a target chasing the player (getTarget is the player, T91.1) whose d
 --       fell since the last tick, within shoveR (P28-B1: an unstruck target or one whose miss cleared); a shove's face,
 --       once begun, presses as a shove while the target stays within shoveR.
@@ -63,9 +67,9 @@
 --   shoves, stomps, floors, knockdowns, hits} (the runner's PZA/1.8 progress with a result); done {end, kill, the five
 --   counts, hits, hp0, hp1, dMin, steps {step: ticks}}; failed dead, out of range, crowd {id, d}, no weapon, not
 --   loaded, stood, out of reach, superseded, interrupted. The frame's act.step is K.cur.st.step (K.status).
--- The stance across re-sends: a melee superseded by a melee of the same target keeps it (the stop hook reads
---   K.startingCmd, PZAgent_Stance.lua's K.start wrapper), so the planner's re-send for a fresh heading takes no new one;
---   every other end releases it (done, a failure, a supersede by any other command).
+-- The stance across re-sends: a melee superseded by a melee of the same target or by an aim keeps it (the stop hook
+--   reads K.starting and K.startingCmd, PZAgent_Stance.lua's K.start wrapper), so neither a re-send for a fresh heading
+--   nor a leg beyond keepR takes a new one; every other end releases it (done, a failure, a supersede by anything else).
 -- The cost a tick with no press (counted in test_lua_melee.py): the dead check (2), the target's isDead (1), d (1), the
 --   hit read (1), isOnFloor (1), getTarget where 8, 10 or 11 asks (1) and the facing (1): 8 standing, 9 on the back
 --   leg (its two position reads, no getTarget), 6 while a strike runs; the close adds the two positions (4) and sets its
@@ -450,7 +454,7 @@ K.types.melee = {
         end
         return nil
     end,
-    -- every end but done: the stance released unless a melee of the same target supersedes it, then the shove flag
+    -- every end but done: the stance released unless a melee of the same target or an aim supersedes it, then the shove flag
     stop = function(p, st, reason)
         if ST.held and not keptOnResend(st, reason) then release(p) end
         K.releaseShove(p)
