@@ -1,5 +1,5 @@
 # The agent base
-Verified against 42.21.0 (4a0e9546ec) · 2026-11-02 · scope: the agent base: PZAgent's PZA/1 link, the Python planner, the chained day sessions and the LLM goal source, read live; every row here was taken through the harness ([harness.md](harness.md)), whose rules, profiles and bus are stated there.
+Verified against 42.21.0 (4a0e9546ec) · 2026-11-05 · scope: the agent base: PZAgent's PZA/1 link, the Python planner, the chained day sessions and the LLM goal source, read live (each session's write-up on [agent-sessions.md](agent-sessions.md#agent-sessions)); every row here was taken through the harness ([harness.md](harness.md)), whose rules, profiles and bus are stated there.
 
 <a id="agent"></a>
 ### The agent link and its live readings

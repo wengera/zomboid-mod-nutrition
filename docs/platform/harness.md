@@ -142,7 +142,7 @@ The client `lua.setpath` and a two-sided `lua.call` worked on first live use: a 
 
 The harness Lua is eight files split by load order and by which part of the work owns them [#1771]: `shared/PZTestKit_Core.lua` loads first and carries the global table, the key-value files, the encoder, the bus, results and the witness; `shared/PZTestKit_Test.lua` sorts after it by name and carries the test layer (the game-minute scheduler, the registry and the test commands); `server/PZTestKit_Server.lua` polls the bus and answers the server's witness commands; `server/PZTestKit_Server_Recipes.lua` sorts after it, a dot sorting below an underscore, and carries the recipe readers; `server/scenarios/` holds the smoke and nutrition scenario files under a folder the loader walks recursively; and `client/PZTestKit_Client.lua` (auto-join, the client commands, the round-trip comparison) and `client/PZTestKit_Client_Body.lua` (the client mirror's commands) register into the same table, kept apart so two lines of work cannot collide.
 
-The agent link (the frames it streams, the planner's live readings and the chained sessions, from the agent harness plan on) has its own page, [agent.md](agent.md).
+The agent link (the frames it streams, the planner's live readings and the chained sessions, from the agent harness plan on) has its own page, [agent.md](agent.md), and each session's write-up is on [agent-sessions.md](agent-sessions.md).
 
 <a id="reading-a-reply"></a>
 ### Reading a reply
@@ -329,7 +329,7 @@ What a reading costs depends on which of five layers it needs, and every layer's
 
 ## See also
 
-- [`agent.md`](agent.md) — the agent base that drives a player through this instrument: the frames, the planner and the sessions.
+- [`agent.md`](agent.md) — the agent base that drives a player through this instrument: the frames, the planner and the sessions (their write-ups on [`agent-sessions.md`](agent-sessions.md)).
 - [`harness-commands.md`](../reference/harness-commands.md) — the generated command inventory.
 - [`experiments.md`](../reference/experiments.md) — the named experiment specs, their owners and the cost roll-up.
 - [`lua-platform.md`](lua-platform.md) — the Kahlua dialect, what a protected call catches and the debug client's modal break.
