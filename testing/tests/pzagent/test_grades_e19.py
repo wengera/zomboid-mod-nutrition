@@ -58,6 +58,12 @@ def mdone(aid, t, end, steps, **counts):
     return actl(aid, "melee", "done", t, r)
 
 
+def dead(t, zid):
+    """A state-log `zombie_dead` event `t` seconds into the loop."""
+    return {"kind": "event", "event": "zombie_dead", "id": zid, "seq": int(t * 10), "tick": int(t * 60),
+            "wallMs": int((1000.0 + t) * 1000)}
+
+
 def mv(zid, **why):
     """A threat why sending or holding a melee at `zid` (`dispatch._melee_dispatch`'s keys)."""
     m = {"maneuver": "melee", "target": zid, "mode": "strike", "sends": 1, "step": None, "d": None}
@@ -65,12 +71,13 @@ def mv(zid, **why):
 
 
 def melee_lines():
-    """The state log, in wall order. m1 (a strike at 9, 1.0 to 3.0, failed superseded): face, swing, a hit, stand;
-    m2 (its re-send, 3.0 to 5.0, done time): back twice (the heartbeat), shove, knock_wait, a hit; the ladder's stomp
-    k0 at 6 killing inside m2's span; m3 (a finish at 9, 5.0 to 5.5, done dead, the kill); m4 rejected too far; the
-    attacks a1 (killing 5) and a3 (killing 9 again, not counted twice); m5 (a shove at 3 from 12.0, open: no terminal
-    line, its span to its last line at 12.25). The frames: m1's face, its hit run (two frames), its stand; m2's shove
-    and its hit run; m3's stomp; two runs outside the spans (9.0 inside fight 0, 9.75 in none); m5's close."""
+    """The state log, in wall order. m1 (a strike at 8, never killed, 1.0 to 3.0, failed superseded): face, swing, a
+    hit, stand; m2 (a strike at 9, 3.0 to 5.0, done time): back twice (the heartbeat), shove, knock_wait, a hit; the
+    ladder's stomp k0 at 6 killing inside m2's span; m3 (a finish at 9, 5.0 to 5.5, done dead, the kill); m4 rejected
+    too far; the attacks a1 (killing 5) and a3 (killing 9 again, not counted twice); m5 (a shove at 3 from 12.0, open:
+    no terminal line, its span to its last line at 12.25). The frames: m1's face, its hit run (two frames), its stand;
+    m2's shove and its hit run; m3's stomp; two runs outside the spans (9.0 inside fight 0, 9.75 in none); m5's close.
+    The zombie_dead events: 6, 9, 5 and 11 (a kill no act line reports)."""
     return [
         mf(0.5, act_ms=0, max_ms=1),
         actl("m1", "melee", "accepted", 1.0),
@@ -91,7 +98,7 @@ def melee_lines():
               hits=1),
         actl("m3", "melee", "accepted", 5.0),
         prog("m3", 5.25, "stomp", 0.4, stomps=1), mf(5.25, "m3", "stomp", act_ms=3, max_ms=6),
-        mdone("m3", 5.5, "dead", {"stomp": 18}, stomps=1),
+        mdone("m3", 5.5, "dead", {"stomp": 18}, stomps=1), dead(4.5, 6), dead(5.5, 9), dead(10.5, 5), dead(11.0, 11),
         actl("m4", "melee", "rejected", 8.0, reason="too far"),
         mf(9.0, react="Bite", act_ms=1, max_ms=2), mf(9.5, act_ms=2, max_ms=4),
         mf(9.75, react="Bite", act_ms=1, max_ms=3), mf(9.875, act_ms=1, max_ms=1),
@@ -103,7 +110,7 @@ def melee_lines():
 
 
 def melee_actions():
-    return [row("m1", "melee", 1.0, state="failed", reason="superseded", targetId=9, mode="strike"),
+    return [row("m1", "melee", 1.0, state="failed", reason="superseded", targetId=8, mode="strike"),
             row("m2", "melee", 3.0, targetId=9, mode="strike"), row("k0", "stomp", 4.25, targetId=6),
             row("m3", "melee", 5.0, targetId=9, mode="finish"),
             row("m4", "melee", 8.0, state="rejected", reason="too far", targetId=7, mode="strike"),
@@ -113,11 +120,12 @@ def melee_actions():
 
 
 def melee_log():
-    """Seven threat lines carrying the maneuver: the sends (ladder attack, aim with an early re-send, stomp with a time
-    re-send, attack at 7, shove at 3), a holding line, a re-send logged and not sent; two `melee_end` lines; an
-    attack; a care line sending a melee with a re-send (not read)."""
-    return [aline(0, 1.0, mv(9, ladder="attack"), _act("melee", targetId=9, mode="strike")),
-            aline(1, 2.0, mv(9), None, sent=False),
+    """Seven threat lines carrying the maneuver: the sends (ladder attack at 8, aim with an early re-send at 9, stomp
+    with a time re-send, attack at 7, shove at 3), a holding line, a re-send logged and not sent; two `melee_end`
+    lines; an attack; a care line answering a tick whose threat why carries the maneuver and a `melee_end` (read: the
+    threat's choose ran) beside the care's bandage."""
+    return [aline(0, 1.0, mv(8, ladder="attack"), _act("melee", targetId=8, mode="strike")),
+            aline(1, 2.0, mv(8), None, sent=False),
             aline(2, 3.0, mv(9, ladder="aim", leg="back", melee={"resend": "early"}),
                   _act("melee", targetId=9, mode="strike")),
             aline(3, 5.0, mv(9, ladder="stomp", melee={"resend": "time"}), _act("melee", targetId=9, mode="finish")),
@@ -128,8 +136,8 @@ def melee_log():
                                                                      "end": "too far"}}, None, sent=False),
             aline(7, 9.0, mv(5, ladder="attack", melee={"resend": "early"}), _act("melee", targetId=5), sent=False),
             aline(8, 10.0, {"fight": True, "target": 5}, _act("attack", targetId=5)),
-            aline(9, 11.0, mv(4, ladder="attack", melee={"resend": "time"}), _act("melee", targetId=4),
-                  branch="care"),
+            aline(9, 11.0, mv(4, melee_end={"maneuver": "melee", "target": 3, "end": "crowd"}),
+                  _act("bandage", itemId=50, part=4), branch="care"),
             aline(10, 12.0, mv(3, ladder="shove"), _act("melee", targetId=3, mode="shove"))]
 
 
@@ -149,8 +157,8 @@ MELEE = {"read": True, "sent": 6, "by_mode": {"strike": 4, "finish": 1, "shove":
          "step_ticks": {"back": 30, "shove": 20, "knock_wait": 5, "hit": 5, "stomp": 18},
          "frame_steps": {"face": 1, "hit": 3, "stand": 1, "shove": 1, "stomp": 1, "close": 1},
          "swings": 1, "shoves": 1, "stomps": 1, "floors": 0, "knockdowns": 1, "hits": 2, "kills": 2,
-         "resends": {"early": 1, "time": 1}, "planner_ends": {"dead": 1, "too far": 1},
-         "replaced": {"attack": 2, "aim": 1, "stomp": 1, "shove": 1}, "lines": 7, "mean_span_s": 1.5,
+         "resends": {"early": 1, "time": 1}, "planner_ends": {"dead": 1, "too far": 1, "crowd": 1},
+         "replaced": {"attack": 2, "aim": 1, "stomp": 1, "shove": 1}, "lines": 8, "mean_span_s": 1.5,
          "by_fight": [3, 1], "outside_fights": 0}
 
 
@@ -177,6 +185,19 @@ def test_the_index_finds_the_latest_accepted_span_holding_a_wall_past_a_shorter_
     assert G._Index([]).at(1.0) is None
 
 
+def test_the_index_pairs_a_wall_on_two_abutting_spans_boundary_with_the_later_and_an_end_wall_inside():
+    """review-t7c M2: the re-send's spans abut (the superseded one's end on the next accept's wall)."""
+    assert _boundary_case()
+
+
+def _boundary_case():
+    a, b = {"aid": "a", "accept": 1000.0, "end": 3000.0}, {"aid": "b", "accept": 3000.0, "end": 5000.0}
+    idx = G._Index([a, b])
+    one = {"aid": "c", "accept": 1000.0, "end": 2000.0}
+    return (idx.at(3000.0) is b and idx.at(5000.0) is b and idx.at(1000.0) is a and idx.at(999.0) is None
+            and idx.at(5001.0) is None and G._Index([one]).at(2000.0) is one)
+
+
 def _index_case():
     idx = G._Index([{"aid": "a", "accept": 0.0, "end": 10.0}, {"aid": "b", "accept": 2.0, "end": 3.0}])
     got = idx.at(5.0)
@@ -185,19 +206,40 @@ def _index_case():
 
 # ================================================================ hits_in_melee, the A/B
 HITS_IN = {"read": True, "runs": 4, "inside": 2, "outside": 2, "outside_fight": 1, "kills_inside": 2,
-           "kills_outside": 1, "kills": 3, "per_kill": 4 / 3, "per_kill_inside": 1.0, "per_kill_outside": 2.0}
+           "kills_outside": 1, "kills": 3, "per_kill": 4 / 3, "kills_events": 4, "per_kill_events": 1.0,
+           "per_kill_inside": 1.0, "per_kill_outside": 2.0}
 
 
 def test_the_hits_in_melee_split_the_runs_and_the_kills_by_the_spans():
     g = melee_fixture()
     assert g["hits_in_melee"] == HITS_IN
     assert g["hits"]["runs"] == 4 and g["kills"]["planner"] == 3    # the inherited hits: m3's kill read by none
+    assert g["kills"]["events"] == 4
+
+
+def _kill_ids():
+    lines = melee_lines()
+    return G._kills(T14.artifact(melee_actions(), []), lines, G._Index(G._spans(lines)))
+
+
+def _twice():
+    """Two melees' done lines both reading the kill of 9 (a re-send's late end): one kill."""
+    lines = [actl("m1", "melee", "accepted", 1.0), mdone("m1", 2.0, "dead", {}),
+             actl("m2", "melee", "accepted", 2.0), mdone("m2", 3.0, "dead", {})]
+    acts = [row("m1", "melee", 1.0, targetId=9, mode="strike"), row("m2", "melee", 2.0, targetId=9, mode="strike")]
+    return G._kills(T14.artifact(acts, []), lines, G._Index(G._spans(lines)))
+
+
+def test_the_kills_are_read_by_zombie_once_a_superseded_melee_none():
+    assert _kill_ids() == ([6, 9], [5])
+    assert _twice() == ([9], [])
 
 
 def test_the_hits_in_melee_read_zero_on_quiet_frames_and_unread_without_frames():
     assert grade(log=None, frames=[hf(0.0), hf(1.0)])["hits_in_melee"] == {
         "read": True, "runs": 0, "inside": 0, "outside": 0, "outside_fight": 0, "kills_inside": 0, "kills_outside": 0,
-        "kills": 0, "per_kill": None, "per_kill_inside": None, "per_kill_outside": None}
+        "kills": 0, "per_kill": None, "kills_events": 0, "per_kill_events": None, "per_kill_inside": None,
+        "per_kill_outside": None}
     assert grade(log=CLEAN)["hits_in_melee"] == {"read": False}
 
 
@@ -212,11 +254,12 @@ def _sb(seq, kind, **kw):
 STRIKE = {"read": True, "runs": 2, "by_frame_step": {"hit": 2}, "by_step_before": {"swing": 1, "knock_wait": 1},
           "by_press": {"swing": 1, "shove": 1},
           "rows": [{"seq": 20, "kind": "Bite", "aid": "m1", "frame_aid": "m1", "frame_step": "hit", "prev_step": "face",
-                    "step_before": "swing", "step_before_s": 0.5, "press": {"step": "swing", "before_s": 0.5, "d": 0.9},
+                    "step_before": "swing", "step_before_s": 0.5, "step_before_aid": "m1",
+                    "press": {"step": "swing", "before_s": 0.5, "d": 0.9, "aid": "m1"},
                     "strike_before": _sb(20, "Bite")},
                    {"seq": 47, "kind": "BiteLEFT", "aid": "m2", "frame_aid": "m2", "frame_step": "hit",
-                    "prev_step": "shove", "step_before": "knock_wait", "step_before_s": 0.25,
-                    "press": {"step": "shove", "before_s": 0.75, "d": 1.0},
+                    "prev_step": "shove", "step_before": "knock_wait", "step_before_s": 0.25, "step_before_aid": "m2",
+                    "press": {"step": "shove", "before_s": 0.75, "d": 1.0, "aid": "m2"},
                     "strike_before": _sb(47, "BiteLEFT", type="stomp", aid="k0", before_s=0.5, target=6,
                                          nearest=False)}]}
 
@@ -225,11 +268,48 @@ def test_the_melee_strike_reads_each_hit_inside_a_span_by_its_step_the_step_befo
     assert melee_fixture()["melee_strike"] == STRIKE
 
 
+def resend_fixture(stand=True):
+    """review-t7c M1's probe: m1's swing at 2.7 s, the planner's re-send m2 at 3.0 s (m1 failed superseded), m2's
+    stand at 3.02 s, the hit at 3.3 s inside m2's span: the press read in m1's span."""
+    lines = [actl("m1", "melee", "accepted", 1.0), prog("m1", 2.6, "face", 1.0),
+             prog("m1", 2.7, "swing", 0.95, swings=1),
+             mf(2.9, "m1", "swing"), actl("m1", "melee", "failed", 3.0, reason="superseded"),
+             actl("m2", "melee", "accepted", 3.0)] + ([prog("m2", 3.02, "stand", 0.9)] if stand else []) + [
+             mf(3.3, "m2", "hit", "Bite"),
+             prog("m2", 3.3, "hit", 0.8, hits=1), mf(3.5, "m2", "stand"), mdone("m2", 5.0, "time", {}, hits=1)]
+    acts = [row("m1", "melee", 1.0, state="failed", reason="superseded", targetId=9, mode="strike"),
+            row("m2", "melee", 3.0, targetId=9, mode="strike")]
+    return grade(acts, [], None, lines)["melee_strike"]
+
+
+def _resend_step_m1():
+    """The probe without m2's stand: the step before the hit is m1's swing, read across the boundary."""
+    return resend_fixture(stand=False)["rows"][0]["step_before_aid"]
+
+
+def _wall_s(t0, t1):
+    """The seconds between two fixture walls as the grade reads them (each `int((T0 + t) * 1000)` ms)."""
+    return round((int((1000.0 + t1) * 1000) - int((1000.0 + t0) * 1000)) / 1000.0, 3)
+
+
+def test_the_melee_strike_reads_a_press_across_the_re_send_s_boundary():
+    st = resend_fixture()
+    assert st["runs"] == 1 and st["by_press"] == {"swing": 1} and st["by_step_before"] == {"stand": 1}
+    r = st["rows"][0]
+    assert (r["aid"], r["frame_step"], r["prev_step"]) == ("m2", "hit", "swing")
+    assert r["press"] == {"step": "swing", "before_s": _wall_s(2.7, 3.3), "d": 0.95, "aid": "m1"}
+    assert (r["step_before"], r["step_before_s"], r["step_before_aid"]) == ("stand", _wall_s(3.02, 3.3), "m2")
+    bare = resend_fixture(stand=False)["rows"][0]      # m2 wrote no line before the hit: m1's swing is the step before
+    assert (bare["step_before"], bare["step_before_s"], bare["step_before_aid"]) == ("swing", _wall_s(2.7, 3.3), "m1")
+
+
 def test_the_melee_strike_reads_no_press_beyond_the_window_and_zero_without_a_span():
-    span = {"progress": [(1000.0, {"step": "swing", "d": 0.9}), (3200.0, {"step": "stand", "d": 1.0})]}
-    assert G._press_before(span, 3500.0) is None
-    assert G._press_before(span, 2900.0) == {"step": "swing", "before_s": 1.9, "d": 0.9}
-    assert G._step_before({"progress": [(1.0, {"step": "hit"})]}, 2.0) == (None, None)
+    prog_ = G._progress([{"aid": "x", "progress": [(1000.0, {"step": "swing", "d": 0.9}),
+                                                    (3200.0, {"step": "stand", "d": 1.0})]}])
+    assert G._press_before(prog_, 3500.0) is None
+    assert G._press_before(prog_, 2900.0) == {"step": "swing", "before_s": 1.9, "d": 0.9, "aid": "x"}
+    assert G._step_before(prog_, 3500.0) == ("stand", 0.3, "x") and G._step_before(prog_, 5300.0) == (None, None, None)
+    assert G._step_before(G._progress([{"aid": "y", "progress": [(1.0, {"step": "hit"})]}]), 2.0) == (None, None, None)
     assert grade(log=None, frames=[hf(0.0, "Bite"), hf(1.0)])["melee_strike"] == {
         "read": True, "runs": 0, "by_frame_step": {}, "by_step_before": {}, "by_press": {}, "rows": []}
     assert grade(log=CLEAN)["melee_strike"] == {"read": False}
@@ -353,6 +433,15 @@ MUTANTS = [
      lambda: M()["steps"] == MELEE["steps"]),
     ("_Index", lambda b: b.replace("j -= 1", "break"), _index_case),
     ("_Index", lambda b: b.replace('if self.spans[j]["end"] >= w:', "if True:"), _index_case),
+    ("_Index", lambda b: b.replace("bisect.bisect_right(self.accepts, w)", "bisect.bisect_left(self.accepts, w)"),
+     _boundary_case),
+    ("_Index", lambda b: b.replace('if self.spans[j]["end"] >= w:', 'if self.spans[j]["end"] > w:'), _boundary_case),
+    ("_Index", lambda b: b.replace("self.reach[j] >= w", "self.reach[j] > w"), _boundary_case),
+    ("_kills", lambda b: b.replace("if zid is None or zid in seen:", "if zid is None or (zid in seen and t != MELEE):"),
+     lambda: _twice() == ([9], [])),
+    ("_kills", lambda b: b.replace('(t == MELEE and r.get("kill") is True)',
+                                   '(t == MELEE and ln.get("state") in G14.TERMINAL)'),
+     lambda: _kill_ids() == ([6, 9], [5])),
     ("_kills", lambda b: b.replace("zid in seen", "False"), lambda: H()["kills_outside"] == 1),
     ("_kills", lambda b: b.replace(" or idx.at(E._n(ln.get(\"wallMs\"))) is not None", ""),
      lambda: H()["kills_inside"] == 2),
@@ -364,7 +453,9 @@ MUTANTS = [
     ("e_melee", lambda b: b.replace("G14._inc(ticks, st, E._n(n) or 0)", "G14._inc(ticks, st)"),
      lambda: M()["step_ticks"] == MELEE["step_ticks"]),
     ("e_melee", lambda b: b.replace("if not E._sent(ln, MELEE):", "if False:"), lambda: M()["resends"]["early"] == 1),
-    ("e_melee", lambda b: b.replace('if ln.get("branch") != "threat":', "if False:"), lambda: M()["lines"] == 7),
+    ("e_melee", lambda b: b.replace("for ln in L.rows:",
+                                    'for ln in [r for r in L.rows if r.get("branch") == "threat"]:'),
+     lambda: M()["lines"] == 8 and M()["planner_ends"]["crowd"] == 1),
     ("e_melee", lambda b: b.replace('"open" if aid not in terms and aid in accepted else ', ""),
      lambda: M()["ends"]["open"] == 1),
     ("e_melee", lambda b: b.replace(' if s["terminal"] is not None]', "]"), lambda: M()["mean_span_s"] == 1.5),
@@ -382,13 +473,22 @@ MUTANTS = [
     ("e_hits_in_melee", lambda b: b.replace("if idx.at(w) is not None:", "if False:"), lambda: H()["inside"] == 2),
     ("e_hits_in_melee", lambda b: b.replace('"per_kill": _per(len(runs), ki + ko)', '"per_kill": _per(len(runs), ko)'),
      lambda: H()["per_kill"] == 4 / 3),
+    ("e_hits_in_melee", lambda b: b.replace('"per_kill_events": _per(len(runs), ev)',
+                                            '"per_kill_events": _per(len(runs), ki + ko)'),
+     lambda: H()["per_kill_events"] == 1.0),
     # melee_strike
     ("_step_before", lambda b: b.replace('if r.get("step") != HIT_STEP:', "if True:"),
      lambda: S()["rows"][0]["step_before"] == "swing"),
     ("_press_before", lambda b: b.replace('if r.get("step") in PRESS_STEPS:', 'if r.get("step") is not None:'),
      lambda: S()["rows"][1]["press"]["step"] == "shove"),
-    ("_press_before", lambda b: b.replace("w - STRIKE_BEFORE_S * 1000.0", "w - 1e9"),
-     lambda: G._press_before({"progress": [(1000.0, {"step": "swing", "d": 0.9})]}, 3500.0) is None),
+    ("_back", lambda b: b.replace("w - STRIKE_BEFORE_S * 1000.0", "w - 1e9"),
+     lambda: G._press_before(G._progress([{"aid": "x", "progress": [(1000.0, {"step": "swing", "d": 0.9})]}]),
+                             3500.0) is None),
+    ("e_melee_strike", lambda b: b.replace("press = _press_before(prog, w)",
+                                           "press = _press_before(_progress([span]), w)"),
+     lambda: resend_fixture()["by_press"] == {"swing": 1}),
+    ("e_melee_strike", lambda b: b.replace("_step_before(prog, w)", "_step_before(_progress([span]), w)"),
+     lambda: resend_fixture()["rows"][0]["step_before_aid"] == "m2" and _resend_step_m1() == "m1"),
     ("e_melee_strike", lambda b: b.replace("frames[i - 1]", "frames[i]"),
      lambda: S()["rows"][1]["prev_step"] == "shove"),
     ("e_melee_strike", lambda b: b.replace("if span is None:", "if False:"), lambda: S()["runs"] == 2),
@@ -443,7 +543,8 @@ def test_grade_e19_on_e21_keeps_every_grade_e18_key_as_the_committed_e_grade_txt
     hm = g["hits_in_melee"]
     k = g["kills"]["planner"]
     assert (hm["inside"], hm["kills_inside"], hm["kills_outside"], hm["kills"]) == (0, 0, 4, 4) == (0, 0, k, k)
-    assert hm["per_kill"] == hm["per_kill_outside"] == g["hits"]["per_kill"] == 0.0
+    assert hm["per_kill"] == hm["per_kill_outside"] == hm["per_kill_events"] == g["hits"]["per_kill"] == 0.0
+    assert hm["kills_events"] == g["kills"]["events"] == 4
     assert hm["runs"] == hm["outside"] == g["hits"]["runs"]
     assert g["melee_strike"]["runs"] == 0 and g["melee_cost"]["inside"]["frames"] == 0
     assert g["melee_cost"]["outside"]["frames"] == len(E._frame_index(E.session_lines(E21)[0])[1])

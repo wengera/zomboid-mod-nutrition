@@ -26,12 +26,15 @@ def report_lines_f10(g):
 
 def grade_f10(out, prev=None, decision_lines=None, state_dir=None, lines=None, goal_lines=None):
     """grade_f9 under "grade_f10" with the four readings of pass 19 (`e19.readings_e19`), over the state lines of
-    `state_dir` unless `lines` is given; `melee` {"read": False} without a decision log, the other three without a
-    frame."""
+    `state_dir` unless `lines` is given, read once and handed down (`frames_files` restored, as `grade_e7` does over
+    `grade_e6`); `melee` {"read": False} without a decision log, the other three without a frame."""
+    files = []
+    if lines is None:
+        lines, files = E.session_lines(state_dir) if state_dir is not None else ([], [])
     g = G9.grade_f9(out, prev, decision_lines, state_dir, lines, goal_lines)
     g["grade"] = "grade_f10"
-    if lines is None:
-        lines = E.session_lines(state_dir)[0] if state_dir is not None else []
+    if files and "frames_files" in g:
+        g["frames_files"] = files                      # grade_f9 was handed the lines, so it did not see the files
     g.update(G19.readings_e19(out, decision_lines, lines))
     g["report_lines"] = report_lines_f10(g)
     return g

@@ -107,7 +107,9 @@ def test_grade_f10_on_f12_keeps_every_grade_f9_key_as_the_committed_f_grade_txt_
     assert g["melee"] == T19._zero_melee(19)
     assert g["hits_in_melee"] == {"read": True, "runs": 9, "inside": 0, "outside": 9, "outside_fight": 9,
                                   "kills_inside": 0, "kills_outside": 4, "kills": 4, "per_kill": 2.25,
-                                  "per_kill_inside": None, "per_kill_outside": 2.25}
+                                  "kills_events": 4, "per_kill_events": 2.25, "per_kill_inside": None,
+                                  "per_kill_outside": 2.25}
+    assert g["kills"]["events"] == 4
     assert g["kills"]["planner"] == 4 and g["hits"]["runs"] == 9 and g["hits"]["per_kill"] == 2.25
     assert g["melee_strike"]["runs"] == 0 and g["melee_cost"]["inside"]["frames"] == 0
     assert g["melee_cost"]["outside"]["frames"] == len(E._frame_index(E.session_lines(F12)[0])[1])

@@ -13,10 +13,16 @@ the artifact's actions and fights and the decision log's why fields:
                  spans per fight.
   hits_in_melee  the A/B of the architecture review's section 5.1: the reaction runs whose first frame lies inside a
                  span against those outside (and of those, inside a `loop.fights` span: the ladder's fights), the kills
-                 inside and outside, the runs per kill each side.
-  melee_strike   per run inside a span: the frame's act.step on its first frame and on the frame before, the span's
-                 last progress step before it other than `hit`, the last press step (swing, shove, stomp, floor) within
-                 STRIKE_BEFORE_S before it, and the strike before it as `hits.strike_before` reads it.
+                 inside and outside, the runs per kill each side, and the runs over every act line's kill and over
+                 the `zombie_dead` events (the session's count, which the inherited `kills.planner` is not: it reads
+                 `targetDead` alone, and a melee's done carries `kill`).
+  melee_strike   per run inside a span: the frame's act.step on its first frame and on the frame before, the last
+                 melee progress step before it other than `hit` and the last press step (swing, shove, stomp, floor),
+                 each within STRIKE_BEFORE_S and read across the spans (a press in a span the planner's re-send
+                 superseded still reads before a hit in the next), and the strike before it as `hits.strike_before`
+                 reads it. A swing's press is exact (its `face` step turns `swing` on the press tick); a shove's face
+                 is already step `shove`, so its press reads at the face's first progress line, up to K.FACE_TICKS
+                 ticks early (an inference).
   melee_cost     the frames' `cost.actMs` and `cost.maxActMs` inside the spans against outside: frames, mean and max.
 
 A span is a melee's accepted act line's wallMs to its terminal line's (an open span, a melee with no terminal line, to
@@ -168,11 +174,12 @@ def e_melee(out, L, lines, frames, spans, kills_in):
     lines' steps by name, an entry counted once (a step repeated by the once-a-second heartbeat is not a new entry);
     `step_ticks` the done lines' `steps` {step: ticks} summed; `frame_steps` the frames reading `act.step` by step (the
     cross-check, frames at the frame rate); the six counts each span's last result carrying the count, summed; `kills`
-    the kills inside the spans (`_kills`); and off the decision log's threat lines: `resends` the lines sending a melee
-    whose why carries `melee` {resend} by kind, `planner_ends` the `melee_end` {end} lines by end, `replaced` the
-    lines sending a melee by the why's `ladder` (the ladder's command it replaced), `lines` those whose why's
-    `maneuver` reads melee. Inference off the walls: `mean_span_s` the mean accept-to-end of the spans with a terminal
-    line, `by_fight` the spans accepted in each `loop.fights` row's span, `outside_fights` the rest."""
+    and off the decision log's threat why on every line (whatever branch answered it): `resends` the lines sending a
+    melee whose why carries `melee` {resend} by kind, `planner_ends` the `melee_end` {end} lines by end, `replaced`
+    the lines sending a melee by the why's `ladder` (the ladder's command it replaced), `lines` those whose why's
+    `maneuver` reads melee. Inference off the walls: `kills` the kills inside the spans (`_kills`: a melee's own
+    `kill`, and a ladder's `targetDead` by its wall), `mean_span_s` the mean accept-to-end of the spans with a
+    terminal line, `by_fight` the spans accepted in each `loop.fights` row's span, `outside_fights` the rest."""
     if L is None:
         return {"read": False}
     rows = [E._d(a) for a in E._l(E._d(E._d(out).get("loop")).get("actions")) if E._d(a).get("type") == MELEE]
@@ -206,9 +213,7 @@ def e_melee(out, L, lines, frames, spans, kills_in):
         if isinstance(st, str):
             G14._inc(frame_steps, st)
     resends, pends, replaced, n = {}, {}, {}, 0
-    for ln in L.rows:
-        if ln.get("branch") != "threat":
-            continue
+    for ln in L.rows:   # the threat's why sits on every line (a care line answering after the threat chose too)
         w = L.why(ln)
         n += 1 if E._d(w.get("maneuver")).get("maneuver") == MELEE else 0
         me = w.get("melee_end")
@@ -236,15 +241,17 @@ def e_melee(out, L, lines, frames, spans, kills_in):
 
 
 # ---------------------------------------------------------------- hits_in_melee
-def e_hits_in_melee(out, frames, idx, kills):
+def e_hits_in_melee(out, frames, lines, idx, kills):
     """The hits inside and outside the melee spans (the review's section 5.1 A/B): {read, runs, inside, outside,
-    outside_fight, kills_inside, kills_outside, kills, per_kill, per_kill_inside, per_kill_outside} ({"read": False}
-    without a frame). Reading: `runs` the reaction runs (`e18._hit_runs`), `kills_inside` and `kills_outside`
-    (`_kills`), `kills` their sum and `per_kill` the runs over it (the session's hits per kill with a melee's `kill`
-    counted, which the inherited `kills.planner`, read off `targetDead` alone, misses). Inference off the walls:
-    `inside` the runs whose first frame lies in a span, `outside` the rest, `outside_fight` those of the rest inside a
-    `loop.fights` row's span (the fights the ladder ran), `per_kill_inside` and `per_kill_outside` each side's runs
-    over its kills (None at 0 kills)."""
+    outside_fight, kills_inside, kills_outside, kills, per_kill, kills_events, per_kill_events, per_kill_inside,
+    per_kill_outside} ({"read": False} without a frame). Reading: `runs` the reaction runs (`e18._hit_runs`), `kills`
+    the act lines' kills (`_kills`: a melee's `kill` and a SWING_TYPES `targetDead`, each zombie once) and `per_kill`
+    the runs over them, `kills_events` the `zombie_dead` events (`gates_e._dead_events`, the session's count: a kill no
+    act line reports is there alone) and `per_kill_events` the runs over them (the session's hits per kill; the
+    inherited `kills.planner`, read off `targetDead` alone, misses a melee's kill). Inference off the walls:
+    `kills_inside` and `kills_outside` (a ladder's kill placed by its wall), `inside` the runs whose first frame lies
+    in a span, `outside` the rest, `outside_fight` those of the rest inside a `loop.fights` row's span (the fights the
+    ladder ran), `per_kill_inside` and `per_kill_outside` each side's runs over its kills (None at 0 kills)."""
     if not frames:
         return {"read": False}
     runs = G18._hit_runs(frames)
@@ -257,10 +264,11 @@ def e_hits_in_melee(out, frames, idx, kills):
             continue
         outside += 1
         in_fight += 1 if _fight_of(fights, t0, w) is not None else 0
-    ki, ko = len(kills[0]), len(kills[1])
+    ki, ko, ev = len(kills[0]), len(kills[1]), len(E._dead_events(lines))
     return {"read": True, "runs": len(runs), "inside": inside, "outside": outside, "outside_fight": in_fight,
             "kills_inside": ki, "kills_outside": ko, "kills": ki + ko, "per_kill": _per(len(runs), ki + ko),
-            "per_kill_inside": _per(inside, ki), "per_kill_outside": _per(outside, ko)}
+            "kills_events": ev, "per_kill_events": _per(len(runs), ev), "per_kill_inside": _per(inside, ki),
+            "per_kill_outside": _per(outside, ko)}
 
 
 # ---------------------------------------------------------------- melee_strike
@@ -269,36 +277,48 @@ def _act_of(f):
     return a.get("aid"), a.get("step")
 
 
-def _step_before(span, w):
-    """The span's last progress line at or before wall ms `w` whose step is not HIT_STEP: (step, seconds before)."""
-    for pw, r in reversed(span["progress"]):
-        if pw is None or pw > w:
-            continue
+def _progress(spans):
+    """([wallMs], [(wallMs, aid, result)]): every melee progress line of the spans in wall order (a tie in accept and
+    log order), so a look-back crosses the spans' boundaries."""
+    rows = sorted(((w, s["aid"], r) for s in spans for w, r in s["progress"] if w is not None), key=lambda p: p[0])
+    return [w for w, _, _ in rows], rows
+
+
+def _back(prog, w):
+    """The progress rows at or before wall ms `w` and within STRIKE_BEFORE_S of it, latest first."""
+    walls, rows = prog
+    j = bisect.bisect_right(walls, w) - 1
+    while j >= 0 and walls[j] >= w - STRIKE_BEFORE_S * 1000.0:
+        yield rows[j]
+        j -= 1
+
+
+def _step_before(prog, w):
+    """The last melee progress line within STRIKE_BEFORE_S at or before wall ms `w` whose step is not HIT_STEP:
+    (step, seconds before, its aid), else (None, None, None)."""
+    for pw, aid, r in _back(prog, w):
         if r.get("step") != HIT_STEP:
-            return r.get("step"), round((w - pw) / 1000.0, 3)
-    return None, None
+            return r.get("step"), round((w - pw) / 1000.0, 3), aid
+    return None, None, None
 
 
-def _press_before(span, w):
-    """The span's last progress line within STRIKE_BEFORE_S at or before wall ms `w` whose step is a PRESS_STEPS step:
-    {step, before_s, d}, else None."""
-    for pw, r in reversed(span["progress"]):
-        if pw is None or pw > w:
-            continue
-        if pw < w - STRIKE_BEFORE_S * 1000.0:
-            return None
+def _press_before(prog, w):
+    """The last melee progress line within STRIKE_BEFORE_S at or before wall ms `w` whose step is a PRESS_STEPS step:
+    {step, before_s, d, aid}, else None (a shove's read at its face: the module docstring)."""
+    for pw, aid, r in _back(prog, w):
         if r.get("step") in PRESS_STEPS:
-            return {"step": r.get("step"), "before_s": round((w - pw) / 1000.0, 3), "d": E._n(r.get("d"))}
+            return {"step": r.get("step"), "before_s": round((w - pw) / 1000.0, 3), "d": E._n(r.get("d")), "aid": aid}
     return None
 
 
-def e_melee_strike(out, frames, lines, idx):
+def e_melee_strike(out, frames, lines, idx, prog):
     """The strike before each hit inside a melee span, by step: {read, runs, by_frame_step, by_step_before, by_press,
     rows} ({"read": False} without a frame). Reading, per run whose first frame lies in a span (`rows`): {seq, kind,
     aid (the span's), frame_aid and frame_step (the first frame's `act.aid` and `act.step`, PZA/1.8), prev_step (the
-    frame before it's `act.step`)}; inference off the order of lines: `step_before` and `step_before_s` (the span's
-    last progress step at or before the frame other than HIT_STEP, `_step_before`), `press` (the last press step within
-    STRIKE_BEFORE_S, `_press_before`: {step, before_s, d}, else None) and `strike_before` (the run's strike as
+    frame before it's `act.step`)}; inference off the order of lines, over every melee's progress lines (`_progress`,
+    across the spans): `step_before`, `step_before_s` and `step_before_aid` (the last progress step within
+    STRIKE_BEFORE_S at or before the frame other than HIT_STEP, `_step_before`), `press` (the last press step within
+    STRIKE_BEFORE_S, `_press_before`: {step, before_s, d, aid}, else None) and `strike_before` (the run's strike as
     `hits.strike_before` reads it, `e18._strike_before`: the last accepted shove, attack or stomp within
     STRIKE_BEFORE_S). `by_frame_step`, `by_step_before` and `by_press` tally the rows' frame_step, step_before and
     press step ("None" where unread)."""
@@ -315,11 +335,12 @@ def e_melee_strike(out, frames, lines, idx):
         i = pos[id(f)]
         aid, step = _act_of(f)
         prev = _act_of(frames[i - 1])[1] if i > 0 else None
-        sb, sb_s = _step_before(span, w)
-        press = _press_before(span, w)
+        sb, sb_s, sb_aid = _step_before(prog, w)
+        press = _press_before(prog, w)
         rows.append({"seq": f.get("seq"), "kind": G18._reaction(f), "aid": span["aid"], "frame_aid": aid,
                      "frame_step": step, "prev_step": prev, "step_before": sb, "step_before_s": sb_s,
-                     "press": press, "strike_before": G18._strike_before(acc, ends, targets, f)})
+                     "step_before_aid": sb_aid, "press": press,
+                     "strike_before": G18._strike_before(acc, ends, targets, f)})
         G14._inc(by_frame, str(step))
         G14._inc(by_before, str(sb))
         G14._inc(by_press, str(press["step"] if press is not None else None))
@@ -360,8 +381,9 @@ def readings_e19(out, decision_lines, lines):
     idx = _Index(spans)
     kills = _kills(out, lines, idx)
     return {"melee": e_melee(out, L, lines, frames, spans, kills[0]),
-            "hits_in_melee": e_hits_in_melee(out, frames, idx, kills),
-            "melee_strike": e_melee_strike(out, frames, lines, idx), "melee_cost": e_melee_cost(frames, idx)}
+            "hits_in_melee": e_hits_in_melee(out, frames, lines, idx, kills),
+            "melee_strike": e_melee_strike(out, frames, lines, idx, _progress(spans)),
+            "melee_cost": e_melee_cost(frames, idx)}
 
 
 def lines_e19(g):
@@ -369,21 +391,23 @@ def lines_e19(g):
     me, hm, ms, mc = (E._d(g.get(k)) for k in NEW)
     out = []
     out.append(("melee (iteration 22) [reading]: %s sent by mode %s, %s accepted, ends %s, steps %s, ticks per step "
-                "%s, frames per act.step %s, swings %s shoves %s stomps %s floors %s knockdowns %s hits %s, %s kills "
-                "inside, re-sends %s, the planner's ends %s, replaced %s, %s maneuver lines; [inference] the mean span "
-                "%s s, spans by fight %s, %s outside a fight" % (
+                "%s, frames per act.step %s, swings %s shoves %s stomps %s floors %s knockdowns %s hits %s, "
+                "re-sends %s, the planner's ends %s, replaced %s, %s maneuver lines; [inference] %s kills inside the "
+                "spans (a ladder's by its wall), the mean span %s s, spans by fight %s, %s outside a fight" % (
                     me.get("sent"), me.get("by_mode"), me.get("accepted"), me.get("ends"), me.get("steps"),
                     me.get("step_ticks"), me.get("frame_steps"), me.get("swings"), me.get("shoves"),
-                    me.get("stomps"), me.get("floors"), me.get("knockdowns"), me.get("hits"), me.get("kills"),
-                    me.get("resends"), me.get("planner_ends"), me.get("replaced"), me.get("lines"),
+                    me.get("stomps"), me.get("floors"), me.get("knockdowns"), me.get("hits"), me.get("resends"),
+                    me.get("planner_ends"), me.get("replaced"), me.get("lines"), me.get("kills"),
                     me.get("mean_span_s"), me.get("by_fight"), me.get("outside_fights")))
                if me.get("read") else "melee (iteration 22): no decision log read")
-    out.append(("hits in melee (iteration 22, the A/B) [reading]: %s reaction runs over %s kills (%s a kill, a "
-                "melee's kill counted), %s kills inside the spans and %s outside; [inference] %s runs inside (%s a "
-                "kill), %s outside (%s a kill), %s of those in a fight" % (
-                    hm.get("runs"), hm.get("kills"), hm.get("per_kill"), hm.get("kills_inside"),
-                    hm.get("kills_outside"), hm.get("inside"), hm.get("per_kill_inside"), hm.get("outside"),
-                    hm.get("per_kill_outside"), hm.get("outside_fight")))
+    out.append(("hits in melee (iteration 22, the A/B) [reading]: %s reaction runs over %s zombie_dead events (%s a "
+                "kill, the session's), over %s act-line kills (%s a kill, a melee's kill counted); [inference] %s "
+                "kills inside the spans and %s outside (a ladder's by its wall), %s runs inside (%s a kill), %s "
+                "outside (%s a kill), %s of those in a fight" % (
+                    hm.get("runs"), hm.get("kills_events"), hm.get("per_kill_events"), hm.get("kills"),
+                    hm.get("per_kill"), hm.get("kills_inside"), hm.get("kills_outside"), hm.get("inside"),
+                    hm.get("per_kill_inside"), hm.get("outside"), hm.get("per_kill_outside"),
+                    hm.get("outside_fight")))
                if hm.get("read") else "hits in melee (iteration 22): no frames read")
     out.append(("melee strike (iteration 22) [reading]: %s runs inside a span by the first frame's act.step %s; "
                 "[inference] by the step before %s, by the press within STRIKE_BEFORE_S %s" % (
