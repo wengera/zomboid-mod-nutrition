@@ -108,8 +108,9 @@ def found(lua, name):
 
 
 def sweep(lua, w, names=("hen", "turkey")):
-    """Ticks until every named hutch's master square is found (one sweep is 64 ticks), then clears the call log."""
-    for _ in range(64):
+    """Ticks until every named hutch's master square is found (one sweep is 8 ticks, a row of 8 squares each), then
+    clears the call log."""
+    for _ in range(8):
         if all(found(lua, n) is not None for n in names):
             break
         guard(lua)
@@ -134,28 +135,32 @@ def test_the_table_holds_the_two_fixture_hutches_chunk_origins(lua):
     assert lua.eval("PZA.hutch.CHUNK") == 8
 
 
-def test_the_sweep_reads_one_square_a_hutch_a_tick_and_skips_a_slave_tile(lua):
+def row(origin, r):
+    """The getHutch calls of one sweep tick over row r of the chunk at origin."""
+    return [("getHutch", origin[0] + i, origin[1] + r, 0) for i in range(8)]
+
+
+def test_the_sweep_reads_a_row_of_eight_squares_a_hutch_a_tick_and_skips_a_slave_tile(lua):
     load(lua)
     w = World(lua)
     w.hen()
     guard(lua)
-    assert w.calls == [("getHutch", HEN[0], HEN[1], 0), ("getHutch", TURKEY[0], TURKEY[1], 0)]
-    for _ in range(64):
-        if found(lua, "hen") is not None:
-            break
-        guard(lua)
+    assert w.calls == row(HEN, 0) + row(TURKEY, 0)
+    guard(lua, 2)                                                # the master is on row 2: found on the third tick
     assert found(lua, "hen") == HEN_MASTER
+    hen_row2 = [c for c in w.calls[32:] if c[0] != "getHutch" or c[1] < TURKEY[0]]
+    assert hen_row2 == row(HEN, 2)[:3] + [("isSlave",)] + [row(HEN, 2)[3], ("isSlave",)]   # stops at the master
     assert ("isSlave",) in w.calls                               # the slave tile was asked and passed over
     assert found(lua, "turkey") is None                         # its chunk is not loaded: still sweeping
     assert any("found the hen hutch at 10723,10594" in p for p in w.printed)
 
 
-def test_the_sweep_covers_the_chunks_64_squares_and_wraps(lua):
+def test_the_sweep_covers_the_chunks_64_squares_in_eight_ticks_and_wraps(lua):
     load(lua)
     w = World(lua)
-    guard(lua, 65)
+    guard(lua, 9)
     hen = [(c[1], c[2]) for c in w.calls if c[0] == "getHutch" and c[1] < TURKEY[0]]
-    assert len(set(hen)) == 64 and hen[64] == HEN
+    assert len(hen) == 72 and len(set(hen[:64])) == 64 and hen[64:] == [(x, y) for _, x, y, _ in row(HEN, 0)]
     assert {x for x, _ in hen} == set(range(HEN[0], HEN[0] + 8))
     assert {y for _, y in hen} == set(range(HEN[1], HEN[1] + 8))
 
@@ -174,8 +179,8 @@ def test_a_tick_with_a_null_value_clears_the_map_once_and_logs_the_clear(lua):
     assert w.guard_calls().count(("clear",)) == 1
     assert lua.eval("PZA.hutch.clears") == 1
     tick = lua.globals().PZA.tick
-    assert clears(w) == ["[PZAgent] hutch guard: cleared the hen hutch at 10723,10594 (tick %d, 3 entries, clear 1)"
-                         % tick]
+    assert clears(w) == ["[PZAgent] hutch guard: cleared the hen hutch at 10723,10594 (tick %d, 3 entries, clear 1, "
+                         "0 unlogged since the last line)" % tick]
     guard(lua, 3)                                                # cleared: nothing more to clear
     assert w.guard_calls().count(("clear",)) == 1 and lua.eval("PZA.hutch.clears") == 1
 
@@ -230,6 +235,20 @@ def test_a_reloaded_hutch_is_read_again_and_its_null_cleared(lua):
     assert lua.eval("PZA.hutch.clears") == 1
 
 
+def test_a_new_hutch_object_on_the_next_tick_is_read_by_its_identity_alone(lua):
+    """No nil tick between the two objects (a reload within one tick), so only the identity check sees the change."""
+    load(lua)
+    w = World(lua)
+    first = w.hen()
+    sweep(lua, w, ("hen",))
+    guard(lua)
+    second = w.hen({0: "hen1", 4: None})                         # replaced in place: getHutch never answered nil
+    w.calls.clear()
+    guard(lua)
+    assert ("getAnimalInside",) in w.calls and second.d == {} and first.d == {0: "hen1", 1: "hen2"}
+    assert lua.eval("PZA.hutch.clears") == 1
+
+
 def test_the_turkey_hutchs_square_the_same(lua):
     load(lua)
     w = World(lua)
@@ -255,6 +274,47 @@ def test_the_per_tick_cost_is_two_java_calls_a_loaded_hutch_with_no_null(lua):
                        ("getHutch", TURKEY_MASTER[0], TURKEY_MASTER[1], 0), ("containsValue", None)]
 
 
+def test_the_sweeps_budget_is_eight_get_hutch_calls_a_hutch_a_tick(lua):
+    load(lua)
+    w = World(lua)
+    for _ in range(8):
+        w.calls.clear()
+        guard(lua)
+        assert len(w.calls) == 8 + 8                             # nothing loaded: one row of each chunk
+    w.hen()
+    w.calls.clear()
+    guard(lua, 3)                                                # rows 0, 1 and 2: the hen found on row 2
+    assert len([c for c in w.calls if c[0] == "getHutch"]) <= 3 * (8 + 8)
+
+
+# ---- the clear log, rate-limited -------------------------------------------------------------------------------------
+
+def test_the_clear_log_is_one_line_a_hutch_per_hutch_log_s_while_every_clear_counts(lua):
+    """A hen in a nest box: every packet rewrites the null, so the guard clears once a packet; the console takes one
+    line a hutch per HUTCH_LOG_S and the next line counts the clears left unlogged."""
+    load(lua)
+    g = lua.globals()
+    w = World(lua)
+    amap = w.hen()
+    tmap = w.turkey()
+    sweep(lua, w)
+    assert lua.eval("PZA.hutch.HUTCH_LOG_S") == 10
+    for _ in range(5):                                           # five packets' nulls inside one second
+        amap.d[2] = None
+        guard(lua)
+        g._clock["ms"] += 200
+    tmap.d[1] = None
+    guard(lua)
+    assert lua.eval("PZA.hutch.clears") == 6
+    lines = clears(w)
+    assert len(lines) == 2 and "the hen hutch" in lines[0] and "the turkey hutch" in lines[1]
+    g._clock["ms"] += 10000
+    amap.d[2] = None
+    guard(lua)
+    lines = clears(w)
+    assert len(lines) == 3 and "clear 7, 4 unlogged since the last line" in lines[2]
+
+
 # ---- absent members --------------------------------------------------------------------------------------------------
 
 def test_get_hutch_absent_is_named_once_and_the_guard_stands_down(lua):
@@ -263,6 +323,7 @@ def test_get_hutch_absent_is_named_once_and_the_guard_stands_down(lua):
     lua.globals().getHutch = None
     guard(lua, 3)
     assert missing(lua) == ["getHutch"]
+    assert [p for p in w.printed if "stood down" in p] == ["[PZAgent] hutch guard: stood down, getHutch absent"]
     lua.globals().getHutch = w.get_hutch                         # back: the guard stays down
     w.hen({0: None})
     guard(lua, 70)
@@ -277,6 +338,7 @@ def test_get_animal_inside_absent_is_named_once_and_the_guard_stands_down(lua):
     sweep(lua, w, ("hen",))
     guard(lua, 3)
     assert missing(lua) == ["getAnimalInside"]
+    assert [p for p in w.printed if "stood down" in p] == ["[PZAgent] hutch guard: stood down, getAnimalInside absent"]
     w.calls.clear()
     guard(lua, 3)
     assert w.calls == []
@@ -330,7 +392,7 @@ def test_mains_tick_runs_the_guard_once_a_tick_after_the_init_tick(lua):
     g.getPlayer = lambda: player
     g._handlers[0]()                                             # the init tick: no guard
     assert w.calls == []
-    for _ in range(64):
+    for _ in range(8):
         g._handlers[0]()
     assert found(lua, "hen") == HEN_MASTER
     amap.d[5] = None
@@ -338,8 +400,8 @@ def test_mains_tick_runs_the_guard_once_a_tick_after_the_init_tick(lua):
     assert amap.d == {} and lua.eval("PZA.hutch.clears") == 1
     w.calls.clear()
     g._handlers[0]()
-    assert [c for c in w.calls if c[0] == "getHutch"] == [("getHutch", HEN_MASTER[0], HEN_MASTER[1], 0),
-                                                         ("getHutch", TURKEY[0] + 1, TURKEY[1], 0)]
+    hen = [("getHutch", HEN_MASTER[0], HEN_MASTER[1], 0)]
+    assert [c for c in w.calls if c[0] == "getHutch"] == hen + row(TURKEY, 1)
 
 
 def test_a_guard_raise_stands_it_down_and_the_tick_goes_on(lua):
@@ -358,5 +420,6 @@ def test_a_guard_raise_stands_it_down_and_the_tick_goes_on(lua):
     assert len(w.calls) == 1                                     # raised once, then stood down
     assert lua.eval("PZA.hutch.off") is True and lua.eval("PZA.hutch.errors") == 1
     assert "raise:hutch" in missing(lua)
+    assert [p for p in w.printed if "stood down" in p] == ["[PZAgent] hutch guard: stood down, raise:hutch"]
     assert g.PZA.errors == 1
     assert lua.eval("PZA.main.prev") is not None                 # the frame was still read and emitted
