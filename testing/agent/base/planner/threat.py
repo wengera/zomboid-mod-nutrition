@@ -222,6 +222,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     HEALTH_NEAR = True    # ruling P29-E: the `health` flee only from a zombie within DANGER_R; with none there the low
                           # fight's stance at a held zombie in view, else the threat branch passes to the care
                           # (`_health_far`, `_near_view`); off, the `health` flee from any held zombie (P25-S)
+    DRESS_FINISH = True   # ruling P29-D: a running dressing is not superseded by the flee's command while no zombie is
+                          # within DANGER_R, the flee waiting on its end (`_dress_waits`); off, the flee's next command
+                          # supersedes it
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -952,8 +955,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             idle = None if walk or reason != "strain" else self._hold_idle()   # P27-J (a): an idle zombie in reach
             # P27-C2: the hold's walk with no chaser is the rest
             rest = ans is None and (walk or idle is not None) and self._hold_rest()
-            if ans is None:
-                ans = self._rest(policy, idle) if rest else self._answer(policy)
+            if ans is None:   # P29-D: a running dressing waited on with nobody within DANGER_R
+                ans = self._rest(policy, idle) if rest else (self._dress_waits(policy) or self._answer(policy))
             if not rest:
                 self.rest_from = None
             pick = self._doorway_pick(policy) if reason == "many" and self.PICK_WHY else None   # P24-AX, after the pick
@@ -1028,6 +1031,26 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             self.why["ride"] = ride.aid   # P24-U: a bandage rides the leg this answer holds or re-aims
         self.trapped_pass = want == "flee" and ans is None and "trapped" in self.why   # P25-Q: read by `assess`
         return ans if ans is not None else (policy, None)
+
+    def _dress_waits(self, flee):
+        """Ruling P29-D (`DRESS_FINISH`; E22, `e_day_22-20261105-004919`: twelve dressings superseded by the flees'
+        steers at a run, four of them on lines reading no zombie within 6 tiles, lines 463, 470, 536 and 542, while the
+        four parts bled undressed 9.315 to 19.103 game minutes, #4627): `(flee, None)` when the Flee would choose (no
+        leg of its own running, `busy`) while the care's dressing runs (a `bandage` accepted and not ended: the ride
+        whose leg ended, `Care.riding`, or a standing one, `Care.busy`) with no zombie within DANGER_R: the flee waits on
+        the dressing's end as a running leg holds it, logged `dress_finish` {action, near 0}; a zombie within DANGER_R
+        supersedes it as before. Else None. Cost if wrong: a dressing's seconds with a chaser coming from beyond
+        DANGER_R."""
+        if not self.DRESS_FINISH or flee.busy() or self._within(DANGER_R):
+            return None
+        c = self.care
+        a = c.riding()
+        if a is None and c.busy() and c.last is not None and c.last.type == "bandage":
+            a = c.last
+        if a is None or a.type != "bandage":
+            return None
+        self.why = {"dress_finish": {"action": a.aid, "near": 0}}
+        return flee, None
 
     def _shove_only(self, kind):
         """Why this tick's Fight is the shove and the stomp alone (`Fight.shove_only`), else None: "unarmed" with no

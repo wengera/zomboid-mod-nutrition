@@ -518,12 +518,13 @@ def f8_replay(upto, **on):
     `survive.T8_SWITCHES` off unless named True; F8 ran on `db9f947c`, whose planner is `6df43e92`'s). Named change,
     Plan 27 Task 5: iteration 20's switches (`survive.T10_SWITCHES`) off (ruling P27-K2's low exit reaches F8's last
     fight). Named change, Plan 28 Task 3: iteration 21's switches (`survive.T11_SWITCHES`) off (ruling P28-B2's back
-    leg after a missed shove reaches the same fights). Named change, Plan 29 Task 2: ruling P29-E's switch off
-    (`HEALTH_NEAR`: its withheld `health` flee reaches F8's line 1412)."""
+    leg after a missed shove reaches the same fights). Named change, Plan 29 Task 2: rulings P29-E's and P29-D's
+    switches off (`HEALTH_NEAR`: its withheld `health` flee reaches F8's line 1412; `DRESS_FINISH`: its wait on the
+    riding dressing a283 reaches line 1419, nobody within DANGER_R)."""
     def mutate(sv):
         for name in S.T8_SWITCHES:
             setattr(sv, name, bool(on.get(name)))
-        for name in S.T10_SWITCHES + S.T11_SWITCHES + ("HEALTH_NEAR",):
+        for name in S.T10_SWITCHES + S.T11_SWITCHES + ("HEALTH_NEAR", "DRESS_FINISH"):
             setattr(sv, name, False)
     return R.replay(F8, mutate=mutate, upto=upto)
 

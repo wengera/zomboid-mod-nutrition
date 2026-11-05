@@ -161,8 +161,10 @@ def test_a_crossed_fill_walk_goes_on_to_the_fill(tmp_path):
 
 def test_with_route_cross_off_the_fill_walks_to_the_far_square_and_reads_done_as_before(tmp_path):
     """The pin of P25-X's fill route: the walk to the far square's centre, its `done` at the stall noting nothing, the
-    same walk sent again (F13's loop shape)."""
+    same walk sent again (F13's loop shape). Named change, Plan 29 Task 2 (Survive copies ROUTE_CROSS to the Water
+    each need tick): the switch turned off at its source, Survive's ROUTE_CROSS."""
     r, sv = fill_rig(tmp_path, cross=False)
+    sv.ROUTE_CROSS = False
     tick(r, sv)
     assert r.cmd() == ("walkTo", {"x": FAR[0], "y": FAR[1], "gait": "walk"})
     fill_done(r, sv, STALL, 648.5)

@@ -2127,9 +2127,11 @@ def test_a_torso_wound_rides_the_running_flee_leg_with_the_chaser_at_7(tmp_path)
     """Ruling P24-U, the review's first ride test: under the running steer, the chaser at 7 tiles (beyond RIDE_R),
     the upper torso bleeding: the care sends `bandage` with keepMoving on part 6; the Flee's leg is held (it still
     runs: `running`), its end re-aims with a new steer that keeps the ride (the Care busy on the ride's own act lines),
-    and the ride's done frees the Care."""
+    and the ride's done frees the Care. Named change, ruling P29-D (Plan 29 Task 2): with nobody within DANGER_R the
+    re-aim now waits on the riding dressing; pinned with `DRESS_FINISH` off."""
     torso = [part(6, bleeding=True, bleedingTime=5.0)]
     r, sv = flee_leg_rig(tmp_path, torso, 7.0)
+    sv.DRESS_FINISH = False
     assert last(tmp_path)["branch"] == "care" and r.cmd() == ("bandage", {"itemId": 10, "part": 6, "keepMoving": True})
     assert threat_why(tmp_path) == {"care": True, "ride": True, "nearest": 7.0, "held": 1}
     assert care_why(tmp_path)["ride"] is True

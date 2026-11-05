@@ -388,7 +388,7 @@ def e22_frame(r, me, zs, health, game_min, **k):
 
 def test_the_iteration_23_hit_rule_switches():
     """Task 2's switches follow Task 1's in `survive.T13_SWITCHES`, each on `threat.Threat` and on by default."""
-    assert S.T13_SWITCHES[2:] == ("HEALTH_NEAR",)
+    assert S.T13_SWITCHES[2:] == ("HEALTH_NEAR", "DRESS_FINISH")
     assert all(getattr(T.Threat, n) is True for n in S.T13_SWITCHES[2:])
 
 
@@ -467,3 +467,95 @@ def test_with_a_zombie_within_danger_r_the_health_flee_runs_as_today(tmp_path):
     a = tick(r, sv)
     w = threat_why(tmp_path)
     assert (a.type, a.args["gait"]) == ("steer", "run") and w["flee"] == "health" and "health_near" not in w
+
+
+# ---------------------------------------------------------------- P29-D: the dressing ridden through the flees
+# E22's lines 537 to 542 (state.log seqs 5154 to 5189, game minutes 634 to 635): the care's rag a126 (971539017) rode
+# the `health` flee's leg a125 on part 0, its leg done at seq 5187 with 11512 9.601549438765653 tiles off, and line 542
+# sent the next steer a127 at a run, which superseded a126 at seq 5190, nobody within 6 tiles (GUIDE section 7: four of
+# the twelve superseded dressings on such lines)
+E22_537 = ((10730.5166015625, 10672.0751953125), [(11512, 10729.40234375, 10679.59765625),
+                                                   (11516, 10724.5947265625, 10679.4052734375),
+                                                   (11602, 10721.833984375, 10678.642578125)], 29.19933319091797)
+E22_542 = ((10734.3759765625, 10669.9150390625), [(11512, 10729.5, 10678.185546875),
+                                                   (11516, 10725.5, 10676.9765625)], 29.069862365722656)
+E22_PART0 = {"i": 0, "h": 35.08428192138672, "bleeding": True, "bleedingTime": 2.6065080165863037, "bandaged": False,
+             "bandageLife": None, "bandageDirty": None, "deep": False, "infected": False}   # part 0 (seq 5149, 5189)
+E22_RAG = 971539017   # the clean rag a126 tied (decision line 537)
+
+
+def ridden_flee(tmp_path, final, dress=True, health_near=False):
+    """E22's ride: the `health` flee's steer from 11512 and 11516 within DANGER_R (the test's own start: E22's episode
+    began `many`), running; line 537's frame, the care's rag riding it on part 0 (accepted); the leg answered done;
+    then `final` (me, zombies, health) ticked with DRESS_FINISH `dress` and HEALTH_NEAR `health_near` (off by default:
+    line 542's `health` flee, which P29-E withholds, so the case reads P29-D alone). (r, sv, the ride, the action)."""
+    from .test_survive_g import hold
+    r, sv = make(tmp_path)
+    sv.DRESS_FINISH, sv.HEALTH_NEAR = dress, health_near
+    hold(r, E22_RAG, "Base.RippedSheets")
+    wounds = {"parts": [E22_PART0], "bleeding": 1}
+    me, zs, h = E22_537
+    near = [(11512, me[0] - 1.0, me[1] + 4.0), (11516, me[0] - 3.0, me[1] + 4.0)]
+    e22_frame(r, me, near, h, 634.0, wounds=wounds)
+    leg = tick(r, sv)
+    assert leg.type == "steer" and threat_why(tmp_path)["flee"] == "health"
+    r.answer("progress")
+    r.advance(0.5)
+    e22_frame(r, me, zs, h, 634.1, wounds=wounds)
+    ride = tick(r, sv)
+    assert (ride.type, ride.args) == ("bandage", {"itemId": E22_RAG, "part": 0, "keepMoving": True})
+    r.fake.act(ride.aid, "accepted", "bandage")
+    r.fake.act(leg.aid, "done", "steer", result={})
+    r.pump()
+    r.advance(2.5)
+    me, zs, h = final
+    e22_frame(r, me, zs, h, 635.0, wounds=wounds)
+    return r, sv, ride, tick(r, sv)
+
+
+def test_e22_s_line_542_dressing_is_waited_on_never_superseded_by_the_flee_s_steer(tmp_path):
+    """P29-D (`DRESS_FINISH`): line 542, the leg done, the rag still riding, nobody within DANGER_R (11512 9.6 tiles
+    off): the `health` flee sends no steer, logged `dress_finish` {action, near 0}; the dressing runs on."""
+    r, sv, ride, a = ridden_flee(tmp_path, E22_542)
+    w = threat_why(tmp_path)
+    assert a is None and w["flee"] == "health" and w["dress_finish"] == {"action": ride.aid, "near": 0}
+    assert r.acts.current is ride and sv.care.riding() is ride
+
+
+def test_with_dress_finish_off_line_542_s_steer_supersedes_the_dressing_as_e22_did(tmp_path):
+    r, sv, ride, a = ridden_flee(tmp_path, E22_542, dress=False)
+    assert (a.type, a.args["gait"]) == ("steer", "run") and "dress_finish" not in threat_why(tmp_path)
+    assert r.acts.current is a
+
+
+def test_a_zombie_within_danger_r_supersedes_the_dressing_as_before(tmp_path):
+    """P29-D's other side: line 542 with 11512 and 11516 within DANGER_R (5.0 and 5.5 tiles, the test's own): the
+    `health` flee's steer supersedes the dressing, no `dress_finish`."""
+    me, _, h = E22_542
+    final = (me, [(11512, me[0] - 3.0, me[1] + 4.0), (11516, me[0] - 3.3, me[1] + 4.4)], h)
+    r, sv, ride, a = ridden_flee(tmp_path, final)
+    assert (a.type, a.args["gait"]) == ("steer", "run") and "dress_finish" not in threat_why(tmp_path)
+
+
+def test_with_every_rule_on_line_542_s_dressing_rides_on_under_the_stance(tmp_path):
+    """With HEALTH_NEAR on too (the default), line 542 reads no `health` flee (P29-E): the low fight's stance at 11512,
+    whose legs a riding bandage holds off (P24-U), so nothing supersedes the dressing either."""
+    r, sv, ride, a = ridden_flee(tmp_path, E22_542, health_near=True)
+    w = threat_why(tmp_path)
+    assert a is None and w["fight"] is True and w["ride"] == ride.aid and r.acts.current is ride
+
+
+def test_survive_copies_route_cross_to_the_water_chain_and_pre_t13_turns_it_off(tmp_path):
+    """Task 1 fix 1's addendum: Survive copies ROUTE_CROSS to the water chain beside BLOCKED_EDGE (the need's fill read,
+    `water.Water.route_cross`), so `pre_t13` (every iteration-23 switch off) turns the fill's route read off too."""
+    from .test_replay_decisions import pre_t13
+    r, sv = make(tmp_path)
+    r.frame(thirst=0.5)
+    tick(r, sv)
+    assert sv.water.route_cross is True
+    (tmp_path / "off").mkdir()
+    r2, sv2 = make(tmp_path / "off")
+    pre_t13(sv2)
+    r2.frame(thirst=0.5)
+    tick(r2, sv2)
+    assert sv2.water.route_cross is False

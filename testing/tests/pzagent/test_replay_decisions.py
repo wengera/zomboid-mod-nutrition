@@ -235,8 +235,8 @@ def pre_t12(sv, keep=()):
 
 def pre_t13(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 29 Task 1 (survival iteration 23): its switches off
-    (`survive.T13_SWITCHES`: ROUTE_CROSS, ruling P29-A; GOAL_STALL, P29-B), but those named in `keep`; every seam onto
-    an earlier rule reads them off (`pre_t12`)."""
+    (`survive.T13_SWITCHES`: ROUTE_CROSS, ruling P29-A; GOAL_STALL, P29-B; Task 2's hit rules, HEALTH_NEAR, P29-E, and
+    DRESS_FINISH, P29-D), but those named in `keep`; every seam onto an earlier rule reads them off (`pre_t12`)."""
     for name in S.T13_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
@@ -2051,7 +2051,8 @@ def test_iteration_23_moves_no_golden(key):
     `blocked_edge` the six log is a refusal, which P29-A leaves as it was, and no route leg ends, so no door is noted or
     read marked), and their goal branch is the record's (`RecordedGoals`), never the goals' kit nor the runner's
     budget end (ruling P29-B, `GOAL_STALL`: no stall is read); nor do Task 2's hit rules (P29-E, `HEALTH_NEAR`: no
-    golden line reads the `health` flee with nobody within DANGER_R); the six are
+    golden line reads the `health` flee with nobody within DANGER_R; P29-D, `DRESS_FINISH`: no golden's flee would
+    command over a running dressing with nobody within DANGER_R, five hellos announcing no `bandage`); the six are
     byte-identical with the switches on (`test_the_golden_is_reproduced_byte_for_byte_from_its_artifact`) and off
     (`pre_t13`)."""
     rows = gold(key)
