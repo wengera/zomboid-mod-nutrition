@@ -33,9 +33,9 @@ a session that stopped at its cap, the teleport read by the frames and the chara
 the planner idle throughout, so nothing walks it off). A run folder whose artifact never reads `finished` is not a
 run (the scorecard's rule).
 
-TRIAL.JSON (TRIAL_KEYS): variant; switches (every name of survive.py's `T<n>_SWITCHES` tuples read off the built
-planner, as the variant left them; None until the planner is built, the file rewritten then); commit (the stamp's
-`commit`, else `git rev-parse HEAD`); stamp (the content of TRIAL_STAMP.json at the tree's root, written by
+TRIAL.JSON (TRIAL_KEYS): variant; switches (every name of survive.py's `T<n>_SWITCHES` tuples, then EXTRA_SWITCHES,
+read off the built planner, as the variant left them; None until the planner is built, the file rewritten then);
+commit (the stamp's `commit`, else `git rev-parse HEAD`); stamp (the content of TRIAL_STAMP.json at the tree's root, written by
 `tools/trial_snapshot.py`, else None); dirty and diff_sha256 (the stamp's, else `git status --porcelain` and the
 sha256 of `git diff HEAD` over SESSION_PATHS with every untracked file's block appended, the whole saved beside as
 trial.diff); untracked (those files' paths; None from a stamp); provenance ("stamp" or "git"); fixture; minutes;
@@ -110,6 +110,10 @@ LLM_JOIN_S = L.LLM_TIMEOUT_S + 5.0   # the worker's join after the teardown (f_g
 MODEL = L.model_of(L.DEFAULT_CLI)
 SESSION_PATHS = ("testing/agent", "testing/PZAgent", "testing/PZTestKit", "testing/pzt", "testing/experiments")
 SWITCH_RX = re.compile(r"^T(\d+)_SWITCHES$")
+# the instance switches outside every T<n>_SWITCHES tuple that a trial records after them (Plan 31 Task 12): the Dress
+# maneuver (Task 8), off on the class for the goldens, on for the ladder arm (planner_factory)
+EXTRA_SWITCHES = ("DRESS_MANEUVER",)
+LADDER_ON = {"DRESS_MANEUVER": True}   # the ladder arm L runs the Dress; a variant sets its own in its prepare
 TRIAL_KEYS = ("variant", "switches", "commit", "stamp", "dirty", "diff_sha256", "untracked", "provenance", "fixture",
               "minutes", "waves", "wave_plan", "no_llm", "goals", "teleport", "make_fixture", "detached", "wall_bound_s",
               "argv", "started_at", "end_pos", "end_health")
@@ -378,13 +382,15 @@ def write_trial(run_dir, rec):
 
 
 def switches(planner):
-    """{name: value} for every name of survive.py's T<n>_SWITCHES tuples (in T order, then the tuple's), read off the
-    built planner: the variant's settings, the ladder's defaults for any it leaves."""
+    """{name: value} for every name of survive.py's T<n>_SWITCHES tuples (in T order, then the tuple's), then
+    EXTRA_SWITCHES, read off the built planner: the variant's settings, the ladder's defaults for any it leaves."""
     tuples = sorted(((int(m.group(1)), n) for n in dir(SV) for m in [SWITCH_RX.match(n)] if m))
     out = {}
     for _, n in tuples:
         for name in getattr(SV, n):
             out[name] = getattr(planner, name, None)
+    for name in EXTRA_SWITCHES:
+        out[name] = getattr(planner, name, None)
     return out
 
 
@@ -644,7 +650,8 @@ class HoldSource:
 def planner_factory(variant, no_llm, runner=None, goals=DEFAULT_GOALS):
     """Survive with `control=<variant>` over the scripted goal source (no_llm), the HoldSource (`goals` "hold"), else
     the LLMSource over the scripted source, goals.log beside the decision log; `runner` the CLI's (None: the real
-    one; tests inject a fake)."""
+    one; tests inject a fake). The ladder arm takes LADDER_ON on its instance (never the class: Task 8's switch is
+    per instance), the Dress maneuver on; a variant sets its own switches in its `prepare`."""
     def planner(world, actions, log_path, clock):
         if goals == "hold":
             source = HoldSource()
@@ -653,7 +660,11 @@ def planner_factory(variant, no_llm, runner=None, goals=DEFAULT_GOALS):
         else:
             source = L.LLMSource(ScriptedSource(), log_path=os.path.join(os.path.dirname(log_path), GOALS_LOG),
                                  timeout_s=L.LLM_TIMEOUT_S, clock=clock, runner=runner)
-        return Survive(world, actions, log_path, clock, source=source, control=variant)
+        sv = Survive(world, actions, log_path, clock, source=source, control=variant)
+        if variant == "ladder":
+            for name, value in LADDER_ON.items():
+                setattr(sv, name, value)
+        return sv
     return planner
 
 

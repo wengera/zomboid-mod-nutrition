@@ -374,9 +374,10 @@ def test_the_switches_are_every_t_tuple_read_off_the_planner():
     sv = types.SimpleNamespace(CORNER_BREAK=False, SWING_CLOSE=True)
     sw = TR.switches(sv)
     names = [n for k in sorted((int(m.group(1)), k) for k in dir(SV) for m in [TR.SWITCH_RX.match(k)] if m)
-             for n in getattr(SV, k[1])]
+             for n in getattr(SV, k[1])] + list(TR.EXTRA_SWITCHES)
     assert list(sw) == names and names[0] == "CORNER_BREAK" and "SWING_CLOSE" in names
     assert sw["CORNER_BREAK"] is False and sw["SWING_CLOSE"] is True and sw["DOOR_HELD"] is None
+    assert names[-1] == "DRESS_MANEUVER" and sw["DRESS_MANEUVER"] is None
 
 
 # ================================================================ pre-boot
@@ -890,7 +891,19 @@ def test_a_teleport_that_raises_still_stops_the_waves_and_saves(tmp_path, monkey
 def test_the_planner_factory_passes_the_variant_as_control():
     """The fork's keyword: `Survive(..., control=<variant>)` in the factory's source, whatever the tree's Survive."""
     src = inspect.getsource(TR.planner_factory)
-    assert "return Survive(world, actions, log_path, clock, source=source, control=variant)" in src
+    assert "sv = Survive(world, actions, log_path, clock, source=source, control=variant)" in src
+
+
+def test_the_ladder_arm_runs_the_dress_maneuver_on_its_instance_and_records_it(tmp_path):
+    """Plan 31 Task 12's pre-run edit: the ladder arm's planner has DRESS_MANEUVER True on the instance (the class
+    keeps False for the goldens), trial.json's switches carry it, and _care hands the Dress class to the care branch."""
+    assert SV.Survive.DRESS_MANEUVER is False and TR.LADDER_ON == {"DRESS_MANEUVER": True}
+    c, seen = _chain(tmp_path, ["--variant", "ladder", "--fixture", "agent", "--no-llm", "--goals", "hold"])
+    assert seen == ["ladder"] and "DRESS_MANEUVER" in vars(c.planner) and c.planner.DRESS_MANEUVER is True
+    assert SV.Survive.DRESS_MANEUVER is False                          # never set on the class
+    assert TR.switches(c.planner)["DRESS_MANEUVER"] is True
+    c2, _ = _chain(tmp_path, ["--variant", "ladder", "--fixture", "agent", "--no-llm"])
+    assert c2.planner.DRESS_MANEUVER is True and c2.planner is not c.planner
 
 
 # ================================================================ --goals hold (Plan 31 Task 12's pre-step)
