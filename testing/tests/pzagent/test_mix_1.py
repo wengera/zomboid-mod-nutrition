@@ -293,11 +293,26 @@ def test_a_seek_runs_on_when_its_zombie_turns_aware_or_comes_within_danger_r(tmp
     r, sv, t = seek(tmp_path)
     r.frame(zombies=[z(7, 107.5, 200.0, target=True), z(8, 100.0, 208.0, target=False)])
     tick(r, sv)
-    assert t.exec.zid == 7
+    assert t.exec.zid == 7 and lines(tmp_path)[-1]["inputs"]["tactician"].get("table") != "lapsed"
+    assert lines(tmp_path)[-1]["inputs"]["mix_1"]["piece"] == "rule.clear"   # not lapsed: still the seek's play
     r, sv, t = seek(tmp_path / "b")
     r.frame(zombies=[z(7, 105.5, 200.0, target=False), z(8, 100.0, 208.0, target=False)])
     tick(r, sv)
     assert t.exec.zid == 7
+
+
+def test_a_lapsed_seek_the_doctrine_still_fights_runs_on_owned_by_the_fight_rule(tmp_path):
+    """Fix 1: the doctrine's `fight` rule names the same zombie (the nearest standing, one coming within ENGAGE_R), so
+    the play runs on, re-owned: its piece `rule.fight`, no `clear_why`, and no second lapse."""
+    r, sv, t = seek(tmp_path)
+    r.frame(zombies=[z(7, 107.0, 200.0, target=False), z(8, 100.0, 208.5, target=True)])
+    tick(r, sv)
+    mx, tac = lines(tmp_path)[-1]["inputs"]["mix_1"], lines(tmp_path)[-1]["inputs"]["tactician"]
+    assert (t.exec.zid, mx["piece"], mx["clear_why"], mx["started"], tac["table"]) == (
+        7, "rule.fight", None, False, "lapsed")
+    r.frame(zombies=[z(7, 107.0, 200.0, target=False), z(8, 100.0, 208.5, target=True)])
+    tick(r, sv)
+    assert lines(tmp_path)[-1]["inputs"]["tactician"].get("table") != "lapsed"
 
 
 def test_two_idle_zombies_within_engage_r_are_not_sought(tmp_path):
