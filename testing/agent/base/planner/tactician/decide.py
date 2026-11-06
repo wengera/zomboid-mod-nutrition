@@ -2,35 +2,37 @@
 `Tactician(survive).assess(inputs) -> Decision`, kept on `survive.control_state["tactician"]` (`tactician(survive)`).
 
 Each tick, in order:
-1. The triggers (`trigger.Triggers.step`) over the tick's World.
+1. `prepare` (the instance switches), then the triggers (`trigger.Triggers.step`) over the tick's World.
 2. The running play's bound (`executors.Exec.bound`): an end is logged (`play_end`) and fires `ended`.
-3. The model's answer, in model mode (`source.TacticianSource.poll`): validated against this tick's view, applied
-   when it names another play or target than the running one (`source` "model"); a refusal's why reaches the next
-   view once (`refusal`). A valid answer that breaks one of the rubric's rules on this tick's view
-   (`rubric.violations`: a lone standing zombie not fought, a dressable bleed not dressed, a travel to nowhere) is
-   refused `doctrine` (the veto: the bench read 17 such answers of the default model in 200, README.md), so the model
-   answers only where no rule of Angus's binds, the ambiguous middle. A dirty flight (a trigger fired while it was out)
-   asks again at once.
+3. The model's answer, in model mode (`source.TacticianSource.poll`): validated on the view it was asked on, its
+   labels rebound by id to this tick's (`plays.rebind`; fix 1, review-t11 H4: a zombie or door gone is refused
+   `gone`), refused `doctrine` when it breaks a rubric rule on this tick's view (the veto), applied when it names another
+   play or target id than the running one (`source` "model"); a refusal's why reaches the next view once. Then a call
+   on this tick's trigger (`_ask`; fix 1, H3): coalesced into the one out, else started CALL_GAP_S after the last
+   start (a trigger inside the gap kept due), at most CALLS_MAX a session.
 4. The guards (`GUARDS`, scripted, any play): `hit` (the frame's hit reaction with a standing zombie within
-   MELEE_RELEASE_R: the melee takes the tick, the reflex holding its hit-reaction step), `swing` (a standing zombie
-   within `executors.SWING_GUARD_R`: the melee starts), `fallen` (in a fight at a standing target, a fallen zombie within FIGHT_REACH
-   and no standing one within KEEP_R: it is finished first). Each starts a `fight` (`source` "guard").
-5. With no play, or on a trigger, the table answers at zero latency (`table.Table.answer`: a labelled cell, else the
-   doctrine, `fallback.doctrine`), applied when it differs from the running play (`source` "table" or "doctrine"); in
-   model mode a call starts on the trigger (one in flight, the rest coalesced). With no rule answering, the strategic
-   goal layer runs (`GoalExec`, `source` "doctrine", play `travel` to `explore`).
+   MELEE_RELEASE_R), `swing` (a standing zombie within `executors.SWING_GUARD_R`), `fallen` (in a fight at a standing
+   target, a fallen zombie within FIGHT_REACH and no standing one within KEEP_R). Each starts a `fight` (`guard`).
+5. The table (`_table_due`): with no play, after a veto, wherever one of Angus's rules binds this tick's view and the
+   running play is of another type (fix 1, H1: the doctrine applied to the running play, in both modes), and in table
+   mode on an interrupt (INTERRUPTS) or on any trigger once the play has run TABLE_HOLD_S (fix 1, M2); a running fight
+   is held against the dressing while a standing zombie reads within KEEP_R + DRESS_MARGIN, and against a trigger's
+   strategic play while its target chases within ENGAGE_R (`_fight_holds`). Its answer (`table.Table.answer`: the
+   doctrine where a rule binds, else a labelled cell, else the doctrine; source "table" or "doctrine") starts when it
+   differs by type or target id. With no rule answering, the strategic goal layer runs (`travel` to `explore`).
 6. The play steps (`executors`): its (branch, owner, command, why) is the Decision.
 
-The modes (`MODE`): "table" (no tactical model call: the trials' default when the bench's table ties the model, and
-always under the trial driver's `--no-llm`, whose goal source is the scripted one) or "model" (the triggered call,
-the session's goal source an `llm.LLMSource`); `PZA_TACTICIAN` in the environment overrides `MODE`.
+The modes (`MODE`, "model" by the bench's verdict, README.md's first line): "table" (no tactical model call; always
+under the trial driver's `--no-llm`, whose goal source is the scripted one) or "model" (the triggered call, the
+session's goal source an `llm.LLMSource`); `PZA_TACTICIAN` in the environment overrides `MODE`.
 
 The decision line (`inputs`, beside the ladder's own keys: `need`, `consume_refused`, `cooled`, `branches`):
 - `play` `{kind, type, target, play_id}`: `kind` the scorecard's label (`tools/trial_score.py`: `fight`, `dress`,
   `loot`, `travel`, `shelter`; a retreat `kite_door`, `kite_shelter`, `kite_stance`, `avoid_door`, `avoid_shelter`, so
   a retreat names its refuge's kind), `type` the play, `target` a zombie id (fight, kite) or the square [x, y] it heads
   to, absent for a dress (its part is no square).
-- `tactician` `{play, target, source, bound, age, rule, triggers, play_id, guard, mode, ended, refused}`: the play and
+- `tactician` `{play, target, source, bound, age, rule, triggers, play_id, guard, mode, ended, refused, table, capped,
+  walk_failed}`: the play and
   its target label, its source (model, table, doctrine, guard), the answer's bound, its age in wall seconds, the
   table's cell or the doctrine's rule, this tick's triggers, the guard that took the tick, the mode, a play end read
   this tick `{play_id, end}`, a model answer refused this tick `{why}`.
@@ -47,13 +49,15 @@ import os
 
 from agent.base.planner.care import DRESS_RETRY_S
 from agent.base.planner.llm import LLMSource
-from agent.base.planner.policies import FIGHT_REACH, KEEP_R, MELEE_RELEASE_R, on_floor, standing, zdist
+from agent.base.planner.policies import (ENGAGE_R, FIGHT_REACH, KEEP_R, MELEE_RELEASE_R, blocked, chasing, on_floor,
+                                         standing, zdist)
 from agent.base.planner.survive import Decision
 from agent.base.planner.tactician import executors as X
 from agent.base.planner.tactician import plays as P
 from agent.base.planner.tactician import rubric as R
 from agent.base.planner.tactician import tview as V
 from agent.base.planner.tactician.source import TacticianSource, cli
+from agent.base.planner.tactician import table as T
 from agent.base.planner.tactician.table import Table
 from agent.base.planner.tactician.trigger import Triggers
 
@@ -68,6 +72,22 @@ PLAYS_LOG = "plays.log"
 REFUGE_HOLD_S = 60.0      # wall seconds a refuge whose avoid or shelter ended `failed` or `shun` is left out of the
                           # table's read (a first guess for the trials; the night's shun is longer, night.SHUN_MIN)
 STATE_KEY = "tactician"
+INTERRUPTS = ("hit", "wound", "down", "count", "arrived")   # the triggers that re-answer a running play at once in
+                          # table mode (fix 1, review-t11 M2): the hit, a new bleed, a fall, a count band crossed, a
+                          # building reached; `notice`, `clear`, `need` and `ended` wait TABLE_HOLD_S
+TABLE_HOLD_S = 5.0        # wall seconds a play holds before a non-interrupt trigger may replace it in table mode (fix
+                          # 1, review-t11 M2: E23's open loop flipped A->B->A within 10 s 14 times): a first guess for
+                          # the trials, about two stance legs of AIM_LEG_S
+DRESS_MARGIN = 1.0        # tiles past KEEP_R a standing zombie keeps a running fight against the dressing rule (fix 1,
+                          # the rule's hysteresis: `_fight_holds`): a first guess for the trials, a chaser's 0.6 s
+                          # at about 1.6 tiles a second (spec section 1)
+CALL_GAP_S = 15.0         # wall seconds between two calls' starts (fix 1, review-t11 H3): a trigger inside the gap is
+                          # kept due and asked once the gap passes; fitted on the open-loop estimate (README.md: at
+                          # sonnet's p50 F15 36 calls and F14 49, 1.8 and 1.75 times their 20 and 28 goal calls; 10 s
+                          # gave 54 and 66, no gap 99 and 108)
+CALLS_MAX = 48            # calls a session at most, after which the table answers alone (fix 1, review-t11 H3): under
+                          # twice F14's 28 goal calls (the proposal's 1.6 to 2 times today's), above the estimate's 49
+                          # only on a session longer than F14's; the account the agents share (F6's exit 1)
 GUARDS = ("hit", "swing", "fallen")
 
 
@@ -91,13 +111,31 @@ def _mode(survive):
     return m
 
 
-def _label(play):
-    """The scorecard's label of a play (the module docstring)."""
+def _label(play, view):
+    """The scorecard's label of a play (the module docstring): a retreat's refuge kind is `door`, `shelter` (a
+    building with a shelter plan), `building` (one without: no REFUGE_WORDS word, fix 1, review-t11 L3) or `stance`."""
     if play.play not in P.RETREATS:
         return play.play
     t = play.args.get("toward")
-    kind = "stance" if t == "stance" else ("door" if isinstance(t, str) and t.startswith("D") else "shelter")
+    if t == "stance":
+        kind = "stance"
+    elif isinstance(t, str) and t.startswith("D"):
+        kind = "door"
+    else:
+        b = next((b for b in view.get("buildings") or () if b.get("label") == t), {})
+        kind = "shelter" if b.get("shelter") else "building"
     return "%s_%s" % (play.play, kind)
+
+
+def prepare(survive):
+    """The ladder's reads this variant drops, switched off on the instance (never the class): P30-B's GOAL_CONTINUE
+    and P30-C's DOOR_HELD. Idempotent; `assess` calls it first on every tick. A driver or the fork calls it right after
+    `Survive(control="tactician")` so the first tick's `_read` (which runs before any `assess`) reads them off too
+    (fix 1, review-t11 L1: the fork has no construction hook, named for Task 12; the doctrine variant sets DOOR_HELD
+    at its first assess the same way)."""
+    survive.GOAL_CONTINUE = False
+    survive.DOOR_HELD = False
+    survive.goals.goal_continue = False
 
 
 class Tactician:
@@ -119,9 +157,9 @@ class Tactician:
         self.meta = {}            # the running play's {source, rule, triggers}
         self.dress_held = {}      # part index -> (wall until, the inventory's ids then): a dress that ended `nothing`
         self.refuge_held = {}     # ("door", square) or ("building", id) -> wall until: a refuge that failed
-        survive.GOAL_CONTINUE = False   # P30-B dropped (README: what it drops); an instance field, never the class
-        survive.DOOR_HELD = False       # P30-C's decision dropped: a door is a play's (README)
-        survive.goals.goal_continue = False
+        prepare(survive)          # P30-B and P30-C dropped (README: what it drops), on the instance
+        self._last_ask = None     # wall of the last call started (CALL_GAP_S)
+        self._due = None          # a trigger inside the gap, asked once it passes
         if not isinstance(survive.goals.source, X.PlaySource):
             survive.goals.source = X.PlaySource(survive.goals.source)
 
@@ -145,9 +183,16 @@ class Tactician:
         return v
 
     # -- the plays ----------------------------------------------------------------------------------------------
-    def _same(self, play):
+    @staticmethod
+    def _ref(play, bind):
+        """(type, the id its target names) of a play under `bind` (`tview.binding`; fix 1, review-t11 H4: labels are
+        distance ranks, so plays compare by id); a literal target (`stance`, `explore`) is itself."""
+        t = play.target()
+        return play.play, bind.get(t, t)
+
+    def _same(self, play, bind):
         ex = self.exec
-        return ex is not None and ex.play.play == play.play and ex.play.target() == play.target()
+        return ex is not None and ex.ref == self._ref(play, bind)
 
     def _end(self, end, broken=True):
         ex = self.exec
@@ -170,7 +215,7 @@ class Tactician:
         self.triggers.note_ended()
         return {"play_id": self.play_id, "end": end}
 
-    def _start(self, play, view, source, rule=None, triggers=()):
+    def _start(self, play, view, bind, source, rule=None, triggers=()):
         if self.exec is not None:
             self._end("replaced", broken=False)
         now = self.sv.clock()
@@ -185,6 +230,7 @@ class Tactician:
             ex = X.GoalExec(self.sv, play, now, view, pin)
         else:
             ex = cls(self.sv, play, now, view)
+        ex.ref, ex.label = self._ref(play, bind), _label(play, view)
         self.exec = ex
         self.play_id += 1
         self.meta = {"source": source, "rule": rule, "triggers": list(triggers)}
@@ -194,13 +240,17 @@ class Tactician:
     def _masked(self, view):
         """`view` for the table's read: each part a failed dress holds out read not bleeding (the care's no-restart
         rule: no new Dress of it until the inventory gains an item or DRESS_RETRY_S pass, `care.DRESS_RETRY_S`), and each
-        refuge a failed avoid or shelter holds out (REFUGE_HOLD_S) left out of `doors` and read no shelter."""
+        refuge a failed avoid or shelter holds out (REFUGE_HOLD_S) left out of `doors` and read no shelter, and each
+        zombie a fight's failed walk left unreachable (`Survive.unreachable`, fix 1, review-t11 M3) left out of
+        `zombies`, so the table re-routes."""
         now, inv = self.sv.clock(), frozenset(self.sv.world.inventory)
         self.dress_held = {i: h for i, h in self.dress_held.items() if now < h[0] and inv <= h[1]}
         self.refuge_held = {k: t for k, t in self.refuge_held.items() if now < t}
-        if not self.dress_held and not self.refuge_held:
+        gone = blocked(self.sv.unreachable, now)
+        if not self.dress_held and not self.refuge_held and not gone:
             return view
         v = copy.deepcopy(view)
+        v["zombies"] = [z for z in v.get("zombies") or () if z.get("id") not in gone]
         for p in (v.get("body") or {}).get("parts") or ():
             if int(p["label"][1:]) in self.dress_held:
                 p["bleeding"] = False
@@ -250,10 +300,34 @@ class Tactician:
                     return "fallen", labels[ids[id(fallen[0])]]
         return None
 
+    # -- the model's calls ----------------------------------------------------------------------------------------
+    def _ask(self, view, bind, fired, tac):
+        """A call on this tick's trigger (fix 1, review-t11 H3): coalesced into the one out; else started when
+        CALL_GAP_S have passed since the last start and fewer than CALLS_MAX were made this session, a trigger inside
+        the gap kept due and asked once the gap passes (as a dirty flight is); past CALLS_MAX the table answers alone."""
+        s, now = self.source, self.sv.clock()
+        if s.busy():
+            if fired:
+                s.ask(view, fired[0], bind)              # coalesced: the flight marked dirty
+            return
+        want = fired[0] if fired else ("coalesced" if (s.dirty or self._due) else None)
+        if want is None:
+            return
+        if s.started >= CALLS_MAX:
+            self._due, s.dirty = None, False
+            tac["capped"] = s.started
+            return
+        if self._last_ask is not None and now - self._last_ask < CALL_GAP_S:
+            self._due = self._due or want
+            return
+        s.ask(view, want, bind)
+        self._last_ask, self._due = now, None
+
     # -- the tick -----------------------------------------------------------------------------------------------
     def assess(self, inputs):
         sv = self.sv
         sv.need_mark = None   # the need's mark is this tick's (`_assess_ladder` resets it so too)
+        prepare(sv)
         fired = self.triggers.step(sv.world, sv.clock())
         tac = {"mode": self.mode, "triggers": fired}
         if self.exec is not None:
@@ -261,38 +335,46 @@ class Tactician:
             if end is not None:
                 tac["ended"] = self._end(end)
         view = self.view(fired[0] if fired else None)
+        bind = V.binding(sv.world, view)
         self.refusal = None
+        vetoed = False
         if self.source is not None:
-            r = self.source.poll(view)
+            r = self.source.poll(view, bind)
             if r is not None:
                 if r["_play"] is not None and R.violations(self._masked(view), r["_play"].row()):
                     r = dict(r, _play=None, play=None, refused_why="doctrine")   # the veto: a rule the doctrine keeps
-                applied = r["_play"] is not None and not self._same(r["_play"])
+                    vetoed = True
+                applied = r["_play"] is not None and not self._same(r["_play"], bind)
                 if applied:
-                    self._start(r["_play"], view, "model", triggers=[r["trigger"]])
+                    self._start(r["_play"], view, bind, "model", triggers=[r["trigger"]])
                 if r["refused_why"] is not None:
                     self.refusal = r["refused_why"]
                     tac["refused"] = {"why": r["refused_why"]}
                 self._log(dict({k: v for k, v in r.items() if k != "_play"}, kind="call", source="model",
                                applied_at=sv.clock() if applied else None))
-            if fired:
-                self.source.ask(view, fired[0])          # out already: coalesced into it, the flight marked dirty
-            elif self.source.dirty and not self.source.busy():
-                self.source.ask(view, "coalesced")       # the triggers coalesced while it was out: asked at once
+            self._ask(view, bind, fired, tac)
         g = self._guard(view)
         if g is not None:
             tac["guard"] = g[0]
-            self._start(P.Play("fight", {"target": g[1]}, "dead", "lone_chaser"), view, "guard", rule=g[0],
+            self._start(P.Play("fight", {"target": g[1]}, "dead", "lone_chaser"), view, bind, "guard", rule=g[0],
                         triggers=fired)
-        elif self.exec is None or (fired and (self.source is None or self.exec is None)):
-            play, src, rule = self._table(view)
-            if not self._same(play):
-                self._start(play, view, src, rule, fired)
+        else:
+            why = self._table_due(view, fired, vetoed)
+            if why is not None:
+                play, src, rule = self._table(view)
+                tac["table"] = why
+                held = why in ("rule", "trigger") and self._fight_holds(play.row(), why)
+                if held:
+                    tac["table"] = "held"   # the running fight kept against the dressing (DRESS_MARGIN)
+                elif not self._same(play, bind):
+                    self._start(play, view, bind, src, rule, fired)
         branch, owner, cmd, why = self.exec.step()
         ex = self.exec
         tac.update(play=ex.play.play, target=ex.play.target(), source=self.meta.get("source"), bound=ex.play.bound,
                    age=round(ex.age(), 3), rule=self.meta.get("rule"), play_id=self.play_id)
-        line_play = {"kind": _label(ex.play), "type": ex.play.play, "play_id": self.play_id}
+        if getattr(ex, "walk_failed", None):
+            tac["walk_failed"] = ex.walk_failed
+        line_play = {"kind": ex.label, "type": ex.play.play, "play_id": self.play_id}
         xy = ex.target_xy() if not isinstance(ex, X.FightExec) else None
         if isinstance(ex, (X.FightExec, X.KiteExec)) and ex.zid is not None:
             line_play["target"] = ex.zid
@@ -315,3 +397,39 @@ class Tactician:
         inputs["play"] = line_play
         inputs["tactician"] = tac
         return Decision(branch, owner, cmd, inputs)
+
+    def _fight_holds(self, ans, why):
+        """The running fight is kept (the table's hysteresis, fix 1): against the dressing rule while a standing
+        zombie reads within KEEP_R + DRESS_MARGIN (the Dress ends `contact` at KEEP_R, so a chaser hovering at its edge
+        flipped the fight and the dressing; F15's open loop did 11 times within 10 s, its hands bleeding while the
+        zombie hung at 2.5 tiles); and against a trigger's strategic play (loot, travel, shelter) while its target
+        stands within ENGAGE_R chasing the character (E23's open loop flipped fight, loot, fight on the count's edge
+        at 6 tiles: a zombie coming is cleared before a loot, fallback's `fight` rule)."""
+        ex = self.exec
+        if ex is None or ex.play.play != "fight":
+            return False
+        if ans["play"] == "dress":
+            return bool(standing(self.sv.world, KEEP_R + DRESS_MARGIN))
+        t = ex.target()
+        return (why == "trigger" and ans["play"] in P.STRATEGIC and t is not None and t.get("x") is not None
+                and not on_floor(t) and chasing(t) and zdist(self.sv.world, t) <= ENGAGE_R)
+
+    def _table_due(self, view, fired, vetoed):
+        """Why the table answers this tick, else None (the module docstring's step 5): `none` (no play runs), `veto`
+        (a model answer vetoed: the table's play takes over), `rule` (one of Angus's rules binds the masked view and
+        the running play is of another type: fix 1, review-t11 H1, the doctrine applied to the running play), `trigger`
+        (table mode: an interrupt, or any trigger once the play has run TABLE_HOLD_S: fix 1, review-t11 M2, the
+        table's hysteresis)."""
+        ex = self.exec
+        if ex is None:
+            return "none"
+        if vetoed:
+            return "veto"
+        masked = self._masked(view)
+        if T.bound(masked):
+            _, _, ans = self.table.answer(masked)
+            if ans is not None and ans["play"] != ex.play.play:
+                return "rule"
+        if self.source is None and fired and (any(t in INTERRUPTS for t in fired) or ex.age() >= TABLE_HOLD_S):
+            return "trigger"
+        return None

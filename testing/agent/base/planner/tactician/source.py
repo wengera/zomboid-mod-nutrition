@@ -15,8 +15,9 @@ caller starts on a trigger rather than on every goal ask.
 - `TacticianSource(cli, timeout_s, clock, runner)`: `ask(view, trigger)` starts a call when none is in flight (True),
   else marks the flight dirty and counts it coalesced (False); `poll(view_now)` returns None while the call runs within
   `timeout_s`, else the collected result `{trigger, view, answer, play, refused_why, latency_s, model, coalesced,
-  error}` with the answer validated against `view_now` (`plays.validate`: a target that died since is refused
-  `unknown_label`), once; a call past `timeout_s` is abandoned (`error` "timeout", its late answer ignored) and no new
+  error}` with the answer validated on the view it was asked on and rebound by id to `view_now`'s labels
+  (`plays.rebind`; fix 1, review-t11 H4: a target gone since is refused `gone`, and a label another zombie took since
+  never re-targets the answer), once; a call past `timeout_s` is abandoned (`error` "timeout", its late answer ignored) and no new
   call starts until its thread ends; `dirty` tells the caller to ask again at once. The record of every collected call
   is kept in `calls`."""
 import json
@@ -110,12 +111,17 @@ def call(argv, prompt, runner=run, timeout_s=TACTIC_TIMEOUT_S, clock=time.time):
     return out
 
 
-def judge(answer, view):
-    """(Play or None, refused why or None) of a call's answer against `view`."""
+def judge(answer, view, asked=None, binding=None, now_binding=None):
+    """(Play or None, refused why or None) of a call's answer: validated against `view` alone; or, given the view it
+    was `asked` on and both bindings (`tview.binding`), validated there, its labels rebound by id to the moment's
+    (`plays.rebind`: an id gone is refused `gone`) and its meaning checked again against `view`, the moment's."""
     if answer is None:
         return None, "malformed"
     try:
-        return P.validate(answer, view), None
+        if asked is None:
+            return P.validate(answer, view), None
+        play = P.rebind(P.validate(answer, asked), binding, now_binding)
+        return P.validate(play.row(), view), None
     except P.Refused as e:
         return None, e.why
 
@@ -135,6 +141,7 @@ class TacticianSource:
         self.coalesced = 0       # triggers coalesced into the flight in progress
         self._pending = None     # {thread, view, trigger, wall, done, out, coalesced}
         self._abandoned = None   # the thread of a call abandoned past timeout_s, until it ends
+        self.started = 0         # the calls started
 
     def busy(self):
         """A call is out, or an abandoned one still runs."""
@@ -142,14 +149,16 @@ class TacticianSource:
             self._abandoned = None
         return self._pending is not None or self._abandoned is not None
 
-    def ask(self, view, trigger):
-        """Start a call on `view` (True), or coalesce `trigger` into the one out (False)."""
+    def ask(self, view, trigger, binding=None):
+        """Start a call on `view` (True), or coalesce `trigger` into the one out (False). `binding` the view's
+        (`tview.binding`): the answer is bound through it at `poll`."""
         if self.busy():
             self.dirty = True
             self.coalesced += 1
             return False
         p = {"view": view, "trigger": trigger, "wall": self.clock(), "done": threading.Event(), "out": None,
-             "coalesced": self.coalesced}
+             "coalesced": self.coalesced, "binding": binding}
+        self.started += 1
         self.coalesced, self.dirty = 0, False
         p["thread"] = threading.Thread(target=self._work, args=(p,), name="tactician", daemon=True)
         self._pending = p
@@ -160,9 +169,9 @@ class TacticianSource:
         p["out"] = call(self.argv, render(p["view"]), self.runner, self.timeout_s, self.clock)
         p["done"].set()
 
-    def poll(self, view_now):
+    def poll(self, view_now, binding_now=None):
         """None while the call runs within timeout_s (or none is out); else its result, once (the module
-        docstring)."""
+        docstring), its answer bound through the asked view when both bindings are given (`judge`)."""
         p = self._pending
         if p is None:
             return None
@@ -171,14 +180,17 @@ class TacticianSource:
                 return None
             self._abandoned, self._pending = p["thread"], None
             return self._result(p, {"answer": None, "error": "timeout", "latency_s": self.clock() - p["wall"]},
-                                view_now)
+                                view_now, binding_now)
         self._pending = None
-        return self._result(p, p["out"], view_now)
+        return self._result(p, p["out"], view_now, binding_now)
 
-    def _result(self, p, out, view_now):
+    def _result(self, p, out, view_now, binding_now=None):
         play, why = (None, None)
         if out.get("error") is None:
-            play, why = judge(out.get("answer"), view_now)
+            if p.get("binding") is not None and binding_now is not None:
+                play, why = judge(out.get("answer"), view_now, p["view"], p["binding"], binding_now)
+            else:
+                play, why = judge(out.get("answer"), view_now)
         else:
             why = "timeout" if out["error"] == "timeout" else ("cli_error" if out["error"] == "cli error" else (
                 "malformed" if out["error"] == "malformed" else "exit"))

@@ -5,12 +5,15 @@ the model add anything tactically over a cached table of Angus's rules?
     python tools/tactician_bench.py views            # build the 200 trigger views from the rings, print their mix
     python tools/tactician_bench.py record [--max-calls N] [--dry]   # the real `claude -p` calls, cached and resumed
     python tools/tactician_bench.py score [--write-table]            # the verdict, from the recorded answers
+    python tools/tactician_bench.py check                            # read-only: the recorded scores and table hold
 
 THE VIEWS (deterministic; no clock, no model). The rings are the committed artifacts of F2 to F15 and E19 to E23
 (RINGS: `f_goals_2`, `f_goals_4` to `f_goals_16`, `e_day_19` to `e_day_23`; F1 is `f_goals`, F3 `f_goals_4`, the
 F-number one less than the driver's from F3 on). Each ring's `state.log` is decoded as live
 (`replay_decisions.read_record`: `FileTransport`, the delta frames merged) into a fresh World, every frame stepped
-through the tactician's own triggers (`tactician.trigger.Triggers`, the frame's `wallMs` as the clock). Pass 1 keeps
+through the tactician's own triggers (`tactician.trigger.Triggers(banded=False)`, the frame's `wallMs` as the clock:
+the triggers the recording was made with, `count` on every change of the raw count; the live decider's `count` fires
+on a band edge held COUNT_HOLD_S since fix 1, which would choose other frames). Pass 1 keeps
 every (ring, frame, triggers) point with a cheap class (the standing count within DANGER_R by band, a standing zombie
 within KEEP_R, a bleed); 200 points are chosen round-robin over the classes in sorted order, each class's points taken
 evenly spaced over (ring, frame), so the quiet `clear` and `notice` triggers do not drown the fights. Pass 2 replays
@@ -112,7 +115,7 @@ def _replay(ring, want=None):
     index: view} for the frame indexes in `want`."""
     lines, rows = read_record(os.path.join(ARTIFACTS, ring))
     walls = [r["wall"] for r in rows]
-    w, trig = World(), Triggers()
+    w, trig = World(), Triggers(banded=False)   # the recording's triggers (fix 1 banded the live ones: trigger.py)
     pts, views, fi = [], {}, -1
     for ln in lines:
         w.apply(ln)
@@ -370,7 +373,10 @@ def score(rec, views, write_table=False):
                              "all_same_type": _r(sum(all(_same(x, xs[0], False) for x in xs) and xs[0] is not None
                                                      for _, xs in full) / len(full)) if full else None,
                              "all_same_target": _r(sum(all(_same(x, xs[0]) for x in xs) and xs[0] is not None
-                                                       for _, xs in full) / len(full)) if full else None}
+                                                       for _, xs in full) / len(full)) if full else None,
+                             "pairwise_type": _r(_pairwise(full)) if full else None,
+                             "first_two_type": _r(sum(_same(xs[0], xs[1], False) for _, xs in full) / len(full))
+                             if full else None}
     out["verdict"] = verdict(out)
     if write_table:
         tin.save(meta={"source": "tools/tactician_bench.py score --write-table", "reference": REFERENCE,
@@ -386,6 +392,13 @@ def _refusal(raw, view):
     return None
 
 
+def _pairwise(full):
+    """The share of sample pairs of a view agreeing on the play type (fix 1, review-t11 L4: like for like with the
+    table's pairwise agreement), over every view's SELF_K samples."""
+    pairs = [(xs[i], xs[j]) for _, xs in full for i in range(len(xs)) for j in range(i + 1, len(xs))]
+    return sum(_same(a, b, False) for a, b in pairs) / len(pairs)
+
+
 def verdict(out):
     """The table against the reference model (THE SCORES)."""
     ch = out["choosers"]
@@ -396,7 +409,8 @@ def verdict(out):
     tie = agree >= TIE_SHARE and t["violations_total"] <= m["violations_total"]
     text = ("the table ties the model (%.1f %% type agreement, %d violations against %d): T runs the table, the model "
             "stays strategic" if tie else
-            "the table does not tie the model (%.1f %% type agreement, %d violations against %d)") % (
+            "the table does not tie the model under the 95 percent bar (%.1f %% type agreement, %d violations "
+            "against %d), and the model's own agreement with itself bounds what any table could reach") % (
         100 * agree, t["violations_total"], m["violations_total"])
     return {"tie": tie, "agree_type": agree, "table_violations": t["violations_total"],
             "model_violations": m["violations_total"], "text": text}
@@ -435,6 +449,7 @@ def main(argv=None):
     r.add_argument("--dry", action="store_true")
     s = sub.add_parser("score")
     s.add_argument("--write-table", action="store_true")
+    sub.add_parser("check")
     a = ap.parse_args(argv)
     if a.cmd == "views":
         views, points = build_views()
@@ -449,11 +464,27 @@ def main(argv=None):
     if rec is None:
         raise SystemExit("no recording at %s: run `record` first" % RECORDING)
     views, _ = build_views(log=lambda *_: None)
+    if a.cmd == "check":
+        return check(rec, views)
     sc = score(rec, views, a.write_table)
     rec["scores"] = sc
     save(rec)
     print_table(sc)
     return 0
+
+
+def check(rec, views, log=print, table=None):
+    """`check` (fix 1, review-t11 L2): the scores re-read from the recording and the rings, compared with the
+    recording's own `scores` and the committed `table.json`; nothing written. 0 when both agree, else 1."""
+    sc = score(rec, views, write_table=False)
+    same = json.dumps(sc, sort_keys=True) == json.dumps(rec.get("scores"), sort_keys=True)
+    fitted = T.Table.fit([(view, _valid(c.get("answer"), view)) for c in rec.get("calls") or ()
+                          if c["config"] == REFERENCE and c["k"] == 0
+                          for view in [next(v for r, v, _ in views if r["id"] == c["view"])]])
+    table_same = fitted.cells == (table if table is not None else T.Table.load()).cells
+    print_table(sc, log)
+    log("check: scores %s, table.json %s" % ("match" if same else "DIFFER", "matches" if table_same else "DIFFERS"))
+    return 0 if same and table_same else 1
 
 
 if __name__ == "__main__":

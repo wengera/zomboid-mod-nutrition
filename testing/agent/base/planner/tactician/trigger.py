@@ -4,7 +4,10 @@ and returns the triggers it fires, in TRIGGERS order, each once per change:
 
 - `notice`: a standing zombie within NOTICE_R (12, the listing's edge `policies.LISTED_R`) that was not within it at
   any read in the last NOTICE_GAP_S (10 s).
-- `count`: the standing count within DANGER_R (6) differs from the last read's.
+- `count`: the standing count within DANGER_R (6), by band (0, 1, 2, 3 or more: COUNT_TOP), reads a band other than
+  the last fired one for COUNT_HOLD_S unbroken (fix 1, review-t11 H3: the raw count flickered, F14's 140 of 210
+  trigger ticks and F15's 132 of 176 were `count`); a change inside the top band, or one back within the hold, fires
+  nothing.
 - `hit`: the frame's `me.hitReaction` turns non-empty (a zombie attack that reached the damage roll).
 - `wound`: a part reads `bleeding` that did not at the last read.
 - `down`: a zombie within DANGER_R turns `onFloor`, or a `zombie_dead` event arrived since the last read.
@@ -26,6 +29,9 @@ from agent.base.planner.policies import DANGER_R, LISTED_R, on_floor, zdist
 from agent.base.world import me_floor, me_xy
 
 TRIGGERS = ("notice", "count", "hit", "wound", "down", "clear", "arrived", "need", "ended")
+COUNT_TOP = 3            # the top band of `count`: 3 or more standing within DANGER_R (fallback.GROUP_N, the group)
+COUNT_HOLD_S = 1.0       # wall seconds a new band must hold before `count` fires (fix 1, review-t11 H3: "hold it for
+                         # about 1 s"): two planner ticks at PLANNER_HZ 2
 NOTICE_R = LISTED_R      # tiles: the listing's edge (policies.LISTED_R, #4268)
 NOTICE_GAP_S = 10.0      # wall seconds a zombie must have been out of NOTICE_R before it is noticed again (the proposal)
 CLEAR_S = 5.0            # wall seconds with nobody within NOTICE_R before `clear` fires (the proposal)
@@ -57,9 +63,13 @@ def _inside(world):
 class Triggers:
     """The triggers and the closing tracker (the module docstring)."""
 
-    def __init__(self):
+    def __init__(self, banded=True):
+        """`banded` False: `count` on every change of the raw count, no hold (the triggers before fix 1, which chose
+        the bench's recorded views: `tools/tactician_bench.py` keeps them, so its recording's shas hold)."""
+        self.banded = banded
         self.within = {}          # zombie id -> wall of its last read within NOTICE_R
-        self.count = None         # the last standing count within DANGER_R
+        self.count = None         # the last fired band of the standing count within DANGER_R (COUNT_TOP)
+        self._band_since = None   # (band, wall) of a band other than `count` read since, until it holds COUNT_HOLD_S
         self.hit = False          # the last read's hit reaction was set
         self.bleeding = set()     # the last read's bleeding part indices
         self.floor = set()        # the ids within DANGER_R read onFloor at the last read
@@ -136,9 +146,21 @@ class Triggers:
         if notice:
             out.append("notice")
         n = sum(1 for _, _, d in standing if d <= DANGER_R)
-        if self.count is not None and n != self.count:
-            out.append("count")
-        self.count = n
+        band = min(n, COUNT_TOP) if self.banded else n
+        if not self.banded:
+            if self.count is not None and band != self.count:
+                out.append("count")
+            self.count = band
+        elif self.count is None:
+            self.count = band
+        elif band == self.count:
+            self._band_since = None
+        else:
+            if self._band_since is None or self._band_since[0] != band:
+                self._band_since = (band, now)
+            if now - self._band_since[1] >= COUNT_HOLD_S:
+                out.append("count")
+                self.count, self._band_since = band, None
         hit = bool((world.me or {}).get("hitReaction"))
         if hit and not self.hit:
             out.append("hit")

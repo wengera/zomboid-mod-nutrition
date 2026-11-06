@@ -7872,16 +7872,16 @@
    "doctrine": {
     "agree_n_haiku": 197,
     "agree_n_sonnet": 199,
-    "agree_target_haiku": 0.5482,
-    "agree_target_sonnet": 0.6332,
-    "agree_type_haiku": 0.5685,
-    "agree_type_sonnet": 0.6784,
+    "agree_target_haiku": 0.5635,
+    "agree_target_sonnet": 0.6131,
+    "agree_type_haiku": 0.5838,
+    "agree_type_sonnet": 0.6533,
     "asked": 200,
     "plays": {
      "avoid": 2,
      "dress": 54,
-     "fight": 102,
-     "kite": 35,
+     "fight": 121,
+     "kite": 16,
      "loot": 6,
      "travel": 1
     },
@@ -7984,16 +7984,16 @@
    "table": {
     "agree_n_haiku": 197,
     "agree_n_sonnet": 199,
-    "agree_target_haiku": 0.5431,
-    "agree_target_sonnet": 0.6834,
-    "agree_type_haiku": 0.5736,
-    "agree_type_sonnet": 0.7538,
+    "agree_target_haiku": 0.5533,
+    "agree_target_sonnet": 0.6281,
+    "agree_type_haiku": 0.5838,
+    "agree_type_sonnet": 0.6884,
     "asked": 200,
     "plays": {
      "avoid": 7,
      "dress": 54,
-     "fight": 87,
-     "kite": 47,
+     "fight": 121,
+     "kite": 13,
      "loot": 3,
      "travel": 2
     },
@@ -8009,16 +8009,16 @@
    "table_in": {
     "agree_n_haiku": 197,
     "agree_n_sonnet": 199,
-    "agree_target_haiku": 0.5787,
-    "agree_target_sonnet": 0.7186,
-    "agree_type_haiku": 0.6294,
-    "agree_type_sonnet": 0.809,
+    "agree_target_haiku": 0.5939,
+    "agree_target_sonnet": 0.6683,
+    "agree_type_haiku": 0.6497,
+    "agree_type_sonnet": 0.7538,
     "asked": 200,
     "plays": {
      "avoid": 12,
      "dress": 54,
-     "fight": 95,
-     "kite": 36,
+     "fight": 128,
+     "kite": 3,
      "loot": 2,
      "travel": 1
     },
@@ -8036,14 +8036,16 @@
   "self_agreement": {
    "all_same_target": 0.88,
    "all_same_type": 0.88,
+   "first_two_type": 0.96,
    "k": 3,
+   "pairwise_type": 0.92,
    "views": 25
   },
   "verdict": {
-   "agree_type": 0.7538,
+   "agree_type": 0.6884,
    "model_violations": 17,
    "table_violations": 0,
-   "text": "the table does not tie the model (75.4 % type agreement, 0 violations against 17)",
+   "text": "the table does not tie the model under the 95 percent bar (68.8 % type agreement, 0 violations against 17), and the model's own agreement with itself bounds what any table could reach",
    "tie": false
   }
  },

@@ -133,7 +133,8 @@ def test_the_self_agreement_reads_the_three_samples_of_each_view():
                       "answer": {"play": "fight", "target": "Z1", "bound": "dead", "why": "lone_chaser"},
                       "latency_s": 2.0, "error": None})
     sc = B.score({"views": [v for v, _, _ in views], "calls": calls}, views)
-    assert sc["self_agreement"] == {"views": 2, "k": 3, "all_same_type": 0.5, "all_same_target": 0.5}
+    assert sc["self_agreement"] == {"views": 2, "k": 3, "all_same_type": 0.5, "all_same_target": 0.5,
+                                    "pairwise_type": 0.5, "first_two_type": 0.5}
 
 
 def test_the_percentiles_are_nearest_rank():
@@ -172,3 +173,17 @@ def test_the_committed_table_is_the_bench_s_in_sample_fit(recording):
         meta = json.load(f)
     assert meta["reference"] == B.REFERENCE and meta["verdict"] == recording["scores"]["verdict"]["text"]
     assert t.cells and set(t.cells.values()) <= set(B.P.PLAYS)
+
+
+def test_check_is_read_only_and_fails_on_scores_or_a_table_that_moved(tmp_path):
+    """Fix 1 (review-t11 L2): `check` re-reads the scores and the table and writes nothing."""
+    views = fixed_views()
+    rec = {"views": [v for v, _, _ in views], "calls": calls_from(views, doctrine_like)}
+    rec["scores"] = B.score(rec, views)
+    fitted = T.Table.fit([(v, B._valid(doctrine_like("sonnet", r, v), v)) for r, v, _ in views])
+    before = json.dumps(rec, sort_keys=True)
+    assert B.check(rec, views, log=lambda *a: None, table=fitted) == 0
+    assert json.dumps(rec, sort_keys=True) == before
+    assert B.check(rec, views, log=lambda *a: None, table=T.Table({"x": "fight"})) == 1
+    rec["scores"]["choosers"]["sonnet"]["violations_total"] = 99
+    assert B.check(rec, views, log=lambda *a: None, table=fitted) == 1

@@ -30,7 +30,12 @@ target a label (`Z<n>`, `D<n>`, `B<id>`, `P<i>`) so a validation is a set lookup
   (`ctx["refusal"]`: the last answer's refusal why, once).
 
 `render(view) -> str`: one `key: <compact sorted JSON>` line per key, the map as its own lines; under RENDER_MAX
-bytes. The view only reads."""
+bytes. The view only reads.
+
+`binding(world, view) -> {label: (family, id)}` (fix 1, review-t11 H4): what each label of the view names, a zombie by
+its online id, a door by its square, a building by its id, a part by its index. Labels are distance ranks and move
+between views; the decider and the source bind an answer through the view it was asked on and compare plays by these
+ids, never by label. Built beside the view, never inside it (the bench's recorded views keep their bytes)."""
 import json
 import math
 
@@ -287,6 +292,23 @@ def build(world, triggers=None, ctx=None):
          "goal": ctx.get("goal"),
          "refusal": ctx.get("refusal")}
     return {k: v[k] for k in KEYS}
+
+
+def binding(world, view):
+    """{label: (family, id)} of the view's labels (the module docstring): the zombies' ids off the view's own
+    records, the doors' squares off `door_rows` (the order `_doors` labelled), the buildings' and parts' ids off their
+    labels."""
+    out = {z["label"]: ("zombie", z["id"]) for z in view.get("zombies") or ()}
+    rows = door_rows(world)
+    for d in view.get("doors") or ():
+        k = int(d["label"][1:]) - 1
+        if 0 <= k < len(rows):
+            out[d["label"]] = ("door", rows[k][1])
+    for b in view.get("buildings") or ():
+        out[b["label"]] = ("building", int(b["label"][1:]))
+    for p in (view.get("body") or {}).get("parts") or ():
+        out[p["label"]] = ("part", int(p["label"][1:]))
+    return out
 
 
 def render(view):

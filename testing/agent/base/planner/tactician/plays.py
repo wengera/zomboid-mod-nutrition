@@ -36,7 +36,8 @@ TACTICAL = ("fight", "kite", "avoid", "dress")   # the plays whose target the be
 STRATEGIC = ("loot", "travel", "shelter")   # the plays the strategic goal layer executes
 REFUSALS = ("malformed", "not_object", "unknown_play", "extra_key", "missing_arg", "bad_arg", "unknown_label",
             "bad_bound", "bad_why", "not_bleeding", "no_item", "looted", "no_shelter", "timeout", "exit",
-            "cli_error", "doctrine")   # `doctrine`: the decider's veto of an answer breaking a rubric rule (decide.py)
+            "cli_error", "doctrine", "gone")   # `doctrine`: the decider's veto of an answer breaking a rubric rule
+            # (decide.py); `gone`: an answer whose zombie, door, building or part is no longer listed (`rebind`)
 LABEL_RX = {"zombie": re.compile(r"Z[1-9][0-9]*"), "door": re.compile(r"D[1-9][0-9]*"),
             "building": re.compile(r"B-?[0-9]+"), "part": re.compile(r"P[0-9]+")}
 KINDS = {"zombie": ("zombie",), "refuge": ("door", "building"), "place": ("building", "door"),
@@ -148,6 +149,25 @@ def validate(obj, view):
     play = Play(p, {k: obj[k] for k in spec}, obj["bound"], obj["why"])
     _meaning(play, view)
     return play
+
+
+def rebind(play, asked, now):
+    """`play`, validated on the view it was asked on, with each label arg rebound to the label the same id holds in
+    the moment's view (`asked` and `now` are `tview.binding`s: label -> (family, id); fix 1, review-t11 H4: a `fight Z1`
+    asked when Z1 was zombie 7 goes at zombie 7, whatever rank it holds now); raises Refused("gone") when an id is no
+    longer listed. A literal (`stance`, `explore`) and an enum pass as they are."""
+    back = {v: k for k, v in now.items()}
+    args = {}
+    for name, v in play.args.items():
+        spec = ARGS[play.play][name]
+        if "enum" in spec or v in spec.get("or", ()):
+            args[name] = v
+            continue
+        ref = asked.get(v)
+        if ref is None or ref not in back:
+            raise Refused("gone", "%s=%s" % (name, v))
+        args[name] = back[ref]
+    return Play(play.play, args, play.bound, play.why)
 
 
 def _meaning(play, view):

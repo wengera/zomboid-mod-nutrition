@@ -17,7 +17,7 @@ from agent.base.planner.tactician import rubric as R
 from agent.base.planner.tactician import source as S
 from agent.base.planner.tactician import table as T
 from agent.base.planner.tactician import tview as V
-from agent.base.planner.tactician.trigger import CLEAR_S, NOTICE_GAP_S, Triggers
+from agent.base.planner.tactician.trigger import CLEAR_S, COUNT_HOLD_S, NOTICE_GAP_S, Triggers
 
 from .fakemod import MELEE_CAPS
 from .test_night import CLOSED, house
@@ -147,18 +147,18 @@ def test_each_trigger_fires_once_per_change_over_a_synthetic_frame_stream(tmp_pa
     r.frame(zombies=[z(1, 107.5, 200.0)])
     assert step(tr, r, 1.5) == []                                     # still listed: no second notice
     r.frame(zombies=[z(1, 104.0, 200.0)])
-    assert step(tr, r, 2.0) == ["count"]                              # into DANGER_R: the count 0 -> 1
+    assert step(tr, r, 2.0) == []                                     # into DANGER_R: the band 0 -> 1 is held ...
     r.frame(zombies=[z(1, 104.0, 200.0)], hit_reaction="HitReaction")
-    assert step(tr, r, 2.5) == ["hit"]
+    assert step(tr, r, 3.0) == ["count", "hit"]                       # ... COUNT_HOLD_S, then fires
     r.frame(zombies=[z(1, 104.0, 200.0)], hit_reaction="HitReaction")
-    assert step(tr, r, 3.0) == []                                     # the same reaction: no second hit
+    assert step(tr, r, 3.2) == []                                     # the same reaction: no second hit
     r.frame(zombies=[z(1, 104.0, 200.0)], wounds={"parts": [part(1, bleeding=True)], "bleeding": 1})
     assert step(tr, r, 3.5) == ["wound"]
     r.frame(zombies=[z(1, 104.0, 200.0, floor=True)], wounds={"parts": [part(1, bleeding=True)], "bleeding": 1})
-    assert step(tr, r, 4.0) == ["count", "down"]                      # it fell: standing 1 -> 0, and down
+    assert step(tr, r, 4.0) == ["down"]                               # it fell: down, the band 1 -> 0 held
     tr.note_ended()
     r.frame(zombies=[z(1, 104.0, 200.0, floor=True)], wounds={"parts": [part(1, bleeding=True)], "bleeding": 1})
-    assert step(tr, r, 4.5) == ["ended"]
+    assert step(tr, r, 5.0) == ["count", "ended"]
     assert tr.fired["notice"] == 1 and tr.fired["hit"] == 1
 
 
@@ -338,10 +338,15 @@ def test_a_group_is_kited_toward_a_refuge_away_from_it_and_avoided_before_it_arr
     assert (rule, ans["play"], ans["toward"]) == ("group", "avoid", "D1")
 
 
-def test_a_door_toward_the_group_is_no_refuge_and_with_none_the_kite_holds_the_stance():
+def test_a_door_toward_the_group_is_no_refuge_and_with_none_the_stand_is_taken():
+    """Fix 1 (the controller's refuge ruling, review-t11 H2): no refuge, no retreat: the nearest is fought where the
+    character stands, the arrivals one at a time."""
     zs = [zrow("Z1", 3.0, bearing="W"), zrow("Z2", 4.0, bearing="W"), zrow("Z3", 5.0, bearing="W")]
     rule, ans = answer(mkview(zs, doors=[DOOR]))
-    assert (ans["play"], ans["toward"]) == ("kite", "stance")
+    assert (rule, ans["play"], ans["target"], ans["why"]) == ("group", "fight", "Z1", "group")
+    far = [zrow("Z%d" % k, 9.0 + k, bearing="W") for k in (1, 2, 3)]
+    assert answer(mkview(far))[1]["play"] == "fight"                   # an avoid with no refuge: the stand too
+    assert answer(mkview([zrow("Z1", 4.0)], armed=None))[1]["play"] == "fight"   # unarmed, no refuge: the shove
 
 
 def test_one_standing_with_two_more_aware_farther_is_still_fought_never_fled():
@@ -405,7 +410,7 @@ def test_the_doctrine_breaks_no_rubric_rule_on_the_fixed_views():
 
 
 def test_the_table_s_cell_answers_with_the_fallback_s_target_else_the_doctrine():
-    v = mkview([zrow("Z1", 4.0), zrow("Z2", 5.0)])
+    v = mkview([zrow("Z1", 4.0), zrow("Z2", 5.0)], doors=[DOOR])
     k = T.key(v)
     assert k == "s2|k0|g0|a1|hhi|b0|d0|i0"
     assert T.Table().answer(v)[:2] == ("doctrine", "fight")
@@ -562,15 +567,32 @@ def test_a_hit_reaction_hands_the_tick_to_the_melee(tmp_path):
     assert (tac["play"], tac["guard"]) == ("fight", "hit")
 
 
-def test_a_group_with_no_refuge_is_kited_in_the_stance_and_the_line_names_the_retreat(tmp_path):
+def test_a_group_with_no_refuge_is_met_in_the_stance_where_the_character_stands(tmp_path):
+    """Fix 1 (review-t11 H2, the controller's refuge ruling): no backpedal over open ground; the stand."""
     r, sv = make(tmp_path)
     r.frame(zombies=[z(7, 103.0, 200.0), z(8, 103.5, 201.0), z(9, 104.0, 199.0)])
     tick(r, sv)
     line = lines(tmp_path)[-1]
-    assert line["branch"] == "threat" and line["inputs"]["branches"]["threat"]["flee"] == "group"
-    assert line["inputs"]["play"]["kind"] == "kite_stance" and line["inputs"]["play"]["target"] == 7
+    assert line["branch"] == "threat" and "flee" not in line["inputs"]["branches"]["threat"]
+    assert line["inputs"]["play"]["kind"] == "fight" and line["inputs"]["play"]["target"] == 7
+    assert line["inputs"]["tactician"]["rule"] == "group"
     a = line["action"]
-    assert a["type"] == "aim" and a["args"]["targetId"] == 7 and a["args"]["vx"] < 0.0   # backpedal, facing it
+    assert a["type"] == "aim" and a["args"]["targetId"] == 7 and (a["args"]["vx"], a["args"]["vy"]) == (0.0, 0.0)
+
+
+def test_a_model_s_kite_toward_the_stance_holds_and_one_whose_refuge_lies_past_the_zombies_holds(tmp_path):
+    """Fix 1 (review-t11 H2): a kite moves only on a refuge heading away from the zombies; else the stance holds."""
+    r, sv = make(tmp_path)
+    r.scan(house(1, 110, y0=199) + [PO_square(x, y) for x in range(95, 110) for y in range(196, 205)])
+    r.frame(zombies=[z(7, 103.0, 200.0), z(8, 103.5, 201.0)])
+    t = sv.control_state["tactician"]
+    view = t.view()
+    bind = V.binding(sv.world, view)
+    for toward in ("stance", "D1"):   # D1 is east, past the zombies
+        t._start(P.validate({"play": "kite", "target": "Z1", "toward": toward, "bound": "time", "why": "group"}, view),
+                 view, bind, "model")
+        _, _, cmd, why = t.exec.step()
+        assert (cmd.TYPE, cmd.vx, cmd.vy, why["step"]) == ("aim", 0.0, 0.0, "hold")
 
 
 def test_a_group_with_a_door_away_is_kited_toward_that_door(tmp_path):
@@ -630,14 +652,17 @@ class FakeSource:
     def __init__(self):
         self.asked, self.dirty, self.out = [], False, None
 
-    def ask(self, view, trigger):
+    def ask(self, view, trigger, binding=None):
         self.asked.append(trigger)
+        self.started += 1
         return True
+
+    started = 0
 
     def busy(self):
         return False
 
-    def poll(self, view_now):
+    def poll(self, view_now, binding_now=None):
         out, self.out = self.out, None
         if out is None:
             return None
@@ -646,19 +671,25 @@ class FakeSource:
                 "refused_why": why, "latency_s": 2.0, "model": "fake", "coalesced": 0, "error": None, "_play": play}
 
 
-def test_a_model_answer_overrides_the_table_and_a_refused_one_reaches_the_next_view_once(tmp_path):
+def model_rig(tmp_path, zombies, **frame):
     r, sv = make(tmp_path)
-    r.frame(zombies=[z(7, 104.0, 200.0), z(8, 105.0, 201.5)])
+    r.frame(zombies=zombies, **frame)
     t = sv.control_state["tactician"] = D.Tactician(sv, source=FakeSource(), table=T.Table())
     t.mode = "model"
+    return r, sv, t
+
+
+def test_a_model_answer_overrides_the_table_and_a_refused_one_reaches_the_next_view_once(tmp_path):
+    two = [z(7, 104.0, 200.0), z(8, 105.0, 201.5)]
+    r, sv, t = model_rig(tmp_path, two)
     tick(r, sv)
     assert t.source.asked == ["notice"] and t.exec.play.play == "fight"
-    t.source.out = {"play": "kite", "target": "Z1", "toward": "stance", "bound": "time", "why": "lone_chaser"}
-    r.frame(zombies=[z(7, 104.0, 200.0), z(8, 105.0, 201.5)])
-    tick(r, sv)
+    t.source.out = {"play": "kite", "target": "Z1", "toward": "stance", "bound": "time", "why": "group"}
+    r.frame(zombies=two)
+    tick(r, sv)   # two standing: no rule binds, the model's play stands
     assert t.exec.play.play == "kite" and lines(tmp_path)[-1]["inputs"]["tactician"]["source"] == "model"
     t.source.out = {"play": "fight", "target": "Z5", "bound": "dead", "why": "lone_chaser"}
-    r.frame(zombies=[z(7, 104.0, 200.0), z(8, 105.0, 201.5)])
+    r.frame(zombies=two)
     tick(r, sv)
     assert lines(tmp_path)[-1]["inputs"]["tactician"]["refused"] == {"why": "unknown_label"}
     assert t.refusal == "unknown_label" and t.view()["refusal"] == "unknown_label"
@@ -666,27 +697,173 @@ def test_a_model_answer_overrides_the_table_and_a_refused_one_reaches_the_next_v
     assert [c["refused_why"] for c in calls] == [None, "unknown_label"] and calls[0]["applied_at"] is not None
 
 
-def test_a_model_answer_breaking_a_rule_the_doctrine_keeps_is_vetoed(tmp_path):
-    r, sv = make(tmp_path)
+def test_a_running_avoid_from_one_armed_reachable_chaser_turns_into_a_fight_within_one_tick(tmp_path):
+    """Fix 1 (review-t11 H1, its reproduction): the doctrine applies to the running play, not only to a new answer."""
+    r, sv, t = model_rig(tmp_path, [z(7, 104.0, 200.0), z(8, 103.0, 202.0), z(9, 103.0, 198.0)])
+    r.scan(house(1, 90, y0=199) + [PO_square(x, y) for x in range(93, 108) for y in range(196, 205)])
+    tick(r, sv)
+    t.source.out = {"play": "avoid", "toward": "D1", "gait": "walk", "bound": "clear", "why": "group"}
+    r.frame(zombies=[z(7, 104.0, 200.0), z(8, 103.0, 202.0), z(9, 103.0, 198.0)])
+    tick(r, sv)
+    assert t.exec.play.play == "avoid"
+    r.frame(zombies=[z(7, 104.0, 200.0)])          # the group thins to one chaser at 4 tiles, armed
+    r.advance(11.0)                                 # past ZOMBIE_TTL_S: the World forgets the other two
     r.frame(zombies=[z(7, 104.0, 200.0)])
-    t = sv.control_state["tactician"] = D.Tactician(sv, source=FakeSource(), table=T.Table())
-    t.mode = "model"
+    tick(r, sv)
+    assert t.exec.play.play == "fight" and lines(tmp_path)[-1]["inputs"]["tactician"]["source"] == "doctrine"
+    t.source.out = {"play": "avoid", "toward": "D1", "gait": "walk", "bound": "clear", "why": "group"}
+    r.frame(zombies=[z(7, 104.0, 200.0)])
+    tick(r, sv)                                     # the model's repeat avoid is vetoed: the fight runs on
+    assert lines(tmp_path)[-1]["inputs"]["tactician"]["refused"] == {"why": "doctrine"}
+    assert t.exec.play.play == "fight"
+
+
+def test_a_running_fight_gives_way_to_the_dressing_when_a_part_bleeds_and_the_zombie_stands_off(tmp_path):
+    r, sv, t = model_rig(tmp_path, [z(7, 104.0, 200.0)])
+    r.event("item_added", itemId=11, fullType="Base.Bandage", weight=0.1, use="bandage")
+    tick(r, sv)
+    assert t.exec.play.play == "fight"
+    r.frame(zombies=[z(7, 104.0, 200.0)], wounds={"parts": [part(1, bleeding=True, bleedingTime=5.0)], "bleeding": 1})
+    tick(r, sv)
+    assert t.exec.play.play == "dress" and lines(tmp_path)[-1]["inputs"]["tactician"]["table"] == "rule"
+
+
+def test_a_model_answer_breaking_a_rule_the_doctrine_keeps_is_vetoed_and_the_table_takes_over(tmp_path):
+    r, sv, t = model_rig(tmp_path, [z(7, 104.0, 200.0)])
     tick(r, sv)
     t.source.out = {"play": "avoid", "toward": "stance", "gait": "walk", "bound": "clear", "why": "group"}
     r.frame(zombies=[z(7, 104.0, 200.0)])
     tick(r, sv)   # an invalid toward: refused by the schema, not the veto
     assert lines(tmp_path)[-1]["inputs"]["tactician"]["refused"] == {"why": "bad_arg"}
     t.source.out = {"play": "kite", "target": "Z1", "toward": "stance", "bound": "time", "why": "group"}
-    t._end("replaced", broken=False)
-    r.frame(zombies=[z(7, 104.0, 200.0), z(8, 105.0, 201.0)])
-    tick(r, sv)   # two standing: no rule binds, the model's kite stands
-    assert t.exec.play.play == "kite"
-    t.source.out = {"play": "kite", "target": "Z1", "toward": "stance", "bound": "time", "why": "group"}
-    t._end("replaced", broken=False)
     r.frame(zombies=[z(7, 104.0, 200.0), z(8, 115.0, 201.0)])
-    tick(r, sv)   # one standing within DANGER_R, armed: the kite is vetoed, the doctrine's fight runs
-    assert lines(tmp_path)[-1]["inputs"]["tactician"]["refused"] == {"why": "doctrine"}
-    assert t.exec.play.play == "fight"
+    tick(r, sv)   # one standing within DANGER_R, armed, with a fight running: vetoed, the fight runs on
+    tac = lines(tmp_path)[-1]["inputs"]["tactician"]
+    assert tac["refused"] == {"why": "doctrine"} and tac["table"] == "veto" and t.exec.play.play == "fight"
+
+
+def test_an_answer_is_bound_by_id_through_the_view_it_was_asked_on():
+    """Fix 1 (review-t11 H4): a `fight Z1` asked when Z1 was zombie 7 goes at zombie 7 under its new label; one whose
+    zombie left is refused `gone`; the same zombie under a new label is the same play."""
+    asked = mkview([zrow("Z1", 3.0, zid=7), zrow("Z2", 5.0, zid=8)])
+    now = mkview([zrow("Z1", 2.0, zid=9), zrow("Z2", 3.0, zid=7)])
+    b_asked = {"Z1": ("zombie", 7), "Z2": ("zombie", 8)}
+    b_now = {"Z1": ("zombie", 9), "Z2": ("zombie", 7)}
+    ans = {"play": "fight", "target": "Z1", "bound": "dead", "why": "lone_chaser"}
+    play, why = S.judge(ans, now, asked, b_asked, b_now)
+    assert why is None and play.args["target"] == "Z2"
+    play, why = S.judge(dict(ans, target="Z2"), now, asked, b_asked, b_now)
+    assert (play, why) == (None, "gone")
+    assert D.Tactician._ref(play or P.Play("fight", {"target": "Z2"}), b_now) == ("fight", ("zombie", 7))
+    assert D.Tactician._ref(P.Play("fight", {"target": "Z1"}), b_asked) == D.Tactician._ref(
+        P.Play("fight", {"target": "Z2"}), b_now)
+
+
+def test_the_source_binds_a_late_answer_through_the_asked_view():
+    run = GatedRunner({"play": "fight", "target": "Z1", "bound": "dead", "why": "lone_chaser"})
+    run.go.set()
+    src = S.TacticianSource(S.cli(), runner=run)
+    src.ask(mkview([zrow("Z1", 3.0, zid=7)]), "notice", {"Z1": ("zombie", 7)})
+    src.join(5.0)
+    r = src.poll(mkview([zrow("Z1", 2.0, zid=9), zrow("Z2", 3.0, zid=7)]), {"Z1": ("zombie", 9), "Z2": ("zombie", 7)})
+    assert r["play"]["target"] == "Z2" and r["refused_why"] is None and src.started == 1
+
+
+def test_the_calls_keep_their_gap_and_the_session_cap(tmp_path, monkeypatch):
+    """Fix 1 (review-t11 H3): CALL_GAP_S between two starts, a trigger inside it asked once it passes; CALLS_MAX in a
+    session, then the table alone."""
+    two = [z(7, 104.0, 200.0), z(8, 105.0, 201.5)]
+    r, sv, t = model_rig(tmp_path, two)
+    tick(r, sv)
+    assert t.source.asked == ["notice"]
+    r.frame(zombies=two, hit_reaction="HitReaction")
+    tick(r, sv, dt=1.0)                               # a hit inside the gap: kept due
+    assert t.source.asked == ["notice"] and t._due == "hit"
+    r.advance(D.CALL_GAP_S)
+    r.frame(zombies=two)
+    tick(r, sv)
+    assert len(t.source.asked) == 2 and t._due is None   # asked once the gap passed (its own trigger, or the due)
+    monkeypatch.setattr(D, "CALLS_MAX", 2)
+    r.advance(D.CALL_GAP_S)
+    r.frame(zombies=two, hit_reaction="")
+    r.frame(zombies=two, hit_reaction="HitReaction")
+    tick(r, sv)
+    assert len(t.source.asked) == 2 and lines(tmp_path)[-1]["inputs"]["tactician"]["capped"] == 2
+
+
+def test_the_count_trigger_fires_on_a_band_edge_only(tmp_path):
+    r = Rig(tmp_path)
+    tr = Triggers()
+    zs = [z(k, 102.0 + k * 0.1, 200.0) for k in range(1, 6)]
+    r.frame(zombies=zs[:3])
+    step(tr, r, 0.0)
+    t = 0.0
+    for n, want in ((4, []), (5, []), (2, ["count"]), (3, ["count"]), (1, ["count"])):
+        r.advance(11.0)
+        r.frame(zombies=zs[:n])
+        t += 5.0
+        got = step(tr, r, t) + step(tr, r, t + COUNT_HOLD_S)   # a new band fires once it holds COUNT_HOLD_S
+        assert [x for x in got if x == "count"] == want
+    r.frame(zombies=zs[:2])
+    assert "count" not in step(tr, r, t + 5.0)
+    r.frame(zombies=zs[:1])
+    assert "count" not in step(tr, r, t + 5.5)                  # back to its band within the hold: nothing
+
+
+def test_the_fight_s_second_zombie_exit_on_the_pza_1_9_path(tmp_path):
+    """Review-t11 M1: a second standing zombie stepping inside the target's distance within KEEP_R ends the fight
+    `second_standing`, and the nearer one is fought."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[z(7, 102.2, 200.0)])
+    tick(r, sv)
+    t = sv.control_state["tactician"]
+    assert t.exec.play.play == "fight" and t.exec.zid == 7
+    r.frame(zombies=[z(7, 102.2, 200.0), z(8, 98.5, 200.0)])
+    tick(r, sv)
+    ends = [x for x in lines(tmp_path, D.PLAYS_LOG) if x["kind"] == "play_end"]
+    assert ends[-1]["end"] == "second_standing" and t.exec.zid == 8
+
+
+def test_a_fight_s_walk_failed_at_a_door_ends_the_play_marks_the_door_once_and_re_routes(tmp_path):
+    """Review-t11 M3: the door decided once; the walk never re-sent each tick."""
+    r, sv = make(tmp_path)
+    r.scan(house(1, 100, y0=198) + [PO_square(x, y) for x in range(95, 100) for y in range(196, 204)])
+    r.frame(x=99.5, y=199.5, zombies=[z(7, 101.5, 199.5, me=(99.5, 199.5))])
+    tick(r, sv)
+    assert lines(tmp_path)[-1]["action"]["type"] == "walkTo"
+    r.answer({"state": "failed", "reason": "stuck"})
+    r.frame(x=99.5, y=199.5, zombies=[z(7, 101.5, 199.5, me=(99.5, 199.5))])
+    tick(r, sv)
+    t = sv.control_state["tactician"]
+    ends = [x for x in lines(tmp_path, D.PLAYS_LOG) if x["kind"] == "play_end"]
+    assert ends[-1]["end"] == "lost" and 7 in sv.unreachable
+    assert (100, 199, 0) in sv.world.door_marks
+    assert t.exec.play.play != "fight"                 # the table re-routes: the zombie is left out
+    r.frame(x=99.5, y=199.5, zombies=[z(7, 101.5, 199.5, me=(99.5, 199.5))])
+    tick(r, sv)
+    walks = [a for a in r.acts.history if a.type == "walkTo" and a.args.get("x") == 101.5]
+    assert len(walks) == 1
+
+
+def test_the_table_holds_a_play_against_a_non_interrupt_trigger(tmp_path):
+    """Review-t11 M2: in table mode a `notice` inside TABLE_HOLD_S does not replace the running play; an interrupt
+    (a count band crossed) does."""
+    r, sv = make(tmp_path)
+    t = sv.control_state["tactician"]
+    t.table = T.Table({"s0|k0|g0|a1|hhi|b0|d0|i0": "fight"})
+    r.frame(zombies=[z(7, 110.0, 200.0, target=False)])
+    tick(r, sv)
+    first = t.exec.play.play
+    r.frame(zombies=[z(7, 110.0, 200.0, target=False), z(8, 90.0, 200.0, target=False)])
+    tick(r, sv)                                       # `notice` of 8 inside the hold
+    assert t.exec.play.play == first and "table" not in lines(tmp_path)[-1]["inputs"]["tactician"]
+    r.frame(zombies=[z(7, 104.0, 200.0), z(8, 90.0, 200.0, target=False)])
+    tick(r, sv)
+    r.frame(zombies=[z(7, 104.0, 200.0), z(8, 90.0, 200.0, target=False)])
+    tick(r, sv, dt=1.0)
+    r.frame(zombies=[z(7, 104.0, 200.0), z(8, 90.0, 200.0, target=False)])
+    tick(r, sv)                                       # `count` 0 -> 1 held COUNT_HOLD_S: an interrupt
+    assert any(x["inputs"]["tactician"].get("table") in ("trigger", "rule") for x in lines(tmp_path)[-3:])
 
 
 def test_a_model_s_loot_pins_its_building_once_through_the_play_source(tmp_path):
@@ -775,3 +952,19 @@ def test_the_meet_s_ends_map_onto_the_fight_s_bounds(tmp_path, end, bound):
             return end
     ex.m = Done()
     assert ex.bound() == bound
+
+
+def test_a_retreat_toward_a_building_is_labelled_shelter_only_with_a_shelter_plan():
+    """Fix 1 (review-t11 L3): `_shelter` names a refuge (REFUGE_WORDS); a building with no shelter plan is none."""
+    v = mkview([zrow("Z1", 3.0)], buildings=[BUILDING, dict(BUILDING, label="B2", shelter=False)], doors=[DOOR])
+    for toward, kind in (("B1", "kite_shelter"), ("B2", "kite_building"), ("D1", "kite_door"), ("stance", "kite_stance")):
+        play = P.Play("kite", {"target": "Z1", "toward": toward}, "time", "group")
+        assert D._label(play, v) == kind
+
+
+def test_prepare_switches_the_dropped_ladder_reads_off_on_the_instance_only(tmp_path):
+    r = Rig(tmp_path)
+    sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, control="tactician")
+    D.prepare(sv)
+    assert (sv.DOOR_HELD, sv.GOAL_CONTINUE, sv.goals.goal_continue) == (False, False, False)
+    assert Survive.DOOR_HELD is True and Survive.GOAL_CONTINUE is True

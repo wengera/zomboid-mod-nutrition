@@ -59,8 +59,8 @@ def expect(sit, ans, view):
     if sit == "group":
         if ans["play"] not in ("kite", "avoid", "fight"):
             return False
-        if ans["play"] == "fight":
-            return bool(F._standing(view, KEEP_R))   # a zombie in reach is struck first
+        if ans["play"] == "fight":   # a zombie in reach is struck first; with no refuge, the stand (fix 1)
+            return bool(F._standing(view, KEEP_R)) or F.refuge(view) is None
         t = ans.get("toward")
         return t != "stance" or F.refuge(view) is None
     if sit == "door":
@@ -147,4 +147,20 @@ def test_the_decider_runs_open_loop_over_the_ring_and_keeps_the_doctrine(ring, t
             bad.append(r)
     assert not bad, bad[:3]
     assert all(c["type"] != "steer" or c["args"].get("gait") != "sprint" for c in tr.sent)   # never a sprint
-    assert os.path.exists(tmp_path / "plays.log")
+    starts = [json.loads(x) for x in (tmp_path / "plays.log").read_text(encoding="utf-8").splitlines()]
+    starts = [x for x in starts if x["kind"] == "play"]
+    flips = flips_within(starts, FLIP_S)
+    print("%s: %d plays, %d A-B-A flips within %s s" % (name, len(starts), flips, FLIP_S))
+    assert flips < FLIPS_BEFORE[name] and flips < REVIEW_FLIPS.get(name, FLIPS_BEFORE[name]), flips   # fix 1, M2
+
+
+FLIP_S = 10.0      # wall seconds an A -> B -> A flip spans at most to count (review-t11 M2)
+FLIPS_BEFORE = {"f_goals_16-20261105-164332": 29, "e_day_23-20261105-095110": 19}   # `flips_within` over this
+                   # replay at bfeea009, before the hysteresis (a `git archive` of it, read by fix 1)
+REVIEW_FLIPS = {"e_day_23-20261105-095110": 14}   # the review's own E23 count (review-t11 section 6), to fall from
+
+
+def flips_within(starts, span):
+    """The A -> B -> A play-type flips among the play starts whose first and third lie within `span` wall seconds."""
+    return sum(1 for a, b, c in zip(starts, starts[1:], starts[2:]) if a["play"]["play"] == c["play"]["play"]
+               != b["play"]["play"] and c["wall"] - a["wall"] <= span)

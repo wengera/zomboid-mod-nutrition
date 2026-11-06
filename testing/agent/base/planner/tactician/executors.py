@@ -17,19 +17,22 @@ line's play target), else None; `aids` the action ids it sent; `age()` wall seco
   a wait at the door: memory `intent-doors-sneak` 1). No back step after a press (the spec's § 4 item 1, J4: PZA/1.10
   has none; on PZA/1.9 the back leg is (0, 0)). Ends: `dead` (unlisted, read dead, or the Melee's `dead`/`kill`),
   `second_standing` (another standing zombie nearer than the target within KEEP_R, or the meet's `handback`: the
-  nearest is fought), `lost` (beyond DISENGAGE_R, or the meet's `lost` for no progress or out of reach). Never on
-  health (memory `stand-and-fight-dress-first` 1).
+  nearest is fought), `lost` (beyond DISENGAGE_R, the meet's `lost` for no progress or out of reach, or a walk to the
+  target that failed: its door marked once, the zombie left unreachable, fix 1). Never on health (memory
+  `stand-and-fight-dress-first` 1).
 - `KiteExec` (`kite`): the stance facing the target (`Aim` with a move vector: the backpedal), the vector toward the
-  refuge's square while that runs away from the standing zombies within DANGER_R (`policies.away_vector`), else the
-  away vector, turned by `policies.STEER_TURNS` to a clear heading (`policies.clear_heading`: never across a fence),
-  else standing; `toward` "stance" backpedals along the away vector. Ends: `alone` (armed and one standing within
+  refuge's square only while that heading runs away from the standing zombies within DANGER_R
+  (`policies.away_vector`) and reads clear (`policies.clear_heading`: never across a fence); else, and with `toward`
+  "stance", the stance held where the character stands, never a backpedal over open ground (fix 1, review-t11 H2: the
+  controller's refuge ruling). Ends: `alone` (armed and one standing within
   DANGER_R: fight it), `reached` (within REACHED_R of the refuge), `time` (KITE_S).
 - `ShelterExec` (`avoid`, `shelter`): `night.shelter_plan` kept to the door (`avoid` toward D<n>) or the building's own
   doors (`avoid` toward B<id>, `shelter`), its steps `night.shelter_step` (approach, open, enter, close), each end read
   by `night.shelter_ended`; the approach at a run while a standing zombie within DANGER_R targets the player, else at a
   walk (the planner's sneak gait, `sneak.SneakGait`, takes a walk near zombies with no target). Ends: `reached` /
-  `inside` (the plan done), `shun` (no door left), `contact` (a standing zombie within KEEP_R), `clear` (avoid only:
-  outside, none targeting the player within LISTED_R).
+  `inside` (the plan done), `shun` (no door left), `contact` (a standing zombie within KEEP_R), `alone` (avoid only:
+  armed, one standing within DANGER_R: it is fought, fix 1), `clear` (avoid only: outside, none targeting the player
+  within LISTED_R).
 - `DressExec` (`dress`): the shared `Dress` maneuver (`maneuvers.dress`: stop, tear, bandage), no ride. Ends:
   `dressed` (its `done`), `nothing` (`failed`), `contact` (`superseded`: a standing zombie within KEEP_R).
 - `GoalExec` (`loot`, `travel`, `shelter` answered by the model with a building, and the doctrine's strategic rules):
@@ -46,8 +49,8 @@ from agent.base.planner.dispatch import MANEUVERS
 from agent.base.planner.goal_policies import ExploreToward, LootBuilding, Shelter
 from agent.base.planner.maneuvers.melee import MeleeInputs
 from agent.base.planner.policies import (AIM_LEG_S, ATTACK_MARGIN, DANGER_R, DISENGAGE_R, KEEP_R, LISTED_R,
-                                         MELEE_RELEASE_R, STEER_TURNS, UNREACHABLE_S, _rotate, away_vector, blocked,
-                                         chasing, clear_heading, line_to, on_floor, running, standing, zdist)
+                                         MELEE_RELEASE_R, PREEMPTED, UNREACHABLE_S, away_vector, blocked, chasing,
+                                         clear_heading, line_to, on_floor, running, standing, zdist)
 from agent.base.planner.tactician.trigger import _inside
 from agent.base.world import me_floor, me_xy
 
@@ -56,6 +59,7 @@ KITE_S = 8.0          # wall seconds a kite runs before it ends `time` (a first 
 REACHED_R = 1.5       # tiles from a refuge's square at which a kite reached it (the goal layer's ARRIVE_R)
 WALK_R = 10.0         # tiles: a fight's target beyond this is walked to, not approached in the stance (inside AIM_R 12:
                       # a first guess for the trials)
+DOOR_NEAR_R = 1.5     # tiles: a fight's failed walk marks the door this near the character (survive.DOOR_NEAR_R, P24-Z)
 STRATEGIC_STEPS = ("care", "need", "load", "night", "stock", "goal")   # Survive's lower steps in the ladder's order
                       # (survive.STEPS without `threat`)
 SWING_GUARD_R = 1.0   # tiles: a standing zombie this near starts the melee in any play (the proposal's guard, at P30-A's
@@ -167,6 +171,7 @@ class FightExec(Exec):
         self.melee_end = None       # the last Melee's end
         self.handback = None        # PZA/1.10: a `handback` end's other zombie {id, d}
         self.lost_why = None        # PZA/1.10: a `lost` end's why (out of range, out of reach, no progress)
+        self.walk_failed = None     # fix 1, review-t11 M3: {reason, door} of the walk to the target that failed
 
     def target(self):
         return self.world.zombies.get(self.zid)
@@ -206,6 +211,8 @@ class FightExec(Exec):
             return "second_standing"   # PZA/1.10: another standing zombie the press would take, or one by the finish
         if self.melee_end == "lost" and self.lost_why in ("no progress", "out of reach"):
             return "lost"              # PZA/1.10: presses that lowered nothing, or a fallen target the walk never met
+        if self._walk_fails():
+            return "lost"
         d = zdist(self.world, z)
         if d > DISENGAGE_R:
             return "lost"
@@ -234,6 +241,23 @@ class FightExec(Exec):
             return "threat", self, None, self.why
         self.leg = leg
         return "threat", self, cmd, self.why
+
+    def _walk_fails(self):
+        """Fix 1 (review-t11 M3; the door decided once, memory `intent-doors-sneak` 1): the walk to the target ended
+        failed (a locked door, no path), never superseded: the door nearest the character within DOOR_NEAR_R is marked
+        once (`World.mark_door`, standing DOOR_RETRY_MIN), the zombie is left unreachable for UNREACHABLE_S
+        (`Survive.unreachable`, which the decider's table read leaves out: it re-routes), and the play ends."""
+        a = self.last
+        if a is None or a.type != "walkTo" or a.state not in ("failed", "rejected", "timeout") or (
+                a.state == "failed" and a.reason == PREEMPTED):
+            return False
+        door = self.world.door_near(me_xy(self.world), me_floor(self.world), DOOR_NEAR_R)
+        if door is not None:
+            self.world.mark_door(door, a.reason or a.state, "in" if _inside(self.world) else "out")
+        self.sv.unreachable[self.zid] = self.sv.clock() + UNREACHABLE_S
+        self.walk_failed = {"reason": a.reason or a.state, "door": list(door) if door else None}
+        self.last = None   # read once
+        return True
 
     def _approach(self, z, d):
         """(leg kind, command) beyond the melee's reach: a walk to the zombie's square far off or behind a blocked line,
@@ -273,26 +297,24 @@ class KiteExec(Exec):
         return None
 
     def _vector(self):
+        """The backpedal's heading: toward the refuge while that heading runs away from the standing zombies within
+        DANGER_R (`policies.away_vector`, a positive dot) and its line is clear (`policies.clear_heading`, never across
+        a fence); else (0, 0), the stance held where the character stands (fix 1, review-t11 H2, the controller's refuge
+        ruling: never a backpedal over open ground, the arrivals met one at a time)."""
+        if self.refuge is None:
+            return (0.0, 0.0)
         mx, my = me_xy(self.world)
+        r = _unit(self.refuge[0] - mx, self.refuge[1] - my)
         pts = [(z["x"], z["y"]) for z in standing(self.world, DANGER_R)]
         away = away_vector(self.world, pts) if pts else None
-        v = None
-        if self.refuge is not None:
-            r = _unit(self.refuge[0] - mx, self.refuge[1] - my)
-            if r is not None and (away is None or r[0] * away[0] + r[1] * away[1] > 0.0):
-                v = r
-        v = v or away
-        if v is None:
+        if r is None or (away is not None and r[0] * away[0] + r[1] * away[1] <= 0.0) or not clear_heading(
+                self.world, r):
             return (0.0, 0.0)
-        for turn in STEER_TURNS:
-            t = _rotate(v, turn)
-            if clear_heading(self.world, t):
-                return t
-        return (0.0, 0.0)
+        return r
 
     def step(self):
         v = self._vector()
-        self.why = {"step": "back", "v": [round(v[0], 3), round(v[1], 3)]}
+        self.why = {"step": "back" if v != (0.0, 0.0) else "hold", "v": [round(v[0], 3), round(v[1], 3)]}
         if self.busy():
             return "threat", self, None, self.why
         return "threat", self, pza1.Aim(v[0], v[1], AIM_LEG_S, targetId=self.zid), self.why
@@ -357,6 +379,8 @@ class ShelterExec(Exec):
             return "reached" if self.play.play == "avoid" else "inside"
         if standing(self.world, KEEP_R):
             return "contact"
+        if self.play.play == "avoid" and self.world.weapon is not None and len(standing(self.world, DANGER_R)) == 1:
+            return "alone"   # fix 1, review-t11 H1: one standing within DANGER_R, armed, is fought, never fled
         if self.play.play == "avoid" and not _inside(self.world) and not any(
                 chasing(z) for z in standing(self.world, LISTED_R)):
             return "clear"

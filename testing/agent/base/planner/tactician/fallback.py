@@ -9,9 +9,9 @@ nothing near, which the live executor hands to the strategic goal layer):
 |---|---|---|
 | `reach` | armed, a standing zombie within KEEP_R (2.5) | `fight` the nearest standing (a zombie in reach is struck) |
 | `bleed` | a part bleeds, no standing zombie within KEEP_R, something held to dress or tear | `dress` the worst-bleeding part (least part health) with a bandage, else a rag, else a rip |
-| `group` | three or more standing within DANGER_R, or three or more standing and targeting the player within 12 (but never with exactly one standing within DANGER_R while armed), or two standing within DANGER_R unarmed | `kite` the nearest standing toward a refuge while any stands within DANGER_R, else `avoid` toward one |
+| `group` | three or more standing within DANGER_R, or three or more standing and targeting the player within 12 (but never with exactly one standing within DANGER_R while armed), or two standing within DANGER_R unarmed | `kite` the nearest standing toward a refuge while any stands within DANGER_R, else `avoid` toward one; with no refuge, the stand: `fight` the nearest (fix 1) |
 | `fight` | armed, one or two standing within DANGER_R, or one or two standing and targeting the player within ENGAGE_R (9) | `fight` the nearest standing (one zombie is never fled; the zombies near are cleared before a loot) |
-| `unarmed` | unarmed, one standing within DANGER_R | `kite` it toward a refuge |
+| `unarmed` | unarmed, one standing within DANGER_R | `kite` it toward a refuge; with none, the stand (the shove) |
 | `night` | night or tired, a shelter building listed | `shelter` the nearest one |
 | `goal` | the strategic goal's building listed and not looted | `loot` it |
 | `loot` | an unlooted building listed | `loot` the nearest |
@@ -25,11 +25,13 @@ from a zombie beyond the stance's reach; a group avoided before it arrives; a re
 stance). The proposal's rule 1 (one standing armed → fight) is split into `reach` and `fight` around the dressing
 (a bleed is dressed before a fight with a zombie still beyond reach: the Dress ends `superseded` once a standing zombie
 reads within KEEP_R, and `reach` fights it); its rule 2 kites "toward the nearest known door or open square": an open
-square is never a refuge here, so with none listed the kite holds the stance (`toward` "stance").
+square is never a refuge here: with none listed the retreat is the stand, the nearest standing zombie fought where
+the character stands and the arrivals one at a time (fix 1, the controller's refuge ruling, the doctrine variant's
+too).
 
 The refuge (`refuge(view)`): the nearest listed door none of whose bearing's neighbours (the compass eighth either
 side) holds a standing zombie within DANGER_R and with no zombie at it, else the nearest shelter building so placed,
-else None ("stance" for a kite, no avoid).
+else None (no kite and no avoid: the stand).
 
 The targets the table shares (`target_for(play, view)`): the answer this module would give for a play type at a view,
 so the cached table (`table.py`) labels a cell with a play type only."""
@@ -129,7 +131,10 @@ def target_for(play, view):
         t = _nearest_standing(view)
         if t is None:
             return None
-        return {"play": "kite", "target": t, "toward": refuge(view) or "stance", "bound": "alone",
+        r = refuge(view)
+        if r is None:
+            return None   # fix 1 (the controller's refuge ruling): no kite without a named refuge
+        return {"play": "kite", "target": t, "toward": r, "bound": "alone",
                 "why": "group" if is_group(view) else "unarmed"}
     if play == "avoid":
         r = refuge(view)
@@ -173,14 +178,17 @@ def _tests(view):
 
 
 def doctrine(view):
-    """(rule, flat answer) of the first rule whose test holds and whose play the view admits (`target_for`); a group
-    with no refuge to avoid toward kites in the stance."""
+    """(rule, flat answer) of the first rule whose test holds and whose play the view admits (`target_for`). A retreat
+    (`group`, `unarmed`) with no named refuge is the stand: the nearest standing zombie fought where the character
+    stands, the arrivals one at a time (fix 1, the controller's refuge ruling: never an open-ground leg; memory
+    `stand-and-fight-dress-first`), its why the retreat's."""
     for rule, play, ok in _tests(view):
         if not ok:
             continue
         ans = target_for(play, view)
-        if ans is None and play == "avoid":
-            ans = target_for("kite", view)
+        if ans is None and play in ("kite", "avoid"):
+            stand = target_for("fight", view)
+            ans = None if stand is None else dict(stand, why="group" if rule == "group" else "unarmed")
         if ans is not None:
             return rule, ans
     return None, None
