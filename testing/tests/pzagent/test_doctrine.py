@@ -885,6 +885,7 @@ def test_an_avoid_holds_the_stance_at_its_refuge_then_hands_it_to_the_fight(tmp_
     d = line(tmp_path)
     assert a.type == "aim" and a.args["vx"] == 0.0 and d["inputs"]["doctrine"]["state"] == "hold"
     assert d["inputs"]["intent"]["kind"] == "filter_door" and "flee" not in d["inputs"]["branches"]["threat"]
+    assert d["inputs"]["branches"]["threat"]["tries"] == 0 and d["inputs"]["branches"]["threat"]["refuge"]["kind"] == "door"
     for _ in range(int(K.AVOID_HOLD_S / 0.5) + 2):
         r.advance(0.5)
         group_frame(r, me=POST_IN, zs=near)
