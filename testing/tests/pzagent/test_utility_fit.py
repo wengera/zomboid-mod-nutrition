@@ -189,13 +189,15 @@ def test_the_weights_no_direction_sets_are_named_with_their_meaning(art):
 def test_the_caps_on_k_and_c_follow_the_drag_down_s_price(art):
     probe = art["lp"]["drag_probe"]
     assert [float(k) for k in probe] == list(U.DRAG_PROBE)
-    his = [(probe[k]["K"][1], probe[k]["C"][1]) for k in probe]
+    feasible = [k for k in probe if probe[k]["status"] == "optimal"]   # fix 3: at 1 hit the region empties
+    assert len(feasible) >= 2 and "3" in feasible
+    his = [(probe[k]["K"][1], probe[k]["C"][1]) for k in feasible]
     assert all(a < b for a, b in zip([h[0] for h in his], [h[0] for h in his][1:]))
     assert all(a < b for a, b in zip([h[1] for h in his], [h[1] for h in his][1:]))
     assert probe["3"]["K"] == art["lp"]["intervals"]["K"] and probe["3"]["C"] == art["lp"]["intervals"]["C"]
 
 
-FLAT = ("G", "hit_b0")   # flat at +-5 % on the two goldens' rings (the artifact's `flat`;
+FLAT = ("DRAG_HITS", "G", "hit_b0")   # flat at +-5 % on the two goldens' rings (the artifact's `flat`;
                                                 # fix 1's report names them for the controller's ruling)
 
 

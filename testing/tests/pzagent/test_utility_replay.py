@@ -10,13 +10,19 @@ fresh choice (`top`: the best eligible, unvetoed candidate by its total, the com
   F15, E23 and F6 (fix 1, review-t11-utility M4: no line skipped for a group listed or a spent character);
 - a bleeding part with no standing zombie within KEEP_R (fewer than three aware listed), the dress not vetoed -> the
   fresh choice is the dress or a fight (never the goal, the needs, a retreat or the rest);
-- a group arriving (three or more aware standing listed) -> no goal walk, loot, sneak or needs, ever (fix 1, M1, the
-  refuge ruling); with no filter the act is the stand or a fight (E23 470-477 and 517-524, F15 326 and 327 named);
+- a group arriving, read off the frame by an oracle of the test's own (`closing_group`: three or more aware standing
+  zombies listed, closing, reachable: no known blocked edge between, no `unreachable` mark), never the decider's own
+  `utility.group` flag -> no goal walk, loot, sneak or needs, ever (fix 1, M1, the refuge ruling; fix 3, the ruling
+  (a) on review-t11-utility-fix2: a group is avoided before it arrives, closing beyond DANGER_R included); with no
+  filter the act is the stand or a fight at one in reach (E23 404-413, 470-475 and 517-522, F15 326, 327, 626 and
+  663-667 named; F6 331 and 535 read no group, a third closing zombie across a blocked edge); a stand only under a
+  group the decider reads (its own flag, the recede clock's);
 - three or more aware standing within DANGER_R with an eligible retreat to a filter -> the fresh choice is the
   retreat or a fight in reach, and the act follows it within one selection; every retreat on every line names a door
   square and the threat's `flee` "retreat:door" (F6 carries the group at the door; F15 and E23 carry none);
-- a zombie within DOOR_HELD_R behind a portal (`door_held.portal_between`) -> the line's own act is never none and
-  never the rest: no wait (fix 1, M4: an act passed over with nothing sent fails it).
+- a zombie within DOOR_HELD_R behind a portal (`door_held.portal_between`) -> the line sends or holds its own
+  action (fix 2, review-t11-utility-fix1 M3: the send read); a goal act on a line whose record sent no goal command is
+  the replay's blind spot, the judged and the blind lines pinned per ring (fix 3).
 """
 import json
 import os
@@ -24,7 +30,9 @@ import os
 import pytest
 
 from agent.base.planner.door_held import portal_between
-from agent.base.planner.policies import DANGER_R, DOOR_HELD_R, KEEP_R, LISTED_R
+from agent.base.planner.edges import edge_read
+from agent.base.planner.policies import DANGER_R, DISENGAGE_R, DOOR_HELD_R, KEEP_R, LISTED_R
+from agent.base.planner.utility import acts as A
 from agent.base.planner.utility import replay as R
 from agent.base.planner.utility import select as S
 from agent.base.replay_decisions import read_record
@@ -55,9 +63,22 @@ def situations():
             me = (sit.x, sit.y)
             door = any(z.d <= DOOR_HELD_R and portal_between(world, me, (z.x, z.y), world.marked_doors(), sit.on_room)
                        is not None for z in sit.zeds)
-            rec.append((k, sit, door))
+            closing = [z.id for z in sit.aware_standing(LISTED_R) if z.closing > 0.0 and not _blocked(world, sit, z)]
+            rec.append((k, sit, door, closing))
         out[key] = rec
     return out
+
+
+def _blocked(world, sit, z):
+    """A known blocked edge with no door passing it between the player and `z` (`edges.edge_read`)."""
+    read = edge_read(world, (sit.x, sit.y), (z.x, z.y), DISENGAGE_R, marked=world.marked_doors())
+    return read is not None and read["via"] is None
+
+
+def closing_group(u, closing):
+    """The oracle: three or more aware, closing, reachable zombies listed off the frame (`situations`), less those the
+    line's own vetoes mark `unreachable` (the planner's marks, which the frame does not carry)."""
+    return len([z for z in closing if u["vetoes"].get("fight:%s" % z) not in ("unreachable", "blocked_edge")]) >= 3
 
 
 def top(u):
@@ -79,7 +100,7 @@ def _u(replayed, key, k):
 @pytest.mark.parametrize("key", list(RINGS))
 def test_an_aware_zombie_in_reach_is_fought_on_every_line(replayed, situations, key):
     n = 0
-    for k, sit, _ in situations[key]:
+    for k, sit, _, _ in situations[key]:
         reach = sit.aware_standing(KEEP_R)
         if not sit.armed or not reach:
             continue
@@ -97,13 +118,13 @@ def test_an_aware_zombie_in_reach_is_fought_on_every_line(replayed, situations, 
 @pytest.mark.parametrize("key", ["f15", "e23"])
 def test_a_bleeding_part_with_nothing_in_reach_is_dressed_before_the_goal_or_any_retreat(replayed, situations, key):
     n = 0
-    for k, sit, _ in situations[key]:
+    for k, sit, _, _ in situations[key]:
         ns = sit.nearest_standing()
         if not sit.bleeding or (ns is not None and ns.d <= KEEP_R) or len(sit.aware_standing(LISTED_R)) >= 3:
             continue
         u = _u(replayed, key, k)
-        if "dress:%d" % sit.bleeding[0].i in u["vetoes"]:
-            continue
+        if "dress:%d" % sit.bleeding[0].i in u["vetoes"] or u["group"]:
+            continue   # the dress vetoed, or the recede clock's window (fix 3): the group's, the stand's lines
         n += 1
         assert (top(u) or "").split(":")[0] in ("dress", "fight"), (key, k, top(u))
     assert n >= 10, n
@@ -113,18 +134,34 @@ WALKS = ("travel", "loot", "sneak", "needs")
 
 
 @pytest.mark.parametrize("key", list(RINGS))
-def test_no_walk_away_from_an_arriving_group(replayed, key):
-    """The group the decider reads arriving (`utility.group`: three reachable aware zombies listed, one within
-    DANGER_R inside STAND_RECEDE_S) takes away every walk; a stand only under one."""
+def test_no_walk_away_from_an_arriving_group(replayed, situations, key):
+    """The oracle off the frame (`closing_group`), never the decider's flag: under three or more aware, closing,
+    reachable zombies no walk is chosen or offered (fix 3, the ruling (a)). And a stand only under a group the decider
+    reads (its flag, the recede clock's: a stand of about STAND_RECEDE_S before a group that recedes is accepted)."""
     n = 0
-    for rep in replayed[key]:
-        u = rep["inputs"]["utility"]
-        if not u["group"]:
-            assert u["kind"] != "stand", (key, u["act"])
+    for k, sit, _, closing in situations[key]:
+        u = _u(replayed, key, k)
+        if u["kind"] == "stand":
+            assert u["group"], (key, k, u["act"])
+        if not closing_group(u, closing):
             continue
         n += 1
-        assert (u["act"] or "").split(":")[0] not in WALKS and not set(u["scores"]) & set(WALKS), (key, u["act"])
+        assert (u["act"] or "").split(":")[0] not in WALKS and not set(u["scores"]) & set(WALKS), (key, k, u["act"])
     assert n >= 1
+
+
+@pytest.mark.parametrize("key, lines", [("f15", [626, 663, 664, 665, 666, 667]), ("e23", list(range(404, 414))),
+                                        ])   # F6 331 and 535 read no group: each one's third closing zombie lies
+                                             # across a known blocked edge (21725 at 331, 21710 at 535, which the
+                                             # planner marks unreachable by 537); two can come
+def test_the_closing_groups_are_met_where_the_character_stands(replayed, situations, key, lines):
+    """Review-t11-utility-fix2's lines (walks under a closing group before fix 3): the stand, or the fight at one in
+    reach."""
+    sits = {k: sit for k, sit, _, _ in situations[key]}
+    for k in lines:
+        u = _u(replayed, key, k)
+        kind = u["kind"]
+        assert kind == "stand" or (kind == "fight" and sits[k].zed(u["target"]).d <= KEEP_R), (key, k, u["act"])
 
 
 @pytest.mark.parametrize("key", list(RINGS))
@@ -137,11 +174,18 @@ def test_no_stand_at_a_zombie_that_cannot_come(replayed, key):
             assert u["vetoes"].get("fight:%s" % u["target"]) not in ("blocked_edge", "unreachable"), (key, u["act"])
 
 
+def _walk_back_within_the_clock(replayed, key, k):
+    """The first line from `k` on whose act is no stand comes within STAND_RECEDE_S (and one selection) of line k's
+    wall, and offers a walk: the ruling (a)'s accepted stand of about STAND_RECEDE_S before a receding group."""
+    rows = replayed[key]
+    j = next(j for j in range(k - 1, len(rows)) if rows[j]["inputs"]["utility"]["kind"] != "stand")
+    assert rows[j]["wall"] - rows[k - 1]["wall"] <= A.STAND_RECEDE_S + S.SELECT_S, (key, k, j + 1)
+    assert set(rows[j]["inputs"]["utility"]["scores"]) & set(WALKS), (key, j + 1)
+
+
 def test_the_walks_return_when_the_group_recedes(replayed):
     """F6 478-481: the target receding from 7.5 to 10.8 tiles; past STAND_RECEDE_S the stand ends, the goal returns."""
-    acts = [_u(replayed, "f6", k) for k in range(478, 482)]
-    assert all(u["kind"] != "stand" for u in acts[-2:]), [u["act"] for u in acts]
-    assert any(set(u["scores"]) & set(WALKS) for u in acts[-2:])
+    _walk_back_within_the_clock(replayed, "f6", 478)
 
 
 @pytest.mark.parametrize("key, lines", [("e23", list(range(470, 476)) + list(range(517, 523))),
@@ -152,13 +196,11 @@ def test_the_review_s_lines_meet_the_group_where_the_character_stands(replayed, 
         assert act.split(":")[0] in ("stand", "fight"), (key, k, act)
 
 
-@pytest.mark.parametrize("lines", [[476, 477], [523, 524]])
-def test_e23_s_groups_recede_and_the_walk_returns(replayed, lines):
-    """Fix 2 (review-t11-utility-fix1 M2): E23 476-477 and 523-524, every aware zombie beyond DANGER_R receding
-    (the one within it, alone, no group): no group arrives, no stand, and the walk prices the chasers as closing."""
-    for k in lines:
-        u = _u(replayed, "e23", k)
-        assert not u["group"] and u["kind"] != "stand", (k, u["act"])
+@pytest.mark.parametrize("k", [476, 523])
+def test_e23_s_groups_recede_and_the_walk_returns(replayed, k):
+    """Fix 2 (review-t11-utility-fix1 M2), fix 3's clock: E23 476 and 523, every aware zombie beyond DANGER_R receding:
+    the stand held the recede clock's window at most, then the walk."""
+    _walk_back_within_the_clock(replayed, "e23", k)
 
 
 @pytest.mark.parametrize("k", [280, 326])
@@ -174,7 +216,7 @@ def test_a_group_with_a_filter_is_retreated_from_to_the_door_or_struck_in_reach(
     """The fresh choice is the retreat or a fight in reach; the act follows it within one selection (`cadence`), or
     the stand taken before the filter came holds its span."""
     retreats = 0
-    for k, sit, _ in situations["f6"]:
+    for k, sit, _, _ in situations["f6"]:
         if len(sit.aware_standing(DANGER_R)) < 3:
             continue
         u = _u(replayed, "f6", k)
@@ -223,8 +265,8 @@ def test_a_zombie_behind_a_door_is_never_waited_on(replayed, situations, key, ca
     command is the replay's blind spot (the runner's answer there is unknown: `replay.ReplayGoals`), counted and named,
     never passed as a send."""
     rows = _record_rows(key)
-    n, blind = 0, []
-    for k, _, door in situations[key]:
+    judged, blind = [], []
+    for k, _, door, _ in situations[key]:
         if not door:
             continue
         rep = replayed[key][k - 1]
@@ -234,11 +276,15 @@ def test_a_zombie_behind_a_door_is_never_waited_on(replayed, situations, key, ca
                 and not (rec.get("branch") == "goal" and rec.get("sent"))):
             blind.append(k)
             continue
-        n += 1
+        judged.append(k)
         assert u["act"] is not None and u["act"] != "rest" and not waits(rep), (key, k, u["act"], u["select"])
     with capsys.disabled():
-        print("\ndoor lines %s: %d read, %d blind %s" % (key, n, len(blind), blind[:20]))
-    assert n + len(blind) >= 1
+        print("\ndoor lines %s: %d judged %s, %d blind %s" % (key, len(judged), judged, len(blind), blind[:20]))
+    assert (judged, blind if key == "e23" else len(blind)) == DOOR_LINES[key]   # fix 3: pinned, never vacuous
+
+
+DOOR_LINES = {"e23": ([563], [132, 133]), "f6": ([], 72)}   # the judged lines and the blind ones (fix 3, review-t11-
+                                                           # utility-fix2 finding 3: E23 563 judged; F6 all blind)
 
 
 def test_no_line_sprints(replayed):

@@ -29,10 +29,11 @@ utility: an unreachable target, and a leg bandage while moving).
   stock steps would answer (`Context.needs`).
 - `rest` with no zombie listed and the endurance moodle at level 1 or more [#3926].
 - A group arriving (`Context.group`, read by `GroupClock` over `arriving`: GROUP_N or more aware standing zombies
-  listed that can reach the character, their fight not vetoed, one of them within DANGER_R inside the last
-  STAND_RECEDE_S; fix 1, review-t11-utility M1, the refuge ruling: no open-ground leg; fix 2, review-t11-utility-fix1
-  M2: an unreachable or receding group arrives at nothing): no travel, loot, sneak or needs candidate (the walk away
-  from an arriving group is the open leg, whatever the goal); in their place `stand:<id>`, the stand where the
+  listed that can reach the character, their fight not vetoed, each within DANGER_R or closing beyond it, the group
+  kept STAND_RECEDE_S past the last tick so many arrived; fix 1, review-t11-utility M1, the refuge ruling: no
+  open-ground leg; fix 2, review-t11-utility-fix1 M2: an unreachable or receding group arrives at nothing; fix 3, the
+  ruling (a) on review-t11-utility-fix2: a closing group starts beyond DANGER_R): no travel, loot, sneak or needs
+  candidate (the walk away from an arriving group is the open leg, whatever the goal); in their place `stand:<id>`, the stand where the
   character is at the nearest arriving zombie (the ruling's string: the arrivals fought one at a time, `back` when a
   wall or fence lies within BACK_R behind the character, away from them), generated while none is within KEEP_R (one
   within reach is the fight's: the controller's ruling on M3). The retreat to a filter stays a candidate.
@@ -121,17 +122,18 @@ def arriving(sit, ctx, world):
 
 
 class GroupClock:
-    """When an arriving zombie last stood within DANGER_R (`near`), the recede test of the group (the module
-    docstring): a group arrives while GROUP_N or more arrive (`arriving`) and one stood within DANGER_R inside the
-    last STAND_RECEDE_S."""
+    """The group's start and its recede clock (fix 3, the controller's ruling (a) on review-t11-utility-fix2: a group is
+    avoided before it arrives): a group starts the tick GROUP_N or more arrive (`arriving`: within DANGER_R, or beyond
+    it closing), and lasts until STAND_RECEDE_S after the last tick that many arrived (`last`: they stood within 6
+    tiles or kept closing), so a stand of about STAND_RECEDE_S before a group that then recedes is the price."""
 
     def __init__(self):
-        self.near = None
+        self.last = None
 
     def read(self, zs, now):
-        if any(z.d <= DANGER_R for z in zs):
-            self.near = now
-        return len(zs) >= GROUP_N and self.near is not None and now - self.near < STAND_RECEDE_S
+        if len(zs) >= GROUP_N:
+            self.last = now
+        return self.last is not None and now - self.last < STAND_RECEDE_S
 
 
 def generate(sit, ctx, world):
@@ -142,6 +144,9 @@ def generate(sit, ctx, world):
         st = _stand(sit, ctx, world)
         if st is not None:
             out.append(st)
+        elif not sit.aware_standing(KEEP_R):
+            group = False   # fix 3: the recede clock's window with no arriving zombie left to face is no stand to
+                            # hold; the walks return rather than a wait (F6 350-352: every one gone or unreachable)
     d = _dress(sit, ctx, world)
     if d is not None:
         out.append(d)

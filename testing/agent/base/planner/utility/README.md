@@ -12,16 +12,20 @@ within FINISH_R, and the held fight's own target out to DISENGAGE_R), `stand:<id
 source is pending; with neither the runner is asked to propose), `sneak`, `needs:<branch>` and `rest`. `acts.py`
 generates them and `features.py` reads the frame they are built from.
 
-A group arriving takes away every walk: no travel, loot, sneak or needs candidate is generated (fix 1, review-t11-utility M1, the refuge ruling: the walk away from an arriving group is the
-open-ground leg, whatever its goal). In their place stands the `stand`: the stance where the character is, facing the
-nearest aware zombie, the arrivals met one at a time (the ruling's string), its hits taken at BACK_FACTOR with a wall
-or fence within two tiles behind; it is generated while no aware zombie is in reach, since one in reach is the
-fight's. The retreat to a filter stays a candidate. A group arrives (fix 2, review-t11-utility-fix1 M2) while three or
-more aware standing zombies listed can come: each within DANGER_R or beyond it closing, and each able to reach the
-character, its fight not vetoed (`acts.arriving`), and one of them stood within DANGER_R inside the last
-STAND_RECEDE_S (5 s, a first guess; `acts.GroupClock`). So the stand never targets a zombie across a blocked edge or
-marked unreachable, and a group that recedes or cannot come ends the stand and gives the walks back (F6 478-481, E23
-476-477 and 523-524).
+A group arriving takes away every walk: no travel, loot, sneak or needs candidate is generated (fix 1,
+review-t11-utility M1, the refuge ruling: the walk away from an arriving group is the open-ground leg, whatever its
+goal). In their place stands the `stand`: the stance where the character is, facing the nearest aware zombie, the
+arrivals met one at a time (the ruling's string), its hits taken at BACK_FACTOR with a wall or fence within two tiles
+behind; it is generated while no aware zombie is in reach, since one in reach is the fight's. The retreat to a filter
+stays a candidate. A group arrives (fix 2, review-t11-utility-fix1 M2) while three or more aware standing zombies listed
+can come: each within DANGER_R or beyond it closing, and each able to reach the character, its fight not vetoed
+(`acts.arriving`). A closing group starts beyond DANGER_R (fix 3, the controller's ruling (a) on
+review-t11-utility-fix2: a group is avoided before it arrives), and the group lasts until STAND_RECEDE_S (5 s, a first
+guess; `acts.GroupClock`) after the last tick three arrived: they stood within 6 tiles or kept closing. So the stand
+never targets a zombie across a blocked edge or marked unreachable, a group that recedes or cannot come ends the stand
+within the clock's window and gives the walks back (F6 478-481, E23 476 and 523: a stand of about 5 s before a group
+that then recedes is accepted), and a window with no arriving zombie left to face is no stand to hold (the walks return,
+F6 350-352).
 
 Each score is a sum of named terms (`select.terms`), linear in five weights, with H, the cost of one hit, as the unit:
 
@@ -46,16 +50,16 @@ come within KEEP_R), chooses afresh with the margin and every span lifted, a ret
 fought, the controller's ruling on M3. A held act stays eligible whatever its score, so a retreat already taken is not
 dropped when the group's count changes its score on the way.
 
-Three vetoes sit outside the utility, as feasibility. The first is an unreachable target: the planner's
-`unreachable` and edge marks, this package's own `out of reach` marks, a known blocked edge with no door passing it,
-or a door the door read decided to `leave`. The second is the ride: a leg part's bandage never rides a walk [#4337].
-The third is the zombie in reach: no dress while an aware standing zombie is within KEEP_R (fix 1, M2), and no fight
-at a standing zombie beyond KEEP_R while one in reach can be fought (fix 2, review-t11-utility-fix1 M1, the
-controller's ruling: the fight at the zombie in reach wins whatever is listed; the kill term alone, with K unset, let a
-receding zombie 6 tiles off outrank one at 1.64 on E23 322). A fallen zombie's finish stays a candidate and pays the
-unfaced zombie's hits (`select.UNFACED_FACTOR` 2.0, a first guess: a player attacking and facing a zombie is not
-bitten by it, #4688, so one left behind the swing is). A retreat scoring at or under 0 saves no hits; it would be an open-ground leg, so it is never chosen. There is no flee act and
-no wait act.
+Three vetoes sit outside the utility, as feasibility. The first is an unreachable target: the planner's `unreachable`
+and edge marks, this package's own `out of reach` marks, a known blocked edge with no door passing it, or a door the
+door read decided to `leave`. The second is the ride: a leg part's bandage never rides a walk [#4337]. The third is the
+zombie in reach: no dress while an aware standing zombie is within KEEP_R (fix 1, M2), and no fight at a standing zombie
+beyond KEEP_R while one in reach can be fought (fix 2, review-t11-utility-fix1 M1, the controller's ruling: the fight at
+the zombie in reach wins whatever is listed; the kill term alone, with K unset, let a receding zombie 6 tiles off
+outrank one at 1.64 on E23 322). A fallen zombie's finish stays a candidate and pays the unfaced zombie's hits
+(`select.UNFACED_FACTOR` 2.0, a first guess: a player attacking and facing a zombie is not bitten by it, #4688, so one
+left behind the swing is). A retreat scoring at or under 0 saves no hits; it would be an open-ground leg, so it is never
+chosen. There is no flee act and no wait act.
 
 The executors (`execute.py`) run the held act through the shared plays:
 
@@ -72,7 +76,7 @@ The executors (`execute.py`) run the held act through the shared plays:
   tick is sent whatever the act (the common amendments' item 5, the sneak gait near unaware zombies while walking,
   holds through `Survive._apply`). The `sneak` act itself is chosen where it beats the fight at an unaware zombie:
   at the first fit's K 3.7 it never was (a fight at any unaware zombie within 9 tiles outranked it, about 3.2 against
-  0.37: review m7); at fix 2's K 0.47, which no direction sets, it is chosen on 5 F15 and 60 E23 lines. Whether an
+  0.37: review m7); at fix 3's K 0.19, which no direction sets, it is chosen on 9 F15 and 55 E23 lines. Whether an
   unaware zombie near is sneaked past or fought is a question no ruling answers yet: the kill's worth K decides it.
 - `needs`: the ladder's quiet steps (`_need`, `_load`, `_night`, `_care` with nothing bleeding, `_care_stock`), only
   with no standing zombie within DANGER_R.
@@ -117,20 +121,22 @@ veto is the ruling's structure, never a score), and `group_coming` applies to th
 within DANGER_R and a filter, the retreat beats the stand and the fights beyond reach; with no filter and a group
 arriving, read by `GroupClock` across the ring's lines, the stand beats each walk into the group: a fight at another
 aware zombie beyond reach whose span the drag-down reaches). Each labelled line is a ranking row: U(labelled) ≥
-U(other) + 0.1. That gives 4154 rows over 54778 candidates scored. The rules: `one` (2882 lines), `dress_quiet`
-(2623), `dress_far` (676), `sneak` (165, structural: all held), `group` (0: no line had three aware zombies within
-KEEP_R and a filter), `group_coming` (533) and `door` (1851 lines, structural: no wait candidate exists). The region
-is feasible: no pair conflicts.
+U(other) + 0.1. At fix 3 (the group starting on closing arrivals) that gives 4891 rows over 55630 candidates scored.
+The rules: `one` (2882 lines), `dress_quiet` (2623), `dress_far` (676), `sneak` (164, structural: all held), `group`
+(0: no line had three aware zombies within KEEP_R and a filter), `group_coming` (1163) and `door` (1851 lines,
+structural: no wait candidate exists). The region is feasible: no pair conflicts at DRAG_HITS 3.
 
 | weight | value (Chebyshev centre) | feasible interval |
 |---|---|---|
-| K | 0.471 | [0, 4.903], at its lower bound; no direction sets it |
-| B | 1.152 | [0.286, 3.222] |
-| C | 3.583 | [0, 4.992], at its lower bound |
-| G | 1.191 | [0, 5.170], at its lower bound |
-| V | 0.471 | [0, 1.810], at its lower bound; no direction sets it |
+| K | 0.185 | [0, 2.911], at its lower bound; no direction sets it |
+| B | 2.492 | [1.522, 3.222] |
+| C | 4.296 | [1.932, 4.992] |
+| G | 1.027 | [0, 3.427], at its lower bound |
+| V | 0.185 | [0, 1.083], at its lower bound; no direction sets it |
 
-The radius is 0.471 and the least slack 0.512 (the artifact lists one slack per row).
+The radius is 0.185 and the least slack 0.190 (the artifact lists one slack per row). The closing groups' 1163
+`group_coming` lines narrowed the region: the stand must beat the walks into a group that has not yet come within 6
+tiles, which lifts C's floor and caps K.
 
 **What "no direction sets it" means** (the artifact's `lp.unset`). K and V sit at the Chebyshev ball's radius off
 the box face 0: the box, not a ruling, places them. For V, no labelled line asks the goal to pull (no rule ranks the
@@ -141,15 +147,15 @@ line needs the kill's own worth; a fight at an unaware zombie, priced by K alone
 clear-then-loot rule (the travel over the rest and the needs when quiet; the fight at an unaware zombie near over the
 walk past it) would set them: a ruling for the controller.
 
-**The drag-down sets the caps.** The region is the drag-down's projection: at DRAG_HITS 1, 2, 3 and 6 hits the radius
-is 0.163, 0.322, 0.471 and 0.835, K's upper end 2.00, 3.62, 4.90 and 8.16, and C's 2.99, 3.99, 4.99 and 7.99
-(`lp.drag_probe`). DRAG_HITS 3 is a first guess; the caps follow it.
+**The drag-down sets the caps.** The region is the drag-down's projection: at DRAG_HITS 1 hit it is empty (radius
+-0.044), at 2, 3 and 6 the radius is 0.083, 0.185 and 0.418, K's upper end 1.25, 2.91 and 7.06, and C's 3.92, 4.99 and
+7.99 (`lp.drag_probe`). DRAG_HITS 3 is a first guess; the caps follow it, and below 2 hits the directions conflict.
 
 **The probes, on decisions** (`decision_probes`, fix 1, M5): each parameter scaled by 0.95 and 1.05, the two goldens'
-rings replayed whole, the lines whose decision moves counted over 1660 lines (fix 2's build): B 13, C 34, K 34, V 21
-and DRAG_HITS 21 move decisions; G and the hazard's b0 move none at +-5 % (at 0.5 and 2.0, b0 moves 34 at 2.0, G none:
-on F15 and E23 no retreat is taken, so the regress decides nothing there). `test_utility_fit.py` asserts every probe
-moves a decision and marks the two flat ones strict xfail, for the controller's ruling.
+rings replayed whole, the lines whose decision moves counted over 1660 lines (fix 3's build): B 10, C 10, K 2 and V 2
+move decisions; DRAG_HITS, G and the hazard's b0 move none at +-5 % (at 0.5 and 2.0: DRAG_HITS 168 and 16, b0 0 and 2,
+G none: on F15 and E23 no retreat is taken, so the regress decides nothing there). `test_utility_fit.py` asserts every
+probe moves a decision and marks the three flat ones strict xfail, for the controller's ruling.
 
 ## The constants with their sources
 
@@ -181,8 +187,8 @@ The first guesses are:
 
 ## The decision line
 
-`branch` is `threat` on a fight, a stand or a retreat, `care` on a dress, `goal` on travel, loot or sneak, the needs step's own
-branch, and none on rest. `inputs.x` and `inputs.y` come from `_read`.
+`branch` is `threat` on a fight, a stand or a retreat, `care` on a dress, `goal` on travel, loot or sneak, the needs
+step's own branch, and none on rest. `inputs.x` and `inputs.y` come from `_read`.
 
 `inputs.branches.<branch>` holds the executor's why:
 
@@ -191,10 +197,10 @@ branch, and none on rest. `inputs.x` and `inputs.y` come from `_read`.
 - `kill` on the tick a kill is read, and P30-C's `door_held`, whatever answered.
 
 `inputs.intent` is `{kind, target}`: the scorecard's label and target. The kind starts `retreat:door` on a retreat, so
-the line reads as a retreat and as a refuge, and reads `meet:stand` on the stand (a meet in place, never a retreat).
-The target is the zombie id for a fight or a stand, the door square [x, y] for a retreat, and the goal's square for
-travel, loot or sneak (its `stall_target`, else its args' square: fix 1, m6). A dress, the needs and the rest carry none, since a part
-index is no square.
+the line reads as a retreat and as a refuge, and reads `meet:stand` on the stand (a meet in place, never a retreat). The
+target is the zombie id for a fight or a stand, the door square [x, y] for a retreat, and the goal's square for travel,
+loot or sneak (its `stall_target`, else its args' square: fix 1, m6). A dress, the needs and the rest carry none, since
+a part index is no square.
 
 `inputs.utility` holds:
 

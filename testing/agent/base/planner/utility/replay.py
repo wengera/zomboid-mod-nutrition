@@ -20,6 +20,11 @@ THE METHOD (no wall clock is read; a run twice gives identical output):
   recorded frames whatever the replay sends, so a replayed line checks a decision at a recorded situation, never an
   outcome.
 
+THE SITUATIONS (`situations`): each decision row's `features.Situation` read offline by the same walk, the World's
+zombies as the live selector keeps them (`fresh_only` False) or only the newest frame's (the fit's mining, which
+knows no kill); the closing speeds read across the rows (`features.Tracks`). The replay tests' oracles (a zombie in
+reach, a group arriving, a door) are read off these, never off the decider's own line.
+
 THE GOLDENS (`golden_text`): `{artifact, base, decisions, recorded}`, one decision a line, each `{line, gameMin,
 branch, action, act, select, held_by, runner_up, margin, scores: {key: total}}`. Re-recorded only under a named change
 of the utility (`python -m agent.base.planner.utility.replay --write <key>` from `testing/`), each moved line

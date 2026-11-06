@@ -444,22 +444,44 @@ def test_a_group_arriving_takes_away_the_walk_and_the_needs_and_offers_the_stand
     assert "travel" in two and "stand" not in two
 
 
-def test_the_group_arrives_while_three_reachable_ones_come_and_one_stood_near_lately():
-    """Fix 2 (review-t11-utility-fix1 M2): `arriving` leaves out the unreachable and the receding beyond DANGER_R;
-    the clock ends the group STAND_RECEDE_S after the last arriving one within DANGER_R."""
+def test_the_group_starts_on_three_reachable_closing_arrivals_and_ends_by_the_recede_clock():
+    """Fix 2 (review-t11-utility-fix1 M2) and fix 3 (the ruling (a) on review-t11-utility-fix2): `arriving` leaves out
+    the unreachable and the receding beyond DANGER_R; a closing group starts beyond DANGER_R, and the clock ends it
+    STAND_RECEDE_S after the last tick three arrived."""
     w = _World()
     zs = group(4.0, 7.0, 9.0)
     assert [z.id for z in A.arriving(sit(zs), CTX, w)] == [1, 2, 3]
     assert [z.id for z in A.arriving(sit(zs), A.Context(unreachable=frozenset({2})), w)] == [1, 3]
     receding = group(4.0, 7.0, 9.0, closing=-1.0)
     assert [z.id for z in A.arriving(sit(receding), CTX, w)] == [1]
+    still = group(4.0, 7.0, 9.0, closing=0.0)   # the boundary: one standing off beyond DANGER_R does not come
+    assert [z.id for z in A.arriving(sit(still), CTX, w)] == [1]
     clock = A.GroupClock()
-    far = group(7.0, 8.0, 9.0)
-    assert clock.read(far, 0.0) is False   # none has stood within DANGER_R yet
-    assert clock.read(zs, 1.0) is True
-    assert clock.read(far, 1.0 + A.STAND_RECEDE_S - 0.1) is True
-    assert clock.read(far, 1.0 + A.STAND_RECEDE_S + 0.1) is False
-    assert clock.read(zs[:2], 10.0) is False   # two are no group
+    far = group(7.0, 8.0, 9.0)   # all closing beyond DANGER_R
+    assert clock.read(far, 0.0) is True
+    assert clock.read(far[:2], A.STAND_RECEDE_S - 0.1) is True    # two left: the clock's window
+    assert clock.read(far[:2], A.STAND_RECEDE_S) is False         # the boundary: the window is open below it
+    assert A.GroupClock().read(zs[:2], 10.0) is False             # two never start one
+
+
+def test_a_group_with_no_arriving_zombie_left_to_face_gives_the_walks_back():
+    """Fix 3: the recede clock's window with nothing to stand at is no wait (F6 350-352)."""
+    s = sit(group(7.0, 8.0, 9.0, closing=-1.0))
+    kinds = {c.kind for c in A.generate(s, dataclasses.replace(GROUP, unreachable=frozenset({1, 2, 3})), _World())}
+    assert "travel" in kinds and "stand" not in kinds
+
+
+def test_an_unaware_zombie_in_reach_leaves_the_farther_fights_unvetoed():
+    """The surviving mutant of review-t11-utility-fix2 (the veto's trigger reads `aware`)."""
+    s = sit([zed(1, 1.8, aware=False), zed(2, 6.0, deg=90.0)])
+    by = {c.key: c for c in A.generate(s, CTX, _World())}
+    assert by["fight:2"].veto is None
+
+
+def test_the_in_reach_veto_leaves_a_fallen_zombie_beyond_reach_to_the_scores():
+    s = sit([zed(1, 1.8), zed(2, 3.5, standing=False, deg=90.0)])
+    by = {c.key: c for c in A.generate(s, CTX, _World())}
+    assert by["fight:2"].veto is None
 
 
 def test_three_unreachable_zombies_standing_off_leave_the_goal_its_walk_never_a_stand():
@@ -712,29 +734,40 @@ def test_a_bleeding_part_with_nothing_to_dress_marks_the_bandage_want(tmp_path):
     assert decisions(tmp_path)[-1]["inputs"]["utility"]["vetoes"] == {"dress:3": "nothing"}
 
 
-def house(r):
-    """Building 7: rooms x 110..112, y 200..202, one door on the west edge of (110, 201) to the open (109, 201)."""
+def house(r, x0=110):
+    """Building 7: rooms x x0..x0+2, y 200..202, one door on the west edge of (x0, 201) to the open (x0 - 1, 201)."""
     sq = []
-    for x in range(95, 114):
+    for x in range(95, x0 + 4):
         for y in range(195, 207):
-            room = 110 <= x <= 112 and 200 <= y <= 202
+            room = x0 <= x <= x0 + 2 and 200 <= y <= 202
             k = {"room": "r1", "building": 7} if room else {}
-            if (x, y) == (110, 201):
+            if (x, y) == (x0, 201):
                 k.update(door={"open": False, "locked": False, "barricaded": False}, edgeW=True)
             sq.append(square(x, y, **k))
     r.scan(sq)
 
 
 def test_a_group_coming_takes_the_retreat_to_the_door_filter_at_a_run(tmp_path):
+    """Fix 3's weights: the door's post 5.7 tiles off, at (105.5, 201.5); at 11.6 (the house at x 110) the regress
+    of 1.19 hits leaves the stand ahead of the retreat by 0.08 (`test_a_far_door_leaves_the_group_to_the_stand`)."""
+    r, sv = build(tmp_path)
+    house(r, x0=104)
+    r.frame(zombies=[chaser(1, -3.0), chaser(2, -3.2, 2.0), chaser(3, -3.2, -2.0), chaser(4, -4.0)])
+    sv.tick(r.world, r.acts)
+    typ, args = r.cmd()
+    assert typ == "walkTo" and args["gait"] == "run" and (args["x"], args["y"]) == (105.5, 201.5)
+    line = decisions(tmp_path)[-1]
+    assert line["branch"] == "threat" and line["inputs"]["branches"]["threat"]["flee"] == "retreat:door"
+    assert line["inputs"]["intent"] == {"kind": "retreat:door", "target": [104, 201]}
+
+
+def test_a_far_door_leaves_the_group_to_the_stand_never_a_fight_walked_into_it(tmp_path):
     r, sv = build(tmp_path)
     house(r)
     r.frame(zombies=[chaser(1, -3.0), chaser(2, -3.2, 2.0), chaser(3, -3.2, -2.0), chaser(4, -4.0)])
     sv.tick(r.world, r.acts)
-    typ, args = r.cmd()
-    assert typ == "walkTo" and args["gait"] == "run" and (args["x"], args["y"]) == (111.5, 201.5)
-    line = decisions(tmp_path)[-1]
-    assert line["branch"] == "threat" and line["inputs"]["branches"]["threat"]["flee"] == "retreat:door"
-    assert line["inputs"]["intent"] == {"kind": "retreat:door", "target": [110, 201]}
+    u = decisions(tmp_path)[-1]["inputs"]["utility"]
+    assert u["kind"] == "stand" and u["runner_up"] == "retreat:door:110,201"
 
 
 def test_the_door_filter_is_generated_and_none_while_standing_on_a_filter(tmp_path):
