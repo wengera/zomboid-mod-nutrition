@@ -5,7 +5,8 @@ act costs and earns, and the selector (`select.py`) ranks the acts by them.
 
 With tens of hits the models are bounded, not learned: 51 hit-reaction onsets over ten rings (E19 to E23 and F11 to
 F15), nearly all at 0.5 to 0.9 tiles from one standing zombie, so the hazard is a two-parameter curve in the nearest
-standing zombie's distance and nothing else (the `state` field PZA/1.9 carries is fitted on F15 alone, n = 6, and reported, never used here).
+standing zombie's distance and nothing else (the `state` field PZA/1.9 carries is fitted on F15 alone, n = 6, and
+reported, never used here).
 Every fitted number below is the artifact's (`data/fits/utility-weights.json`, `models`), pinned there by
 `test_utility_fit.py`; `tools/utility_fit.py --check` reproduces it from the rings.
 

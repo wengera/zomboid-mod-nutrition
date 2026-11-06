@@ -79,9 +79,9 @@ def test_the_logistic_fit_recovers_its_coefficients():
 
 
 # ================================================================ the verdict rules
-def _labels(s, cands):
+def _labels(s, cands, ctx=A.Context(group=True)):
     return {rule: (lab.key if lab is not None else None, sorted(o.key for o in others))
-            for rule, lab, others in U.label(s, cands, _W(), {"branch": "goal", "action": {"type": "walkTo"}})}
+            for rule, lab, others in U.label(s, cands, _W(), {"branch": "goal", "action": {"type": "walkTo"}}, ctx)}
 
 
 class _W:
@@ -97,11 +97,12 @@ class _W:
 TRAVEL = A.Candidate("travel", "travel")
 
 
-def test_rule_one_labels_the_fight_at_an_aware_zombie_in_reach_over_every_act_that_is_no_fight():
-    """The controller's ruling on M3 (fix 1): one zombie in reach is fought, whatever else is listed."""
-    s = sit([zed(1, 2.0), zed(2, 1.5, standing=False, deg=90.0)])
-    cands = [fight(s.zed(1)), fight(s.zed(2)), TRAVEL, retreat()]
-    assert _labels(s, cands)["one"] == ("fight:1", sorted(["travel", retreat().key]))
+def test_rule_one_labels_the_fight_at_an_aware_zombie_in_reach_over_every_act_and_every_farther_fight():
+    """The controller's ruling on M3 (fix 1, and fix 2: the fights at standing zombies beyond reach too; a fallen
+    one's finish left to the scores): one zombie in reach is fought, whatever else is listed."""
+    s = sit([zed(1, 2.0), zed(2, 1.5, standing=False, deg=90.0), zed(3, 5.0, deg=180.0)])
+    cands = [fight(s.zed(1)), fight(s.zed(2)), fight(s.zed(3)), TRAVEL, retreat()]
+    assert _labels(s, cands)["one"] == ("fight:1", sorted(["fight:3", "travel", retreat().key]))
     crowd = sit([zed(1, 2.0), zed(2, 8.0, deg=90.0), zed(3, 9.0, deg=180.0)], endurance=0.3)
     assert _labels(crowd, [fight(z) for z in crowd.zeds] + [TRAVEL])["one"][0] == "fight:1"
 
@@ -141,6 +142,7 @@ def test_with_no_filter_the_group_rule_sets_the_stand_over_walking_into_the_grou
     s = sit([zed(1, 4.0), zed(2, 7.0, deg=90.0), zed(3, 9.0, deg=180.0)])
     cands = [fight(z) for z in s.zeds] + [stand(s.zed(1))]
     assert _labels(s, cands)["group_coming"] == ("stand:1", ["fight:2", "fight:3"])
+    assert "group_coming" not in _labels(s, cands, A.Context(group=False))   # no group arriving: no stand rule
 
 
 def test_a_row_is_the_labelled_score_less_the_other_s_with_h_in_the_constant():
@@ -193,7 +195,7 @@ def test_the_caps_on_k_and_c_follow_the_drag_down_s_price(art):
     assert probe["3"]["K"] == art["lp"]["intervals"]["K"] and probe["3"]["C"] == art["lp"]["intervals"]["C"]
 
 
-FLAT = ("DRAG_HITS", "G", "K", "V", "hit_b0")   # flat at +-5 % on the two goldens' rings (the artifact's `flat`;
+FLAT = ("G", "hit_b0")   # flat at +-5 % on the two goldens' rings (the artifact's `flat`;
                                                 # fix 1's report names them for the controller's ruling)
 
 

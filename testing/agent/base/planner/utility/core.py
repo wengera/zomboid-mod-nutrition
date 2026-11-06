@@ -20,6 +20,7 @@ needs or the rest: a part index is no square). The utility's own: `inputs.utilit
 passed (the act chosen first whose executor ended on its first step, on a fallback's line) when set}, every float
 rounded to LOG_DIGITS.
 """
+import dataclasses
 import json
 
 from agent.base.planner.care import DRESS_RETRY_S
@@ -63,6 +64,7 @@ class Utility:
         self._near = frozenset()
         self._reach = frozenset()
         self._goal_key = None
+        self.group_clock = A.GroupClock()   # the arriving group's recede test (fix 2)
         self.goal_answer = None   # ((owner, cmd) or None, why) of the runner's tick the context's proposal made
 
     # -- the hooks the executors call -----------------------------------------------------------------------------
@@ -138,7 +140,10 @@ class Utility:
     def context(self, sit):
         sv = self.sv
         now = sv.clock()
-        group = A.group_arriving(sit)
+        base = A.Context(door_open=(sv.door_open or {}).get("zid"),
+                         unreachable=frozenset(blocked(sv.unreachable, now) | set(sv._edge_out())
+                                               | blocked(self.unreach, now)))
+        group = self.group_clock.read(A.arriving(sit, base, sv.world), now)
         goal, target = self._goal_read(group)
         cooled = False
         if self.dress_fail is not None:
@@ -146,12 +151,10 @@ class Utility:
             cooled = now - at < DRESS_RETRY_S and frozenset(sv.world.inventory) <= held
         if self.at_filter is not None and not A.filter_at(sit, self.at_filter):
             self.at_filter = None
-        self.needs_answer = None if group else self._needs(sit)
-        return A.Context(
-            goal=goal, goal_target=target,
+        self.needs_answer = self._needs(sit)
+        return dataclasses.replace(
+            base, goal=goal, goal_target=target, group=group,
             needs=None if self.needs_answer is None else self.needs_answer[0],
-            door_open=(sv.door_open or {}).get("zid"),
-            unreachable=frozenset(blocked(sv.unreachable, now) | set(sv._edge_out()) | blocked(self.unreach, now)),
             dress_cooled=cooled, held_kind=self.selector.kind, at_filter=self.at_filter,
             held_target=self.ex.target if self.ex is not None and self.ex.kind == "fight" else None)
 
@@ -218,7 +221,7 @@ class Utility:
             chosen, again = self.selector.decide(pool, scores, now, (), ended=True, floor=S.FALLBACK_FLOOR)
             info.update(again, select="fallback", end=ended, interrupts=info["interrupts"], passed=first)
             self.selector.drop()   # a fallback is never committed: the next tick chooses afresh
-        return self._decision(inputs, chosen, step, cands, scores, info)
+        return self._decision(inputs, chosen, step, cands, scores, info, ctx)
 
     def _run(self, c, sit):
         """The tick's Step of the held act `c`, its executor made anew when the act changed or ended."""
@@ -229,7 +232,7 @@ class Utility:
             ex = self.ex = X.EXECUTORS[c.kind](self, c)
         return ex.step(sit, c)
 
-    def _decision(self, inputs, c, step, cands, scores, info):
+    def _decision(self, inputs, c, step, cands, scores, info, ctx):
         sv = self.sv
         branch = step.branch if step is not None else None
         branches = {} if step is None or branch is None else {branch: step.why}
@@ -257,7 +260,7 @@ class Utility:
             "scores": {k: [_r(v[0]), {t: _r(x) for t, x in v[1].items() if x != 0.0}] for k, v in scores.items()},
             "vetoes": {x.key: x.veto for x in cands if x.veto is not None},
             "runner_up": info["runner_up"], "margin": _r(info["margin"]), "held_by": info["held_by"],
-            "select": info["select"], "interrupts": info["interrupts"], "end": info["end"]}
+            "select": info["select"], "interrupts": info["interrupts"], "end": info["end"], "group": ctx.group}
         if info.get("passed") is not None:
             inputs["utility"]["passed"] = info["passed"]   # the act chosen whose executor ended on its first step
         if c is not None and c.ride:

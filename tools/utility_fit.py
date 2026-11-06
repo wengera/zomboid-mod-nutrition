@@ -41,19 +41,21 @@ zero is structural (no weight moves it): it holds or not, reported. The rest:
 
 THE RULES (Angus's directions; memories `stand-and-fight-dress-first`, `intent-doors-sneak`, `combat-stance-and-wound-
 care`; the controller's ruling on review-t11-utility M3, fix 1): `one`, armed with an aware standing zombie within
-KEEP_R, the fight at the nearest such beats every candidate that is not a fight, whatever else is listed (one zombie
-in reach is fought); `dress_quiet`, a part bleeding and no standing zombie within DANGER_R, and `dress_far`, a part
-bleeding and the nearest standing zombie beyond KEEP_R, fewer than GROUP_N aware standing ones listed, the dress beats
-every candidate that is not a fight (the memory's "before the goal and before any flee from a zombie beyond the
-stance's reach": a zombie, not a group, which the doctrine avoids; the dress against a fight is left to the scores);
-`sneak`, the goal walking with a standing zombie within SNEAK_R and every one unaware, the sneak beats the travel,
-the loot and every retreat; `group`, GROUP_N or more aware standing zombies within KEEP_R and a filter generated (the
-amendments' rule), the nearest filter's retreat beats every fight at a zombie beyond KEEP_R; `group_coming`, the acts
-beyond reach under a group (the ruling): with GROUP_N aware standing within DANGER_R and a filter generated, the
-nearest filter's retreat beats the stand and every fight beyond KEEP_R, else with no filter and a group arriving
-(`acts.group_arriving`) the stand beats each walk into the group, a fight at another aware standing zombie beyond
-KEEP_R whose span the drag-down reaches (a fight the group does not come round within its span is no walk into it,
-and is left out); `door` (structural), a zombie within DOOR_HELD_R behind a portal (`door_held.portal_between`): the
+KEEP_R, the fight at the nearest such beats every candidate that is not a fight and every fight at a standing zombie
+beyond KEEP_R, whatever else is listed (one zombie in reach is fought; fix 2: the far fights too, a fallen finish left
+to the scores; `acts` vetoes those far fights while one in reach can be fought, so their rows stay empty);
+`dress_quiet`, a part bleeding and no standing zombie within DANGER_R, and `dress_far`, a part bleeding and the nearest
+standing zombie beyond KEEP_R, fewer than GROUP_N aware standing ones listed, the dress beats every candidate that is
+not a fight (the memory's "before the goal and before any flee from a zombie beyond the stance's reach": a zombie, not a
+group, which the doctrine avoids; the dress against a fight is left to the scores); `sneak`, the goal walking with a
+standing zombie within SNEAK_R and every one unaware, the sneak beats the travel, the loot and every retreat; `group`,
+GROUP_N or more aware standing zombies within KEEP_R and a filter generated (the amendments' rule), the nearest filter's
+retreat beats every fight at a zombie beyond KEEP_R; `group_coming`, the acts beyond reach under a group (the ruling):
+with GROUP_N aware standing within DANGER_R and a filter generated, the nearest filter's retreat beats the stand and
+every fight beyond KEEP_R, else with no filter and a group arriving (`acts.GroupClock` over `acts.arriving`, walked
+across the ring's lines) the stand beats each walk into the group, a fight at another aware standing zombie beyond
+KEEP_R whose span the drag-down reaches (a fight the group does not come round within its span is no walk into it, and
+is left out); `door` (structural), a zombie within DOOR_HELD_R behind a portal (`door_held.portal_between`): the
 candidates hold no wait (no candidate is a hold), counted.
 
 FIX 1's ADDITIONS (review-t11-utility): the rows' constants are linear in the drag-down's price (`c0`, `cd`), so
@@ -390,7 +392,7 @@ def _behind_door(world, sit):
                for z in sit.zeds)
 
 
-def label(sit, cands, world, row):
+def label(sit, cands, world, row, ctx):
     """[(rule, labelled candidate, [the others it must beat])] of one line (the module docstring's THE RULES)."""
     ok = [c for c in cands if c.veto is None]
     by = {c.key: c for c in ok}
@@ -398,9 +400,9 @@ def label(sit, cands, world, row):
     near = sit.standing(DANGER_R)
     crowd = sit.aware_standing(LISTED_R)
     reach = [z for z in sit.aware_standing(KEEP_R) if "fight:%s" % z.id in by]
-    if sit.armed and reach:   # the controller's ruling on M3: one zombie in reach is fought, whatever else is listed
-        c = by["fight:%s" % reach[0].id]
-        out.append(("one", c, [o for o in ok if o.kind != "fight"]))
+    if sit.armed and reach:   # the controller's ruling on M3: one zombie in reach is fought, whatever else is listed:
+        c = by["fight:%s" % reach[0].id]   # every act not a fight, and the standing far fights (fix 2)
+        out.append(("one", c, [o for o in ok if o.kind != "fight" or (o.zed.standing and o.zed.d > KEEP_R)]))
     dress = next((c for c in ok if c.kind == "dress"), None)
     if dress is not None and len(crowd) < GROUP_N:
         others = [o for o in ok if o is not dress and o.kind != "fight"]
@@ -422,7 +424,7 @@ def label(sit, cands, world, row):
         others = far + ([stand] if stand is not None else [])     # named filter ...
         if others:
             out.append(("group_coming", rets[0], others))
-    elif not rets and stand is not None:                          # ... else the stand
+    elif not rets and stand is not None and ctx.group:            # ... else the stand
         others = [o for o in walk_in if o.target != stand.target]
         if others:
             out.append(("group_coming", stand, others))
@@ -440,13 +442,15 @@ def verdicts(models, keys=VERDICT_SET):
     n_cands = 0
     for key in keys:
         lines, _, drows = load(key)
+        clock = A.GroupClock()
         for k, row, sit, world in R.situations(lines, drows):
             ctx = _ctx(row)
+            ctx = dataclasses.replace(ctx, group=clock.read(A.arriving(sit, ctx, world), row["wall"]))
             cands = A.generate(sit, ctx, world)
             n_cands += len(cands)
             raw0 = {c.key: S.terms(c, sit, ctx, models, drag_hits=0.0) for c in cands}
             raw1 = {c.key: S.terms(c, sit, ctx, models, drag_hits=1.0) for c in cands}
-            for rule, lab, others in label(sit, cands, world, row):
+            for rule, lab, others in label(sit, cands, world, row, ctx):
                 if rule == "door":
                     door["lines"] += 1
                     door["with_fight_or_goal"] += any(c.kind in ("fight", "stand", "travel", "loot", "sneak")

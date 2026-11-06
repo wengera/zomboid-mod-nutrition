@@ -15,7 +15,9 @@ weight each term is read in, `TERM_WEIGHT`; the decision line logs each weighted
   least) and stands there, on a walk too (fix 1, review-t11-utility M1: a chaser closes on a walk at its read speed);
   an unaware one counts UNAWARE_FACTOR of its hazard where it is; a fallen one FALLEN_FACTOR), plus the drag-down
   (`drag`, fix 1, M2: DRAG_HITS once when three aware listed zombies are predicted within KEEP_R inside the span
-  standing; none on a fight whose target is already in reach, none moving or at a filter). The stand's: its target's
+  standing; none on a fight whose target is already in reach, none moving or at a filter); a fight at one target pays
+  UNFACED_FACTOR of the hazard of each other aware zombie in reach, which it leaves unfaced (fix 2). The stand's: its
+  target's
   and the others' held one at a time where they are (the ruling's string), no drag-down, BACK_FACTOR of it with a wall
   at the back. A retreat's is the hits it saves: the exposure of fighting the aware group here at once (the drag-down
   among them) less one at a time at the filter, over the group's kill time, less the route's.
@@ -91,6 +93,11 @@ DRAG_DOWN_N = PDRAG_N     # aware standing zombies at once that drag the charact
 DRAG_HITS = 3.0           # hits the drag-down event is priced at, once (a first guess: a death's price damped by the
                           # chance the three attack together; the fit's K and C caps follow it, the artifact's
                           # `drag_probe`)
+UNFACED_FACTOR = 2.0      # the hazard of an aware zombie in reach a fight at another target leaves unfaced, over a
+                          # faced one's: a player attacking and facing a zombie within about 45 degrees is never bitten
+                          # by it (#4688), so one left behind the swing bites unanswered (fix 2, review-t11-utility-fix1
+                          # M1: the far fight never outranks the one in reach on the kill term alone; the factor a first
+                          # guess for the trials)
 BACK_FACTOR = 0.75        # the share of the stand's hits with a wall or fence within `acts.BACK_R` behind the
                           # character (a first guess: the group cannot come round the back)
 
@@ -206,7 +213,10 @@ def terms(c, sit, ctx, models=M.FITTED, drag_hits=None):
         t["kill"] = p_kill
         if c.kind == "fight":
             dr = 0.0 if z.d <= KEEP_R else drag(zs, span, filtered, drag_hits)   # a target in reach is the stance's
-            t["hit"] = -(own + exposure(zs, span, models, skip=z.id, filtered=filtered) + dr)
+            behind = sum(models.hazard(MELEE_D) * span for q in zs
+                         if q.id != z.id and q.standing and q.aware and q.d <= KEEP_R)
+            t["hit"] = -(own + exposure(zs, span, models, skip=z.id, filtered=filtered) + dr
+                         + (UNFACED_FACTOR - 1.0) * behind)
         else:   # the stand: the string, the arrivals fought one at a time where the character is, the back covered
             back = BACK_FACTOR if c.back else 1.0
             t["hit"] = -back * (own + exposure(zs, span, models, skip=z.id, filtered=True))

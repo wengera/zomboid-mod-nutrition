@@ -28,14 +28,19 @@ utility: an unreachable target, and a leg bandage while moving).
 - `needs:<branch>` while no standing zombie is within DANGER_R and one of the ladder's need, load, night, care or
   stock steps would answer (`Context.needs`).
 - `rest` with no zombie listed and the endurance moodle at level 1 or more [#3926].
-- A group arriving (`group_arriving`: GROUP_N or more aware standing zombies listed; fix 1, review-t11-utility M1, the
-  refuge ruling: no open-ground leg): no travel, loot, sneak or needs candidate (the walk away from an arriving group
-  is the open leg, whatever the goal); in their place `stand:<id>`, the stand where the character is at the nearest
-  aware standing zombie (the ruling's string: the arrivals fought one at a time, `back` when a wall or fence lies
-  within BACK_R behind the character, away from the aware ones), generated while none is within KEEP_R (one within
-  reach is the fight's: the controller's ruling on M3). The retreat to a filter stays a candidate.
+- A group arriving (`Context.group`, read by `GroupClock` over `arriving`: GROUP_N or more aware standing zombies
+  listed that can reach the character, their fight not vetoed, one of them within DANGER_R inside the last
+  STAND_RECEDE_S; fix 1, review-t11-utility M1, the refuge ruling: no open-ground leg; fix 2, review-t11-utility-fix1
+  M2: an unreachable or receding group arrives at nothing): no travel, loot, sneak or needs candidate (the walk away
+  from an arriving group is the open leg, whatever the goal); in their place `stand:<id>`, the stand where the
+  character is at the nearest arriving zombie (the ruling's string: the arrivals fought one at a time, `back` when a
+  wall or fence lies within BACK_R behind the character, away from them), generated while none is within KEEP_R (one
+  within reach is the fight's: the controller's ruling on M3). The retreat to a filter stays a candidate.
 - The dress is vetoed `in_reach` while an aware standing zombie is within KEEP_R (fix 1, M2: a zombie in reach is
-  fought, never dressed in front of).
+  fought, never dressed in front of), and so is every fight at a standing zombie beyond KEEP_R while an aware one
+  within it can be fought (fix 2, review-t11-utility-fix1 M1, the controller's ruling: the fight at the zombie in
+  reach wins whatever is listed, a farther fight included; a fallen one's finish is left to the scores, which charge it
+  the unfaced zombie's hits, `select.UNFACED_FACTOR`).
 """
 import dataclasses
 import math
@@ -59,6 +64,9 @@ GROUP_N = 3               # aware standing zombies listed that make a group arri
                           # aware zombies", the common amendments' item 5)
 BACK_R = 2.0              # tiles: a wall or fence this near behind the character covers the stand's back (the fix
                           # brief's "within two tiles")
+STAND_RECEDE_S = 5.0      # seconds with no arriving zombie within DANGER_R after which a group no longer arrives: the
+                          # stand ends and the walks return (fix 2, M2; a first guess for the trials: ten planner
+                          # ticks, a receding zombie at 2.7 tiles a second, F6 478-481's, gains 13 tiles)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -101,19 +109,37 @@ class Context:
     held_kind: object = None        # the held act's kind
     held_target: object = None      # the held fight's zombie id
     at_filter: object = None        # the Filter the player stands on after its retreat
+    group: bool = False             # a group arriving (`GroupClock`)
 
 
-def group_arriving(sit):
-    """GROUP_N or more aware standing zombies listed (within LISTED_R): a group arriving."""
-    return len(sit.aware_standing(LISTED_R)) >= GROUP_N
+def arriving(sit, ctx, world):
+    """The aware standing zombies listed that come: within DANGER_R, or beyond it closing (a receding one comes to
+    nothing: F6 478-481's, at -2.7 tiles a second), and able to reach the character, their fight not vetoed
+    (`_fight_veto`: no planner mark, no known blocked edge with no door); nearest first."""
+    return [z for z in sit.aware_standing(LISTED_R) if (z.d <= DANGER_R or z.closing > 0.0)
+            and _fight_veto(sit, ctx, world, z) is None]
+
+
+class GroupClock:
+    """When an arriving zombie last stood within DANGER_R (`near`), the recede test of the group (the module
+    docstring): a group arrives while GROUP_N or more arrive (`arriving`) and one stood within DANGER_R inside the
+    last STAND_RECEDE_S."""
+
+    def __init__(self):
+        self.near = None
+
+    def read(self, zs, now):
+        if any(z.d <= DANGER_R for z in zs):
+            self.near = now
+        return len(zs) >= GROUP_N and self.near is not None and now - self.near < STAND_RECEDE_S
 
 
 def generate(sit, ctx, world):
     """The tick's candidates, in KINDS order then by distance (the module docstring)."""
     out = _fights(sit, ctx, world)
-    group = group_arriving(sit)
+    group = ctx.group
     if group:
-        st = _stand(sit, world)
+        st = _stand(sit, ctx, world)
         if st is not None:
             out.append(st)
     d = _dress(sit, ctx, world)
@@ -148,6 +174,9 @@ def _fights(sit, ctx, world):
     for z in sorted(standing + fallen, key=lambda q: (q.d, repr(q.id))):
         out.append(Candidate("fight", "fight:%s" % z.id, target=z.id, zed=z, door=z.id == ctx.door_open,
                              veto=_fight_veto(sit, ctx, world, z)))
+    if any(c.veto is None and c.zed.standing and c.zed.aware and c.zed.d <= KEEP_R for c in out):
+        out = [dataclasses.replace(c, veto="in_reach") if c.veto is None and c.zed.standing and c.zed.d > KEEP_R
+               else c for c in out]   # fix 2: the zombie in reach first, never a farther standing one
     return out
 
 
@@ -162,10 +191,11 @@ def _fight_veto(sit, ctx, world, z):
     return None
 
 
-def _stand(sit, world):
-    """The stand at the nearest aware standing zombie, while none is within KEEP_R (the module docstring), else None."""
-    aware = sit.aware_standing(LISTED_R)
-    if not aware or aware[0].d <= KEEP_R:
+def _stand(sit, ctx, world):
+    """The stand at the nearest arriving zombie (`arriving`: never one the planner marks unreachable nor one across a
+    blocked edge), while no aware zombie is within KEEP_R (the module docstring), else None."""
+    aware = arriving(sit, ctx, world)
+    if not aware or sit.aware_standing(KEEP_R):
         return None
     z = aware[0]
     away = _away(sit, aware)

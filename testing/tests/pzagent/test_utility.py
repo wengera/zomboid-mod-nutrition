@@ -429,6 +429,7 @@ def test_no_retreat_is_generated_while_standing_on_the_filter_it_retreated_to():
 
 
 GOAL = A.Context(goal="travel", needs="need")
+GROUP = A.Context(goal="travel", needs="need", group=True)
 
 
 def group(*ds, closing=1.0):
@@ -437,24 +438,86 @@ def group(*ds, closing=1.0):
 
 def test_a_group_arriving_takes_away_the_walk_and_the_needs_and_offers_the_stand():
     """Fix 1 (review-t11-utility M1, the refuge ruling): no open-ground leg from an arriving group."""
-    kinds = {c.kind for c in A.generate(sit(group(4.0, 7.0, 9.0)), GOAL, _World())}
+    kinds = {c.kind for c in A.generate(sit(group(4.0, 7.0, 9.0)), GROUP, _World())}
     assert "stand" in kinds and not kinds & {"travel", "loot", "sneak", "needs"}
-    two = {c.kind for c in A.generate(sit(group(4.0, 7.0)), GOAL, _World())}
+    two = {c.kind for c in A.generate(sit(group(4.0, 7.0, 9.0)), GOAL, _World())}
     assert "travel" in two and "stand" not in two
 
 
+def test_the_group_arrives_while_three_reachable_ones_come_and_one_stood_near_lately():
+    """Fix 2 (review-t11-utility-fix1 M2): `arriving` leaves out the unreachable and the receding beyond DANGER_R;
+    the clock ends the group STAND_RECEDE_S after the last arriving one within DANGER_R."""
+    w = _World()
+    zs = group(4.0, 7.0, 9.0)
+    assert [z.id for z in A.arriving(sit(zs), CTX, w)] == [1, 2, 3]
+    assert [z.id for z in A.arriving(sit(zs), A.Context(unreachable=frozenset({2})), w)] == [1, 3]
+    receding = group(4.0, 7.0, 9.0, closing=-1.0)
+    assert [z.id for z in A.arriving(sit(receding), CTX, w)] == [1]
+    clock = A.GroupClock()
+    far = group(7.0, 8.0, 9.0)
+    assert clock.read(far, 0.0) is False   # none has stood within DANGER_R yet
+    assert clock.read(zs, 1.0) is True
+    assert clock.read(far, 1.0 + A.STAND_RECEDE_S - 0.1) is True
+    assert clock.read(far, 1.0 + A.STAND_RECEDE_S + 0.1) is False
+    assert clock.read(zs[:2], 10.0) is False   # two are no group
+
+
+def test_three_unreachable_zombies_standing_off_leave_the_goal_its_walk_never_a_stand():
+    """Fix 2 (M2): the review's synthetic frame: three aware zombies at 3 to 5 tiles, all unreachable, closing 0."""
+    w = _World()
+    s = sit(group(3.0, 4.0, 5.0, closing=0.0))
+    base = A.Context(goal="travel", unreachable=frozenset({1, 2, 3}))
+    ctx = dataclasses.replace(base, group=A.GroupClock().read(A.arriving(s, base, w), 0.0))
+    cands = A.generate(s, ctx, w)
+    assert not ctx.group and not [c for c in cands if c.kind == "stand"]
+    chosen, _ = S.Selector().decide(cands, S.score_all(cands, s, ctx), 0.0)
+    assert chosen.kind == "travel"
+
+
+def test_the_stand_never_targets_a_zombie_that_cannot_come():
+    s = sit(group(4.0, 7.0, 9.0))
+    (st,) = [c for c in A.generate(s, dataclasses.replace(GROUP, unreachable=frozenset({1})), _World())
+             if c.kind == "stand"]
+    assert st.target == 2
+
+
+def test_the_stand_prices_the_others_held_at_their_distance():
+    """The ruling's string (the review's surviving mutant): the others' closing never reaches the stand's hits."""
+    a = sit([zed(1, 4.0, closing=1.0), zed(2, 6.0, closing=0.0, deg=90.0), zed(3, 7.0, closing=0.0, deg=180.0)])
+    b = sit([zed(1, 4.0, closing=1.0), zed(2, 6.0, closing=4.0, deg=90.0), zed(3, 7.0, closing=4.0, deg=180.0)])
+    st_a = A.Candidate("stand", "stand:1", target=1, zed=a.zed(1))
+    st_b = A.Candidate("stand", "stand:1", target=1, zed=b.zed(1))
+    assert S.terms(st_a, a, GROUP)["hit"] == S.terms(st_b, b, GROUP)["hit"]
+    assert S.terms(fight(b.zed(1)), b, GROUP)["hit"] < S.terms(fight(a.zed(1)), a, GROUP)["hit"]
+
+
+def test_a_farther_standing_zombie_s_fight_is_vetoed_while_one_in_reach_can_be_fought():
+    """Fix 2 (review-t11-utility-fix1 M1, the controller's ruling): the zombie in reach first; a fallen one's finish
+    stays a candidate, charged the unfaced zombie's hits."""
+    s = sit([zed(1, 1.8), zed(2, 6.0, deg=90.0), zed(3, 2.2, standing=False, deg=180.0)])
+    by = {c.key: c for c in A.generate(s, CTX, _World())}
+    assert by["fight:1"].veto is None and by["fight:2"].veto == "in_reach" and by["fight:3"].veto is None
+    alone = sit([zed(3, 2.2, standing=False, deg=180.0)])
+    lone = S.terms(fight(alone.zed(3)), alone, CTX)["hit"]
+    with_one = S.terms(fight(s.zed(3)), s, CTX)["hit"]
+    _, span, _ = S.fight_plan(s, s.zed(3), M.FITTED)
+    assert with_one < lone - (S.UNFACED_FACTOR - 1.0) * M.FITTED.hazard(S.MELEE_D) * span * 0.99
+    blocked = {c.key: c for c in A.generate(s, A.Context(unreachable=frozenset({1})), _World())}
+    assert blocked["fight:2"].veto is None   # the one in reach cannot be fought: the farther one may
+
+
 def test_the_stand_faces_the_nearest_aware_zombie_and_goes_while_one_is_in_reach():
-    (st,) = [c for c in A.generate(sit(group(4.0, 7.0, 9.0)), GOAL, _World()) if c.kind == "stand"]
+    (st,) = [c for c in A.generate(sit(group(4.0, 7.0, 9.0)), GROUP, _World()) if c.kind == "stand"]
     assert st.key == "stand:1" and st.target == 1
-    assert not [c for c in A.generate(sit(group(2.0, 7.0, 9.0)), GOAL, _World()) if c.kind == "stand"]
+    assert not [c for c in A.generate(sit(group(2.0, 7.0, 9.0)), GROUP, _World()) if c.kind == "stand"]
 
 
 def test_the_stand_reads_a_wall_at_its_back():
     class Walled(_World):
         def line_clear(self, *a, **k):
             return False
-    (open_,) = [c for c in A.generate(sit(group(4.0, 7.0, 9.0)), GOAL, _World()) if c.kind == "stand"]
-    (walled,) = [c for c in A.generate(sit(group(4.0, 7.0, 9.0)), GOAL, Walled()) if c.kind == "stand"]
+    (open_,) = [c for c in A.generate(sit(group(4.0, 7.0, 9.0)), GROUP, _World()) if c.kind == "stand"]
+    (walled,) = [c for c in A.generate(sit(group(4.0, 7.0, 9.0)), GROUP, Walled()) if c.kind == "stand"]
     s = sit(group(4.0, 7.0, 9.0))
     assert not open_.back and walled.back
     assert S.terms(walled, s, GOAL)["hit"] == pytest.approx(S.BACK_FACTOR * S.terms(open_, s, GOAL)["hit"])
@@ -779,6 +842,9 @@ def test_an_aware_zombie_entering_reach_is_an_interrupt(tmp_path):
 
 def test_a_group_arriving_with_no_filter_is_met_by_the_stand_never_a_walk(tmp_path):
     r, sv = build(tmp_path)
+    r.frame(zombies=[chaser(1, -4.5), chaser(2, -6.5, 3.0), chaser(3, -7.5, -3.0), chaser(4, -9.5)])
+    sv.tick(r.world, r.acts)
+    r.advance(4.5)   # a second frame past the first act's span: the closing speeds read
     r.frame(zombies=[chaser(1, -4.0), chaser(2, -6.0, 3.0), chaser(3, -7.0, -3.0), chaser(4, -9.0)])
     sv.tick(r.world, r.acts)
     typ, args = r.cmd()

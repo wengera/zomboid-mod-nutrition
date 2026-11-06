@@ -87,7 +87,10 @@ def test_an_aware_zombie_in_reach_is_fought_on_every_line(replayed, situations, 
         if all(u["vetoes"].get("fight:%s" % z.id) is not None for z in reach):
             continue   # every fight in reach infeasible (an edge between, the door left): the vetoes' lines
         n += 1
-        assert (u["act"] or "").startswith("fight:"), (key, k, u["act"], u["select"], u["held_by"])
+        act = u["act"] or ""
+        assert act.startswith("fight:"), (key, k, act, u["select"], u["held_by"])
+        target = sit.zed(u["target"])   # fix 2 (review-t11-utility-fix1 M1): the zombie in reach, never a farther one
+        assert target is not None and target.d <= KEEP_R, (key, k, act, None if target is None else target.d)
     assert n >= 50, n
 
 
@@ -110,23 +113,52 @@ WALKS = ("travel", "loot", "sneak", "needs")
 
 
 @pytest.mark.parametrize("key", list(RINGS))
-def test_no_walk_away_from_an_arriving_group(replayed, situations, key):
+def test_no_walk_away_from_an_arriving_group(replayed, key):
+    """The group the decider reads arriving (`utility.group`: three reachable aware zombies listed, one within
+    DANGER_R inside STAND_RECEDE_S) takes away every walk; a stand only under one."""
     n = 0
-    for k, sit, _ in situations[key]:
-        if len(sit.aware_standing(LISTED_R)) < 3:
+    for rep in replayed[key]:
+        u = rep["inputs"]["utility"]
+        if not u["group"]:
+            assert u["kind"] != "stand", (key, u["act"])
             continue
         n += 1
-        u = _u(replayed, key, k)
-        assert (u["act"] or "").split(":")[0] not in WALKS and not set(u["scores"]) & set(WALKS), (key, k, u["act"])
+        assert (u["act"] or "").split(":")[0] not in WALKS and not set(u["scores"]) & set(WALKS), (key, u["act"])
     assert n >= 1
 
 
-@pytest.mark.parametrize("key, lines", [("e23", list(range(470, 478)) + list(range(517, 525))),
+@pytest.mark.parametrize("key", list(RINGS))
+def test_no_stand_at_a_zombie_that_cannot_come(replayed, key):
+    """Review-t11-utility-fix1 M2 (F6 330-332 and 570-576 stood at a target across a blocked edge or marked
+    unreachable): a stand's target is never one whose fight is vetoed so."""
+    for rep in replayed[key]:
+        u = rep["inputs"]["utility"]
+        if u["kind"] == "stand":
+            assert u["vetoes"].get("fight:%s" % u["target"]) not in ("blocked_edge", "unreachable"), (key, u["act"])
+
+
+def test_the_walks_return_when_the_group_recedes(replayed):
+    """F6 478-481: the target receding from 7.5 to 10.8 tiles; past STAND_RECEDE_S the stand ends, the goal returns."""
+    acts = [_u(replayed, "f6", k) for k in range(478, 482)]
+    assert all(u["kind"] != "stand" for u in acts[-2:]), [u["act"] for u in acts]
+    assert any(set(u["scores"]) & set(WALKS) for u in acts[-2:])
+
+
+@pytest.mark.parametrize("key, lines", [("e23", list(range(470, 476)) + list(range(517, 523))),
                                         ("f15", [326, 327])])
 def test_the_review_s_lines_meet_the_group_where_the_character_stands(replayed, key, lines):
     for k in lines:
         act = _u(replayed, key, k)["act"] or ""
         assert act.split(":")[0] in ("stand", "fight"), (key, k, act)
+
+
+@pytest.mark.parametrize("lines", [[476, 477], [523, 524]])
+def test_e23_s_groups_recede_and_the_walk_returns(replayed, lines):
+    """Fix 2 (review-t11-utility-fix1 M2): E23 476-477 and 523-524, every aware zombie beyond DANGER_R receding
+    (the one within it, alone, no group): no group arrives, no stand, and the walk prices the chasers as closing."""
+    for k in lines:
+        u = _u(replayed, "e23", k)
+        assert not u["group"] and u["kind"] != "stand", (k, u["act"])
 
 
 @pytest.mark.parametrize("k", [280, 326])
@@ -168,16 +200,45 @@ def test_every_retreat_names_its_door_and_reads_as_a_retreat_on_the_line(replaye
         assert rep["branch"] == "threat" and rep["inputs"]["branches"]["threat"]["flee"] == "retreat:door"
 
 
+GOAL_ACTS = ("travel", "loot", "sneak")
+
+
+def _record_rows(key):
+    name, upto = RINGS[key]
+    _, rows = read_record(os.path.join(R.ARTIFACTS, name))
+    return rows if upto is None else rows[:upto]
+
+
+def waits(rep):
+    """The line sends nothing and holds no action of its own (no `holding` aid, no maneuver running): a wait."""
+    if rep["action"] is not None:
+        return False
+    whys = [v for v in (rep["inputs"].get("branches") or {}).values() if isinstance(v, dict)]
+    return not any(v.get("holding") is not None or v.get("maneuver") is not None for v in whys)
+
+
 @pytest.mark.parametrize("key", ["e23", "f6"])
-def test_a_zombie_behind_a_door_is_never_waited_on(replayed, situations, key):
-    n = 0
+def test_a_zombie_behind_a_door_is_never_waited_on(replayed, situations, key, capsys):
+    """Fix 2 (review-t11-utility-fix1 M3): the send read, never the act. A goal act on a line whose record sent no goal
+    command is the replay's blind spot (the runner's answer there is unknown: `replay.ReplayGoals`), counted and named,
+    never passed as a send."""
+    rows = _record_rows(key)
+    n, blind = 0, []
     for k, _, door in situations[key]:
         if not door:
             continue
+        rep = replayed[key][k - 1]
+        u = rep["inputs"]["utility"]
+        rec = rows[k - 1]
+        if (u["kind"] in GOAL_ACTS and rep["action"] is None
+                and not (rec.get("branch") == "goal" and rec.get("sent"))):
+            blind.append(k)
+            continue
         n += 1
-        u = _u(replayed, key, k)
-        assert u["act"] is not None and u["act"] != "rest", (key, k, u["select"], u.get("passed"))
-    assert n >= 1
+        assert u["act"] is not None and u["act"] != "rest" and not waits(rep), (key, k, u["act"], u["select"])
+    with capsys.disabled():
+        print("\ndoor lines %s: %d read, %d blind %s" % (key, n, len(blind), blind[:20]))
+    assert n + len(blind) >= 1
 
 
 def test_no_line_sprints(replayed):
