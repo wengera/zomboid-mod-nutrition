@@ -230,55 +230,111 @@ def test_street_spawns_nothing_and_starts_no_thread():
     assert w.started is True and w._thread is None and w.step(1e9) == [] and sent == []
     w.stop()
     assert w.record() == {"plan": "street", "period_s": None, "spawns": [], "started": True, "rows": [],
-                          "error": None, "joined": None, "confirm": []}
+                          "error": None, "joined": None, "confirm": [], "by_wave": [], "server_spawns": None}
 
 
-def _confirming(plan, listed):
+def _confirming(plan, seen, pos=(100.0, 200.0)):
+    """Waves over a fake RCON and a `seen` dict {zombie id: (x, y) of its first listing}: the lone wave's square is
+    (108, 200), centre (108.5, 200.5); the pair's are (106, 195) at -35 degrees and (106, 204) at 35."""
     sent = []
-    w = TR.Waves(plan, lambda cmd, tag: sent.append(tag) or {"ok": True}, lambda: (100.0, 200.0),
-                 listed=lambda: listed)
+    w = TR.Waves(plan, lambda cmd, tag: sent.append(tag) or {"ok": True}, lambda: pos, listed=lambda: seen)
     return w, sent
 
 
+NEAR = (108.4, 200.6)         # a zombie first listed at the lone wave's square
+FAR = (60.0, 140.0)           # a natural walker first listed 60 tiles off
+
+
 def test_a_wave_its_frames_never_list_is_re_sent_once_after_the_confirm_window():
-    """Task 12's loop fix (trial 1: the server spawned six, the frames listed three): no new id WAVE_CONFIRM_S after
-    the send re-sends the wave's spawn once, its own confirmation recorded and never re-sent."""
-    listed = {7}
-    w, sent = _confirming("lone", listed)
+    """Task 12's loop fix (trial 1: the server spawned six, the frames listed three): no zombie first listed at the
+    spawn's square WAVE_CONFIRM_S after the send re-sends the spawn once, its own confirmation recorded and never
+    re-sent; a natural walker already listed (7) confirms nothing."""
+    seen = {7: FAR}
+    w, sent = _confirming("lone", seen)
     w.begin(0.0)
-    assert len(w.step(0.0)) == 1 and sent == ["wave_0_0"] and TR.WAVE_CONFIRM_S == 8.0
+    assert len(w.step(0.0)) == 1 and sent == ["wave_0_0"] and TR.WAVE_CONFIRM_S == 8.0 and TR.WAVE_CONFIRM_R == 2.0
     assert w.step(7.9) == [] and sent == ["wave_0_0"]
     rows = w.step(8.0)
     assert sent == ["wave_0_0", "wave_0_0_resend"] and len(rows) == 1 and rows[0]["resend_of"] == 0
     assert rows[0]["wave"] == 0 and rows[0]["cmd"] == "createhorde2 -x 108 -y 200 -z 0 -count 1 -radius 1"
-    assert w.confirms == [{"wave": 0, "resend": False, "need": 1, "new": [], "t": 8.0, "resent": 1}]
+    assert w.confirms == [{"wave": 0, "spawn": 0, "resend": False, "need": 1, "listed_ids": [], "t": 8.0, "resent": 1}]
     assert w.step(16.0) == [] and sent == ["wave_0_0", "wave_0_0_resend"]           # the re-send is never re-sent
-    assert w.confirms[-1] == {"wave": 0, "resend": True, "need": 1, "new": [], "t": 16.0}
+    assert w.confirms[-1] == {"wave": 0, "spawn": 0, "resend": True, "need": 1, "listed_ids": [], "t": 16.0}
+    assert w.by_wave[0] == {"wave": 0, "sent": 1, "resent": 1, "listed_ids": [], "confirmed": False}
     assert len(w.step(60.0)) == 1 and sent[-1] == "wave_1_0"
-    listed.add(9)                                                                    # wave 1's zombie read after its send
-    assert w.step(68.0) == [] and w.confirms[-1] == {"wave": 1, "resend": False, "need": 1, "new": [9], "t": 68.0}
+    seen[9] = NEAR                                                                   # wave 1's zombie read after its send
+    assert w.step(68.0) == []
+    assert w.confirms[-1] == {"wave": 1, "spawn": 0, "resend": False, "need": 1, "listed_ids": [9], "t": 68.0}
+    assert w.by_wave[1] == {"wave": 1, "sent": 1, "resent": 0, "listed_ids": [9], "confirmed": True}
 
 
 def test_a_wave_read_by_the_frames_is_confirmed_and_never_re_sent():
-    listed = {7}
-    w, sent = _confirming("lone", listed)
+    seen = {7: FAR}
+    w, sent = _confirming("lone", seen)
     w.begin(0.0)
     w.step(0.0)
-    listed.add(11)                                                                   # the frames list the spawn
+    seen[11] = NEAR                                                                  # the frames list the spawn
     assert w.step(8.0) == [] and sent == ["wave_0_0"]
-    assert w.confirms == [{"wave": 0, "resend": False, "need": 1, "new": [11], "t": 8.0}]
-    assert w.record()["confirm"] == w.confirms and "resend_of" not in w.rows[0]
+    assert w.confirms == [{"wave": 0, "spawn": 0, "resend": False, "need": 1, "listed_ids": [11], "t": 8.0}]
+    rec = w.record()
+    assert rec["confirm"] == w.confirms and "resend_of" not in w.rows[0]
+    assert rec["by_wave"] == [{"wave": 0, "sent": 1, "resent": 0, "listed_ids": [11], "confirmed": True}]
 
 
-def test_a_pair_short_of_one_re_sends_one_spawn():
-    listed = set()
-    w, sent = _confirming("pair", listed)
+def test_a_natural_walkers_id_confirms_nothing():
+    """Round one's re-send counted any new id (trial 5: 11 spawns logged against 8 planned, three ids never listed):
+    a walker first listed after the send but far from the square, one already listed before the send beside it, and
+    one first listed within the radius but just past it (2.6 tiles) confirm nothing, so the spawn is re-sent; a
+    zombie first listed 1.4 tiles from the square's centre after the send confirms it."""
+    seen = {7: NEAR}                                                  # listed before the send, standing at its square
+    w, sent = _confirming("lone", seen)
+    w.begin(0.0)
+    w.step(0.0)
+    seen[8] = FAR                                                     # a new id, far
+    seen[10] = (108.5 + 2.6, 200.5)                                   # a new id, just past WAVE_CONFIRM_R
+    seen[12] = None                                                   # a new id with no position
+    rows = w.step(8.0)
+    assert [r["resend_of"] for r in rows] == [0] and w.confirms[0]["listed_ids"] == []
+    assert w.confirms[0]["resent"] == 1
+    seen[13] = (108.5 + 1.0, 200.5 + 1.0)                             # 1.41 tiles from the centre
+    assert w.step(16.0) == [] and w.confirms[1]["listed_ids"] == [13]
+    assert w.by_wave[0] == {"wave": 0, "sent": 1, "resent": 1, "listed_ids": [13], "confirmed": True}
+
+
+def test_a_pair_short_of_one_re_sends_the_missing_spawn_at_its_own_bearing():
+    """The pair's two squares are (106, 195) and (106, 204): with the second's zombie listed the first spawn alone is
+    re-sent at its bearing (-35), and with the first's listed the second alone at 35 (round one's re-send repeated the
+    plan's first N spawns, so a missing second spawn was sent at the first's bearing)."""
+    seen = {}
+    w, sent = _confirming("pair", seen)
     w.begin(0.0)
     assert len(w.step(0.0)) == 2
-    listed.add(5)                                                                    # one of the two read
+    seen[5] = (106.4, 204.5)                                         # spawn 1's zombie read
     rows = w.step(8.0)
     assert [r["spawn"] for r in rows] == [0] and sent == ["wave_0_0", "wave_0_1", "wave_0_0_resend"]
-    assert w.confirms[0]["need"] == 2 and w.confirms[0]["new"] == [5] and w.confirms[0]["resent"] == 1
+    assert rows[0]["cmd"] == "createhorde2 -x 106 -y 195 -z 0 -count 1 -radius 1" and rows[0]["bearing"] == -35.0
+    assert [(c["spawn"], c["listed_ids"], c.get("resent")) for c in w.confirms] == [(0, [], 1), (1, [5], None)]
+    assert w.by_wave[0] == {"wave": 0, "sent": 2, "resent": 1, "listed_ids": [5], "confirmed": False}
+    seen = {}
+    w, sent = _confirming("pair", seen)
+    w.begin(0.0)
+    w.step(0.0)
+    seen[6] = (106.6, 195.5)                                         # spawn 0's zombie read
+    rows = w.step(8.0)
+    assert [r["spawn"] for r in rows] == [1] and sent == ["wave_0_0", "wave_0_1", "wave_0_1_resend"]
+    assert rows[0]["cmd"] == "createhorde2 -x 106 -y 204 -z 0 -count 1 -radius 1" and rows[0]["bearing"] == 35.0
+
+
+def test_a_spawn_of_three_short_of_two_re_sends_the_missing_two(monkeypatch):
+    monkeypatch.setitem(TR.WAVE_PLANS, "trio", {"period_s": 60.0, "spawns": ((3, 8.0, 0.0),)})
+    seen = {}
+    w, sent = _confirming("trio", seen)
+    w.begin(0.0)
+    w.step(0.0)
+    seen[3] = NEAR
+    rows = w.step(8.0)
+    assert rows[0]["cmd"] == "createhorde2 -x 108 -y 200 -z 0 -count 2 -radius 1" and rows[0]["count"] == 2
+    assert w.by_wave[0] == {"wave": 0, "sent": 3, "resent": 2, "listed_ids": [3], "confirmed": False}
 
 
 def test_waves_without_a_listing_never_confirm():
@@ -289,12 +345,31 @@ def test_waves_without_a_listing_never_confirm():
                                                                                          "-count 1 -radius 1", "wave_0_0")]
 
 
-def test_the_trial_chain_collects_every_listed_id_for_the_waves(tmp_path):
+def test_the_trial_chain_collects_every_listed_id_with_its_first_position_for_the_waves(tmp_path):
     c, _ = _chain(tmp_path, ["--variant", "ladder", "--fixture", "agent", "--no-llm", "--waves", "lone"])
-    assert c.listed_ids == frozenset() and c.waves.listed() == frozenset()
-    c.on_frame({"me": {"x": 1.0, "y": 2.0, "z": 0}, "zombies": [{"id": 4}, {"id": 6}]})
-    c.on_frame({"me": {"x": 1.0, "y": 2.0, "z": 0}, "zombies": [{"id": 6}, {"id": 8}, "junk", {"id": None}]})
-    assert c.waves.listed() == frozenset({4, 6, 8})
+    assert c.first_seen == {} and c.waves.listed() == {}
+    c.on_frame({"me": {"x": 1.0, "y": 2.0, "z": 0}, "zombies": [{"id": 4, "x": 5.5, "y": 6.5}, {"id": 6}]})
+    c.on_frame({"me": {"x": 1.0, "y": 2.0, "z": 0}, "zombies": [
+        {"id": 6, "x": 9.0, "y": 9.0}, {"id": 8, "x": 7.0, "y": 8.0}, "junk", {"id": None}, {"id": 4, "x": 0.0, "y": 0.0}]})
+    # the first listing's position stays: 4's (5.5, 6.5), 6's none (the first frame carried no square), 8's (7.0, 8.0)
+    assert c.waves.listed() == {4: (5.5, 6.5), 6: None, 8: (7.0, 8.0)}
+
+
+def test_the_servers_spawn_lines_are_counted_from_its_log_into_the_waves_record(tmp_path):
+    """The count of CreateHorde2Command's "Spawning" lines (one per zombie), the sample's own line shape; none without
+    the log, and nothing noted without a wave record."""
+    line = ("WARN : General      f:421 st:4,276,448,296 at CreateHorde2Command.Command         > Spawning new Male Zed, "
+            "Dressed in No Outfit, isFallOnFront:false\n")
+    other = "LOG  : General      f:533 st:4,276,459,389> ItemPickInfo -> Spawning new thing elsewhere\n"
+    (tmp_path / TR.SERVER_LOG).write_text(line + other + line + line, encoding="utf-8")
+    assert TR.server_spawns(str(tmp_path)) == 3
+    out = {"loop": {"trial": {"waves": {"plan": "lone", "server_spawns": None}}}}
+    assert TR.note_server_spawns(out, str(tmp_path)) == 3 and out["loop"]["trial"]["waves"]["server_spawns"] == 3
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    assert TR.server_spawns(str(empty)) is None
+    assert TR.note_server_spawns(out, str(empty)) is None and out["loop"]["trial"]["waves"]["server_spawns"] is None
+    assert TR.note_server_spawns({}, str(tmp_path)) is None and TR.note_server_spawns({"loop": {}}, str(tmp_path)) is None
 
 
 def test_a_wave_spawns_on_the_characters_floor():
@@ -679,10 +754,11 @@ def _survive_recording(monkeypatch):
     return seen
 
 
-def boot_trial(tmp_path, monkeypatch, argv, prov=None, rc=0, mem_ok=True, preboot_print=None):
+def boot_trial(tmp_path, monkeypatch, argv, prov=None, rc=0, mem_ok=True, preboot_print=None, server_log=None):
     """trial.boot_and_run on the real profile and a real run layout with the boot, the teardown and the kill injected
     (the module docstring); the fake RCON's calls and the snapshot's argv land in one ordered list. The fake teardown
-    marks `server_stopped` with `rc` as bounded_teardown does; `mem_ok` False refuses at the memory gate."""
+    marks `server_stopped` with `rc` as bounded_teardown does; `mem_ok` False refuses at the memory gate;
+    `server_log` (text) is written as the run folder's server-stdout.log at the boot."""
     clock = Clock()
     calls = []
     runs = tmp_path / "runs"
@@ -713,6 +789,9 @@ def boot_trial(tmp_path, monkeypatch, argv, prov=None, rc=0, mem_ok=True, preboo
         clients["admin"] = client
         started.append(client)
         got.update(mod=mod, xs=xs, run_dir=run_dir)
+        if server_log is not None:
+            with open(os.path.join(run_dir, TR.SERVER_LOG), "w", encoding="utf-8") as fh:
+                fh.write(server_log)
         return {"verify": [{"ok": True}], "build": "42.21.0"}
 
     def run_session_fn(xs, transport, pre, note):
@@ -779,7 +858,8 @@ def test_a_trial_writes_trial_json_at_the_run_root_and_copies_nothing(tmp_path, 
     assert "make_fixture" not in out and "llm" not in out["loop"]
     assert out["loop"]["trial"] == {"teleport": None, "idle": False,
                                     "waves": {"plan": "street", "period_s": None, "spawns": [], "started": True,
-                                              "rows": [], "error": None, "joined": None, "confirm": []}}
+                                              "rows": [], "error": None, "joined": None, "confirm": [],
+                                              "by_wave": [], "server_spawns": None}}
     assert r.calls == [("teardown",)]                                  # no RCON on the street, no snapshot
     persisted = json.loads(open(os.path.join(r.run_dir, "x_trial.json"), encoding="utf-8").read())
     assert persisted["finished"] is True and persisted["trial"]["variant"] == "ladder"
@@ -824,7 +904,9 @@ def test_the_lone_wave_spawns_at_the_square_off_the_last_frame(tmp_path, monkeyp
     w = r.out["loop"]["trial"]["waves"]
     assert w["plan"] == "lone" and w["started"] is True and w["joined"] is True and w["error"] is None
     assert len(w["rows"]) == 2 and w["rows"][0]["at"] == [108, 200, 0] and w["rows"][0]["ack"]["ok"] is True
-    assert w["rows"][1]["resend_of"] == 0 and w["confirm"][0]["resent"] == 1 and w["confirm"][0]["new"] == []
+    assert w["rows"][1]["resend_of"] == 0 and w["confirm"][0]["resent"] == 1 and w["confirm"][0]["listed_ids"] == []
+    assert w["by_wave"] == [{"wave": 0, "sent": 1, "resent": 1, "listed_ids": [], "confirmed": False}]
+    assert w["server_spawns"] is None                                  # the fake server writes no log
     steps = [s for s in r.out["steps"] if s.get("cmd") == "rcon"]
     assert [s["step"] for s in steps] == ["wave_0_0", "wave_0_0_resend"]
     # the waves read the session's clock and began at the loop's first frame read (one pass after the loop's start),
@@ -833,6 +915,21 @@ def test_the_lone_wave_spawns_at_the_square_off_the_last_frame(tmp_path, monkeyp
     assert r.sess.t_loop0 - r.mod.t0 > 5.0
     assert r.sess.t_loop0 <= r.sess.waves.t0 <= r.sess.t_loop0 + 1.0
     assert w["rows"][0]["t"] < 1.0
+
+
+def test_the_servers_spawn_count_reaches_the_record_and_the_persisted_artifact(tmp_path, monkeypatch, agent_fixture):
+    """The run folder's server log read after the teardown: two "Spawning" lines (the plan's lone wave sent twice, the
+    second a re-send) against the frames' none listed."""
+    log = ("LOG  : Lua          f:400 st:1> PZTK: cmd #1 ping -> pong\n" +
+           "WARN : General      f:421 st:2 at CreateHorde2Command.Command         > Spawning new Male Zed, Dressed in "
+           "No Outfit\n" * 2)
+    r = boot_trial(tmp_path, monkeypatch, ["--variant", "ladder", "--fixture", "agent", "--minutes", "0.2",
+                                           "--no-llm", "--waves", "lone"], server_log=log)
+    w = r.out["loop"]["trial"]["waves"]
+    assert w["server_spawns"] == 2 and w["by_wave"][0]["sent"] + w["by_wave"][0]["resent"] == 2
+    assert w["by_wave"][0]["listed_ids"] == []
+    persisted = json.loads(open(os.path.join(r.run_dir, "x_trial.json"), encoding="utf-8").read())
+    assert persisted["loop"]["trial"]["waves"]["server_spawns"] == 2
 
 
 def test_the_fixture_making_path_teleports_then_snapshots_in_order(tmp_path, monkeypatch, agent_fixture):
