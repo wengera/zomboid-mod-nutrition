@@ -6,7 +6,11 @@ Each tick, in order:
 2. The running play's bound (`executors.Exec.bound`): an end is logged (`play_end`) and fires `ended`.
 3. The model's answer, in model mode (`source.TacticianSource.poll`): validated against this tick's view, applied
    when it names another play or target than the running one (`source` "model"); a refusal's why reaches the next
-   view once (`refusal`). A dirty flight (a trigger fired while it was out) asks again at once.
+   view once (`refusal`). A valid answer that breaks one of the rubric's rules on this tick's view
+   (`rubric.violations`: a lone standing zombie not fought, a dressable bleed not dressed, a travel to nowhere) is
+   refused `doctrine` (the veto: the bench read 17 such answers of the default model in 200, README.md), so the model
+   answers only where no rule of Angus's binds, the ambiguous middle. A dirty flight (a trigger fired while it was out)
+   asks again at once.
 4. The guards (`GUARDS`, scripted, any play): `hit` (the frame's hit reaction with a standing zombie within
    MELEE_RELEASE_R: the melee takes the tick, the reflex holding its hit-reaction step), `swing` (a standing zombie
    within `executors.SWING_GUARD_R`: the melee starts), `fallen` (in a fight at a standing target, a fallen zombie within FIGHT_REACH
@@ -47,15 +51,19 @@ from agent.base.planner.policies import FIGHT_REACH, KEEP_R, MELEE_RELEASE_R, on
 from agent.base.planner.survive import Decision
 from agent.base.planner.tactician import executors as X
 from agent.base.planner.tactician import plays as P
+from agent.base.planner.tactician import rubric as R
 from agent.base.planner.tactician import tview as V
 from agent.base.planner.tactician.source import TacticianSource, cli
 from agent.base.planner.tactician.table import Table
 from agent.base.planner.tactician.trigger import Triggers
 
-MODE = "table"            # the bench's verdict (README.md's first line): the table ties the model
+MODE = "model"            # the bench's verdict (README.md's first line): the table does not tie the model, so T runs
+                          # the model, the doctrine's veto on (below); the scripted goal source (`--no-llm`) runs the
+                          # table whatever MODE reads
 MODES = ("table", "model")
 ENV_MODE = "PZA_TACTICIAN"
-TACTIC_MODEL = "haiku"    # the model mode's configuration (the bench's cheapest that held; README.md)
+TACTIC_MODEL = "sonnet"   # the model mode's configuration: the bench's default (llm.DEFAULT_CLI's), 17 rubric
+                          # violations on 200 views against haiku's 39, p95 7.16 s against 7.13 (README.md's bench)
 PLAYS_LOG = "plays.log"
 REFUGE_HOLD_S = 60.0      # wall seconds a refuge whose avoid or shelter ended `failed` or `shun` is left out of the
                           # table's read (a first guess for the trials; the night's shun is longer, night.SHUN_MIN)
@@ -257,6 +265,8 @@ class Tactician:
         if self.source is not None:
             r = self.source.poll(view)
             if r is not None:
+                if r["_play"] is not None and R.violations(self._masked(view), r["_play"].row()):
+                    r = dict(r, _play=None, play=None, refused_why="doctrine")   # the veto: a rule the doctrine keeps
                 applied = r["_play"] is not None and not self._same(r["_play"])
                 if applied:
                     self._start(r["_play"], view, "model", triggers=[r["trigger"]])

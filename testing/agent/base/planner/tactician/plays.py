@@ -36,7 +36,7 @@ TACTICAL = ("fight", "kite", "avoid", "dress")   # the plays whose target the be
 STRATEGIC = ("loot", "travel", "shelter")   # the plays the strategic goal layer executes
 REFUSALS = ("malformed", "not_object", "unknown_play", "extra_key", "missing_arg", "bad_arg", "unknown_label",
             "bad_bound", "bad_why", "not_bleeding", "no_item", "looted", "no_shelter", "timeout", "exit",
-            "cli_error")
+            "cli_error", "doctrine")   # `doctrine`: the decider's veto of an answer breaking a rubric rule (decide.py)
 LABEL_RX = {"zombie": re.compile(r"Z[1-9][0-9]*"), "door": re.compile(r"D[1-9][0-9]*"),
             "building": re.compile(r"B-?[0-9]+"), "part": re.compile(r"P[0-9]+")}
 KINDS = {"zombie": ("zombie",), "refuge": ("door", "building"), "place": ("building", "door"),

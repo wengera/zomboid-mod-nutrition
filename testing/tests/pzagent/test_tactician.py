@@ -438,9 +438,13 @@ def test_the_committed_table_loads_and_names_only_plays():
 
 
 # ================================================================ the decider through the fork
-def make(tmp_path, caps=None, source=None):
+def make(tmp_path, caps=None, table=True):
+    """A Survive under the tactician on a fresh Rig. `table` True pins the doctrine (an empty table: the decider's rules
+    under test, whatever cells the bench committed); False keeps the committed `table.json`."""
     r = Rig(tmp_path, caps=caps)
     sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, control="tactician")
+    if table:
+        sv.control_state["tactician"] = D.Tactician(sv, table=T.Table())
     return r, sv
 
 
@@ -457,18 +461,18 @@ def tick(r, sv, dt=0.5):
 
 def test_the_variant_loads_by_name_runs_the_table_and_makes_no_call_without_the_model(tmp_path, monkeypatch):
     monkeypatch.delenv(D.ENV_MODE, raising=False)
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, table=False)
     r.frame()
     tick(r, sv)
     t = sv.control_state["tactician"]
-    assert t.mode == "table" and t.source is None
+    assert t.mode == "table" and t.source is None and t.table.cells == T.Table.load().cells
     assert isinstance(sv.goals.source, X.PlaySource) and sv.GOAL_CONTINUE is False and sv.DOOR_HELD is False
     assert Survive.GOAL_CONTINUE is True and Survive.DOOR_HELD is True   # instance fields only, never the class
 
 
 def test_the_model_mode_is_refused_without_an_llm_goal_source(tmp_path, monkeypatch):
     monkeypatch.setenv(D.ENV_MODE, "model")
-    r, sv = make(tmp_path)
+    r, sv = make(tmp_path, table=False)
     r.frame()
     tick(r, sv)
     assert sv.control_state["tactician"].mode == "table"
@@ -644,22 +648,45 @@ class FakeSource:
 
 def test_a_model_answer_overrides_the_table_and_a_refused_one_reaches_the_next_view_once(tmp_path):
     r, sv = make(tmp_path)
-    r.frame(zombies=[z(7, 104.0, 200.0)])
-    t = sv.control_state["tactician"] = D.Tactician(sv, source=FakeSource())
+    r.frame(zombies=[z(7, 104.0, 200.0), z(8, 105.0, 201.5)])
+    t = sv.control_state["tactician"] = D.Tactician(sv, source=FakeSource(), table=T.Table())
     t.mode = "model"
     tick(r, sv)
     assert t.source.asked == ["notice"] and t.exec.play.play == "fight"
     t.source.out = {"play": "kite", "target": "Z1", "toward": "stance", "bound": "time", "why": "lone_chaser"}
-    r.frame(zombies=[z(7, 104.0, 200.0)])
+    r.frame(zombies=[z(7, 104.0, 200.0), z(8, 105.0, 201.5)])
     tick(r, sv)
     assert t.exec.play.play == "kite" and lines(tmp_path)[-1]["inputs"]["tactician"]["source"] == "model"
     t.source.out = {"play": "fight", "target": "Z5", "bound": "dead", "why": "lone_chaser"}
-    r.frame(zombies=[z(7, 104.0, 200.0)])
+    r.frame(zombies=[z(7, 104.0, 200.0), z(8, 105.0, 201.5)])
     tick(r, sv)
     assert lines(tmp_path)[-1]["inputs"]["tactician"]["refused"] == {"why": "unknown_label"}
     assert t.refusal == "unknown_label" and t.view()["refusal"] == "unknown_label"
     calls = [x for x in lines(tmp_path, D.PLAYS_LOG) if x["kind"] == "call"]
     assert [c["refused_why"] for c in calls] == [None, "unknown_label"] and calls[0]["applied_at"] is not None
+
+
+def test_a_model_answer_breaking_a_rule_the_doctrine_keeps_is_vetoed(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame(zombies=[z(7, 104.0, 200.0)])
+    t = sv.control_state["tactician"] = D.Tactician(sv, source=FakeSource(), table=T.Table())
+    t.mode = "model"
+    tick(r, sv)
+    t.source.out = {"play": "avoid", "toward": "stance", "gait": "walk", "bound": "clear", "why": "group"}
+    r.frame(zombies=[z(7, 104.0, 200.0)])
+    tick(r, sv)   # an invalid toward: refused by the schema, not the veto
+    assert lines(tmp_path)[-1]["inputs"]["tactician"]["refused"] == {"why": "bad_arg"}
+    t.source.out = {"play": "kite", "target": "Z1", "toward": "stance", "bound": "time", "why": "group"}
+    t._end("replaced", broken=False)
+    r.frame(zombies=[z(7, 104.0, 200.0), z(8, 105.0, 201.0)])
+    tick(r, sv)   # two standing: no rule binds, the model's kite stands
+    assert t.exec.play.play == "kite"
+    t.source.out = {"play": "kite", "target": "Z1", "toward": "stance", "bound": "time", "why": "group"}
+    t._end("replaced", broken=False)
+    r.frame(zombies=[z(7, 104.0, 200.0), z(8, 115.0, 201.0)])
+    tick(r, sv)   # one standing within DANGER_R, armed: the kite is vetoed, the doctrine's fight runs
+    assert lines(tmp_path)[-1]["inputs"]["tactician"]["refused"] == {"why": "doctrine"}
+    assert t.exec.play.play == "fight"
 
 
 def test_a_model_s_loot_pins_its_building_once_through_the_play_source(tmp_path):
@@ -668,7 +695,7 @@ def test_a_model_s_loot_pins_its_building_once_through_the_play_source(tmp_path)
     sqs = [dict(q, containers=[CRATE]) if (q["x"], q["y"]) == (105, 201) else q for q in sqs]
     r.scan(sqs)
     r.frame()
-    t = sv.control_state["tactician"] = D.Tactician(sv, source=FakeSource())
+    t = sv.control_state["tactician"] = D.Tactician(sv, source=FakeSource(), table=T.Table())
     t.mode = "model"
     t.source.out = {"play": "loot", "building": "B1", "want": "any", "bound": "looted", "why": "clear"}
     tick(r, sv)
