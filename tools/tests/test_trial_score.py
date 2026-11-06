@@ -26,7 +26,9 @@ TRIALS = os.path.join(REPO, "testing", "trials", "trials.md")
 
 @pytest.fixture(scope="module")
 def f15():
-    return TS.score(F15)
+    """F15 read whole (`clipped=False`): the by-hand values below were taken over the whole log, 59 dead frames
+    written after the death stop (`test_f15_clipped_at_its_death_stop_drops_the_59_frames_after_it`)."""
+    return TS.score(F15, clipped=False)
 
 
 # ================================================================ F15: the imported readers
@@ -43,6 +45,19 @@ def test_f15_the_kills_hits_end_health_and_minutes_read_as_its_grade_reads_them(
     assert f15["goal_wait"]["unmoved_near_s"] == 13.5
     assert f15["standing"]["stretches"] == 0
     assert f15["trial"] is None                         # no trial.json beside an old run
+
+
+def test_f15_clipped_at_its_death_stop_drops_the_59_frames_after_it():
+    """F15's record stops at 525.480 s of the loop (the death, seq 12813): its state log runs on to 531.31 s, 59
+    frames and 83 state lines after the stop, and no decision line or action. Clipped, the death frame is still the
+    last read (health 0, the same minutes and hits), the frame-based away reading loses the one interval that lay after
+    the stop (1544, not the whole log's 1545), and the first frame sits 11.28 s before the loop."""
+    s = TS.score(F15)
+    c = s["clock"]
+    assert (c["frames"], c["lines"], c["decisions"], c["actions"]) == (59, 83, 0, 0)
+    assert c["stop_s"] == pytest.approx(525.48021, abs=1e-4) and c["first_frame_s"] == pytest.approx(-11.28146, abs=1e-4)
+    assert s["health"] == 0 and s["minutes"] == 142 and s["hits"]["union"] == 8
+    assert s["away"]["intervals"] == 1544
 
 
 # ================================================================ F15: the four new readings
@@ -420,3 +435,81 @@ def test_the_command_line_refuses_what_it_does_not_define():
             TS.parse_args(argv)
         assert e.value.code == 2
     assert TS.main([os.path.join(REPO, "no-such-run"), "--dry"]) == 2
+
+
+# ================================================================ the clip at the loop's stop (Plan 31 Task 14 pre-step)
+CLIP_T0_MS = 36000000.0        # the loop's start on the frames' clock; the stop at 20.0 s is 36020000.0 ms
+
+
+def _write_clip_run(root, stop=True, game_min=605, stop_game_min=603):
+    """A run whose loop starts at CLIP_T0_MS and stops at 20.0 s (`stop` False: no stop wallS, read whole). The state
+    log: a frame 3 s before the loop (health 100), frames at 10 s (health 80, a reaction run) and 19.5 s (health 70), a
+    bite (a reaction run) at 20.5 s and a frame at 22 s (health 5), the `zombie_dead` event at 21 s; the decision log's
+    flee lines at 9 s and 15 s (standing to the next) and one at 25 s, after the stop; an action sent at 26.0 s."""
+    os.makedirs(root)
+    rid = os.path.basename(root)
+    st = {"reason": "day_cap", "gameMin": stop_game_min}
+    if stop:
+        st["wallS"] = 20.0
+    with open(os.path.join(root, "x_trial.json"), "w", encoding="utf-8") as fh:
+        json.dump({"run_id": rid, "stop": st, "loop": {
+            "startPyMs": CLIP_T0_MS, "first_game_min": 600, "game_min": game_min,
+            "actions": [{"aid": "a1", "type": "walkTo", "sentS": 5.0}, {"aid": "a2", "type": "walkTo", "sentS": 26.0}]}},
+            fh)
+    with open(os.path.join(root, "decision.log"), "w", encoding="utf-8") as fh:
+        for h, wall in ((10.0, CLIP_T0_MS / 1000.0 + 9.0), (10.1, CLIP_T0_MS / 1000.0 + 15.0),
+                        (10.2, CLIP_T0_MS / 1000.0 + 25.0)):
+            fh.write(json.dumps(dict(_line(h, threat={"flee": "many"}), wall=wall)) + "\n")
+    sd = os.path.join(root, "clients", "admin", "Lua", "pzagent", "admin")
+    os.makedirs(sd)
+    frames = ((-3.0, 100.0, ""), (10.0, 80.0, "Bite"), (19.5, 70.0, ""), (20.5, 60.0, "Bite"), (22.0, 5.0, ""))
+    with open(os.path.join(sd, "state.log"), "w", encoding="utf-8") as fh:
+        for seq, (t, health, reaction) in enumerate(frames, 1):
+            fh.write(pza1.encode("frame", {"seq": seq, "tick": seq, "wallMs": CLIP_T0_MS + t * 1000.0, "gameMin": 600,
+                                           "worldAge": 1.0, "me": {"x": 1.5, "y": 2.5, "z": 0, "hour": 10.0,
+                                                                   "hitReaction": reaction},
+                                           "body": {"health": health, "parts": []}}) + "\n")
+        fh.write(pza1.encode("event", {"seq": 9, "tick": 9, "wallMs": CLIP_T0_MS + 21000.0, "event": "zombie_dead",
+                                       "id": 7}) + "\n")
+    return root
+
+
+def test_the_scorecard_clips_every_reading_at_the_loops_stop(tmp_path):
+    """The rule (round one's trial 8: a bite at 301.71 s credited to a loop that stopped at 300.84 s; trial 7's end
+    health read after the stop): the bite at 20.5 s after the stop at 20.0 s is no hit (1 reaction run, not 2), the
+    `zombie_dead` event at 21 s no kill, the end health the frame at 19.5 s (70, not the 22 s frame's 5), the 25 s
+    decision line and the 26 s action dropped, the minutes held to the stop's game minute (603 - 600, not the loop's
+    605 - 600), and the `clock` note counts what it dropped: two frames and three state lines (the event with them),
+    one decision line, one action. The frame 3 s before the loop is kept, as before."""
+    s = TS.score(_write_clip_run(str(tmp_path / "x_trial-20261106-101010")))
+    assert s["hits"]["runs"] == 1 and s["kills_events"] == 0
+    assert s["health"] == 70.0 and s["frames"] == 3 and s["decision_lines"] == 2
+    assert s["minutes"] == 3
+    c = s["clock"]
+    assert (c["frames"], c["lines"], c["decisions"], c["actions"]) == (2, 3, 1, 1)
+    assert (c["start_ms"], c["stop_ms"], c["stop_s"]) == (CLIP_T0_MS, CLIP_T0_MS + 20000.0, 20.0)
+    assert (c["first_frame_s"], c["last_frame_s"]) == (-3.0, 19.5)
+    assert s["flee"]["seconds"] == pytest.approx(6.0)             # the 9 s line to the 15 s line; the 15 s line is last
+
+
+def test_a_record_without_a_stop_wall_is_read_whole(tmp_path):
+    """No `stop.wallS` (a crashed or an old record): nothing is clipped, the unclipped bite, event, frame and line
+    count as before, and the clock note says so."""
+    s = TS.score(_write_clip_run(str(tmp_path / "x_trial-20261106-101010"), stop=False))
+    assert s["hits"]["runs"] == 2 and s["kills_events"] == 1
+    assert s["health"] == 5.0 and s["frames"] == 5 and s["decision_lines"] == 3 and s["minutes"] == 5
+    assert s["clock"]["stop_ms"] is None and (s["clock"]["frames"], s["clock"]["lines"]) == (0, 0)
+    assert "nothing clipped" in TS.clock_line(s["clock"])
+
+
+def test_the_dry_run_prints_the_clock_note_naming_the_base_of_the_seconds(tmp_path, capsys):
+    """`--dry` prints the `clock` line: the loop's start and stop, the frames' loop seconds (the first one 3.00 s before
+    the loop: the base the state log's seconds sit on) and the counts dropped."""
+    run = _write_clip_run(str(tmp_path / "x_trial-20261106-101010"))
+    assert TS.main([run, "--dry", "--log", str(tmp_path / "none.md")]) == 0
+    out = capsys.readouterr().out
+    clock = next(ln for ln in out.splitlines() if ln.strip().startswith("clock:"))
+    assert "loop.startPyMs 36000000 (epoch ms), the stop at 20.00 s (36020000)" in clock
+    assert "run -3.00 to 19.50 s" in clock and "first frame sits 3.00 s before the loop" in clock
+    assert "clipped at the stop: 3 state lines (2 frames), 1 decision lines, 1 actions" in clock
+    assert "loop clock's zero" in TS.__doc__

@@ -35,6 +35,18 @@ the reflex's `hit` steps), `grades.e21.e_goal_wait` (`unmoved_near_s`, the stand
 `flee_minutes` (with the frame-based `away_minutes` beside it in its cell, and the ladder's `leg_minutes` in its
 detail), `toward_minutes`, `dressed` and `melees_superseded`, each documented with its rule.
 
+The loop's stop (round two's first fix, Plan 31 Task 14): every reading clips at the record's `stop`: the loop ended at
+`stop.wallS` seconds after `loop.startPyMs` (the loop clock's zero, epoch ms on the frames' clock), so a state line
+whose `wallMs`, a decision line whose `wall` and an action whose `sentS` stands after `startPyMs + stop.wallS x 1000`
+are dropped before any reading (the kills, hits, dressing, melee, fleeing and toward counts, and the end health, which
+is the last frame at or before the stop); the record's `loop.game_min` (read after the stop) is held to `stop.gameMin`.
+A record without a `startPyMs` or a `stop.wallS` (an old or crashed run) is read whole. The base of the row's seconds:
+a reading in seconds off the state log (a frame's `wallMs` less the first frame's) stands on a base 3 to 4.6 s later
+than the loop clock, since the state log's first frame is written before the loop starts (-4.58 s on trial 8's
+record); the decision log's `wall` less `startPyMs` is on the loop clock. The detail's `clock` line prints the loop's
+start and stop on the frames' clock, the first and last frame's loop second, and the lines dropped; nothing before
+the loop's start is dropped.
+
 The clocks: a decision line's game minute is its `inputs.hour` x 60 (a float; the line's `gameMin` is whole minutes,
 too coarse for a 2 Hz line), a frame's its `me.hour` x 60, each unwrapped past midnight; a line stands from its own
 wall to the next line's (the log's last line stands for nothing). Stdlib plus the agent base; read-only over the run.
@@ -193,6 +205,59 @@ def log_minutes(rows):
     """The decision log's game minutes, from its first line to its last (0.0 under two lines)."""
     gm = [m for m in line_minutes(rows) if m is not None]
     return gm[-1] - gm[0] if len(gm) > 1 else 0.0
+
+
+# ---------------------------------------------------------------- the loop's stop
+def stop_ms(out):
+    """The loop's stop on the frames' clock (epoch ms): `loop.startPyMs` (the loop clock's zero; else `t_loop0_ms`) plus
+    `stop.wallS` x 1000; None without either (an old or crashed record, read whole)."""
+    out = E._d(out)
+    t0 = E._n(E._d(out.get("loop")).get("startPyMs"))
+    t0 = t0 if t0 is not None else E._n(E._d(out.get("loop")).get("t_loop0_ms"))
+    w = E._n(E._d(out.get("stop")).get("wallS"))
+    return t0 + w * 1000.0 if t0 is not None and w is not None else None
+
+
+def clip(r):
+    """(run, clock): the run `r` (`load_run`) with every source cut at the loop's stop (`stop_ms`), and the `clock` note:
+    {start_ms, stop_ms, stop_s, first_frame_s, last_frame_s, frames, lines, decisions, actions} (the last four the
+    counts dropped, `lines` the state lines of every kind, `frames` among them). A state line is kept when its `wallMs`
+    is at or before the stop (a line with none is kept), a decision line when its `wall` is at or before it, a
+    `loop.actions` row when its `sentS` is at or before `stop.wallS` and a `loop.fights` row when its `startS` is; the
+    record's `loop.game_min` is held to `stop.gameMin`. Nothing is dropped without a stop (the `clock` is then the
+    unclipped counts' and `stop_ms` None). The frames' loop seconds are `wallMs` less the start: the state log's first
+    frame is negative, written before the loop started."""
+    out, rows, lines = r["out"], r["rows"], r["lines"]
+    t0 = E._n(E._d(out.get("loop")).get("startPyMs"))
+    t0 = t0 if t0 is not None else E._n(E._d(out.get("loop")).get("t_loop0_ms"))
+    cut = stop_ms(out)
+    stop_s = E._n(E._d(out.get("stop")).get("wallS"))
+
+    def at(w):
+        return cut is None or w is None or w <= cut
+
+    kept = [ln for ln in lines if at(E._n(E._d(ln).get("wallMs")))]
+    drows = [d for d in rows if cut is None or E._n(d.get("wall")) is None or E._n(d.get("wall")) * 1000.0 <= cut]
+    loop = dict(E._d(out.get("loop")))
+    acts = E._l(loop.get("actions"))
+    fights = E._l(loop.get("fights"))
+    if cut is not None:
+        loop["actions"] = [a for a in acts if E._n(E._d(a).get("sentS")) is None or E._n(E._d(a).get("sentS")) <= stop_s]
+        if "fights" in loop:
+            loop["fights"] = [f for f in fights if E._n(E._d(f).get("startS")) is None
+                              or E._n(E._d(f).get("startS")) <= stop_s]
+        g1, gs = E._n(loop.get("game_min")), E._n(E._d(out.get("stop")).get("gameMin"))
+        if g1 is not None and gs is not None and gs < g1:
+            loop["game_min"] = gs
+    out = dict(out, loop=loop) if "loop" in out or cut is not None else out
+    frames = [ln for ln in kept if E._d(ln).get("kind") == "frame" and E._n(ln.get("wallMs")) is not None]
+    secs = [(E._n(f.get("wallMs")) - t0) / 1000.0 for f in frames] if t0 is not None else []
+    clock = {"start_ms": t0, "stop_ms": cut, "stop_s": stop_s if cut is not None else None,
+             "first_frame_s": min(secs) if secs else None, "last_frame_s": max(secs) if secs else None,
+             "frames": sum(1 for ln in lines if E._d(ln).get("kind") == "frame") - len(frames),
+             "lines": len(lines) - len(kept), "decisions": len(rows) - len(drows),
+             "actions": len(acts) - len(E._l(loop.get("actions")))}
+    return dict(r, out=out, rows=drows, lines=kept), clock
 
 
 # ---------------------------------------------------------------- the four new readings
@@ -500,9 +565,18 @@ def end_cell(out):
     return "end"
 
 
-def score(run):
-    """The trial's score: the run's sources (`load_run`) read by the imported readers and the four new readings."""
+def _no_stop(out):
+    """The record without its `stop.wallS` (so `clip` reads the run whole): a test's reading of an artifact whose
+    by-hand values were taken over the whole log."""
+    return dict(out, stop={k: v for k, v in E._d(out.get("stop")).items() if k != "wallS"})
+
+
+def score(run, clipped=True):
+    """The trial's score: the run's sources (`load_run`), clipped at the loop's stop (`clip`; `clipped` False reads the
+    run whole, as a test's by-hand values over an artifact's whole log are), read by the imported readers and the four
+    new readings."""
     r = load_run(run) if isinstance(run, str) else run
+    r, clock = clip(r if clipped else dict(r, out=_no_stop(r["out"])))
     out, rows, lines = r["out"], r["rows"], r["lines"]
     L = E._Lines(out, rows, lines)
     frames = L.index[1]
@@ -518,7 +592,7 @@ def score(run):
             "labels": label_histogram(rows), "toward": toward_minutes(L), "dressed": dressed(frames),
             "melees": melees_superseded(out, lines), "goal_wait": G21.e_goal_wait(L if rows else None),
             "standing": G21.e_standing(L if rows else None), "end": end_cell(out), "health": health,
-            "decision_lines": len(rows), "frames": len(frames)}
+            "decision_lines": len(rows), "frames": len(frames), "clock": clock}
 
 
 def _num(v, f="%.1f"):
@@ -574,6 +648,23 @@ def cells(s, seen=""):
             _num(s["health"]), seen or ""]
 
 
+def clock_line(c):
+    """The `clock` note: the base of the row's seconds and what the clip at the stop dropped."""
+    def sec(v):
+        return DASH if v is None else "%.2f" % v
+
+    if c["stop_ms"] is None:
+        return "clock: no loop start or stop on the record, read whole (a frame's loop second needs startPyMs); " \
+               "nothing clipped"
+    return ("clock: loop second 0 is loop.startPyMs %.0f (epoch ms), the stop at %s s (%.0f); the state log's frames "
+            "run %s to %s s on that clock (its first frame sits %s s before the loop: a reading in seconds off the "
+            "state log's first frame is that much later than the loop's); clipped at the stop: %d state lines "
+            "(%d frames), %d decision lines, %d actions" % (
+                c["start_ms"], sec(c["stop_s"]), c["stop_ms"], sec(c["first_frame_s"]), sec(c["last_frame_s"]),
+                sec(-c["first_frame_s"] if c["first_frame_s"] is not None else None), c["lines"], c["frames"],
+                c["decisions"], c["actions"]))
+
+
 def detail(s):
     """One line per reading with its count and its denominator."""
     hu, fl, tw, dr, ml = s["hits"], s["flee"], s["toward"], s["dressed"], s["melees"]
@@ -602,7 +693,7 @@ def detail(s):
         "goal wait: %s s standing near a zombie on a model wait (e21.e_goal_wait unmoved_near_s)" % (
             gw.get("unmoved_near_s"),),
         "standing: %s stretches, %s s (e21.e_standing)" % (sd.get("stretches"), sd.get("seconds")),
-    ]
+    ] + ([clock_line(s["clock"])] if s.get("clock") else [])
 
 
 # ---------------------------------------------------------------- the log
