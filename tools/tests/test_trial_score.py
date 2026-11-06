@@ -359,8 +359,10 @@ def _write_run(root, health=90.0, trial=True, kill=False):
 
 @pytest.fixture
 def log(tmp_path):
+    """The real log's header through its separator, without the trials' rows: the rows grow with every trial
+    run, and these tests read only their own."""
     p = str(tmp_path / "trials.md")
-    shutil.copyfile(TRIALS, p)
+    TS.write_log(p, TS.read_log(TRIALS)[0], [])
     return p
 
 
@@ -383,7 +385,7 @@ def test_dry_writes_nothing_and_a_run_appends_then_replaces_its_own_row_keeping_
     assert TS.main([run, "--log", log]) == 0                       # rescored with no --seen: kept, not duplicated
     _, rows = TS.read_log(log)
     assert len(rows) == 1 and TS.parse_row(rows[0])[-1] == "saw one / saw two / saw | three"
-    assert open(log, encoding="utf-8").read().startswith(open(TRIALS, encoding="utf-8").read().rstrip("\n"))
+    assert open(log, encoding="utf-8").read().startswith("\n".join(TS.read_log(TRIALS)[0]))
 
 
 def test_rescore_all_rebuilds_each_row_keeping_seen_keeps_a_gone_folders_row_and_appends_a_new_one(tmp_path, log):
