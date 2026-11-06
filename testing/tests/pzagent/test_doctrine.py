@@ -533,6 +533,106 @@ def test_a_fight_fails_dud_when_the_meet_ends_lost_no_progress(tmp_path):
     assert 1 in d.mem.skip and ("fight", K.P_FIGHT, "failed", "dud") in d.arbiter.ends
 
 
+def other_end(r, zid, d):
+    """The melee's end on another standing zombie near, in this tree's API: PZA/1.9's `failed crowd` {id, d},
+    PZA/1.10's `done handback` {id, d}."""
+    if I.MEET:
+        r.fake.answer({"melee": ["accepted", {"state": "done", "result": {"end": "handback", "why": "crowd",
+                                                                         "id": zid, "d": d}}]})
+    else:
+        r.fake.answer({"melee": ["accepted", {"state": "failed", "reason": "crowd", "result": {"id": zid, "d": d}}]})
+    r.pump()
+
+
+def unreached_end(r):
+    """The melee's end on a fallen target its walk did not reach: PZA/1.9's `failed out of reach`, PZA/1.10's `done
+    lost` why out of reach."""
+    if I.MEET:
+        r.fake.answer({"melee": ["accepted", {"state": "done", "result": {"end": "lost", "why": "out of reach"}}]})
+    else:
+        r.fake.answer({"melee": ["accepted", {"state": "failed", "reason": "out of reach"}]})
+    r.pump()
+
+
+def test_a_fight_repins_to_the_zombie_its_melee_hands_back(tmp_path):
+    r, sv = rig(tmp_path)
+    zs = [zombie(1, 102.2, 200.0), zombie(2, 100.5, 200.0)]
+    r.frame(zombies=zs[:1])
+    tick(r, sv)
+    other_end(r, 2, 0.5)
+    r.frame(zombies=zs)
+    a = tick(r, sv)
+    fight = doctrine_of(sv).arbiter.current
+    assert fight.kind == "fight" and fight.pin == 2 and 2 in fight.ids
+    assert (a.type, a.args["targetId"]) == ("melee", 2)
+
+
+def test_a_fight_leaves_a_fallen_target_its_melee_could_not_reach(tmp_path):
+    r, sv = rig(tmp_path)
+    z = dict(idle(1, 102.0, 200.0), onFloor=True)
+    r.frame(zombies=[z])
+    a = tick(r, sv)
+    assert (a.type, a.args["mode"]) == ("melee", "finish")
+    unreached_end(r)
+    r.frame(zombies=[z])
+    tick(r, sv)
+    d = doctrine_of(sv)
+    assert 1 in d.mem.skip and doc(tmp_path)["intent"] == "order"
+
+
+def test_a_strike_that_kills_ends_done_kill(tmp_path):
+    r, sv = rig(tmp_path)
+    zs = [idle(1, 101.3, 200.0)]
+    r.frame(zombies=zs)
+    tick(r, sv)
+    r.fake.answer({"melee": ["accepted", {"state": "done", "result": {"end": KILL_END, "kill": True, "swings": 1,
+                                                                     "hp0": 0.2, "hp1": 0.0}}]})
+    r.pump()
+    r.frame(zombies=zs)
+    tick(r, sv)
+    assert ("strike", K.P_STRIKE, "done", "kill") in doctrine_of(sv).arbiter.ends and r.world.kills == 1
+
+
+class StubMelee:
+    """A melee whose press leaf the test sets (the meet's `Melee.press`), API-free."""
+    name = "melee"
+
+    def __init__(self, target):
+        self.target, self.press = target, None
+
+    def observe(self):
+        pass
+
+    def take_kills(self):
+        return []
+
+    def take_span(self):
+        return None
+
+    def over(self):
+        return None
+
+    def log(self):
+        return {"maneuver": "melee"}
+
+
+def test_a_strike_ends_done_on_the_meet_s_first_new_press_leaf_never_a_handed_over_one(tmp_path):
+    r, sv = rig(tmp_path)
+    r.frame(zombies=[idle(1, 101.3, 200.0)])
+    tick(r, sv)
+    d = doctrine_of(sv)
+    prev = INTENTS["strike"](d, Want(K.P_STRIKE, "strike", 1, {}, (1,)))
+    prev.m = StubMelee(1)
+    prev.m.press = {"d_press": 1.3}
+    s = INTENTS["strike"](d, Want(K.P_STRIKE, "strike", 1, {}, (1,)), prev)
+    assert s.m is not None and s.press_seen is s.m.press
+    s.observe()
+    assert s.end is None   # the earlier press was the last intent's
+    s.m.press = {"d_press": 1.2}
+    s.observe()
+    assert s.end == ("done", "press")
+
+
 def test_a_fight_is_not_preempted_by_the_strike_at_its_own_zombie(tmp_path):
     r, sv = rig(tmp_path)
     r.frame(zombies=[zombie(1, 102.2, 200.0)])
