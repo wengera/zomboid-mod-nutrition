@@ -28,7 +28,7 @@ ARGS = {"targetId": 7, "mode": "strike", "reach": 1.25, "shoveR": P.SHOVE_SEND_R
         "pressAngle": P.PRESS_ANGLE, "pressLo": P.PRESS_LO, "floorR": P.FLOOR_R, "handbackR": P.HANDBACK_R,
         "stall": P.STALL_SWINGS}
 PRESSES = ("swing", "shove", "stomp", "floor")
-LEAF = {"d_press", "d_collide_pred", "look_off", "hp0", "hp1", "knock", "cut_by"}
+LEAF = {"d_press", "d_collide_pred", "d_min", "look_off", "hp0", "hp1", "knock", "cut_by"}   # fix 1: d_min
 COUNTS = {"swings", "shoves", "stomps", "floors", "knockdowns", "hits"}
 R2 = 1 / math.sqrt(2)
 SCHEMA = os.path.join(ROOT, "testing", "agent", "base", "schema", "pza1.json")
@@ -359,21 +359,43 @@ def test_no_press_while_the_look_is_off_and_the_press_once_it_comes_within_press
 
 @pytest.mark.parametrize("cs", [1.0, 1.6])
 def test_the_swing_is_pressed_at_the_predicted_collision_band_not_at_the_raw_distance(lua, fs, cs):
-    """A chaser closing at 1.6 tiles a second from 2.5 tiles: the press goes once d - v * (one update + 0.25 /
-    CombatSpeed) reads inside the reach 1.25 (#4665, #4668), so at a raw distance beyond the reach, and the zombie
-    stands inside the reach at the collision 25 % into the clip."""
+    """A chaser closing at 1.6 tiles a second from 2.5 tiles, the melee's reach 0.8 (under the engine's 1.25): the
+    press goes once d - v * (one update + 0.25 / CombatSpeed) reads inside the reach (#4665, #4668), so at a raw
+    distance beyond it (and inside the engine's reach, fix 1), and the zombie stands inside it at the collision 25 %
+    into the clip."""
     p, z, w = world(lua, zx=12.5, zspeed=1.6, combat_speed=cs, attack_ticks=80)
-    go(lua, p)
+    go(lua, p, reach=0.8)
     run(lua, p, w, 200, stop=lambda: w["presses"])
     tc = UPDATE_S + 0.25 / cs
     dp = w["presses"][0]["d"]
-    assert 1.25 < dp <= 1.25 + 1.6 * tc + 1.6 * UPDATE_S
+    assert 0.8 < dp <= 0.8 + 1.6 * tc + 1.6 * UPDATE_S and dp <= 1.25
     run(lua, p, w, math.ceil(tc / UPDATE_S))
-    assert zdist(w) <= 1.25                                           # the collision inside the reach
+    assert zdist(w) <= 0.8                                            # the collision inside the reach
     run(lua, p, w, 120, stop=lambda: leaves(lua, fs))
     leaf = leaves(lua, fs)[0]
-    assert leaf["d_press"] == pytest.approx(dp) and leaf["d_collide_pred"] <= 1.25
+    assert leaf["d_press"] == pytest.approx(dp) and leaf["d_collide_pred"] <= 0.8
     assert leaf["d_collide_pred"] == pytest.approx(dp - 1.6 * tc, abs=1e-6)
+
+
+@pytest.mark.parametrize("state, raw", [("walktoward", 1.25), ("lunge-network", 1.45)])
+def test_no_press_beyond_the_engine_s_raw_reach_whatever_the_prediction(lua, fs, state, raw):
+    """Fix 1 (review-t2 F1): the press builds its own hit list (#4591), and an empty one makes the two-hander's attack
+    a MISS that returns before the critical roll, so a chaser at 2.5 tiles a second whose predicted collision reads
+    inside the reach 1.25 at a raw 1.9 tiles is not pressed at; the press goes once the raw distance is within the
+    engine's reach, the unmargined MaxRange x RangeMod 1.25 (+0.2 against a lunging zombie, #4681)."""
+    p, z, w = world(lua, zx=12.6, zspeed=2.5, attack_ticks=80)
+    z.getRealState = lambda s: state
+    go(lua, p)
+    seen = []
+    for _ in range(200):
+        run(lua, p, w)
+        if not w["presses"]:
+            seen.append(zdist(w))
+        else:
+            break
+    assert any(d < 1.95 and d - 2.5 * (UPDATE_S + 0.25) <= 1.25 for d in seen)   # predicted in, raw out: no press
+    dp = w["presses"][0]["d"]
+    assert raw - 2.5 * UPDATE_S < dp <= raw
 
 
 def test_a_chaser_that_is_not_closing_is_pressed_at_the_raw_distance(lua, fs):
@@ -455,11 +477,11 @@ def test_the_f15_probe_a_chaser_from_three_tiles_takes_swings_at_the_band_and_no
     to 0.98 reading the zombie 0.31 to 0.55 at the collision): from 3 tiles every press is a swing pressed beyond the
     reach whose predicted collision lies inside it; no shove (the zombie never closes inside MinRange before a press),
     no back step."""
-    p, z, w = world(lua, zx=13.0, zspeed=1.6, attack_ticks=60)
+    p, z, w = world(lua, zx=13.0, zspeed=1.6, attack_ticks=60)   # the press within the engine's reach (fix 1)
     go(lua, p, releaseR=4.0)
     run(lua, p, w, 400, stop=lambda: len(w["presses"]) >= 1 and not w["attack"])
     assert w["presses"] and all(not x["shove"] for x in w["presses"])
-    assert w["presses"][0]["d"] > 1.25 and "back" not in step_seq(lua, fs)
+    assert BAT_MIN_R < w["presses"][0]["d"] <= 1.25 and "back" not in step_seq(lua, fs)   # fix 1: within the reach
 
 
 # ---- the shove only inside MinRange -------------------------------------------------------------------------------
@@ -499,7 +521,7 @@ def test_the_finish_faces_the_head_and_takes_the_floor_swing_within_floor_r(lua,
     p, z, w = world(lua, zx=11.0)
     with_head(lua, z)
     w["floor"] = True
-    go(lua, p, mode="finish", floorSwing=True)
+    go(lua, p, mode="finish", floorSwing=True, headAim=True)
     run(lua, p, w)
     assert p.faced[-1] == pytest.approx((10.5, 20.0)) and p.aim["force"] is False
     assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is False and cur_step(lua) == "floor"
@@ -511,7 +533,7 @@ def test_a_head_beyond_floor_r_is_walked_to_and_floor_swung_at_from_floor_r(lua,
     p, z, w = world(lua, zx=11.0, zangle=math.pi)
     with_head(lua, z)
     w["floor"] = True
-    go(lua, p, mode="finish", floorSwing=True)
+    go(lua, p, mode="finish", floorSwing=True, headAim=True)
     run(lua, p, w)
     assert w["presses"] == [] and cur_step(lua) == "stomp_walk" and p.faced[-1] == pytest.approx((11.5, 20.0))
     run(lua, p, w, 60, stop=lambda: w["presses"])
@@ -522,7 +544,7 @@ def test_without_the_floor_swing_the_stomp_goes_within_0_3_of_the_head(lua, fs):
     p, z, w = world(lua, zx=10.9)                                     # the head at (10.4, 20), 0.4 off
     with_head(lua, z)
     w["floor"] = True
-    go(lua, p, mode="finish")
+    go(lua, p, mode="finish", headAim=True)
     run(lua, p, w)
     assert w["presses"] == [] and cur_step(lua) == "stomp_walk"
     run(lua, p, w, 30, stop=lambda: w["presses"])
@@ -631,13 +653,14 @@ def test_the_spent_finish_stomps_and_never_floor_swings(lua, fs):
 
 # ---- the press leaf ------------------------------------------------------------------------------------------------
 
-def test_each_press_s_result_carries_the_press_leaf_s_seven_keys(lua, fs):
+def test_each_press_s_result_carries_the_press_leaf_s_keys(lua, fs):
     p, z, w = world(lua, zx=11.0, attack_ticks=8)
     go(lua, p)
     run(lua, p, w, 30, stop=lambda: leaves(lua, fs))
     leaf = leaves(lua, fs)[0]
     assert set(leaf) == LEAF
     assert (leaf["d_press"], leaf["hp0"], leaf["hp1"], leaf["knock"], leaf["cut_by"]) == (1.0, 1.0, 1.0, False, "")
+    assert leaf["d_min"] == 1.0                                       # a standing target: its position (fix 1, F5)
     assert leaf["d_collide_pred"] == pytest.approx(1.0) and leaf["look_off"] == pytest.approx(0.0, abs=1e-9)
     pr = [a for a in progress(lua, fs) if "press" in a["result"]]
     assert len(pr) == 1 and set(pr[0]["result"]) == {"step", "d", "hp", "spent", "press"} | COUNTS
@@ -848,8 +871,9 @@ def test_the_reflex_s_no_press_tick_costs(lua, fs, case):
     no frame, outside the counted tick): face (a closing chaser inside faceR beyond the reach, the look off) 11, the
     dead check (2), isDead, the two positions (4), the hit read, isOnFloor, the facing and the look; with the look on
     the prediction adds getCombatSpeed (12); the stand beyond faceR 10 (no look: the stance's facing is the mouse's;
-    isKnockedDown is read only within the reach or shoveR); a press in flight 9 (isAttackStarted); the knock wait 11
-    (isKnockedDown); a hit reaction 9 (its step change's progress line reads the target's health)."""
+    isKnockedDown is read only within the reach or shoveR); a press in flight 10 (isAttackStarted and, fix 1, F2, the
+    facing); the knock wait 11 (isKnockedDown); a hit reaction 10 (the facing, and its step change's progress line
+    reads the target's health)."""
     kw = {"face": {"zx": 12.3, "zspeed": 0.3, "look": math.pi, "turn": 0.0},
           "face_on": {"zx": 12.3, "zspeed": 0.3},
           "stand": {"zx": 13.4, "zspeed": 0.3},
@@ -864,7 +888,7 @@ def test_the_reflex_s_no_press_tick_costs(lua, fs, case):
     setup = (lambda: p.combat.__setitem__("hitReaction", "Bite")) if case == "hit" else None
     log, made = counted(lua, p, z, w, before, setup)
     assert cur_step(lua) == {"face_on": "face", "swing_running": "swing"}.get(case, case)
-    want = {"face": 11, "face_on": 12, "stand": 10, "swing_running": 9, "knock_wait": 11, "hit": 9}[case]
+    want = {"face": 11, "face_on": 12, "stand": 10, "swing_running": 10, "knock_wait": 11, "hit": 10}[case]
     assert len(log) == want and made == [], sorted(log)
     if case == "face":
         assert sorted(log) == sorted(FACE_TICK)
@@ -1022,3 +1046,99 @@ def test_a_target_member_raising_never_propagates_and_releases_the_stance(lua, f
     if want[0] == "failed":
         assert lua.eval("PZA.skills.errors") >= 1
     assert_released(lua, p)
+
+
+# ---- fix 1 (review-t2): the facing through the swing, the refused press, the aim at the position, d_min, the walk ----
+
+def test_the_facing_is_written_every_tick_of_a_swing_in_flight_and_of_the_hit_step(lua, fs):
+    """F2: the collision's dot (#4681) and the bite's facing skip (#4688) read the look, which turns toward the last
+    facing written (#4689): a zombie moving sideways during the swing is faced on every tick of it, and on the hit
+    step."""
+    p, z, w = world(lua, zx=11.0, attack_ticks=40)
+    go(lua, p)
+    run(lua, p, w)
+    assert cur_step(lua) == "swing"
+    n0 = len(p.faced)
+    for k in range(20):
+        w["zy"] += 0.02
+        run(lua, p, w)
+        assert cur_step(lua) == "swing" and len(p.faced) == n0 + k + 1 and p.faced[-1] is z, k
+    assert w["face_to"] == pytest.approx(math.atan2(w["zy"] - 20.0, 1.0), abs=0.05)
+    p.combat["hitReaction"] = "Bite"
+    n1 = len(p.faced)
+    run(lua, p, w, 3)
+    assert cur_step(lua) == "hit" and len(p.faced) == n1 + 3
+
+
+def test_a_refused_press_is_read_on_the_next_tick_and_pressed_again(lua, fs):
+    """F3: pressedAttack sets attackStarted at the press, so a press reading isAttackStarted false on the next tick was
+    refused: its leaf is cut_by refused on that tick, it counts in no stall, and the press goes again at once, never
+    waited out for K.SWING_MS."""
+    p, z, w = world(lua, zx=11.0, attack_ticks=0)                     # the fake's attack never starts: refused
+    go(lua, p)
+    run(lua, p, w, 6)
+    assert [x["tick"] for x in w["presses"]] == [1, 2, 3, 4, 5, 6] and not ended(lua)
+    run(lua, p, w)
+    assert all(x["cut_by"] == "refused" for x in leaves(lua, fs)) and len(leaves(lua, fs)) >= 5
+    w["attack_ticks"] = 8                                             # accepted from now on
+    n = len(w["presses"])
+    run(lua, p, w, 5)
+    assert len(w["presses"]) == n + 1 and cur_step(lua) == "swing"
+
+
+def test_an_accepted_press_is_never_read_refused(lua, fs):
+    """F3's falsifier: a press the engine started holds its step to its end."""
+    p, z, w = world(lua, zx=11.0, attack_ticks=8)
+    go(lua, p)
+    run(lua, p, w, 5)
+    assert len(w["presses"]) == 1 and cur_step(lua) == "swing"
+
+
+@pytest.mark.parametrize("head_aim", [False, True])
+def test_the_finish_aims_at_the_head_only_with_head_aim(lua, fs, head_aim):
+    """F4, the controller's ruling: without headAim (the default until the lying direction is calibrated) the finish
+    faces the zombie's position (faceThisObject) and measures the floor swing's floorR and the stomp's 0.3 to it; with
+    it, the head estimate (faceLocationF at (10.5, 20)). A zombie on its back at 1.2 tiles (its head estimate at 0.7)
+    is floor-swung at only with headAim; without it the walk goes toward the zombie."""
+    p, z, w = world(lua, zx=11.2)
+    with_head(lua, z)
+    w["floor"] = True
+    go(lua, p, mode="finish", floorSwing=True, headAim=head_aim)
+    run(lua, p, w)
+    if head_aim:
+        assert p.faced[-1] == pytest.approx((10.7, 20.0)) and len(w["presses"]) == 1
+    else:
+        assert p.faced[-1] is z and w["presses"] == [] and cur_step(lua) == "stomp_walk"
+        run(lua, p, w, 30, stop=lambda: w["presses"])
+        assert w["presses"] and w["presses"][0]["d"] <= P.FLOOR_R
+
+
+@pytest.mark.parametrize("head_aim, want", [(True, 0.5), (False, 1.0)])
+def test_the_floor_press_s_d_min_is_the_nearer_of_the_head_and_the_position(lua, fs, head_aim, want):
+    """F5: the leaf's d_min, the distance the shove test reads, is the nearest of the target's readable points: for a
+    fallen one with headAim the nearer of the head estimate (0.5) and its position (1.0); without headAim its
+    position."""
+    p, z, w = world(lua, zx=11.0, attack_ticks=6)
+    with_head(lua, z)
+    w["floor"] = True
+    go(lua, p, mode="finish", floorSwing=True, headAim=head_aim)
+    run(lua, p, w, 20, stop=lambda: leaves(lua, fs))
+    assert leaves(lua, fs)[0]["d_min"] == pytest.approx(want)
+
+
+def test_a_flickering_closing_read_cannot_run_the_melee_forever(lua, fs):
+    """F6: one walk bound a melee, the walking ticks of every walking step summed: a target at 1.6 tiles whose closing
+    read flickers about K.MELEE_CLOSING_V (it steps 0.012 tiles toward and away each tick) alternates the walk and the
+    face; the player's walk never moves it, so the melee ends lost (out of reach) once the walking ticks reach
+    K.STOMP_APPROACH_MS, both steps having run."""
+    p, z, w = world(lua, zx=11.6, zspeed=0.0)
+    p.setAutoWalkDirection = lambda s, v: p.sets.append(("setAutoWalkDirection", v))   # the walk never moves
+    go(lua, p)
+    for k in range(1200):
+        w["zx"] += 0.012 if k % 2 else -0.012
+        run(lua, p, w)
+        if ended(lua):
+            break
+    r = last(lua, fs)["result"]
+    assert (r["end"], r["why"]) == ("lost", "out of reach")
+    assert {"close", "face"} <= set(step_seq(lua, fs))

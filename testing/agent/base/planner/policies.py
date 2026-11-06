@@ -344,7 +344,8 @@ FACE_R = 3.0              # tiles: the melee's `faceR`, inside which the stance 
                           # tick until the press: the body turns toward a written facing at about 206 degrees a second
                           # walking and an idle turn's clip runs about 0.83 s for 90 degrees (#4689 and the review's
                           # arithmetic), while a chaser closes at about 1.6 tiles a second (the spec's section 1), so 3
-                          # tiles leave the turn about a second and a half before the reach; the spec's number
+                          # tiles leave the turn (3.0 - 1.125) / 1.6 = 1.17 s before the bat's margined reach of 1.125
+                          # (fix 1, review-t2 F8); the spec's number
 PRESS_ANGLE = 41.40962210927086   # degrees: the melee's `pressAngle`, the most the look may lie off the bearing at a
                           # press: acos(0.75), the bat's MinAngle 0.75 (weapon.txt:6701), the dot band the hit list
                           # holds a target in at the press (#4591: an empty list makes the attack a MISS) and at the
@@ -355,6 +356,12 @@ PRESS_LO = 0.0            # tiles: the melee's `pressLo`, the least predicted di
                           # Lua's own test
 FLOOR_R = 1.0             # tiles: the melee's `floorR`, the floor swing's distance to a fallen target's head: the floor
                           # attack's line reaches WeaponLength + 0.5 (#4679), the bat's WeaponLength 0.5 (weapon.txt:6716)
+HEAD_AIM = False          # the melee's `headAim` (fix 1, review-t2 F4, the controller's ruling): the finish aimed at
+                          # the fallen zombie's head estimate (the frame's headX and headY; the floor line tests the
+                          # head bone first, x3, #4679) only once its lying direction is calibrated, on the first arena
+                          # trial's shots of a finish (the frame's headX and headY against the body on the shot, the
+                          # trial's --seen lines): no row supports the direction, and a reversed estimate aims the line
+                          # at the calves and feet (x0.05, #4679), worse than the zombie's position (the spine, x1)
 HANDBACK_R = 2.0          # tiles: the melee's `handbackR`, inside which another standing zombie ends a finish handback
                           # and beyond which none breaks it (F15's two knock-downs were lost to `pair` flees from zombies
                           # beyond it, the spec's section 1); the spec's number

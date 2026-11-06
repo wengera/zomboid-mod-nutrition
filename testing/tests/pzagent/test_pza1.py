@@ -963,10 +963,11 @@ def test_the_melee_s_pza1_10_args_and_result():
     why, spent and the press leaf of seven keys, in result_melee and the step result."""
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
     assert tuple(pza1.ACTION_ARGS["melee"]) == ("targetId", "mode", "reach", "shoveR", "releaseR", "faceR",
-                                                 "pressAngle", "pressLo", "floorR", "handbackR", "stall", "floorSwing")
+                                                 "pressAngle", "pressLo", "floorR", "handbackR", "stall", "floorSwing",
+                                                 "headAim")
     assert pza1.ACTION_ARGS["melee"]["stall"] == "int"
     assert d["args_melee"]["additionalProperties"] is False
-    leaf = {"d_press", "d_collide_pred", "look_off", "hp0", "hp1", "knock", "cut_by"}
+    leaf = {"d_press", "d_collide_pred", "d_min", "look_off", "hp0", "hp1", "knock", "cut_by"}
     for k in ("result_melee", "result_melee_step"):
         props = d[k]["properties"]
         assert set(props["press"]["properties"]) == leaf and "spent" in props and "held" not in props, k
@@ -974,7 +975,8 @@ def test_the_melee_s_pza1_10_args_and_result():
     assert "kill" in d["result_melee"]["properties"]["end"]["description"]
     body = {"kind": "act", "seq": 3, "tick": 1, "wallMs": 2, "aid": "a1", "type": "melee", "state": "done",
             "reason": "", "result": {"end": "handback", "why": "standing", "id": 8, "d": 1.5, "kill": False,
-                                     "press": {"d_press": 0.25, "d_collide_pred": 0.25, "look_off": 3.5, "hp0": 1.0,
+                                     "press": {"d_press": 0.25, "d_collide_pred": 0.25, "d_min": 0.25,
+                                               "look_off": 3.5, "hp0": 1.0,
                                                "hp1": 0.5, "knock": False, "cut_by": ""}},
             "snapshot": {"me": {"x": 1.0, "y": 2.0, "z": 0, "health": 100.0}, "nearest": None}}
     assert pza1.decode(json.loads(pza1.encode("act", body))) == body

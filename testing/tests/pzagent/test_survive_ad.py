@@ -180,6 +180,7 @@ def done(r, a, **res):
 def want(target, mode="strike", reach=STRIKE_R, floor=True):
     """A melee's wire args (PZA/1.10, Plan 31 Task 2): `floorSwing` left off when False (`pza1._Cmd.args`)."""
     out = {"targetId": target, "mode": mode, "reach": reach, "shoveR": P.SHOVE_SEND_R, "releaseR": P.MELEE_RELEASE_R,
+           # headAim HEAD_AIM, False until calibrated, so left off the wire (`pza1._Cmd.args`; fix 1, review-t2 F4)
            "faceR": P.FACE_R, "pressAngle": P.PRESS_ANGLE, "pressLo": P.PRESS_LO, "floorR": P.FLOOR_R,
            "handbackR": P.HANDBACK_R, "stall": P.STALL_SWINGS}
     if floor:
@@ -915,8 +916,8 @@ def test_the_decision_line_carries_the_ladder_the_press_leaf_and_the_end(tmp_pat
     w = threat_why(tmp_path)
     assert a.type == "melee" and w["ladder"] == "aim" and "resend" not in w["melee"] and "melee_end" not in w
     act(r, a, "accepted")
-    leaf = {"d_press": 1.6, "d_collide_pred": 1.2, "look_off": 12.5, "hp0": 1.0, "hp1": 0.8, "knock": False,
-            "cut_by": ""}
+    leaf = {"d_press": 1.2, "d_collide_pred": 0.8, "d_min": 1.2, "look_off": 12.5, "hp0": 1.0, "hp1": 0.8,
+            "knock": False, "cut_by": ""}
     act(r, a, "progress", result={"step": "face", "d": 1.5, "hp": 0.8, "swings": 1, "shoves": 0, "stomps": 0,
                                   "floors": 0, "knockdowns": 0, "hits": 0, "spent": False, "press": leaf})
     r.advance(0.5)
@@ -1011,3 +1012,23 @@ def test_the_arms_pain_alone_keeps_the_melee_in_strike_mode(tmp_path):
         f = fight(r, **k)
         a = f.step()
         assert (a.type, a.args["mode"]) == ("melee", "shove") and f.why["melee"] == {"mode": "shove", "pain": 30.0}, k
+
+
+def test_lost_no_progress_alone_marks_the_target_for_unreachable_s(tmp_path):
+    """Fix 1 (review-t2 F7): a `done lost` why no progress whose span counts no strike (so the no-progress streak does
+    not mark it) still leaves the target unreachable for UNREACHABLE_S, the dispatch's own branch
+    (`LOST_UNREACHABLE`); why out of range leaves it unmarked."""
+    for why, marked in (("no progress", True), ("out of range", False)):
+        r = rig(tmp_path, why.replace(" ", "_"))
+        fr(r, [z(9, 102.0)])
+        f = fight(r)
+        a = f.step()
+        act(r, a, "accepted")
+        done(r, a, why=why, swings=0)
+        r.advance(0.5)
+        fr(r, [z(9, 102.0)])
+        f.step()
+        assert (9 in f.unreachable) is marked, why
+        if marked:
+            assert f.unreachable[9] == r.clock() + P.UNREACHABLE_S and f.no_progress == 0
+    assert P.HEAD_AIM is False

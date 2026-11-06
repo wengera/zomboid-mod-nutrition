@@ -250,7 +250,7 @@ def test_the_maneuver_logs_the_counts_spent_and_the_last_press_leaf_off_its_prog
     from .fakemod import MELEE_CAPS
     r = Rig(tmp_path, caps=MELEE_CAPS)
     m = Melee(r.world, r.acts, r.clock, 9)
-    leaf = {"d_press": 1.6, "d_collide_pred": 1.18, "look_off": 7.5, "hp0": 1.0, "hp1": 1.0, "knock": False,
+    leaf = {"d_press": 1.2, "d_collide_pred": 0.78, "d_min": 1.2, "look_off": 7.5, "hp0": 1.0, "hp1": 1.0, "knock": False,
             "cut_by": "hit"}
     m.progressed({"result": {"step": "face", "d": 1.3, "swings": 1, "spent": False, "press": leaf}})
     log = m.log()

@@ -9,7 +9,8 @@ before each `step`; a decider variant may start one wherever it fights.
 
 - `step()`: `pza1.Melee` at `target` from `inputs` (`MeleeInputs`: the mode, the reach and the floor swing, read afresh
   at each step) and the policies table (`shoveR` SHOVE_SEND_R, `releaseR` MELEE_RELEASE_R, `faceR` FACE_R,
-  `pressAngle` PRESS_ANGLE, `pressLo` PRESS_LO, `floorR` FLOOR_R, `handbackR` HANDBACK_R, `stall` STALL_SWINGS); None
+  `pressAngle` PRESS_ANGLE, `pressLo` PRESS_LO, `floorR` FLOOR_R, `handbackR` HANDBACK_R, `stall` STALL_SWINGS,
+  `headAim` HEAD_AIM, off until calibrated: fix 1, review-t2 F4); None
   while the running melee runs on inputs that are still its own. One send a target: the melee has no time end, so the
   only re-send (`resend` "inputs") is for inputs that changed the reflex's behaviour (`resend_due`: the spent mode
   shove against the meet's strike or finish, which the Lua runs alike by the target's posture, the floor swing, the
@@ -22,7 +23,7 @@ before each `step`; a decider variant may start one wherever it fights.
   unreadable) read by the owner's no-progress streak; any other end of the current send ends it with its reason
   (`superseded`, `not loaded`, `no weapon`, `interrupted`, `dead`, a rejection's `too far`, `no target`, `bad args`),
   or its state (`timeout`).
-- `press`: the last press leaf a line carried (`{d_press, d_collide_pred, look_off, hp0, hp1, knock, cut_by}`), kept
+- `press`: the last press leaf a line carried (`{d_press, d_collide_pred, d_min, look_off, hp0, hp1, knock, cut_by}`), kept
   for its owner's log.
 - `why` (logged by the Fight as `maneuver`): target, mode, sends, and the last progress line's step and distance, with
   its counts and `spent` once one carries them, and the last press leaf.
@@ -32,15 +33,15 @@ import time
 
 from agent.base import pza1
 from agent.base.planner.maneuvers.base import Maneuver
-from agent.base.planner.policies import (FACE_R, FLOOR_R, HANDBACK_R, MELEE_RELEASE_R, PRESS_ANGLE, PRESS_LO,
-                                         SHOVE_SEND_R, STALL_SWINGS)
+from agent.base.planner.policies import (FACE_R, FLOOR_R, HANDBACK_R, HEAD_AIM, MELEE_RELEASE_R, PRESS_ANGLE,
+                                         PRESS_LO, SHOVE_SEND_R, STALL_SWINGS)
 
 STRIKE_KEYS = ("swings", "floors", "stomps")   # a span's strikes the no-progress streak counts: the ladder's attack
                                                # (the swing and the floor swing) and its stomp (`Fight.observe`)
 COUNT_KEYS = ("swings", "shoves", "stomps", "floors", "knockdowns", "hits", "spent")   # the progress line's, logged
 STRIKE_STEPS = ("swing", "shove", "stomp", "floor")   # the Lua's presses in flight (PZAgent_StanceMelee.lua's header:
                                                       # each from its press to its result), in which no re-send goes
-PRESS_KEYS = ("d_press", "d_collide_pred", "look_off", "hp0", "hp1", "knock", "cut_by")   # the press leaf's keys
+PRESS_KEYS = ("d_press", "d_collide_pred", "d_min", "look_off", "hp0", "hp1", "knock", "cut_by")   # the leaf's keys
 
 
 @dataclasses.dataclass(frozen=True)
@@ -105,7 +106,8 @@ class Melee(Maneuver):
         self._sent = i.behaviour()
         cmd = pza1.Melee(targetId=self.target, mode=i.mode, reach=float(i.reach), shoveR=SHOVE_SEND_R,
                          releaseR=MELEE_RELEASE_R, faceR=FACE_R, pressAngle=PRESS_ANGLE, pressLo=PRESS_LO,
-                         floorR=FLOOR_R, handbackR=HANDBACK_R, stall=STALL_SWINGS, floorSwing=bool(i.floor_swing))
+                         floorR=FLOOR_R, handbackR=HANDBACK_R, stall=STALL_SWINGS, floorSwing=bool(i.floor_swing),
+                         headAim=HEAD_AIM)
         self._log(sends=self.n + 1)
         return cmd
 
