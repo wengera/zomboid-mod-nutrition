@@ -224,3 +224,60 @@ def test_a_stub_control_s_state_persists_across_ticks_and_is_per_instance(tmp_pa
 def test_make_still_builds_the_default_ladder(tmp_path):
     r, sv = make(tmp_path)
     assert sv.control == "ladder" and sv._control_assess is None
+
+
+# ================================================================ the prepare seam (Plan 31 Task 1 residual)
+def test_the_ladder_and_a_package_without_prepare_have_none(stub):
+    assert C.prepare_of("ladder") is None
+    assert C.prepare_of(stub) is None
+
+
+def test_a_prepare_that_is_not_callable_is_a_control_error(monkeypatch):
+    monkeypatch.setitem(sys.modules, "agent.base.planner.ctl_stub", stub_module(assess=walk_stub, prepare="no"))
+    with pytest.raises(C.ControlError, match="prepare"):
+        C.prepare_of("ctl_stub")
+
+
+def test_a_package_with_prepare_is_called_once_with_the_instance_before_any_read(tmp_path, monkeypatch):
+    seen = []
+
+    def prepare(survive):
+        seen.append(("prepare", survive, dict(survive.control_state), survive.ticks))
+        survive.GOAL_CONTINUE = False   # an instance switch the first tick's read must already see
+        survive.control_state["prepared"] = True
+
+    def assess(survive, frame):
+        seen.append(("assess", survive.GOAL_CONTINUE, survive.control_state["prepared"]))
+        return walk_stub(survive, frame)
+
+    real_read = Survive._read
+
+    def read(self, world, actions):
+        seen.append(("read", self.GOAL_CONTINUE))
+        return real_read(self, world, actions)
+
+    monkeypatch.setattr(Survive, "_read", read)
+    monkeypatch.setitem(sys.modules, "agent.base.planner.ctl_stub", stub_module(assess=assess, prepare=prepare))
+    r, sv = build(tmp_path, control="ctl_stub")
+    assert seen == [("prepare", sv, {}, 0)]   # at construction, `control_state` an empty dict, no tick yet
+    assert Survive.GOAL_CONTINUE is True and sv.GOAL_CONTINUE is False   # the instance's switch, never the class's
+    for _ in range(2):
+        r.frame()
+        r.advance(1.0)
+        sv.tick(r.world, r.acts)
+    assert [s[0] for s in seen] == ["prepare", "read", "assess", "read", "assess"]
+    assert seen[1] == ("read", False) and seen[2] == ("assess", False, True)   # the first read saw the switch off
+    assert sum(1 for s in seen if s[0] == "prepare") == 1   # once, never per tick
+
+
+def test_a_package_without_prepare_constructs_as_before(tmp_path, stub):
+    r, sv = build(tmp_path, control=stub)
+    assert sv.control_state == {} and sv.GOAL_CONTINUE is Survive.GOAL_CONTINUE
+
+
+def test_a_prepare_error_surfaces_at_construction(tmp_path, monkeypatch):
+    def prepare(survive):
+        raise RuntimeError("prepare broke")
+    monkeypatch.setitem(sys.modules, "agent.base.planner.ctl_stub", stub_module(assess=walk_stub, prepare=prepare))
+    with pytest.raises(RuntimeError, match="prepare broke"):
+        build(tmp_path, control="ctl_stub")

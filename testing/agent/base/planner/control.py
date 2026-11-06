@@ -6,6 +6,10 @@ module-level `assess(survive, frame)` returns the `Decision` `Survive._apply` ta
 `survive.control_state` (a dict, empty at construction) and reuses the planner's reads and sends (`_read`, `_apply`,
 `_care`, `_goal`, `_night`) for whatever it does not replace.
 
+A package may also expose a module-level `prepare(survive)`, called once at construction before any read, where it sets
+the instance switches it turns off (`DOOR_HELD`, `GOAL_CONTINUE`): `Survive.__init__` calls it last, once the
+instance is whole and `control_state` a dict, so no driver or variant needs a hook of its own. The ladder has none.
+
 The decision line is the contract a variant keeps: `branch == "threat"` on a fight tick, `inputs.branches.threat.flee`
 holding the reason when fleeing, and `inputs.x`/`inputs.y`. The fork adds no field to the ladder's line (the six
 decision goldens pin it byte for byte), so a variant names itself in its trial record, never on the line.
@@ -22,21 +26,40 @@ class ControlError(ValueError):
     """An unknown control name, or a package that exposes no `assess(survive, frame)`."""
 
 
+def _module(name):
+    """The control's package or module (not for the ladder). A name that is no identifier or no package under
+    `agent.base.planner` is a ControlError."""
+    if not isinstance(name, str) or not name.isidentifier():
+        raise ControlError(f"unknown control {name!r}: expected one of {CONTROLS} or a package name under {PACKAGE}")
+    qualified = f"{PACKAGE}.{name}"
+    try:
+        return importlib.import_module(qualified)
+    except ModuleNotFoundError as e:
+        if e.name != qualified:   # the variant's own missing import is its bug, never an unknown name
+            raise
+        raise ControlError(f"unknown control {name!r}: expected one of {CONTROLS} or a package under {PACKAGE}") from e
+
+
 def load(name):
     """The control's `assess` function, or None for the ladder (the caller runs its own body). A name that is no
     identifier, no package under `agent.base.planner`, or a package without a callable `assess` is a ControlError."""
     if name == LADDER:
         return None
-    if not isinstance(name, str) or not name.isidentifier():
-        raise ControlError(f"unknown control {name!r}: expected one of {CONTROLS} or a package name under {PACKAGE}")
+    module = _module(name)
     qualified = f"{PACKAGE}.{name}"
-    try:
-        module = importlib.import_module(qualified)
-    except ModuleNotFoundError as e:
-        if e.name != qualified:   # the variant's own missing import is its bug, never an unknown name
-            raise
-        raise ControlError(f"unknown control {name!r}: expected one of {CONTROLS} or a package under {PACKAGE}") from e
     assess = getattr(module, "assess", None)
     if not callable(assess):
         raise ControlError(f"control {name!r} ({qualified}) exposes no assess(survive, frame)")
     return assess
+
+
+def prepare_of(name):
+    """The control's optional `prepare(survive)` function, or None (the ladder, or a package without one). Called by
+    `Survive.__init__` once, after `control_state` is created and before any read. A `prepare` that is not callable
+    is a ControlError. Call after `load(name)`, which has already vetted the name."""
+    if name == LADDER:
+        return None
+    prepare = getattr(_module(name), "prepare", None)
+    if prepare is not None and not callable(prepare):
+        raise ControlError(f"control {name!r} ({PACKAGE}.{name}) has a prepare that is not callable")
+    return prepare

@@ -407,7 +407,7 @@ from typing import Optional
 
 from agent.base.items import days_fresh
 from agent.base.planner.care import RIDE_FREE, Care
-from agent.base.planner.control import LADDER, load as load_control
+from agent.base.planner.control import LADDER, load as load_control, prepare_of as control_prepare
 from agent.base.planner.dispatch import MANEUVERS
 from agent.base.planner.edges import same_side
 from agent.base.planner.goal_runner import GoalRunner, ScriptedSource
@@ -575,7 +575,9 @@ class Survive(SneakGait, Threat):
         """`control` (Plan 31 Task 1, `planner/control.py`): "ladder", the ordered branches of `_assess_ladder`, or a
         package name under `agent.base.planner` whose `assess(survive, frame)` answers in its place; an unknown name
         raises `ControlError` here, never at the first tick. A variant's own state lives on `control_state`, a dict
-        never cleared by the fork (a variant clears its own per-tick keys)."""
+        never cleared by the fork (a variant clears its own per-tick keys). A package's optional `prepare(survive)` is
+        called once at the end of this constructor (the instance whole, `control_state` a dict) and before any read, to set
+        the instance switches it turns off (the ladder has none)."""
         self.control = control
         self._control_assess = load_control(control)   # None: the ladder
         self.control_state = {}
@@ -702,6 +704,9 @@ class Survive(SneakGait, Threat):
         self._init_door_held()    # P30-C: this tick's door read and its plan
         self._init_still()        # P30-E: the still read's start
         self._part_h = {}         # P30-F: part index -> [(world minutes, health)] of the last BLEED_WINDOW_MIN
+        prepare = control_prepare(control)   # Plan 31 Task 1 residual: last, so the instance is whole and nothing here
+        if prepare is not None:              # overwrites a switch it sets; before any `_read` (the first tick's)
+            prepare(self)
 
     # ---------------------------------------------------------------- reading the world
     def _policies(self):
