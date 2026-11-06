@@ -29,9 +29,9 @@ margin's (delta = 0 their mutation).
 THE COMMITMENT (`Selector.decide`): over the eligible candidates (`eligible`: not vetoed, a retreat only above
 RETREAT_FLOOR, since one saving no hits is an open-ground leg, and a fallback only above FALLBACK_FLOOR; the held
 act stays eligible whatever its score, so a retreat taken runs to its filter though the group's count changes the
-score on the way). With nothing
-held, or the held act ended, vetoed or no longer generated, the best candidate is taken (`select` "new", "end", "gone"). Otherwise it is kept (`held_by`): `cadence` between selections
-(one each SELECT_S, unless an interrupt fires), `span` inside its minimum span (SPAN_S; a dress and a retreat until
+score on the way). With nothing held, or the held act ended, vetoed or no longer generated, the best candidate is
+taken (`select` "new", "end", "gone"). Otherwise it is kept (`held_by`): `cadence` between selections (one each
+SELECT_S, unless an interrupt fires), `span` inside its minimum span (SPAN_S; a dress and a retreat until
 their own end), `margin` while no rival beats it by delta = DELTA0 + DELTA_FRAC x |U_held|; a rival that does is taken
 (`select` "beat"). An interrupt (a new hit reaction, a part newly bleeding, a standing zombie not the act's target
 entering NEAR_R, a goal answer; the act's own end is the `end` above) re-scores at once and lifts the span, but never a
@@ -90,8 +90,8 @@ NEAR_R = 1.5              # tiles: a standing zombie not the act's target enteri
 DELTA0 = 0.3              # hits: the margin's floor (a first guess for the trials)
 DELTA_FRAC = 0.2          # ... and its share of the held act's |U| (the proposal's 0.2)
 SPAN_S = {"fight": 4.0, "travel": 3.0, "loot": 3.0, "sneak": 3.0, "needs": 3.0, "rest": 3.0,
-          "dress": math.inf, "retreat": math.inf}   # the minimum spans (the proposal: a fight 4 s or its target's end, a
-                                                    # dress until done, a travel 3 s; a retreat to its filter)
+          "dress": math.inf, "retreat": math.inf}   # the minimum spans (the proposal: a fight 4 s or its target's
+                                                    # end, a dress until done, a travel 3 s; a retreat to its filter)
 SPAN_LOCKED = ("retreat",)   # the kinds whose span no interrupt lifts
 INTERRUPTS = ("hit", "bleeding", "near", "goal")   # the four the frame raises; the act's own end is the fifth
 SPENT_LEVEL = 2           # a moodle at this level or more makes the fight the shove and stomp (the spec's § 4 2b)

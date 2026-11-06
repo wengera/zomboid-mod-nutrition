@@ -191,7 +191,8 @@ MUTATIONS = {"chase sign flipped": _sign("chase", -1.0), "hit sign flipped": _si
 def moved(key, rows):
     """(lines whose decision moved: branch, action or act; lines whose pinned scores, margin or commitment moved)."""
     g = golden(key)["decisions"]
-    dec = sum(1 for a, b in zip(g, rows) if (a["branch"], a["action"], a["act"]) != (b["branch"], b["action"], b["act"]))
+    dec = sum(1 for a, b in zip(g, rows)
+              if (a["branch"], a["action"], a["act"]) != (b["branch"], b["action"], b["act"]))
     any_ = sum(1 for a, b in zip(g, rows) if a != b)
     return dec, any_
 

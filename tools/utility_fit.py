@@ -48,8 +48,8 @@ it beats every candidate that is not a fight; `dress_quiet`, a part bleeding and
 and `dress_far`, a part bleeding and the nearest standing zombie beyond KEEP_R, fewer than GROUP_N aware standing
 ones listed, the dress beats every candidate that is not a fight (the memory's "before the goal and before any flee
 from a zombie beyond the stance's reach": a zombie, not a group, which the doctrine avoids; the dress against a fight
-is left to the scores, no direction ruling on it); `sneak`, the goal walking with a standing zombie within SNEAK_R and every
-one unaware, the sneak beats the travel, the loot and every retreat; `group`, GROUP_N or more aware standing zombies
+is left to the scores, no direction ruling on it); `sneak`, the goal walking with a standing zombie within SNEAK_R
+and every one unaware, the sneak beats the travel, the loot and every retreat; `group`, GROUP_N or more aware standing zombies
 within KEEP_R and a filter generated (the amendments' rule), the nearest filter's retreat beats every fight at a
 zombie beyond KEEP_R (one within the stance's reach is struck: the doctrine's first word, left to the scores);
 `group_coming`, the same with them within DANGER_R (the doctrine's "a group is avoided before it arrives"); `door`
