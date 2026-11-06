@@ -6,15 +6,17 @@ Open loop (the replay's THE ACTS): the World follows the recorded frames whateve
 decisions at recorded situations, never outcomes. The doctrine's checks read the line's own logged scores: its
 fresh choice (`top`: the best eligible, unvetoed candidate by its total, the commitment aside) and its committed act.
 
-- one standing zombie within DANGER_R while armed (fewer than three aware listed; aware, or the character not spent:
-  the spec's § 4 item 2b), its fight not vetoed -> the fresh choice is a fight, and the act is never a retreat;
+- an aware standing zombie within KEEP_R while armed, its fight not vetoed -> the act is a fight, on every line of
+  F15, E23 and F6 (fix 1, review-t11-utility M4: no line skipped for a group listed or a spent character);
 - a bleeding part with no standing zombie within KEEP_R (fewer than three aware listed), the dress not vetoed -> the
   fresh choice is the dress or a fight (never the goal, the needs, a retreat or the rest);
-- three or more aware standing within DANGER_R with an eligible retreat to a filter -> the act is the retreat or a
-  fight within KEEP_R (the doctrine's strike in reach), and every retreat on every line names a door square and the
-  threat's `flee` "retreat:door" (F6 carries the group at the door; F15 and E23 carry groups with no filter);
-- a zombie within DOOR_HELD_R behind a portal (`door_held.portal_between`) -> the act chosen (the line's act, or the
-  one a fallback passed over) is never none and never the rest: no wait.
+- a group arriving (three or more aware standing listed) -> no goal walk, loot, sneak or needs, ever (fix 1, M1, the
+  refuge ruling); with no filter the act is the stand or a fight (E23 470-477 and 517-524, F15 326 and 327 named);
+- three or more aware standing within DANGER_R with an eligible retreat to a filter -> the fresh choice is the
+  retreat or a fight in reach, and the act follows it within one selection; every retreat on every line names a door
+  square and the threat's `flee` "retreat:door" (F6 carries the group at the door; F15 and E23 carry none);
+- a zombie within DOOR_HELD_R behind a portal (`door_held.portal_between`) -> the line's own act is never none and
+  never the rest: no wait (fix 1, M4: an act passed over with nothing sent fails it).
 """
 import json
 import os
@@ -49,7 +51,7 @@ def situations():
         lines, rows = read_record(os.path.join(R.ARTIFACTS, name))
         rows = rows if upto is None else rows[:upto]
         rec = []
-        for k, row, sit, world in R.situations(lines, rows):
+        for k, row, sit, world in R.situations(lines, rows, fresh_only=False):   # the selector's own view
             me = (sit.x, sit.y)
             door = any(z.d <= DOOR_HELD_R and portal_between(world, me, (z.x, z.y), world.marked_doors(), sit.on_room)
                        is not None for z in sit.zeds)
@@ -74,21 +76,19 @@ def _u(replayed, key, k):
 
 
 # ================================================================ the doctrine
-@pytest.mark.parametrize("key", ["f15", "e23"])
-def test_one_standing_zombie_near_while_armed_is_fought(replayed, situations, key):
+@pytest.mark.parametrize("key", list(RINGS))
+def test_an_aware_zombie_in_reach_is_fought_on_every_line(replayed, situations, key):
     n = 0
     for k, sit, _ in situations[key]:
-        near = sit.standing(DANGER_R)
-        if not (sit.armed and len(near) == 1 and len(sit.aware_standing(LISTED_R)) < 3
-                and (near[0].aware or not S.spent(sit))):
+        reach = sit.aware_standing(KEEP_R)
+        if not sit.armed or not reach:
             continue
         u = _u(replayed, key, k)
-        if u["vetoes"].get("fight:%s" % near[0].id) is not None:
-            continue
+        if all(u["vetoes"].get("fight:%s" % z.id) is not None for z in reach):
+            continue   # every fight in reach infeasible (an edge between, the door left): the vetoes' lines
         n += 1
-        assert (top(u) or "").startswith("fight:"), (key, k, top(u))
-        assert not (u["act"] or "").startswith("retreat"), (key, k, u["act"])
-    assert n >= 100, n
+        assert (u["act"] or "").startswith("fight:"), (key, k, u["act"], u["select"], u["held_by"])
+    assert n >= 50, n
 
 
 @pytest.mark.parametrize("key", ["f15", "e23"])
@@ -106,12 +106,41 @@ def test_a_bleeding_part_with_nothing_in_reach_is_dressed_before_the_goal_or_any
     assert n >= 10, n
 
 
+WALKS = ("travel", "loot", "sneak", "needs")
+
+
+@pytest.mark.parametrize("key", list(RINGS))
+def test_no_walk_away_from_an_arriving_group(replayed, situations, key):
+    n = 0
+    for k, sit, _ in situations[key]:
+        if len(sit.aware_standing(LISTED_R)) < 3:
+            continue
+        n += 1
+        u = _u(replayed, key, k)
+        assert (u["act"] or "").split(":")[0] not in WALKS and not set(u["scores"]) & set(WALKS), (key, k, u["act"])
+    assert n >= 1
+
+
+@pytest.mark.parametrize("key, lines", [("e23", list(range(470, 478)) + list(range(517, 525))),
+                                        ("f15", [326, 327])])
+def test_the_review_s_lines_meet_the_group_where_the_character_stands(replayed, key, lines):
+    for k in lines:
+        act = _u(replayed, key, k)["act"] or ""
+        assert act.split(":")[0] in ("stand", "fight"), (key, k, act)
+
+
+@pytest.mark.parametrize("k", [280, 326])
+def test_the_held_fights_at_f15_280_and_326_stay_fights(replayed, k):
+    assert (_u(replayed, "f15", k)["act"] or "").startswith("fight:")
+
+
 def _in_reach(sit, key):
     return key.startswith("fight:") and sit.zed(int(key.split(":")[1])).d <= KEEP_R
 
 
 def test_a_group_with_a_filter_is_retreated_from_to_the_door_or_struck_in_reach(replayed, situations):
-    """The fresh choice is the retreat or a fight in reach; the act follows it within one selection (`cadence`)."""
+    """The fresh choice is the retreat or a fight in reach; the act follows it within one selection (`cadence`), or
+    the stand taken before the filter came holds its span."""
     retreats = 0
     for k, sit, _ in situations["f6"]:
         if len(sit.aware_standing(DANGER_R)) < 3:
@@ -123,7 +152,8 @@ def test_a_group_with_a_filter_is_retreated_from_to_the_door_or_struck_in_reach(
         t, act = top(u) or "", u["act"] or ""
         assert t.startswith("retreat") or _in_reach(sit, t), (k, t)
         retreats += act.startswith("retreat")
-        assert act.startswith("retreat") or _in_reach(sit, act) or u["held_by"] == "cadence", (k, act, u["held_by"])
+        held = u["held_by"] == "cadence" or (u["held_by"] == "span" and act.startswith("stand:"))
+        assert act.startswith("retreat") or _in_reach(sit, act) or held, (k, act, u["held_by"])
     assert retreats >= 1
 
 
@@ -146,8 +176,7 @@ def test_a_zombie_behind_a_door_is_never_waited_on(replayed, situations, key):
             continue
         n += 1
         u = _u(replayed, key, k)
-        chose = u.get("passed") or u["act"]
-        assert chose is not None and chose != "rest", (key, k, u["select"])
+        assert u["act"] is not None and u["act"] != "rest", (key, k, u["select"], u.get("passed"))
     assert n >= 1
 
 
@@ -204,5 +233,15 @@ def test_each_mutation_moves_a_pinned_line(name, monkeypatch, capsys):
     with capsys.disabled():
         print("\nmutation %r: %s" % (name, tally))
     assert sum(a for _, a in tally.values()) > 0, tally
-    if name in ("chase sign flipped", "hit sign flipped", "kill dropped", "delta 0"):
-        assert sum(d for d, _ in tally.values()) > 0, tally   # the decisions themselves move
+    if name in INERT:   # the term no golden line's decision reads: the artifact reports its weight flat
+        assert sum(d for d, _ in tally.values()) == 0 and INERT[name] in _flat(), (name, tally)
+    else:
+        assert sum(d for d, _ in tally.values()) > 0, tally   # fix 1 (M5): the decisions themselves move
+
+
+INERT = {"regress dropped": "G"}   # the regress decides no golden line (no retreat on F15 or E23): G reads flat
+
+
+def _flat():
+    with open(os.path.join(R.REPO, "data", "fits", "utility-weights.json"), encoding="utf-8") as f:
+        return json.load(f)["decision_probes"]["flat"]

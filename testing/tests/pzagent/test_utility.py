@@ -133,13 +133,31 @@ def test_the_regress_term_charges_a_retreat_its_tiles_off_the_way():
     assert S.terms(TRAVEL, s, CTX)["regress"] == 0.0
 
 
-def test_the_drag_down_prices_a_third_aware_zombie_arriving_within_the_span_never_on_the_move():
-    two = [zed(1, 1.0), zed(2, 1.5, closing=1.0, deg=90.0)]
-    three = two + [zed(3, 2.0, closing=1.0, deg=180.0)]
+def test_the_drag_down_is_one_event_when_a_third_aware_zombie_comes_within_reach_inside_the_span():
+    """Fix 1 (review-t11-utility M2): #4290's event, three attacking together, priced once, never per zombie."""
+    two = [zed(1, 1.0), zed(2, 3.5, closing=1.0, deg=90.0)]
+    three = two + [zed(3, 5.5, closing=1.0, deg=180.0)]   # within KEEP_R after 3.0 s
+    four = three + [zed(4, 6.5, closing=1.0, deg=270.0)]
     assert S.drag(two, 10.0) == 0.0
-    assert S.drag(three, 10.0) == S.DRAG_HITS
-    assert S.drag(three, 0.5) == 0.0   # the third arrives after the span
+    assert S.drag(three, 10.0) == S.drag(four, 10.0) == S.DRAG_HITS
+    assert S.drag(three, 2.5) == 0.0   # the third comes within reach after the span
     assert S.drag(three, 10.0, filtered=True) == 0.0
+    assert S.drag(three, 10.0, drag_hits=6.0) == 6.0
+
+
+def test_no_drag_down_on_a_fight_whose_target_is_already_in_reach():
+    s = sit([zed(1, 2.0), zed(2, 3.5, closing=1.0, deg=90.0), zed(3, 4.0, closing=1.0, deg=180.0)])
+    zero = S.terms(fight(s.zed(1)), s, CTX, drag_hits=0.0)["hit"]
+    assert S.terms(fight(s.zed(1)), s, CTX, drag_hits=6.0)["hit"] == zero
+    far = S.terms(fight(s.zed(3)), s, CTX, drag_hits=0.0)["hit"]
+    assert S.terms(fight(s.zed(3)), s, CTX, drag_hits=6.0)["hit"] == pytest.approx(far - 6.0)
+
+
+def test_a_walk_is_priced_with_an_aware_chaser_closing_on_it():
+    """Fix 1 (M1): the travel's hit term reads an aware chaser at its closing speed, never holding its distance."""
+    s = sit([zed(1, 3.0, closing=1.5)])
+    held_off = S.exposure(list(s.zeds), S.ROUTE_S, M.FITTED, filtered=True)
+    assert -S.terms(TRAVEL, s, A.Context(goal="travel"))["hit"] > held_off
 
 
 def test_an_unaware_zombie_counts_its_share_and_a_fallen_one_is_read_no_nearer_than_the_press():
@@ -408,6 +426,65 @@ def test_no_retreat_is_generated_while_standing_on_the_filter_it_retreated_to():
     s = sit([zed(1, 3.0)])
     cands = A.generate(s, A.Context(at_filter=door()), _World())
     assert not [c for c in cands if c.kind == "retreat"]
+
+
+GOAL = A.Context(goal="travel", needs="need")
+
+
+def group(*ds, closing=1.0):
+    return [zed(i, d, closing=closing, deg=50.0 * i) for i, d in enumerate(ds, 1)]
+
+
+def test_a_group_arriving_takes_away_the_walk_and_the_needs_and_offers_the_stand():
+    """Fix 1 (review-t11-utility M1, the refuge ruling): no open-ground leg from an arriving group."""
+    kinds = {c.kind for c in A.generate(sit(group(4.0, 7.0, 9.0)), GOAL, _World())}
+    assert "stand" in kinds and not kinds & {"travel", "loot", "sneak", "needs"}
+    two = {c.kind for c in A.generate(sit(group(4.0, 7.0)), GOAL, _World())}
+    assert "travel" in two and "stand" not in two
+
+
+def test_the_stand_faces_the_nearest_aware_zombie_and_goes_while_one_is_in_reach():
+    (st,) = [c for c in A.generate(sit(group(4.0, 7.0, 9.0)), GOAL, _World()) if c.kind == "stand"]
+    assert st.key == "stand:1" and st.target == 1
+    assert not [c for c in A.generate(sit(group(2.0, 7.0, 9.0)), GOAL, _World()) if c.kind == "stand"]
+
+
+def test_the_stand_reads_a_wall_at_its_back():
+    class Walled(_World):
+        def line_clear(self, *a, **k):
+            return False
+    (open_,) = [c for c in A.generate(sit(group(4.0, 7.0, 9.0)), GOAL, _World()) if c.kind == "stand"]
+    (walled,) = [c for c in A.generate(sit(group(4.0, 7.0, 9.0)), GOAL, Walled()) if c.kind == "stand"]
+    s = sit(group(4.0, 7.0, 9.0))
+    assert not open_.back and walled.back
+    assert S.terms(walled, s, GOAL)["hit"] == pytest.approx(S.BACK_FACTOR * S.terms(open_, s, GOAL)["hit"])
+
+
+def test_the_stand_takes_the_arrivals_one_at_a_time_and_pays_no_drag_down():
+    s = sit(group(3.0, 4.0, 5.0))
+    st = A.Candidate("stand", "stand:1", target=1, zed=s.zed(1))
+    f = fight(s.zed(1))
+    assert S.terms(st, s, GOAL, drag_hits=6.0) == S.terms(st, s, GOAL, drag_hits=0.0)
+    assert S.terms(st, s, GOAL)["hit"] > S.terms(f, s, GOAL)["hit"]
+
+
+def test_the_dress_is_vetoed_with_an_aware_zombie_in_reach():
+    s = sit([zed(1, 2.0)], bleeding=[F.Part(3, 5.0, 50.0)])
+    (d,) = [c for c in A.generate(s, CTX, _World(BANDAGE)) if c.kind == "dress"]
+    assert d.veto == "in_reach"
+    far = sit([zed(1, 3.0)], bleeding=[F.Part(3, 5.0, 50.0)])
+    assert next(c for c in A.generate(far, CTX, _World(BANDAGE)) if c.kind == "dress").veto is None
+
+
+def test_the_reach_interrupt_chooses_afresh_and_lifts_even_a_retreat_s_span():
+    sel = S.Selector()
+    r = retreat()
+    held(sel, (r.key, "retreat"))
+    sc = {r.key: (5.0, {}), "fight:1": (5.5, {})}   # under the margin delta(5.0) = 1.3
+    c, info = sel.decide([r, FIGHT_C], sc, 0.5, interrupts=["hit"])
+    assert c is r and info["held_by"] == "span"
+    c, info = sel.decide([r, FIGHT_C], sc, 0.6, interrupts=["reach"])
+    assert c is FIGHT_C and info["select"] == "fresh"
 
 
 # ================================================================ the Task 2 API switch
@@ -689,6 +766,45 @@ def test_a_standing_zombie_other_than_the_target_entering_near_r_is_an_interrupt
     sub = tmp_path / "target"
     sub.mkdir()
     assert "near" not in _interrupts(sub, {"zombies": [chaser(7, 2.0)]}, {"zombies": [chaser(7, 1.2)]})
+
+
+def test_an_aware_zombie_entering_reach_is_an_interrupt(tmp_path):
+    a = [chaser(7, 1.6), chaser(8, -4.0)]
+    b = [chaser(7, 1.6), chaser(8, -2.0)]
+    assert "reach" in _interrupts(tmp_path, {"zombies": a}, {"zombies": b})
+    sub = tmp_path / "target"
+    sub.mkdir()
+    assert "reach" not in _interrupts(sub, {"zombies": [chaser(7, 2.0)]}, {"zombies": [chaser(7, 1.8)]})
+
+
+def test_a_group_arriving_with_no_filter_is_met_by_the_stand_never_a_walk(tmp_path):
+    r, sv = build(tmp_path)
+    r.frame(zombies=[chaser(1, -4.0), chaser(2, -6.0, 3.0), chaser(3, -7.0, -3.0), chaser(4, -9.0)])
+    sv.tick(r.world, r.acts)
+    typ, args = r.cmd()
+    assert typ == "aim" and (args["vx"], args["vy"], args["targetId"]) == (0.0, 0.0, 1)
+    line = decisions(tmp_path)[-1]
+    assert line["inputs"]["intent"] == {"kind": "meet:stand", "target": 1} and line["branch"] == "threat"
+    assert not {k for k in line["inputs"]["utility"]["scores"]} & {"travel", "loot", "sneak"}
+
+
+def test_the_goal_is_a_candidate_only_with_a_goal_running_or_pending_and_names_its_square(tmp_path, monkeypatch):
+    """Fix 1 (m6): the runner asked to propose when it holds nothing, the goal's args' square its target."""
+    r, sv = build(tmp_path)
+    r.frame()
+    u = core.Utility(sv)
+    sv.control_state[core.STATE_KEY] = u
+    monkeypatch.setattr(sv, "_goal", lambda: None)
+    sv.goals.current, sv.goals.pending = None, False
+    assert u._goal_read(False) == (None, None) and u.take_goal_answer() == (None, {})
+
+    class Running:
+        pass
+    monkeypatch.setattr(sv.goals, "line", lambda: {"type": "ExploreToward", "args": {"x": 110, "y": 205}})
+    sv.goals.current = Running()
+    assert u._goal_read(False) == ("travel", (110, 205))
+    sv.goals.current = None
+    assert u._goal_read(True) == (None, None)   # a group arriving: the runner is not asked
 
 
 def test_a_goal_answer_is_an_interrupt_once(tmp_path, monkeypatch):
