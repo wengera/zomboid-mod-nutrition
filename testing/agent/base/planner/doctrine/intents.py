@@ -10,15 +10,17 @@ the Actions' send, the maneuver told); `line()` (its keys of `inputs.doctrine`) 
 scorecard's label and target).
 
 - `Strike` (P0): one `melee` (the reflex: the stance, the face, the press, the shove, the stomp) at the zombie in
-  reach, in the mode `press_mode` reads; `done` once the melee closes a span (its press read: `Melee.take_span`), its
-  target dies, leaves the listing or leaves MELEE_RELEASE_R; `failed` when the build cannot run it (OFF_ENDS).
+  reach, in the mode `press_mode` reads; `done` on its one press (today's melee closing a span, `Melee.take_span`;
+  Task 2's meet reading a new press leaf, `Melee.press`), on its kill or the melee's other ends, or once its target
+  leaves the listing or MELEE_RELEASE_R; `failed` when the build cannot run it (OFF_ENDS).
 - `Fight` (P3): the one or two zombies of its want (`ids`), its pin the nearest of them standing (a fallen one with
-  none standing: the finish): within MELEE_RELEASE_R or fallen, the melee (`melee_command`, the one call site Task 2's
-  meet changes); farther, a pair arriving closer together than STRING_GAP is strung (`string`: the stance backpedalling
+  none standing: the finish): within MELEE_RELEASE_R or fallen, the melee (`melee_command`, the one call site, on
+  either melee API: `melee_inputs`, `melee_end`); farther, a pair arriving closer together than STRING_GAP is strung (`string`: the stance backpedalling
   on one heading, chosen once, until the lead is STRING_GAP ahead), a chasing pin is met standing in the stance facing
   it (`stand`: "let it come"), an idle one is closed on (`close`: the stance's walk, a walk beyond CLOSE_WALK_R). `done`
   when none of its zombies is left standing or fallen within DISENGAGE_R (`kill` when it read one killed, else `gone`);
-  `failed` after DUD_N strikes in a row that lowered nothing (`dud`), or with the pin's distance not falling for
+  `failed` after DUD_N strikes in a row that lowered nothing or the meet's own stall (`lost` `no progress`: `dud`),
+  or with the pin's distance not falling for
   STALL_S while it stands, closes or strings (`stall`), its pin then left for SKIP_S (`Memory.skip`: the Fight's want
   skips it; the strike at P0 does not). Health is never read.
 - `Dress` (P1): the `maneuvers.Dress` of the part (stop, tear, bandage; riding the pre-empted intent's walk for a part
@@ -43,6 +45,7 @@ scorecard's label and target).
   the goal's: `loot`, `travel`); while a LootBuilding runs, the model's next order is prefetched (`source.Resume`).
   Never ends by itself.
 """
+import dataclasses
 import math
 
 from agent.base import pza1
@@ -88,26 +91,60 @@ def press_mode(world, z):
     return "strike"
 
 
+MELEE_FIELDS = frozenset(f.name for f in dataclasses.fields(MeleeInputs))
+MEET = "back" not in MELEE_FIELDS   # Task 2's meet (PZA/1.10, `MeleeInputs(mode, reach, floor_swing)`) on this tree;
+                                    # False: today's melee (PZA/1.9, `MeleeInputs(mode, reach, back, floor_swing,
+                                    # close_r)`), with its back leg and its time end
+KILL_ENDS = ("dead", "kill")        # the melee's end on its target's death: PZA/1.9's, PZA/1.10's
+OTHER_ENDS = ("crowd", "handback")  # ... on another standing zombie near: PZA/1.9's `crowd` {id, d}, PZA/1.10's
+                                    # `handback` {id, d}
+UNREACHED = ("out of reach",)       # a lost target the Fight leaves (PZA/1.9's end, PZA/1.10's `lost` why)
+DUD = "no progress"                 # PZA/1.10's `lost` why: the Lua's own stall of presses that lowered nothing
+
+
+def melee_inputs(mode, reach):
+    """The doctrine's `MeleeInputs` on either melee (`MEET`): the strike radius as the reach, the floor swing at a
+    fallen zombie (#4374, #4679); on today's melee no back step (0, 0: the combat doctrine's "after the press, no back
+    step") and no swing close (`closeR` 0: the swing at the reach, E21's and F13's presses that lowered, #4596), both
+    gone from Task 2's meet."""
+    if MEET:
+        return MeleeInputs(mode, reach, True)
+    return MeleeInputs(mode, reach, (0.0, 0.0), True, 0.0)
+
+
+def melee_end(m):
+    """(end, why) of an ended melee read the same way on either API: `kill`, `other` (its zombie {id, d} the why),
+    `lost` (out of range, out of reach, no progress), else its own end with no why; None while it runs."""
+    over = m.over()
+    if over is None:
+        return None
+    if over in KILL_ENDS:
+        return "kill", None
+    if over in OTHER_ENDS:
+        return "other", getattr(m, "handback", None) or getattr(m, "crowd", None) or {}
+    if over == "lost":
+        return "lost", getattr(m, "end_why", None)
+    if over in ("out of range",) + UNREACHED:
+        return "lost", over
+    return over, None
+
+
 def melee_command(intent, zid, mode):
-    """THE one call site of the `Melee` maneuver (Task 2's meet changes its arguments here, and only here): the
-    intent's running melee at `zid` stepped, a new one made when none runs at it (the old one retired, its late kills
-    still read), with the doctrine's inputs: the strike radius as the swing's reach at a standing zombie, no back step
-    (0, 0: the stance stands after a press, the combat doctrine's "after the press, no back step"), the floor swing at
-    a fallen one (#4374, #4679), and no swing close (`closeR` 0: the swing at the reach, E21's and F13's presses that
-    lowered, #4596). Returns the command, or None while it runs."""
+    """THE one call site of the `Melee` maneuver (Task 2's meet changed its arguments; `melee_inputs` reads which API
+    this tree carries): the intent's running melee at `zid` stepped, a new one made when none runs at it (the old one
+    retired, its late kills still read). Returns the command, or None while it runs."""
     ctx = intent.ctx
-    m = intent.m
-    if m is None or m.target != zid or m.over() is not None:
-        ctx.retire(m)
-        m = intent.m = MANEUVERS["melee"](ctx.world, ctx.actions, ctx.clock, zid)
     reach = strike_r(ctx.world) if ctx.world.weapon is not None else 0.0
-    m.inputs = MeleeInputs(mode, reach, (0.0, 0.0), True, 0.0)
-    cmd = m.step()
-    if cmd is None and m.over() is not None:   # its own step found it superseded: a fresh one at once
-        ctx.retire(m)
-        m = intent.m = MANEUVERS["melee"](ctx.world, ctx.actions, ctx.clock, zid)
-        m.inputs = MeleeInputs(mode, reach, (0.0, 0.0), True, 0.0)
+    m = intent.m
+    for _ in range(2):   # a melee its own step finds ended is retired, and a fresh one starts at once
+        if m is None or m.target != zid or m.over() is not None:
+            ctx.retire(m)
+            m = intent.m = MANEUVERS["melee"](ctx.world, ctx.actions, ctx.clock, zid)
+            intent.press_seen = None
+        m.inputs = melee_inputs(mode, reach)
         cmd = m.step()
+        if cmd is not None or m.over() is None:
+            break
     intent.mcmd = cmd
     return cmd
 
@@ -140,6 +177,7 @@ class Intent:
         self.last = None       # the last Action this intent sent
         self.m = None          # its maneuver, else None
         self.mcmd = None       # the maneuver's command this tick (routed to it at the send)
+        self.press_seen = None   # the melee's press leaf when this intent took it (the meet's one-press read)
         self.started = ctx.now()
         self.kills = 0
         self._inherit(prev)
@@ -153,6 +191,7 @@ class Intent:
         prev.m = None
         if getattr(m, "name", None) == "melee" and m.over() is None and m.target in self.ids:
             self.m = m
+            self.press_seen = getattr(m, "press", None)   # its earlier press is the last intent's, not this one's
         else:
             self.ctx.retire(m)
 
@@ -240,19 +279,22 @@ class Strike(Intent):
     p = K.P_STRIKE
 
     def observe(self):
+        """One press: done on its kill, on its first press read (today's melee: a span closed; the meet: a new press
+        leaf), or on the melee's other ends; failed on a build that cannot run it."""
         super().observe()
         m = self.m
         if m is None:
             return
-        span, over = m.take_span(), m.over()
-        if over == "dead":
+        span, end = m.take_span(), melee_end(m)
+        leaf = getattr(m, "press", None)
+        if end is not None and end[0] == "kill":
             self.finish("done", "kill")
-        elif span is not None:
+        elif span is not None or (leaf is not None and leaf is not self.press_seen):
             self.finish("done", "press")
-        elif over in OFF_ENDS:
-            self.finish("failed", over)
-        elif over is not None:
-            self.finish("done", over)
+        elif end is not None and end[0] in OFF_ENDS:
+            self.finish("failed", end[0])
+        elif end is not None:
+            self.finish("done", end[0] if end[1] is None or not isinstance(end[1], str) else end[1])
 
     def check(self):
         if self.end is not None:
@@ -328,17 +370,20 @@ class Fight(Intent):
         span = m.take_span()
         if span is not None and span[0] > 0:
             self.duds = 0 if span[1] is not False else self.duds + span[0]
-        over = m.over()
-        if over is None:
+        end = melee_end(m)
+        if end is None:
             return
-        if over == "crowd":
-            zid = (m.crowd or {}).get("id")
-            if zid is not None and zid not in self.ids and self.zombie(zid) is not None:
-                self.ids = self.ids + (zid,)
+        kind, why = end
+        if kind == "other":
+            zid = (why or {}).get("id")
+            if zid is not None and self.zombie(zid) is not None:
+                self.ids = self.ids if zid in self.ids else self.ids + (zid,)
                 self.pin = zid
-        elif over == "out of reach":
+        elif kind == "lost" and why in UNREACHED:
             self.ctx.skip(m.target)
-        elif over in OFF_ENDS:
+        elif kind == "lost" and why == DUD:
+            self.duds = max(self.duds, K.DUD_N)   # the meet's own stall: the Fight's dud
+        elif kind in OFF_ENDS:
             self.melee_off = True
         self.ctx.retire(m)
         self.m = None

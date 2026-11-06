@@ -38,7 +38,8 @@ resumes after a Strike. A Strike's live melee is handed to the Fight that follow
 
 The intents, each with its tests:
 
-- **Strike**: `done` on the melee's span (`press`), `kill`, `gone` or `out` (beyond MELEE_RELEASE_R). `failed` on
+- **Strike**: `done` on its one press (`press`: today's melee's span, or the meet's new press leaf), `kill`, `gone`
+  or `out` (beyond MELEE_RELEASE_R), or the melee's other ends. `failed` on
   `not loaded`, `bad args` or `unknown type`. Under arm pain over 10 (#4370) the press is in `shove` mode.
 - **Fight**:
   - Within MELEE_RELEASE_R, or at a fallen zombie, it sends the melee. The mode is `strike`, `shove` (unarmed or
@@ -48,7 +49,8 @@ The intents, each with its tests:
     - A chaser is met standing in the stance ("let it come").
     - An idle, aware zombie is closed on.
   - `done` when none of its zombies is left (`kill` or `gone`).
-  - `failed dud` after DUD_N strikes that lowered nothing. `failed stall` when the pin's distance has not fallen for
+  - `failed dud` after DUD_N strikes that lowered nothing, or on the meet's own stall (`lost` `no progress`).
+    `failed stall` when the pin's distance has not fallen for
     STALL_S. Either way the pin is skipped for SKIP_S, but still struck at P0.
 - **Dress**:
   - It rides the pre-empted intent's walk for a part above the legs.
@@ -195,13 +197,26 @@ The doctrine's own keys:
 
 ## What it still needs from the harness, and the risks a trial row will show
 
-- **Task 2's meet.**
-  - The Fight presses through today's `Melee`, which is the only call site: `intents.melee_command`. Its inputs are
-    the strike radius as the reach, no back step (`backVx`, `backVy` 0), the floor swing on, and no swing close
-    (`closeR` 0).
-  - Task 2's PZA/1.10 meet changes the arguments, and that one function is the edit.
-  - Until it lands, the first trials' hits per kill are provisional. Commitment amplifies a bad swing: the doctrine
-    fights every lone zombie to its end, and F15's 22 swings killed nothing (#4649).
+- **Task 2's meet (PZA/1.10).**
+  - The Strike and the Fight press through one call site, `intents.melee_command`. It builds its inputs with
+    `intents.melee_inputs`, which reads which `Melee` API the tree carries: the guard is `intents.MEET`, true when
+    `MeleeInputs` has no `back` field.
+    - On Task 2's meet: `MeleeInputs(mode, reach, floor_swing)`. There is no back step, no swing close and no time
+      end in the API at all.
+    - On today's PZA/1.9 melee: `MeleeInputs(mode, reach, (0, 0), floor_swing, 0)`, with no back step and no swing
+      close.
+  - The ends are read one way on either API (`intents.melee_end`):
+    - `kill` (PZA/1.9's `dead`) ends the Strike or Fight on its kill.
+    - `handback` (PZA/1.9's `crowd`) re-pins the Fight to the other zombie.
+    - `lost` `out of reach` skips the target. `lost` `no progress` is the Fight's `dud`. `lost` `out of range` drops
+      the melee, and the Fight closes again.
+  - A Strike's one press is read as today's span or as a new press leaf (`d_press`, `d_collide_pred`, `look_off`,
+    `hp0`, `hp1`, `knock`, `cut_by`). It is logged through the maneuver's `log()` under the act's `maneuver`.
+  - The tests run on both APIs. One test of the `lost` `no progress` end is skipped where the meet is absent. On a
+    scratch copy of Task 2's tree (4d646a0a, without Task 8's fix 1), the whole file passes except two dress-hold tests
+    that need `care.DRESS_RETRY_S`, which main has.
+  - Until the meet boots, the first trials' hits per kill are provisional. Commitment amplifies a bad swing: the
+    doctrine fights every lone zombie to its end, and F15's 22 swings killed nothing (#4649).
 - **The string.**
   - It is planner-side: a stance backpedal on one heading. There is no circling of a pair and no shove-one-strike-the-
     other until a `string` play exists.
@@ -213,9 +228,11 @@ The doctrine's own keys:
   - With no known building near, the refuge is open ground, labelled `avoid_open`. That is the old flee leg under a new
     name. It ends in the stance, never a second leg.
   - The trial row's `min fleeing`, with its `(away N)` cell, will show how much time it takes.
+- **A chaser that never closes.** One held behind a fence or an edge the map does not read is met standing for
+  STALL_S, then left for SKIP_S, and the goal walks meanwhile. That can show as the walk-pause-walk Angus ruled out
+  (memory `intent-doors-sneak`), bounded at one stall per SKIP_S per zombie.
 - **Windows as ways out.** The Avoid's exit is a walk only (`exit_plan`'s `walk` step). A window's climb is the ladder
   Flee's and is not used.
-- **No Lua change.** The variant runs on the frozen PZA/1.9 reflex and schema.
-  - It needs the look angle and the timed press (Task 2's meet).
-  - It needs the fallen zombie's head position for the finish's aim (J1). Until then the floor swing goes where the
-    reflex points it.
+- **No Lua change of its own.** The variant asks nothing of the Lua or the schema beyond Task 2's meet: the look
+  angle, the timed press and the finish aimed at the fallen zombie's head (J1) are the reflex's. On a PZA/1.9 build
+  the floor swing goes where that reflex points it.

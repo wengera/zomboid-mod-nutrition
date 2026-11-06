@@ -95,6 +95,8 @@ class Doctrine:
         for store in (self.mem.dead, self.mem.skip):
             for zid in [z for z, until in store.items() if until <= now]:
                 del store[zid]
+        for edge in [e for e, (_, _, at) in self.mem.doors.items() if now - at >= K.DOOR_DECIDED_S]:
+            del self.mem.doors[edge]
 
     def _make(self, want, prev):
         return INTENTS[want.kind](self, want, prev)

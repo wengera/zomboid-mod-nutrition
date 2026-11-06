@@ -8,6 +8,7 @@ import pytest
 
 from agent.base.planner import survive as S
 from agent.base.planner.doctrine import constants as K
+from agent.base.planner.doctrine import intents as I
 from agent.base.planner.doctrine import situation as SI
 from agent.base.planner.doctrine.arbiter import Arbiter
 from agent.base.planner.doctrine.assess import doctrine_of
@@ -23,6 +24,7 @@ from .test_survive_ag import SHUT, door_ground
 from .test_survive_g import Src, part, zd
 
 CAPS = tuple(MELEE_CAPS)
+KILL_END = "kill" if I.MEET else "dead"   # the melee's end on a kill: PZA/1.10's, PZA/1.9's
 ME = (100.0, 200.0)
 
 
@@ -420,7 +422,10 @@ def test_a_strike_sends_the_melee_at_the_zombie_in_reach(tmp_path):
     a = tick(r, sv)
     d = line(tmp_path)
     assert (a.type, a.args["targetId"], a.args["mode"]) == ("melee", 1, "strike")
-    assert a.args["backVx"] == 0.0 and a.args["backVy"] == 0.0 and a.args["closeR"] == 0.0
+    if I.MEET:   # Task 2's meet: no back leg and no swing close in its arguments at all
+        assert "backVx" not in a.args and "closeR" not in a.args
+    else:        # today's melee: no back step, no swing close
+        assert a.args["backVx"] == 0.0 and a.args["backVy"] == 0.0 and a.args["closeR"] == 0.0
     assert a.args["floorSwing"] is True
     assert d["branch"] == "threat" and d["inputs"]["intent"] == {"kind": "strike", "target": 1}
     assert d["inputs"]["doctrine"]["p"] == K.P_STRIKE
@@ -513,6 +518,35 @@ def test_a_fight_fails_dud_after_dud_n_strikes_that_lowered_nothing(tmp_path):
     assert any(e[:3] == ("fight", K.P_FIGHT, "failed") and e[3] == "dud" for e in d.arbiter.ends)
 
 
+@pytest.mark.skipif(not I.MEET, reason="Task 2's meet (PZA/1.10) is not on this tree: its `lost` end is new")
+def test_a_fight_fails_dud_when_the_meet_ends_lost_no_progress(tmp_path):
+    r, sv = rig(tmp_path)
+    zs = [zombie(1, 102.2, 200.0)]
+    r.frame(zombies=zs)
+    tick(r, sv)
+    r.fake.answer({"melee": ["accepted", {"state": "done", "result": {"end": "lost", "why": "no progress",
+                                                                     "swings": 3, "hp0": 1.0, "hp1": 1.0}}]})
+    r.pump()
+    r.frame(zombies=zs)
+    tick(r, sv)
+    d = doctrine_of(sv)
+    assert 1 in d.mem.skip and ("fight", K.P_FIGHT, "failed", "dud") in d.arbiter.ends
+
+
+def test_a_fight_is_not_preempted_by_the_strike_at_its_own_zombie(tmp_path):
+    r, sv = rig(tmp_path)
+    r.frame(zombies=[zombie(1, 102.2, 200.0)])
+    a = tick(r, sv)
+    assert a.type == "melee" and doc(tmp_path)["intent"] == "fight"
+    r.answer("accepted")
+    n = len(r.acts.history)
+    r.frame(zombies=[zombie(1, 101.3, 200.0)])
+    tick(r, sv)
+    d = doc(tmp_path)
+    assert d["intent"] == "fight" and d["preempted_by"] is None and "strike" in d["wants"]
+    assert len(r.acts.history) == n   # the running melee goes on: nothing sent
+
+
 def test_a_fight_fails_stall_when_its_chaser_never_closes(tmp_path):
     r, sv = rig(tmp_path)
     zs = [zombie(1, 106.0, 200.0)]
@@ -541,7 +575,7 @@ def test_a_kill_is_counted_once_and_logged_on_the_threat_why(tmp_path):
     zs = [zombie(1, 102.2, 200.0)]
     r.frame(zombies=zs)
     tick(r, sv)
-    r.fake.answer({"melee": ["accepted", {"state": "done", "result": {"end": "dead", "kill": True, "swings": 1,
+    r.fake.answer({"melee": ["accepted", {"state": "done", "result": {"end": KILL_END, "kill": True, "swings": 1,
                                                                      "hp0": 0.2, "hp1": 0.0}}]})
     r.pump()
     r.frame(zombies=zs)
@@ -720,6 +754,21 @@ def test_a_door_left_marks_it_and_hands_the_tick_to_the_order(tmp_path):
     d = doc(tmp_path)
     assert d["ended"]["intent"] == "door" and d["ended"]["why"] == "leave" and d["intent"] == "order"
     assert (10770, 10633, 0) in r.world.marked_doors()
+
+
+def test_the_memory_drops_its_expired_entries(tmp_path):
+    r, sv = rig(tmp_path)
+    r.frame()
+    tick(r, sv)
+    d = doctrine_of(sv)
+    now = r.clock()
+    d.mem.doors[((1, 1, 0), "N")] = ("leave", (9,), now - K.DOOR_DECIDED_S)
+    d.mem.doors[((2, 2, 0), "N")] = ("leave", (9,), now)
+    d.mem.skip.update({1: now, 2: now + 5.0})
+    d.mem.dead.update({3: now - 1.0})
+    r.frame()
+    tick(r, sv)
+    assert list(d.mem.doors) == [((2, 2, 0), "N")] and d.mem.skip == {2: now + 5.0} and d.mem.dead == {}
 
 
 def test_the_order_runs_the_need_before_the_goal(tmp_path):
