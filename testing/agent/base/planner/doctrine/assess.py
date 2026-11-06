@@ -16,12 +16,20 @@ A tick, after Survive's own `_read` (the ends of the actions, the goal runner's 
 
 On its first tick the Doctrine lays `source.Resume` over the goal runner's source and turns the ladder's P30-C door read
 off on this Survive only (`DOOR_HELD`, an instance attribute: its leave would mark edges and end goals in `_read`
-before the doctrine decides the door itself)."""
+before the doctrine decides the door itself). That first tick's own `_read` has already run once with the ladder's read
+on (the fork makes no call at construction, review-t11-doctrine m3): a caller that builds the Survive calls `prepare`
+first to close that tick too.
+
+Survive's sneak gait reads the Avoid's run as a flee (`Survive.mode` "flee") while a zombie of the group within
+SNEAK_R is aware of the character (`hasTarget` or `known`), so the run keeps its gait until out of sight
+(review-t11-doctrine m5); the mode is None on every other tick (the ladder's own threat bookkeeping never sets it under
+the doctrine, which runs no Fight or Flee policy)."""
 from agent.base.planner.doctrine import constants as K
 from agent.base.planner.doctrine import situation
 from agent.base.planner.doctrine.arbiter import Arbiter
 from agent.base.planner.doctrine.intents import INTENTS
 from agent.base.planner.doctrine.source import Resume
+from agent.base.planner.policies import SNEAK_R
 from agent.base.planner.survive import Decision
 
 MAX_STEPS = 3   # arbiter steps a tick takes at most (an intent ended while it acted hands the tick on)
@@ -41,6 +49,7 @@ class Doctrine:
         sv.goals.source = self.source
         sv.DOOR_HELD = False     # the ladder's door read off on this Survive: the Door intent decides (the docstring)
         self._hist_n = len(sv.goals.history)
+        self.ticks = 0
 
     # -- what the intents read ------------------------------------------------------------------------------------
     @property
@@ -72,6 +81,11 @@ class Doctrine:
         if zid is not None:
             self.mem.skip[zid] = self.now() + K.SKIP_S
 
+    def backoff(self, zid):
+        """A melee at `zid` that backed off: none is sent at it for BACKOFF_TICKS ticks (the ladder's back-off)."""
+        if zid is not None:
+            self.mem.backoff[zid] = K.BACKOFF_TICKS
+
     def retire(self, m):
         if m is not None and m not in self.retired:
             self.retired.append(m)
@@ -97,6 +111,7 @@ class Doctrine:
                 del store[zid]
         for edge in [e for e, (_, _, at) in self.mem.doors.items() if now - at >= K.DOOR_DECIDED_S]:
             del self.mem.doors[edge]
+        self.mem.backoff = {zid: n - 1 for zid, n in self.mem.backoff.items() if n > 1}
 
     def _make(self, want, prev):
         return INTENTS[want.kind](self, want, prev)
@@ -104,6 +119,8 @@ class Doctrine:
     def tick(self, inputs):
         sv = self.sv
         sv.need_mark = None
+        sv.mode = None
+        self.ticks += 1
         self._bookkeeping()
         events = []
         for _ in range(MAX_STEPS):
@@ -113,7 +130,18 @@ class Doctrine:
             if self.arbiter.current.end is None:
                 break
         self._bandage_want()
+        self._gait()
         return self._decision(inputs, wants, events, act)
+
+    def _gait(self):
+        """The Avoid's run read as a flee by Survive's sneak gait while the group sees the character (the module
+        docstring)."""
+        it = self.arbiter.current
+        walking = getattr(it, "walking", None)
+        if walking is None or not walking():
+            return
+        if any(situation.aware(e[2]) for e in situation.listed(self.world, self.mem, self.now()) if e[0] <= SNEAK_R):
+            self.sv.mode = "flee"
 
     def _bandage_want(self):
         """A bleed with nothing to dress it marks the want `bandage` (the goal's loot takes one first, P24-AB)."""
@@ -153,7 +181,31 @@ class Doctrine:
             line["resumed_goal"] = resumed_goal[0]
         inputs["doctrine"] = line
         inputs["intent"] = it.label()
+        play = it.play()
+        if play is not None:
+            inputs["play"] = play   # M2: where `tools/trial_score.py`'s `_labels` reads a play
         return Decision(branch, owner, cmd, inputs)
+
+
+def line_switches(rows):
+    """The equal-priority switches the decision lines read (review-t11-doctrine m6): consecutive lines whose
+    `inputs.doctrine.n` differ at the same `p` with no `ended` on the later line; lines carrying no doctrine are
+    skipped. Spec section 8's "must read zero", read off a trial's own log."""
+    out, last = 0, None
+    for r in rows:
+        d = ((r or {}).get("inputs") or {}).get("doctrine")
+        if not isinstance(d, dict):
+            continue
+        if last is not None and d.get("n") != last.get("n") and d.get("p") == last.get("p") and not d.get("ended"):
+            out += 1
+        last = d
+    return out
+
+
+def prepare(survive):
+    """The Doctrine made before the Survive's first tick, so that tick's `_read` runs with the ladder's door read off
+    too (review-t11-doctrine m3); returns it. A trial driver calls it after building a `control="doctrine"` Survive."""
+    return doctrine_of(survive)
 
 
 def doctrine_of(survive):
@@ -169,4 +221,4 @@ def assess(survive, inputs):
     return doctrine_of(survive).tick(inputs)
 
 
-__all__ = ["assess", "Doctrine", "doctrine_of", "MAX_STEPS"]
+__all__ = ["assess", "Doctrine", "doctrine_of", "prepare", "line_switches", "MAX_STEPS"]

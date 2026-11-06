@@ -17,7 +17,10 @@ hand-over: a Strike's melee kept by the Fight that follows it). Its rules:
    another target (a second Fight, a nearer zombie) waits for the running intent's end.
 
 `equal_switches` counts the ticks on which an intent that had not ended was replaced by one of the same priority; by
-rule 3 it reads zero, and the replay test reads it over two rings. The tick's event (`step`'s answer) is
+rule 3 it reads zero by construction (it guards the rule against a mutation, it measures nothing). The measured reading
+is the decision line's (`assess.line_switches`, review-t11-doctrine m6): each intent the arbiter starts takes a serial
+(`Intent.n`, on `inputs.doctrine.n`), and a line whose serial differs from the line before's at the same `p` with no
+`ended` on it is a switch. The tick's event (`step`'s answer) is
 `{preempted_by, resumed, ended}`: `preempted_by` `{was, p}` names the intent this tick's pre-empted (the line's own
 intent the one that pre-empted it), `resumed` True on the tick the slot's intent came back, `ended` `{intent, p, end,
 why}` of an intent that ended this tick."""
@@ -32,6 +35,7 @@ class Arbiter:
         self.current = None        # the running intent
         self.slot = None           # the one-deep resume slot: the intent a higher one pre-empted
         self.equal_switches = 0    # rule 3's count, zero by construction
+        self.made = 0              # the intents started: each one's serial (`Intent.n`)
         self.ends = []             # (kind, p, end, why) of every intent that ended, in order (bounded by the caller)
 
     @staticmethod
@@ -60,6 +64,9 @@ class Arbiter:
                 else:
                     self._set(slot, ended=True)
                     slot.resume()
+                    adopt = getattr(slot, "adopt", None)
+                    if adopt is not None:
+                        adopt(prev)   # m2: the ended intent's melee handed over or retired, never orphaned
                     ev["resumed"] = True
                     return ev
             self._set(make(top, prev), ended=True)
@@ -75,4 +82,7 @@ class Arbiter:
         """`new` the running intent; an unended predecessor of the same priority counts in `equal_switches`."""
         if was is not None and not ended and new.p == was.p:
             self.equal_switches += 1
+        if getattr(new, "n", None) is None:
+            self.made += 1
+            new.n = self.made
         self.current = new

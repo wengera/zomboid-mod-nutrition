@@ -2,7 +2,19 @@
 
 `Survive(control="doctrine")` (the fork, `planner/control.py`). The design is the union of two proposals in Plan 30's
 workspace: `rebuild-proposal-intent-machine.md` (the arbiter) and `rebuild-proposal-combat-doctrine.md` (the plays and
-the bound on "fight everything"). The spec's section 3, D bullet, is the contract.
+the bound on "fight everything"). The spec's section 3, D bullet, is the contract. Fix round 1 applied the review
+`review-t11-doctrine.md` and the controller's ruling on the refuge (M5).
+
+**Runtime dependencies:**
+
+- Task 8 fix 1, `9250f149` (`care.DRESS_RETRY_S` and `care.dress_material`, read on every tick that holds a failed
+  Dress's hold).
+- Task 2's meet, `4d646a0a`, optionally: the melee's API is read off the tree (`intents.MEET`), today's PZA/1.9 melee
+  otherwise.
+
+**The first tick (m3).** The fork makes no call at construction, so the doctrine turns the ladder's P30-C door read off
+on its Survive (`DOOR_HELD = False`, an instance attribute) on its first `assess`, after that tick's `_read` has run
+once. A caller that builds the Survive calls `doctrine.prepare(survive)` first to close that tick too.
 
 ## What it decides and how
 
@@ -11,16 +23,35 @@ six hard priorities, top down. The arbiter (`arbiter.py`) then picks one:
 
 | P | Want (`situation.py`) | Intent (`intents.py`) |
 |---|---|---|
-| 0 | A standing zombie within the strike radius (the frame's `weapon.reach` + 0.35, or 1.1 bare-handed), or `me.attackers` > 0. | **Strike**: one melee press, then back to the slot. |
+| 0 | A standing zombie within the strike radius (the frame's `weapon.reach` + 0.35, or 1.1 bare-handed), or `me.attackers` > 0; none whose melee backed off within BACKOFF_TICKS. | **Strike**: one melee press, then back to the slot. |
 | 1 | A bleeding, unbandaged part. No standing zombie within KEEP_R. Something held or worn to dress it with. | **Dress**: `maneuvers.Dress`. It stops, tears worn cotton if nothing is held, and bandages. |
-| 2 | Three or more standing aware zombies within GROUP_R, not strung out. Or two unarmed. | **Avoid**: a run to a refuge chosen once, then the stance there. |
-| 3 | The nearest standing aware zombie within ENGAGE_R: one or two of them, or the lead of a strung-out three. Else a fallen zombie within 3 tiles with none standing there. | **Fight**: the melee to the kill, and the finish. |
-| 4 | A zombie behind a door or a window within 4 tiles. | **Door**: decided once. Stance and open with two or fewer behind, else leave. |
-| 5 | Always. | **Order**: the needs, then the goal runner's loot, travel and stock. |
+| 2 | Three or more standing aware zombies within GROUP_R, not strung out, or two unarmed, with a named refuge within REFUGE_R. | **Avoid**: a run to the refuge chosen once, then the stance there for AVOID_HOLD_S. |
+| 3 | The nearest standing aware zombie within ENGAGE_R: one or two of them, the lead of a strung-out three, or the lead of a group with no refuge (the stand). Else a fallen zombie within 3 tiles with none standing there. | **Fight**: the melee to the kill, and the finish. |
+| 4 | A zombie behind a door or a window within 4 tiles. | **Door**: decided once, ended within two DOOR_WAIT_S of the open. |
+| 5 | Always. | **Order**: the care's other steps in the lull, the needs, then the goal runner's loot, travel and stock. |
 
 Every want except P4's excludes a zombie behind a door, a window or a wall the map reads, because the hit list drops
 such a target (#4681). "Aware" is `hasTarget` or `known`. Health is read by no want, so a lone zombie in reach is fought
 whatever the health (memory `stand-and-fight-dress-first`).
+
+A lone zombie that is not aware gets no Fight. It is struck only inside the strike radius, and the order walks past it
+at the sneak gait. That is a choice (sneak past the unaware, memory `intent-doors-sneak`), not Angus's rule (1) read
+literally ("a standing zombie within DANGER_R"); the trials will show whether it costs a bite.
+
+**The refuge (the controller's ruling on M5).** An Avoid's refuge is a named structure within REFUGE_R, never open
+ground:
+
+- the building itself, on a room square with the group outside it;
+- the building's way out with the group inside (`policies.exit_plan`): an opening, a door, or a window (on a build
+  announcing `window`, its inside square then `Window` with its `smash`);
+- outdoors, the nearest safe, unlocked exterior door, its post inside;
+- a fence line with the whole group on one side of it: the square across it, its walk climbing the fence on its stuck
+  end (`night.hop_after`).
+
+With none, the Avoid is not taken. The character takes the stand: the best ground where it stands (`situation.ground`:
+the nearest square within GROUND_R with a wall or a fence at its back, else its own square), reached by the stance's
+walk facing the lead. It fights the arrivals one at a time, the lead alone, as a string would. The open-ground leg
+(`avoid_open`) is gone.
 
 An intent ends in one of three ways:
 
@@ -32,26 +63,36 @@ Nothing of equal or lower priority interrupts. A second Fight's want waits for t
 same priority with another target does nothing.
 
 A pre-empted intent waits in a one-deep resume slot. It comes back when the pre-empting intent ends, unless it ended by
-its own test meanwhile or a higher want is up. The goal layer gets the same rule through `source.Resume`: a goal the
-runner closed as `superseded` is proposed again on the next ask, up to RESUME_MAX times (a Rest never). So a Loot
-resumes after a Strike. A Strike's live melee is handed to the Fight that follows it at the same zombie.
+its own test meanwhile or a higher want is up. The ended intent's running melee is handed to it when its zombie is the
+slot's, else retired so its late kills are still read (m2).
+
+The goal layer gets the same rule through `source.Resume`: a goal the runner closed as `superseded` is proposed again on
+the next ask, up to RESUME_MAX times (a Rest never). So a Loot resumes after a Strike. A Strike's live melee is handed
+to the Fight that follows it at the same zombie.
 
 The intents, each with its tests:
 
-- **Strike**: `done` on its one press (`press`: today's melee's span, or the meet's new press leaf), `kill`, `gone`
-  or `out` (beyond MELEE_RELEASE_R), or the melee's other ends. `failed` on
-  `not loaded`, `bad args` or `unknown type`. Under arm pain over 10 (#4370) the press is in `shove` mode.
+- **Strike**:
+  - `done` on its one press (`press`: today's melee's span, or the meet's new press leaf), `kill`, `gone` or `out`
+    (beyond MELEE_RELEASE_R), or the melee's other ends.
+  - `failed` on a backed-off end or a rejection (Major 2). The ends are `dispatch.BACKOFF_ENDS` (`interrupted`,
+    `timeout`, `no target`) and `no weapon`, and none is sent at that zombie for BACKOFF_TICKS. `failed` too on `not
+    loaded`, `bad args` or `unknown type`.
+  - Under arm pain over 10 (#4370) the press is in `shove` mode.
 - **Fight**:
   - Within MELEE_RELEASE_R, or at a fallen zombie, it sends the melee. The mode is `strike`, `shove` (unarmed or
-    spent) or `finish`.
+    spent) or `finish`. A melee that backed off is not re-sent for BACKOFF_TICKS (`wait`), and each such end counts
+    toward the dud.
   - Farther out:
+    - A stand (no refuge for a group) first walks the stance to its ground.
     - A pair arriving within STRING_GAP of each other is strung: the stance backpedals on one heading, chosen once.
     - A chaser is met standing in the stance ("let it come").
     - An idle, aware zombie is closed on.
+  - A stand whose chaser has not closed for STALL_S turns to the close, the stance's approach (M1). A close whose
+    distance does not fall for STALL_S fails `stall`. The string is never a stall: keeping its gap is the play working.
   - `done` when none of its zombies is left (`kill` or `gone`).
-  - `failed dud` after DUD_N strikes that lowered nothing, or on the meet's own stall (`lost` `no progress`).
-    `failed stall` when the pin's distance has not fallen for
-    STALL_S. Either way the pin is skipped for SKIP_S, but still struck at P0.
+  - `failed dud` after DUD_N strikes that lowered nothing, backed-off ends included, or on the meet's own stall
+    (`lost` `no progress`). Either way the pin is skipped for SKIP_S, but still struck at P0.
 - **Dress**:
   - It rides the pre-empted intent's walk for a part above the legs.
   - `done` when the part reads not bleeding.
@@ -59,31 +100,43 @@ The intents, each with its tests:
     garment is added, or `care.DRESS_RETRY_S` passes.
   - `failed zombie near` when a standing zombie comes within KEEP_R. There is no hold then: the fight takes it.
 - **Avoid**:
-  - It runs to the refuge, never a sprint. The refuge is one of:
-    - the building itself, on a room square with the group outside;
-    - the building's way out (`policies.exit_plan`), with the group inside;
-    - the nearest safe unlocked exterior door within 25 tiles, its post inside;
-    - the farthest open square along the clear headings off the away vector.
+  - It runs to the refuge, never a sprint. A window refuge's run ends in its climb (`Window`). A fence's walk climbs
+    the fence where it sticks (`Climb`).
   - It re-routes only when the route fails (stuck, no path, no square, a timeout, or a stall), up to ROUTE_TRIES times.
   - At the refuge it holds the stance facing the nearest: one leg, never a second.
   - `done clear` with no aware zombie within GROUP_CLEAR_R. `done thinned` with two or fewer, armed: the Fight takes
     them.
+  - `done held` after AVOID_HOLD_S of the hold (M6). P2 is then held off AVOID_RETRY_S, so the Fight at the refuge (the
+    doorway stand) takes the nearest.
   - `failed no refuge` or `failed route` holds P2 off for AVOID_RETRY_S. Meanwhile P3 fights the nearest whatever the
     count: the stance, never a leg.
-  - The sneak once out of sight is Survive's gait (`sneak.py`). A walk with no zombie near chasing goes crouched.
-- **Door**:
-  - `stance_open` runs the stance's leg to the door's post (`door_held.door_post`), then `Interact open`, then the
-    stance facing the zombie (`meet`).
+  - **The gait (m5).** While a zombie of the group within SNEAK_R is aware (`hasTarget` or `known`), the doctrine sets
+    `Survive.mode` to "flee" for the tick. Survive's sneak gait then keeps the run upright, which stands a sneaking
+    character up first. Once out of sight, a walk with no zombie near aware goes crouched.
+- **Door** (Major 1: it never holds the stance indefinitely):
+  - `stance_open` runs the stance's leg to the door's post (`door_held.door_post`), then `Interact open`.
+  - Once the door reads open, the stance faces the zombie for DOOR_WAIT_S (`meet`). After that:
+    - with two or fewer across, the stance walks to the threshold and presses the melee at it, as long again
+      (`through`);
+    - with more across, it re-routes: `done reroute`, the door left and marked held.
+  - After the fight through the doorway it ends `done left`, the door left. An open never reached in three
+    DOOR_WAIT_S ends `done stuck`.
   - `leave` does three things in one tick, then ends `done leave`, and the same tick goes to the order. It marks the
     door held. It ends the running goal whose way goes through the portal. It hands the portal to the goal runner
     (`door_left`).
   - `done crossed` or `done gone`. `failed open <reason>` leaves the door.
   - A decision is not taken again for the same zombies within DOOR_DECIDED_S.
 - **Order**:
-  - It runs Survive's own `_need`, `_load`, `_night`, `_care_stock` and `_goal`, in that order. A command still
-    cooling (`Survive._cooling`) is passed over.
+  - It runs Survive's own steps in the ladder's order, a command still cooling (`Survive._cooling`) passed over:
+    - In the lull (no listed zombie within DANGER_R, no part bleeding), `_care` runs the care's other steps (Major 3,
+      labelled `dress` for a bandage, else `stock`): the spent dressing's replace (P27-D, P27-K3), the wound's dressing
+      on a part not bleeding (P28-A) and the dirty rag's wash. The bleeding step stays P1's Dress.
+    - Then `_need`, `_load`, `_night`, `_care_stock` (the rag stock and the wear) and `_goal`.
   - While a LootBuilding runs, it prefetches the model's next order (`source.Resume.prefetch`, every PREFETCH_S, only
-    for the `llm` source).
+    for a source whose class is `LLMSource`). The held answer is checked again against the view at hand-over
+    (`llm.place_error`) and dropped on a refusal (M3).
+  - The wrapper's `NAME` is the inner source's own at each read (M4), so a stand-in is never credited to the model,
+    and P30-B's hop never extends a scripted goal.
   - It never ends by itself.
 
 ## What it drops of the ladder, and why
@@ -104,9 +157,10 @@ so none of the following run:
 - **`hold.py`** (the strain and endurance holds) and **`still.py`** (P30-E):
   - They stood the character while zombies closed (memory `intent-doors-sneak`).
   - The doctrine's Fight never stands for a hold. Spent means the shove mode, not a stop.
-- **`care_yield.py`** (the threat's yields to the care) and **`_care`'s bleeding step**:
+- **`care_yield.py`** (the threat's yields to the care) and **the care branch's bleeding step**:
   - The yields are what made the nine unwears go out under a moving flee leg (`moving`, F15).
-  - P1 replaces them with one Dress that stops first, ahead of every priority but P0.
+  - P1 replaces them with one Dress that stops first, ahead of every priority but P0. The care's other steps run in
+    the Order's lull (above).
 - **`pull.py`** and **`engage.py`** (the seek):
   - Replaced by P3: one or two aware zombies within ENGAGE_R are fought.
   - A chaser is met in the stance rather than pulled or sought.
@@ -114,10 +168,11 @@ so none of the following run:
   `shove.py`'s corner reads; `finish.py`'s flee finish; `doorway.py`'s stand ends; and `dispatch.py`'s dispatch point,
   `_melee_mode` and `_melee_dispatch`, `dispatch.py:181` and `dispatch.py:211`):
   - They re-decided the physical sequence every tick: 19 of F15's 26 melees ended `failed superseded`.
-  - The doctrine's Fight sends the melee and lets it run to its own end.
+  - The doctrine's Fight sends the melee and lets it run to its own end. It keeps the ladder's back-off
+    (`dispatch.BACKOFF_ENDS`).
 - **`door_held.py`'s read in `_read`** is turned off on the doctrine's Survive instance (`DOOR_HELD = False`, an
-  instance attribute, never the class). Its leave would mark the zombies and end goals before the doctrine decides.
-  The Door intent reuses its geometry (`portal_between`, `door_post`, `meets_portal`).
+  instance attribute, never the class; `prepare` for the first tick). Its leave would mark the zombies and end goals
+  before the doctrine decides. The Door intent reuses its geometry (`portal_between`, `door_post`, `meets_portal`).
 
 It keeps, read or called unedited:
 
@@ -125,9 +180,20 @@ It keeps, read or called unedited:
 - the Lua skills and the melee reflex;
 - `maneuvers.Melee` and `maneuvers.Dress`;
 - the goal runner and the model;
-- the water chain, the night and the rag stock (through the Order);
-- `policies.exit_plan`, `night.exterior_doors`, `door_held.py`'s geometry and `edges.same_side`;
+- the care's non-bleeding steps, the water chain, the night and the rag stock (through the Order);
+- `policies.exit_plan`, `night.exterior_doors`, `night.hop_after`, `door_held.py`'s geometry and `edges.same_side` and
+  `side_of`;
 - the sneak gait (`Survive._apply`).
+
+The `_read`-side rules that still run under the variant (the review's item 5) are listed below. None overrides a
+doctrine decision but the sneak posture, which is the inherited gait.
+
+- `_note_failures`;
+- the goal runner's observe (P27-F's stuck leave, P29-B's stall);
+- `_check_consumes` and `water.check`;
+- `_threat_read`'s bookkeeping. Its `_read_spent` lays the ladder's `spent` hold on the model's view, which the doctrine
+  does not keep: a trial observation;
+- the Care's and the Night's observes.
 
 ## The constants and their sources
 
@@ -147,17 +213,21 @@ It keeps, read or called unedited:
 | DOWNED_R | 3.0 | FINISH_CLEAR_R. |
 | DUD_N | 6 | Twice STALL_SWINGS. A first guess. |
 | SKIP_S | 20.0 | UNREACHABLE_S. |
+| BACKOFF_TICKS | 10 | MELEE_BACKOFF_TICKS, the ladder's back-off (review-t7b m2). |
 | DRESS_CLEAR_R | 2.5 | KEEP_R, the Dress maneuver's own `superseded` radius. |
-| REFUGE_R | 25.0 | SHELTER_FLEE_R. |
-| OPEN_REACHES | 12, 9, 6 | A first guess. |
+| REFUGE_R | 25.0 | SHELTER_FLEE_R; the refuge a named structure (the controller's ruling on M5). |
+| GROUND_R | 2.0 | The controller's ruling on M5 ("a wall or fence at its back if one is within two tiles"). |
+| AVOID_HOLD_S | 10.0 | A first guess (M6). |
 | AVOID_RETRY_S | 20.0 | A first guess. |
 | ROUTE_TRIES | 2 | A first guess. |
 | DOOR_R | 4.0 | P30-C's DOOR_HELD_R. |
 | DOOR_OPEN_MAX | 2 | The task's amendments. |
+| DOOR_WAIT_S | 6.0 | STALL_S; a first guess (Major 1). |
 | DOOR_DECIDED_S | 60.0 | A first guess. |
 | RESUME_MAX | 3 | A first guess. |
 | PREFETCH_S | 2.0 | A first guess. |
 | CLOSE_WALK_R | 5.0 | In `intents.py`. A first guess. |
+| GROUND_DONE_R | 0.6 | In `intents.py`. A first guess. |
 
 None of them asserts an engine mechanism without a row.
 
@@ -166,55 +236,60 @@ None of them asserts an engine mechanism without a row.
 The fork's contract holds:
 
 - `branch` is `threat` on a strike, fight, avoid or door tick, `care` on a dress tick, and the ladder step's own name on
-  an order tick (`need`, `load`, `night`, `care`, `goal`).
+  an order tick (`care`, `need`, `load`, `night`, `goal`).
 - `inputs.x` and `inputs.y` are as the ladder writes them.
 - `inputs.branches.<branch>` holds the act's why. A kill read this tick is on `branches.threat.kill`. The goal
-  runner's stuck mark and stall are on `branches.goal`, as the ladder puts them.
-- While an Avoid walks, `inputs.branches.threat.flee` reads `group`.
+  runner's stuck mark and stall are on `branches.goal`, as the ladder puts them. `branches.care.lull` is false on an
+  order tick outside the lull.
+- While an Avoid walks or climbs, `inputs.branches.threat.flee` reads `group`.
 
 The doctrine's own keys:
 
-- `inputs.doctrine` = `{intent, p, why, state, target, preempted_by, resumed, ended, slot, wants}`, plus
-  `step` (the order's label) and `resumed_goal` (the goal type the source resumed this tick).
+- `inputs.doctrine` = `{intent, p, why, state, target, n, preempted_by, resumed, ended, slot, wants}`, plus `step`
+  (the order's label) and `resumed_goal` (the goal type the source resumed this tick).
+  - `n` is the intent's serial.
   - `preempted_by` is `{was, p}`, the intent this line's intent pre-empted.
   - `resumed` is true on the tick the slot came back.
   - `ended` is `{intent, p, end, why}` of an intent that ended this tick, or a list of them if more than one ended.
   - `wants` is the priorities that read true this tick.
-- `inputs.intent` = `{kind, target[, play]}` is the scorecard's label (`tools/trial_score.py`). Its `target` is a zombie
-  id or a square `[x, y]`.
+- `inputs.intent` = `{kind, target}` is the scorecard's label (`tools/trial_score.py`). Its `target` is a zombie id or
+  a square `[x, y]`.
+- `inputs.play` = `{kind: "string", target}` while a Fight strings a pair (M2), where the scorecard's `_labels` reads a
+  play.
+- **Equal-priority switches (m6).** The arbiter's own count is zero by construction. The measured reading is
+  `doctrine.line_switches(lines)`: a line whose `n` differs from the line before's at the same `p` with no `ended`.
 
 ## The label contract for the scorecard
 
 | Intent | `inputs.intent.kind` | Target | Scored as |
 |---|---|---|---|
 | Strike | `strike` | the zombie id | |
-| Fight | `fight` | the pin's id | `play: "string"` while it strings a pair: a retreat label, so the backpedal counts as fleeing |
+| Fight | `fight` | the pin's id | with `inputs.play` `string` while it strings a pair: a retreat, so the backpedal counts as fleeing |
 | Dress | `dress` | none (a part is no place) | |
-| Avoid, walking | `avoid_refuge` (a building's door or way out, or the building itself) or `avoid_open` (open ground) | the refuge square | a retreat; `avoid_refuge` also names a refuge |
-| Avoid, holding | `filter_door` at a door, way out or inside; `fight_hold` in the open | the refuge square | |
+| Avoid, walking or climbing | `avoid_refuge` | the refuge square | a retreat that names a refuge |
+| Avoid, holding | `filter_door` (a door, a way out, the building), `filter_window` or `filter_fence` | the refuge square | names a refuge; the last two print `?` in the scorecard's histogram |
 | Door | `filter_door` for stance and open; `door_leave` for leave | the door square | |
-| Order | `needs`, `rest`, `stock`, `loot` or `travel` | the goal's walk target where it has one | On goal lines the scorecard also reads the goal's own args, as for the ladder. |
+| Order | `dress` or `stock` (the lull's care), `needs`, `rest`, `stock`, `loot` or `travel` | the goal's walk target where it has one | On goal lines the scorecard also reads the goal's own args, as for the ladder. |
 
 ## What it still needs from the harness, and the risks a trial row will show
 
 - **Task 2's meet (PZA/1.10).**
-  - The Strike and the Fight press through one call site, `intents.melee_command`. It builds its inputs with
-    `intents.melee_inputs`, which reads which `Melee` API the tree carries: the guard is `intents.MEET`, true when
-    `MeleeInputs` has no `back` field.
+  - The Strike, the Fight and the Door's fight through the doorway press through one call site,
+    `intents.melee_command`. It builds its inputs with `intents.melee_inputs`, which reads which `Melee` API the tree
+    carries: the guard is `intents.MEET`, true when `MeleeInputs` has no `back` field.
     - On Task 2's meet: `MeleeInputs(mode, reach, floor_swing)`. There is no back step, no swing close and no time
       end in the API at all.
     - On today's PZA/1.9 melee: `MeleeInputs(mode, reach, (0, 0), floor_swing, 0)`, with no back step and no swing
       close.
-  - The ends are read one way on either API (`intents.melee_end`):
+  - The ends are read one way on either API (`intents.melee_end`, `intents.melee_backoff`):
     - `kill` (PZA/1.9's `dead`) ends the Strike or Fight on its kill.
     - `handback` (PZA/1.9's `crowd`) re-pins the Fight to the other zombie.
     - `lost` `out of reach` skips the target. `lost` `no progress` is the Fight's `dud`. `lost` `out of range` drops
       the melee, and the Fight closes again.
+    - `interrupted`, `timeout`, `no target`, `no weapon` and any rejection back the zombie off BACKOFF_TICKS.
   - A Strike's one press is read as today's span or as a new press leaf (`d_press`, `d_collide_pred`, `look_off`,
     `hp0`, `hp1`, `knock`, `cut_by`). It is logged through the maneuver's `log()` under the act's `maneuver`.
-  - The tests run on both APIs. One test of the `lost` `no progress` end is skipped where the meet is absent. On a
-    scratch copy of Task 2's tree (4d646a0a, without Task 8's fix 1), the whole file passes except two dress-hold tests
-    that need `care.DRESS_RETRY_S`, which main has.
+  - The tests run on both APIs. One test of the `lost` `no progress` end is skipped where the meet is absent.
   - Until the meet boots, the first trials' hits per kill are provisional. Commitment amplifies a bad swing: the
     doctrine fights every lone zombie to its end, and F15's 22 swings killed nothing (#4649).
 - **The string.**
@@ -223,16 +298,18 @@ The doctrine's own keys:
   - Its gap rests on one session's zombie speed.
 - **A coarse P2.**
   - Three strung-out zombies are fought one at a time only when the lead is STRING_GAP ahead of the second.
-  - A group whose arrivals are 2 to 3 tiles apart is avoided.
-- **Avoid in the woods.**
-  - With no known building near, the refuge is open ground, labelled `avoid_open`. That is the old flee leg under a new
-    name. It ends in the stance, never a second leg.
-  - The trial row's `min fleeing`, with its `(away N)` cell, will show how much time it takes.
-- **A chaser that never closes.** One held behind a fence or an edge the map does not read is met standing for
-  STALL_S, then left for SKIP_S, and the goal walks meanwhile. That can show as the walk-pause-walk Angus ruled out
-  (memory `intent-doors-sneak`), bounded at one stall per SKIP_S per zombie.
-- **Windows as ways out.** The Avoid's exit is a walk only (`exit_plan`'s `walk` step). A window's climb is the ladder
-  Flee's and is not used.
+  - A group whose arrivals are 2 to 3 tiles apart is avoided toward a refuge, else stood against, the lead first.
+- **The stand.**
+  - On both recorded rings no door refuge was open to the character (the review's `refuge_probe.py`).
+  - F15's two group lines are stands. E23's six are one stand and five Avoids, every one across a fence line.
+  - A stand against three arriving together at a wall is the drag-down's ground (#4290), so the trials watch the
+    attackers count under it.
+- **Windows as ways out.** A window is the Avoid's way out only from inside a building (`exit_plan`'s window step).
+  From outside, a building's window is never a refuge; its door is.
+- **The trial observations (no fix before the trials):**
+  - **T1, the dress against a chaser beyond 2.5 tiles.** P1 pre-empts the Fight's stand whenever the chaser is beyond
+    DRESS_CLEAR_R, and the Dress's stop drops the stance. Watch `dressed <1 min` and the wounds taken during a Dress.
+  - **T2, the window exit and the unaware lone zombie**, as above.
 - **No Lua change of its own.** The variant asks nothing of the Lua or the schema beyond Task 2's meet: the look
   angle, the timed press and the finish aimed at the fallen zombie's head (J1) are the reflex's. On a PZA/1.9 build
   the floor swing goes where that reflex points it.

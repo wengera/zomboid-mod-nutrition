@@ -1,24 +1,32 @@
 """The doctrine's read of the situation (Plan 31 Task 11, the variant D): `read(world, mem, now)`, the wants of the six
-priorities top down, each a `Want(p, kind, target, why, ids)`, pure over the World and the doctrine's own memory (no
-send, no Survive): the arbiter takes the first, and the replay test reads it at the recorded situations.
+priorities top down, each a `Want(p, kind, target, why, ids)`, read over the World and the doctrine's own memory (no
+send, no Survive): the arbiter takes the first, and the replay test reads it at the recorded situations. It is pure but
+for two writes to the memory: `mem.bandage_want` (this read's: a bleed with nothing to dress it) and a lifted dress
+hold cleared (`dress_held`).
 
 The six (the spec's section 3, D; the README's table the record):
 - P0 `strike`: the nearest standing zombie within the strike radius (the frame's `weapon.reach` plus STRIKE_MARGIN, the
   bare hands' UNARMED_REACH unarmed), or with `me.attackers` > 0 the nearest standing one; never one behind a door or a
   window (`door_held.portal_between`) nor one whose straight line the map reads blocked (`policies.line_to` False: a
   wall between), since the hit list drops a target across a blocked line or a closed door (#4681). The same two
-  exclusions hold for every want below but the door's: a zombie behind a wall is no one's until it comes round.
+  exclusions hold for every want below but the door's: a zombie behind a wall is no one's until it comes round. A
+  zombie whose melee backed off (`mem.backoff`: an `interrupted`, `timeout`, `no target` or `no weapon` end, or a
+  rejection) is struck again only after BACKOFF_TICKS.
 - P1 `dress`: the worst bleeding unbandaged part (deep first, then the longest bleeding time), with no standing zombie
   within DRESS_CLEAR_R, something held or worn to dress it with (`care.dress_pick`: a dressing, else a cotton garment to
   rip or take off) and no failed Dress's hold standing (`dress_held`: until a dressing or a garment is added or
   `care.DRESS_RETRY_S` pass); a bleed with nothing to dress it reads `bandage_want` (the goal's loot then takes one).
 - P2 `avoid`: GROUP_N or more standing aware zombies (`aware`: `hasTarget` or `known`) within GROUP_R, not strung out
-  (the nearest leading the second by STRING_GAP or more is fought instead), or two or more unarmed; the refuge chosen
-  with it (`refuge`); none while a failed Avoid's hold stands (`mem.avoid_until`).
+  (the nearest leading the second by STRING_GAP or more is fought instead), or two or more unarmed, with a named
+  refuge (`refuge`: a building, its way out, a door, a fence line; never open ground, the controller's ruling on
+  review-t11-doctrine M5); none while a failed Avoid's hold stands (`mem.avoid_until`). With no refuge the Avoid is
+  not taken: the stand is (P3's, below).
 - P3 `fight`: the nearest standing aware zombie within ENGAGE_R that no Fight failed on (`mem.skip`) and none behind a
   portal, when the group rule does not hold (or a failed Avoid's hold stands: the stance against any count); its
   `ids` the one or two the Fight owns (the lead alone when strung out); else a fallen zombie within DOWNED_R with no
-  standing one within it (the finish).
+  standing one within it (the finish). A group with no refuge is the stand: the lead alone, `why.stand` true, and
+  `why.ground` the square with a wall or a fence at its back within GROUND_R (`ground`), else none (the character's
+  own square): the arrivals fought one at a time where the character stands.
 - P4 `door`: the zombies within DOOR_R whose straight line meets a door or a window first (`portal_between`), grouped
   by that portal, the nearest group's portal decided once (`stance_open` for a door with DOOR_OPEN_MAX or fewer behind,
   armed, on a build announcing `interact` and `aim`; else `leave`), unless the same decision for the same zombies was
@@ -33,10 +41,10 @@ import math
 from agent.base.planner import care as C
 from agent.base.planner.doctrine import constants as K
 from agent.base.planner.door_held import door_post, portal_between
+from agent.base.planner.edges import _across, side_of
 from agent.base.planner.night import approach_square, exterior_doors
-from agent.base.planner.policies import (STEER_TURNS, WIDE_TURNS, away_vector, centre, clear_heading,
-                                         exit_plan, in_building, in_corridor, line_to, on_floor, on_room,
-                                         stand_post, target_id_ok, zdist)
+from agent.base.planner.policies import (away_vector, centre, exit_plan, in_building, in_corridor, line_to, on_floor,
+                                         on_room, stand_post, target_id_ok, zdist)
 from agent.base.world import me_floor, me_xy
 
 
@@ -61,13 +69,8 @@ class Memory:
     doors: dict = dataclasses.field(default_factory=dict)
     dress_hold: object = None
     avoid_until: float = -math.inf
+    backoff: dict = dataclasses.field(default_factory=dict)   # zombie id -> doctrine ticks its melee waits
     bandage_want: bool = False   # this read: a bleeding part with nothing to dress it
-
-
-def rotate(v, deg):
-    """Vector `v` turned by `deg` degrees (counter-clockwise in the world's x-east, y-south axes)."""
-    c, s = math.cos(math.radians(deg)), math.sin(math.radians(deg))
-    return v[0] * c - v[1] * s, v[0] * s + v[1] * c
 
 
 def aware(z):
@@ -137,13 +140,14 @@ def portals(world, near):
 
 
 def read(world, mem, now):
-    """The wants of the six priorities this tick, top down (the module docstring); the last is always the order."""
+    """The wants of the six priorities this tick, top down (the module docstring); the last is always the order. It
+    writes `mem.bandage_want` and may clear a lifted dress hold, nothing else."""
     near = listed(world, mem, now)
     behind = portals(world, near)
     free = [e for e in near if e[1] not in behind and line_to(world, e[2]) is not False]
     upright = [e for e in free if not on_floor(e[2])]
     wants = []
-    s = _strike(world, upright)
+    s = _strike(world, mem, upright)
     if s is not None:
         wants.append(s)
     d = _dress(world, mem, now, upright)
@@ -154,11 +158,16 @@ def read(world, mem, now):
     armed = world.weapon is not None
     is_group = (len(group) >= K.GROUP_N and not strung) or (not armed and len(group) >= 2)
     held = mem.avoid_until > now
+    stand = None
     if is_group and not held:
         zs = [z for _, _, z in group]
-        wants.append(Want(K.P_AVOID, "avoid", refuge(world, zs), {"n": len(group), "nearest": group[0][0]},
-                          tuple(e[1] for e in group)))
-    f = _fight(world, mem, now, free, upright, strung, is_group and not held)
+        ref = refuge(world, zs)
+        if ref is not None:
+            wants.append(Want(K.P_AVOID, "avoid", ref, {"n": len(group), "nearest": group[0][0]},
+                              tuple(e[1] for e in group)))
+        else:
+            stand = zs   # no named refuge: the stand where the character is (the controller's ruling on M5)
+    f = _fight(world, mem, now, free, upright, strung, is_group and not held and stand is None, stand)
     if f is not None:
         wants.append(f)
     door = _door(world, mem, now, near, behind)
@@ -168,8 +177,9 @@ def read(world, mem, now):
     return wants
 
 
-def _strike(world, upright):
+def _strike(world, mem, upright):
     r = strike_r(world)
+    upright = [e for e in upright if not mem.backoff.get(e[1])]
     attackers = (world.me or {}).get("attackers") or 0
     inside = [e for e in upright if e[0] <= r]
     if not inside and attackers > 0 and upright:
@@ -197,14 +207,19 @@ def _dress(world, mem, now, upright):
                                              "deep": p.get("deep") is True})
 
 
-def _fight(world, mem, now, free, upright, strung, is_group):
+def _fight(world, mem, now, free, upright, strung, is_group, stand=None):
     if is_group:
         return None
     able = [e for e in upright if aware(e[2]) and e[0] <= K.ENGAGE_R and target_id_ok(e[1])
             and mem.skip.get(e[1], -math.inf) <= now]
     if able:
-        ids = (able[0][1],) if strung else tuple(e[1] for e in able[:2])
-        return Want(K.P_FIGHT, "fight", able[0][1], {"d": able[0][0], "n": len(able), "strung": strung}, ids)
+        lead = strung or stand is not None
+        ids = (able[0][1],) if lead else tuple(e[1] for e in able[:2])
+        why = {"d": able[0][0], "n": len(able), "strung": strung}
+        if stand is not None:
+            g = ground(world, stand)
+            why.update(stand=True, ground=None if g is None else [g[0], g[1], g[2]])
+        return Want(K.P_FIGHT, "fight", able[0][1], why, ids)
     if any(e[0] <= K.DOWNED_R for e in upright):
         return None
     downed = [e for e in free if on_floor(e[2]) and e[0] <= K.DOWNED_R and target_id_ok(e[1])
@@ -239,20 +254,23 @@ def _door(world, mem, now, near, behind):
 
 # ---------------------------------------------------------------- the refuge
 def refuge(world, group, refused=()):
-    """The Avoid's refuge from the zombies `group`, chosen once (`{kind, square, label, ...}`), else None:
+    """The Avoid's refuge from the zombies `group`, chosen once (`{kind, square, label, ...}`), a named structure
+    within REFUGE_R or None (the controller's ruling on review-t11-doctrine M5: never open ground; with none the stand
+    is taken where the character is):
     - on a room square, with no zombie of the group inside the building: the building itself (`inside`: the stance
-      at the player's own square, the filter of its doors); with one inside, its way out (`policies.exit_plan`: an
-      opening or a closed exterior door, the square beyond it), `exit`;
+      at the player's own square, the filter of its doors); with one inside, its way out (`policies.exit_plan`, the
+      windows among them on a build announcing `window`): an opening or a closed exterior door, the square beyond it
+      (`exit`), or a window, its inside square then the climb (`window`, its square and `smash`);
     - outdoors, the nearest known exterior door within REFUGE_R that is neither locked nor barricaded, whose outside
       square no zombie of the group is nearer than the player and whose straight line from the player passes none
       (`policies.in_corridor`), no listed zombie inside its building: the square past its post inside
       (`policies.stand_post`, else its room square), `door`;
-    - else the open square farthest from the group along the clear headings off the away vector (`open`: the probe
-      OPEN_REACHES tiles along each of STEER_TURNS then WIDE_TURNS off `policies.away_vector`, the first reach whose
-      line `policies.clear_heading` reads clear, its line passing no zombie of the group), the farthest from the nearest
-      of them first.
-    `refused` squares (x, y) are never chosen again (a route that failed). `label` is the scorecard's: `avoid_refuge`
-    for a building's door or way out, `avoid_open` for open ground."""
+    - else a fence line (`fence`): a hoppable edge (`hopN`/`hopW`, `World.memo`'d per map version) with every zombie
+      of the group on one side of its line (`edges.side_of`), the square across it from them (the climb on the walk's
+      stuck end, `night.hop_after`), its centre within REFUGE_R, no zombie of the group nearer it than the player and
+      none in its corridor; the nearest first.
+    `refused` squares (x, y) are never chosen again (a route that failed). `label` is the scorecard's `avoid_refuge`
+    (a refuge word, `tools/trial_score.py` REFUGE_WORDS)."""
     me = me_xy(world)
     if me[0] is None or me[1] is None:
         return None
@@ -262,19 +280,24 @@ def refuge(world, group, refused=()):
         if not any(in_building(world, z, b) for z in group):
             sq = (int(math.floor(me[0])), int(math.floor(me[1])), floor)
             return {"kind": "inside", "square": sq, "label": "avoid_refuge", "building": b}
-        e = exit_plan(world, group, refused={(r[0], r[1], floor) for r in refused})
-        if e is not None and e.get("step") == "walk" and _ok(e["target"], refused):
-            return {"kind": "exit", "square": e["target"], "label": "avoid_refuge", "building": e["building"],
-                    "door": e.get("door")}
-    else:
-        got = _door_refuge(world, group, refused, me, floor)
-        if got is not None:
-            return got
-    return _open_refuge(world, group, refused, me, floor)
+        e = exit_plan(world, group, refused={(r[0], r[1], floor) for r in refused}, windows=world.can("window"))
+        if e is None or not _ok(e["target"], refused):
+            return None
+        if e.get("step") == "window":
+            return {"kind": "window", "square": e["target"], "label": "avoid_refuge", "building": e["building"],
+                    "window": e["window"], "smash": bool(e.get("smash"))}
+        return {"kind": "exit", "square": e["target"], "label": "avoid_refuge", "building": e["building"],
+                "door": e.get("door")}
+    return _door_refuge(world, group, refused, me, floor) or _fence_refuge(world, group, refused, me, floor)
 
 
 def _ok(sq, refused):
     return sq is not None and (sq[0], sq[1]) not in {(r[0], r[1]) for r in refused}
+
+
+def _clear_of(group, me, c, mine):
+    """No zombie of `group` nearer the point `c` than the player (`mine` tiles) nor in the corridor to it."""
+    return not any(math.hypot(z["x"] - c[0], z["y"] - c[1]) < mine or in_corridor(me, c, z) for z in group)
 
 
 def _door_refuge(world, group, refused, me, floor):
@@ -293,9 +316,7 @@ def _door_refuge(world, group, refused, me, floor):
                 continue
             oc = centre(outer)
             mine = math.hypot(oc[0] - me[0], oc[1] - me[1])
-            if mine > K.REFUGE_R:
-                continue
-            if any(math.hypot(z["x"] - oc[0], z["y"] - oc[1]) < mine or in_corridor(me, oc, z) for z in group):
+            if mine > K.REFUGE_R or not _clear_of(group, me, oc, mine):
                 continue
             target = stand_post(world, way, b) or way[0]
             if not _ok(target, refused):
@@ -307,27 +328,71 @@ def _door_refuge(world, group, refused, me, floor):
     return None if best is None else best[1]
 
 
-def _open_refuge(world, group, refused, me, floor):
-    pts = [(z["x"], z["y"]) for z in group]
-    av = away_vector(world, pts)
-    if av is None:
-        return None
+def hop_edges(world, floor):
+    """The hoppable edges `(holder, side)` the map holds on `floor` (a fence's `hopN`/`hopW`), sorted; read once per
+    map version (`World.memo`)."""
+    def edges():
+        return sorted(((sq, side) for sq, rec in world.map.items() if sq[2] == floor
+                       for side in ("N", "W") if rec.get("hop" + side)), key=repr)
+    return world.memo(("doctrine_hops", floor), edges)
+
+
+def _fence_refuge(world, group, refused, me, floor):
     best = None
-    for turn in STEER_TURNS + WIDE_TURNS:
-        v = rotate(av, turn)
-        for r in K.OPEN_REACHES:
-            if not clear_heading(world, v, r):
+    for edge in hop_edges(world, floor):
+        sq, side = edge
+        if abs(sq[0] - me[0]) > K.REFUGE_R + 1 or abs(sq[1] - me[1]) > K.REFUGE_R + 1:
+            continue
+        sides = {side_of(edge, (z["x"], z["y"])) for z in group}
+        if len(sides) != 1:
+            continue
+        theirs = sides.pop()
+        for t in (sq, _across(sq, side)):
+            tc = centre(t)
+            rec = world.map.get(t)
+            if side_of(edge, tc) == theirs or rec is None or rec.get("solid") or rec.get("solidTrans"):
                 continue
-            t = (me[0] + r * v[0], me[1] + r * v[1])
-            sq = (int(math.floor(t[0])), int(math.floor(t[1])), floor)
-            if not _ok(sq, refused) or any(in_corridor(me, t, z) for z in group):
+            mine = math.hypot(tc[0] - me[0], tc[1] - me[1])
+            if mine > K.REFUGE_R or not _ok(t, refused) or not _clear_of(group, me, tc, mine):
                 continue
-            score = min(math.hypot(px - t[0], py - t[1]) for px, py in pts)
-            if best is None or score > best[0] + 1e-9:
-                best = (score, {"kind": "open", "square": sq, "label": "avoid_open", "turn": turn, "reach": r})
-            break
+            rank = (mine, repr(t))
+            if best is None or rank < best[0]:
+                best = (rank, {"kind": "fence", "square": t, "label": "avoid_refuge",
+                               "fence": [sq[0], sq[1], side]})
+    return None if best is None else best[1]
+
+
+# ---------------------------------------------------------------- the stand
+def ground(world, group):
+    """The stand's square (the controller's ruling on review-t11-doctrine M5): the nearest known open square within
+    GROUND_R of the player, its straight line from the player clear, whose step on away from the group (along the
+    larger axis of `policies.away_vector`) the map reads blocked (a wall or a fence at its back, `World.blocked`);
+    else None (the character's own square)."""
+    me = me_xy(world)
+    av = away_vector(world, [(z["x"], z["y"]) for z in group])
+    if av is None or me[0] is None:
+        return None
+    floor = me_floor(world)
+    step = (1 if av[0] > 0 else -1, 0) if abs(av[0]) >= abs(av[1]) else (0, 1 if av[1] > 0 else -1)
+    px, py = int(math.floor(me[0])), int(math.floor(me[1]))
+    reach = int(math.ceil(K.GROUND_R))
+    best = None
+    for dx in range(-reach, reach + 1):
+        for dy in range(-reach, reach + 1):
+            sq = (px + dx, py + dy, floor)
+            c = centre(sq)
+            d = math.hypot(c[0] - me[0], c[1] - me[1])
+            rec = world.map.get(sq)
+            back = (sq[0] + step[0], sq[1] + step[1], floor)
+            if d > K.GROUND_R or rec is None or rec.get("solid") or rec.get("solidTrans") or back not in world.map:
+                continue
+            if not world.blocked(sq, back) or (sq[:2] != (px, py) and not world.line_clear(me, c)):
+                continue
+            rank = (d, sq)
+            if best is None or rank < best:
+                best = rank
     return None if best is None else best[1]
 
 
 __all__ = ["Want", "Memory", "aware", "strike_r", "bleeding_parts", "dress_held", "listed", "portals", "read",
-           "refuge", "rotate"]
+           "refuge", "ground", "hop_edges"]

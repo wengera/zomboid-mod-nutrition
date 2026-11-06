@@ -4,68 +4,85 @@ running one to `observe` its maneuver, `check` its end and `act` (the tick's com
 its maneuver hears of each send).
 
 The contract (`Intent`): `kind`, `p`, `branch` (the decision line's); `check()` -> `(done | failed, why)` or None (its
-own tests, read before it acts); `act()` -> `(branch, owner, command or None, branches)`; `covers(want)` (the want is
-answered by this intent already: no pre-emption); `suspend()` and `resume()` (the slot's); `send(cmd)` (the owner's:
+own tests, read before it acts); `act()` -> `(branch, owner, command or None, branches, cooled)`; `covers(want)` (the
+want is answered by this intent already: no pre-emption); `suspend()`, `resume()` and `adopt(prev)` (the slot's);
+`play()` (the line's `inputs.play`, else None); `send(cmd)` (the owner's:
 the Actions' send, the maneuver told); `line()` (its keys of `inputs.doctrine`) and `label()` (`inputs.intent`, the
 scorecard's label and target).
 
 - `Strike` (P0): one `melee` (the reflex: the stance, the face, the press, the shove, the stomp) at the zombie in
   reach, in the mode `press_mode` reads; `done` on its one press (today's melee closing a span, `Melee.take_span`;
   Task 2's meet reading a new press leaf, `Melee.press`), on its kill or the melee's other ends, or once its target
-  leaves the listing or MELEE_RELEASE_R; `failed` when the build cannot run it (OFF_ENDS).
+  leaves the listing or MELEE_RELEASE_R; `failed` when the build cannot run it (OFF_ENDS), and on a backed-off end or
+  a rejection (`melee_backoff`: the zombie backed off BACKOFF_TICKS, review-t11-doctrine Major 2).
 - `Fight` (P3): the one or two zombies of its want (`ids`), its pin the nearest of them standing (a fallen one with
   none standing: the finish): within MELEE_RELEASE_R or fallen, the melee (`melee_command`, the one call site, on
-  either melee API: `melee_inputs`, `melee_end`); farther, a pair arriving closer together than STRING_GAP is strung (`string`: the stance backpedalling
-  on one heading, chosen once, until the lead is STRING_GAP ahead), a chasing pin is met standing in the stance facing
-  it (`stand`: "let it come"), an idle one is closed on (`close`: the stance's walk, a walk beyond CLOSE_WALK_R). `done`
-  when none of its zombies is left standing or fallen within DISENGAGE_R (`kill` when it read one killed, else `gone`);
-  `failed` after DUD_N strikes in a row that lowered nothing or the meet's own stall (`lost` `no progress`: `dud`),
-  or with the pin's distance not falling for
-  STALL_S while it stands, closes or strings (`stall`), its pin then left for SKIP_S (`Memory.skip`: the Fight's want
-  skips it; the strike at P0 does not). Health is never read.
+  either melee API: `melee_inputs`, `melee_end`), nothing while the pin's melee backs off (`wait`); farther, a stand
+  (a group with no refuge) first walks the stance to its ground (`ground`), a pair arriving closer together than
+  STRING_GAP is strung (`string`: the stance backpedalling on one heading, chosen once), a chasing pin is met standing
+  in the stance facing it (`stand`: "let it come") until it has not closed for STALL_S, then closed on (`close`, M1),
+  an idle one is closed on (the stance's walk, a walk beyond CLOSE_WALK_R). `done` when none of its zombies is left
+  standing or fallen within DISENGAGE_R (`kill` when it read one killed, else `gone`); `failed` after DUD_N strikes in a
+  row that lowered nothing, backed-off ends included, or the meet's own stall (`lost` `no progress`: `dud`), or with
+  the pin's distance not falling for STALL_S while it closes (`stall`; the string keeps its gap by design and never
+  stalls), its pin then left for SKIP_S (`Memory.skip`: the Fight's want skips it; the strike at P0 does not). Health is
+  never read.
 - `Dress` (P1): the `maneuvers.Dress` of the part (stop, tear, bandage; riding the pre-empted intent's walk for a part
   above the legs while that walk runs). `done` once the part reads not bleeding; `failed` with the Dress's own end (its
   hold then keeps P1 off until a dressing or a garment is added or `care.DRESS_RETRY_S` pass), or `zombie near` when a
   standing zombie came within KEEP_R (no hold: the fight takes it and the Dress comes back).
-- `Avoid` (P2): the walk at a run (never a sprint, #4296; memory `no-sprinting`) to the refuge chosen once
-  (`situation.refuge`), changed only when its route fails (`stuck`, `no path`, `no square`, a timeout, or its distance
-  not falling for STALL_S), then the stance at the refuge facing the nearest (`hold`: the filter at a door or a way
-  out, the stance in the open). `done` with no aware standing zombie within GROUP_CLEAR_R (`clear`) or, armed, two or
-  fewer (`thinned`: the Fight then); `failed` with no refuge (`no refuge`) or after ROUTE_TRIES route failures
-  (`route`), the next Avoid then held off AVOID_RETRY_S (the Fight takes the nearest meanwhile, whatever the count).
-  The sneak once out of sight is Survive's gait (`sneak.py`): a walk with no zombie near chasing goes crouched.
+- `Avoid` (P2): the walk at a run (never a sprint, #4296; memory `no-sprinting`) to the named refuge chosen once
+  (`situation.refuge`), a window refuge's walk ending in its climb (`Window`), a fence's walk climbing the fence where
+  it sticks (`Climb`, `night.hop_after`), changed only when its route fails (`stuck`, `no path`, `no square`, a
+  timeout, or its distance not falling for STALL_S), then the stance at the refuge facing the nearest (`hold`, the
+  filter). `done` with no aware standing zombie within GROUP_CLEAR_R (`clear`), or, armed, two or fewer (`thinned`: the
+  Fight then), or after AVOID_HOLD_S of the hold (`held`, M6: the Fight at the refuge then, P2 held off AVOID_RETRY_S);
+  `failed` with no refuge (`no refuge`) or after ROUTE_TRIES route failures (`route`), the next Avoid then held off
+  AVOID_RETRY_S (the Fight takes the nearest meanwhile, whatever the count). While it walks with the group aware of the
+  character Survive's sneak gait reads it as a flee (`walking`, `assess.Doctrine._gait`); out of sight a walk goes
+  crouched.
 - `Door` (P4): decided once (`situation._door`): `stance_open` takes the stance's leg to the door's post
-  (`door_held.door_post`), opens it (`Interact` open), then stands facing the zombie (`meet`) while it is across the
-  edge; `leave` marks a door held (`World.mark_door`), ends the running goal whose way goes through the portal
-  (`door_held.meets_portal`, as P30-C's leave does) and hands the portal to the goal runner (`door_left`) in one tick.
-  `done` when the zombie crossed to the player's side or left (the fight takes it), or at once for a leave; `failed`
+  (`door_held.door_post`), opens it (`Interact` open), then stands facing the zombie (`meet`) for DOOR_WAIT_S, then
+  fights it through the doorway as long again (`through`: the stance's walk to the threshold, the melee at it) with two
+  or fewer across, else re-routes (Major 1: never an indefinite hold); `leave` marks a door held (`World.mark_door`),
+  ends the running goal whose way goes through the portal (`door_held.meets_portal`, as P30-C's leave does) and hands
+  the portal to the goal runner (`door_left`) in one tick. `done` when the zombie crossed to the player's side or left
+  (the fight takes it), at once for a leave, `reroute`, `left` or `stuck` at its bounds (the door then left); `failed`
   when the open failed (the door then left).
-- `Order` (P5): the ladder's lower steps in their order, Survive's own (`_need`, `_load`, `_night`, `_care_stock`,
-  `_goal`), a cooled command passed over as the ladder passes it; the label the step's (`needs`, `rest`, `stock`, or
-  the goal's: `loot`, `travel`); while a LootBuilding runs, the model's next order is prefetched (`source.Resume`).
-  Never ends by itself.
+- `Order` (P5): the ladder's lower steps in their order, Survive's own: the care's (`_care`) in the lull only (no
+  listed zombie within DANGER_R, no part bleeding: the spent dressing's replace, the wound's dressing, the wash,
+  Major 3), then `_need`, `_load`, `_night`, `_care_stock`, `_goal`, a cooled command passed over as the ladder passes
+  it; the label the step's (`dress` or `stock` for the lull's care, `needs`, `rest`, `stock`, or the goal's: `loot`,
+  `travel`); while a LootBuilding runs, the model's next order is prefetched (`source.Resume`). Never ends by itself.
 """
 import dataclasses
 import math
 
 from agent.base import pza1
 from agent.base.planner.care import LEG_FIRST
-from agent.base.planner.dispatch import MANEUVERS, OFF_ENDS
+from agent.base.planner.dispatch import BACKOFF_ENDS, MANEUVERS, OFF_ENDS
 from agent.base.planner.doctrine import constants as K
-from agent.base.planner.doctrine.situation import aware, listed, refuge, strike_r
+from agent.base.planner.doctrine.situation import aware, bleeding_parts, listed, refuge, strike_r
 from agent.base.planner.door_held import meets_portal, portal_between
 from agent.base.planner.edges import same_side
+from agent.base.planner.night import hop_after
 from agent.base.planner.maneuvers.melee import MeleeInputs
-from agent.base.planner.policies import (AIM_LEG_S, DISENGAGE_R, DOOR_POST_PACE, KEEP_R, MELEE_RELEASE_R, RIDE_TYPES,
+from agent.base.planner.policies import (AIM_LEG_S, DANGER_R, DISENGAGE_R, DOOR_POST_PACE, KEEP_R, MELEE_RELEASE_R,
+                                         RIDE_TYPES,
                                          SEEK_SWITCH_R, WALK_DONE_R, arm_pain, away_vector, centre,
                                          chasing, clear_heading, on_floor, on_room, running, zdist)
-from agent.base.pza1 import Aim, Interact, WalkTo
+from agent.base.pza1 import Aim, Climb, Interact, WalkTo, Window
 from agent.base.world import me_xy
 
 CLOSE_WALK_R = 2 * KEEP_R   # 5.0 tiles: an idle pin farther than this is walked to (a walk), nearer the stance's walk;
                             # a first guess for the trials
 PROGRESS_R = 0.25           # tiles the distance to a walk's target must fall by to count as progress (the stall read)
-ORDER_STEPS = ("need", "load", "night", "stock", "goal")   # Survive's ladder steps below the threat and care, in order
+ORDER_STEPS = ("care", "need", "load", "night", "stock", "goal")   # Survive's ladder steps below the threat, in order:
+                            # the care's only in the lull (`Order._lull`), its bleeding step P1's
+GROUND_DONE_R = 0.6         # tiles from the stand's ground square's centre at which the stand is taken (inside the walk's
+                            # own done radius); a first guess
+HOLD_KINDS = {"door": "filter_door", "exit": "filter_door", "inside": "filter_door", "window": "filter_window",
+              "fence": "filter_fence"}   # the Avoid's hold label by its refuge's kind (refuge words for the scorecard)
 GOAL_KINDS = {"LootBuilding": "loot", "ExploreToward": "travel", "Shelter": "travel", "Stock": "stock",
               "Rest": "rest"}   # the scorecard's labels of the goal types (`tools/trial_score.py` KNOWN_LABELS)
 STEP_KINDS = {"need": "needs", "load": "needs", "night": "rest", "care": "stock"}
@@ -100,6 +117,8 @@ OTHER_ENDS = ("crowd", "handback")  # ... on another standing zombie near: PZA/1
                                     # `handback` {id, d}
 UNREACHED = ("out of reach",)       # a lost target the Fight leaves (PZA/1.9's end, PZA/1.10's `lost` why)
 DUD = "no progress"                 # PZA/1.10's `lost` why: the Lua's own stall of presses that lowered nothing
+BACKOFF = tuple(BACKOFF_ENDS) + ("no weapon",)   # the melee's ends that back its zombie off BACKOFF_TICKS (the ladder's
+                                    # `dispatch.BACKOFF_ENDS`, and `no weapon`, which a re-send would meet again)
 
 
 def melee_inputs(mode, reach):
@@ -127,6 +146,18 @@ def melee_end(m):
     if over in ("out of range",) + UNREACHED:
         return "lost", over
     return over, None
+
+
+def melee_backoff(m):
+    """The end of an ended melee that backs its zombie off (BACKOFF, or any rejection but a build's, OFF_ENDS), else
+    None (review-t11-doctrine Major 2: the ladder's back-off honoured, `dispatch.FightDispatch._observe_maneuver`)."""
+    over = m.over()
+    if over is None:
+        return None
+    a = m.action
+    if over in BACKOFF or (a is not None and a.state == "rejected" and over not in OFF_ENDS):
+        return over
+    return None
 
 
 def melee_command(intent, zid, mode):
@@ -180,6 +211,18 @@ class Intent:
         self.press_seen = None   # the melee's press leaf when this intent took it (the meet's one-press read)
         self.started = ctx.now()
         self.kills = 0
+        self.n = None          # the arbiter's serial of this intent (`Arbiter._set`), on the line as `n`
+        self._inherit(prev)
+
+    def adopt(self, prev):
+        """The resumed slot's hand-over (review-t11-doctrine m2): the ended intent's running melee kept when this
+        intent runs none and the melee's zombie is one of this intent's, else retired (its late kills still read)."""
+        if prev is None or prev.m is None or prev is self:
+            return
+        if self.m is not None:
+            self.ctx.retire(prev.m)
+            prev.m = None
+            return
         self._inherit(prev)
 
     def _inherit(self, prev):
@@ -246,6 +289,10 @@ class Intent:
     def target_label(self):
         return self.target
 
+    def play(self):
+        """The line's `inputs.play` this tick (a retreat leg's label where the scorecard reads it), else None."""
+        return None
+
     def label(self):
         out = {"kind": self.kind}
         t = self.target_label()
@@ -255,7 +302,7 @@ class Intent:
 
     def line(self):
         return {"intent": self.kind, "p": self.p, "why": self.why, "state": self.state,
-                "target": self.target_label()}
+                "target": self.target_label(), "n": self.n}
 
     # -- shared reads ---------------------------------------------------------------------------------------------
     def zombie(self, zid):
@@ -287,8 +334,12 @@ class Strike(Intent):
             return
         span, end = m.take_span(), melee_end(m)
         leaf = getattr(m, "press", None)
+        back = melee_backoff(m)
         if end is not None and end[0] == "kill":
             self.finish("done", "kill")
+        elif back is not None:
+            self.ctx.backoff(m.target)   # a rejection or a backed-off end is no press: failed, never done
+            self.finish("failed", back)
         elif span is not None or (leaf is not None and leaf is not self.press_seen):
             self.finish("done", "press")
         elif end is not None and end[0] in OFF_ENDS:
@@ -338,6 +389,10 @@ class Fight(Intent):
         self.best_at = ctx.now()
         self.heading = None     # the string's heading, chosen once
         self.melee_off = False
+        self.closing = False    # a stand that stalled closes on its zombie (review-t11-doctrine M1)
+        g = want.why.get("ground")
+        self.ground = None if g is None else tuple(g)   # the stand's square (no refuge for a group), else None
+        self.grounded = self.ground is None
 
     def alive(self):
         """(tiles, id, record) of the Fight's zombies listed within DISENGAGE_R, not read dead or skipped, nearest
@@ -374,7 +429,11 @@ class Fight(Intent):
         if end is None:
             return
         kind, why = end
-        if kind == "other":
+        back = melee_backoff(m)
+        if back is not None:
+            self.ctx.backoff(m.target)
+            self.duds += 1   # consecutive backed-off presses count toward the dud
+        elif kind == "other":
             zid = (why or {}).get("id")
             if zid is not None and self.zombie(zid) is not None:
                 self.ids = self.ids if zid in self.ids else self.ids + (zid,)
@@ -397,12 +456,15 @@ class Fight(Intent):
         if self.duds >= K.DUD_N:
             self.ctx.skip(self.pin)
             return "failed", "dud"
-        if self.state in ("stand", "close", "string"):
+        if self.state in ("stand", "close"):   # the string keeps its gap by design: never a stall
             pin = next((e for e in al if e[1] == self.pin), None)
             now = self.ctx.now()
             if pin is not None and (self.best is None or self.best[0] != pin[1] or pin[0] < self.best[1] - PROGRESS_R):
                 self.best, self.best_at = (pin[1], pin[0]), now
             elif pin is not None and now - self.best_at >= K.STALL_S:
+                if self.state == "stand":   # M1: a chaser that does not close is closed on, never left standing
+                    self.closing, self.best, self.best_at = True, None, now
+                    return None
                 self.ctx.skip(self.pin)
                 return "failed", "stall"
         return None
@@ -418,6 +480,9 @@ class Fight(Intent):
         if zid != self.pin:
             self.pin, self.best = zid, None
         w = self.ctx.world
+        if self.ctx.mem.backoff.get(zid):
+            self.state = "wait"   # its melee backed off: nothing sent at it until BACKOFF_TICKS pass
+            return None
         if on_floor(z) or d <= MELEE_RELEASE_R:
             self.best, self.best_at = None, self.ctx.now()
             mode = press_mode(w, z)
@@ -425,12 +490,15 @@ class Fight(Intent):
             if self.melee_off or not w.can("melee"):
                 return fallback_press(self, zid, mode)
             return melee_command(self, zid, mode)
+        leg = self._ground_leg(zid)
+        if leg is not None or self.state == "ground":
+            return leg
         up = [e for e in al if not on_floor(e[2])]
         if len(up) == 2 and up[1][0] - up[0][0] < K.STRING_GAP:
             v = self._string_heading(up)
             if v is not None:
                 return self.leg("string", Aim(v[0], v[1], AIM_LEG_S, targetId=zid))
-        if chasing(z):
+        if chasing(z) and not self.closing:
             return self.leg("stand", Aim(0.0, 0.0, AIM_LEG_S, targetId=zid))
         mx, my = me_xy(w)
         ux, uy = (z["x"] - mx) / d, (z["y"] - my) / d
@@ -438,6 +506,20 @@ class Fight(Intent):
             stop = d - strike_r(w)
             return self.leg("close", WalkTo(mx + ux * stop, my + uy * stop, "walk"))
         return self.leg("close", Aim(ux, uy, min(AIM_LEG_S, (d - strike_r(w)) / DOOR_POST_PACE), targetId=zid))
+
+    def _ground_leg(self, zid):
+        """The stand's leg to its ground (the controller's ruling on M5): the stance's walk to the square with a wall
+        or a fence at its back, facing the lead, until within GROUND_DONE_R; then the stand is taken there (None)."""
+        if self.grounded:
+            return None
+        mx, my = me_xy(self.ctx.world)
+        cx, cy = self.ground[0] + 0.5, self.ground[1] + 0.5
+        far = math.hypot(cx - mx, cy - my)
+        if far <= GROUND_DONE_R:
+            self.grounded = True
+            return None
+        return self.leg("ground", Aim((cx - mx) / far, (cy - my) / far, min(AIM_LEG_S, far / DOOR_POST_PACE),
+                                      targetId=zid))
 
     def _string_heading(self, up):
         """The string's heading, chosen once: away from the two (`policies.away_vector`) when its line reads clear for
@@ -459,11 +541,9 @@ class Fight(Intent):
             why["d"] = got[0]
         return why
 
-    def label(self):
-        out = super().label()
-        if self.state == "string":
-            out["play"] = "string"
-        return out
+    def play(self):
+        """M2: the string's backpedal on the line's own `inputs.play`, where the scorecard's `_labels` reads a retreat."""
+        return {"kind": "string", "target": self.pin} if self.state == "string" else None
 
 
 class Dress(Intent):
@@ -521,11 +601,21 @@ class Avoid(Intent):
         self.tries = 0
         self.refused = []
         self.walk = None
+        self.climb = None       # the climb's Action (a window's, or a fence on the route's stuck end)
+        self.climb_cmd = None   # the climb to send (`Window` at a window refuge, `Climb` at a fence on the route)
+        self.hold_at = None     # wall of the hold's first tick
         self.best, self.best_at = None, ctx.now()
         if self.refuge is None:
             self._fail("no refuge")
+        elif self.refuge["kind"] == "inside":
+            self._hold()
         else:
-            self.state = "hold" if self.refuge["kind"] == "inside" else "walk"
+            self.state = "walk"
+
+    def _hold(self):
+        self.state = "hold"
+        if self.hold_at is None:
+            self.hold_at = self.ctx.now()
 
     def _fail(self, why):
         self.finish("failed", why)
@@ -556,13 +646,16 @@ class Avoid(Intent):
             return "done", "clear"
         if len(g) < K.GROUP_N and self.ctx.world.weapon is not None:
             return "done", "thinned"
+        if self.hold_at is not None and self.ctx.now() - self.hold_at >= K.AVOID_HOLD_S:
+            self.ctx.mem.avoid_until = self.ctx.now() + K.AVOID_RETRY_S   # M6: the Fight at the refuge takes it
+            return "done", "held"
         return None
 
     def resume(self):
-        self.walk, self.best, self.best_at = None, None, self.ctx.now()
+        self.walk, self.climb, self.best, self.best_at = None, None, None, self.ctx.now()
 
     def suspend(self):
-        self.walk = None
+        self.walk, self.climb = None, None
 
     def _reroute(self):
         self.tries += 1
@@ -576,17 +669,39 @@ class Avoid(Intent):
             self._fail("no refuge")
             return
         self.refuge, self.best_at = r, self.ctx.now()
-        self.state = "hold" if r["kind"] == "inside" else "walk"
+        if r["kind"] == "inside":
+            self._hold()
+        else:
+            self.state = "walk"
 
     def command(self):
-        """The walk to the refuge (its end read first: `done` holds, a supersede re-sends it, any other end re-routes;
-        the stall re-routes too), then the stance at the refuge."""
+        """The walk to the refuge (its end read first: `done` holds, or climbs a window refuge's window first; a
+        supersede re-sends it; a `stuck` end at a hoppable fence on its line climbs it, `night.hop_after`; any other
+        end re-routes; the stall re-routes too), then the stance at the refuge (AVOID_HOLD_S at most, `check`)."""
+        acts = self.ctx.actions
+        c = self.climb
+        if self.state == "climb" and c is not None and acts.done(c):
+            self.climb = None
+            if c.state == "failed" and c.reason == "superseded":
+                pass   # another sender took the slot: the climb goes again
+            elif c.state != "done":
+                self._reroute()
+            elif c.type == "window":
+                self._hold()
+            else:
+                self.state, self.best = "walk", None
         a = self.walk
-        if self.state == "walk" and a is not None and self.ctx.actions.done(a):
+        if self.state == "walk" and a is not None and acts.done(a):
             self.walk = None
+            hop = hop_after(self.ctx.world, a)
             if a.state == "done":
-                self.state = "hold"
-            elif not (a.state == "failed" and a.reason == "superseded"):
+                self._arrived()
+            elif a.state == "failed" and a.reason == "superseded":
+                pass
+            elif hop is not None:
+                self.state, self.climb_cmd = "climb", Climb(hop[0], hop[1])
+                return self.climb_cmd
+            else:
                 self._reroute()
         if self.state == "walk" and self.end is None:
             c = centre(self.refuge["square"])
@@ -594,13 +709,17 @@ class Avoid(Intent):
             d = math.hypot(c[0] - mx, c[1] - my)
             now = self.ctx.now()
             if d <= WALK_DONE_R:
-                self.state = "hold"
+                self._arrived()
             elif self.best is None or d < self.best - PROGRESS_R:
                 self.best, self.best_at = d, now
             elif now - self.best_at >= K.STALL_S:
                 self._reroute()
         if self.end is not None:
             return None
+        if self.state == "climb":
+            if self.climb is not None:
+                return None
+            return self.climb_cmd
         if self.state == "walk":
             if self.walk is not None:
                 return None   # the walk runs (a posture beside it leaves it running)
@@ -611,10 +730,24 @@ class Avoid(Intent):
             return None
         return self.leg("hold", Aim(0.0, 0.0, AIM_LEG_S, targetId=g[0][1]))
 
+    def _arrived(self):
+        """At the refuge's square: a window refuge climbs its window, any other holds."""
+        if self.refuge["kind"] == "window":
+            w = self.refuge["window"]
+            self.state, self.climb_cmd = "climb", Window(w[0], w[1], smash=bool(self.refuge.get("smash")))
+        else:
+            self._hold()
+
+    def walking(self):
+        """The run to the refuge runs (Survive's sneak gait reads it as a flee while the group sees the character)."""
+        return self.end is None and self.state in ("walk", "climb")
+
     def send(self, cmd):
         a = super().send(cmd)
         if cmd.TYPE == "walkTo":
             self.walk = a
+        elif cmd.TYPE in ("climb", "window"):
+            self.climb = a
         return a
 
     def target_label(self):
@@ -623,14 +756,14 @@ class Avoid(Intent):
     def label(self):
         out = super().label()
         if self.refuge is not None:
-            out["kind"] = self.refuge["label"] if self.state == "walk" else (
-                "filter_door" if self.refuge["kind"] in ("door", "exit", "inside") else "fight_hold")
+            out["kind"] = self.refuge["label"] if self.state in ("walk", "climb") else HOLD_KINDS.get(
+                self.refuge["kind"], "filter_door")
         return out
 
     def branch_why(self):
         why = super().branch_why()
         why.update(refuge=self.refuge, tries=self.tries)
-        if self.state == "walk":
+        if self.state in ("walk", "climb"):
             why["flee"] = "group"   # the decision line's contract: a retreat's reason on the threat why
         return why
 
@@ -647,22 +780,65 @@ class Door(Intent):
         ctx.mem.doors[self.edge] = (plan["decision"], self.ids, ctx.now())
         self.state = "leave" if plan["decision"] == "leave" else "post"
         self.opened = None   # the open's Action
+        self.opened_at = None   # wall the door first read open (the wait's start)
+        self.through_at = None  # wall the fight through the doorway began
 
     def check(self):
+        """The Door's ends (review-t11-doctrine Major 1: it never holds the stance indefinitely): `gone`, `crossed`
+        (the zombie on the player's side: the Fight meets it), a failed open (the door left); DOOR_WAIT_S after the
+        door read open with its zombie still across, two or fewer across turn to the fight through the doorway
+        (`through`), more re-route (`reroute`: the door marked, the goal through it ended); DOOR_WAIT_S of that fight
+        with no crossing or kill leave it (`left`); an open never reached within three DOOR_WAIT_S leaves it (`stuck`)."""
         if self.end is not None:
             return self.end
         got = self.zombie(self.zid)
         if got is None:
             return "done", "gone"
         z = got[1]
-        if self.state != "leave" and same_side(self.edge, me_xy(self.ctx.world), (z["x"], z["y"])):
+        me = me_xy(self.ctx.world)
+        if self.state != "leave" and same_side(self.edge, me, (z["x"], z["y"])):
             return "done", "crossed"
         a = self.opened
+        now = self.ctx.now()
         if a is not None and self.ctx.actions.done(a) and a.state != "done" and a.reason != "superseded":
-            self.ctx.mem.doors[self.edge] = ("leave", self.ids, self.ctx.now())
-            self._leave()
-            return "failed", "open " + (a.reason or a.state)
+            return self._left("failed", "open " + (a.reason or a.state))
+        if self.opened_at is None and self._open_read():
+            self.opened_at = now
+        if self.opened_at is None:
+            return self._left("done", "stuck") if now - self.started >= 3 * K.DOOR_WAIT_S else None
+        if self.through_at is None and now - self.opened_at >= K.DOOR_WAIT_S:
+            if len(self._across()) > K.DOOR_OPEN_MAX:
+                return self._left("done", "reroute")
+            self.through_at, self.state = now, "through"
+        if self.through_at is not None and now - self.through_at >= K.DOOR_WAIT_S:
+            return self._left("done", "left")
         return None
+
+    def _open_read(self):
+        seen = (getattr(self.ctx.world, "door_seen", None) or {}).get(self.plan["door"]) or {}
+        return seen.get("open") is True or (self.opened is not None and self.opened.state == "done")
+
+    def _across(self):
+        """The listed zombies within DOOR_R on the far side of the door's edge from the player."""
+        me = me_xy(self.ctx.world)
+        return [zid for d, zid, z in listed(self.ctx.world, self.ctx.mem, self.ctx.now())
+                if d <= K.DOOR_R and not same_side(self.edge, me, (z["x"], z["y"]))]
+
+    def _left(self, end, why):
+        """The Door left: decided `leave` for its zombies (`mem.doors`), the leave's marks (`_leave`), the end."""
+        self.ctx.mem.doors[self.edge] = ("leave", self.ids, self.ctx.now())
+        self._leave()
+        self.end = (end, why)
+        return self.end
+
+    def observe(self):
+        super().observe()
+        m = self.m
+        if m is not None and m.over() is not None:
+            if melee_backoff(m) is not None:
+                self.ctx.backoff(m.target)
+            self.ctx.retire(m)
+            self.m = None
 
     def command(self):
         if self.state == "leave":
@@ -671,8 +847,9 @@ class Door(Intent):
             return None
         w = self.ctx.world
         door = self.plan["door"]
-        seen = (getattr(w, "door_seen", None) or {}).get(door) or {}
-        if seen.get("open") is True or (self.opened is not None and self.opened.state == "done"):
+        if self.state == "through":
+            return self._through()
+        if self._open_read():
             return self.leg("meet", Aim(0.0, 0.0, AIM_LEG_S, targetId=self.zid))
         post = self.plan["post"]
         mx, my = me_xy(w)
@@ -685,6 +862,24 @@ class Door(Intent):
             return None
         self.state = "open"
         return Interact(door[0], door[1], "open")
+
+    def _through(self):
+        """The fight through the doorway: the stance's walk toward the zombie to the melee's release radius (the
+        threshold), then the melee at it; nothing while its melee backs off."""
+        got = self.zombie(self.zid)
+        if got is None or self.ctx.mem.backoff.get(self.zid):
+            return None
+        d, z = got
+        w = self.ctx.world
+        if d <= MELEE_RELEASE_R:
+            mode = press_mode(w, z)
+            if not w.can("melee"):
+                return fallback_press(self, self.zid, mode)
+            return melee_command(self, self.zid, mode)
+        mx, my = me_xy(w)
+        ux, uy = (z["x"] - mx) / d, (z["y"] - my) / d
+        return self.leg("through", Aim(ux, uy, min(AIM_LEG_S, max(d - strike_r(w), 0.25) / DOOR_POST_PACE),
+                                       targetId=self.zid))
 
     def send(self, cmd):
         a = super().send(cmd)
@@ -747,6 +942,9 @@ class Order(Intent):
         self.sub, self.square, self.state = "rest", None, "idle"
         for name in ORDER_STEPS:
             sv.why = {}
+            if name == "care" and not self._lull():
+                tried["care"] = {"lull": False}
+                continue
             ans = sv._care_stock() if name == "stock" else getattr(sv, "_" + name)()
             branch = "care" if name == "stock" else name
             tried[branch] = dict(tried.get(branch) or {}, stock=sv.why) if name == "stock" else sv.why
@@ -755,14 +953,26 @@ class Order(Intent):
             if ans[1] is not None and sv._cooling(ans[1]) and not sv.care.owns(ans[1]):
                 cooled = {"type": ans[1].TYPE, "args": ans[1].args()}
                 continue
-            self._label(branch)
+            self._label(branch, ans[1], name)
             self._prefetch()
             return branch, ans[0], ans[1], tried, cooled
         self._prefetch()
         return None, None, None, tried, cooled
 
-    def _label(self, branch):
+    def _lull(self):
+        """The lull (review-t11-doctrine Major 3): no listed zombie within DANGER_R and no part bleeding (the bleeding
+        step is P1's Dress), so the care's other steps run (`Survive._care`: the spent dressing's replace, P27-D and
+        P27-K3; the wound's dressing, P28-A; the rag's wash)."""
+        w = self.ctx.world
+        if bleeding_parts(w):
+            return False
+        return not any(d <= DANGER_R for d, _, _ in listed(w, self.ctx.mem, self.ctx.now()))
+
+    def _label(self, branch, cmd=None, step=None):
         self.state = branch
+        if step == "care":
+            self.sub = "dress" if cmd is not None and cmd.TYPE == "bandage" else "stock"
+            return
         if branch != "goal":
             self.sub = STEP_KINDS.get(branch, "needs")
             return

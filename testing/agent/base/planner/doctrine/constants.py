@@ -3,8 +3,8 @@
 for the trials" (a trial is no evidence, ruling P31-T: these are the numbers the first round reads, never a
 measurement). No constant here asserts an engine mechanism without a row."""
 from agent.base.planner.policies import (ATTACK_MARGIN, DANGER_R, DISENGAGE_R, DOOR_HELD_R, ENGAGE_R as LADDER_ENGAGE_R,
-                                         FINISH_CLEAR_R, KEEP_R, SHELTER_FLEE_R, SHOVE_R, STILL_S, STRAIN_SOFT,
-                                         UNREACHABLE_S)
+                                         FINISH_CLEAR_R, KEEP_R, MELEE_BACKOFF_TICKS, SHELTER_FLEE_R, SHOVE_R, STILL_S,
+                                         STRAIN_SOFT, UNREACHABLE_S)
 
 # ---------------------------------------------------------------- the priorities
 P_STRIKE, P_DRESS, P_AVOID, P_FIGHT, P_DOOR, P_ORDER = range(6)   # the six priorities, top down (spec section 3, D)
@@ -46,6 +46,9 @@ DUD_N = 6            # strikes in a row at one target that lowered nothing befor
                      # target is left (UNREACHABLE_S): twice the ladder's STALL_SWINGS (3); a first guess for the trials
 SKIP_S = UNREACHABLE_S   # 20.0 wall seconds a zombie a Fight failed on (stalled, dud, unreachable) is not fought again
                      # (it is still struck at P0 within reach)
+BACKOFF_TICKS = MELEE_BACKOFF_TICKS   # 10 doctrine ticks a melee that ended `interrupted`, `timeout`, `no target` or
+                     # `no weapon`, or was rejected, is not sent at its zombie again: the ladder's back-off (Plan 28 Task
+                     # 7b fix 1, review-t7b m2; review-t11-doctrine Major 2)
 
 # ---------------------------------------------------------------- the dress (P1)
 DRESS_CLEAR_R = KEEP_R   # 2.5 tiles: a bleeding part is dressed unless a standing zombie is this near (the Dress
@@ -53,11 +56,20 @@ DRESS_CLEAR_R = KEEP_R   # 2.5 tiles: a bleeding part is dressed unless a standi
                      # before any flee from a zombie beyond the stance's reach" (memory `stand-and-fight-dress-first`)
 
 # ---------------------------------------------------------------- the avoid (P2)
-REFUGE_R = SHELTER_FLEE_R   # 25.0 tiles: a known exterior door this near is a refuge (P23-AG's shelter radius)
-OPEN_REACHES = (12.0, 9.0, 6.0)   # tiles: the open-ground refuge's probe along each heading, the farthest clear first;
-                     # a first guess for the trials
-AVOID_RETRY_S = 20.0   # wall seconds after an Avoid failed (no refuge, its route failed twice) before another starts;
-                     # meanwhile the Fight takes the nearest whatever the count (the stance, never a leg); a first guess
+REFUGE_R = SHELTER_FLEE_R   # 25.0 tiles: a named structure this near is a refuge (P23-AG's shelter radius): a door,
+                     # a building's way out (an opening, a door or a window), a fence line; the controller's ruling on
+                     # review-t11-doctrine M5: never open ground (the doctrine of item 5, "never an open-ground leg")
+REFUGE_KINDS = ("inside", "exit", "window", "door", "fence")   # the refuges `situation.refuge` names; with none the
+                     # Avoid is not taken and the stand is (`GROUND_R`)
+GROUND_R = 2.0       # tiles: with no refuge, the stand takes the nearest square this near with a wall or a fence at its
+                     # back (the blocked edge on its side away from the group), else the character's own square, and
+                     # fights the arrivals one at a time (the controller's ruling on M5; memory
+                     # `stand-and-fight-dress-first`: no aimless running)
+AVOID_RETRY_S = 20.0   # wall seconds after an Avoid failed (its route failed twice) or held its time out before another
+                     # starts; meanwhile the Fight takes the nearest whatever the count (the stance, never a leg); a first
+                     # guess
+AVOID_HOLD_S = 10.0  # wall seconds the stance at the refuge holds before the Avoid ends `done held` into the Fight at the
+                     # refuge (the filter play, the doorway stand: review-t11-doctrine M6, E23's `held`); a first guess
 ROUTE_TRIES = 2      # route failures (a walk failed stuck, no path or no square) an Avoid takes before it fails
 
 # ---------------------------------------------------------------- the door (P4)
@@ -66,6 +78,10 @@ DOOR_OPEN_MAX = 2      # zombies behind a door at most for the stance-and-open; 
                        # Angus's "leave, or take the stance and open it", memory `intent-doors-sneak`)
 DOOR_DECIDED_S = 60.0  # wall seconds a door's `leave` decision stands for the same zombies behind it before it is read
                        # again; a first guess for the trials
+DOOR_WAIT_S = STALL_S  # 6.0 wall seconds the stance waits at an opened door for its zombie to come through, then as long
+                       # again fighting it through the doorway (the walk to the threshold and the meet at it); a Door
+                       # never holds longer (review-t11-doctrine Major 1; Angus's "sticks near the door", memory
+                       # `intent-doors-sneak`); a first guess for the trials
 
 # ---------------------------------------------------------------- the standing order (P5)
 RESUME_MAX = 3       # times one goal (its type and args) is resumed after a supersede before it is let go; a first guess

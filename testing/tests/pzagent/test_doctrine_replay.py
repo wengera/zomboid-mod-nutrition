@@ -9,12 +9,16 @@ The doctrine asserted (the common amendments' item 5), at each line whose situat
 - one standing aware zombie within ENGAGE_R in reach of a straight line, no other standing aware one within GROUP_R,
   a weapon in hand: never an avoid; a strike, a fight or (bleeding) a dress first;
 - a bleeding part with no standing zombie within KEEP_R and something held or worn to dress it: the dress first;
-- three or more standing aware zombies within GROUP_R, not strung out, armed: the avoid toward a named refuge, unless a
-  strike or a dress came first;
+- three or more standing aware zombies within GROUP_R, not strung out, armed: the avoid toward a named refuge (a
+  building, its way out, a door, a fence line; never open ground: the controller's ruling on review-t11-doctrine M5),
+  else the stand where the character is (the lead fought alone), unless a strike or a dress came first; the stands
+  are counted;
 - a zombie behind a door within DOOR_R with no free aware zombie near: the door decided (`stance_open` or `leave`), its
   first act a command or the leave's marks at once, never a wait;
 and over each ring the arbiter (with the real intents, their acts read but never sent) switches no intent for another
-of the same priority."""
+of the same priority, read off its lines (`assess.line_switches`: the intent's serial changing at the same `p` with no
+end on the line; the arbiter's own `equal_switches` is zero by construction, a guard on rule 3 against a mutation, not
+a measurement: review-t11-doctrine m6), and every Door it starts ends (Major 1)."""
 import math
 import os
 
@@ -25,6 +29,7 @@ from agent.base.planner import care as C
 from agent.base.planner.doctrine import constants as K
 from agent.base.planner.doctrine import situation as SI
 from agent.base.planner.doctrine.arbiter import Arbiter
+from agent.base.planner.doctrine.assess import line_switches
 from agent.base.planner.doctrine.intents import INTENTS
 from agent.base.planner.door_held import portal_between
 from agent.base.planner.policies import KEEP_R, line_to, on_floor, on_room, zdist
@@ -123,6 +128,9 @@ class Ctx:
     def skip(self, zid):
         self.mem.skip[zid] = self.wall + K.SKIP_S
 
+    def backoff(self, zid):
+        self.mem.backoff[zid] = K.BACKOFF_TICKS
+
     def retire(self, m):
         pass
 
@@ -130,8 +138,9 @@ class Ctx:
 @pytest.fixture(scope="module", params=RINGS)
 def ring(request):
     """{situation: [lines]} and the arbiter's run over the ring (`run`)."""
-    found = {"lone": [], "bleed": [], "group": [], "door": []}
+    found = {"lone": [], "bleed": [], "group": [], "door": [], "stand": [], "avoid": []}
     bad = []
+    rows = []
     ctx = None
     for k, w, wall in situations(request.param):
         if ctx is None:
@@ -150,16 +159,22 @@ def ring(request):
         if group(w):
             found["group"].append(k)
             a = next((x for x in ws if x.kind == "avoid"), None)
-            if a is None or a.target is None or not a.target.get("label") or kinds[0] not in ("strike", "dress",
-                                                                                                "avoid"):
+            stand = next((x for x in ws if x.kind == "fight" and x.why.get("stand")), None)
+            if a is not None and a.target is not None and a.target.get("kind") in K.REFUGE_KINDS:
+                found["avoid"].append(k)
+            elif stand is not None:
+                found["stand"].append(k)
+            else:
+                bad.append(("group", k, kinds))
+            if kinds[0] not in ("strike", "dress", "avoid", "fight"):
                 bad.append(("group", k, kinds))
         if door_held(w):
             found["door"].append(k)
             d = next((x for x in ws if x.kind == "door"), None)
             if d is None or d.target["decision"] not in ("stance_open", "leave") or not _door_acts(ctx, d):
                 bad.append(("door", k, kinds))
-        _arbiter_tick(ctx)
-    return {"ring": request.param, "found": found, "bad": bad, "ctx": ctx}
+        rows.append(dict(_arbiter_tick(ctx), wall=wall))
+    return {"ring": request.param, "found": found, "bad": bad, "ctx": ctx, "rows": rows}
 
 
 def _door_acts(ctx, want):
@@ -176,16 +191,22 @@ def _arbiter_tick(ctx):
     maneuvers read, the wants, the step, the running intent's command read (the order's never: its steps are the
     ladder's Survive), an intent that ended while it acted handing the tick on, as `assess.Doctrine.tick` does."""
     a = ctx.arbiter
+    ctx.mem.backoff = {zid: n - 1 for zid, n in ctx.mem.backoff.items() if n > 1}
     for it in (a.current, a.slot):
         if it is not None:
             it.observe()
+    ended = []
     for _ in range(3):
         ws = SI.read(ctx.world, ctx.mem, ctx.wall)
-        a.step(ws, lambda want, prev: INTENTS[want.kind](ctx, want, prev))
+        ev = a.step(ws, lambda want, prev: INTENTS[want.kind](ctx, want, prev))
+        if ev["ended"] is not None:
+            ended.append(ev["ended"])
         if a.current.kind != "order":
             a.current.command()
         if a.current.end is None:
             break
+    line = dict(a.current.line(), ended=ended or None)
+    return {"inputs": {"doctrine": line}}
 
 
 def test_each_ring_carries_the_doctrine_s_situations(ring):
@@ -209,11 +230,26 @@ def test_the_doctrine_holds_at_every_recorded_situation(ring):
 
 def test_the_arbiter_switches_no_intent_for_one_of_the_same_priority_over_a_ring(ring):
     a = ring["ctx"].arbiter
-    assert a.equal_switches == 0
+    assert line_switches(ring["rows"]) == 0 and a.equal_switches == 0
     assert a.ends, "the arbiter ran no intent to its end over the ring"
+    assert len({r["inputs"]["doctrine"]["n"] for r in ring["rows"]}) > 1
 
 
-def test_a_lone_zombie_is_never_avoided_whatever_the_health(ring):
-    """The lone-armed lines, health read on each: the want never reads it (memory `stand-and-fight-dress-first`)."""
-    assert ring["found"]["lone"]
-    assert not [b for b in ring["bad"] if b[0] == "lone"]
+def test_no_avoid_names_open_ground_and_the_stands_are_counted(ring):
+    """The controller's ruling on M5: every group line is an Avoid toward a named refuge or the stand; on these two
+    rings no door refuge was open to the character (the review's `refuge_probe.py`), so their groups are stands."""
+    f = ring["found"]
+    assert len(f["avoid"]) + len(f["stand"]) == len(f["group"])
+    assert not any(b[0] == "group" for b in ring["bad"])
+
+
+def test_every_door_the_arbiter_starts_ends(ring):
+    """Major 1: each Door the arbiter starts runs no longer than its own bound (three DOOR_WAIT_S to its open, then
+    two more), read off the rows' walls by its serial; the open loop never answers the open, so its bound is `stuck`."""
+    spans = {}
+    for r in ring["rows"]:
+        d = r["inputs"]["doctrine"]
+        if d["intent"] == "door":
+            first, _ = spans.get(d["n"], (r["wall"], None))
+            spans[d["n"]] = (first, r["wall"])
+    assert all(b - a <= 5 * K.DOOR_WAIT_S + 1.0 for a, b in spans.values()), spans

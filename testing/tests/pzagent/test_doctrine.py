@@ -11,7 +11,7 @@ from agent.base.planner.doctrine import constants as K
 from agent.base.planner.doctrine import intents as I
 from agent.base.planner.doctrine import situation as SI
 from agent.base.planner.doctrine.arbiter import Arbiter
-from agent.base.planner.doctrine.assess import doctrine_of
+from agent.base.planner.doctrine.assess import doctrine_of, line_switches, prepare
 from agent.base.planner.doctrine.intents import INTENTS, Intent
 from agent.base.planner.doctrine.situation import Memory, Want
 from agent.base.planner.doctrine.source import Resume
@@ -21,7 +21,8 @@ from .fakemod import CAPS_17, MELEE_CAPS
 from .test_policies import BAT, Rig, grid, square, zombie
 from .test_survive import decisions, last, tick
 from .test_survive_ag import SHUT, door_ground
-from .test_survive_g import Src, part, zd
+from .test_survive_ac import RAGS2, wound4
+from .test_survive_g import Src, hold, part, zd
 
 CAPS = tuple(MELEE_CAPS)
 KILL_END = "kill" if I.MEET else "dead"   # the melee's end on a kill: PZA/1.10's, PZA/1.9's
@@ -56,6 +57,17 @@ def bleed(i=1, bt=5.0):
 
 def hold_bandage(r, iid=40):
     r.event("item_added", itemId=iid, fullType="Base.Bandage", weight=0.1, use="bandage")
+
+
+def trial_score():
+    """`tools/trial_score.py`, imported by path (the scorecard's label reader, the contract a line is scored by)."""
+    import importlib.util
+    import os
+    path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "tools", "trial_score.py")
+    spec = importlib.util.spec_from_file_location("trial_score_for_doctrine", os.path.abspath(path))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def wants(r, mem=None, now=None):
@@ -226,12 +238,32 @@ def test_attackers_strike_the_nearest_standing_one(tmp_path):
     assert kinds(wants(r))[0] == "strike"
 
 
-def test_three_aware_within_group_r_are_avoided_toward_a_named_refuge(tmp_path):
+def test_a_group_on_open_ground_with_no_named_refuge_is_the_stand_never_an_avoid(tmp_path):
+    """The controller's ruling on review-t11-doctrine M5: no Avoid to open ground; the stand is taken where the
+    character is, the lead fought alone."""
     r = world(tmp_path, [zombie(1, 104.0, 200.0), zombie(2, 104.5, 201.0), zombie(3, 104.0, 199.0)])
+    ws = wants(r)
+    assert kinds(ws) == ["fight", "order"] and ws[0].ids == (1,)
+    assert ws[0].why["stand"] is True and ws[0].why["ground"] is None
+
+
+def test_the_stand_takes_the_square_with_a_wall_at_its_back_within_ground_r(tmp_path):
+    r = Rig(tmp_path, caps=CAPS)
+    r.scan(grid(80, 125, 180, 220, at={(99, 200): {"blockW": True, "edgeW": True}}))
+    r.frame(zombies=[zombie(1, 104.0, 200.0), zombie(2, 104.5, 201.0), zombie(3, 104.0, 199.0)])
+    ws = wants(r)
+    assert ws[0].why["stand"] is True and ws[0].why["ground"] == [99, 200, 0]
+
+
+def test_a_fence_line_is_a_named_refuge_across_it_from_the_group(tmp_path):
+    r = Rig(tmp_path, caps=CAPS)
+    r.scan(grid(80, 125, 180, 220, at={(97, y): {"blockW": True, "hopW": True} for y in range(190, 211)}))
+    r.frame(zombies=[zombie(1, 104.0, 200.0), zombie(2, 104.5, 201.0), zombie(3, 104.0, 199.0)])
     ws = wants(r)
     assert kinds(ws) == ["avoid", "order"]
     ref = ws[0].target
-    assert ref["kind"] == "open" and ref["label"] == "avoid_open" and ref["square"][0] < 100
+    assert ref["kind"] == "fence" and ref["label"] == "avoid_refuge" and ref["square"][0] == 96
+    assert ref["fence"] == [97, ref["square"][1], "W"]
 
 
 def test_three_strung_out_are_fought_one_at_a_time(tmp_path):
@@ -240,9 +272,13 @@ def test_three_strung_out_are_fought_one_at_a_time(tmp_path):
     assert kinds(ws) == ["fight", "order"] and ws[0].ids == (1,) and ws[0].why["strung"] is True
 
 
-def test_an_unarmed_pair_is_avoided(tmp_path):
+def test_an_unarmed_pair_is_avoided_to_a_refuge_else_stood(tmp_path):
     r = world(tmp_path, [zombie(1, 104.0, 200.0), zombie(2, 104.0, 201.0)], weapon=None)
-    assert kinds(wants(r)) == ["avoid", "order"]
+    ws = wants(r)
+    assert kinds(ws) == ["fight", "order"] and ws[0].why["stand"] is True
+    me = (10774.0, 10633.5)
+    r2 = door_world(tmp_path / "door", me, [(1, 10778.0, 10633.5), (2, 10778.0, 10634.5)], weapon=None)
+    assert kinds(wants(r2)) == ["avoid", "order"]
 
 
 def test_an_armed_pair_is_one_fight(tmp_path):
@@ -377,9 +413,12 @@ def test_an_open_door_is_no_portal(tmp_path):
     assert kinds(wants(r))[0] == "fight"
 
 
-def test_a_known_door_outdoors_is_the_refuge_before_open_ground(tmp_path):
+GROUP_EAST = [(1, 10778.0, 10633.5), (2, 10778.0, 10634.5), (3, 10778.0, 10632.5)]
+
+
+def test_a_known_door_outdoors_is_the_refuge(tmp_path):
     me = (10774.0, 10633.5)
-    zs = [(1, 10778.0, 10633.5), (2, 10778.0, 10634.5), (3, 10778.0, 10632.5)]
+    zs = GROUP_EAST
     r = door_world(tmp_path, me, zs)
     ws = wants(r)
     assert ws[0].kind == "avoid"
@@ -397,11 +436,18 @@ def test_inside_with_the_group_outside_the_building_is_the_refuge(tmp_path):
 
 
 def test_a_refused_refuge_square_is_never_chosen_again(tmp_path):
-    r = world(tmp_path, [zombie(1, 104.0, 200.0), zombie(2, 104.5, 201.0), zombie(3, 104.0, 199.0)])
+    me = (10774.0, 10633.5)
+    r = door_world(tmp_path, me, GROUP_EAST)
     zs = list(r.world.zombies.values())
     first = SI.refuge(r.world, zs)
     second = SI.refuge(r.world, zs, [first["square"]])
-    assert second is not None and second["square"][:2] != first["square"][:2]
+    assert first["kind"] == "door" and (second is None or second["square"][:2] != first["square"][:2])
+
+
+def test_no_refuge_is_ever_open_ground(tmp_path):
+    r = world(tmp_path, [zombie(1, 104.0, 200.0), zombie(2, 104.5, 201.0), zombie(3, 104.0, 199.0)])
+    assert SI.refuge(r.world, list(r.world.zombies.values())) is None
+    assert set(K.REFUGE_KINDS) == {"inside", "exit", "window", "door", "fence"}
 
 
 # ================================================================ the intents on the fake mod
@@ -495,8 +541,10 @@ def test_a_fight_strings_a_pair_arriving_together(tmp_path):
     r.frame(zombies=[zombie(1, 106.0, 200.0), zombie(2, 106.5, 200.5)])
     a = tick(r, sv)
     d = line(tmp_path)
-    assert a.type == "aim" and a.args["vx"] < 0.0 and d["inputs"]["intent"]["play"] == "string"
-    assert d["inputs"]["doctrine"]["state"] == "string"
+    assert a.type == "aim" and a.args["vx"] < 0.0 and d["inputs"]["play"] == {"kind": "string", "target": 1}
+    assert d["inputs"]["doctrine"]["state"] == "string" and "play" not in d["inputs"]["intent"]
+    TS = trial_score()
+    assert "string" in TS._labels(d) and TS._retreat_label(d) == "string"   # M2: the scorecard reads it a retreat
 
 
 def test_a_fight_fails_dud_after_dud_n_strikes_that_lowered_nothing(tmp_path):
@@ -647,16 +695,58 @@ def test_a_fight_is_not_preempted_by_the_strike_at_its_own_zombie(tmp_path):
     assert len(r.acts.history) == n   # the running melee goes on: nothing sent
 
 
-def test_a_fight_fails_stall_when_its_chaser_never_closes(tmp_path):
+def test_a_stalled_stand_closes_on_its_chaser_and_only_a_stalled_close_fails(tmp_path):
+    """Review-t11-doctrine M1: a chaser that does not close is closed on (the stance's approach), never stood against
+    for STALL_S then left (the walk-pause-walk); a close whose distance does not fall either fails `stall`."""
     r, sv = rig(tmp_path)
     zs = [zombie(1, 106.0, 200.0)]
+    sent = []
+    for i in range(int(K.STALL_S / 0.5) + 3):
+        r.frame(zombies=zs)
+        a = tick(r, sv)
+        sent.append(None if a is None else a.type)
+        r.advance(0.5)
+    d = doctrine_of(sv)
+    assert 1 not in d.mem.skip and d.arbiter.current.kind == "fight" and d.arbiter.current.closing is True
+    assert doc(tmp_path)["state"] == "close" and "walkTo" in sent or "aim" in sent
     for i in range(int(K.STALL_S / 0.5) + 3):
         r.frame(zombies=zs)
         tick(r, sv)
         r.advance(0.5)
+    assert 1 in d.mem.skip and ("fight", K.P_FIGHT, "failed", "stall") in d.arbiter.ends
+
+
+def test_a_string_that_keeps_its_gap_never_fails_stall(tmp_path):
+    r, sv = rig(tmp_path)
+    zs = [zombie(1, 106.0, 200.0), zombie(2, 106.5, 200.5)]
+    for i in range(int(2 * K.STALL_S / 0.5) + 3):
+        r.frame(zombies=zs)
+        tick(r, sv)
+        r.advance(0.5)
     d = doctrine_of(sv)
-    assert 1 in d.mem.skip
-    assert ("fight", K.P_FIGHT, "failed", "stall") in d.arbiter.ends
+    assert not d.mem.skip and not any(e[2] == "failed" for e in d.arbiter.ends)
+    assert doc(tmp_path)["state"] == "string"
+
+
+def test_a_fight_at_low_health_never_ends_on_health(tmp_path):
+    """Review-t11-doctrine m8: health 1, a chaser met for twenty ticks: the Fight runs on."""
+    r, sv = rig(tmp_path)
+    for i in range(20):
+        r.frame(zombies=[zombie(1, 106.0 - 0.2 * i, 200.0)], health=1.0)
+        tick(r, sv)
+        r.advance(0.5)
+    d = doctrine_of(sv)
+    assert d.arbiter.current.kind == "fight" and not d.arbiter.ends
+
+
+def test_the_stand_backs_to_its_ground_facing_the_lead(tmp_path):
+    r, sv = rig(tmp_path, ground=False)
+    r.scan(grid(80, 125, 180, 220, at={(99, 200): {"blockW": True, "edgeW": True}}))
+    r.frame(zombies=[zombie(1, 104.0, 200.0), zombie(2, 104.5, 201.0), zombie(3, 104.0, 199.0)])
+    a = tick(r, sv)
+    d = doc(tmp_path)
+    assert d["intent"] == "fight" and d["state"] == "ground" and (a.type, a.args["targetId"]) == ("aim", 1)
+    assert a.args["vx"] < 0.0
 
 
 def test_a_fight_ends_done_when_its_zombie_is_gone(tmp_path):
@@ -735,76 +825,137 @@ def test_a_dress_that_fails_holds_the_next_off(tmp_path):
     assert doc(tmp_path)["intent"] == "order"
 
 
+def avoid_rig(tmp_path, door=SHUT, me=(10774.0, 10633.5), zs=GROUP_EAST, caps=CAPS):
+    r = Rig(tmp_path, caps=caps)
+    sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=Src(None), control="doctrine")
+    ground = door_ground(door)
+    r.scan(opened(ground) if door.get("open") else ground)
+    r.frame(x=me[0], y=me[1], zombies=[zombie(i, x, y, me=me) for i, x, y in zs])
+    return r, sv
+
+
+def group_frame(r, me=(10774.0, 10633.5), zs=GROUP_EAST, **k):
+    r.frame(x=me[0], y=me[1], zombies=[zombie(i, x, y, me=me) for i, x, y in zs], **k)
+
+
 def test_an_avoid_runs_to_its_refuge_with_the_flee_reason_on_the_threat_why(tmp_path):
-    r, sv = rig(tmp_path)
-    r.frame(zombies=[zombie(1, 104.0, 200.0), zombie(2, 104.5, 201.0), zombie(3, 104.0, 199.0)])
+    r, sv = avoid_rig(tmp_path)
     a = tick(r, sv)
     d = line(tmp_path)
-    assert a.type == "walkTo" and a.args["gait"] == "run" and a.args["x"] < 100.0
+    assert a.type == "walkTo" and a.args["gait"] == "run" and a.args["x"] < 10770.0
     assert d["branch"] == "threat" and d["inputs"]["branches"]["threat"]["flee"] == "group"
-    assert d["inputs"]["intent"]["kind"] == "avoid_open" and d["inputs"]["intent"]["target"] == [
+    assert d["inputs"]["intent"]["kind"] == "avoid_refuge" and d["inputs"]["intent"]["target"] == [
         math.floor(a.args["x"]), math.floor(a.args["y"])]
 
 
 def test_an_avoid_ends_done_when_the_group_thins_and_the_fight_takes_the_rest(tmp_path):
-    r, sv = rig(tmp_path)
-    r.frame(zombies=[zombie(1, 104.0, 200.0), zombie(2, 104.5, 201.0), zombie(3, 104.0, 199.0)])
+    r, sv = avoid_rig(tmp_path)
     tick(r, sv)
     r.event("zombie_dead", id=3)
-    r.frame(zombies=[zombie(1, 104.0, 200.0), zombie(2, 104.5, 201.0)])
+    group_frame(r, zs=GROUP_EAST[:2])
     tick(r, sv)
     d = doc(tmp_path)
     assert d["ended"] == {"intent": "avoid", "p": 2, "end": "done", "why": "thinned"} and d["intent"] == "fight"
 
 
 def test_an_avoid_ends_done_clear(tmp_path):
-    r, sv = rig(tmp_path)
-    r.frame(zombies=[zombie(1, 104.0, 200.0), zombie(2, 104.5, 201.0), zombie(3, 104.0, 199.0)])
+    r, sv = avoid_rig(tmp_path)
     tick(r, sv)
     for zid in (1, 2, 3):
         r.event("zombie_dead", id=zid)
-    r.frame(zombies=[])
+    group_frame(r, zs=[])
     tick(r, sv)
     assert doc(tmp_path)["ended"]["why"] == "clear"
 
 
-def test_an_avoid_holds_the_stance_at_its_refuge_never_a_second_leg(tmp_path):
-    r, sv = rig(tmp_path)
-    zs = [zombie(1, 104.0, 200.0), zombie(2, 104.5, 201.0), zombie(3, 104.0, 199.0)]
-    r.frame(zombies=zs)
+OPEN = dict(SHUT, open=True)
+POST_IN = (10768.5, 10633.5)   # the open door's post inside (`policies.stand_post`): the refuge's square
+
+
+def test_an_avoid_holds_the_stance_at_its_refuge_then_hands_it_to_the_fight(tmp_path):
+    """One leg, then the stance at the refuge (never a second leg); AVOID_HOLD_S of it ends `done held` (M6) into the
+    Fight at the refuge, the next Avoid held off AVOID_RETRY_S."""
+    r, sv = avoid_rig(tmp_path, door=OPEN)
     a = tick(r, sv)
-    there = (a.args["x"], a.args["y"])
+    assert a.type == "walkTo" and (a.args["x"], a.args["y"]) == POST_IN
     r.answer()
-    me = there
-    r.frame(x=me[0], y=me[1], zombies=[zombie(z["id"], me[0] + z["x"] - 100.0, z["y"], me=me) for z in zs])
+    near = [(1, 10772.5, 10633.5), (2, 10772.5, 10634.5), (3, 10772.5, 10632.5)]
+    group_frame(r, me=POST_IN, zs=near)
     a = tick(r, sv)
     d = line(tmp_path)
     assert a.type == "aim" and a.args["vx"] == 0.0 and d["inputs"]["doctrine"]["state"] == "hold"
-    assert d["inputs"]["intent"]["kind"] == "fight_hold" and "flee" not in d["inputs"]["branches"]["threat"]
+    assert d["inputs"]["intent"]["kind"] == "filter_door" and "flee" not in d["inputs"]["branches"]["threat"]
+    for _ in range(int(K.AVOID_HOLD_S / 0.5) + 2):
+        r.advance(0.5)
+        group_frame(r, me=POST_IN, zs=near)
+        tick(r, sv)
+    dd = doctrine_of(sv)
+    assert ("avoid", K.P_AVOID, "done", "held") in dd.arbiter.ends and doc(tmp_path)["intent"] == "fight"
+    assert dd.mem.avoid_until > r.clock()
 
 
-def test_an_avoid_fails_after_its_route_fails_twice_and_the_fight_takes_the_nearest(tmp_path):
-    r, sv = rig(tmp_path)
-    zs = [zombie(1, 104.0, 200.0), zombie(2, 104.5, 201.0), zombie(3, 104.0, 199.0)]
-    r.frame(zombies=zs)
+def test_an_avoid_whose_route_fails_ends_failed_and_the_fight_takes_the_nearest(tmp_path):
+    r, sv = avoid_rig(tmp_path)
     tick(r, sv)
     for _ in range(K.ROUTE_TRIES):
-        r.fake.answer({"walkTo": ["accepted", {"state": "failed", "reason": "stuck"}]})
-        r.pump()
-        r.frame(zombies=zs)
+        if r.acts.current is not None and r.acts.current.type == "walkTo":
+            r.fake.answer({"walkTo": ["accepted", {"state": "failed", "reason": "stuck"}]})
+            r.pump()
+        group_frame(r)
         tick(r, sv)
     d = doctrine_of(sv)
-    assert ("avoid", K.P_AVOID, "failed", "route") in d.arbiter.ends
+    assert any(e[:3] == ("avoid", K.P_AVOID, "failed") and e[3] in ("route", "no refuge") for e in d.arbiter.ends)
     assert d.mem.avoid_until > r.clock() and doc(tmp_path)["intent"] == "fight"
 
 
-def test_an_avoid_with_no_refuge_fails_at_once(tmp_path, monkeypatch):
-    monkeypatch.setattr(SI, "refuge", lambda *a, **k: None)
-    r, sv = rig(tmp_path)
+def test_an_avoid_across_a_fence_climbs_it_when_its_walk_sticks(tmp_path):
+    r = Rig(tmp_path, caps=CAPS)
+    sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=Src(None), control="doctrine")
+    r.scan(grid(80, 125, 180, 220, at={(97, y): {"blockW": True, "hopW": True} for y in range(190, 211)}))
     r.frame(zombies=[zombie(1, 104.0, 200.0), zombie(2, 104.5, 201.0), zombie(3, 104.0, 199.0)])
-    tick(r, sv)
-    d = doctrine_of(sv)
-    assert ("avoid", K.P_AVOID, "failed", "no refuge") in d.arbiter.ends and doc(tmp_path)["intent"] == "fight"
+    a = tick(r, sv)
+    assert a.type == "walkTo" and a.args["x"] == 96.5
+    r.fake.answer({"walkTo": ["accepted", {"state": "failed", "reason": "stuck"}]})
+    r.pump()
+    me = (97.6, 200.5)   # the walk stuck against the fence
+    r.frame(x=me[0], y=me[1], zombies=[zombie(i, x, 200.0 + dy, me=me) for i, x, dy in ((1, 104.0, 0), (2, 104.5, 1),
+                                                                                       (3, 104.0, -1))])
+    a = tick(r, sv)
+    assert a.type == "climb" and a.args["x"] == 97 and doc(tmp_path)["state"] == "climb"
+    r.answer()
+    r.frame(x=me[0], y=me[1], zombies=[zombie(i, x, 200.0 + dy, me=me) for i, x, dy in ((1, 104.0, 0), (2, 104.5, 1),
+                                                                                       (3, 104.0, -1))])
+    a = tick(r, sv)
+    assert a.type == "walkTo" and doc(tmp_path)["state"] == "walk"
+
+
+def test_the_avoid_s_run_keeps_its_gait_while_the_group_sees_the_character(tmp_path):
+    """Review-t11-doctrine m5: the group aware through `known` only (no `hasTarget`), the sneak flag set: the run is
+    Survive's flee (`mode` "flee"), never cut to the crouched walk."""
+    r, sv = avoid_rig(tmp_path, caps=CAPS + ("sneak",))
+    me = (10774.0, 10633.5)
+    zs = [dict(zombie(i, x, y, me=me), hasTarget=False, known=True) for i, x, y in GROUP_EAST]
+    r.frame(x=me[0], y=me[1], zombies=zs, sneaking=True)
+    a = tick(r, sv)
+    assert a.type == "sneak" and a.args.get("on", False) is False and sv.mode == "flee"   # up first: a flee runs upright
+    r.answer()
+    r.frame(x=me[0], y=me[1], zombies=zs, sneaking=False)
+    a = tick(r, sv)
+    assert a.type == "walkTo" and a.args["gait"] == "run" and sv.mode == "flee"
+
+
+def test_the_order_walk_sneaks_past_an_unaware_zombie(tmp_path):
+    """m5: under the doctrine an Order walk with an unaware zombie within SNEAK_R takes the sneak gait (Survive's
+    `Sneak(True)`, on a tick that sends nothing else)."""
+    r, sv = rig(tmp_path, goal=ExploreToward(110, 200), caps=CAPS + ("sneak",))
+    sv.goals.kit.explore.scanned.add((100, 200))
+    r.frame(zombies=[idle(1, 104.0, 205.0)])
+    a = tick(r, sv)
+    assert a.type == "walkTo" and doc(tmp_path)["intent"] == "order"
+    r.answer("accepted")
+    r.frame(zombies=[idle(1, 104.0, 205.0)])
+    a = tick(r, sv)
+    assert a is not None and (a.type, a.args) == ("sneak", {"on": True}) and sv.mode is None
 
 
 def test_a_door_with_one_behind_takes_the_post_then_opens(tmp_path):
@@ -933,7 +1084,7 @@ def test_the_prefetch_asks_the_model_only_and_hands_its_answer_to_the_next_ask()
     s.prefetch(dict, 1.0)   # under PREFETCH_S: not asked
     s.prefetch(dict, 0.0 + K.PREFETCH_S)
     assert m.asks == 2 and s.held is not None and s.totals() == {"n": 2}
-    assert s.propose({}).args() == {"x": 5, "y": 6} and m.asks == 2
+    assert s.propose({"pos": {"x": 5.0, "y": 6.0}}).args() == {"x": 5, "y": 6} and m.asks == 2
     scripted = Resume(Src(ExploreToward(1, 1)))
     scripted.prefetch(dict, 0.0)
     assert scripted.held is None
@@ -1005,3 +1156,258 @@ def test_the_constants_name_their_sources():
     for name in ("GROUP_N", "GROUP_R", "GROUP_CLEAR_R", "ENGAGE_R", "STALL_S", "STRING_GAP"):
         assert name in src and getattr(K, name) is not None
     assert K.GROUP_N == 3 and K.ENGAGE_R == 9.0 and K.GROUP_R == 6.0 and K.GROUP_CLEAR_R == 10.0
+
+
+# ================================================================ fix round 1 (review-t11-doctrine)
+DOOR_ME = (10771.6, 10633.5)   # at the door's post outside
+
+
+def door_rig2(tmp_path, zs):
+    r = Rig(tmp_path, caps=CAPS)
+    sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=Src(None), control="doctrine")
+    r.scan(door_ground())
+    door_frame(r, zs)
+    return r, sv
+
+
+def door_frame(r, zs):
+    me = DOOR_ME
+    r.frame(x=me[0], y=me[1], zombies=[dict(zombie(i, x, y, me=me), hasTarget=False) for i, x, y in zs])
+
+
+def test_an_opened_door_whose_zombie_stays_put_ends_within_two_door_waits(tmp_path):
+    """Major 1 (the review's `door_probe.py`: 80 of 80 ticks on the Door): one zombie 3.1 tiles behind the door, never
+    coming through: the stance waits DOOR_WAIT_S at the opened door, then fights it through the doorway as long again,
+    then the Door ends `left`, the door left (decided `leave`, marked held) and the order runs."""
+    zs = [(9, 10768.5, 10633.5)]
+    r, sv = door_rig2(tmp_path, zs)
+    a = tick(r, sv)
+    assert a.type == "interact"
+    r.answer()
+    n = int(2 * K.DOOR_WAIT_S / 0.5) + 4
+    states = []
+    for _ in range(n):
+        r.advance(0.5)
+        door_frame(r, zs)
+        tick(r, sv)
+        states.append(doc(tmp_path)["state"])
+    d = doctrine_of(sv)
+    assert ("door", K.P_DOOR, "done", "left") in d.arbiter.ends and doc(tmp_path)["intent"] == "order"
+    assert "meet" in states and "through" in states
+    assert (10770, 10633, 0) in r.world.marked_doors()
+
+
+def test_the_fight_through_the_doorway_presses_the_melee_at_the_zombie_within_its_release(tmp_path):
+    zs = [(9, 10769.2, 10633.5)]   # 2.4 tiles: within MELEE_RELEASE_R, still across the edge
+    r, sv = door_rig2(tmp_path, zs)
+    tick(r, sv)
+    r.answer()
+    sent = []
+    for _ in range(int(K.DOOR_WAIT_S / 0.5) + 3):
+        r.advance(0.5)
+        door_frame(r, zs)
+        a = tick(r, sv)
+        sent.append(None if a is None else (a.type, a.args.get("targetId")))
+    assert ("melee", 9) in sent and doc(tmp_path)["state"] == "through"
+
+
+def test_more_than_two_across_the_opened_door_at_the_wait_s_end_reroute(tmp_path):
+    r, sv = door_rig2(tmp_path, [(9, 10768.5, 10633.5)])
+    tick(r, sv)
+    r.answer()
+    three = [(9, 10768.5, 10633.5), (10, 10768.0, 10632.5), (11, 10768.0, 10634.5)]
+    for _ in range(int(K.DOOR_WAIT_S / 0.5) + 3):
+        r.advance(0.5)
+        door_frame(r, three)
+        tick(r, sv)
+    d = doctrine_of(sv)
+    assert ("door", K.P_DOOR, "done", "reroute") in d.arbiter.ends
+    assert (10770, 10633, 0) in r.world.marked_doors()
+
+
+def test_a_door_whose_open_never_comes_ends_stuck(tmp_path):
+    r, sv = door_rig2(tmp_path, [(9, 10768.5, 10633.5)])
+    tick(r, sv)   # the open sent and never answered
+    for _ in range(int(3 * K.DOOR_WAIT_S / 0.5) + 2):
+        r.advance(0.5)
+        door_frame(r, [(9, 10768.5, 10633.5)])
+        tick(r, sv)
+    assert ("door", K.P_DOOR, "done", "stuck") in doctrine_of(sv).arbiter.ends
+
+
+def melee_sends(r):
+    return sum(1 for a in r.acts.history if a.type == "melee")
+
+
+@pytest.mark.parametrize("end", [{"state": "rejected", "reason": "no target"},
+                                 {"state": "failed", "reason": "interrupted"}])
+def test_a_strike_whose_melee_backs_off_is_failed_and_not_sent_again_for_the_back_off(tmp_path, end):
+    """Major 2 (the review's `backoff_probe.py`: 20 melee sends in 20 ticks): a melee rejected `no target` or ended
+    `interrupted` ends the Strike `failed`, never `done`, and none goes at the zombie for BACKOFF_TICKS."""
+    r, sv = rig(tmp_path)
+    zs = [idle(1, 101.3, 200.0)]
+    for _ in range(20):
+        r.frame(zombies=zs)
+        tick(r, sv)
+        cur = r.acts.history[-1] if r.acts.history else None
+        if cur is not None and cur.type == "melee" and not r.acts.done(cur):
+            r.fake.answer({"melee": ([] if end["state"] == "rejected" else ["accepted"]) + [end]})
+            r.pump()
+        r.advance(0.5)
+    d = doctrine_of(sv)
+    assert melee_sends(r) <= 20 // K.BACKOFF_TICKS + 1
+    assert ("strike", K.P_STRIKE, "failed", end["reason"]) in d.arbiter.ends
+    assert not any(e[0] == "strike" and e[2] == "done" for e in d.arbiter.ends)
+
+
+def test_a_fight_whose_melee_backs_off_waits_and_counts_it_toward_the_dud(tmp_path):
+    r, sv = rig(tmp_path)
+    zs = [zombie(1, 102.2, 200.0)]
+    for _ in range(20):
+        r.frame(zombies=zs)
+        tick(r, sv)
+        cur = r.acts.history[-1] if r.acts.history else None
+        if cur is not None and cur.type == "melee" and not r.acts.done(cur):
+            r.fake.answer({"melee": ["accepted", {"state": "failed", "reason": "interrupted"}]})
+            r.pump()
+        r.advance(0.5)
+    assert melee_sends(r) <= 20 // K.BACKOFF_TICKS + 1
+    f = doctrine_of(sv).arbiter.current
+    assert f.kind == "fight" and f.duds >= 1
+
+
+def lull_rig(tmp_path, ground=True):
+    r, sv = rig(tmp_path, ground=ground)
+    return r, sv
+
+
+def test_the_lull_dresses_a_wound_that_is_not_bleeding(tmp_path):
+    """Major 3 (P28-A's step, `care.Care.choose`'s `wound`): under the doctrine, no zombie near and no bleed, the
+    care's wound step runs in the order, on the care's branch, labelled a dress."""
+    r, sv = lull_rig(tmp_path)
+    for iid, ft in RAGS2:
+        hold(r, iid, ft)
+    r.frame(wounds={"parts": [wound4()], "bleeding": 0})
+    a = tick(r, sv)
+    d = line(tmp_path)
+    assert (a.type, a.args["part"]) == ("bandage", 4) and d["branch"] == "care"
+    assert d["inputs"]["branches"]["care"]["reason"] == "wound" and d["inputs"]["intent"] == {"kind": "dress"}
+
+
+def test_the_lull_replaces_a_spent_dressing(tmp_path):
+    """P27-D and P27-K3's step (`spent`): a bandage spent on a part not bleeding, a clean rag held."""
+    r, sv = lull_rig(tmp_path)
+    hold(r, 11, "Base.RippedSheets")
+    r.frame(wounds={"parts": [part(4, bandaged=True, bandageLife=0.0, bandageDirty=True)], "bleeding": 0})
+    a = tick(r, sv)
+    assert (a.type, a.args["itemId"], a.args["part"]) == ("bandage", 11, 4)
+    assert line(tmp_path)["inputs"]["branches"]["care"]["reason"] == "spent"
+
+
+def test_the_lull_washes_a_dirty_rag_at_a_known_source(tmp_path):
+    r, sv = lull_rig(tmp_path, ground=False)
+    r.scan([square(105, 200, water={"amount": 20.0, "tainted": False, "infinite": True})])
+    hold(r, 12, "Base.RippedSheetsDirty")
+    r.frame(wounds={"parts": [], "bleeding": 0})
+    a = tick(r, sv)
+    assert (a.type, a.args) == ("wash", {"itemId": 12, "x": 105, "y": 200})
+    assert line(tmp_path)["inputs"]["intent"] == {"kind": "stock"}
+
+
+def test_no_care_step_runs_with_a_zombie_within_danger_r(tmp_path):
+    r, sv = lull_rig(tmp_path)
+    for iid, ft in RAGS2:
+        hold(r, iid, ft)
+    r.frame(wounds={"parts": [wound4()], "bleeding": 0}, zombies=[idle(1, 105.0, 200.0)])
+    a = tick(r, sv)
+    assert (a is None or a.type != "bandage") and line(tmp_path)["inputs"]["branches"]["care"]["lull"] is False
+
+
+def test_a_held_prefetch_is_checked_against_the_asking_view_and_dropped_on_a_refusal():
+    """M3: a LootBuilding the model answered mid-loot is refused `looted already` against the view at hand-over, and
+    the inner source is asked instead."""
+    class Model:
+        NAME = "llm"
+
+        def __init__(self):
+            self.asks = 0
+
+        def propose(self, view):
+            self.asks += 1
+            return LootBuilding(5) if self.asks == 1 else None
+    m = Model()
+    s = Resume(m)
+    s.prefetch(dict, 0.0)
+    assert s.held is not None and m.asks == 1
+    looted = {"pos": {"x": 0.0, "y": 0.0}, "buildings": [{"id": 5, "looted": True}]}
+    assert s.propose(looted) is None and m.asks == 2 and s.dropped == "invalid: looted already"
+    s.prefetch(dict, K.PREFETCH_S + 1.0)
+
+
+def test_the_source_s_name_is_the_inner_source_s_own_at_each_read():
+    """M4: the LLMSource names a stand-in's goal on its instance; the wrapper forwards it live."""
+    class Model:
+        NAME = "llm"
+    m = Model()
+    s = Resume(m)
+    m.NAME = "scripted"
+    assert s.NAME == "scripted"
+    m.NAME = "llm"
+    assert s.NAME == "llm"
+
+
+def test_line_switches_reads_a_change_of_intent_at_equal_priority_with_no_end():
+    def row(n, p, ended=None):
+        return {"inputs": {"doctrine": {"n": n, "p": p, "ended": ended}}}
+    rows = [row(1, 5), row(1, 5), row(2, 0), row(1, 5, {"intent": "strike"}), row(3, 5), {"inputs": {}}, row(3, 5)]
+    assert line_switches(rows) == 1
+    assert line_switches([row(1, 3), row(2, 3, {"intent": "fight"})]) == 0
+
+
+def test_the_lines_of_a_mixed_run_read_no_equal_priority_switch(tmp_path):
+    r, sv = rig(tmp_path, goal=ExploreToward(110, 200))
+    script = ([[]] * 2 + [[zombie(1, 106.0, 200.0)]] * 3 + [[zombie(1, 106.0, 200.0), zombie(2, 105.0, 203.0)]] * 3
+              + [[zombie(2, 105.0, 203.0)]] * 2 + [[idle(3, 101.3, 200.0)]] * 2 + [[]] * 2)
+    for zs in script:
+        r.frame(zombies=zs)
+        tick(r, sv)
+        r.advance(0.5)
+    rows = decisions(tmp_path)
+    assert line_switches(rows) == 0 and len({r["inputs"]["doctrine"]["n"] for r in rows}) > 1
+
+
+def test_prepare_turns_the_ladder_s_door_read_off_before_the_first_tick(tmp_path):
+    r, sv = rig(tmp_path)
+    d = prepare(sv)
+    assert sv.DOOR_HELD is False and doctrine_of(sv) is d
+    r.frame()
+    tick(r, sv)
+    assert doctrine_of(sv) is d
+
+
+def test_the_resumed_slot_adopts_the_ended_intent_s_melee_or_retires_it(tmp_path):
+    """m2: on the slot's resume the ended Strike's melee is handed to the slot's intent when its zombie is the slot's,
+    else retired (its late kills still read), never orphaned."""
+    r, sv = rig(tmp_path)
+    r.frame()
+    tick(r, sv)
+    d = doctrine_of(sv)
+    fight = INTENTS["fight"](d, Want(K.P_FIGHT, "fight", 1, {}, (1,)))
+    strike = INTENTS["strike"](d, Want(K.P_STRIKE, "strike", 1, {}, (1,)))
+    strike.m = StubMelee(1)
+    fight.adopt(strike)
+    assert fight.m is not None and strike.m is None
+    other = INTENTS["strike"](d, Want(K.P_STRIKE, "strike", 2, {}, (2,)))
+    m2 = other.m = StubMelee(2)
+    fight.adopt(other)
+    assert fight.m.target == 1 and m2 in d.retired
+    a, make, log = arb()
+    a.step([W("fight", 1, (1,)), W("order")], make)
+    slot = a.current
+    calls = []
+    slot.adopt = lambda prev: calls.append(prev)
+    a.step([W("strike", 9, (9,)), W("fight", 1, (1,))], make)
+    ended = a.current
+    ended.end = ("done", "press")
+    a.step([W("fight", 1, (1,)), W("order")], make)
+    assert a.current is slot and calls == [ended]

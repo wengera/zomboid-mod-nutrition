@@ -2,6 +2,6 @@
 (`planner/control.py`, `Survive(control="doctrine")`). `README.md` beside this file is the design; `assess.py` the
 tick, `situation.py` the wants, `arbiter.py` the priorities and the resume slot, `intents.py` the intents,
 `source.py` the goal source's resume and prefetch, `constants.py` the numbers with their sources."""
-from agent.base.planner.doctrine.assess import assess
+from agent.base.planner.doctrine.assess import assess, line_switches, prepare
 
-__all__ = ["assess"]
+__all__ = ["assess", "line_switches", "prepare"]

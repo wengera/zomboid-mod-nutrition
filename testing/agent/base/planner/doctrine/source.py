@@ -13,10 +13,14 @@ unedited) runs the standing order with two rules more:
   checked against the view of its own ask (the LLMSource's rule), not the view of the tick it is used on.
 
 Every other attribute is the inner source's (`__getattr__`), so a driver reading `totals()`, `calls` or `join` reads the
-model's own."""
+model's own, and `NAME` is the inner source's own at each read (review-t11-doctrine M4: `LLMSource` names a stand-in's
+goal "scripted" on its instance, so the runner's history, its line and P30-B's hop read the real source). A held
+prefetch is checked again against the asking view before it is handed over (`llm.place_error`, M3: a building looted
+meanwhile, F7's "looted already"), and dropped on a refusal."""
 from agent.base.planner.doctrine.constants import PREFETCH_S, RESUME_MAX
 from agent.base.planner.goal_runner import validate
 from agent.base.planner.goals import goal_key
+from agent.base.planner.llm import place_error
 
 NEVER = ("Rest",)   # goal types never resumed
 
@@ -26,12 +30,12 @@ class Resume:
 
     def __init__(self, inner):
         self.inner = inner
-        self.NAME = getattr(inner, "NAME", None)
         self.queued = None      # the row of the last goal closed superseded, until the next ask
         self.held = None        # a prefetched goal, until the next ask
         self.resumed = {}       # goal key -> times resumed
         self.last_resume = None   # the key of the goal the last ask resumed, else None
         self._asked = None      # wall of the last prefetch ask
+        self.dropped = None     # the last held prefetch's refusal against the view at hand, else None
 
     def __getattr__(self, name):
         if name == "inner":
@@ -62,12 +66,15 @@ class Resume:
                 return g
         if self.held is not None:
             g, self.held = self.held, None
-            return g
+            v = view if isinstance(view, dict) else {}
+            if place_error(g, v, v.get("pos")) is None:
+                return g
+            self.dropped = place_error(g, v, v.get("pos"))   # refused against the view at hand: asked again
         return self.inner.propose(view)
 
     def prefetch(self, view_fn, now):
         """Ask the model for the next order while a loot runs (the module docstring); None."""
-        if self.NAME != "llm" or self.held is not None or self.queued is not None:
+        if getattr(type(self.inner), "NAME", None) != "llm" or self.held is not None or self.queued is not None:
             return
         if self._asked is not None and now - self._asked < PREFETCH_S:
             return
