@@ -72,7 +72,6 @@ KNOWN_LABELS = ("meet", "finish", "filter_door", "strike", "dress", "fight", "do
                 "sneak", "rest")                # the spec's other words (D's intents, U's acts, T's plays): no `?`
 LABEL_KEYS = ("intent", "play", "act")          # the line's (or its inputs') keys a variant names its choice under
 REFUGE_WORDS = ("filter", "door", "window", "shelter", "refuge")   # a label or target naming one names a refuge
-REFUGE_LEGS = ("enter",)                        # the ladder's threat legs into a building (a refuge)
 LEGS = ("pull", "back")                         # the ladder's fight legs walking off a zombie, printed in the detail
 MOVE_EPS = 0.05        # tiles: a fall in the distance to the target this small is drift, not movement (a 2 Hz line
                        # of the slowest walk, the sneak's, covers several times it)
@@ -366,12 +365,13 @@ def _refuge_word(v):
 def names_refuge(r):
     """Whether the line names a filter, door, window or shelter target: a label (`_labels`) or a string play target
     containing a REFUGE_WORDS word; or the ladder's own, its threat why's `shelter` set (the shelter's building),
-    its `doorway_pick` set to anything but `no_door` (a doorway stand, a filter), its `leg` in REFUGE_LEGS, or its
-    goal's `type` a Shelter."""
+    its `doorway_pick` set to anything but `no_door` (a doorway stand, a filter), or its goal's `type` a Shelter. The
+    threat why's `leg` is not read: `leg: enter` is the melee stance's entry leg (`planner/dispatch.py` MELEE_LEGS),
+    no building's (review-t7-fix1 R1), and a shelter is caught by `shelter`."""
     if any(_refuge_word(x) for x in _labels(r) + _play_targets(r)):
         return True
     t = E._bw(r, "threat")
-    if t.get("shelter") is not None or t.get("doorway_pick") not in (None, "no_door") or t.get("leg") in REFUGE_LEGS:
+    if t.get("shelter") is not None or t.get("doorway_pick") not in (None, "no_door"):
         return True
     return _refuge_word(E._d(r.get("goal")).get("type"))
 

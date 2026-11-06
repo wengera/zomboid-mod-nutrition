@@ -101,28 +101,29 @@ def test_f15_the_row_reads_every_cell_in_the_logs_column_order(f15):
     assert tuple(header) == TS.COLUMNS
     cs = TS.cells(f15, "seen one / two")
     assert len(cs) == len(TS.COLUMNS)
-    assert cs == ["f_goals_16-20261105-164332", "-", "-", "-", "142", "0", "6 / 8", "-", "39.3 / 138.5 (away 40.9)",
+    assert cs == ["f_goals_16-20261105-164332", "-", "-", "-", "142", "0", "6 / 8", "-", "39.3 / 138.5 (away 41.1)",
                   "17.3 / 138.5", "0 / 6", "1 / 26 (19 superseded)", "death@702", "0", "seen one / two"]
 
 
 def test_f15_away_minutes_legs_and_labels_read_as_by_hand(f15):
     """By hand (a script over the frames in wall order with json and `gates_e.session_lines` only): of the frame
     pairs where the character moved more than 0.05 tiles and the nearest `hasTarget` zombie of the first frame is
-    listed on the second more than 0.05 tiles farther, 1551 qualify; 14 lie under a decision line naming a refuge (the
-    threat why's `shelter` set, or a `doorway_pick` other than `no_door`), leaving 1537 intervals, 40.80082 game
-    minutes by `me.hour` with five steps back (-0.10706 min) counted, 40.90788 with them counted 0. The ladder's legs
+    listed on the second more than 0.05 tiles farther, 1551 qualify; 6 lie under a decision line naming a refuge (the
+    threat why's `shelter` set, or a `doorway_pick` other than `no_door`; `leg: enter`, the melee stance's entry leg,
+    names none: review-t7-fix1 R1), leaving 1545 intervals, 41.01505 game minutes by `me.hour` with five steps back
+    (-0.10706 min) counted, 41.12211 with them counted 0 (the reviewer's 41.122). The ladder's legs
     off the threat why's `leg`, each line to the next: pull 152 lines 20.34473 min, back 90 lines 11.99976 min (the
     reviewer's 20.34 and 12.00). No line carries `intent`, `play` or `act`: no label, no play target."""
     aw = f15["away"]
-    assert (aw["intervals"], aw["refuge_skipped"]) == (1537, 14)
-    assert aw["minutes"] == pytest.approx(40.90788, abs=1e-4)
+    assert (aw["intervals"], aw["refuge_skipped"]) == (1545, 6)
+    assert aw["minutes"] == pytest.approx(41.12211, abs=1e-4)
     assert f15["legs"]["pull"]["lines"] == 152 and f15["legs"]["back"]["lines"] == 90
     assert f15["legs"]["pull"]["minutes"] == pytest.approx(20.34473, abs=1e-4)
     assert f15["legs"]["back"]["minutes"] == pytest.approx(11.99976, abs=1e-4)
     assert f15["labels"] == {} and f15["toward"]["unresolved"] == 0
     d = "\n".join(TS.detail(f15))
     assert "leg: pull 152 lines 20.34 min, leg: back 90 lines 12.00 min" in d
-    assert "1537 intervals, 40.91 game minutes over 138.51 (14 intervals under a refuge skipped)" in d
+    assert "1545 intervals, 41.12 game minutes over 138.51 (6 intervals under a refuge skipped)" in d
 
 
 # ================================================================ synthetic rings, one per new reading
@@ -278,6 +279,7 @@ def test_away_counts_the_frame_intervals_moving_off_the_nearest_chaser_with_no_r
     assert TS.names_refuge(rows[1]) and TS.names_refuge(rows[2]) and not TS.names_refuge(rows[3])
     assert TS.names_refuge(_line(10.0, threat={"doorway_pick": "standing"}))
     assert not TS.names_refuge(_line(10.0, threat={"doorway_pick": "no_door"}))
+    assert not TS.names_refuge(_line(10.0, threat={"leg": "enter"}))     # the melee stance's entry leg (R1)
 
 
 def _act(aid, state, wall, step=None, reason=""):
