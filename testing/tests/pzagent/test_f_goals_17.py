@@ -19,6 +19,8 @@ import subprocess
 import threading
 import types
 
+import pytest
+
 from agent.base.grades import x1 as GX
 from agent.base.planner import llm as L
 from agent.base.planner.goals import ScriptedSource
@@ -304,7 +306,7 @@ def test_the_llm_session_builds_the_planner_with_the_defaults_and_grades_grade_x
     assert "grade_x1_error" not in out and "grade_f12" not in out
     assert g["grade"] == "grade_x1" and g["base"] == "grade_f12" and set(GX.NEW) <= set(g)
     assert g["llm"]["calls"] == len(out["loop"]["llm"]["calls"]) and g["frames_source"] == "state_logs"
-    assert g["fleeing"] == {"read": False} and g["hits_split"]["read"] is True
+    assert g["fleeing"] == {"read": False} and g["landed_hits"]["read"] is True
     json.dumps(out, allow_nan=False)
 
 
@@ -336,6 +338,12 @@ def test_run_session_returns_the_session_and_the_worker_is_joined_after_the_tear
     out = {}
     F.after_teardown(out, sess)
     assert out == {"llm_joined": True} and joins == [25.0]
+
+
+@pytest.mark.xfail(strict=True, reason="Survive.DRESS_MANEUVER is on by default only once Plan 31 Task 15a lands; "
+                   "the controller drops this marker at the re-base after it (review-t15b F4)")
+def test_the_dress_maneuver_is_on_by_default_in_the_planner_the_driver_builds():
+    assert Survive.DRESS_MANEUVER is True
 
 
 def test_grade_records_a_grade_failure_rather_than_raising(monkeypatch):

@@ -1,10 +1,11 @@
 """base/grades/x1.py (Plan 31 Task 15b), offline: `grade_x1` and its eleven readings (the clip at the loop's stop, the
-hits with the runs split, the trial loop's fleeing, toward, every-wound dressing and superseded melees, the meet's
+attacks landed, the trial loop's fleeing, toward, every-wound dressing and superseded melees, the meet's
 presses, refusals, finishes and handbacks, and the Dress maneuver), each on a fabricated ring where it counts, its
 unread case and a mutant of each reading that its fixture fails; every base key unchanged under `grade_x1` (grade_e21's
 for a chain session, grade_f12's for an LLM one) on test_grades_e20's cut 2 fixture and on the committed F15
 (`f_goals_16-20261105-164332`) and E23 (`e_day_23-20261105-095110`) artifacts, through the function and through the
-regrade scripts `e_grade_22.py` and `f_grade_13.py`; the module's frozen copies (ruling P26-Q). The byte-for-byte
+regrade scripts `e_grade_22.py` and `f_grade_13.py`; the module's frozen copies (ruling P26-Q), the scorecard's
+three readers (`reaction_segments`, `landed_hits`, `dressed`) byte for byte as at main 0e4c9ec3. The byte-for-byte
 regrade tests of the artifacts grade_x1 grades are added at their artifact commits."""
 import functools
 import json
@@ -110,17 +111,19 @@ def test_the_clip_drops_every_source_after_the_loop_s_stop_and_counts_what_it_dr
     assert G.clip(a, None, lines0)[1] is None
 
 
-# ================================================================ the hits, the runs split
+# ================================================================ the attacks landed (the scorecard's)
 def split_lines():
-    """Frames every 0.1 s from 0 to 9.0. A `Bite` 1.0-1.2 (m5's fresh `hit` at 1.03, within a frame interval of its
-    start: joined) then `BiteDefended` 1.3-1.4 (two runs by type, one unsplit);
-    C `Bite` 3.0-3.6 with m1's fresh `hit` at 3.4 (its third line: a split) and m2's first line `hit` at 3.2 (a melee
-    sent inside the reaction: joined); D `CrawlerBiteLEFT` 5.0-5.1, then `EndDeath` 5.2-6.0 (the death, extending D)
-    with m3's `hit` at 5.5 and 5.8 (in the death: nothing); m4's `hit` at 8.0, past every run (alone)."""
+    """Frames every 0.1 s from 0 to 9.0: five reaction segments. A `Bite` 1.0-1.2 (m5's `hit` at 1.03 joins it) then
+    `BiteDefended` 1.3-1.4 (one run, two segments by type); C `Bite` 3.0-3.6, m2's `hit` at 3.2 joining it and m1's at
+    3.4 a hit of its own (a segment takes one step); D `CrawlerBiteLEFT` 5.0-5.1, then `EndDeath` 5.2-6.0 (its own
+    segment, the killing attack, to the run's end through a `BiteLEFT` at 6.0) taking both of m3's `hit` steps at 5.5
+    and 5.8; m4's `hit` at 8.0, in no segment (a hit
+    of its own). Union: 5 segments + 6 steps - 4 joined = 7."""
     react = {10: "Bite", 11: "Bite", 12: "Bite", 13: "BiteDefended", 14: "BiteDefended"}
     react.update({k: "Bite" for k in range(30, 37)})
     react.update({50: "CrawlerBiteLEFT", 51: "CrawlerBiteLEFT"})
-    react.update({k: "EndDeath" for k in range(52, 61)})
+    react.update({k: "EndDeath" for k in range(52, 60)})
+    react[60] = "BiteLEFT"                                  # a type after EndDeath in the dying run: no new segment
     frames = [fr(k / 10.0, react.get(k, ""), seq=1000 + k) for k in range(91)]
     acts = [actl("m5", "melee", "accepted", 0.8), mel("m5", 0.9, "face"), mel("m5", 1.03, "hit"),
             actl("m1", "melee", "accepted", 2.5), mel("m1", 2.6, "face"), mel("m1", 2.9, "swing"),
@@ -134,20 +137,20 @@ def split_lines():
 
 def split_read(kills=2):
     lines = split_lines()
-    return G.e_hits_split(E._frame_index(lines)[1], lines, kills)
+    return G.landed_hits(E._frame_index(lines)[1], lines, kills)
 
 
-def test_the_hits_split_at_a_type_change_and_a_fresh_step_and_a_death_reads_its_attacks_not_its_animation():
+def test_the_attacks_landed_split_at_a_type_change_and_the_end_death_run_is_the_one_killing_attack():
     h = split_read()
-    assert (h["read"], h["runs"], h["runs_unsplit"], h["steps"]) == (True, 4, 3, 6)
-    assert (h["joined"], h["splits"], h["alone"], h["death_steps"], h["death_frames"]) == (2, 1, 1, 2, 0)
-    assert h["union"] == 6 and h["per_kill"] == 3.0 and h["kills"] == 2
-    assert h["by_kind"] == {"Bite": 2, "BiteDefended": 1, "CrawlerBiteLEFT": 1}
-    assert [(r["source"], r["kind"], r["splits"], r["death"]) for r in h["rows"]] == [
-        ("both", "Bite", 0, False), ("reaction", "BiteDefended", 0, False), ("both", "Bite", 1, False),
-        ("reaction", "CrawlerBiteLEFT", 0, True), ("step", None, 0, False)]
-    assert G.e_hits_split([], [], 1) == {"read": False}
-    assert split_read(0)["per_kill"] is None
+    assert (h["read"], h["runs"], h["steps"], h["joined"], h["union"], h["kills"]) == (True, 5, 6, 4, 7, 2)
+    assert h["per_kill_union"] == 3.5
+    lines = split_lines()
+    assert G.reaction_segments(E._frame_index(lines)[1]) == [(10, 12), (13, 14), (30, 36), (50, 51), (52, 60)]
+    assert [(r["source"], r["kind"], r["aid"]) for r in h["rows"]] == [
+        ("both", "Bite", "m5"), ("reaction", "BiteDefended", None), ("both", "Bite", "m2"), ("step", None, "m1"),
+        ("reaction", "CrawlerBiteLEFT", None), ("both", "EndDeath", "m3"), ("step", None, "m4")]
+    assert G.landed_hits([], [], 1) == {"read": False}
+    assert split_read(0)["per_kill_union"] is None
 
 
 # ================================================================ the fleeing, toward a target
@@ -202,13 +205,13 @@ def wound_frames():
     """Part 3 scratched at 0 s (carried), bandaged at 30 s; part 5 scratched at 60 s and never bleeding, bandaged at
     90 s (dressed in 0.5 min); part 6 bleeding at 120 s, bandaged at 300 s (3 min: late); part 7 scratched at 120 s,
     healed at 400 s; part 8 scratched at 500 s and open at the end; part 5's bandage off at 600 s while still
-    scratched (reopened, open at the end)."""
+    scratched (no new wound: the scorecard's rule), then bleeding unbandaged at 650 s (a new wound, open)."""
     def at(t):
         ps = []
         if t <= 600:
             ps.append(part(3, wound=True, bandaged=t >= 30))
         if t >= 60:
-            ps.append(part(5, wound=True, bandaged=90 <= t < 600))
+            ps.append(part(5, wound=True, bleeding=t >= 650, bandaged=90 <= t < 600))
         if t >= 120:
             ps.append(part(6, wound=True, bleeding=t < 300, bandaged=t >= 300))
         if 120 <= t < 400:
@@ -223,11 +226,10 @@ def wound_frames():
 
 def test_every_wound_taken_is_counted_and_dressed_when_bandaged_within_a_game_minute():
     w = G.e_wounds_dressed(wound_frames())
-    assert w["read"] is True and (w["wounds"], w["dressed"], w["bandaged"], w["healed"], w["open"]) == (6, 2, 3, 1, 2)
-    assert (w["carried"], w["bled"]) == (1, 1)
-    assert [(r["part"], r["seq0"], r["seq1"], r["end"], r["reopened"]) for r in w["rows"]] == [
-        (3, 0, 30, "bandaged", False), (5, 60, 90, "bandaged", False), (6, 120, 300, "bandaged", False),
-        (7, 120, 400, "healed", False), (8, 500, None, None, False), (5, 600, None, None, True)]
+    assert w["read"] is True and (w["wounds"], w["dressed"], w["stopped"], w["carried"]) == (6, 2, 4, 1)
+    assert [(r["part"], r["seq0"], r["seq1"], r["bandaged"]) for r in w["rows"]] == [
+        (3, 0, 30, True), (5, 60, 90, True), (6, 120, 300, True), (7, 120, 400, False), (8, 500, None, None),
+        (5, 650, None, None)]
     assert [round(r["minutes"], 3) if r["minutes"] is not None else None for r in w["rows"]] == [
         0.5, 0.5, 3.0, 4.667, None, None]
     assert G.e_wounds_dressed([]) == {"read": False}
@@ -254,8 +256,10 @@ def meet_lines():
     """m1 (strike): a swing lowering 1.0 to 0.8, a swing knocking down (its leaf on the knock_wait line), the floor
     swing's leaf on its done kill line. m2 (shove, spent): a shove that did nothing with knock_p 41, then a refused
     swing (its leaf cut_by refused, `refusals` 1), the wait, the accepted press's line closing the run at 3, a cut
-    swing (cut_by hit), a second refusal run closed by the done lost why refused. m3 (finish, headAim): the head turn
-    and a stomp lowering; done handback crowd at target 9 with a count. m4: handback standing at target 9 again."""
+    swing (cut_by hit), a second refusal run closed by the done lost why refused. m3 (finish, headAim, sent at 9):
+    the head turn and a stomp lowering, then the reflex's re-pin to 15 (step repin, `target` and `repins` on every
+    later line); done handback crowd {n 3, ds} pressing 15, with a field the grade does not know. m4: handback standing
+    at its record's 9. m5 (sent at 15): handback standing again."""
     return [HELLO,
             actl("m1", "melee", "accepted", 1.0), mel("m1", 1.1, "swing"),
             mel("m1", 1.5, "swing", press=leaf(hp1=0.8)),
@@ -263,7 +267,7 @@ def meet_lines():
             mel("m1", 2.2, "floor"), mel("m1", 2.6, None, state="done", end="kill", kill=True,
                                          press=leaf(hp0=0.5, hp1=0.0, d_press=0.9)),
             actl("m2", "melee", "accepted", 3.0), mel("m2", 3.1, "shove"),
-            mel("m2", 3.5, "swing", press=leaf(knock_p=41)),
+            mel("m2", 3.5, "swing", press=leaf(knock_p=0.41)),
             mel("m2", 3.6, "swing", refusals=1, press=leaf(cut_by="refused")),
             mel("m2", 3.7, "refused"), mel("m2", 4.0, "swing", refusals=3),
             mel("m2", 4.5, "face", press=leaf(cut_by="hit")),
@@ -271,17 +275,21 @@ def meet_lines():
             mel("m2", 5.0, None, state="done", end="lost", why="refused", refusals=15),
             actl("m3", "melee", "accepted", 6.0), mel("m3", 6.1, "head"), mel("m3", 6.3, "stomp"),
             mel("m3", 6.7, "face", press=leaf(hp0=0.5, hp1=0.3, d_press=0.25)),
-            mel("m3", 7.0, None, state="done", end="handback", why="crowd", id=11, d=0.5, count=3,
-                ds=[0.5, 0.6, 0.9]),
+            mel("m3", 6.8, "repin", target=15, repins=1), mel("m3", 6.9, "face", target=15, repins=1),
+            mel("m3", 7.0, None, state="done", end="handback", why="crowd", id=11, d=0.5, n=3,
+                ds=[0.5, 0.6, 0.9], target=15, repins=1, zzz=1),
             actl("m4", "melee", "accepted", 8.0), mel("m4", 8.1, "head"),
-            mel("m4", 8.5, None, state="done", end="handback", why="standing", id=12, d=1.4)]
+            mel("m4", 8.5, None, state="done", end="handback", why="standing", id=12, d=1.4),
+            actl("m5", "melee", "accepted", 9.0),
+            mel("m5", 9.5, None, state="done", end="handback", why="standing", id=13, d=1.2)]
 
 
 def meet_rec():
     return rec([act_row("m1", "melee", 1.0, targetId=8, mode="strike"),
                 act_row("m2", "melee", 3.0, targetId=10, mode="shove"),
                 act_row("m3", "melee", 6.0, targetId=9, mode="finish", headAim=True),
-                act_row("m4", "melee", 8.0, targetId=9, mode="finish")])
+                act_row("m4", "melee", 8.0, targetId=9, mode="finish"),
+                act_row("m5", "melee", 9.0, targetId=15, mode="strike")])
 
 
 def test_the_presses_are_read_by_kind_against_their_outcome_with_the_leaf_s_numbers():
@@ -292,7 +300,7 @@ def test_the_presses_are_read_by_kind_against_their_outcome_with_the_leaf_s_numb
     assert [(r["aid"], r["kind"], r["outcome"]) for r in p["rows"]] == [
         ("m1", "swing", "lowered"), ("m1", "swing", "knocked"), ("m1", "floor", "killed"), ("m2", "shove", "nothing"),
         ("m2", "swing", "refused"), ("m2", "swing", "cut"), ("m2", "swing", "refused"), ("m3", "stomp", "lowered")]
-    assert p["shoves"] == {"n": 1, "knocked": 0, "knock_p_n": 1, "knock_p_sum": 41}
+    assert p["shoves"] == {"n": 1, "knocked": 0, "knock_p_n": 1, "knock_p_sum": 0.41}
     t = p["table"]["swing"]["lowered"]
     assert t["n"] == 1 and t["d_press"] == {"n": 1, "min": 1.2, "median": 1.2, "max": 1.2} and t["knock_p"] == {"n": 0}
     assert p["table"]["floor"]["killed"]["d_press"]["max"] == 0.9
@@ -307,18 +315,21 @@ def test_the_refusals_are_read_by_run_with_their_counts_and_ends():
 
 def test_the_finishes_read_the_floor_and_the_stomp_and_the_head_aim_sent():
     f = G.e_meet_finishes(meet_rec(), meet_lines())
-    assert f["read"] is True and f["sent_finish"] == 2 and f["head_aim"] == {"on": 1, "off": 3, "absent": 3}
+    assert f["read"] is True and f["sent_finish"] == 2 and f["head_aim"] == {"on": 1, "off": 4, "absent": 4}
     assert f["presses"] == {"floor": 1, "stomp": 1} and f["by_outcome"] == {"killed": 1, "lowered": 1}
     assert f["kills"] == 1 and f["heads"] == 2
     assert [(x["aid"], x["kind"], x["head_aim"]) for x in f["rows"]] == [("m1", "floor", False), ("m3", "stomp", True)]
 
 
-def test_the_handbacks_read_their_why_their_target_and_every_extra_field():
+def test_the_handbacks_read_the_re_pinned_target_off_the_line_the_crowd_and_the_reflex_s_re_pins():
     h = G.e_meet_handbacks(meet_rec(), meet_lines())
-    assert h["read"] is True and h["handbacks"] == 2 and h["by_why"] == {"crowd": 1, "standing": 1}
-    assert h["by_target"] == {"9": 2} and h["repinned"] == ["9"]
-    assert h["rows"][0]["extra"] == {"count": 3, "ds": [0.5, 0.6, 0.9]} and h["rows"][1]["extra"] == {}
-    assert (h["rows"][0]["id"], h["rows"][0]["d"], h["rows"][1]["why"]) == (11, 0.5, "standing")
+    assert h["read"] is True and h["handbacks"] == 3 and h["by_why"] == {"crowd": 1, "standing": 2}
+    assert h["by_target"] == {"15": 2, "9": 1} and h["repinned"] == ["15"]     # m3's line names 15, its record 9
+    r0, r1 = h["rows"][0], h["rows"][1]
+    assert (r0["target"], r0["n"], r0["ds"], r0["repins"], r0["extra"]) == (15, 3, [0.5, 0.6, 0.9], 1, {"zzz": 1})
+    assert (r1["target"], r1["n"], r1["ds"], r1["repins"], r1["extra"]) == (9, None, None, None, {})
+    assert (r0["id"], r0["d"], r1["why"]) == (11, 0.5, "standing")
+    assert h["repins"] == {"melees": 1, "total": 1, "steps": 1}
 
 
 def test_the_meet_readings_read_unread_without_a_span_or_on_a_log_before_pza_1_10():
@@ -435,7 +446,7 @@ def test_the_report_lines_are_the_base_s_then_one_per_reading():
     g = G.grade_x1(a, log, lines=lines, kind="e")
     tail = g["report_lines"][-G.N_LINES:]
     assert tail == G.lines_x1(g) and G.N_LINES == len(NEW) == 11
-    for ln, tag in zip(tail, ("clip (", "hits split (", "fleeing (", "toward a named target (", "wounds dressed (",
+    for ln, tag in zip(tail, ("clip (", "landed hits (", "fleeing (", "toward a named target (", "wounds dressed (",
                               "melees superseded", "meet presses", "meet refusals", "meet finishes", "meet handbacks",
                               "dresses")):
         assert ln.startswith(tag), (tag, ln)
@@ -467,7 +478,10 @@ def test_the_module_imports_no_live_planner_world_or_tools_name_and_holds_its_ow
     assert (ns["KNOCK_P"], ns["HIT_STEP"], ns["HEAD_STEP"], ns["REFUSED"], ns["HANDBACK"]) == (
         "knock_p", "hit", "head", "refused", "handback")
     assert (ns["CARE"], ns["DRESS_KEY"], ns["DRESS_END_KEY"]) == ("care", "dress", "dress_end")
-    assert ns["DRESS_SENDS"] == ("stop", "unwear", "rip", "bandage") and ns["DEATH_REACTIONS"] == ("EndDeath",)
+    assert ns["DRESS_SENDS"] == ("stop", "unwear", "rip", "bandage") and ns["DEATH_REACTION"] == "EndDeath"
+    assert (ns["REPIN_STEP"], ns["TARGET"], ns["REPINS"], ns["CROWD_N"], ns["CROWD_DS"]) == (
+        "repin", "target", "repins", "n", "ds")
+    assert set(ns["DONE_KEYS"]) >= {"n", "ds", "target", "repins"}
     assert not any(getattr(v, "__module__", "").startswith(("agent.base.planner", "agent.base.world"))
                    for v in ns.values())
 
@@ -493,24 +507,26 @@ def _presses():
 
 MUTANTS = [
     ("clip", lambda b: b.replace("w <= cut", "True"), lambda: len(G.clip(*clip_case())[2]) == 3),
-    ("_split_runs", lambda b: b.replace("h == kind", "True"), lambda: split_read()["runs"] == 4),
-    ("_split_runs", lambda b: b.replace("elif _death(h):", "elif False:"), lambda: split_read()["runs"] == 4),
-    ("e_hits_split", lambda b: b.replace("if not first and", "if"), lambda: split_read()["splits"] == 1),
-    ("e_hits_split", lambda b: b.replace("w - seg[k] > gap", "True"), lambda: split_read()["joined"] == 2),
-    ("e_hits_split", lambda b: b.replace("death_steps += 1\n            continue", "death_steps += 1"),
-     lambda: split_read()["union"] == 6),
+    ("reaction_segments", lambda b: b.replace("!= G18._reaction(frames[i - 1])", "is None"),
+     lambda: split_read()["runs"] == 5),
+    ("reaction_segments", lambda b: b.replace("== DEATH_REACTION:\n                break",
+                                              "== None:\n                break"),
+     lambda: split_read()["runs"] == 5),
+    ("landed_hits", lambda b: b.replace("(i not in taken or", "(True or"), lambda: split_read()["union"] == 7),
+    ("landed_hits", lambda b: b.replace("or G18._reaction(frames[s[0]]) == DEATH_REACTION)", ")"),
+     lambda: split_read()["union"] == 7),
     ("flee_minutes", lambda b: b.replace("if lab is None:", "if False:"), lambda: flee_read()["lines"] == 2),
     ("away_minutes", lambda b: b.replace("d1 <= c[1] + MOVE_EPS", "False"),
      lambda: G.away_minutes(E._Lines(rec(), flee_log(), [dict(f, zombies=[{"id": 7, "x": f["me"]["x"] + 2.0,
                                                                             "y": 10.0, "hasTarget": True}])
                                                          for f in flee_frames()]))["intervals"] == 0),
     ("toward_minutes", lambda b: b.replace("- MOVE_EPS:", "+ 5.0:"), lambda: toward_read()["lines"] == 3),
-    ("_wounded", lambda b: b.replace('p.get("wound") is True or ', ""),
+    ("dressed", lambda b: b.replace('bleed or p.get("wound") is True', "bleed"),
      lambda: G.e_wounds_dressed(wound_frames())["wounds"] == 6),
-    ("e_wounds_dressed", lambda b: b.replace('r["minutes"] <= DRESS_MIN', "True"),
+    ("dressed", lambda b: b.replace('r["minutes"] <= DRESS_MIN', "True"),
      lambda: G.e_wounds_dressed(wound_frames())["dressed"] == 2),
-    ("e_wounds_dressed", lambda b: b.replace("onset(i, f, m, p, False, True)", "pass"),
-     lambda: G.e_wounds_dressed(wound_frames())["rows"][-1]["reopened"] is True),
+    ("dressed", lambda b: b.replace("(bleed or i not in under)", "True"),
+     lambda: G.e_wounds_dressed(wound_frames())["rows"][-1]["seq0"] == 650),
     ("e_melees_superseded", lambda b: b.replace("if not steps & set(PRESS_STEPS):", "if True:"),
      lambda: G.e_melees_superseded(rec(), superseded_lines())["superseded_before"] == 1),
     ("_press_rows", lambda b: b.replace('"kind": last if last is not None else res.get("step")',
@@ -523,7 +539,9 @@ MUTANTS = [
     ("e_meet_finishes", lambda b: b.replace('aim["on" if v is True else "off"] += 1', 'aim["off"] += 1'),
      lambda: G.e_meet_finishes(meet_rec(), meet_lines())["head_aim"]["on"] == 1),
     ("e_meet_handbacks", lambda b: b.replace("if k not in DONE_KEYS", "if False"),
-     lambda: G.e_meet_handbacks(meet_rec(), meet_lines())["rows"][0]["extra"]["count"] == 3),
+     lambda: G.e_meet_handbacks(meet_rec(), meet_lines())["rows"][0]["extra"] == {"zzz": 1}),
+    ("e_meet_handbacks", lambda b: b.replace("res.get(TARGET) if res.get(TARGET) is not None else ", ""),
+     lambda: G.e_meet_handbacks(meet_rec(), meet_lines())["repinned"] == ["15"]),
     ("meet_log", lambda b: b.replace("return v >= MEET_MOD", "return True"),
      lambda: G.e_meet_presses(meet_rec(), [dict(HELLO, mod="1.9")] + meet_lines()[1:]) == {"read": False}),
     ("e_dresses", lambda b: b.replace('e.get("part") == cur["part"]', "False"),
@@ -573,8 +591,8 @@ def _e23():
 def test_on_f15_grade_x1_keeps_every_grade_f12_key_and_reads_the_eight_attacks_and_the_meet_unread():
     g, base = _f15()
     assert g["base"] == "grade_f12" and to_base(g) == base
-    h = g["hits_split"]
-    assert h["union"] == 8 and h["runs"] == 6 and h["death_steps"] == 0 and h["kills"] == 0
+    h = g["landed_hits"]
+    assert h["union"] == 8 and h["runs"] == 6 and h["kills"] == 0
     assert all(g[k] == {"read": False} for k in ("meet_presses", "meet_refusals", "meet_finishes", "meet_handbacks",
                                                  "dresses"))
     assert g["clip"]["read"] is True and g["clip"]["stop_s"] == pytest.approx(525.4802062511444)
@@ -586,8 +604,34 @@ def test_on_f15_grade_x1_keeps_every_grade_f12_key_and_reads_the_eight_attacks_a
 def test_on_e23_grade_x1_keeps_every_grade_e21_key():
     g, base = _e23()
     assert g["base"] == "grade_e21" and to_base(g) == base
-    assert g["hits_split"]["union"] == 6 and g["kills_matched"]["planner"] == 1
-    assert g["wounds_dressed"]["wounds"] == 6 and g["wounds_dressed"]["bandaged"] == 5
+    assert g["landed_hits"]["union"] == 6 and g["kills_matched"]["planner"] == 1
+    w = g["wounds_dressed"]
+    assert w["wounds"] == 6 and sum(1 for r in w["rows"] if r["bandaged"] is True) == 5 and w["dressed"] == 0
+
+
+RUNS = os.environ.get("PZT_RUNS") or os.path.join(TESTING, "runs")
+SCORED = {   # review-t15b F1: the four trial runs where the first cut disagreed, the scorecard's segments and union at
+             # main 0e4c9ec3 (its rescore 17fedae5), which the copy must read
+    "x_trial-mix_1-20261106-031141": (8, 10), "x_trial-tactician-20261106-030826": (5, 6),
+    "x_trial-utility-20261105-225829": (2, 3), "x_trial-mix_2-20261106-031458": (13, 15)}
+
+
+def _trial(run):
+    """grade_x1's new readings over a trial run folder (per machine: skipped where it is absent), its sources as the
+    scorecard loads them: the record, the decision log and the admin client's state log."""
+    d = os.path.join(RUNS, run)
+    sd = os.path.join(d, "clients", "admin", "Lua", "pzagent", "admin")
+    if not os.path.isdir(sd):
+        pytest.skip("%s is per machine and not here" % run)
+    out = EG22.load(os.path.join(d, "x_trial.json"))
+    rows = EG22.load_log(os.path.join(d, "x_trial.json"))
+    return G.readings_x1(out, rows, E.session_lines(sd)[0])
+
+
+@pytest.mark.parametrize("run", sorted(SCORED))
+def test_the_attacks_landed_on_the_trial_runs_read_as_the_scorecard_reads_them(run):
+    h = _trial(run)["landed_hits"]
+    assert (h["runs"], h["union"]) == SCORED[run]
 
 
 def _script(name, path):
@@ -604,7 +648,7 @@ def test_f_grade_13_prints_grade_f12_s_lines_then_the_new_ones_and_the_json():
     printed, got = _script("f_grade_13.py", p)
     g, base = _f15()
     assert printed[:-G.N_LINES] == base["report_lines"] and printed[-G.N_LINES:] == g["report_lines"][-G.N_LINES:]
-    assert got["grade"] == "grade_x1" and got["base"] == "grade_f12" and got["hits_split"]["union"] == 8
+    assert got["grade"] == "grade_x1" and got["base"] == "grade_f12" and got["landed_hits"]["union"] == 8
 
 
 def test_e_grade_22_prints_grade_e21_s_lines_then_the_new_ones_and_the_json():

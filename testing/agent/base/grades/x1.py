@@ -1,33 +1,35 @@
 """grades.x1 -- the Harden composition's grade (Plan 31 Task 15b; ruling P31-H: the ladder with the Dress maneuver on
 by default over the meet reflex, PZA/1.10): `grade_x1` is the session's base grade, `grades.f12.grade_f12` for an LLM
 session or `grades.e21.grade_e21` for a chain session, under "grade_x1" with the base's name kept in `base`, plus the
-trial loop's readings lifted from the scorecard (`tools/trial_score.py` at bcaeb94d, ruling P31-T) and the readings of
-the meet and the Dress:
+trial loop's readings copied from the scorecard (`tools/trial_score.py` at main 0e4c9ec3, ruling P31-T: Plan 31 Task
+15's pre-step and its residual) and the readings of the meet and the Dress:
 
   clip               the loop's stop: every new reading below reads the sources cut at `loop.startPyMs` plus
                      `stop.wallS` (the scorecard's `clip`, copied): the state lines after it, the decision lines and
                      the actions after it dropped; the counts dropped and the clock's base. The base's keys read the
                      sources whole, as their grade reads them.
-  hits_split         the hits as the union of the reaction runs and the reflex's `hit` steps with the runs split: at a
-                     change of reaction type and at a fresh `hit` step (a step on a melee's line after its first,
-                     more than one frame interval after the run's segment began), the death reactions (DEATH_REACTIONS)
-                     extending the run before them and starting none, a step inside one counting nothing; so a death's
-                     run reads its landed attacks (the distinct reaction types and the reflex's steps), not one.
+  landed_hits        the attacks landed (the scorecard's `landed_hits` over its `reaction_segments`, copied): the
+                     reaction runs split where the type changes, one reflex `hit` step joining each segment and every
+                     further step a hit of its own; the EndDeath run (DEATH_REACTION, to the end of the continuous
+                     reaction) is the one killing attack, every step and type change inside it joining it.
   fleeing            the minutes fleeing or retreating (`flee_minutes`), the frame-based minutes moving away from a
                      chaser with no refuge named (`away_minutes`) and the ladder's fight legs (`leg_minutes`).
   toward_target      the minutes moving toward a named target (`toward_minutes`).
-  wounds_dressed     every wound taken (a part newly reading `wound` or `bleeding` true: a scratch that never bleeds
-                     included) and those dressed (the part reading `bandaged` true) within DRESS_MIN game minutes.
+  wounds_dressed     every wound taken and those dressed within DRESS_MIN game minutes (the scorecard's `dressed`,
+                     copied: a part newly reading `wound` or `bleeding` true, a scratch that never bleeds included,
+                     closed bandaged or healed; a dressed part takes a new wound only when it bleeds again
+                     unbandaged, so a bandage coming off a part still wounded but not bleeding opens none).
   melees_superseded  the melees superseded before their press.
   meet_presses       each press's leaf (`d_press`, `d_collide_pred`, `look_off`, `d_min`, `knock_p`) against its
                      outcome (killed, knocked down, lowered, cut, nothing), by the press's kind.
   meet_refusals      the presses the engine refused, by run (the Lua's `refusals` count), the waits and the ends.
   meet_finishes      the finishes (the floor swing and the stomp at a fallen target) and whether `headAim` was sent.
-  meet_handbacks     the melees ended `handback`, by why, by target, with every field the done line carries.
+  meet_handbacks     the melees ended `handback`, by why, by target (the line's `target` after the reflex re-pinned,
+                     Task 15a, else the record's), with the crowd's `n` and `ds` and the reflex's re-pins.
   dresses            each Dress maneuver: its start, its stop, the garments unworn and torn, the part, its end, the time
                      from the part's first bleeding frame; the rides.
 
-A reading is {"read": False} without its source (a frame for `hits_split` and `wounds_dressed`, a decision log for
+A reading is {"read": False} without its source (a frame for `landed_hits` and `wounds_dressed`, a decision log for
 `fleeing`, `toward_target` and `dresses`, a melee span on a log of PZA/1.10 or later for the four meet readings,
 `meet_log`: F15's and E23's PZA/1.9 logs read them unread; `melees_superseded` reads with no
 span, its denominator the record's), and the Dress's reads False on a log no line of which carries the care why's
@@ -36,14 +38,15 @@ effect off the order of lines or the walls. The clocks are `grades.e21`'s (a dec
 state line's `wallMs` epoch milliseconds, one host clock) and the scorecard's (a decision line's game minute its
 `inputs.hour` x 60, a frame's its `me.hour` x 60, each unwrapped past midnight).
 
-The scorecard's readers are copied here, not imported: the scorecard is a live tool that is never frozen (P31-T) and
-is being changed (Plan 31 Task 15's pre-step), while this module is frozen once an artifact carries its output
-(`grades/__init__.py`). Every live name read is copied below as a frozen constant with its source at bcaeb94d (ruling
-P26-Q): the scorecard's constants, the melee maneuver's press leaf keys, the Lua's step names and done fields, the care
-branch's dress keys and the Dress maneuver's ends. This module imports nothing from `agent.base.planner`,
-`agent.base.world` or `tools`; the chains it imports (`grades.f12.grade_f12` and `grades.e21.grade_e21`) are pinned by
-the regrade tests of the artifacts graded through them, and every artifact graded through `grade_x1` takes its
-byte-for-byte regrade test in its artifact commit."""
+The scorecard's readers are copied here verbatim from main 0e4c9ec3, not imported: the scorecard is a live tool that
+is never frozen (P31-T), while this module is frozen once an artifact carries its output (`grades/__init__.py`), so the
+sessions' hits per kill and dressing are the trials' by construction (fix 1, review-t15b F1, F2). Every live name read
+is copied below as a frozen constant with its source (ruling P26-Q): the scorecard's constants at 0e4c9ec3, the melee
+maneuver's press leaf keys and the care branch's dress keys at bcaeb94d, and the Lua's step names and line fields, Task
+15a's among them (its `PZAgent_StanceMelee.lua` header, read in its worktree before its commit). This module imports
+nothing from `agent.base.planner`, `agent.base.world` or `tools`; the chains it imports (`grades.f12.grade_f12` and
+`grades.e21.grade_e21`) are pinned by the regrade tests of the artifacts graded through them, and every artifact
+graded through `grade_x1` takes its byte-for-byte regrade test in its artifact commit."""
 import bisect
 import math
 import statistics
@@ -55,29 +58,36 @@ from agent.base.grades import e19 as G19
 from agent.base.grades import e21 as G21
 from agent.base.grades import f12 as G12
 
-# Frozen copies of the live names read here (P26-Q), each as it stood at bcaeb94d (the line there).
-RETREAT_LABELS = ("avoid", "kite", "retreat", "string", "flee")   # tools/trial_score.py:81
-LABEL_KEYS = ("intent", "play", "act")                            # tools/trial_score.py:85
-REFUGE_WORDS = ("filter", "door", "window", "shelter", "refuge")  # tools/trial_score.py:86
-LEGS = ("pull", "back")                                           # tools/trial_score.py:87: the ladder's fight legs
-MOVE_EPS = 0.05        # tools/trial_score.py:88: tiles, a fall in the distance this small is drift, not movement
-DRESS_MIN = 1.0        # tools/trial_score.py:90: game minutes, a wound dressed this soon after its onset is in time
-SUPERSEDED = "superseded"   # tools/trial_score.py:92: the melee's terminal reason when the planner sent another act
+# Frozen copies of the live names read here (P26-Q), each with its source: tools/trial_score.py at 0e4c9ec3, the
+# planner at bcaeb94d, the Lua at Task 15a.
+RETREAT_LABELS = ("avoid", "kite", "retreat", "string", "flee")   # tools/trial_score.py:95
+LABEL_KEYS = ("intent", "play", "act")                            # tools/trial_score.py:99
+REFUGE_WORDS = ("filter", "door", "window", "shelter", "refuge")  # tools/trial_score.py:100
+LEGS = ("pull", "back")                                           # tools/trial_score.py:101: the ladder's fight legs
+MOVE_EPS = 0.05        # tools/trial_score.py:102: tiles, a fall in the distance this small is drift, not movement
+DRESS_MIN = 1.0        # tools/trial_score.py:104: game minutes, a wound dressed this soon after its onset is in time
+DEATH_REACTION = "EndDeath"   # tools/trial_score.py:106: a dying character's reaction, one landed attack
+SUPERSEDED = "superseded"   # tools/trial_score.py:107: the melee's terminal reason when the planner sent another act
 MELEE = "melee"             # the skill's type (schema actionType, PZA/1.8)
 HIT_STEP = "hit"            # PZAgent_StanceMelee.lua (rule 1): the reflex's step on a tick its hit reaction reads set
 PRESS_STEPS = ("swing", "shove", "stomp", "floor")   # planner/maneuvers/melee.py:42 STRIKE_STEPS (the Lua's presses)
 PRESS_KEYS = ("d_press", "d_collide_pred", "d_min", "look_off", "hp0", "hp1", "knock", "cut_by")   # melee.py:44
                        # (planner/maneuvers/melee.py PRESS_KEYS: the press leaf's keys)
-KNOCK_P = "knock_p"    # Plan 31 Task 15a's leaf key (task-15a-amendments.md item 3: the shove's expected roll, #4373);
-                       # absent before it, read None
+KNOCK_P = "knock_p"    # Task 15a's Lua header (line 111): a shove's leaf adds the chance in 0 to 1 of its critical
+                       # knock-down (#4373's roll); absent before it, read None
+REPIN_STEP = "repin"   # Task 15a's Lua header (lines 61-62): the reflex re-pinned its target to a nearer standing one
+TARGET = "target"      # Task 15a's Lua header (lines 117-119): every line after a re-pin, the zombie now pressed
+REPINS = "repins"      # ... and the re-pins so far
+CROWD_N = "n"          # Task 15a's Lua header (line 58): a crowd handback's count of the standing zombies
+CROWD_DS = "ds"        # ... and their distances, nearest first
 FINISH_KINDS = ("floor", "stomp")   # PZAgent_StanceMelee.lua (rule 4): the finish's presses at a fallen target
 HEAD_STEP = "head"     # PZAgent_StanceMelee.lua (rule 4): the finish turning to the aim point before its press
 REFUSED = "refused"    # PZAgent_StanceMelee.lua (rule 2): a refused press's `cut_by`, the wait's step, the end's why
 HANDBACK = "handback"  # PZAgent_StanceMelee.lua's done `end` (why crowd or standing, with the other zombie's id and d)
 DONE_KEYS = ("end", "kill", "why", "id", "d", "swings", "shoves", "stomps", "floors", "knockdowns", "hits", "spent",
-             "hp0", "hp1", "dMin", "steps", "press", "refusals")   # PZAgent_StanceMelee.lua's done fields (header);
-                       # any other field a handback's done line carries is kept under `extra` (Task 15a's count and
-                       # the standing zombies' distances)
+             "hp0", "hp1", "dMin", "steps", "press", "refusals", "n", "ds", "target", "repins")   # the Lua's done
+                       # fields (its header, Task 15a's lines 117-120); any other field a handback's done line carries
+                       # is kept under `extra`
 CARE = "care"          # planner/care.py:829: the care branch's why, `inputs.branches.care`
 DRESS_KEY = "dress"    # planner/care.py:829: the running Dress's log on the care why
 DRESS_END_KEY = "dress_end"   # planner/care.py:789: the ended Dresses' logs, a list, on the next why once
@@ -85,9 +95,7 @@ DRESS_SENDS = ("stop", "unwear", "rip", "bandage")   # planner/maneuvers/dress.p
 STILL_PHASE = "still"  # planner/maneuvers/dress.py: the wait after a stop for a frame reading `me.moving` false
 PICK_PHASE = "pick"    # planner/maneuvers/dress.py: the pick, once the character is still
 # The grade's own numbers.
-DEATH_REACTIONS = ("EndDeath",)   # a hit reaction starting with one is the death's animation, no attack (the street
-                                  # deaths of round two: mix_1's `EndDeath` after its `CrawlerBiteLEFT`)
-NEW = ("clip", "hits_split", "fleeing", "toward_target", "wounds_dressed", "melees_superseded", "meet_presses",
+NEW = ("clip", "landed_hits", "fleeing", "toward_target", "wounds_dressed", "melees_superseded", "meet_presses",
        "meet_refusals", "meet_finishes", "meet_handbacks", "dresses")
 N_LINES = len(NEW)     # the report lines lines_x1 appends: one per NEW key
 MEET_MOD = (1, 10)     # the hello's `mod` from which the melee is the meet (PZA/1.10, Plan 31 Task 2)
@@ -165,111 +173,61 @@ def clip(out, decision_lines, lines):
     return out, drows, kept, clock
 
 
-# ---------------------------------------------------------------- the hits, the runs split
-def _death(h):
-    return isinstance(h, str) and h.startswith(DEATH_REACTIONS)
-
-
-def _split_runs(frames):
-    """([{a, b, kind, death}], death_frames): the reaction runs of `frames` (wall order) split at a change of reaction
-    type: a run starts on a frame reading `me.hitReaction` non-empty after one reading it empty, or reading another
-    type than the run's; a death reaction (DEATH_REACTIONS) extends the run it follows (`death` True) and starts none,
-    `death_frames` the death frames that follow no run."""
-    runs, cur, kind, dying, alone = [], None, None, False, 0
-    for i, f in enumerate(frames):
-        h = G18._reaction(f)
-        if h is None:
-            cur, kind, dying = None, None, False
-        elif _death(h):
-            if cur is None:
-                alone += 1
-            else:
-                runs[cur].update(b=i, death=True)
-                dying = True
-        elif cur is not None and not dying and h == kind:
-            runs[cur]["b"] = i
-        else:
-            runs.append({"a": i, "b": i, "kind": h, "death": False})
-            cur, kind, dying = len(runs) - 1, h, False
-    return runs, alone
-
-
-def _hit_steps(lines):
-    """[(wallMs, seq, aid, first)] of the reflex's `hit` steps: per melee span (`e19._spans`), one per run of
-    consecutive progress lines whose step is HIT_STEP, at the run's first line, `first` True when that line is the
-    span's first progress line (a melee sent during a reaction reads it at once: no new hit), in wall order."""
-    seqs = {}
-    for ln in E._l(lines):
-        if isinstance(ln, dict) and ln.get("kind") == "act" and ln.get("type") == MELEE \
-                and ln.get("state") == "progress":
-            seqs.setdefault(ln.get("aid"), []).append(ln.get("seq"))
+# ---------------------------------------------------------------- the hits landed (the scorecard's, copied)
+def reaction_segments(frames):
+    """[(first, last)] frame indices of the reaction runs of `frames` (`e21._reaction_runs`: a run lasts while the
+    frames read `me.hitReaction` non-empty) split where the reaction type changes between two frames of one run (a
+    Bite, then a CrawlerBite, then an EndDeath are three segments). The death reaction (DEATH_REACTION) ends the split:
+    its segment runs to the end of the continuous run, whatever types follow it."""
     out = []
-    for s in G19._spans(lines):
-        prev = None
-        for j, (w, r) in enumerate(s["progress"]):
-            st = r.get("step")
-            if st == HIT_STEP and prev != HIT_STEP and w is not None:
-                q = seqs.get(s["aid"], [])
-                out.append((w, q[j] if j < len(q) else None, s["aid"], j == 0))
-            prev = st
-    return sorted(out, key=lambda p: p[0])
+    for a, b in G21._reaction_runs(frames):
+        start = a
+        for i in range(a + 1, b + 1):
+            if G18._reaction(frames[start]) == DEATH_REACTION:
+                break
+            if G18._reaction(frames[i]) != G18._reaction(frames[i - 1]):
+                out.append((start, i - 1))
+                start = i
+        out.append((start, b))
+    return out
 
 
-def _frame_gap(walls):
-    """The frames' interval in ms, the median of their positive wall gaps; None under two frames."""
-    gaps = [b - a for a, b in zip(walls, walls[1:]) if a is not None and b is not None and b > a]
-    return statistics.median(gaps) if gaps else None
-
-
-def e_hits_split(frames, lines, kills):
-    """The hits with the runs split (the module docstring): {read, runs, runs_unsplit, steps, joined, splits, alone,
-    death_steps, death_frames, union, kills, per_kill, by_kind, rows} ({"read": False} without a frame). Reading:
-    `runs` the split runs (`_split_runs`), `runs_unsplit` `e21`'s reaction runs, `steps` the reflex's hit steps
-    (`_hit_steps`). Inference off the walls: a step whose frame (at or before it) reads a death reaction counts
-    nothing (`death_steps`); another joining a run (`e21._joins`: within one frame interval of it) is `joined`, or a
-    `split` (a new hit inside the run) when fresh (not its span's first line) and more than one frame interval
-    (`_frame_gap`) after the run's segment began (its first frame's wall, or the last split's); a step joining none is
-    `alone`. `union` the runs, the splits and the alone steps; `per_kill` over `kills` (None at 0); `by_kind` the runs
-    by reaction; `rows` the union in wall order {source ("reaction", "both", "step"), seq, wallMs, aid, kind, splits,
-    death}."""
+def landed_hits(frames, lines, kills):
+    """The attacks landed (the hits' union, Plan 31 Task 15's pre-step): {read, runs, steps, joined, union, kills,
+    per_kill_union, rows}, the shape of `e21.e_hits_union`'s ({"read": False} without a frame). `runs` the reaction
+    segments (`reaction_segments`), `steps` the reflex's `hit` step runs (`e21._step_runs`); each step joins the first
+    segment, in wall order, that has no step yet and lies within one frame interval of it (`e21._joins`, so a step
+    lagging the reaction's first frame still joins it), and a step that joins none (a second step in a segment's span, or
+    one in no reaction) is a hit of its own: `union` is the segments plus the steps that joined none, `per_kill_union`
+    over `kills` (None at 0). A dying character's reaction stays set to the end of its life: its continuous run, which
+    `e_hits_union` counted once, reads here the segments of its types and the steps the reflex wrote in it, up to the
+    EndDeath reaction (DEATH_REACTION): the EndDeath run, to the end of the continuous reaction, is one landed attack,
+    the killing one, and every reflex `hit` step and type change inside it joins it (attacks on a dying character are not
+    a reading of the fight: Angus's metric is the successful attacks per kill, ruling on the pre-step). `rows` the
+    union in wall order {source ("reaction", "step", "both"), seq, wallMs, aid, kind (the segment's reaction)}."""
     if not frames:
         return {"read": False}
     walls = [E._n(f.get("wallMs")) for f in frames]
-    runs, death_frames = _split_runs(frames)
-    steps = _hit_steps(lines)
-    gap = _frame_gap(walls)
-    seg = [walls[r["a"]] for r in runs]
-    rows = [{"source": "reaction", "seq": frames[r["a"]].get("seq"), "wallMs": walls[r["a"]], "aid": None,
-             "kind": r["kind"], "splits": 0, "death": r["death"]} for r in runs]
-    joined = splits = death_steps = 0
-    alone = []
-    for w, seq, aid, first in steps:
-        i = bisect.bisect_right(walls, w) - 1
-        if i >= 0 and _death(G18._reaction(frames[i])):
-            death_steps += 1
-            continue
-        k = next((n for n, r in enumerate(runs) if G21._joins(walls, (r["a"], r["b"]), w)), None)
+    segs, steps = reaction_segments(frames), G21._step_runs(lines)
+    rows = [{"source": "reaction", "seq": frames[a].get("seq"), "wallMs": walls[a], "aid": None,
+             "kind": G18._reaction(frames[a])} for a, _ in segs]
+    taken, joined = set(), 0
+    for w, seq, aid in steps:
+        k = next((i for i, s in enumerate(segs) if (i not in taken or G18._reaction(frames[s[0]]) == DEATH_REACTION)
+                  and G21._joins(walls, s, w)), None)
         if k is None:
-            alone.append({"source": "step", "seq": seq, "wallMs": w, "aid": aid, "kind": None, "splits": 0,
-                          "death": False})
+            rows.append({"source": "step", "seq": seq, "wallMs": w, "aid": aid, "kind": None})
             continue
+        taken.add(k)
+        joined += 1
         row = rows[k]
-        row.update(source="both", aid=row["aid"] if row["aid"] is not None else aid)
-        if not first and gap is not None and w - seg[k] > gap:
-            splits += 1
-            row["splits"] += 1
-            seg[k] = w
-        else:
-            joined += 1
-    by = {}
-    for r in runs:
-        G14._inc(by, r["kind"])
+        row.update(source="both", aid=aid)
+        if w < row["wallMs"]:
+            row.update(seq=seq, wallMs=w)
     k = E._n(kills) or 0
-    union = len(runs) + splits + len(alone)
-    return {"read": True, "runs": len(runs), "runs_unsplit": len(G21._reaction_runs(frames)), "steps": len(steps),
-            "joined": joined, "splits": splits, "alone": len(alone), "death_steps": death_steps,
-            "death_frames": death_frames, "union": union, "kills": k, "per_kill": _per(union, k), "by_kind": by,
-            "rows": sorted(rows + alone, key=lambda r: r["wallMs"])}
+    union = len(segs) + len(steps) - joined
+    return {"read": True, "runs": len(segs), "steps": len(steps), "joined": joined, "union": union, "kills": k,
+            "per_kill_union": G21._per(union, k), "rows": sorted(rows, key=lambda r: r["wallMs"])}
 
 
 def _event_kills(lines):
@@ -527,72 +485,60 @@ def e_toward_target(L):
 
 
 # ---------------------------------------------------------------- the wounds, every one
-def _wounded(p):
-    return p.get("wound") is True or p.get("bleeding") is True
+def dressed(frames):
+    """The wounds dressed within one game minute: {wounds, dressed, stopped, rows}. A wound is taken on a body part
+    (a `body.parts[i]` entry, as the care readers read them) at the first frame (wall order) it reads `wound` or
+    `bleeding` true while it has no open wound and is not under a bandage (so the first frame's wounded parts are
+    taken): the `wound` flag is the Lua's rank-1 test of a bandageable part (scratched, cut, bitten or deep-wounded,
+    `planner/care.py` `_wounds`), so a scratch that never bleeds is a wound, as a bleed is (a frame without the key
+    reads `bleeding` alone). It closes at the part's first later frame reading `bandaged` true (dressed, `bandaged`
+    True), or reading neither `wound` nor `bleeding`, or not listed (healed, `bandaged` False); `dressed` the wounds
+    closed bandaged within DRESS_MIN game minutes of their onset (`frame_minutes`, inclusive), `stopped` those closed
+    either way; each row {part, seq0, seq1, minutes, bandaged}, the last three None past the log's end. A dressed part
+    takes a new wound only when it reads `bleeding` true again unbandaged (its removed bandage leaves the old wound's
+    flag, no new wound); it is clean again when it reads neither. `wounds` the denominator."""
+    gm = frame_minutes(frames)
+    opened, under, rows = {}, set(), []
+    for f, m in zip(frames, gm):
+        cur = {p.get("i"): p for p in (E._d(x) for x in E._l(E._d(f.get("body")).get("parts"))) if "i" in p}
+        for i, p in cur.items():
+            bleed = p.get("bleeding") is True
+            hurt, band = bleed or p.get("wound") is True, p.get("bandaged") is True
+            if i in opened:
+                if band or not hurt:
+                    r = rows[opened.pop(i)]
+                    r.update(seq1=f.get("seq"), minutes=_gap(r["m0"], m), bandaged=band)
+                    if band:
+                        under.add(i)
+            elif band:
+                under.add(i)
+            elif hurt and (bleed or i not in under):
+                under.discard(i)
+                opened[i] = len(rows)
+                rows.append({"part": i, "seq0": f.get("seq"), "m0": m, "seq1": None, "minutes": None,
+                             "bandaged": None})
+            elif not hurt:
+                under.discard(i)
+        for i in [i for i in opened if i not in cur]:   # a part no longer listed reads healed
+            r = rows[opened.pop(i)]
+            r.update(seq1=f.get("seq"), minutes=_gap(r["m0"], m), bandaged=False)
+        under -= {i for i in under if i not in cur}
+    for r in rows:
+        r.pop("m0")
+    return {"wounds": len(rows), "dressed": sum(1 for r in rows if r["bandaged"] is True
+                                                and r["minutes"] <= DRESS_MIN),
+            "stopped": sum(1 for r in rows if r["seq1"] is not None), "rows": rows}
 
 
 def e_wounds_dressed(frames):
-    """Every wound taken and those dressed within DRESS_MIN game minutes: {read, wounds, dressed, bandaged, healed,
-    unlisted, open, carried, bled, rows} ({"read": False} without a frame). Reading, off the frames' `body.parts`
-    entries {i, wound, bleeding, bandaged} in wall order: a wound's onset is a frame on which a part reads `wound` or `bleeding`
-    true while it has no open or dressed wound (the first frame's are onsets too, `carried` among them); it ends
-    `bandaged` on the part's first frame reading `bandaged` true (at once when the onset frame reads it), `healed` on
-    one reading neither wound, bleed nor bandage, `unlisted` on the first frame not listing the part, else stays open
-    (`open`); a dressed part whose bandage comes off while it still reads a wound or a bleed opens a new wound
-    (`reopened`). `dressed` the wounds ended `bandaged` within DRESS_MIN game minutes of their onset (`frame_minutes`);
-    `bled` those reading `bleeding` true on any of their frames; each row {part, seq0, seq1, minutes, end, bled,
-    carried, reopened}. `wounds` the denominator."""
+    """Every wound taken and those dressed within DRESS_MIN game minutes: the scorecard's `dressed` (copied above,
+    its rule and its rows) with `read` True and `carried` the wounds taken on the first frame (the session's own
+    first sight: a chain session's carried wounds), {"read": False} without a frame."""
     if not frames:
         return {"read": False}
-    gm = frame_minutes(frames)
-    state, rows = {}, []          # part -> ("open", row index) | ("dressed", row index)
-
-    def onset(i, f, m, p, carried, reopened):
-        rows.append({"part": i, "seq0": f.get("seq"), "m0": m, "seq1": None, "minutes": None, "end": None,
-                     "bled": p.get("bleeding") is True, "carried": carried, "reopened": reopened})
-        state[i] = ("open", len(rows) - 1)
-        if p.get("bandaged") is True:
-            end(i, f, m, "bandaged")
-
-    def end(i, f, m, how):
-        r = rows[state[i][1]]
-        r.update(seq1=f.get("seq"), minutes=_gap(r["m0"], m), end=how)
-        if how == "bandaged":
-            state[i] = ("dressed", state[i][1])
-        else:
-            state.pop(i)
-
-    for n, (f, m) in enumerate(zip(frames, gm)):
-        cur = {p.get("i"): p for p in (E._d(x) for x in E._l(E._d(f.get("body")).get("parts"))) if "i" in p}
-        for i, p in cur.items():
-            st = state.get(i)
-            if st is None:
-                if _wounded(p):
-                    onset(i, f, m, p, n == 0, False)
-            elif st[0] == "open":
-                if p.get("bleeding") is True:
-                    rows[st[1]]["bled"] = True
-                if p.get("bandaged") is True:
-                    end(i, f, m, "bandaged")
-                elif not _wounded(p):
-                    end(i, f, m, "healed")
-            elif p.get("bandaged") is not True:
-                state.pop(i)
-                if _wounded(p):
-                    onset(i, f, m, p, False, True)
-        for i in [i for i in state if i not in cur]:   # a part no longer listed: its wound ends, a dressed part clears
-            if state[i][0] == "open":
-                end(i, f, m, "unlisted")
-            else:
-                state.pop(i)
-    for r in rows:
-        r.pop("m0")
-    ends = [r["end"] for r in rows]
-    return {"read": True, "wounds": len(rows),
-            "dressed": sum(1 for r in rows if r["end"] == "bandaged" and r["minutes"] <= DRESS_MIN),
-            "bandaged": ends.count("bandaged"), "healed": ends.count("healed"), "unlisted": ends.count("unlisted"),
-            "open": ends.count(None),
-            "carried": sum(1 for r in rows if r["carried"]), "bled": sum(1 for r in rows if r["bled"]), "rows": rows}
+    d = dressed(frames)
+    first = frames[0].get("seq")
+    return dict(d, read=True, carried=sum(1 for r in d["rows"] if r["seq0"] == first))
 
 
 # ---------------------------------------------------------------- the melees superseded (the scorecard's, copied)
@@ -812,28 +758,44 @@ def e_meet_finishes(out, lines):
 
 
 def e_meet_handbacks(out, lines):
-    """The melees ended `handback`: {read, handbacks, by_why, by_target, repinned, rows} ({"read": False} without a
-    melee span). Reading: each melee's done line reading `end` HANDBACK, its row {aid, seq, target (the record's
-    `targetId`), why, id, d, extra (every field the done line carries beyond DONE_KEYS)}; `by_why` the rows by why,
-    `by_target` by target, `repinned` the targets handed back more than once (the re-pin loop)."""
+    """The melees ended `handback` and the reflex's re-pins (Task 15a): {read, handbacks, by_why, by_target,
+    repinned, repins, rows} ({"read": False} without a melee span on the meet's log). Reading: each melee's done line
+    reading `end` HANDBACK, its row {aid, seq, target, why, id, d, n, ds, repins, extra}: `target` the line's own
+    TARGET (the zombie the reflex pressed after a re-pin) else the record's `targetId`, `n` and `ds` the crowd's count
+    and distances (CROWD_N, CROWD_DS; None on a standing handback), `repins` the line's REPINS, `extra` every field
+    beyond DONE_KEYS; `by_why` the rows by why, `by_target` by target, `repinned` the targets handed back more than
+    once (the re-pin loop across melees). `repins` {melees, total, steps}: the melees whose lines read REPINS above 0,
+    the sum of each one's last REPINS, and the entries into the REPIN_STEP step."""
     if not G19._spans(lines) or not meet_log(lines):
         return {"read": False}
     target = {a.get("aid"): E._d(a.get("args")).get("targetId")
               for a in (E._d(x) for x in E._l(E._d(E._d(out).get("loop")).get("actions")))}
-    rows = []
+    rows, rp = [], {"melees": 0, "total": 0, "steps": 0}
     for aid, lns in _melee_lines(lines).items():
+        last, prev = 0, None
         for ln in lns:
             res = E._d(ln.get("result"))
+            n = E._n(res.get(REPINS))
+            last = int(n) if n is not None else last
+            if ln.get("state") == "progress":
+                st = res.get("step")
+                rp["steps"] += 1 if st == REPIN_STEP and prev != REPIN_STEP else 0
+                prev = st
             if ln.get("state") == "done" and res.get("end") == HANDBACK:
-                rows.append({"aid": aid, "seq": ln.get("seq"), "target": target.get(aid), "why": res.get("why"),
-                             "id": res.get("id"), "d": res.get("d"),
+                rows.append({"aid": aid, "seq": ln.get("seq"),
+                             "target": res.get(TARGET) if res.get(TARGET) is not None else target.get(aid),
+                             "why": res.get("why"), "id": res.get("id"), "d": res.get("d"), "n": res.get(CROWD_N),
+                             "ds": res.get(CROWD_DS), "repins": res.get(REPINS),
                              "extra": {k: v for k, v in res.items() if k not in DONE_KEYS}})
+        rp["melees"] += 1 if last > 0 else 0
+        rp["total"] += last
     by_why, by_t = {}, {}
     for r in rows:
         G14._inc(by_why, str(r["why"]))
         G14._inc(by_t, str(r["target"]))
     return {"read": True, "handbacks": len(rows), "by_why": by_why, "by_target": by_t,
-            "repinned": sorted(t for t, n in by_t.items() if n > 1), "rows": sorted(rows, key=lambda r: r["seq"] or 0)}
+            "repinned": sorted(t for t, n in by_t.items() if n > 1), "repins": rp,
+            "rows": sorted(rows, key=lambda r: r["seq"] or 0)}
 
 
 # ---------------------------------------------------------------- the Dress
@@ -942,7 +904,7 @@ def readings_x1(out, decision_lines, lines):
     L = E._Lines(out, rows, lines) if rows is not None else None
     frames = L.index[1] if L is not None else E._frame_index(lines)[1]
     kills = _event_kills(lines)
-    return {"clip": clock, "hits_split": e_hits_split(frames, lines, len(kills)), "fleeing": e_fleeing(L),
+    return {"clip": clock, "landed_hits": landed_hits(frames, lines, len(kills)), "fleeing": e_fleeing(L),
             "toward_target": e_toward_target(L), "wounds_dressed": e_wounds_dressed(frames),
             "melees_superseded": e_melees_superseded(out, lines), "meet_presses": e_meet_presses(out, lines),
             "meet_refusals": e_meet_refusals(lines), "meet_finishes": e_meet_finishes(out, lines),
@@ -982,12 +944,10 @@ def lines_x1(g):
                    _f(c.get("stop_s")), _f(c.get("start_ms")), c.get("lines"), c.get("frames"), c.get("decisions"),
                    c.get("actions")) if c.get("read") else
                "clip (the loop's stop): no loop start or stop on the record, the new readings read whole")
-    out.append("hits split (the union, the runs split at a type change and a fresh hit step) [reading]: %s runs (%s "
-               "unsplit), %s hit steps, by kind %s; [inference] %s joined, %s splits, %s alone, %s in a death "
-               "reaction; %s attacks landed, %s a kill over %s kills (zombie_dead events)" % (
-                   h.get("runs"), h.get("runs_unsplit"), h.get("steps"), h.get("by_kind"), h.get("joined"),
-                   h.get("splits"), h.get("alone"), h.get("death_steps"), h.get("union"), _f(h.get("per_kill")),
-                   h.get("kills")) if h.get("read") else _unread("hits split"))
+    out.append("landed hits (the scorecard's: the reaction segments, the reflex's hit steps) [reading]: %s segments, "
+               "%s hit steps; [inference] %s joined, %s attacks landed, %s a kill over %s kills (zombie_dead events)"
+               % (h.get("runs"), h.get("steps"), h.get("joined"), h.get("union"), _f(h.get("per_kill_union")),
+                  h.get("kills")) if h.get("read") else _unread("landed hits"))
     out.append("fleeing (the trial loop's) [reading]: %s lines, %s game minutes (%s s) over %s, by %s; the legs %s; "
                "[inference] away from a chaser with no refuge named %s intervals, %s game minutes (%s under a "
                "refuge skipped)" % (
@@ -1000,12 +960,11 @@ def lines_x1(g):
                    tw.get("lines"), _f(tw.get("minutes")), _f(tw.get("total_minutes")), tw.get("named_lines"),
                    _f(tw.get("named_minutes")), tw.get("unresolved"), tw.get("by")) if tw.get("read") else
                _unread("toward a named target"))
-    out.append("wounds dressed (every wound, within DRESS_MIN %s game minute) [reading]: %s of %s wounds (%s bled, %s "
-               "carried from the first frame): %s bandaged, %s healed undressed, %s open at the end: %s" % (
-                   DRESS_MIN, wd.get("dressed"), wd.get("wounds"), wd.get("bled"), wd.get("carried"),
-                   wd.get("bandaged"), wd.get("healed"), wd.get("open"),
-                   [(r["part"], r["seq0"], r["seq1"], _round(r["minutes"]), r["end"]) for r in E._l(wd.get("rows"))])
-               if wd.get("read") else _unread("wounds dressed"))
+    out.append("wounds dressed (the scorecard's, every wound, within DRESS_MIN %s game minute) [reading]: %s of %s "
+               "wounds (%s carried from the first frame), %s closed: %s" % (
+                   DRESS_MIN, wd.get("dressed"), wd.get("wounds"), wd.get("carried"), wd.get("stopped"),
+                   [(r["part"], r["seq0"], r["seq1"], _round(r["minutes"]), r["bandaged"])
+                    for r in E._l(wd.get("rows"))]) if wd.get("read") else _unread("wounds dressed"))
     out.append("melees superseded before their press [reading]: %s of %s sent (%s superseded in all, %s with no swing "
                "step) %s" % (ms.get("superseded_before"), ms.get("sent"), ms.get("superseded"),
                              ms.get("no_swing_step"), ms.get("aids")))
@@ -1022,9 +981,11 @@ def lines_x1(g):
                "kills), %s turns to the head" % (
                    mf.get("sent_finish"), mf.get("head_aim"), mf.get("presses"), mf.get("by_outcome"),
                    mf.get("kills"), mf.get("heads")) if mf.get("read") else _unread("meet finishes"))
-    out.append("meet handbacks [reading]: %s handbacks by why %s, by target %s, re-pinned %s" % (
-        mh.get("handbacks"), mh.get("by_why"), mh.get("by_target"), mh.get("repinned")) if mh.get("read") else
-        _unread("meet handbacks"))
+    out.append("meet handbacks [reading]: %s handbacks by why %s, by target %s, handed back again %s; the crowds %s; "
+               "the reflex's re-pins %s" % (
+                   mh.get("handbacks"), mh.get("by_why"), mh.get("by_target"), mh.get("repinned"),
+                   [(r["n"], r["ds"]) for r in E._l(mh.get("rows")) if r["why"] == "crowd"], mh.get("repins"))
+               if mh.get("read") else _unread("meet handbacks"))
     out.append("dresses (the Dress maneuver) [reading]: %s Dresses by end %s (%s rides, %s failed): %s; [inference] "
                "the seconds from the part's bleeding onset to the start and the end %s" % (
                    dr.get("dresses"), dr.get("by_end"), dr.get("rides"), dr.get("failed"),
