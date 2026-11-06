@@ -1,0 +1,49 @@
+{
+  "description": "The tactician's closed vocabulary (Plan 31 Task 11, variant T; the proposal rebuild-proposal-model-tactician.md section 4): one answer is one JSON object {play, <its args>, bound, why} and nothing else. Every arg is a label the view lists or a closed enum; there is no free-text field (ruling P28-K). Read by plays.py, which renders it into the system prompt and validates answers against it with a stdlib walk.",
+  "version": 1,
+  "labels": {
+    "zombie": "Z<n>: a zombie of the view's `zombies` list",
+    "refuge": "D<n> (a door of the view's `doors` list) or B<id> (a building of the view's `buildings` list), the retreat's named filter",
+    "place": "B<id> or D<n>: a building or a door the view lists",
+    "building": "B<id>: a building of the view's `buildings` list",
+    "part": "P<i>: a body part of the view's `body.parts` list"
+  },
+  "plays": {
+    "fight": {
+      "description": "Take the zombie in the combat stance and kill it: the melee reflex presses, stomps and finishes; a standing zombie inside the swing radius is met in any play.",
+      "args": {"target": {"label": "zombie"}},
+      "bounds": ["dead", "second_standing", "lost"]
+    },
+    "kite": {
+      "description": "Hold the stance facing the zombie and backpedal toward a named refuge (or `stance` to backpedal with none), never turning the back; it ends when the zombie is alone in danger range (then fight it), at the refuge, or after a few seconds.",
+      "args": {"target": {"label": "zombie"}, "toward": {"label": "refuge", "or": ["stance"]}},
+      "bounds": ["alone", "reached", "time"]
+    },
+    "avoid": {
+      "description": "Leave a group before it arrives: walk (sneaking past zombies that have not noticed) to a named refuge and shelter there.",
+      "args": {"toward": {"label": "refuge"}, "gait": {"enum": ["walk", "sneak"]}},
+      "bounds": ["clear", "reached", "contact"]
+    },
+    "dress": {
+      "description": "Stop and dress a bleeding part: a held bandage, a rag, or rip a garment for a rag first.",
+      "args": {"part": {"label": "part"}, "with": {"enum": ["bandage", "rag", "rip"]}},
+      "bounds": ["dressed", "contact", "nothing"]
+    },
+    "loot": {
+      "description": "Go into the building and loot it for the want.",
+      "args": {"building": {"label": "building"}, "want": {"enum": ["any", "food", "water", "weapon", "bandage", "container", "clothing"]}},
+      "bounds": ["looted", "want_met", "contact"]
+    },
+    "travel": {
+      "description": "Walk to a building or door (sneaking near zombies that have not noticed); `explore` only when no building is listed: the goal layer walks to the unexplored edge.",
+      "args": {"to": {"label": "place", "or": ["explore"]}, "gait": {"enum": ["walk", "sneak"]}},
+      "bounds": ["arrived", "stuck", "contact"]
+    },
+    "shelter": {
+      "description": "Go into the building and close its door behind you.",
+      "args": {"building": {"label": "building"}},
+      "bounds": ["inside", "shun", "contact"]
+    }
+  },
+  "whys": ["lone_chaser", "group", "bleeding", "unarmed", "need", "door", "night", "clear"]
+}
