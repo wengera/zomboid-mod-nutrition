@@ -40,7 +40,9 @@ Round two's other three fixes (Plan 31 Task 15's pre-step). The hits (`landed_hi
 four bite reactions and seven reflex `hit` steps): the frames' reaction runs are split where the reaction type changes
 (a Bite, then a CrawlerBite, then an EndDeath are three), and a run holds one reflex `hit` step, the first within one
 frame interval of its span (`e21._joins`); every further step in it, and every step in no run, is one more hit, so the
-union is the runs plus the steps that joined none, and a death's run reads the attacks landed in it, not one. The
+union is the runs plus the steps that joined none, and a death's run reads the attacks landed in it, not one, up to its
+EndDeath reaction: the EndDeath run (to the end of the continuous reaction) is the one killing attack, the steps and
+type changes inside it not counted (ruling on the pre-step: attacks on a dying character are no reading of the fight). The
 dressing (`dressed`): a wound is a body part newly reading `wound` (scratched, cut, bitten or deep-wounded:
 `body.parts[i].wound`, the flag `planner/care.py` `_wounds` reads) or `bleeding`, not only bleeding, so a scratch that
 never bleeds is taken; it is dressed when the part reads `bandaged` within one game minute of it. The log's row block
@@ -101,7 +103,8 @@ MOVE_EPS = 0.05        # tiles: a fall in the distance to the target this small 
                        # of the slowest walk, the sneak's, covers several times it)
 DRESS_MIN = 1.0        # game minutes: a bleed stopped this soon after its first bleeding frame is dressed in time
 PRESS_STEPS = G21.PRESS_STEPS                   # ("swing", "shove", "stomp", "floor"): the melee's presses
-SUPERSEDED = "superseded"                       # the melee's terminal reason when the planner sent another act
+DEATH_REACTION = "EndDeath"                     # the reaction a dying character reads to its death: one landed attack
+SUPERSEDED = "superseded"                     # the melee's terminal reason when the planner sent another act
 CRASH_STOPS = ("error", "bus_dead", "lua_error_storm", "client_end")   # driverlib/session.py STOPS that end a crash
 CAP_STOPS = ("day_cap",)
 
@@ -576,11 +579,14 @@ def melees_superseded(out, lines):
 def reaction_segments(frames):
     """[(first, last)] frame indices of the reaction runs of `frames` (`e21._reaction_runs`: a run lasts while the
     frames read `me.hitReaction` non-empty) split where the reaction type changes between two frames of one run (a
-    Bite, then a CrawlerBite, then an EndDeath are three segments)."""
+    Bite, then a CrawlerBite, then an EndDeath are three segments). The death reaction (DEATH_REACTION) ends the split:
+    its segment runs to the end of the continuous run, whatever types follow it."""
     out = []
     for a, b in G21._reaction_runs(frames):
         start = a
         for i in range(a + 1, b + 1):
+            if G18._reaction(frames[start]) == DEATH_REACTION:
+                break
             if G18._reaction(frames[i]) != G18._reaction(frames[i - 1]):
                 out.append((start, i - 1))
                 start = i
@@ -596,7 +602,10 @@ def landed_hits(frames, lines, kills):
     lagging the reaction's first frame still joins it), and a step that joins none (a second step in a segment's span, or
     one in no reaction) is a hit of its own: `union` is the segments plus the steps that joined none, `per_kill_union`
     over `kills` (None at 0). A dying character's reaction stays set to the end of its life: its continuous run, which
-    `e_hits_union` counted once, reads here the segments of its types and the steps the reflex wrote in it. `rows` the
+    `e_hits_union` counted once, reads here the segments of its types and the steps the reflex wrote in it, up to the
+    EndDeath reaction (DEATH_REACTION): the EndDeath run, to the end of the continuous reaction, is one landed attack,
+    the killing one, and every reflex `hit` step and type change inside it joins it (attacks on a dying character are not
+    a reading of the fight: Angus's metric is the successful attacks per kill, ruling on the pre-step). `rows` the
     union in wall order {source ("reaction", "step", "both"), seq, wallMs, aid, kind (the segment's reaction)}."""
     if not frames:
         return {"read": False}
@@ -606,7 +615,8 @@ def landed_hits(frames, lines, kills):
              "kind": G18._reaction(frames[a])} for a, _ in segs]
     taken, joined = set(), 0
     for w, seq, aid in steps:
-        k = next((i for i, s in enumerate(segs) if i not in taken and G21._joins(walls, s, w)), None)
+        k = next((i for i, s in enumerate(segs) if (i not in taken or G18._reaction(frames[s[0]]) == DEATH_REACTION)
+                  and G21._joins(walls, s, w)), None)
         if k is None:
             rows.append({"source": "step", "seq": seq, "wallMs": w, "aid": aid, "kind": None})
             continue

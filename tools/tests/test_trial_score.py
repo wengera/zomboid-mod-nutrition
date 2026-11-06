@@ -552,7 +552,7 @@ def _dying_ring():
     continuous reaction to the end of the ring that changes type four times (Bite k2-4, CrawlerBite k5-7, Bite k8-9,
     EndDeath k10-14), and one melee a1 whose progress alternates `hit` and `swing` six times, at 1195 (within a frame
     interval of the first Bite), 1550, 1850, 2050 (each the first in its segment's span) and 2250 and 2350 (further
-    steps in the EndDeath segment's span)."""
+    steps in the EndDeath segment's span, which the death run absorbs)."""
     kinds = [""] * 2 + ["Bite"] * 3 + ["CrawlerBite"] * 3 + ["Bite"] * 2 + ["EndDeath"] * 5
     frames = [_hit_frame(i + 1, 1000 + 100 * i, r) for i, r in enumerate(kinds)]
     lines = [_hit_act("a1", 100, 1000, "accepted")]
@@ -569,18 +569,36 @@ def test_a_dying_characters_continuous_reaction_reads_its_landed_attacks_not_one
     """Round two's trial 9: a character dying under a swarm reads one continuous `hitReaction` run to its death, which
     `e21.e_hits_union` counted once (1 / 1) against four bite reactions and seven `hit` steps. Split at the type's
     changes the run is four segments (Bite, CrawlerBite, Bite, EndDeath); the first step in each segment's span joins it
-    (4 joined of 6 steps) and the two further steps in the EndDeath segment's span are hits of their own: 4 + 2 = 6
-    landed, the e21 reading kept beside it at 1."""
+    (4 joined) and the two further steps in the EndDeath segment's span join it too (the EndDeath run is the one killing
+    attack, the ruling on the pre-step): 4 landed, the e21 reading kept beside it at 1."""
     frames, lines = _dying_ring()
     old = TS.G21.e_hits_union(frames, lines, 0)
     assert (old["runs"], old["steps"], old["union"]) == (1, 6, 1)
-    hu = TS.landed_hits(frames, lines, 3)
-    assert (hu["runs"], hu["steps"], hu["joined"], hu["union"]) == (4, 6, 4, 6)
-    assert hu["per_kill_union"] == 2.0 and hu["kills"] == 3
+    hu = TS.landed_hits(frames, lines, 4)
+    assert (hu["runs"], hu["steps"], hu["joined"], hu["union"]) == (4, 6, 6, 4)
+    assert hu["per_kill_union"] == 1.0 and hu["kills"] == 4
     assert [(r["source"], r["kind"]) for r in hu["rows"]] == [
-        ("both", "Bite"), ("both", "CrawlerBite"), ("both", "Bite"), ("both", "EndDeath"), ("step", None),
-        ("step", None)]
+        ("both", "Bite"), ("both", "CrawlerBite"), ("both", "Bite"), ("both", "EndDeath")]
     assert TS.reaction_segments(frames) == [(2, 4), (5, 7), (8, 9), (10, 14)]
+
+
+def test_the_enddeath_run_is_one_landed_attack_whatever_steps_and_types_it_holds():
+    """The ruling on the pre-step: a character's only reaction is EndDeath from k2 to the end, then a Bite and a
+    CrawlerBite inside it, with three `hit` steps (the first within a frame interval of the run's start, the others
+    in it): the run is one segment and 1 landed attack in all; the same steps with a Bite before the death read 2."""
+    kinds = ["", ""] + ["EndDeath"] * 3 + ["Bite"] * 2 + ["CrawlerBite"] * 2 + ["EndDeath"]
+    frames = [_hit_frame(i + 1, 1000 + 100 * i, r) for i, r in enumerate(kinds)]
+    lines = [_hit_act("a1", 1, 1000, "accepted")]
+    for n, w in enumerate((1210, 1450, 1650)):
+        lines += [_hit_act("a1", 2 + 2 * n, w, "progress", "hit"), _hit_act("a1", 3 + 2 * n, w + 20, "progress", "swing")]
+    lines.append(_hit_act("a1", 9, 1800, "done"))
+    assert TS.reaction_segments(frames) == [(2, 9)]
+    hu = TS.landed_hits(frames, lines, 0)
+    assert (hu["runs"], hu["steps"], hu["joined"], hu["union"]) == (1, 3, 3, 1)
+    kinds[2] = "Bite"
+    frames = [_hit_frame(i + 1, 1000 + 100 * i, r) for i, r in enumerate(kinds)]
+    assert TS.reaction_segments(frames) == [(2, 2), (3, 9)]
+    assert TS.landed_hits(frames, lines, 0)["union"] == 2
 
 
 def test_one_reaction_run_with_one_step_lagging_its_first_frame_is_still_one_hit():
