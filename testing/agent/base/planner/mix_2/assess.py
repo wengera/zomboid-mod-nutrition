@@ -15,7 +15,8 @@ resume and prefetch, the ladder's P30-C door read off on this Survive) with thre
 No tactical model is asked: the model stays strategic through the doctrine's Order (the goal runner's source)."""
 from agent.base.planner.doctrine.assess import MAX_STEPS, Doctrine
 from agent.base.planner.mix_2 import situation
-from agent.base.planner.mix_2.intents import INTENTS, piece_of
+from agent.base.planner.mix_2 import constants as K
+from agent.base.planner.mix_2.intents import INTENTS, Fight, piece_of
 from agent.base.planner.mix_2.seek import Reach
 
 STATE_KEY = "mix_2"
@@ -27,7 +28,10 @@ class Mix2(Doctrine):
 
     def __init__(self, sv):
         super().__init__(sv)
+        self.mem = situation.Memory()   # D's memory with the handback hold (fix 1, review-t13-mix2 F2b)
         self.reach = Reach(sv.world, sv.clock)
+        self.handbacks = {}   # pin -> the handbacks in a row by Fights at it (HANDBACK_MAX)
+        self.repins = []      # this tick's ended Fights' re-pins, for the line (fix 1, review-t13-mix2 F3)
 
     def _make(self, want, prev):
         return INTENTS[want.kind](self, want, prev)
@@ -40,20 +44,57 @@ class Mix2(Doctrine):
         self.reach.world = self.world
         return self.reach.engageable
 
+    seek_read = _seek   # what a seek Fight's end reads (`intents.Fight.lapsed`): the want's own reachability
+
     def read(self):
         return situation.read(self.world, self.mem, self.now(), self._seek())
 
+    # -- the handback bound (fix 1, review-t13-mix2 F2b) ------------------------------------------------------------
+    def note_handback(self, pin):
+        """A Fight at `pin` ended on the meet's handback: the count in a row at that pin, this one included."""
+        n = self.handbacks.get(pin, 0) + 1
+        self.handbacks[pin] = n
+        return n
+
+    def hold(self, pin):
+        """The pin past HANDBACK_MAX: held out of every Fight's want (`situation.held`) and skipped for SKIP_S, its
+        count cleared."""
+        self.mem.hold[pin] = self.now() + K.DK.SKIP_S
+        self.skip(pin)
+        self.handbacks.pop(pin, None)
+
+    def _note_end(self, cur, ev):
+        """An intent that ended this step: a Fight's re-pin kept for the line (F3), and a Fight at a pin that ended
+        on anything but the meet's handback clears that pin's count (the handbacks counted are in a row)."""
+        if cur is None or ev["ended"] is None or not isinstance(cur, Fight):
+            return
+        r = cur.repin
+        if r is not None:
+            self.repins.append(dict(r, pin=cur.pin, end=ev["ended"]["end"]))
+        if r is None or r.get("by") != "handback":
+            self.handbacks.pop(cur.pin, None)
+
+    def _bookkeeping(self):
+        super()._bookkeeping()
+        now = self.now()
+        for zid in [z for z, until in self.mem.hold.items() if until <= now]:
+            del self.mem.hold[zid]
+
     def tick(self, inputs):
-        """D's tick (`Doctrine.tick`) over mix_2's read."""
+        """D's tick (`Doctrine.tick`) over mix_2's read; the lines marked `# mix_2` are its own (the drift test,
+        `test_mix_2.py`, compares the rest with D's)."""
         sv = self.sv
         sv.need_mark = None
         sv.mode = None
         self.ticks += 1
         self._bookkeeping()
+        self.repins = []  # mix_2
         events = []
         for _ in range(MAX_STEPS):
             wants = self.read()
+            cur = self.arbiter.current  # mix_2
             events.append(self.arbiter.step(wants, self._make))
+            self._note_end(cur, events[-1])  # mix_2
             act = self.arbiter.current.act()
             if self.arbiter.current.end is None:
                 break
@@ -66,6 +107,8 @@ class Mix2(Doctrine):
         line = inputs.pop("doctrine")
         line["piece"] = piece_of(self.arbiter.current)
         line["pieces"] = [situation.piece_of(w) for w in wants]
+        if self.repins:
+            line["repin"] = self.repins[0] if len(self.repins) == 1 else list(self.repins)
         inputs[LINE_KEY] = line
         return decision
 

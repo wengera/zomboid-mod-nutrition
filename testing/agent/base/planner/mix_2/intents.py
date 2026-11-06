@@ -17,27 +17,38 @@ own:
     another standing zombie nearest within SWING_GUARD_R (T's `swing` guard), or, armed and the pin standing, another
     standing zombie nearer than the pin within KEEP_R (`second_standing`, its next T's `reach` rule); or the meet's
     `handback` (PZA/1.10; PZA/1.9's `crowd`). The populations are the wants' own (`situation.guard`,
-    `situation._fight`'s `reach`), so the next want names the zombie the re-pin read and no tick re-pins to the pin it left;
+    `situation.reach`, one population: `situation.populations`), so the next want names the zombie the re-pin read
+    and no tick re-pins to the pin it left;
+  - `done lapsed` (fix 1, review-t13-mix2 F1): a seek Fight whose pin is idle and beyond DANGER_R once the seek's own
+    predicate (`situation.lone_idle`, the want's) no longer holds at it (a second standing zombie listed within SEEK_R,
+    the pin no longer free or reachable); inside DANGER_R it runs on;
+  - `failed handback` (fix 1, F2b): the HANDBACK_MAX-th handback in a row by Fights at one pin (`Mix2.note_handback`;
+    a Fight at the pin ending otherwise clears the count): the pin is held out of every Fight's want for SKIP_S
+    (`Mix2.hold`) and the arbiter's next answer takes the tick;
+  - `done skipped` (fix 1): a Fight made from wants read before the Fight that ended this tick skipped its pin, at a
+    pin its own want would skip (every piece but the `hit` and `swing` guards), ends as it acts, the tick handed on;
   - `failed dud` after DUD_N strikes that lowered nothing (backed-off ends included) or the meet's `lost no progress`;
     `failed unreached` on the meet's `lost out of reach`; `failed stall` when a close's distance has not fallen for
-    STALL_S; each leaves the pin skipped for SKIP_S. Health is never read.
+    STALL_S; each leaves the pin skipped for SKIP_S. Health is never read. A Fight's `repin` {id, by[, n]} reaches the
+    decision line on the tick it ends (`Mix2._note_end`, fix 1, F3).
 - `Dress` (P1): the doctrine's (`maneuvers.Dress`), failing `crawler near` once a crawler reads within KEEP_R (the
   read's item 2, the crawler as a threat at the dress; D's Dress maneuver ends `superseded` on a standing one only).
 """
-import math
-
 from agent.base.planner.doctrine import intents as DI
-from agent.base.planner.doctrine.intents import (CLOSE_WALK_R, DUD, GROUND_DONE_R, OFF_ENDS, PROGRESS_R, UNREACHED,
-                                                 Avoid, Door, Intent, Order, fallback_press, melee_backoff,
-                                                 melee_command, melee_end, press_mode)
-from agent.base.planner.doctrine.situation import listed, portals, strike_r
+from agent.base.planner.doctrine.intents import (CLOSE_WALK_R, DUD, OFF_ENDS, PROGRESS_R, UNREACHED, Avoid, Door,
+                                                 Intent, Order, fallback_press, melee_backoff, melee_command,
+                                                 melee_end, press_mode)
+from agent.base.planner.doctrine.situation import aware, strike_r
 from agent.base.planner.mix_2 import constants as K
+from agent.base.planner.mix_2 import situation as SI
 from agent.base.planner.mix_2.constants import DK
 from agent.base.planner.mix_2.situation import crawlers_near
-from agent.base.planner.policies import (AIM_LEG_S, DISENGAGE_R, DOOR_POST_PACE, chasing, line_to, on_floor,
-                                         target_id_ok)
+from agent.base.planner.policies import AIM_LEG_S, DISENGAGE_R, DOOR_POST_PACE, chasing, on_floor
 from agent.base.pza1 import Aim, WalkTo
 from agent.base.world import me_xy
+
+
+UNSKIPPED = ("hit", "swing")   # the guards a fight skip does not hold off (D's "still struck at P0")
 
 
 class Fight(Intent):
@@ -63,36 +74,41 @@ class Fight(Intent):
         self.grounded = self.ground is None
 
     # -- the reads ------------------------------------------------------------------------------------------------
-    def _upright(self):
-        """(tiles, id, record) of the standing zombies listed free (no door, window or wall between: the wants'
-        population), not read dead, nearest first."""
-        w, mem, now = self.ctx.world, self.ctx.mem, self.ctx.now()
-        near = listed(w, mem, now)
-        behind = portals(w, near)
-        return [e for e in near if e[1] not in behind and line_to(w, e[2]) is not False and not on_floor(e[2])]
-
     def repin_to(self):
-        """{id, by} of the zombie the tactician's re-pin takes over the pin (the module docstring), else None."""
-        mem, now, w = self.ctx.mem, self.ctx.now(), self.ctx.world
+        """{id, by} of the zombie the tactician's re-pin takes over the pin (the module docstring), else None: the
+        wants' own reads over their one population (`situation.populations`): the P0 guard (`situation.guard`) when it
+        is a `hit` or a `swing` at another zombie, else P3's `reach` (`situation.reach`) at a standing zombie nearer
+        than a standing pin (`second_standing`), so the arbiter's next want names the zombie the re-pin read (fix 1,
+        review-t13-mix2 F5)."""
+        w, mem, now = self.ctx.world, self.ctx.mem, self.ctx.now()
         got = self.zombie(self.pin)
         if got is None:
             return None
         d, z = got
-        up = self._upright()
-        guard = [e for e in up if not mem.backoff.get(e[1]) and target_id_ok(e[1])]
-        if (w.me or {}).get("hitReaction"):
-            hit = [e for e in guard if e[0] <= K.MELEE_RELEASE_R]
-            if hit:
-                return None if hit[0][1] == self.pin else {"id": hit[0][1], "by": "hit"}
-        swing = [e for e in guard if e[0] <= K.SWING_GUARD_R]
-        if swing:
-            return None if swing[0][1] == self.pin else {"id": swing[0][1], "by": "swing"}
-        if w.weapon is None or on_floor(z):
+        _, _, free, upright = SI.populations(w, mem, now)
+        g = SI.guard(w, mem, now, free, upright)
+        if g is not None and SI.piece_of(g) in ("hit", "swing"):
+            return None if g.target == self.pin else {"id": g.target, "by": SI.piece_of(g)}
+        if on_floor(z):
             return None
-        reach = [e for e in up if e[0] <= K.KEEP_R and target_id_ok(e[1]) and mem.skip.get(e[1], -math.inf) <= now]
-        if reach and reach[0][1] != self.pin and reach[0][0] < d:
-            return {"id": reach[0][1], "by": "second_standing"}
+        r = SI.reach(w, mem, now, upright)
+        if r is not None and r.target != self.pin and r.why["d"] < d:
+            return {"id": r.target, "by": "second_standing"}
         return None
+
+    def lapsed(self):
+        """A seek Fight's end (fix 1, review-t13-mix2 F1): its pin idle (not aware), beyond DANGER_R, and the seek's
+        own predicate (`situation.lone_idle`, the want's) no longer holding at it: a second standing zombie listed
+        within SEEK_R, or the pin no longer free or reachable. Inside DANGER_R the Fight runs on."""
+        if self.piece != "seek":
+            return False
+        got = self.zombie(self.pin)
+        if got is None or aware(got[1]) or got[0] <= K.DANGER_R:
+            return False
+        w, mem, now = self.ctx.world, self.ctx.mem, self.ctx.now()
+        near, _, _, upright = SI.populations(w, mem, now)
+        seek = self.ctx.seek_read() if hasattr(self.ctx, "seek_read") else None
+        return SI.lone_idle(w, mem, now, near, upright, seek, pin=self.pin) is None
 
     # -- the contract ---------------------------------------------------------------------------------------------
     def observe(self):
@@ -113,8 +129,13 @@ class Fight(Intent):
             self.duds += 1   # consecutive backed-off presses count toward the dud
         elif kind == "other":
             zid = (why or {}).get("id")
-            self.repin = {"id": zid, "by": "handback"}
-            self.finish("done", "repin")
+            n = self.ctx.note_handback(self.pin)   # fix 1 (review-t13-mix2 F2b): the handbacks in a row at this pin
+            self.repin = {"id": zid, "by": "handback", "n": n}
+            if n >= K.HANDBACK_MAX:
+                self.ctx.hold(self.pin)   # held out of every Fight's want for SKIP_S: the arbiter's next answer
+                self.finish("failed", "handback")
+            else:
+                self.finish("done", "repin")
         elif kind == "lost" and why in UNREACHED:
             self.ctx.skip(m.target)
             self.finish("failed", "unreached")
@@ -138,6 +159,8 @@ class Fight(Intent):
         if r is not None:
             self.repin = r
             return "done", "repin"
+        if self.lapsed():
+            return "done", "lapsed"
         if self.state in ("stand", "close"):
             now = self.ctx.now()
             if self.best is None or got[0] < self.best[1] - PROGRESS_R:
@@ -157,6 +180,9 @@ class Fight(Intent):
         got = self.zombie(self.pin)
         if got is None:
             return None
+        if self.piece not in UNSKIPPED and not SI._ok(self.ctx.mem, self.ctx.now(), (got[0], self.pin, got[1])):
+            self.finish("done", "skipped")   # fix 1: made from this tick's wants, read before the Fight that ended
+            return None                      # skipped its pin (a stall, a dud): the tick is handed on at once
         d, z = got
         w = self.ctx.world
         if self.ctx.mem.backoff.get(self.pin):
@@ -182,18 +208,9 @@ class Fight(Intent):
         return self.leg("close", Aim(ux, uy, min(AIM_LEG_S, (d - strike_r(w)) / DOOR_POST_PACE), targetId=self.pin))
 
     def _ground_leg(self):
-        """D's stand's leg to its ground (`doctrine.intents.Fight._ground_leg`): the stance's walk to the square with a
-        wall or a fence at its back, facing the pin, until within GROUND_DONE_R; then the stand is taken there."""
-        if self.grounded:
-            return None
-        mx, my = me_xy(self.ctx.world)
-        cx, cy = self.ground[0] + 0.5, self.ground[1] + 0.5
-        far = math.hypot(cx - mx, cy - my)
-        if far <= GROUND_DONE_R:
-            self.grounded = True
-            return None
-        return self.leg("ground", Aim((cx - mx) / far, (cy - my) / far, min(AIM_LEG_S, far / DOOR_POST_PACE),
-                                      targetId=self.pin))
+        """D's stand's leg to its ground, D's own method (`doctrine.intents.Fight._ground_leg`, which reads only
+        `grounded`, `ground`, `ctx` and `leg`) at this Fight's pin."""
+        return DI.Fight._ground_leg(self, self.pin)
 
     def target_label(self):
         return self.pin

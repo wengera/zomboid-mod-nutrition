@@ -121,11 +121,20 @@ def test_a_crawler_within_keep_r_is_a_p0_finish(tmp_path):
     assert head(wants(r)) == ("fight", K.P_GUARD, "crawler", 9)
 
 
-def test_the_crawler_s_finish_comes_after_the_swing_and_before_a_standing_one_beyond_it(tmp_path):
+def test_the_crawler_s_finish_comes_after_the_swing_and_before_a_standing_one_beyond_the_handback_radius(tmp_path):
     r = world(tmp_path, [crawler(9, 101.5, 200.0), idle(1, 100.9, 200.0)])
     assert head(wants(r)) == ("fight", K.P_GUARD, "swing", 1)
-    r2 = world(tmp_path / "b", [crawler(9, 101.5, 200.0), zombie(1, 102.0, 200.0)])
+    r2 = world(tmp_path / "b", [crawler(9, 101.5, 200.0), zombie(1, 102.2, 200.0)])
     assert head(wants(r2)) == ("fight", K.P_GUARD, "crawler", 9)
+
+
+def test_the_crawler_s_guard_yields_to_a_standing_zombie_within_the_meet_s_handback_radius(tmp_path):
+    """Fix 1 (review-t13-mix2 F2a; trial 10's lines 98, 99 and 116: 15436 standing at 1.25 to 1.52 tiles by the
+    crawler): the meet hands a finish back while a standing zombie is within HANDBACK_R, so the guard yields and P3's
+    `reach` takes the standing one."""
+    r = world(tmp_path, [crawler(9, 101.0, 200.0), idle(1, 101.4, 200.3)])
+    ws = wants(r)
+    assert head(ws) == ("fight", K.P_FIGHT, "reach", 1) and all(w.p != K.P_GUARD for w in ws)
 
 
 def test_a_fallen_zombie_is_finished_only_with_none_standing_within_keep_r(tmp_path):
@@ -281,6 +290,7 @@ def test_a_fight_repins_to_a_nearer_standing_zombie_within_keep_r(tmp_path):
     a = tick(r, sv)
     m = mix(tmp_path)
     assert m["ended"]["why"] == "repin" and m["ended"]["p"] == K.P_FIGHT
+    assert m["repin"] == {"id": 2, "by": "second_standing", "pin": 1, "end": "done"}   # fix 1, F3: on the line
     assert (m["target"], m["piece"]) == (2, "reach") and (a.type, a.args["targetId"]) == ("melee", 2)
 
 
@@ -294,6 +304,7 @@ def test_a_finish_repins_to_a_standing_zombie_in_the_swing_radius(tmp_path):
     a = tick(r, sv)
     m = mix(tmp_path)
     assert m["ended"]["why"] == "repin" and (m["target"], m["piece"], m["p"]) == (2, "swing", K.P_GUARD)
+    assert m["repin"] == {"id": 2, "by": "swing", "pin": 5, "end": "done"}
     assert (a.type, a.args["targetId"], a.args["mode"]) == ("melee", 2, "strike")
 
 
@@ -309,6 +320,7 @@ def test_a_hit_reaction_repins_a_finish_to_the_standing_zombie_within_the_releas
     a = tick(r, sv)
     m = mix(tmp_path)
     assert m["ended"]["why"] == "repin" and (m["target"], m["piece"], m["p"]) == (2, "hit", K.P_GUARD)
+    assert m["repin"] == {"id": 2, "by": "hit", "pin": 5, "end": "done"}
     assert (a.type, a.args["targetId"]) == ("melee", 2)
 
 
@@ -326,6 +338,7 @@ def test_the_meet_s_handback_ends_the_finish_done_repin_and_the_standing_one_is_
     a = tick(r, sv)
     m = mix(tmp_path)
     assert m["ended"]["why"] == "repin" and (m["target"], m["piece"]) == (2, "reach")
+    assert m["repin"] == {"id": 2, "by": "handback", "n": 1, "pin": 5, "end": "done"}
     assert (a.type, a.args["targetId"], a.args["mode"]) == ("melee", 2, "strike")
 
 
@@ -420,3 +433,157 @@ def test_the_fight_never_ends_on_health(tmp_path):
         r.advance(0.5)
     m = mix_of(sv)
     assert m.arbiter.current.kind == "fight" and not m.arbiter.ends
+
+
+# ================================================================ fix 1 (review-t13-mix2)
+def test_the_tick_is_d_s_but_for_its_named_lines():
+    """The drift guard on the copied `tick` (F5): `Mix2.tick` is `Doctrine.tick` with D's module-level read replaced by
+    `self.read()` and the lines marked `# mix_2` (the re-pin's record for the line) added; nothing else differs."""
+    import inspect
+    import textwrap
+    from agent.base.planner.doctrine.assess import Doctrine
+    from agent.base.planner.mix_2.assess import Mix2
+
+    def body(f):
+        src = textwrap.dedent(inspect.getsource(f))
+        out, doc = [], False
+        for ln in src.splitlines():
+            t = ln.strip()
+            if t.startswith('"""'):
+                doc = not (t.endswith('"""') and len(t) > 3) and not doc
+                continue
+            if doc:
+                doc = not t.endswith('"""')
+                continue
+            out.append(ln.rstrip())
+        return out
+    d = [ln.replace("situation.read(self.world, self.mem, self.now())", "self.read()") for ln in body(Doctrine.tick)]
+    m = [ln for ln in body(Mix2.tick) if "# mix_2" not in ln]
+    assert m == d
+    assert sum("# mix_2" in ln for ln in body(Mix2.tick)) == 3
+
+
+def seek_rig(tmp_path, zs):
+    r, sv = rig(tmp_path)
+    r.frame(zombies=zs)
+    a = tick(r, sv)
+    assert mix(tmp_path)["piece"] == "seek" and a.type == "walkTo"
+    r.answer("accepted")
+    return r, sv
+
+
+def test_a_seek_ends_lapsed_when_more_idle_zombies_list_beyond_danger_r(tmp_path):
+    """F1, probe 1's shape: a seek at an idle zombie 8 tiles off; five more idle zombies list at 8 tiles: the seek's
+    own predicate no longer holds and the pin is beyond DANGER_R, so the Fight ends `done lapsed` and the arbiter's
+    next answer (the order: two or more idle, none sought) takes the tick."""
+    r, sv = seek_rig(tmp_path, [idle(1, 108.0, 200.0)])
+    more = [idle(10 + i, 100.0 + 8.0 * c, 200.0 + 8.0 * s_) for i, (c, s_) in
+            enumerate(((-1, 0), (0, 1), (0, -1), (-0.6, 0.8), (-0.6, -0.8)))]
+    r.frame(zombies=[idle(1, 108.0, 200.0)] + more)
+    tick(r, sv)
+    m = mix(tmp_path)
+    assert m["ended"] == {"intent": "fight", "p": K.P_FIGHT, "end": "done", "why": "lapsed"} and m["intent"] == "order"
+
+
+def test_a_seek_ends_lapsed_when_its_pin_is_no_longer_engageable(tmp_path):
+    r, sv = seek_rig(tmp_path, [idle(1, 108.0, 200.0)])
+    mix_of(sv).reach.engageable = lambda zid, z: False   # the ladder's `_engageable` turned false mid-seek
+    r.frame(zombies=[idle(1, 108.0, 200.0)])
+    tick(r, sv)
+    assert mix(tmp_path)["ended"]["why"] == "lapsed" and mix(tmp_path)["intent"] == "order"
+
+
+def test_an_aware_newcomer_ends_the_seek_and_d_s_fight_takes_it(tmp_path):
+    r, sv = seek_rig(tmp_path, [idle(1, 108.0, 200.0)])
+    r.frame(zombies=[idle(1, 108.0, 200.0), zombie(2, 94.0, 200.0)])
+    tick(r, sv)
+    m = mix(tmp_path)
+    assert m["ended"]["why"] == "lapsed" and (m["intent"], m["piece"], m["target"]) == ("fight", "fight", 2)
+
+
+def test_a_seek_inside_danger_r_runs_on_when_its_predicate_lapses(tmp_path):
+    """Trial 2's 245-251 s shape: 9815 lists idle at 8.2 tiles while the seek's pin 9812 stands at 3.8, inside
+    DANGER_R: the Fight runs on."""
+    r, sv = seek_rig(tmp_path, [idle(1, 105.5, 200.0)])
+    n0 = mix(tmp_path)["n"]
+    r.frame(zombies=[idle(1, 103.8, 200.0), idle(2, 91.8, 200.0)])
+    tick(r, sv)
+    m = mix(tmp_path)
+    assert m["n"] == n0 and m["ended"] is None and m["piece"] == "seek" and "seek" not in m["pieces"]
+
+
+def test_a_crawler_finish_handed_back_for_a_standing_zombie_goes_to_the_standing_one(tmp_path):
+    """F2a, probe 4's shape (a): a crawler pinned at P0, a standing zombie arriving between SWING_GUARD_R and the
+    meet's HANDBACK_R: the meet hands the finish back, and the next Fight is the standing one's (P3's `reach`), never
+    the crawler's again."""
+    r, sv = rig(tmp_path)
+    r.frame(zombies=[crawler(9, 101.0, 200.0)])
+    a = tick(r, sv)
+    assert (a.type, a.args["targetId"], mix(tmp_path)["piece"]) == ("melee", 9, "crawler")
+    other_end(r, 1, 1.5)
+    zs = [crawler(9, 101.0, 200.0), idle(1, 101.4, 200.6)]
+    for i in range(4):
+        r.frame(zombies=zs)
+        a = tick(r, sv)
+        m = mix(tmp_path)
+        assert (m["target"], m["piece"]) == (1, "reach") and (a is None or a.args.get("targetId") == 1), m
+        if i == 0:
+            assert m["repin"]["by"] == "handback" and (a.type, a.args["targetId"]) == ("melee", 1)
+            r.answer("accepted")
+
+
+def test_the_handback_loop_at_one_pin_is_bounded_at_handback_max(tmp_path):
+    """F2b, probe 4's shape (b): two standing zombies within the meet's STAND_R 0.6, the pin the nearer, the meet
+    handing back before every press: the swing guard names the pin again after each re-pin until HANDBACK_MAX
+    handbacks in a row, then the pin is held and the Fight ends `failed handback`, the arbiter's next answer (the
+    other zombie) taking the tick. Five handbacks in a row at one pin never happen."""
+    r, sv = rig(tmp_path)
+    zs = [idle(1, 100.4, 200.0), idle(2, 100.0, 200.5)]
+    r.frame(zombies=zs)
+    tick(r, sv)
+    runs, ends = [], []
+    for _ in range(10):
+        pin = mix(tmp_path)["target"]
+        other_end(r, 2 if pin == 1 else 1, 0.5)
+        r.frame(zombies=zs)
+        tick(r, sv)
+        m = mix(tmp_path)
+        rp = m.get("repin")
+        if rp is not None and rp["by"] == "handback":
+            runs.append(rp["pin"])
+            ends.append(rp["end"])
+    streak, best = 0, 0
+    for i, pin in enumerate(runs):
+        streak = streak + 1 if i and runs[i - 1] == pin else 1
+        best = max(best, streak)
+    assert best == K.HANDBACK_MAX and "failed" in ends, (runs, ends)
+    assert runs[:K.HANDBACK_MAX] == [1] * K.HANDBACK_MAX and runs[K.HANDBACK_MAX] == 2
+    assert 1 in mix_of(sv).mem.hold or 1 in mix_of(sv).mem.skip
+
+
+def test_a_handback_count_clears_when_a_fight_at_the_pin_ends_otherwise(tmp_path):
+    r, sv = rig(tmp_path)
+    zs = [idle(1, 100.4, 200.0), idle(2, 100.0, 200.5)]
+    r.frame(zombies=zs)
+    tick(r, sv)
+    for _ in range(K.HANDBACK_MAX - 1):
+        other_end(r, 2, 0.5)
+        r.frame(zombies=zs)
+        tick(r, sv)
+    assert mix_of(sv).handbacks == {1: K.HANDBACK_MAX - 1}
+    r.event("zombie_dead", id=1)
+    r.frame(zombies=zs[1:])
+    tick(r, sv)
+    assert 1 not in mix_of(sv).handbacks
+
+
+
+def test_a_seek_whose_lone_pin_drifts_just_past_seek_r_runs_on(tmp_path):
+    """The seek's hysteresis (fix 1, F1; trial 4's 6073 at 9.2 to 9.6 tiles): the end reads the pin at any distance
+    inside DISENGAGE_R, so a lone idle pin just past SEEK_R keeps its Fight."""
+    r, sv = seek_rig(tmp_path, [idle(1, 108.8, 200.0)])
+    n0 = mix(tmp_path)["n"]
+    r.frame(zombies=[idle(1, 109.4, 200.0)])
+    tick(r, sv)
+    m = mix(tmp_path)
+    assert m["n"] == n0 and m["ended"] is None and m["piece"] == "seek"

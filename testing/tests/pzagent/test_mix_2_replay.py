@@ -14,7 +14,8 @@ Read at every line (`situation.read` with a fresh memory, the seek's reach `seek
 - one standing aware zombie within ENGAGE_R, no other within GROUP_R, armed: never an avoid; a fight or a dress first;
 - a bleeding part with nothing standing or crawling within KEEP_R and something to dress it with: the dress first, or
   a P0 finish of a fallen zombie within FIGHT_REACH (T's `fallen` guard);
-- a bleeding part with a crawler within KEEP_R: never the dress first, a P0 Fight first (trial 10's death mode);
+- a bleeding part with a crawler within KEEP_R: never the dress first, a P0 Fight first (trial 10's death mode), or
+  P3's `reach` at a standing zombie within the meet's HANDBACK_R, to which the crawler's guard yields (fix 1, F2a);
 - three or more standing aware within GROUP_R, not strung out, armed: an avoid toward a named refuge or the stand;
 - a zombie behind a door within DOOR_R with no free aware zombie near: the door decided;
 - exactly one standing zombie listed within ENGAGE_R, idle, free and reachable, armed, nothing bleeding: the Fight at
@@ -211,7 +212,8 @@ def read_ring(ring):
                 bad.append(("bleed", k, first))
         if bleeding_crawler(w):
             found["crawler"].append(k)
-            if kinds[0] == "dress" or first[1] != K.P_GUARD:
+            yielded = first[2] == "reach" and bool(_standing(w, K.HANDBACK_R))   # fix 1, F2a: the crawler's guard
+            if kinds[0] == "dress" or not (first[1] == K.P_GUARD or yielded):   # yields within the handback radius
                 bad.append(("crawler", k, first))
         if group(w):
             found["group"].append(k)
@@ -283,7 +285,7 @@ class StubTransport:
         self.sent.append(cmd)
 
 
-@pytest.fixture(scope="module", params=RINGS + (CRAWLER_TRIAL,))
+@pytest.fixture(scope="module", params=RINGS + (SEEK_TRIALS[0], CRAWLER_TRIAL))
 def loop(request, tmp_path_factory):
     got = record(request.param)
     if got is None:
@@ -294,7 +296,7 @@ def loop(request, tmp_path_factory):
     w, tr = World(), StubTransport()
     acts = Actions(tr, clock=lambda: clock["t"])
     sv = Survive(w, acts, str(tmp / "decision.log"), lambda: clock["t"], control="mix_2")
-    fi, ticks, dress_near = 0, 0, []
+    fi, ticks, dress_near, seek_lapsed = 0, 0, [], []
     for ln in lines:
         if ln["kind"] == "act":
             continue   # the record's own aids: never this replay's
@@ -310,11 +312,19 @@ def loop(request, tmp_path_factory):
                 a.state, a.ended_wall, a.result = "done", clock["t"], {}
         sv.tick(w, acts)
         ticks += 1
-        it = sv.control_state["mix_2"].arbiter.current
+        mx = sv.control_state["mix_2"]
+        it = mx.arbiter.current
+        if getattr(it, "piece", None) == "seek" and it.end is None:   # fix 1, F1: a running seek past its predicate
+            got = it.zombie(it.pin)
+            if got is not None and not aware(got[1]) and got[0] > K.DANGER_R:
+                near, _, _, upright = SI.populations(w, mx.mem, clock["t"])
+                if SI.lone_idle(w, mx.mem, clock["t"], near, upright, mx.seek_read(), pin=it.pin) is None:
+                    seek_lapsed.append(ticks)
         if it.kind == "dress" and (_standing(w, K.KEEP_R) or _crawling(w, K.KEEP_R)) and it.end is None:
             dress_near.append(ticks)
     rows = [json.loads(x) for x in (tmp / "decision.log").read_text(encoding="utf-8").splitlines()]
-    return {"ring": request.param, "rows": rows, "ticks": ticks, "sent": tr.sent, "dress_near": dress_near}
+    return {"ring": request.param, "rows": rows, "ticks": ticks, "sent": tr.sent, "dress_near": dress_near,
+            "seek_lapsed": seek_lapsed}
 
 
 def test_the_decider_runs_open_loop_and_names_its_piece_on_every_line(loop):
@@ -338,3 +348,42 @@ def test_the_arbiter_switches_no_intent_for_one_of_the_same_priority(loop):
 def test_no_sprint_and_no_dress_with_a_zombie_standing_or_crawling_within_keep_r(loop):
     assert all(c["args"].get("gait") != "sprint" for c in loop["sent"])
     assert loop["dress_near"] == [], loop["dress_near"][:5]
+
+
+def test_no_seek_runs_on_past_its_own_predicate_beyond_danger_r(loop):
+    """Fix 1 (review-t13-mix2 F1): no tick ends with a seek Fight running at an idle pin beyond DANGER_R while the
+    seek's own predicate (`situation.lone_idle`, the want's) reads false at it."""
+    assert loop["seek_lapsed"] == [], loop["seek_lapsed"][:5]
+
+
+def test_trial_2_s_seek_runs_on_inside_danger_r_when_9815_lists(tmp_path):
+    """The replay line (fix 1, F1): trial 2 at 245-251 s after its first frame, 9815 listed idle at 8.2 tiles while
+    9812 stands at 3.8: the seek's predicate is false at 9812 (a second zombie listed within SEEK_R), and a seek Fight
+    at 9812 runs on, its pin inside DANGER_R; the same Fight with its pin beyond DANGER_R would end `done lapsed`."""
+    from agent.base.planner.doctrine.situation import Want
+    from agent.base.planner.mix_2.assess import mix_of
+    from agent.base.planner.mix_2.intents import Fight
+    got = record(SEEK_TRIALS[0])
+    if got is None:
+        pytest.skip("%s is not on this machine (testing/runs/ is per-machine)" % SEEK_TRIALS[0])
+    lines, rows = got
+    t0 = next(ln for ln in lines if ln["kind"] == "frame")["wallMs"] / 1000.0
+    clock = {"t": 0.0}
+    seen = 0
+    for k, w, wall in situations(lines, rows):
+        if not 245.0 <= wall - t0 <= 251.0:
+            continue
+        if 9812 not in w.zombies or 9815 not in w.zombies:
+            continue
+        clock["t"] = wall
+        sv = Survive(w, Actions(StubTransport(), clock=lambda: clock["t"]), str(tmp_path / ("d%d.log" % k)),
+                     lambda: clock["t"], control="mix_2")
+        mx = mix_of(sv)
+        near, _, _, upright = SI.populations(w, mx.mem, wall)
+        assert SI.lone_idle(w, mx.mem, wall, near, upright, mx.seek_read(), pin=9812) is None
+        d = zdist(w, w.zombies[9812])
+        f = Fight(mx, Want(K.P_FIGHT, "fight", 9812, {"d": d, "piece": "seek"}, (9812,)))
+        assert d <= K.DANGER_R and f.lapsed() is False and f.check() is None, (k, d)
+        seen += 1
+    assert seen >= 10, seen
+

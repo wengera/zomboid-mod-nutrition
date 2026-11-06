@@ -38,8 +38,12 @@ P0 for a guard, P3 otherwise.
     - another standing zombie nearest within SWING_GUARD_R (T's `swing` guard);
     - armed with the pin standing, another standing zombie nearer than the pin within KEEP_R (T's `second_standing`);
     - the meet's `handback`.
-    The same tick, the next want names the zombie the re-pin read, because the populations are the wants' own: a P0
-    guard, or P3's `reach`;
+    The same tick, the next want names the zombie the re-pin read: the re-pin calls the wants' own reads over their
+    one population (`situation.guard`, `situation.reach`, `situation.populations`);
+  - `failed handback` on the HANDBACK_MAX-th (3) handback in a row by Fights at one pin: the pin is held out of every
+    Fight's want for SKIP_S and the arbiter's next answer takes the tick (fix 1, below);
+  - `done lapsed`: a seek Fight whose pin is idle and beyond DANGER_R once the seek's own predicate
+    (`situation.lone_idle`, the want's own function) no longer holds at it (fix 1, below);
   - `failed dud` (DUD_N strikes that lowered nothing, or the meet's `lost no progress`), `failed unreached` (the meet's
     `lost out of reach`) or `failed stall` (a close whose distance has not fallen for STALL_S). Each leaves the pin
     skipped for SKIP_S.
@@ -47,12 +51,17 @@ P0 for a guard, P3 otherwise.
 
 **Order inside P0.** The swing guard comes before the crawler: a standing zombie within 1.0 tile is met first. The
 crawler comes before a standing zombie beyond 1.0, because a crawler bites (#4687) and a knocked-down zombie does not
-until it rises. A knocked-down zombie is finished only once nothing stands within KEEP_R, as T does.
+until it rises. The crawler's guard yields while a standing zombie is within the meet's HANDBACK_R 2.0 (the meet
+hands a finish back then), so P3's `reach` takes the standing one. A knocked-down zombie is finished only once nothing
+stands within KEEP_R, as T does.
 
 **Skips and back-offs.**
 - A zombie whose melee backed off is in no guard for BACKOFF_TICKS.
 - A fight skip holds off the two finishes only. A standing zombie in the swing radius is met whatever the skip, as D
   struck a skipped one.
+- A handback hold (HANDBACK_MAX) holds a zombie out of every guard and every Fight's want for SKIP_S.
+- A Fight made from the tick's wants after the Fight that ended this tick skipped its pin ends `done skipped` as it
+  acts (every piece but `hit` and `swing`), and the tick is handed on.
 
 ## The pieces and their sources
 
@@ -88,7 +97,7 @@ until it rises. A knocked-down zombie is finished only once nothing stands withi
 
 ## The constants and their sources
 
-`constants.py` imports every number. None is changed from its package.
+`constants.py` imports every number but HANDBACK_MAX, fix 1's own. None is changed from its package.
 
 | Constant | Value | Source |
 |---|---|---|
@@ -97,6 +106,9 @@ until it rises. A knocked-down zombie is finished only once nothing stands withi
 | KEEP_R | 2.5 | `policies.KEEP_R`: T's `second_standing` and `reach`, the dress's clear radius (D's DRESS_CLEAR_R) |
 | MELEE_RELEASE_R | 2.75 | `policies.MELEE_RELEASE_R`, T's `hit` guard radius |
 | SEEK_R | 9.0 | `policies.ENGAGE_R`, the ladder's seek radius (ruling P24-X) |
+| HANDBACK_R | 2.0 | `policies.HANDBACK_R`, the meet's `handbackR`: the crawler's guard yields while a standing zombie is this near |
+| DANGER_R | 6.0 | `policies.DANGER_R`: a seek Fight's pin beyond it ends `done lapsed` once the seek's predicate fails |
+| HANDBACK_MAX | 3 | mix_2's own (fix 1): handbacks in a row at one pin before it is held; a first guess for the trials |
 | D's numbers (GROUP_N, GROUP_R, ENGAGE_R, STALL_S, DUD_N, SKIP_S, BACKOFF_TICKS, DOWNED_R, the Avoid's and the Door's) | as D's README | `doctrine/constants.py`, read as `DK` |
 
 ## The decision line's keys
@@ -112,7 +124,10 @@ mix_2's own keys:
   `resumed`, `ended`, `slot`, `wants`, plus an order's `step` and `resumed_goal`. It also carries:
   - `piece`: the rule that started the running intent, one of `constants.PIECES`;
   - `pieces`: this tick's wants' pieces;
-  - `repin`: a Fight's `{id, by}` on its `done repin`.
+  - `repin`: on the tick a Fight ends by a re-pin, `{id, by, pin, end}` (`by` one of `hit`, `swing`,
+    `second_standing`, `handback`; a handback's `n` its count in a row at the pin; `end` `done`, or `failed` on the
+    bound), copied from the ended Fight by `Mix2._note_end` (a list when two ended in one tick). Round two counts the
+    handbacks and their same-pin runs off it.
 
   There is no `inputs.doctrine`, so a trial's lines tell the two variants apart by key. `assess.line_switches` reads
   the equal-priority switches off `inputs.mix_2`.
@@ -134,7 +149,11 @@ There is no `inputs.play`. The string is gone, so no Fight line is read as a ret
 - **No Lua change of its own.** The reflex and the PZA schema stay frozen (ruling P31-T). The read raised two Lua
   questions, both Harden's:
   - the point-blank presses: 7 of 8 swings under 0.6 tiles did nothing;
-  - the shove-only meet under arm pain: after trial 11's first arm bite, 7 of 8 spent shoves did nothing.
+  - the shove-only meet under arm pain: after trial 11's first arm bite, 7 of 8 spent shoves did nothing;
+  - fix 1's crowd case (review-t13-mix2 F2b): two standing zombies within the meet's STAND_R 0.6, the meet handing
+    back `crowd` before every press (`PZAgent_StanceMelee.lua`), so no press goes at either while both stand there.
+    mix_2 bounds the planner's side (HANDBACK_MAX, then the pin held and the other fought, which the meet hands back
+    too); the press itself is the Lua's.
 
   mix_2 sets no meet constant.
 - **The crawler read** is the frame's `crawler` (true with `onFloor`). `tactician.tview` reads it the same way.
@@ -149,6 +168,27 @@ There is no `inputs.play`. The string is gone, so no Fight line is read as a ret
   fights the standing one to the kill. The crawler is finished after it, or once the standing one leaves the swing
   radius while the Fight's pin is down. Over trial 10's 122 lines the read's first want is the crawler's on 22 and the
   swing's on 21; in the open loop over the same frames the running intent is a swing Fight on 56 of 134 ticks and
-  never a crawler's (the stub kills nothing, so the swing Fight never ends by a kill). This is my reading of the read's two clauses (the swing guard "in any
-  play", a crawler "a P0 finish"). Round two reads whether the crawler's bites through that fight cost more than the
+  never a crawler's (the stub kills nothing, so the swing Fight never ends by a kill). This is my reading of the
+  read's two clauses (the swing guard "in any play", a crawler "a P0 finish"). Round two reads whether the crawler's bites through that fight cost more than the
   standing zombie's.
+
+## Fix 1 (review-t13-mix2)
+
+- **The seek's end (F1, major).** A running seek Fight re-reads the seek's predicate each tick through the want's own
+  function (`situation.lone_idle`, with the pin read at any distance so the seek keeps its hysteresis just past
+  SEEK_R) and ends `done lapsed` when its pin is idle and beyond DANGER_R and the predicate fails: a second standing
+  zombie listed within SEEK_R, an aware newcomer (D's `fight` then takes it), or the pin no longer free or reachable.
+  Inside DANGER_R it runs on: trial 2 at 245-251 s, 9815 listed idle at 8.2 tiles while the pin 9812 stands at 3.8
+  (the replay test's line).
+- **The handback loop (F2, major).** (a) The crawler's guard yields while a standing zombie is within HANDBACK_R
+  (trial 10's lines 98, 99 and 116: 15436 standing at 1.25 to 1.52 tiles by the crawler), so the guard never asks the
+  meet for a finish it hands back. (b) The handbacks in a row by Fights at one pin are counted (`Mix2.handbacks`, a
+  Fight at the pin ending otherwise clearing it); the HANDBACK_MAX-th ends the Fight `failed handback`, the pin held
+  out of every Fight's want for SKIP_S (`situation.Memory.hold`), the arbiter's next answer taking the tick. Five in a
+  row at one pin no longer happen (the reviewer's probe shapes are unit tests).
+- **The line's `repin` (F3, medium)** now reaches the decision line on the tick the Fight ends.
+- **Quality (F5).** The re-pin calls `situation.guard` and `situation.reach` over `situation.populations`;
+  `_ground_leg` calls D's own method; a drift test compares `Mix2.tick` with `Doctrine.tick` but for its read and
+  its three `# mix_2` lines.
+- **A one-tick artefact closed.** D's tick makes the next intent from wants read before the ended Fight skipped its
+  pin (a stall); such a Fight now ends `done skipped` as it acts, the tick handed on.
