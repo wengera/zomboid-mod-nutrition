@@ -17,14 +17,17 @@ line's play target), else None; `aids` the action ids it sent; `age()` wall seco
   a wait at the door: memory `intent-doors-sneak` 1). No back step after a press (the spec's § 4 item 1, J4: PZA/1.10
   has none; on PZA/1.9 the back leg is (0, 0)). Ends: `dead` (unlisted, read dead, or the Melee's `dead`/`kill`),
   `second_standing` (another standing zombie nearer than the target within KEEP_R, or the meet's `handback`: the
-  nearest is fought), `lost` (beyond DISENGAGE_R, the meet's `lost` for no progress or out of reach, or a walk to the
-  target that failed: its door marked once, the zombie left unreachable, fix 1). Never on health (memory
+  nearest is fought), `lost` (an idle target beyond DISENGAGE_R, left unreachable; the meet's `lost` for no progress,
+  out of reach or refused; or a walk to the target that failed: its door marked once, the zombie left unreachable, fix
+  1). A target beyond WALK_R is faced in the stance where the character stands, never walked to; a chaser beyond
+  DISENGAGE_R is held so, never lost (fix 2). Never on health (memory
   `stand-and-fight-dress-first` 1).
 - `KiteExec` (`kite`): the stance facing the target (`Aim` with a move vector: the backpedal), the vector toward the
   refuge's square only while that heading runs away from the standing zombies within DANGER_R
   (`policies.away_vector`) and reads clear (`policies.clear_heading`: never across a fence); else, and with `toward`
   "stance", the stance held where the character stands, never a backpedal over open ground (fix 1, review-t11 H2: the
-  controller's refuge ruling). Ends: `alone` (armed and one standing within
+  controller's refuge ruling). Ends: `alone` (armed, one standing within DANGER_R), `reach` (armed, a standing zombie
+  within KEEP_R: fix 2), `reached`, `time` (KITE_S). Ends: `alone` (armed and one standing within
   DANGER_R: fight it), `reached` (within REACHED_R of the refuge), `time` (KITE_S).
 - `ShelterExec` (`avoid`, `shelter`): `night.shelter_plan` kept to the door (`avoid` toward D<n>) or the building's own
   doors (`avoid` toward B<id>, `shelter`), its steps `night.shelter_step` (approach, open, enter, close), each end read
@@ -48,7 +51,7 @@ from agent.base.planner import night as N
 from agent.base.planner.dispatch import MANEUVERS
 from agent.base.planner.goal_policies import ExploreToward, LootBuilding, Shelter
 from agent.base.planner.maneuvers.melee import MeleeInputs
-from agent.base.planner.policies import (AIM_LEG_S, ATTACK_MARGIN, DANGER_R, DISENGAGE_R, KEEP_R, LISTED_R,
+from agent.base.planner.policies import (AIM_LEG_S, AIM_R, ATTACK_MARGIN, DANGER_R, DISENGAGE_R, KEEP_R, LISTED_R,
                                          MELEE_RELEASE_R, PREEMPTED, UNREACHABLE_S, away_vector, blocked, chasing,
                                          clear_heading, line_to, on_floor, running, standing, zdist)
 from agent.base.planner.tactician.trigger import _inside
@@ -65,6 +68,9 @@ STRATEGIC_STEPS = ("care", "need", "load", "night", "stock", "goal")   # Survive
 SWING_GUARD_R = 1.0   # tiles: a standing zombie this near starts the melee in any play (the proposal's guard, at P30-A's
                       # SWING_CLOSE_R 1.0, `policies` before Plan 31 Task 2 removed it: the swing close's radius); and
                       # the `closeR` today's PZA/1.9 melee takes
+LOST_WHYS = ("no progress", "out of reach", "refused")   # the meet's `lost` whys that end the fight `lost` (PZA/1.10;
+                      # `refused`, a press the engine keeps refusing, Task 2's residual 1f971b61: fix 2, L5); `out of
+                      # range` is no end, the stance approaching on
 MELEE_KILL_ENDS = ("dead", "kill")   # a Melee's end that is its target's death: PZA/1.9's `dead`, PZA/1.10's `kill`
 MELEE_API = "1.10" if "back" not in {f.name for f in dataclasses.fields(MeleeInputs)} else "1.9"   # Task 2's meet
                       # (PZA/1.10: MeleeInputs(mode, reach, floor_swing), no back leg, no closeR, no time end) or
@@ -209,13 +215,14 @@ class FightExec(Exec):
             return "dead"
         if self.melee_end == "handback":
             return "second_standing"   # PZA/1.10: another standing zombie the press would take, or one by the finish
-        if self.melee_end == "lost" and self.lost_why in ("no progress", "out of reach"):
+        if self.melee_end == "lost" and self.lost_why in LOST_WHYS:
             return "lost"              # PZA/1.10: presses that lowered nothing, or a fallen target the walk never met
         if self._walk_fails():
             return "lost"
         d = zdist(self.world, z)
-        if d > DISENGAGE_R:
-            return "lost"
+        if d > DISENGAGE_R and not (chasing(z) and not on_floor(z)):
+            self.sv.unreachable[self.zid] = self.sv.clock() + UNREACHABLE_S   # fix 2 (N1): left, never re-picked
+            return "lost"   # an idle zombie beyond DISENGAGE_R; a chaser coming is held in the stance, never lost
         nearer = [o for o in standing(self.world, min(d, KEEP_R), skip=(self.zid,)) if zdist(self.world, o) < d]
         if nearer and not on_floor(z):
             return "second_standing"
@@ -260,9 +267,17 @@ class FightExec(Exec):
         return True
 
     def _approach(self, z, d):
-        """(leg kind, command) beyond the melee's reach: a walk to the zombie's square far off or behind a blocked line,
-        else the stance facing it, standing for a chaser, walking toward an idle one."""
+        """(leg kind, command) beyond the melee's reach: beyond WALK_R the stance held where the character stands,
+        facing the target (by its id within AIM_R, else by its bearing): no walk toward a far zombie (fix 2, review-t11
+        fix 1's N1: the stand against a far group walked at it); within WALK_R a walk to the zombie's square behind a
+        blocked line (or with no stance on the build), else the stance facing it, standing for a chaser, walking toward
+        an idle one."""
         mx, my = me_xy(self.world)
+        if d > WALK_R and self.world.can("aim"):
+            if d <= AIM_R:
+                return "hold", pza1.Aim(0.0, 0.0, AIM_LEG_S, targetId=self.zid)
+            deg = math.degrees(math.atan2(z["y"] - my, z["x"] - mx)) % 360.0   # 0 east, 90 south (the Aim's bearing)
+            return "hold", pza1.Aim(0.0, 0.0, AIM_LEG_S, bearing=deg)
         if d > WALK_R or line_to(self.world, z) is False or not self.world.can("aim"):
             return "walk", pza1.WalkTo(math.floor(z["x"]) + 0.5, math.floor(z["y"]) + 0.5, "walk")
         if chasing(z) and not on_floor(z):
@@ -288,6 +303,8 @@ class KiteExec(Exec):
     def bound(self):
         if self.world.weapon is not None and len(standing(self.world, DANGER_R)) == 1:
             return "alone"
+        if self.world.weapon is not None and standing(self.world, KEEP_R):
+            return "reach"   # fix 2 (L6): an arrival within KEEP_R, armed, is struck (the doctrine's `reach` rule)
         if self.refuge is not None and math.hypot(self.refuge[0] - me_xy(self.world)[0],
                                                    self.refuge[1] - me_xy(self.world)[1]) <= REACHED_R:
             return "reached"

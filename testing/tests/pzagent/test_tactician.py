@@ -929,15 +929,18 @@ def test_today_s_melee_takes_no_back_leg_and_the_guard_s_swing_close(monkeypatch
     assert (m.inputs.back, m.inputs.close_r, m.inputs.reach) == ((0.0, 0.0), X.SWING_GUARD_R, 0.0)
 
 
-@pytest.mark.parametrize("end, bound", [("dead", "dead"), ("kill", "dead"), ("handback", "second_standing")])
-def test_the_meet_s_ends_map_onto_the_fight_s_bounds(tmp_path, end, bound):
+@pytest.mark.parametrize("end, why, bound", [("dead", None, "dead"), ("kill", None, "dead"),
+                                             ("handback", None, "second_standing"), ("lost", "refused", "lost"),
+                                             ("lost", "no progress", "lost"), ("lost", "out of reach", "lost"),
+                                             ("lost", "out of range", None)])
+def test_the_meet_s_ends_map_onto_the_fight_s_bounds(tmp_path, end, why, bound):
     r, sv = make(tmp_path, caps=MELEE_CAPS)
     r.frame(zombies=[z(7, 101.8, 200.0)])
     tick(r, sv)
     ex = sv.control_state["tactician"].exec
 
     class Done:
-        handback, end_why, target = {"id": 8, "d": 1.0}, None, 7
+        handback, end_why, target = {"id": 8, "d": 1.0}, why, 7
 
         def observe(self):
             pass
@@ -966,8 +969,96 @@ def test_prepare_switches_the_dropped_ladder_reads_off_on_the_instance_only(tmp_
     r = Rig(tmp_path)
     sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, control="tactician")
     D.prepare(sv)
-    assert (sv.DOOR_HELD, sv.GOAL_CONTINUE, sv.goals.goal_continue) == (False, False, False)
+    assert (sv.DOOR_HELD, sv.GOAL_CONTINUE) == (False, False)
+    r.frame()
+    sv._read(r.world, r.acts)
+    assert sv.goals.goal_continue is False                         # `_read` copies the switch into the runner
     assert Survive.DOOR_HELD is True and Survive.GOAL_CONTINUE is True
+
+
+def test_the_package_exports_prepare_for_the_fork_s_construction_hook(tmp_path):
+    """Fix 2 (N2): `prepare` is the package's, runs on a half-built instance (no `goals` yet), and where the fork
+    has its hook (`control.prepare_of`, main) the switches read off before the first `_read`."""
+    import types
+    from agent.base.planner import control as C
+    from agent.base.planner import tactician as TAC
+    assert callable(TAC.prepare)
+    half = types.SimpleNamespace()
+    TAC.prepare(half)                                               # nothing but the two switches is read or written
+    assert (half.DOOR_HELD, half.GOAL_CONTINUE) == (False, False)
+    if not hasattr(C, "prepare_of"):
+        pytest.skip("the fork's construction hook is not on this tree (main's 56511d7e carries it)")
+    assert C.prepare_of("tactician") is TAC.prepare
+    r = Rig(tmp_path)
+    sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, control="tactician")
+    assert (sv.DOOR_HELD, sv.GOAL_CONTINUE) == (False, False) and sv.control_state == {}
+
+
+def test_the_stand_against_a_far_group_holds_the_stance_and_never_walks_or_churns(tmp_path):
+    """Fix 2 (N1, the re-review's shape): three chasers 10.5 to 11.5 tiles off, no refuge: four ticks, no walk, no
+    `lost` end, the stance held."""
+    r, sv = make(tmp_path)
+    far = [z(7, 110.5, 200.0), z(8, 111.0, 200.5), z(9, 111.5, 199.5)]
+    for _ in range(4):
+        r.frame(zombies=far)
+        tick(r, sv)
+    sends = [a for a in r.acts.history]
+    assert not [a for a in sends if a.type == "walkTo"]
+    ends = [x for x in lines(tmp_path, D.PLAYS_LOG) if x["kind"] == "play_end"]
+    assert not [e for e in ends if e["end"] == "lost"]
+    assert sends and all(a.type == "aim" and (a.args["vx"], a.args["vy"]) == (0.0, 0.0) for a in sends)
+    assert lines(tmp_path)[-1]["inputs"]["play"]["kind"] == "fight"
+
+
+def test_an_idle_target_beyond_disengage_r_is_lost_once_and_left(tmp_path):
+    r, sv = make(tmp_path)
+    r.frame(zombies=[z(7, 109.0, 200.0, target=False)])
+    t = sv.control_state["tactician"]
+    view = t.view()
+    t._start(P.validate({"play": "fight", "target": "Z1", "bound": "dead", "why": "clear"}, view), view,
+             V.binding(sv.world, view), "model")
+    r.frame(zombies=[z(7, 111.0, 200.0, target=False)])
+    assert t.exec.bound() == "lost" and 7 in sv.unreachable
+
+
+def test_the_dress_margin_holds_the_fight_in_model_mode_too(tmp_path):
+    """Fix 2 (L1): the veto path keeps a fight within KEEP_R + DRESS_MARGIN as the table path does."""
+    r, sv, t = model_rig(tmp_path, [z(7, 103.0, 200.0)])
+    r.event("item_added", itemId=11, fullType="Base.Bandage", weight=0.1, use="bandage")
+    tick(r, sv)
+    bleed = {"parts": [part(1, bleeding=True, bleedingTime=5.0)], "bleeding": 1}
+    t.source.out = {"play": "fight", "target": "Z1", "bound": "dead", "why": "lone_chaser"}
+    r.frame(zombies=[z(7, 103.0, 200.0)], wounds=bleed)
+    tick(r, sv)
+    tac = lines(tmp_path)[-1]["inputs"]["tactician"]
+    assert tac["refused"] == {"why": "doctrine"} and tac["table"] == "held" and t.exec.play.play == "fight"
+
+
+def test_a_play_the_doctrine_takes_is_logged_ended_doctrine(tmp_path):
+    """Fix 2 (L2): `plays.log` alone tells a doctrine break from a replacement."""
+    r, sv, t = model_rig(tmp_path, [z(7, 104.0, 200.0)])
+    r.event("item_added", itemId=11, fullType="Base.Bandage", weight=0.1, use="bandage")
+    tick(r, sv)
+    r.frame(zombies=[z(7, 104.0, 200.0)], wounds={"parts": [part(1, bleeding=True, bleedingTime=5.0)], "bleeding": 1})
+    tick(r, sv)
+    ends = [x for x in lines(tmp_path, D.PLAYS_LOG) if x["kind"] == "play_end"]
+    assert (ends[-1]["play"], ends[-1]["end"], ends[-1]["bound_broken"]) == ("fight", "doctrine", True)
+
+
+def test_a_kite_ends_reach_on_an_arrival_within_keep_r_and_the_fight_takes_it(tmp_path):
+    """Fix 2 (L6): a kite toward the stance meets an arrival at KEEP_R, not only at the 1.0 swing guard."""
+    two = [z(7, 104.0, 200.0), z(8, 105.0, 201.5)]
+    r, sv, t = model_rig(tmp_path, two)
+    tick(r, sv)
+    t.source.out = {"play": "kite", "target": "Z1", "toward": "stance", "bound": "time", "why": "group"}
+    r.frame(zombies=two)
+    tick(r, sv)
+    assert t.exec.play.play == "kite"
+    r.frame(zombies=[z(7, 102.0, 200.0), z(8, 105.0, 201.5)])
+    tick(r, sv)
+    ends = [x for x in lines(tmp_path, D.PLAYS_LOG) if x["kind"] == "play_end"]
+    assert ends[-1]["end"] == "reach" and t.exec.play.play == "fight"
+
 
 
 def test_an_avoid_ends_alone_when_one_armed_reachable_chaser_is_left(tmp_path):

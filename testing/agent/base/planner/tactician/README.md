@@ -1,4 +1,4 @@
-The bench: the table does not tie the model under the 95 percent bar (68.8 % type agreement with the default model, sonnet, after fix 1's doctrine; 0 rubric violations against its 17), and the model's own agreement with itself (0.92 pairwise) bounds what any table could reach. T's trials run the model (sonnet). Wherever one of Angus's rules binds, the doctrine overrides the model and the running play on every tick. The table answers whenever no play runs, and alone under `--no-llm`.
+The bench: the table does not tie the model under the 95 percent bar (68.8 % type agreement with the default model, sonnet, after fix 1's doctrine; 0 rubric violations against its 17), and the model's own agreement with itself (0.92 pairwise) bounds what any table could reach. T's trials run the model (sonnet). Wherever one of Angus's rules binds, the doctrine overrides the model and the running play on every tick, with one hysteresis in both modes: a running fight is kept against the dressing while a standing zombie reads within KEEP_R + DRESS_MARGIN (2.5 to 3.5 tiles). The table answers whenever no play runs, and alone under `--no-llm`.
 
 # The tactician (Plan 31 Task 11, variant T)
 
@@ -41,7 +41,9 @@ always runs the table and makes no call of any kind. The bench below chose the m
      play has run TABLE_HOLD_S (fix 1, M2, the hysteresis).
 
    A running fight is kept in two cases. Against the dressing, while a standing zombie reads within KEEP_R +
-   DRESS_MARGIN. Against a trigger's strategic play, while its target stands within ENGAGE_R chasing.
+   DRESS_MARGIN, on the `rule`, `trigger` and `veto` paths alike (fix 2, L1). Against a trigger's strategic play, while
+   its target stands within ENGAGE_R chasing. A play the doctrine takes (`rule`, `veto`) is logged ended `doctrine` in
+   `plays.log` (fix 2, L2).
 
    Where a rule binds, the doctrine answers whatever a cell holds: one standing zombie within DANGER_R while armed, or
    a bleed with nothing standing within KEEP_R and something to dress with. Elsewhere a labelled cell's play answers,
@@ -70,14 +72,16 @@ compass eighth or either neighbour. Failing a door, a shelter building placed th
 
 With no refuge there is no retreat, only the stand: the nearest standing zombie is fought where the character stands,
 and the arrivals one at a time. This is the controller's refuge ruling, the doctrine variant's too. There is never an
-open-ground leg.
+open-ground leg. A target beyond WALK_R is faced in the stance where the character stands, never walked to, and a
+chaser beyond DISENGAGE_R is held so, never ended `lost` (fix 2, N1: the stand against a far group walked at it and
+restarted every tick).
 
 ## The plays and their executors (`plays.json`, `executors.py`)
 
 | play | args | executor | bound (ends) |
 |---|---|---|---|
-| `fight` | target Z | The shared `Melee` within MELEE_RELEASE_R (one call site, `melee_step`). Beyond it, the stance facing the target: standing for a chaser, walking toward an idle one. A walk to its square when the line is blocked: through a door, never a wait. | `dead`; `second_standing` (a nearer standing zombie within KEEP_R, or the meet's `handback`); `lost` (beyond DISENGAGE_R, the meet's `lost` for no progress or out of reach, or a walk to it that failed: the door marked once, the zombie left unreachable and out of the table's read, fix 1, M3). Never on health. |
-| `kite` | target Z, toward D/B/`stance` | `Aim` facing the target. It moves only along the refuge's heading while that runs away from the zombies and reads clear. Else, and with `stance`, it holds where it stands (fix 1, H2). | `alone` (armed, one standing within DANGER_R: then fight), `reached`, `time` (KITE_S 8) |
+| `fight` | target Z | The shared `Melee` within MELEE_RELEASE_R (one call site, `melee_step`). Beyond it and within WALK_R, the stance facing the target: standing for a chaser, walking toward an idle one; a walk to its square when the line is blocked: through a door, never a wait. Beyond WALK_R, the stance held where the character stands (fix 2). | `dead`; `second_standing` (a nearer standing zombie within KEEP_R, or the meet's `handback`); `lost` (an idle target beyond DISENGAGE_R, left unreachable; the meet's `lost` for no progress, out of reach or refused, fix 2 L5; or a walk to it that failed: the door marked once, the zombie left unreachable and out of the table's read, fix 1, M3). Never on health. |
+| `kite` | target Z, toward D/B/`stance` | `Aim` facing the target. It moves only along the refuge's heading while that runs away from the zombies and reads clear. Else, and with `stance`, it holds where it stands (fix 1, H2). | `alone` (armed, one standing within DANGER_R: then fight), `reach` (armed, a standing zombie within KEEP_R: then fight, fix 2, L6), `reached`, `time` (KITE_S 8) |
 | `avoid` | toward D/B, gait | `night.shelter_plan`/`shelter_step` (approach, open, enter, close), at a run with a chaser near, else a walk (the sneak gait) | `reached`, `shun`, `contact` (a standing zombie within KEEP_R), `alone` (armed, one standing within DANGER_R: fix 1, H1), `clear` |
 | `dress` | part P, with | The shared `Dress` maneuver (stop, tear, bandage), no ride | `dressed`; `nothing` (then no new dress of that part until an item is added or `care.DRESS_RETRY_S` pass); `contact` |
 | `loot`, `travel`, `shelter` | building / place / building | Survive's lower steps in the ladder's order (care, need, load, night, the rag stock, goal). The goal runner and its source (scripted, or the LLM's) choose. A model's play pins its goal once (`PlaySource`). | the pinned goal's end (`looted`, `arrived`, `inside`; `stuck` when it failed or was refused); `contact` |
@@ -120,10 +124,11 @@ The decider layer goes; each decision is now a play's:
 - `goal_policies.py`'s GOAL_CONTINUE and the hop extension (P30-B): off on the instance.
 - `survive.py`'s branch order.
 
-`decide.prepare(survive)` switches DOOR_HELD and GOAL_CONTINUE off. `assess` calls it on every tick, which covers
-every tick from the second on. The first tick's `_read` runs before any `assess`, and the fork has no construction
-hook. So a driver, or the fork in Task 12, calls `prepare` right after `Survive(control="tactician")`; until then the
-first tick's door read is the ladder's (fix 1, L1, named for Task 12).
+`prepare(survive)` (exported by the package, `decide.prepare`) switches DOOR_HELD and GOAL_CONTINUE off on the
+instance; `Survive._read` copies GOAL_CONTINUE into the goal runner every tick. The fork's construction hook on main
+(`control.prepare_of`, called at the end of `Survive.__init__`) finds it, so the switches are off before the first
+`_read`. `assess` also calls it on every tick, which covers a tree without the hook from the second tick on (fix 2,
+N2).
 
 Kept:
 

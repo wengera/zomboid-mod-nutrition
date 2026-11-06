@@ -83,11 +83,11 @@ DRESS_MARGIN = 1.0        # tiles past KEEP_R a standing zombie keeps a running 
                           # at about 1.6 tiles a second (spec section 1)
 CALL_GAP_S = 15.0         # wall seconds between two calls' starts (fix 1, review-t11 H3): a trigger inside the gap is
                           # kept due and asked once the gap passes; fitted on the open-loop estimate (README.md: at
-                          # sonnet's p50 F15 36 calls and F14 49, 1.8 and 1.75 times their 20 and 28 goal calls; 10 s
-                          # gave 54 and 66, no gap 99 and 108)
+                          # sonnet's p50 F15 36 calls and F14 48, 1.8 and 1.71 times their 20 and 28 goal calls,
+                          # task-11-tactician-fix-1-calls.json; no gap 77 and 104)
 CALLS_MAX = 48            # calls a session at most, after which the table answers alone (fix 1, review-t11 H3): under
-                          # twice F14's 28 goal calls (the proposal's 1.6 to 2 times today's), above the estimate's 49
-                          # only on a session longer than F14's; the account the agents share (F6's exit 1)
+                          # twice F14's 28 goal calls (the proposal's 1.6 to 2 times today's); F14's own estimate, 48,
+                          # reaches it; the account the agents share (F6's exit 1)
 GUARDS = ("hit", "swing", "fallen")
 
 
@@ -129,13 +129,12 @@ def _label(play, view):
 
 def prepare(survive):
     """The ladder's reads this variant drops, switched off on the instance (never the class): P30-B's GOAL_CONTINUE
-    and P30-C's DOOR_HELD. Idempotent; `assess` calls it first on every tick. A driver or the fork calls it right after
-    `Survive(control="tactician")` so the first tick's `_read` (which runs before any `assess`) reads them off too
-    (fix 1, review-t11 L1: the fork has no construction hook, named for Task 12; the doctrine variant sets DOOR_HELD
-    at its first assess the same way)."""
-    survive.GOAL_CONTINUE = False
+    and P30-C's DOOR_HELD. The package exports it (`__init__.py`) for the fork's construction hook (`control.prepare_of`
+    on main, called at the end of `Survive.__init__`, before any `_read`: fix 2, N2), and `assess` calls it on every
+    tick too (a tree without the hook: from the second tick on). It reads nothing but the two switches, so it runs
+    whatever part of the instance is built."""
+    survive.GOAL_CONTINUE = False   # `Survive._read` copies it into the goal runner on every tick
     survive.DOOR_HELD = False
-    survive.goals.goal_continue = False
 
 
 class Tactician:
@@ -215,9 +214,11 @@ class Tactician:
         self.triggers.note_ended()
         return {"play_id": self.play_id, "end": end}
 
-    def _start(self, play, view, bind, source, rule=None, triggers=()):
+    def _start(self, play, view, bind, source, rule=None, triggers=(), end="replaced"):
+        """Start `play`; a running play ends `end` ("replaced", or "doctrine" when one of Angus's rules took it: fix 2,
+        L2, so `plays.log` alone tells a doctrine break)."""
         if self.exec is not None:
-            self._end("replaced", broken=False)
+            self._end(end, broken=end == "doctrine")
         now = self.sv.clock()
         cls = X.EXECS.get(play.play)
         if cls is None:
@@ -363,11 +364,12 @@ class Tactician:
             if why is not None:
                 play, src, rule = self._table(view)
                 tac["table"] = why
-                held = why in ("rule", "trigger") and self._fight_holds(play.row(), why)
+                held = why in ("rule", "trigger", "veto") and self._fight_holds(play.row(), why)
                 if held:
-                    tac["table"] = "held"   # the running fight kept against the dressing (DRESS_MARGIN)
+                    tac["table"] = "held"   # the running fight kept (DRESS_MARGIN in both modes: fix 2, L1)
                 elif not self._same(play, bind):
-                    self._start(play, view, bind, src, rule, fired)
+                    self._start(play, view, bind, src, rule, fired,
+                                end="doctrine" if why in ("rule", "veto") else "replaced")
         branch, owner, cmd, why = self.exec.step()
         ex = self.exec
         tac.update(play=ex.play.play, target=ex.play.target(), source=self.meta.get("source"), bound=ex.play.bound,
