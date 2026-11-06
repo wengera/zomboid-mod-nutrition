@@ -3,9 +3,11 @@ Every git call runs under gitenv.scrubbed_env in a repository the test makes."""
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -138,8 +140,8 @@ def test_the_main_tree_of_a_linked_worktree_is_the_main_checkout():
         make_repo(repo)
         wt = os.path.join(other, "wt")
         git(repo, "worktree", "add", "-q", "-b", "side", wt)
-        assert os.path.normcase(ts.main_tree_of(wt)) == os.path.normcase(os.path.realpath(repo)) or \
-            os.path.normcase(ts.main_tree_of(wt)) == os.path.normcase(os.path.abspath(repo))
+        assert os.path.normcase(ts.main_tree_of(wt)) == os.path.normcase(ts.main_tree_of(repo))
+        assert os.path.normcase(ts.toplevel(wt)) != os.path.normcase(ts.main_tree_of(wt))
 
 
 def test_the_default_root_follows_the_environment():
@@ -153,3 +155,58 @@ def test_an_unknown_commit_is_an_error_not_a_trace(capsys):
         assert ts.main(["no-such-ref", "--root", root, "--repo", repo]) == 1
         assert "trial_snapshot:" in capsys.readouterr().err
         assert os.listdir(root) == []
+
+
+def _build_expecting_oserror(repo, root):
+    try:
+        ts.build(repo, "HEAD", root)
+    except OSError:
+        return True
+    return False
+
+
+def test_an_extraction_failure_on_a_large_archive_raises_and_never_hangs(monkeypatch):
+    # the archiver blocks on a full pipe when nothing reads it: the failure path stops it before it reads its stderr
+    with tempfile.TemporaryDirectory() as repo, tempfile.TemporaryDirectory() as root:
+        make_repo(repo)
+        with open(os.path.join(repo, "big.bin"), "wb") as f:
+            f.write(os.urandom(4 << 20))
+        git(repo, "add", "big.bin")
+        git(repo, "commit", "-q", "-m", "big")
+
+        def fail(*_a):
+            raise OSError("disk says no")
+        monkeypatch.setattr(ts, "_extract", fail)
+        done = []
+        t = threading.Thread(target=lambda: done.append(_build_expecting_oserror(repo, root)), daemon=True)
+        t.start()
+        t.join(30)
+        assert done == [True], "the build hung or raised something else"
+        assert os.listdir(root) == []
+
+
+def test_a_large_archive_extracts_whole_and_the_archiver_exits_clean():
+    with tempfile.TemporaryDirectory() as repo, tempfile.TemporaryDirectory() as root:
+        make_repo(repo)
+        blob = os.urandom(5 << 20)
+        with open(os.path.join(repo, "big.bin"), "wb") as f:
+            f.write(blob)
+        git(repo, "add", "big.bin")
+        git(repo, "commit", "-q", "-m", "big")
+        tree, _stamp, _r, _l = ts.build(repo, "HEAD", root)
+        assert open(os.path.join(tree, "big.bin"), "rb").read() == blob
+
+
+def test_a_root_deeper_than_the_windows_path_limit_still_extracts():
+    base = tempfile.mkdtemp()
+    try:
+        with tempfile.TemporaryDirectory() as repo:
+            make_repo(repo)
+            deep = os.path.join(base, *["d" * 40] * 6)  # past 260 characters once the tree's own paths are added
+            os.makedirs(ts.long(deep))
+            tree, stamp, _r, _l = ts.build(repo, "HEAD", deep)
+            assert os.path.isfile(ts.long(os.path.join(tree, "sub", "b.txt")))
+            assert os.path.isfile(ts.long(os.path.join(tree, "testing", "agent", "drivers", "x_trial.py")))
+            assert stamp["dirty"] is False
+    finally:
+        shutil.rmtree(ts.long(base), ignore_errors=True)

@@ -50,6 +50,13 @@ class SnapshotError(Exception):
     pass
 
 
+def long(path):
+    """`path` in Windows' extended-length form, which lifts the 260-character limit a deep root meets (no effect
+    elsewhere); the tree is made through it, and a deep root still needs the same form from whatever reads the tree."""
+    path = os.path.abspath(path)
+    return "\\\\?\\" + path if os.name == "nt" and not path.startswith("\\\\") else path
+
+
 def _env():
     return {k: v for k, v in os.environ.items() if k not in AIMING}
 
@@ -96,20 +103,40 @@ def untracked_count(repo):
     return len([p for p in out.split(b"\0") if p])
 
 
+def _extract(tf, dest):
+    """The stream's directories and regular files under `dest` (an archive of git's own holds nothing else a trial
+    reads). The member's path is joined with os.sep here, since tarfile's own join mixes slashes into an
+    extended-length path, which Windows then refuses."""
+    for m in tf:
+        parts = [x for x in m.name.split("/") if x not in ("", ".")]
+        if ".." in parts or os.path.isabs(m.name):
+            raise SnapshotError("archive member outside the tree: %s" % m.name)
+        target = os.path.join(dest, *parts) if parts else dest
+        if m.isdir():
+            os.makedirs(target, exist_ok=True)
+        elif m.isreg():
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            with open(target, "wb") as out:
+                shutil.copyfileobj(tf.extractfile(m), out, 1 << 20)
+
+
 def extract_archive(repo, sha, dest):
     """`git archive <sha>` read as a tar stream into `dest`, no tar binary and no .git."""
+    dest = long(dest)
     os.makedirs(dest)
     p = subprocess.Popen(["git", "-C", repo, "archive", "--format=tar", sha], stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE, env=_env())
     try:
         with tarfile.open(fileobj=p.stdout, mode="r|") as tf:
-            try:
-                tf.extractall(dest, filter="data")
-            except TypeError:  # Python before the extraction filters
-                tf.extractall(dest)
+            _extract(tf, dest)
+        while p.stdout.read(1 << 20):  # the archive's zero padding, which tarfile stops short of: an unread pipe
+            pass                       # closed on git is a broken pipe and a non-zero exit
+    except BaseException:
+        p.kill()  # git blocks writing a full pipe, and reading its stderr to the end would wait on it for good
+        raise
     finally:
-        err = p.stderr.read().decode("utf-8", "replace")
         p.stdout.close()
+        err = p.stderr.read().decode("utf-8", "replace")
         p.stderr.close()
         rc = p.wait()
     if rc:
@@ -136,29 +163,29 @@ def build(repo, ref, root):
     tree = os.path.join(root, name)
     left_out = untracked_count(top) if ref == WORKTREE else 0
     stamp_path = os.path.join(tree, STAMP)
-    if os.path.isfile(stamp_path):
-        with open(stamp_path, encoding="utf-8") as f:
+    if os.path.isfile(long(stamp_path)):
+        with open(long(stamp_path), encoding="utf-8") as f:
             return tree, json.load(f), True, left_out
-    os.makedirs(root, exist_ok=True)
+    os.makedirs(long(root), exist_ok=True)
     part = tree + ".partial"
-    if os.path.exists(part):
-        shutil.rmtree(part)
+    if os.path.exists(long(part)):
+        shutil.rmtree(long(part))
     try:
         extract_archive(top, sha, part)
         if dirty:
             apply_diff(part, diff)
-            with open(os.path.join(part, DIFF), "wb") as f:
+            with open(long(os.path.join(part, DIFF)), "wb") as f:
                 f.write(diff)
         stamp = {"commit": sha, "dirty": dirty, "diff_sha256": digest,
                  "made_at": datetime.datetime.now().astimezone().isoformat(timespec="seconds")}
-        with open(os.path.join(part, STAMP), "w", encoding="utf-8", newline="\n") as f:
+        with open(long(os.path.join(part, STAMP)), "w", encoding="utf-8", newline="\n") as f:
             json.dump(stamp, f, indent=2)
             f.write("\n")
-        if os.path.exists(tree):  # a half-made tree with no stamp
-            shutil.rmtree(tree)
-        os.replace(part, tree)
+        if os.path.exists(long(tree)):  # a half-made tree with no stamp
+            shutil.rmtree(long(tree))
+        os.replace(long(part), long(tree))
     except BaseException:
-        shutil.rmtree(part, ignore_errors=True)
+        shutil.rmtree(long(part), ignore_errors=True)
         raise
     return tree, stamp, False, left_out
 
