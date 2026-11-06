@@ -1,6 +1,15 @@
 #!/usr/bin/env python3
 """The trials' scorecard (Plan 31 Task 7; ruling P31-T: a trial is not evidence, so it is scored by this script and
-never written up).
+never written up). The label contract a variant's decision line follows to be scored: it names its choice under
+`intent`, `play` or `act` (on the line or in its `inputs`), as a string or a dict whose `kind`, `name` or `type` is
+one; a label starting `avoid`, `kite`, `retreat`, `string` or `flee` (RETREAT_LABELS) is a flee or retreat leg; the
+other known words (KNOWN_LABELS: `meet`, `finish`, `filter_door`, `strike`, `dress`, `fight`, `door`, `loot`, `travel`,
+`stock`, `needs`, `sneak`, `rest`) are counted as seen, and any other label is printed marked `?` in the detail's
+label histogram; a `play` or `intent` dict names its target under `target` as a square ([x, y] or {x, y}) or as the id
+of a zombie the frame lists, and a target that resolves to neither is counted as unresolved in the detail; a label or
+a string target containing `filter`, `door`, `window`, `shelter` or `refuge` (REFUGE_WORDS) names a refuge, which
+takes the line's movement out of the `away` minutes. A retreat toward a named refuge counts both as fleeing and, when
+its distance falls, as toward a target: both are true of it.
 
     python tools/trial_score.py <run> [--seen "..."]... [--dry] [--log PATH]
     python tools/trial_score.py --rescore-all [--dry] [--log PATH] [--runs DIR]
@@ -23,13 +32,15 @@ whose two frames share a line's hour, F15's write-up), `grades.e21.e_kills_match
 `zombie_dead` events matched to a press), `grades.e21.e_hits_union` (the frames' reaction runs and their union with
 the reflex's `hit` steps), `grades.e21.e_goal_wait` (`unmoved_near_s`, the standing on a model wait),
 `grades.e21.e_standing` (the standing stretches) and `grades.e19._spans` (the melee spans). The four new readings are
-`flee_minutes`, `toward_minutes`, `dressed` and `melees_superseded`, each documented with its rule.
+`flee_minutes` (with the frame-based `away_minutes` beside it in its cell, and the ladder's `leg_minutes` in its
+detail), `toward_minutes`, `dressed` and `melees_superseded`, each documented with its rule.
 
 The clocks: a decision line's game minute is its `inputs.hour` x 60 (a float; the line's `gameMin` is whole minutes,
 too coarse for a 2 Hz line), a frame's its `me.hour` x 60, each unwrapped past midnight; a line stands from its own
 wall to the next line's (the log's last line stands for nothing). Stdlib plus the agent base; read-only over the run.
 """
 import argparse
+import bisect
 import glob
 import json
 import math
@@ -41,6 +52,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if os.path.join(REPO, "testing") not in sys.path:
     sys.path.insert(0, os.path.join(REPO, "testing"))
 from agent.base import gates_e as E  # noqa: E402
+from agent.base.grades import e18 as G18  # noqa: E402
 from agent.base.grades import e19 as G19  # noqa: E402
 from agent.base.grades import e21 as G21  # noqa: E402
 
@@ -54,8 +66,14 @@ COLUMNS = ("trial", "variant", "commit", "fixture", "min", "kills", "hits (runs 
 DASH = "-"
 SEEN_JOIN = " / "
 # The readings' own numbers.
-RETREAT_LABELS = ("avoid", "kite", "retreat")   # a variant's line whose intent, play or act names one is a retreat
+RETREAT_LABELS = ("avoid", "kite", "retreat", "string", "flee")   # a label starting with one is a retreat (T's
+                                                # `string` is a kite: the spec's section 4 item 1)
+KNOWN_LABELS = ("meet", "finish", "filter_door", "strike", "dress", "fight", "door", "loot", "travel", "stock", "needs",
+                "sneak", "rest")                # the spec's other words (D's intents, U's acts, T's plays): no `?`
 LABEL_KEYS = ("intent", "play", "act")          # the line's (or its inputs') keys a variant names its choice under
+REFUGE_WORDS = ("filter", "door", "window", "shelter", "refuge")   # a label or target naming one names a refuge
+REFUGE_LEGS = ("enter",)                        # the ladder's threat legs into a building (a refuge)
+LEGS = ("pull", "back")                         # the ladder's fight legs walking off a zombie, printed in the detail
 MOVE_EPS = 0.05        # tiles: a fall in the distance to the target this small is drift, not movement (a 2 Hz line
                        # of the slowest walk, the sneak's, covers several times it)
 DRESS_MIN = 1.0        # game minutes: a bleed stopped this soon after its first bleeding frame is dressed in time
@@ -186,24 +204,57 @@ def _label(v):
     return v.lower() if isinstance(v, str) else None
 
 
+def _labels(r):
+    """The labels of the line's (then its inputs') LABEL_KEYS, in that order (`_label`; an unreadable value none)."""
+    return [lab for src in (r, E._d(r.get("inputs"))) for k in LABEL_KEYS for lab in [_label(src.get(k))]
+            if lab is not None]
+
+
 def _retreat_label(r):
-    """The first of the line's (then its inputs') LABEL_KEYS whose label starts with a RETREAT_LABELS word, else
-    None."""
-    for src in (r, E._d(r.get("inputs"))):
-        for k in LABEL_KEYS:
-            lab = _label(src.get(k))
-            if lab is not None and lab.startswith(RETREAT_LABELS):
-                return lab
-    return None
+    """The first of the line's labels (`_labels`) starting with a RETREAT_LABELS word, else None."""
+    return next((lab for lab in _labels(r) if lab.startswith(RETREAT_LABELS)), None)
+
+
+def mark(lab):
+    """The label as the detail's histogram prints it: marked `?` unless it starts with a RETREAT_LABELS or a
+    KNOWN_LABELS word (a shape the scorecard does not know, so a variant's unknown word shows on its first trial)."""
+    return lab if lab.startswith(RETREAT_LABELS + KNOWN_LABELS) else lab + "?"
+
+
+def label_histogram(rows):
+    """{marked label: lines} of every label the lines carry under LABEL_KEYS (`_labels`, `mark`)."""
+    out = {}
+    for r in rows:
+        for lab in _labels(r):
+            out[mark(lab)] = out.get(mark(lab), 0) + 1
+    return out
+
+
+def leg_minutes(rows):
+    """{leg: {lines, minutes}} of the ladder's fight legs walking off a zombie (LEGS: `pull`, drawing one from a group
+    by walking away, `planner/pull.py`; `back`, the stance's backpedal), off the threat why's `leg`, each line standing
+    to the next as `flee_minutes` reads it. Printed in the fleeing detail, never in the cell (the controller's ruling
+    on review-t7 M2)."""
+    gm = line_minutes(rows)
+    out = {leg: {"lines": 0, "minutes": 0.0} for leg in LEGS}
+    for i, r in enumerate(rows):
+        leg = E._bw(r, "threat").get("leg")
+        if leg not in out:
+            continue
+        out[leg]["lines"] += 1
+        if i + 1 < len(rows):
+            out[leg]["minutes"] += _gap(gm[i], gm[i + 1])
+    return out
 
 
 def flee_minutes(rows):
     """The minutes fleeing or retreating: {lines, minutes, seconds, total_minutes, by}. A line is a flee or retreat
     leg when the ladder's threat why `inputs.branches.threat.flee` is set (its flee reason, the field
-    `driverlib/session.py` `Fights.feed` counts) or, from a variant, the line's or its inputs' `intent`, `play` or
-    `act` (a string, or a dict's `kind`, `name` or `type`) starts with `avoid`, `kite` or `retreat`; each such line
-    stands from its own game minute to the next line's (`line_minutes`) and from its wall to the next line's wall.
-    `by` the lines by flee reason or label; `total_minutes` the log's (`log_minutes`), the denominator."""
+    `driverlib/session.py` `Fights.feed` counts) or, from a variant, a label of the line's or its inputs' `intent`,
+    `play` or `act` (a string, or a dict's `kind`, `name` or `type`) starts with a RETREAT_LABELS word (`avoid`,
+    `kite`, `retreat`, `string`, `flee`); each such line stands from its own game minute to the next line's
+    (`line_minutes`) and from its wall to the next line's wall. `by` the lines by flee reason or label;
+    `total_minutes` the log's (`log_minutes`), the denominator."""
     gm = line_minutes(rows)
     n, mins, secs, by = 0, 0.0, 0.0, {}
     for i, r in enumerate(rows):
@@ -236,24 +287,33 @@ def _zombie_xy(frame, label):
     return _xy(z) if z is not None else None
 
 
+def _play_targets(r):
+    """The `target` values of the line's (then its inputs') `play` and `intent` dicts, in that order."""
+    return [p["target"] for src in (r, E._d(r.get("inputs"))) for k in ("play", "intent") for p in [src.get(k)]
+            if isinstance(p, dict) and p.get("target") is not None]
+
+
+def _resolve(t, frame):
+    """(label, (x, y)) of a play's target: a square ("play:<x>,<y>") or a zombie id the frame lists ("zombie:<id>"),
+    else None (unresolved)."""
+    sq = _xy(t)
+    if sq is not None:
+        return "play:%s,%s" % sq, sq
+    sq = _zombie_xy(frame, t)
+    return ("zombie:%s" % t, sq) if sq is not None else None
+
+
 def named_target(r, frame=None):
     """(label, (x, y)) of the target the line's decider names, else None. A variant's play or intent (the line's or
     its inputs' `play`, then `intent`) a dict carrying `target` as a square ([x, y] or {x, y}; label "play:<x>,<y>")
     or as a zombie id listed on the frame at the line (label "zombie:<id>"); else, on a line whose `branch` is `goal`,
-    the goal's `args` square (label its `type`) or, on a model wait, the goal why's `goal_continue.target` (label
-    "continue:<source>"). A goal with no square in its args (a LootBuilding's building, a Stock) names none."""
-    for src in (r, E._d(r.get("inputs"))):
-        for k in ("play", "intent"):
-            p = src.get(k)
-            if not isinstance(p, dict) or p.get("target") is None:
-                continue
-            t = p.get("target")
-            sq = _xy(t)
-            if sq is not None:
-                return "play:%s,%s" % sq, sq
-            sq = _zombie_xy(frame, t)
-            if sq is not None:
-                return "zombie:%s" % t, sq
+    the goal's `args` square (label its `type`) or, on a goal line whose args carry no square (a model wait, or a
+    LootBuilding or Stock running), the goal why's `goal_continue.target` (label "continue:<source>"). A goal line with
+    neither names none."""
+    for t in _play_targets(r):
+        got = _resolve(t, frame)
+        if got is not None:
+            return got
     if r.get("branch") != "goal":
         return None
     g = E._d(r.get("goal"))
@@ -270,11 +330,16 @@ def toward_minutes(L):
     line (after the first) moved toward its target when it names one (`named_target`, the frame at the line by the
     wall-time bisect) and the character's position (`inputs.x`, `inputs.y`) lies more than MOVE_EPS tiles nearer it
     than the line before's position did; it counts the game minutes from the line before to it (`line_minutes`).
-    `named_*` every line naming a target, the same way; `by` the moving lines by target label; `total_minutes` the
-    log's, the denominator."""
+    The interval is line i's target's, though line i-1 decided its motion (`flee_minutes` gives line i the interval
+    after it): left as is on review-t7 L2, since on F15 no interval is counted both ways. `named_*` every line naming
+    a target, the same way; `unresolved` the lines (the first included) whose play or intent carries a `target` that
+    resolved to nothing (`_resolve`); `by` the moving lines by target label; `total_minutes` the log's, the
+    denominator."""
     rows = L.rows
     gm = line_minutes(rows)
     n, mins, nn, nmins, by = 0, 0.0, 0, 0.0, {}
+    unresolved = sum(1 for r in rows for ts in [_play_targets(r)]
+                     if ts and all(_resolve(t, L.frame(r)) is None for t in ts))
     for i in range(1, len(rows)):
         t = named_target(rows[i], L.frame(rows[i]))
         if t is None:
@@ -290,8 +355,75 @@ def toward_minutes(L):
             mins += span
             lab = t[0].split(":")[0]
             by[lab] = by.get(lab, 0) + 1
-    return {"lines": n, "minutes": mins, "named_lines": nn, "named_minutes": nmins,
+    return {"lines": n, "minutes": mins, "named_lines": nn, "named_minutes": nmins, "unresolved": unresolved,
             "total_minutes": log_minutes(rows), "by": by}
+
+
+def _refuge_word(v):
+    return isinstance(v, str) and any(w in v.lower() for w in REFUGE_WORDS)
+
+
+def names_refuge(r):
+    """Whether the line names a filter, door, window or shelter target: a label (`_labels`) or a string play target
+    containing a REFUGE_WORDS word; or the ladder's own, its threat why's `shelter` set (the shelter's building),
+    its `doorway_pick` set to anything but `no_door` (a doorway stand, a filter), its `leg` in REFUGE_LEGS, or its
+    goal's `type` a Shelter."""
+    if any(_refuge_word(x) for x in _labels(r) + _play_targets(r)):
+        return True
+    t = E._bw(r, "threat")
+    if t.get("shelter") is not None or t.get("doorway_pick") not in (None, "no_door") or t.get("leg") in REFUGE_LEGS:
+        return True
+    return _refuge_word(E._d(r.get("goal")).get("type"))
+
+
+def _chaser(f):
+    """(id, distance) of the frame's nearest zombie whose `hasTarget` is true (the one player on the server is its
+    target, as `e21.e_sneak` reads it), by `e18._zd`, else None."""
+    best = None
+    for q in (E._d(x) for x in E._l(E._d(f).get("zombies"))):
+        if q.get("hasTarget") is not True:
+            continue
+        d = G18._zd(f, q)
+        if d is not None and (best is None or d < best[1]):
+            best = (q.get("id"), d)
+    return best
+
+
+def away_minutes(L):
+    """The frame-based minutes moving away from a chaser with no refuge named (spec section 8; the controller's
+    ruling on review-t7 M2: it scores the ladder and the variants alike, with no label read): {intervals, minutes,
+    refuge_skipped}. Over each pair of consecutive frames (wall order): the character moved (its `me` position more
+    than MOVE_EPS tiles from the frame before's), the nearest zombie targeting it on the first frame (`_chaser`) is
+    listed on the second, more than MOVE_EPS tiles farther, and no decision line in force over the interval (the
+    line at or before its first frame's wall, and every line written within it) names a refuge (`names_refuge`): the
+    interval's game minutes (`frame_minutes`) count, an interval whose game clock steps back (the frames' `me.hour`
+    jitters against the wall order: five of F15's counted intervals, 0.107 min) counting 0. `refuge_skipped` the
+    intervals moving away but under a refuge. The cell prints the minutes beside the label-based ones as `(away N)`;
+    the denominator is the fleeing reading's, the log's game minutes."""
+    walls, frames = L.index
+    gm = frame_minutes(frames)
+    lwalls = [(E._n(r.get("wall")) or 0.0) * 1000.0 for r in L.rows]
+    n, mins, skipped = 0, 0.0, 0
+    for k in range(1, len(frames)):
+        a, b = frames[k - 1], frames[k]
+        pa, pb = G21._me(a), G21._me(b)
+        if pa is None or pb is None or G21._hyp(pa, pb) <= MOVE_EPS:
+            continue
+        c = _chaser(a)
+        if c is None:
+            continue
+        q = next((E._d(x) for x in E._l(b.get("zombies")) if E._d(x).get("id") == c[0]), None)
+        d1 = G18._zd(b, q) if q is not None else None
+        if d1 is None or d1 <= c[1] + MOVE_EPS:
+            continue
+        j = bisect.bisect_right(lwalls, walls[k - 1]) - 1
+        hi = bisect.bisect_right(lwalls, walls[k])
+        if any(names_refuge(L.rows[i]) for i in range(max(j, 0), hi)):
+            skipped += 1
+            continue
+        n += 1
+        mins += _gap(gm[k - 1], gm[k])
+    return {"intervals": n, "minutes": mins, "refuge_skipped": skipped}
 
 
 def dressed(frames):
@@ -382,7 +514,8 @@ def score(run):
     health = E._n(E._d(frames[-1].get("body")).get("health")) if frames else None
     return {"run_id": r["run_id"], "trial": r["trial"], "minutes": g1 - g0 if g0 is not None and g1 is not None
             else None, "kills_events": events, "kills_matched": km.get("planner"), "hits": hu,
-            "flee": flee_minutes(rows), "toward": toward_minutes(L), "dressed": dressed(frames),
+            "flee": flee_minutes(rows), "away": away_minutes(L), "legs": leg_minutes(rows),
+            "labels": label_histogram(rows), "toward": toward_minutes(L), "dressed": dressed(frames),
             "melees": melees_superseded(out, lines), "goal_wait": G21.e_goal_wait(L if rows else None),
             "standing": G21.e_standing(L if rows else None), "end": end_cell(out), "health": health,
             "decision_lines": len(rows), "frames": len(frames)}
@@ -432,9 +565,10 @@ def cells(s, seen=""):
     sup = "%s / %s (%s superseded)" % (ml["superseded_before"], ml["sent"], ml["superseded"]) if s["frames"] or \
         ml["sent"] else DASH
     rows = s["decision_lines"]
+    away = "%.1f" % s["away"]["minutes"] if s["frames"] else DASH
     return [s["run_id"], _variant(s["trial"]), _commit(s["trial"]), _fixture(s["trial"]), _num(s["minutes"]), kills,
             hits, per,
-            "%.1f / %.1f" % (fl["minutes"], fl["total_minutes"]) if rows else DASH,
+            "%.1f / %.1f (away %s)" % (fl["minutes"], fl["total_minutes"], away) if rows else DASH,
             "%.1f / %.1f" % (tw["minutes"], tw["total_minutes"]) if rows else DASH,
             "%s / %s" % (dr["dressed"], dr["wounds"]) if s["frames"] else DASH, sup, s["end"],
             _num(s["health"]), seen or ""]
@@ -443,16 +577,22 @@ def cells(s, seen=""):
 def detail(s):
     """One line per reading with its count and its denominator."""
     hu, fl, tw, dr, ml = s["hits"], s["flee"], s["toward"], s["dressed"], s["melees"]
-    gw, sd = E._d(s["goal_wait"]), E._d(s["standing"])
+    gw, sd, aw = E._d(s["goal_wait"]), E._d(s["standing"]), s["away"]
     return [
         "kills: %s zombie_dead events, %s matched to a press (e21.e_kills_matched)" % (s["kills_events"],
                                                                                        s["kills_matched"]),
         "hits: %s reaction runs, %s hit steps, %s landed by the union, over %s kills" % (
             hu.get("runs"), hu.get("steps"), hu.get("union"), s["kills_events"]),
-        "fleeing: %d lines, %.2f game minutes (%.1f s) over %.2f, by %s" % (
-            fl["lines"], fl["minutes"], fl["seconds"], fl["total_minutes"], fl["by"]),
-        "toward a named target: %d lines, %.2f game minutes over %.2f (named on %d lines, %.2f min), by %s" % (
-            tw["lines"], tw["minutes"], tw["total_minutes"], tw["named_lines"], tw["named_minutes"], tw["by"]),
+        "fleeing: %d lines, %.2f game minutes (%.1f s) over %.2f, by %s; the ladder's legs %s" % (
+            fl["lines"], fl["minutes"], fl["seconds"], fl["total_minutes"], fl["by"],
+            ", ".join("leg: %s %d lines %.2f min" % (k, v["lines"], v["minutes"]) for k, v in s["legs"].items())),
+        "away from a chaser, no refuge named (frames): %d intervals, %.2f game minutes over %.2f (%d intervals under "
+        "a refuge skipped)" % (aw["intervals"], aw["minutes"], fl["total_minutes"], aw["refuge_skipped"]),
+        "labels (intent/play/act, `?` unknown): %s" % (s["labels"],),
+        "toward a named target: %d lines, %.2f game minutes over %.2f (named on %d lines, %.2f min; %d lines' play "
+        "targets resolved to nothing), by %s" % (
+            tw["lines"], tw["minutes"], tw["total_minutes"], tw["named_lines"], tw["named_minutes"],
+            tw["unresolved"], tw["by"]),
         "dressed within %.0f game minute: %d of %d wounds (%d stopped bleeding): %s" % (
             DRESS_MIN, dr["dressed"], dr["wounds"], dr["stopped"],
             [(r["part"], r["seq0"], r["seq1"], None if r["minutes"] is None else round(r["minutes"], 2))
