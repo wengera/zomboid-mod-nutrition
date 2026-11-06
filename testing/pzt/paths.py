@@ -8,8 +8,18 @@ WORKSHOP_DIR = r"D:\SteamLibrary\steamapps\workshop\content\108600"
 
 PKG = os.path.dirname(os.path.abspath(__file__))
 TESTING = os.path.dirname(PKG)
-RUNS = os.path.join(TESTING, "runs")
-FIXTURES = os.path.join(TESTING, "fixtures")
+
+
+def _root(var, default):
+    """The directory named by environment variable `var`, made absolute, else `default`: a run
+    booted from a git-archive snapshot has neither the fixture caches nor the run folder (both
+    gitignored), so it is told where the main tree's are (Plan 31 Task 3)."""
+    value = os.environ.get(var)
+    return os.path.abspath(value) if value else default
+
+
+RUNS = _root("PZT_RUNS", os.path.join(TESTING, "runs"))
+FIXTURES = _root("PZT_FIXTURES", os.path.join(TESTING, "fixtures"))
 HARNESS_MODS = {"PZTestKit": os.path.join(TESTING, "PZTestKit", "PZTestKit")}
 
 ADMIN_USER = "admin"          # bootstrap account created by -adminpassword
