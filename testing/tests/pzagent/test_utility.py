@@ -569,3 +569,63 @@ def test_the_weights_are_the_registry_s_and_the_line_s_terms_are_weighted(tmp_pa
     sv.tick(r.world, r.acts)
     _, terms = decisions(tmp_path)[-1]["inputs"]["utility"]["scores"]["fight:7"]
     assert terms["chase"] == pytest.approx(W.WEIGHTS["C"].value, abs=1e-6)
+
+
+# ================================================================ the cross-frame readings and the interrupts
+def test_the_tracks_read_a_closing_speed_and_the_two_body_onsets(tmp_path):
+    r = Rig(tmp_path)
+    t = F.Tracks()
+    bleeding = {"parts": [part(3, bleeding=True)], "bleeding": 1}
+    r.frame(zombies=[chaser(7, 4.0)])
+    t.update(r.world, 0.0)
+    r.frame(zombies=[chaser(7, 3.0)], hit_reaction="Bite", wounds=bleeding)
+    t.update(r.world, 1.0)
+    assert t.closing[7] == pytest.approx(1.0) and t.hit_onset is True and t.new_bleeding == (3,)
+    r.frame(zombies=[chaser(7, 3.0)], hit_reaction="Bite", wounds=bleeding)
+    t.update(r.world, 2.0)
+    assert t.hit_onset is False and t.new_bleeding == () and t.closing[7] == pytest.approx(0.5)
+
+
+def _interrupts(tmp_path, before, after):
+    r, sv = build(tmp_path)
+    r.frame(**before)
+    sv.tick(r.world, r.acts)
+    r.advance(0.5)
+    r.frame(**after)
+    sv.tick(r.world, r.acts)
+    return decisions(tmp_path)[-1]["inputs"]["utility"]["interrupts"]
+
+
+def test_a_hit_reaction_onset_is_an_interrupt(tmp_path):
+    z = [chaser(7, 4.0)]
+    assert "hit" in _interrupts(tmp_path, {"zombies": z}, {"zombies": z, "hit_reaction": "Bite"})
+
+
+def test_a_part_newly_bleeding_is_an_interrupt(tmp_path):
+    w = {"parts": [part(3, bleeding=True)], "bleeding": 1}
+    assert "bleeding" in _interrupts(tmp_path, {}, {"wounds": w})
+
+
+def test_a_standing_zombie_other_than_the_target_entering_near_r_is_an_interrupt(tmp_path):
+    a = [chaser(7, 2.0), chaser(8, 3.0, 2.0)]
+    b = [chaser(7, 2.0), chaser(8, 1.0, 0.5)]
+    assert "near" in _interrupts(tmp_path, {"zombies": a}, {"zombies": b})
+    sub = tmp_path / "target"
+    sub.mkdir()
+    assert "near" not in _interrupts(sub, {"zombies": [chaser(7, 2.0)]}, {"zombies": [chaser(7, 1.2)]})
+
+
+def test_a_goal_answer_is_an_interrupt_once(tmp_path, monkeypatch):
+    r, sv = build(tmp_path)
+    answer = {"line": {"type": "ExploreToward", "args": {"x": 1, "y": 2}}}
+    monkeypatch.setattr(sv.goals, "line", lambda: answer["line"])
+    r.frame()
+    sv.tick(r.world, r.acts)
+    answer["line"] = {"type": "LootBuilding", "args": {"building": 3}}
+    for _ in range(2):
+        r.advance(0.5)
+        r.frame()
+        sv.tick(r.world, r.acts)
+    lines = decisions(tmp_path)
+    assert "goal" in lines[1]["inputs"]["utility"]["interrupts"]
+    assert "goal" not in lines[2]["inputs"]["utility"]["interrupts"]
