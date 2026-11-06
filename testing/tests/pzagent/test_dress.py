@@ -712,3 +712,64 @@ def test_m2_a_ride_tick_sends_no_stop_when_the_riding_dress_drops_its_ride(tmp_p
     assert c.dress is not None and not c.dress.ride and len(r.acts.history) == 1
     c.ride_now = False
     assert care_tick(c).type == "stop"
+
+
+# ================================================================ residuals (review-t8-fix1 n1, n3)
+def test_n1_the_retry_hold_is_lifted_by_a_dressing_or_a_garment_only(tmp_path):
+    """review-t8-fix1 n1: after a Dress failed "nothing", an unrelated looted item (a water bottle, a hammer) does
+    not restart one; an unworn cotton garment does (the rip's predicate), and so would a dressing (`care_kind`)."""
+    r, c = care_rig(tmp_path, [part(1, bleeding=True, bleedingTime=5.0)])
+    assert care_tick(c) is None and [e["fail"] for e in c.why["dress_end"]] == ["nothing"]
+    r.event("item_added", itemId=30, fullType="Base.WaterBottle", weight=0.5, use="water")
+    r.event("item_added", itemId=31, fullType="Base.Hammer", weight=1.0, use="other")
+    assert care_tick(c) is None and c.dress is None and "dress_end" not in c.why
+    r.event("item_added", itemId=22, fullType="Base.Tshirt_White", weight=0.2, use="clothing", rip="cotton",
+            clothing=rec(loc=TSHIRT, bite=1.0, scratch=2.0))
+    a = care_tick(c)
+    assert a.type == "stop" and c.dress is not None
+    (tmp_path / "b").mkdir()
+    r2, c2 = care_rig(tmp_path / "b", [part(1, bleeding=True, bleedingTime=5.0)])
+    care_tick(c2)
+    hold(r2, 41, "Base.RippedSheets")
+    assert care_tick(c2).type == "stop"
+    assert C.dress_material(r2.world, 41) and C.dress_material(r.world, 22) and not C.dress_material(r.world, 30)
+
+
+def ride_survive(tmp_path):
+    """A Survive whose Care runs a Dress's riding bandage of part 5 under a walk leg the flee re-aimed."""
+    r, sv = make(tmp_path)
+    hello17(r)
+    hold(r, 10, "Base.Bandage")
+    bleed(r, i=5, moving=True)
+    c = sv.care
+    c.dress_cls, c.ride_now = Dress, True
+    r.acts.send(WalkTo(110.5, 200.5, "walk"))
+    c.observe()
+    a = c.send(c.choose())
+    r.acts.send(WalkTo(111.5, 200.5, "walk"))
+    c.ride_now = False
+    return r, sv, a
+
+
+def test_n3_dress_waits_reads_the_ride_itself_never_the_busy_fallback(tmp_path):
+    """review-t8-fix1 n3: `_dress_waits` answers off `Care.riding()` (its own line), with the Care's `busy()` read
+    False so its fallback cannot answer: the flee waits on the Dress's riding bandage."""
+    r, sv, a = ride_survive(tmp_path)
+    sv.care.busy = lambda: False   # the fallback's read made to answer nothing
+
+    class Flee:
+        def busy(self):
+            return False
+    f = Flee()
+    assert sv.care.riding() is a and sv._dress_waits(f) == (f, None)
+    assert sv.why["dress_finish"]["action"] == a.aid
+
+
+def test_n3_the_fight_s_stance_legs_read_the_dress_s_ride(tmp_path):
+    """review-t8-fix1 n3: the threat branch hands the Fight `Care.riding()` (threat.py's `policy.ride`, P24-U: the
+    stance legs held off while a bandage rides): a lone chaser held while the Dress's bandage rides gives the Fight
+    that very action."""
+    r, sv, a = ride_survive(tmp_path)
+    frame(r, [part(5, bleeding=True, bleedingTime=3.0)], moving=True, zombies=[zombie(7, 4.0)])
+    tick(r, sv)
+    assert sv.mode == "fight" and sv.fight.ride is a

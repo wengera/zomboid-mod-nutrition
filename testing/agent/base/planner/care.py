@@ -195,7 +195,7 @@ WEAR_SETTLE_MAX = 12      # frames after a wear's done the exclusive-location ch
                           # S.WORN_EVERY (10) frames: review-t24 minor 4)
 
 __all__ = ["Care", "care_kind", "rippable", "wear_gain", "held_dressings", "dressing_pick", "rip_pick", "unwear_pick",
-           "dress_pick", "UNWEAR_NEVER", "WEAR_RETRY_MIN", "WEAR_QUIET_R", "WEAR_SETTLE_MAX", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "CARE_R", "CARE_HOLD_R",
+           "dress_material", "dress_pick", "UNWEAR_NEVER", "WEAR_RETRY_MIN", "WEAR_QUIET_R", "WEAR_SETTLE_MAX", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "CARE_R", "CARE_HOLD_R",
            "CARE_STILL_TICKS", "KINDS", "DRY_REASONS", "LEG_FIRST", "RIDE_R", "RIDE_MANY_R", "FLEE_CARE_S",
            "FLEE_CARE_N", "RIDE_RETRY_S", "DRESS_RETRY_S", "RAG_STOCK"]
 
@@ -314,6 +314,17 @@ def unwear_pick(world, held_out=None, unwear_at=None):
         if best is None or (cover, iid) < best[0]:
             best = ((cover, iid), iid, loc, cover)
     return None if best is None else best[1:]
+
+
+def dress_material(world, iid):
+    """Held item `iid` is something the Dress's pick can use (the item choice's own predicates): a dressing of any
+    kind (`care_kind`), or a cotton garment, worn or not (the rip's and the unwear's `rip` "cotton"; on a log before
+    PZA/1.5.2 the name guess `rippable`)."""
+    it = world.inventory.get(iid) or {}
+    ft = it.get("fullType")
+    if care_kind(ft) is not None:
+        return True
+    return it.get("rip") == "cotton" if world.item_fields() else rippable(ft)
 
 
 def dress_pick(world, bleeding_time, held_out=None, unwear_at=None, prefer=None, dirty_ok=True):
@@ -828,12 +839,14 @@ class Care(Policy):
             self.dress = None
 
     def _dress_held_off(self):
-        """Fix 1, M1: no new Dress while the last failed one's hold stands: no item added to the inventory since and
-        DRESS_RETRY_S not yet passed."""
+        """Fix 1, M1: no new Dress while the last failed one's hold stands: no dressing or garment added to the
+        inventory since (`dress_material`; the residuals, review-t8-fix1 n1: an unrelated looted item lifts nothing)
+        and DRESS_RETRY_S not yet passed."""
         h = self._dress_hold
         if h is None:
             return False
-        if set(self.world.inventory) - h[0] or self.clock() - h[1] >= DRESS_RETRY_S:
+        added = set(self.world.inventory) - h[0]
+        if any(dress_material(self.world, iid) for iid in added) or self.clock() - h[1] >= DRESS_RETRY_S:
             self._dress_hold = None
             return False
         return True
