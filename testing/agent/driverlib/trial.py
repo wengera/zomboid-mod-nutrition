@@ -5,8 +5,9 @@ reads the run folder into `testing/trials/trials.md`. The machine-safety rules b
 
 THE ARGUMENTS (`parse_argv`, `flags`): `--variant <name>` and `--fixture <name>` (both required), `--minutes N` (the
 loop's wall minutes, a number > 0 and at most MAX_MINUTES, default DEFAULT_MINUTES), `--no-llm` (bare: the scripted
-goal source, no model and no probe), `--waves <plan>` (a WAVE_PLANS name, default DEFAULT_WAVES), `--teleport X,Y`
-(two numbers), `--make-fixture <name>` (a new fixture snapshotted off this run), `--detached` (bare: it changes only
+goal source, no model and no probe), `--goals <scripted|hold>` (default `scripted`; `hold` is the arena's goal source,
+`HoldSource`, below, and is refused without `--no-llm`: it holds the square, no model), `--waves <plan>` (a
+WAVE_PLANS name, default DEFAULT_WAVES), `--teleport X,Y` (two numbers), `--make-fixture <name>` (a new fixture snapshotted off this run), `--detached` (bare: it changes only
 the refusal below); each once. `--make-fixture` refuses a wave plan that spawns (the spawned zombies would be saved
 into the fixture) and a name equal to `--fixture`. A trial whose wall bound passes FOREGROUND_CAP_S is refused
 without `--detached` (CLAUDE.md section 5, Waiting: past the ten-minute cap the controller launches it detached after
@@ -38,9 +39,19 @@ planner, as the variant left them; None until the planner is built, the file rew
 `tools/trial_snapshot.py`, else None); dirty and diff_sha256 (the stamp's, else `git status --porcelain` and the
 sha256 of `git diff HEAD` over SESSION_PATHS with every untracked file's block appended, the whole saved beside as
 trial.diff); untracked (those files' paths; None from a stamp); provenance ("stamp" or "git"); fixture; minutes;
-waves (the plan's name) and wave_plan (its period and spawns); no_llm; teleport ([x, y] or None); make_fixture;
-detached; wall_bound_s; argv; started_at (local ISO seconds); end_pos ([x, y, z]) and end_health (the last kept
+waves (the plan's name) and wave_plan (its period and spawns); no_llm; goals (the goal source's name); teleport
+([x, y] or None); make_fixture; detached; wall_bound_s; argv; started_at (local ISO seconds); end_pos ([x, y, z]) and end_health (the last kept
 frame's, written after the teardown; None before). The same dict is out["trial"].
+
+THE HOLD (`HoldSource`, `--goals hold`, Plan 31 Task 12's pre-step): the arena's goal source. Task 10's first arena
+trial (`x_trial-ladder-20261105-201433`) showed the scripted source's `ExploreToward` legs walking the character up to
+33 tiles off the arena square between the waves, so three of six waves spawned where nobody was. The hold answers every
+goal request with `Rest(HOLD_REST_S)` and nothing else (never an `ExploreToward`, `LootBuilding`, `Shelter` or
+`Stock`), a fresh one whenever one ends: a `Rest` sends nothing, so the goal layer never moves the character, and the
+quiet is filled with standing where it stands. The planner's instincts above the goal (the threat branch, the
+variant) still take any zombie that comes. `Rest` carries no square, so the hold cannot walk the character back to the
+square it started on; the square is noted (`HoldSource.square`, the first pos a view reads) for the record and the
+tests, and a fight that moves the character leaves it where the fight ended.
 
 THE SESSION (`TrialChain`, day.Chain with two hooks more): the planner is `Survive(..., source=..., control=<the
 variant>)`, the scripted goal source under `--no-llm`, else the LLMSource over it (goals.log beside decision.log, the
@@ -72,7 +83,7 @@ import time
 
 from agent.base.planner import llm as L
 from agent.base.planner import survive as SV
-from agent.base.planner.goals import ScriptedSource
+from agent.base.planner.goals import REST_S, Rest, ScriptedSource
 from agent.base.planner.survive import Survive
 from agent.driverlib import chain as CH
 from agent.driverlib import day as DY
@@ -100,7 +111,7 @@ MODEL = L.model_of(L.DEFAULT_CLI)
 SESSION_PATHS = ("testing/agent", "testing/PZAgent", "testing/PZTestKit", "testing/pzt", "testing/experiments")
 SWITCH_RX = re.compile(r"^T(\d+)_SWITCHES$")
 TRIAL_KEYS = ("variant", "switches", "commit", "stamp", "dirty", "diff_sha256", "untracked", "provenance", "fixture",
-              "minutes", "waves", "wave_plan", "no_llm", "teleport", "make_fixture", "detached", "wall_bound_s",
+              "minutes", "waves", "wave_plan", "no_llm", "goals", "teleport", "make_fixture", "detached", "wall_bound_s",
               "argv", "started_at", "end_pos", "end_health")
 
 # ---------------------------------------------------------------- the wall-time bound (CLAUDE.md section 5, Waiting)
@@ -110,7 +121,7 @@ TEARDOWN_S = float(B.TEARDOWN_QUIT_S + B.TEARDOWN_STOP_S)     # bounded_teardown
 POLLS_JOIN_S = max(DS.STEP_TIMEOUT_S, DS.DEFAULTS["SERVER_TIMEOUT_S"]) + 5.0   # Session.polls_join_s (Xs's ping 5 s)
 
 # ---------------------------------------------------------------- the arguments
-VALUED = ("--variant", "--fixture", "--minutes", "--waves", "--teleport", "--make-fixture")
+VALUED = ("--variant", "--fixture", "--minutes", "--waves", "--teleport", "--make-fixture", "--goals")
 BARE = ("--no-llm", "--detached")
 REQUIRED = ("--variant", "--fixture")
 NAME_RX = re.compile(r"^[a-z][a-z0-9_]*$")                  # a variant: a planner package's name
@@ -138,6 +149,9 @@ WAVE_PLANS = {
     "street": {"period_s": None, "spawns": ()},
 }
 DEFAULT_WAVES = "street"
+GOALS = ("scripted", "hold")         # --goals: the goal source's name under --no-llm
+DEFAULT_GOALS = "scripted"
+HOLD_REST_S = REST_S                 # the hold's Rest: the scripted source's own rest, 30 s, a fresh one when it ends
 WAVE_POLL_S = 0.5                    # the wave thread's pass
 WAVE_JOIN_S = 6.0                    # its join at the loop's stop: one RCON call's 5 s socket timeout and 1 s
 
@@ -148,8 +162,8 @@ END_NEAR = TELEPORT_NEAR             # tiles: the character's end this near the 
 
 
 def usage(me):
-    return ("%s takes only --variant <name> --fixture <name> [--minutes N] [--no-llm] [--waves %s] [--teleport X,Y] "
-            "[--make-fixture <name>] [--detached]" % (me, "|".join(sorted(WAVE_PLANS))))
+    return ("%s takes only --variant <name> --fixture <name> [--minutes N] [--no-llm] [--goals %s] [--waves %s] "
+            "[--teleport X,Y] [--make-fixture <name>] [--detached]" % (me, "|".join(GOALS), "|".join(sorted(WAVE_PLANS))))
 
 
 def _tokens(argv):
@@ -205,6 +219,10 @@ def parse_argv(argv, driver_file):
         why = "--fixture takes a fixture name"
     elif "--minutes" in t and _minutes(t["--minutes"]) is None:
         why = "--minutes takes a number > 0 and at most %d" % MAX_MINUTES
+    elif "--goals" in t and t["--goals"] not in GOALS:
+        why = "--goals takes one of %s" % ", ".join(GOALS)
+    elif t.get("--goals") == "hold" and "--no-llm" not in t:
+        why = "--goals hold holds the square with no model: pass --no-llm"
     elif "--waves" in t and t["--waves"] not in WAVE_PLANS:
         why = "--waves takes one of %s" % ", ".join(sorted(WAVE_PLANS))
     elif "--teleport" in t and not TELEPORT_RX.match(t["--teleport"]):
@@ -224,13 +242,14 @@ def parse_argv(argv, driver_file):
 
 
 def flags(argv):
-    """{variant, fixture, minutes, no_llm, waves, teleport ([x, y] or None), make_fixture, detached} off an argv
+    """{variant, fixture, minutes, no_llm, goals, waves, teleport ([x, y] or None), make_fixture, detached} off an argv
     parse_argv accepted."""
     t = _tokens(argv) or {}
     tp = TELEPORT_RX.match(t["--teleport"]) if "--teleport" in t else None
     return {"variant": t.get("--variant"), "fixture": t.get("--fixture"),
             "minutes": _minutes(t["--minutes"]) if "--minutes" in t else DEFAULT_MINUTES,
-            "no_llm": bool(t.get("--no-llm")), "waves": t.get("--waves", DEFAULT_WAVES),
+            "no_llm": bool(t.get("--no-llm")), "goals": t.get("--goals", DEFAULT_GOALS),
+            "waves": t.get("--waves", DEFAULT_WAVES),
             "teleport": [tidy(tp.group(1)), tidy(tp.group(2))] if tp else None,
             "make_fixture": t.get("--make-fixture"), "detached": bool(t.get("--detached"))}
 
@@ -342,7 +361,8 @@ def trial_record(args, prov, argv, started_at):
             "provenance": prov["provenance"], "fixture": args["fixture"], "minutes": args["minutes"],
             "waves": args["waves"], "wave_plan": {"period_s": WAVE_PLANS[args["waves"]]["period_s"],
                                                   "spawns": [list(s) for s in WAVE_PLANS[args["waves"]]["spawns"]]},
-            "no_llm": args["no_llm"], "teleport": args["teleport"], "make_fixture": args["make_fixture"],
+            "no_llm": args["no_llm"], "goals": args["goals"], "teleport": args["teleport"],
+            "make_fixture": args["make_fixture"],
             "detached": bool(args.get("detached")), "wall_bound_s": tidy(wall_bound(args)["total_s"]),
             "argv": list(argv), "started_at": started_at, "end_pos": None, "end_health": None}
 
@@ -605,11 +625,30 @@ class TrialChain(DY.Chain):
                 "start_health": DS.body_health(self.first_frame or {})}
 
 
-def planner_factory(variant, no_llm, runner=None):
-    """Survive with `control=<variant>` over the scripted goal source (no_llm), else the LLMSource over it, goals.log
-    beside the decision log; `runner` the CLI's (None: the real one; tests inject a fake)."""
+class HoldSource:
+    """The arena's goal source (the module docstring, THE HOLD): `Rest(HOLD_REST_S)` for every request, a fresh goal
+    each time one ends, never a walk, a loot, a shelter or a stock. `square` is the first pos a view reads (None
+    before one), noted and never walked to: a `Rest` carries no square."""
+    NAME = "hold"
+
+    def __init__(self):
+        self.square = None
+
+    def propose(self, view):
+        pos = (view or {}).get("pos") or {}
+        if self.square is None and isinstance(pos.get("x"), (int, float)) and isinstance(pos.get("y"), (int, float)):
+            self.square = [pos["x"], pos["y"]]
+        return Rest(HOLD_REST_S)
+
+
+def planner_factory(variant, no_llm, runner=None, goals=DEFAULT_GOALS):
+    """Survive with `control=<variant>` over the scripted goal source (no_llm), the HoldSource (`goals` "hold"), else
+    the LLMSource over the scripted source, goals.log beside the decision log; `runner` the CLI's (None: the real
+    one; tests inject a fake)."""
     def planner(world, actions, log_path, clock):
-        if no_llm:
+        if goals == "hold":
+            source = HoldSource()
+        elif no_llm:
             source = ScriptedSource()
         else:
             source = L.LLMSource(ScriptedSource(), log_path=os.path.join(os.path.dirname(log_path), GOALS_LOG),
@@ -631,7 +670,7 @@ def make_session(xs, transport, args, cli_version=None, runner=None, **kw):
     `limits` in kw), the teleport, the wave plan and the idle planner under --make-fixture; the `llm` record without
     --no-llm."""
     limits = dict(limits_of(args), **(kw.pop("limits", None) or {}))
-    return DY.make_day_session(xs, transport, planner_factory(args["variant"], args["no_llm"], runner),
+    return DY.make_day_session(xs, transport, planner_factory(args["variant"], args["no_llm"], runner, args["goals"]),
                                extra=None if args["no_llm"] else llm_extra(cli_version), limits=limits,
                                cls=TrialChain, teleport_to=args["teleport"], waves=args["waves"],
                                idle=bool(args.get("make_fixture")), **kw)

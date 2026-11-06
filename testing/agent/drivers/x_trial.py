@@ -4,7 +4,7 @@ stays in `testing/runs/x_trial-<variant>-<stamp>/` (trial.json at its root), not
 `testing/artifacts/`, and no row, page or brief cites it (CLAUDE.md section 5, "Trials").
 
     python testing/agent/drivers/x_trial.py --variant <name> --fixture <name> [--minutes N] [--no-llm]
-        [--waves lone|pair|street] [--teleport X,Y] [--make-fixture <name>] [--detached]
+        [--goals scripted|hold] [--waves lone|pair|street] [--teleport X,Y] [--make-fixture <name>] [--detached]
 
 Its first line is the wall bound and the launch form it needs (trial.wall_bound): a trial past the 570 s foreground
 bound is refused without --detached, and a detached launch is the controller's, after Angus approves.

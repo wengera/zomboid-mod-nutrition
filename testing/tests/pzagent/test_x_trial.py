@@ -60,7 +60,10 @@ def test_the_driver_refuses_arguments_before_main():
                 ["--variant", "ladder", "--fixture", "../agent"], base + ["--waves", "lone", "x"],
                 base + ["--minutes", "6"], base + ["--minutes", "6", "--no-llm"], base + ["--detached", "--detached"],
                 base + ["--detached", "x"], base + ["--minutes", "61", "--detached"],
-                base + ["--make-fixture", "arena-east"]):          # 688 s: five minutes, the model and the snapshot
+                base + ["--make-fixture", "arena-east"],           # 688 s: five minutes, the model and the snapshot
+                base + ["--goals"], base + ["--goals", "wander"], base + ["--goals", "hold"],      # hold: no model
+                base + ["--goals", "hold", "--goals", "hold", "--no-llm"],
+                base + ["--no-llm", "--goals", "Hold"], base + ["--no-llm", "--goals", "scripted", "--goals", "hold"]):
         r = XT.parse_argv(bad, ME)
         assert r and "x_trial.py" in r and "\n" not in r, bad
     for good in (base, base + ["--minutes", "5"], base + ["--minutes", "0.5"], base + ["--no-llm"],
@@ -70,22 +73,34 @@ def test_the_driver_refuses_arguments_before_main():
                  base + ["--make-fixture", "arena-east", "--no-llm", "--minutes", "1"],
                  base + ["--teleport", "10750,10620", "--make-fixture", "arena-east", "--waves", "street",
                          "--minutes", "1", "--no-llm"], base + ["--detached"],
-                 base + ["--minutes", "6", "--detached"], base + ["--minutes", "60", "--detached", "--no-llm"]):
+                 base + ["--minutes", "6", "--detached"], base + ["--minutes", "60", "--detached", "--no-llm"],
+                 base + ["--goals", "scripted"], base + ["--no-llm", "--goals", "scripted"],
+                 base + ["--no-llm", "--goals", "hold"], ["--goals", "hold", "--no-llm"] + base,
+                 base + ["--no-llm", "--goals", "hold", "--waves", "lone", "--teleport", "10750,10620"]):
         assert XT.parse_argv(good, ME) is None, good
     assert XT.flags(base) == {"variant": "ladder", "fixture": "agent", "minutes": 5, "no_llm": False,
-                              "waves": "street", "teleport": None, "make_fixture": None, "detached": False}
+                              "goals": "scripted", "waves": "street", "teleport": None, "make_fixture": None,
+                              "detached": False}
+    assert XT.flags(base + ["--no-llm", "--goals", "hold"])["goals"] == "hold"
+    assert XT.flags(base + ["--no-llm", "--goals", "hold"])["no_llm"] is True
     assert XT.flags(base + ["--minutes", "0.5", "--no-llm", "--waves", "pair", "--teleport", "10750,10620.5",
                             "--make-fixture", "arena-east", "--detached"]) == {
-        "variant": "ladder", "fixture": "agent", "minutes": 0.5, "no_llm": True, "waves": "pair",
-        "teleport": [10750, 10620.5], "make_fixture": "arena-east", "detached": True}
+        "variant": "ladder", "fixture": "agent", "minutes": 0.5, "no_llm": True, "goals": "scripted",
+        "waves": "pair", "teleport": [10750, 10620.5], "make_fixture": "arena-east", "detached": True}
 
 
 def test_the_refusal_names_why():
     r = XT.parse_argv(["--variant", "ladder", "--fixture", "agent", "--make-fixture", "a", "--waves", "lone"], ME)
     assert r.startswith("x_trial.py takes only --variant <name> --fixture <name> [--minutes N] [--no-llm] "
-                        "[--waves lone|pair|street] [--teleport X,Y] [--make-fixture <name>] [--detached]; refused: ")
+                        "[--goals scripted|hold] [--waves lone|pair|street] [--teleport X,Y] "
+                        "[--make-fixture <name>] [--detached]; refused: ")
     assert "spawned zombies into the fixture" in r
     assert "(missing --fixture)" in XT.parse_argv(["--variant", "ladder"], ME)
+    base = ["--variant", "ladder", "--fixture", "agent"]
+    r = XT.parse_argv(base + ["--goals", "hold"], ME)
+    assert r.startswith("x_trial.py takes only ") and r.endswith(
+        "(--goals hold holds the square with no model: pass --no-llm)")
+    assert XT.parse_argv(base + ["--goals", "wander"], ME).endswith("(--goals takes one of scripted, hold)")
     r = XT.parse_argv(["--variant", "ladder", "--fixture", "agent", "--minutes", "6"], ME)
     assert r.endswith("(the wall bound 628 s passes the foreground cap 570 s: pass --detached (the controller "
                       "launches it detached after Angus approves))")
@@ -681,6 +696,7 @@ def test_a_trial_writes_trial_json_at_the_run_root_and_copies_nothing(tmp_path, 
     assert trial["provenance"] == "git" and trial["diff_sha256"] is None and trial["untracked"] is None
     assert trial["waves"] == "street" and trial["wave_plan"] == {"period_s": None, "spawns": []}
     assert trial["no_llm"] is True and trial["teleport"] is None and trial["make_fixture"] is None
+    assert trial["goals"] == "scripted" and list(trial).index("goals") == list(trial).index("no_llm") + 1
     assert trial["detached"] is False and trial["wall_bound_s"] == 15 + 140 + 2 + 35 + 6 + 75
     assert trial["argv"] == argv and re.match(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$", trial["started_at"])
     assert trial["end_pos"] == [100.0, 200.0, 0] and trial["end_health"] == 100.0       # the last kept frame's
@@ -875,3 +891,60 @@ def test_the_planner_factory_passes_the_variant_as_control():
     """The fork's keyword: `Survive(..., control=<variant>)` in the factory's source, whatever the tree's Survive."""
     src = inspect.getsource(TR.planner_factory)
     assert "return Survive(world, actions, log_path, clock, source=source, control=variant)" in src
+
+
+# ================================================================ --goals hold (Plan 31 Task 12's pre-step)
+HOLD_ARGV = ["--variant", "ladder", "--fixture", "agent", "--no-llm", "--goals", "hold"]
+
+
+def test_the_hold_source_answers_a_rest_and_notes_the_start_square():
+    src = TR.HoldSource()
+    assert src.NAME == "hold" and src.square is None
+    g = src.propose({"pos": {"x": 10750.5, "y": 10620.5, "z": 0}})
+    assert g.TYPE == "Rest" and g.seconds == TR.HOLD_REST_S == 30.0 and src.square == [10750.5, 10620.5]
+    src.propose({"pos": {"x": 10790.0, "y": 10600.0, "z": 0}})       # the square is the first pos, never moved
+    assert src.square == [10750.5, 10620.5]
+    late = TR.HoldSource()
+    assert late.propose({}).TYPE == "Rest" and late.square is None    # no pos yet: still a rest
+    assert late.propose({"pos": {"x": None, "y": 3}}).TYPE == "Rest" and late.square is None
+    assert late.propose({"pos": {"x": 5, "y": 6}}).TYPE == "Rest" and late.square == [5, 6]
+
+
+def test_the_hold_source_reissues_a_fresh_rest_when_one_ends_and_never_walks():
+    src = TR.HoldSource()
+    seen = []
+    view = {"pos": {"x": 1.0, "y": 2.0, "z": 0}, "edge": [90, 90], "toward": {"for": "unlooted", "door": [50, 50]},
+            "buildings": [{"id": 7, "dist": 5.0, "looted": False, "containers": 3, "shelter": True, "door": [9, 9]}],
+            "needs_wanted": ["water", "food", "bandage"], "stock_uses": ["water", "food"], "want_shelter": True,
+            "stuck": {"edge": [4, 5, "N"]}, "cooled": []}
+    for _ in range(5):
+        g = src.propose(view)
+        seen.append(g)
+        g.end("done", "rested")                                       # the goal ends: the next request is a new one
+    assert {g.TYPE for g in seen} == {"Rest"} and len({id(g) for g in seen}) == 5
+    assert all(g.args() == {"seconds": 30.0} for g in seen)
+    assert not any(g.TYPE in ("ExploreToward", "LootBuilding", "Shelter", "Stock") for g in seen)
+
+
+def test_the_hold_planner_rests_through_the_quiet_where_the_scripted_one_walks(tmp_path):
+    c, seen = _chain(tmp_path, HOLD_ARGV)
+    assert seen == ["ladder"] and isinstance(c.planner.goals.source, TR.HoldSource)
+    assert not isinstance(c.planner.goals.source, ScriptedSource) and c.lim["DAY_CAP_S"] == 300.0
+    c, _ = _chain(tmp_path, ["--variant", "ladder", "--fixture", "agent", "--no-llm"])
+    assert isinstance(c.planner.goals.source, ScriptedSource)
+    c, _ = _chain(tmp_path, ["--variant", "ladder", "--fixture", "agent", "--no-llm", "--goals", "scripted"])
+    assert isinstance(c.planner.goals.source, ScriptedSource)
+    assert "llm" not in c.extra_record() and "goals" in inspect.signature(TR.planner_factory).parameters
+
+
+def test_the_hold_trial_writes_goals_hold_in_trial_json_and_keeps_the_no_llm_bound(tmp_path, monkeypatch,
+                                                                                     agent_fixture):
+    argv = HOLD_ARGV + ["--minutes", "0.5"]
+    r = boot_trial(tmp_path, monkeypatch, argv)
+    trial = json.loads(open(os.path.join(r.run_dir, "trial.json"), encoding="utf-8").read())
+    assert tuple(trial) == TR.TRIAL_KEYS and trial["goals"] == "hold" and trial["no_llm"] is True
+    assert trial["variant"] == "ladder" and trial["argv"] == argv
+    assert isinstance(r.sess.planner.goals.source, TR.HoldSource) and "llm" not in r.out["loop"]
+    assert r.out["stop"]["reason"] == "day_cap" and r.out["finished"] is True and r.out.get("error") is None
+    assert trial["wall_bound_s"] == 15 + 140 + 2 + 35 + 6 + 75        # the no-model bound, as --no-llm's
+    assert TR.wall_bound(r.args) == TR.wall_bound(XT.flags(argv[:-4] + ["--minutes", "0.5"]))
