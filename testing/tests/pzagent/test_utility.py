@@ -217,6 +217,13 @@ def test_a_rival_under_the_margin_keeps_the_held_act_and_one_over_it_takes_it():
     assert c is FIGHT_C and info["select"] == "beat"
 
 
+def test_the_margin_has_its_floor_at_a_held_act_scoring_zero():
+    sel = S.Selector()
+    held(sel, ("travel", "travel"))
+    c, info = sel.decide([TRAVEL_C, FIGHT_C], scores(travel=0.0, fight_1=0.25), 10.0)
+    assert S.DELTA0 == 0.3 and c is TRAVEL_C and info["held_by"] == "margin"
+
+
 def test_the_margin_at_zero_switches_on_any_better_rival(monkeypatch):
     monkeypatch.setattr(S, "DELTA0", 0.0)
     monkeypatch.setattr(S, "DELTA_FRAC", 0.0)
@@ -539,6 +546,26 @@ def test_a_group_coming_takes_the_retreat_to_the_door_filter_at_a_run(tmp_path):
     line = decisions(tmp_path)[-1]
     assert line["branch"] == "threat" and line["inputs"]["branches"]["threat"]["flee"] == "retreat:door"
     assert line["inputs"]["intent"] == {"kind": "retreat:door", "target": [110, 201]}
+
+
+def test_the_door_filter_is_generated_and_none_while_standing_on_a_filter(tmp_path):
+    r = Rig(tmp_path)
+    house(r)
+    r.frame(zombies=[chaser(1, -3.0)])
+    s = F.read(r.world, 0.0)
+    (f,) = A.filters(r.world, s)
+    assert f.square == (110, 201, 0) and f.target == (111.5, 201.5) and f.building == 7
+    assert [c.key for c in A.generate(s, CTX, r.world) if c.kind == "retreat"] == [f.key]
+    assert not [c for c in A.generate(s, A.Context(at_filter=f), r.world) if c.kind == "retreat"]
+
+
+def test_no_filter_with_an_aware_zombie_nearer_its_door_or_one_in_its_building(tmp_path):
+    r = Rig(tmp_path)
+    house(r)
+    r.frame(zombies=[chaser(1, 8.0, 1.0)])   # by the door, nearer it than the player
+    assert A.filters(r.world, F.read(r.world, 0.0)) == []
+    r.frame(zombies=[chaser(1, 11.5, 1.5, hasTarget=False, known=False)])   # inside building 7
+    assert A.filters(r.world, F.read(r.world, 0.0)) == []
 
 
 def test_a_lone_chaser_by_the_same_door_is_fought_never_retreated_from(tmp_path):
