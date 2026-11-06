@@ -971,7 +971,9 @@ class Order(Intent):
     def _label(self, branch, cmd=None, step=None):
         self.state = branch
         if step == "care":
-            self.sub = "dress" if cmd is not None and cmd.TYPE == "bandage" else "stock"
+            held = self.ctx.sv.care.last if cmd is None else None   # the care holding its running action
+            dressing = (cmd is not None and cmd.TYPE == "bandage") or (held is not None and held.type == "bandage")
+            self.sub = "dress" if dressing else "stock"
             return
         if branch != "goal":
             self.sub = STEP_KINDS.get(branch, "needs")

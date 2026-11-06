@@ -38,6 +38,7 @@ from agent.base.world import World, me_xy
 
 ART = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "artifacts")
 RINGS = ("f_goals_16-20261105-164332", "e_day_23-20261105-095110")
+GROUP_COUNTS = {RINGS[0]: (2, 0, []), RINGS[1]: (1, 5, ["fence"])}   # (stands, Avoids, the Avoids' refuge kinds)
 
 
 def situations(ring):
@@ -162,6 +163,7 @@ def ring(request):
             stand = next((x for x in ws if x.kind == "fight" and x.why.get("stand")), None)
             if a is not None and a.target is not None and a.target.get("kind") in K.REFUGE_KINDS:
                 found["avoid"].append(k)
+                found.setdefault("refuges", []).append(a.target["kind"])
             elif stand is not None:
                 found["stand"].append(k)
             else:
@@ -236,11 +238,14 @@ def test_the_arbiter_switches_no_intent_for_one_of_the_same_priority_over_a_ring
 
 
 def test_no_avoid_names_open_ground_and_the_stands_are_counted(ring):
-    """The controller's ruling on M5: every group line is an Avoid toward a named refuge or the stand; on these two
-    rings no door refuge was open to the character (the review's `refuge_probe.py`), so their groups are stands."""
+    """The controller's ruling on M5: every group line is an Avoid toward a named refuge or the stand. No door refuge
+    was open to the character on either ring (the review's `refuge_probe.py`): F15's two group lines are stands, E23's
+    six one stand and five Avoids across a fence line; none names open ground."""
     f = ring["found"]
     assert len(f["avoid"]) + len(f["stand"]) == len(f["group"])
     assert not any(b[0] == "group" for b in ring["bad"])
+    want = GROUP_COUNTS[ring["ring"]]
+    assert (len(f["stand"]), len(f["avoid"]), sorted(set(f.get("refuges", [])))) == want
 
 
 def test_every_door_the_arbiter_starts_ends(ring):

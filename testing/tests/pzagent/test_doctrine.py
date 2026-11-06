@@ -708,7 +708,7 @@ def test_a_stalled_stand_closes_on_its_chaser_and_only_a_stalled_close_fails(tmp
         r.advance(0.5)
     d = doctrine_of(sv)
     assert 1 not in d.mem.skip and d.arbiter.current.kind == "fight" and d.arbiter.current.closing is True
-    assert doc(tmp_path)["state"] == "close" and "walkTo" in sent or "aim" in sent
+    assert doc(tmp_path)["state"] == "close" and ("walkTo" in sent or "aim" in sent)
     for i in range(int(K.STALL_S / 0.5) + 3):
         r.frame(zombies=zs)
         tick(r, sv)
@@ -1375,6 +1375,28 @@ def test_the_lines_of_a_mixed_run_read_no_equal_priority_switch(tmp_path):
         r.advance(0.5)
     rows = decisions(tmp_path)
     assert line_switches(rows) == 0 and len({r["inputs"]["doctrine"]["n"] for r in rows}) > 1
+
+
+def test_a_care_tick_holding_its_running_bandage_is_labelled_a_dress(tmp_path):
+    """Review-t11-doctrine-fix1 n6: the lull's care holding its running bandage (no command) is a dress, not stock."""
+    r, sv = lull_rig(tmp_path)
+    for iid, ft in RAGS2:
+        hold(r, iid, ft)
+    r.frame(wounds={"parts": [wound4()], "bleeding": 0})
+    a = tick(r, sv)
+    assert a.type == "bandage"
+    r.answer("accepted")
+    r.frame(wounds={"parts": [wound4()], "bleeding": 0})
+    assert tick(r, sv) is None
+    d = line(tmp_path)
+    assert d["branch"] == "care" and d["inputs"]["intent"] == {"kind": "dress"}
+
+
+def test_prepare_on_a_survive_not_yet_built_sets_the_instance_switch_only():
+    class Half:
+        pass
+    h = Half()
+    assert prepare(h) is None and h.DOOR_HELD is False
 
 
 def test_prepare_turns_the_ladder_s_door_read_off_before_the_first_tick(tmp_path):

@@ -203,8 +203,14 @@ def line_switches(rows):
 
 
 def prepare(survive):
-    """The Doctrine made before the Survive's first tick, so that tick's `_read` runs with the ladder's door read off
-    too (review-t11-doctrine m3); returns it. A trial driver calls it after building a `control="doctrine"` Survive."""
+    """The variant's construction hook (review-t11-doctrine m3; the fork calls a variant's module-level
+    `prepare(survive)` at construction, Task 1's residual): the instance switch set at once (`DOOR_HELD` False, so the
+    first tick's `_read` runs with the ladder's door read off too; no other switch is needed: P30-B's continued walk
+    stays on, the doctrine's Order runs the goal runner as the ladder does), and the Doctrine made when the Survive is
+    built far enough to carry its goal runner (else on the first `assess`). Returns the Doctrine, else None."""
+    survive.DOOR_HELD = False
+    if getattr(survive, "goals", None) is None or getattr(survive, "control_state", None) is None:
+        return None
     return doctrine_of(survive)
 
 

@@ -12,9 +12,12 @@ the bound on "fight everything"). The spec's section 3, D bullet, is the contrac
 - Task 2's meet, `4d646a0a`, optionally: the melee's API is read off the tree (`intents.MEET`), today's PZA/1.9 melee
   otherwise.
 
-**The first tick (m3).** The fork makes no call at construction, so the doctrine turns the ladder's P30-C door read off
-on its Survive (`DOOR_HELD = False`, an instance attribute) on its first `assess`, after that tick's `_read` has run
-once. A caller that builds the Survive calls `doctrine.prepare(survive)` first to close that tick too.
+**The first tick (m3).** The package exposes a module-level `prepare(survive)`, which the fork calls at construction
+(Task 1's residual): it sets the instance switch `DOOR_HELD = False` at once, so the first tick's `_read` runs with the
+ladder's P30-C door read off too, and makes the Doctrine once the Survive carries its goal runner (else on the first
+`assess`). No other switch is needed: P30-B's continued walk (`GOAL_CONTINUE`) stays on, since the Order runs the goal
+runner as the ladder does. No driver hook is needed. On a tree whose fork does not call it yet, the first `assess`
+sets the switch, after that tick's `_read`.
 
 ## What it decides and how
 
@@ -112,7 +115,10 @@ The intents, each with its tests:
     count: the stance, never a leg.
   - **The gait (m5).** While a zombie of the group within SNEAK_R is aware (`hasTarget` or `known`), the doctrine sets
     `Survive.mode` to "flee" for the tick. Survive's sneak gait then keeps the run upright, which stands a sneaking
-    character up first. Once out of sight, a walk with no zombie near aware goes crouched.
+    character up first. Once out of sight, a walk with no zombie near aware goes crouched. The value carries into the
+    next tick's `_read` (its `_inputs` logs `mode` "flee" on that line, and `_threat_read` reads it) until the
+    doctrine's tick resets it to None at its start (review-t11-doctrine-fix1 n4); no ladder rule acts on it under the
+    doctrine, which runs no Fight or Flee policy.
 - **Door** (Major 1: it never holds the stance indefinitely):
   - `stance_open` runs the stance's leg to the door's post (`door_held.door_post`), then `Interact open`.
   - Once the door reads open, the stance faces the zombie for DOOR_WAIT_S (`meet`). After that:
@@ -129,7 +135,7 @@ The intents, each with its tests:
 - **Order**:
   - It runs Survive's own steps in the ladder's order, a command still cooling (`Survive._cooling`) passed over:
     - In the lull (no listed zombie within DANGER_R, no part bleeding), `_care` runs the care's other steps (Major 3,
-      labelled `dress` for a bandage, else `stock`): the spent dressing's replace (P27-D, P27-K3), the wound's dressing
+      labelled `dress` for a bandage, sent or running, else `stock`): the spent dressing's replace (P27-D, P27-K3), the wound's dressing
       on a part not bleeding (P28-A) and the dirty rag's wash. The bleeding step stays P1's Dress.
     - Then `_need`, `_load`, `_night`, `_care_stock` (the rag stock and the wear) and `_goal`.
   - While a LootBuilding runs, it prefetches the model's next order (`source.Resume.prefetch`, every PREFETCH_S, only
