@@ -126,8 +126,11 @@ The item choice (Plan 31 Task 8) is a set of pure reads of the World and a calle
 reads with its own `held_out` and `unwear_at` and the Dress (`maneuvers.dress`) with its own. Survive's
 `DRESS_MANEUVER` (off: the ladder's goldens) sets `dress_cls`, and the bleeding step is then one `Dress` of the worst
 bleeding part in place of its three sends (`_dress_step`): the Dress's commands go through this policy (`sent` hands
-them to it, `owns` names them), its waits hold the care branch's tick (`dressing`), and its end is logged once
-(`dress_end`); the spent, wound and wash steps follow as before when no Dress runs.
+them to it, `owns` names them, and a riding bandage of the Dress is recorded as `ride`, so every P24-U reader and
+RIDE_RETRY_S read it), its waits hold the care branch's tick (`dressing`), and each end is logged once (`dress_end`, a
+list); the spent, wound and wash steps follow as before when no Dress runs. Fix 1 (review-t8): no new Dress after a
+failed one until the inventory gains an item or DRESS_RETRY_S pass, and on a ride tick no standing Dress is stepped
+and nothing but a riding bandage is sent (`_dress_step`).
 """
 import math
 import re
@@ -175,6 +178,10 @@ FLEE_CARE_N = 2           # ... this many bleeding parts or more ride the `many`
 RIDE_FREE = ("stopped",)  # a ride failed so was stopped by the engine (a run, an aim, a hit): its item is not held out
 RIDE_RETRY_S = 3.0        # seconds after a stopped ride before the care rides again (Task 12 fix 2, the re-review's major
                           # 2: the same ride re-chosen at once was cooled and the tick fell through to a drink)
+DRESS_RETRY_S = 20.0      # seconds after a Dress ended failed before the care starts another while the inventory gained no
+                          # item (Plan 31 Task 8 fix 1, review-t8 M1: a judgment, about forty care ticks at 2 Hz, so a
+                          # Dress that found nothing, or that a flee kept stopping, leaves the goal's loot and the flee
+                          # their ticks; a new held dressing or garment restarts it at once)
 RAG_STOCK = 2             # clean dressings (bandages and clean rags) the care keeps, ripping one unworn cotton garment
                           # on an idle tick while fewer are held (ruling P24-AB; Angus: "a couple clean rags")
 
@@ -190,7 +197,7 @@ WEAR_SETTLE_MAX = 12      # frames after a wear's done the exclusive-location ch
 __all__ = ["Care", "care_kind", "rippable", "wear_gain", "held_dressings", "dressing_pick", "rip_pick", "unwear_pick",
            "dress_pick", "UNWEAR_NEVER", "WEAR_RETRY_MIN", "WEAR_QUIET_R", "WEAR_SETTLE_MAX", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "CARE_R", "CARE_HOLD_R",
            "CARE_STILL_TICKS", "KINDS", "DRY_REASONS", "LEG_FIRST", "RIDE_R", "RIDE_MANY_R", "FLEE_CARE_S",
-           "FLEE_CARE_N", "RIDE_RETRY_S", "RAG_STOCK"]
+           "FLEE_CARE_N", "RIDE_RETRY_S", "DRESS_RETRY_S", "RAG_STOCK"]
 
 
 def care_kind(full_type):
@@ -377,7 +384,10 @@ class Care(Policy):
                                   # bleeding step starts in place of its three sends (`maneuvers.Dress`); None, the
                                   # bleeding step's own sends, the rule before it
         self.dress = None         # the running Dress (`_dress_step`), else None
-        self.dress_end = None     # the last Dress's log with its end, put on the next choose's why once (`dress_end`)
+        self.dress_end = []       # the ended Dresses' logs, each with its end, put on the next choose's why once
+                                  # (`dress_end`, a list: fix 1, m2, two may end in one call)
+        self._dress_hold = None   # (the inventory's ids, wall) of the last Dress that ended failed (fix 1, M1: no
+                                  # restart until an item is added or DRESS_RETRY_S pass)
 
     def dressing(self):
         """The running Dress (Plan 31 Task 8), else None: while it runs, Survive's care branch holds its tick."""
@@ -389,6 +399,8 @@ class Care(Policy):
 
     def sent(self, cmd, action):
         if self.owns(cmd):
+            if cmd.TYPE == "bandage" and cmd.keepMoving:
+                self.ride = action   # fix 1, M3: a Dress's riding bandage is the ride every P24-U reader reads
             self.dress.sent(cmd, action)   # Plan 31 Task 8: the Dress keeps its own sends and refusals
             return
         self.sends[cmd.itemId] = action
@@ -456,6 +468,11 @@ class Care(Policy):
                 self.world.mark(iid, "unrippable")
             if a.type == "wash" and a.reason in DRY_REASONS:
                 self.world.mark_dry((a.args.get("x"), a.args.get("y"), me_floor(self.world)))
+        r = self.ride
+        if r is not None and r.aid not in self._read and self.actions.done(r):   # fix 1, M3: a Dress's ride (never
+            self._read.add(r.aid)                                                # in `sends`), its end read once
+            if r.state == "failed" and r.reason in RIDE_FREE:
+                self.ride_stopped_at = self.clock()   # RIDE_RETRY_S, as for the bleeding step's own ride
         self._wear_check()
 
     def _wear_check(self):
@@ -757,33 +774,74 @@ class Care(Policy):
         the branch only when `tends_wound` answers, so the bleeding step is the one that sends there. The last
         Dress's end (Plan 31 Task 8) is logged once, `dress_end` on the why."""
         cmd = self._choose()
-        if self.dress_end is not None:
+        if self.dress_end:
             self.why = dict(self.why, dress_end=self.dress_end)
-            self.dress_end = None
+            self.dress_end = []
         return cmd
 
     def _dress_step(self, bleeding):
         """Plan 31 Task 8 (`dress_cls` set): the bleeding step as one Dress maneuver. The running Dress steps (its
         command, or None while it waits: the tick held); one that ended is logged (`dress_end`) and dropped; with none
         running the worst bleeding part (`bleeding[0]`) starts one, riding when Survive's `ride_now` asks (then the
-        worst above the legs, as `_wound`'s ride; the Dress rides only a part above them). `(command or None, held)`: `held` False when no Dress runs after the step
-        (none to start, or it ended at once: nothing to tear, a zombie within KEEP_R, the part no longer bleeding)."""
+        worst above the legs, as `_wound`'s ride; the Dress rides only a part above them). `(command or None, held)`:
+        `held` False when no Dress runs after the step (none to start, or it ended at once: a zombie within KEEP_R,
+        the part no longer bleeding, nothing to dress).
+
+        Fix 1 (review-t8): M1, no new Dress after one that ended failed until the inventory gains an item or
+        DRESS_RETRY_S pass (`_dress_held_off`); M2, on a ride tick (P24-U: the ride never stops the leg) a running
+        Dress that does not ride is never stepped: it is dropped (logged `dress_end` {end "ride"}) for a riding Dress
+        of the worst part above the legs when a dressing is held for it, else it waits with the tick held; and no
+        command but a riding bandage goes out on a ride tick (a ride the pick dropped waits for a standing tick)."""
         d = self.dress
         if d is not None and d.over() is not None:
-            self.dress_end, self.dress, d = dict(d.log(), end=d.over()), None, None
+            self._dress_ended(d)
+            d = None
         if self.ride_now:   # P24-U: a ride tick dresses the worst bleeding part above the legs, as `_wound` rides
             bleeding = [p for p in bleeding if p["i"] < LEG_FIRST]
-        if d is None and bleeding:
+            if d is not None and not d.ride:   # fix 1, M2: a standing Dress is never stepped into the flee's leg
+                if not (bleeding and self._rideable(bleeding[0])):
+                    self.why = {"reason": "dress", "dress": d.log(), "ride_wait": True}
+                    return None, True
+                self._dress_ended(d, "ride")
+                d = None
+        if d is None and bleeding and not self._dress_held_off():
             d = self.dress = self.dress_cls(self.world, self.actions, self.clock, part=bleeding[0]["i"],
                                             ride=self.ride_now)
         if d is None:
             return None, False
         cmd = d.step()
         if d.over() is not None:
-            self.dress_end, self.dress = dict(d.log(), end=d.over()), None
+            self._dress_ended(d)
             return None, False
+        if self.ride_now and cmd is not None and not (cmd.TYPE == "bandage" and cmd.keepMoving):
+            cmd = None   # fix 1, M2: only a riding bandage goes out on a ride tick
         self.why = {"reason": "dress", "dress": d.log()}
         return cmd, True
+
+    def _dress_ended(self, d, end=None):
+        """Dress `d` is dropped: its log with its end (`end`, else its own) kept for the next why (`dress_end`); a
+        failed one holds the next start off (`_dress_hold`, fix 1, M1)."""
+        self.dress_end.append(dict(d.log(), end=end or d.over()))
+        if d.over() == "failed":
+            self._dress_hold = (frozenset(self.world.inventory), self.clock())
+        if self.dress is d:
+            self.dress = None
+
+    def _dress_held_off(self):
+        """Fix 1, M1: no new Dress while the last failed one's hold stands: no item added to the inventory since and
+        DRESS_RETRY_S not yet passed."""
+        h = self._dress_hold
+        if h is None:
+            return False
+        if set(self.world.inventory) - h[0] or self.clock() - h[1] >= DRESS_RETRY_S:
+            self._dress_hold = None
+            return False
+        return True
+
+    def _rideable(self, p):
+        """Part `p` (above the legs) can be ridden now: a dressing is held for it (`dressing_pick`, an unwashed rag
+        taken as the Dress takes it)."""
+        return dressing_pick(self._items(), p.get("bleedingTime") or 0.0, dirty_ok=True) is not None
 
     def _choose(self):
         w = self.world

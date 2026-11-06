@@ -15,10 +15,11 @@ from agent.base.planner import policies as P
 from agent.base.planner import survive as S
 from agent.base.planner.maneuvers import Dress, Maneuver, Melee
 from agent.base.planner.maneuvers import dress as DM
+from agent.base.pza1 import Steer, WalkTo
 
 from .fakemod import DEFAULT_FRAME
 from .test_policies import Rig, all_sends_valid
-from .test_survive import last, make, tick
+from .test_survive import decisions, last, make, tick
 from .test_survive_g import part
 from .test_survive_j import rec
 
@@ -242,12 +243,59 @@ def test_the_end_is_done_when_the_part_s_bleeding_reads_false(tmp_path):
     assert drive(r2, m2) is None and m2.over() == "done" and r2.acts.history == []
 
 
-def test_failed_with_nothing_held_and_nothing_to_tear(tmp_path):
+def test_failed_with_nothing_held_and_nothing_to_tear_and_no_stop_sent(tmp_path):
+    """Fix 1, review-t8 M1: the pick is read before the stop, so a Dress with nothing to dress sends nothing."""
+    r = rig(tmp_path, moving=True)
+    m = Dress(r.world, r.acts, r.clock, part=1)
+    assert drive(r, m) is None and m.over() == "failed" and m.why["fail"] == "nothing" and r.acts.history == []
+
+
+def test_failed_nothing_after_the_stop_when_the_garment_goes(tmp_path):
+    """The pick before the stop found the worn T-shirt; it is gone by the pick after the still: `failed` "nothing"."""
     r = rig(tmp_path)
+    worn_shirt(r)
     m = Dress(r.world, r.acts, r.clock, part=1)
     end(r, drive(r, m))
+    r.event("item_removed", itemId=20, fullType="Base.Tshirt_White")
     bleed(r)
     assert drive(r, m) is None and m.over() == "failed" and m.why["fail"] == "nothing"
+    assert [x.type for x in r.acts.history] == ["stop"]
+
+
+def test_the_sends_bound_ends_a_refusal_loop_no_other_bound_ends(tmp_path):
+    """Fix 1, m3: twenty unworn cotton garments, each rip refused `busy` (held out for this Dress, never a motion):
+    the stop and fifteen rips, then the end failed "sends" at DRESS_SENDS commands."""
+    r = rig(tmp_path)
+    for iid in range(50, 70):
+        r.event("item_added", itemId=iid, fullType="Base.Tshirt_White", weight=0.2, use="clothing", rip="cotton",
+                clothing=rec(loc=TSHIRT, bite=1.0, scratch=2.0))
+    m = Dress(r.world, r.acts, r.clock, part=1)
+    end(r, drive(r, m))
+    for _ in range(40):
+        bleed(r)
+        a = drive(r, m)
+        if a is None:
+            break
+        r.fake.act(a.aid, "rejected", a.type, reason="busy")
+        r.pump()
+    assert m.over() == "failed" and m.why["fail"] == "sends" and len(r.acts.history) == DM.DRESS_SENDS
+    assert [x.type for x in r.acts.history] == ["stop"] + ["rip"] * (DM.DRESS_SENDS - 1)
+
+
+def test_a_bandage_refused_aiming_is_the_stance_never_the_item(tmp_path):
+    """Fix 1, m1: `aiming` (the ride's refusal under an aim leg) goes back to the stop with the item kept."""
+    r = rig(tmp_path, i=5, moving=True)
+    hold(r, 10, "Base.Bandage")
+    m = Dress(r.world, r.acts, r.clock, part=5, ride=True)
+    a = drive(r, m)
+    r.fake.act(a.aid, "rejected", "bandage", reason="aiming")
+    r.pump()
+    bleed(r, i=5, moving=True)
+    b = drive(r, m)
+    assert b.type == "stop" and not m.ride and m.held_out == {}
+    end(r, b)
+    bleed(r, i=5)
+    assert drive(r, m).args == {"itemId": 10, "part": 5}
 
 
 @pytest.mark.parametrize("dx,on_floor,ends", [(2.4, False, True), (P.KEEP_R, False, True), (2.6, False, False),
@@ -449,7 +497,7 @@ def test_on_the_care_branch_dispatches_the_dress_and_holds_its_tick_while_it_wai
     r.answer({"state": "done", "result": {"part": 9, "dirty": True, "life": 0.0}})
     dressed(r, i=9)
     tick(r, sv)
-    assert care(tmp_path)["dress_end"]["end"] == "done" and sv.care.dress is None
+    assert [e["end"] for e in care(tmp_path)["dress_end"]] == ["done"] and sv.care.dress is None
     tick(r, sv)
     assert "dress_end" not in care(tmp_path)
     all_sends_valid(r)
@@ -491,3 +539,176 @@ def test_on_a_cooled_dress_send_is_still_sent(tmp_path):
     bleed(r, i=9, bt=14.7)
     tick(r, sv)
     assert r.cmd() == ("unwear", {"itemId": 20}) and last(tmp_path)["inputs"]["cooled"] is None
+
+
+# ================================================================ fix 1 (review-t8): the care branch's handling of the Dress
+def care_rig(tmp_path, parts, moving=True, items=(), shirt=False):
+    """A Care with the Dress on (no Survive), PZA/1.7, `items` held ((id, full type)), the worn T-shirt with `shirt`."""
+    r = Rig(tmp_path)
+    hello17(r)
+    for iid, ft in items:
+        hold(r, iid, ft)
+    if shirt:
+        worn_shirt(r)
+    frame(r, parts, moving=moving)
+    c = C.Care(r.world, r.acts, r.clock)
+    c.dress_cls = Dress
+    return r, c
+
+
+def care_tick(c):
+    """One care tick as Survive's `_care` runs it: observe, hold while busy, else choose and send; the Action or
+    None."""
+    c.observe()
+    if c.busy():
+        return None
+    cmd = c.choose()
+    return None if cmd is None else c.send(cmd)
+
+
+def test_m1_a_bare_inventory_sends_no_stop_and_restarts_no_dress_until_an_item_is_added(tmp_path):
+    """review-t8 M1 (`probe_nothing_loop`: every other tick the care's stop, the bandage want flipping): with the
+    switch on, a bleeding part and nothing held, ten ticks send no stop and hold the want on every care line; the
+    failed Dress is logged once and none restarts (`_dress_hold`); a bandage added starts one on the next tick."""
+    r, sv = make(tmp_path)
+    hello17(r)
+    r.frame()
+    sv.DRESS_MANEUVER = True
+    for _ in range(10):
+        bleed(r, i=9, bt=14.7, moving=True)
+        tick(r, sv)
+        assert last(tmp_path)["inputs"]["branches"]["care"].get("want") == "bandage"
+    assert not any(a.type == "stop" for a in r.acts.history)
+    ends = [e for d in decisions(tmp_path) for e in d["inputs"]["branches"].get("care", {}).get("dress_end", [])]
+    assert [(e["end"], e["fail"], e["sends"]) for e in ends] == [("failed", "nothing", 0)]
+    hold(r, 10, "Base.Bandage")
+    bleed(r, i=9, bt=14.7, moving=True)
+    tick(r, sv)
+    assert r.cmd() == ("stop", {}) and last(tmp_path)["branch"] == "care"
+
+
+def test_m1_a_failed_dress_restarts_after_dress_retry_s(tmp_path):
+    """The hold also lapses after DRESS_RETRY_S with no item added (the Dress then fails "nothing" again, sending
+    nothing)."""
+    r, c = care_rig(tmp_path, [part(1, bleeding=True, bleedingTime=5.0)])
+    assert care_tick(c) is None and [e["fail"] for e in c.why["dress_end"]] == ["nothing"]
+    assert care_tick(c) is None and "dress_end" not in c.why and c.dress is None
+    r.advance(C.DRESS_RETRY_S)
+    assert care_tick(c) is None and [e["fail"] for e in c.why["dress_end"]] == ["nothing"]
+    assert r.acts.history == [] and C.DRESS_RETRY_S == 20.0
+
+
+@pytest.mark.parametrize("held", ["bandage", "shirt"])
+def test_m2_a_standing_dress_is_never_stepped_on_a_ride_tick(tmp_path, held):
+    """review-t8 M2 (`probe_ride_tick_steps_standing_dress`: a standing Dress of part 13 held nine ride ticks and sent
+    its stop on the tenth): a standing tick starts the Dress of the deep leg wound (its stop sent and ended, the
+    character still moving); then ten ride ticks under a walk leg send no stop. With a bandage held the standing
+    Dress is dropped (`dress_end` {end "ride"}) for a riding Dress of the hand, its keepMoving bandage the one send;
+    with only the worn T-shirt (nothing to ride) the standing Dress waits, the tick held, nothing sent."""
+    items, shirt = ([(10, "Base.Bandage")], False) if held == "bandage" else ((), True)
+    parts = [part(13, bleeding=True, bleedingTime=20.0, deep=True), part(5, bleeding=True, bleedingTime=3.0)]
+    r, c = care_rig(tmp_path, parts, items=items, shirt=shirt)
+    a = care_tick(c)
+    assert a.type == "stop" and c.dress.part == 13 and not c.dress.ride
+    end(r, a)
+    r.acts.send(WalkTo(110.5, 200.5, "walk"))   # the flee's leg
+    c.ride_now = True
+    sent = []
+    for _ in range(10):
+        frame(r, parts, moving=True)
+        b = care_tick(c)
+        if b is not None:
+            sent.append((b.type, b.args))
+    assert not any(t == "stop" for t, _ in sent)
+    if held == "bandage":
+        assert sent == [("bandage", {"itemId": 10, "part": 5, "keepMoving": True})]
+        assert c.dress.part == 5 and c.dress.ride
+    else:
+        assert sent == [] and c.dress.part == 13 and c.why.get("ride_wait") is True
+
+
+def test_m3_a_dress_s_riding_bandage_is_the_care_s_ride_for_every_reader(tmp_path):
+    """review-t8 M3 (`probe_ride_flag`: `riding()` None, `ride` None): the Dress's keepMoving bandage is recorded as
+    `Care.ride`, so `riding()` names it and `busy()` holds while the flee's re-aimed leg is current (the Fight's
+    stance legs read `riding()`, threat.py's `policy.ride`); `_dress_waits` waits on it (P29-D) and `_care_yields`
+    yields nothing while it rides; the engine's `stopped` end sets `ride_stopped_at`, so `rides_wound` waits
+    RIDE_RETRY_S."""
+    r, sv = make(tmp_path)
+    hello17(r)
+    hold(r, 10, "Base.Bandage")
+    bleed(r, i=5, moving=True)
+    c = sv.care
+    c.dress_cls, c.ride_now = Dress, True
+    r.acts.send(WalkTo(110.5, 200.5, "walk"))
+    c.observe()
+    a = c.send(c.choose())
+    assert a.args == {"itemId": 10, "part": 5, "keepMoving": True}
+    r.acts.send(WalkTo(111.5, 200.5, "walk"))   # the flee's re-aim: the leg is current, the bandage rides on
+    assert c.riding() is a and c.ride is a and c.busy()
+
+    class Flee:
+        def busy(self):
+            return False
+    f = Flee()
+    assert sv._dress_waits(f) == (f, None) and sv.why["dress_finish"]["action"] == a.aid
+    sv._nearest_seen = [(7, 5.0)]
+    assert sv._care_yields([]) is None
+    c.ride_now = False
+    r.fake.act(a.aid, "failed", "bandage", reason="stopped")
+    r.pump()
+    c.observe()
+    assert c.ride_stopped_at == r.clock() and not c.rides_wound()
+    r.advance(C.RIDE_RETRY_S)
+    assert c.rides_wound()
+
+
+def test_m2_the_first_dress_end_is_kept_when_its_successor_ends_in_the_same_call(tmp_path):
+    """review-t8 m2: a Dress that ended `done` is replaced and its successor ends at once (`failed` "nothing") in one
+    choose: both ends are logged, in order."""
+    parts = [part(1, bleeding=True, bleedingTime=5.0)]
+    r, c = care_rig(tmp_path, parts, items=[(10, "Base.Bandage")])
+    d = c.dress = Dress(r.world, r.acts, r.clock, part=1)
+    d._end = "done"   # as its observe reads a part's bleeding false
+    r.event("item_removed", itemId=10, fullType="Base.Bandage")
+    c.choose()
+    assert [(e["end"], e.get("fail")) for e in c.why["dress_end"]] == [("done", None), ("failed", "nothing")]
+
+
+def test_the_stop_flee_loop_is_bounded_by_the_sends_and_the_restart_hold(tmp_path):
+    """review-t8 § 2: a flee's steer sent over every one of the Dress's commands, alternating with the care tick.
+    Over twenty ticks each care tick sends one stop (ten, the Dress resumed each time, `lost`); continued to forty, the
+    stops stop at DRESS_SENDS (the Dress ends failed "sends") and no Dress restarts while the hold stands; after
+    DRESS_RETRY_S one does."""
+    r, c = care_rig(tmp_path, [part(1, bleeding=True, bleedingTime=5.0)], shirt=True)
+    ends = []
+
+    def run(n):
+        stops = 0
+        for k in range(n):
+            frame(r, [part(1, bleeding=True, bleedingTime=5.0)], moving=True)
+            if k % 2:
+                r.acts.send(Steer(1.0, 0.0, 1.0, "run"))   # the flee's leg supersedes the Dress's command
+                continue
+            a = care_tick(c)
+            stops += a is not None and a.type == "stop"
+            ends.extend((e["end"], e.get("fail")) for e in c.why.get("dress_end", ()))
+        return stops
+    assert run(20) == 10 and c.dress.lost == 9 and ends == []
+    assert 10 + run(20) == DM.DRESS_SENDS and c.dress is None and ends == [("failed", "sends")]
+    r.advance(C.DRESS_RETRY_S)
+    assert run(2) == 1
+
+
+def test_m2_a_ride_tick_sends_no_stop_when_the_riding_dress_drops_its_ride(tmp_path):
+    """review-t8 M2: a ride tick's new Dress of the hand finds no dressing held (only the worn T-shirt): its ride is
+    dropped and its stop withheld through ten ride ticks (the tick held, nothing sent); the first standing tick sends
+    the stop."""
+    r, c = care_rig(tmp_path, [part(5, bleeding=True, bleedingTime=3.0)], shirt=True)
+    r.acts.send(WalkTo(110.5, 200.5, "walk"))
+    c.ride_now = True
+    for _ in range(10):
+        frame(r, [part(5, bleeding=True, bleedingTime=3.0)], moving=True)
+        assert care_tick(c) is None
+    assert c.dress is not None and not c.dress.ride and len(r.acts.history) == 1
+    c.ride_now = False
+    assert care_tick(c).type == "stop"

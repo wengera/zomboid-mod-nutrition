@@ -11,7 +11,9 @@ unwear of the only cotton garment refused `moving` (the unwear skill's refusal w
 went out while a flee's steer leg ran, and the bandages were superseded by the flee's re-aims.
 
 The sequence (`phase`, logged):
-- `stop`: a `stop` (`pza1.Stop`: the running skill and every motor flag cleared), then `still`: the wait for a frame
+- `stop`: the pick read first (fix 1, review-t8 M1: with nothing held and nothing to tear the Dress ends `failed`
+  "nothing" with no send), then a `stop` (`pza1.Stop`: the running skill and every motor flag cleared), then `still`:
+  the wait for a frame
   newer than the stop's end reading `me.moving` false. STILL_FRAMES frames still moving send the stop again; past
   DRESS_MOVED such waits (or `moving` refusals) the Dress ends `failed` "moving".
 - `pick` (`care.dress_pick`, the care branch's item choice, with this Dress's own refusal memory): a held clean
@@ -24,7 +26,8 @@ The sequence (`phase`, logged):
   rags' `item_added`), at most SETTLE_FRAMES frames, then `pick` (the bandage); a rip that made no rag picks at once.
   After a `bandage` done, `settle`: the wait for the part's `bleeding` to read false, at most SETTLE_FRAMES frames,
   then `pick` again.
-- A refusal or failure: `moving` or `stopped` (the character's motion, never the item's) goes back to the stop, the
+- A refusal or failure: `moving`, `stopped` or `aiming` (the character's motion or stance, never the item's: the
+  bandage's ride is refused `aiming` under an aim leg, fix 1, review-t8 m1) goes back to the stop, the
   item kept (a riding bandage the engine stopped drops the ride); `superseded` (another sender's command took the
   slot) resumes at the stop (`lost`); any other holds the item out of this Dress's picks for `care.CARE_RETRY_MIN`
   game minutes, a rip refused `worn`, `not cotton` or `needs tool` marking it `unrippable` in the World and one refused
@@ -40,6 +43,13 @@ DRESS_MOVED still-waits ("moving") or past DRESS_SENDS commands ("sends"); `supe
 (`policies.standing`, not lying on the floor) reads within KEEP_R. Another sender's command taking the slot is no end
 (the base's `superseded`): the Dress resumes at the stop on its next step, so the commitment outlives a branch that sent
 over it; an owner that gives the dressing up drops the maneuver.
+
+The stop-flee loop (fix 1, review-t8 § 2): a flee leg sent over each of the Dress's commands is a loss, and each loss
+resumes at a stop, which the next flee leg supersedes again. What bounds it: within one Dress, DRESS_SENDS commands
+(the end failed "sends"); across Dresses, the care branch's no-restart rule (`care.Care._dress_step`: no new Dress
+after a failed one until the inventory changes or `care.DRESS_RETRY_S` pass, and a Dress with nothing to dress sends
+nothing at all); on the ladder's ride tick no Dress sends anything but a riding bandage (`_dress_step`'s ride rule,
+P24-U's "never stops the leg").
 
 `why` (`log()`: `{maneuver "dress", ...}`): part, phase, sends, item (the last command's), kind (the dressing's), ride,
 lost, moved, and `fail` once it failed.
@@ -57,10 +67,13 @@ STILL_FRAMES = 10         # frames after a stop's end the Dress waits for `me.mo
 DRESS_MOVED = 3           # still-waits and motion refusals at most before the Dress ends failed "moving"
 DRESS_SENDS = 16          # commands at most before the Dress ends failed "sends": four of each of the stop, the unwear,
                           # the rip and the bandage, a bound on a loop no rule above ends
-SETTLE_FRAMES = C.WEAR_SETTLE_MAX   # frames the Dress waits for an end's effect to reach the frame or the inventory
-                                    # (the garment unworn, the rag held, the part's bleeding cleared), as the care
-                                    # branch waits for a wear's `me.worn`
-MOVED = ("moving", "stopped")   # the refusals the character's motion made: back to the stop, the item kept
+SETTLE_FRAMES = C.WEAR_SETTLE_MAX   # frames the Dress waits at most for an end's effect to reach the frame or the
+                                    # inventory (the garment unworn, the rag held, the part's bleeding cleared): a
+                                    # bound borrowed from the worn cadence (the Lua's `me.worn` every S.WORN_EVERY 10
+                                    # frames), never a measurement of these three effects' latency
+MOVED = ("moving", "stopped", "aiming")   # the refusals the character's motion or stance made (`aiming`: the ride
+                                         # under an aim leg, PZAgent_Tend.lua's bandage): back to the stop, the item
+                                         # kept
 NEXT = {"unwear": "unworn", "rip": "rag", "bandage": "settle"}   # a command's done -> the wait for its effect
 
 
@@ -156,6 +169,8 @@ class Dress(Maneuver):
         while self._end is None:
             ph, frames = self.phase, self.world.frame_n - self._since
             if ph == "stop":
+                if self._choice() is None:   # fix 1, M1: nothing to dress and nothing to tear sends nothing
+                    return self._failed("nothing")
                 return self._out(pza1.Stop())
             if ph == "still":
                 if frames > 0 and (self.world.me or {}).get("moving") is False:
@@ -188,9 +203,7 @@ class Dress(Maneuver):
     def _pick(self):
         """The pick's command (`care.dress_pick`), else the end failed "nothing"; a ride that finds no dressing held
         is dropped and the stop goes first."""
-        p = self._record() or {}
-        got = C.dress_pick(self.world, p.get("bleedingTime") or 0.0, held_out=self.held_out,
-                           unwear_at=self.unwear_at, prefer=self.garment)
+        got = self._choice()
         if got is None:
             return self._failed("nothing")
         if got[0] != "bandage" and self.ride:
@@ -200,6 +213,12 @@ class Dress(Maneuver):
             self.kind = got[2]
             return self._out(pza1.Bandage(got[1], part=self.part, keepMoving=self.ride))
         return self._out(pza1.Rip(got[1]) if got[0] == "rip" else pza1.Unwear(got[1]))
+
+    def _choice(self):
+        """`care.dress_pick` over this Dress's refusal memory, an unwashed rag taken (`dirty_ok`)."""
+        p = self._record() or {}
+        return C.dress_pick(self.world, p.get("bleedingTime") or 0.0, held_out=self.held_out,
+                            unwear_at=self.unwear_at, prefer=self.garment, dirty_ok=True)
 
     def _out(self, cmd):
         """`cmd` as the step's command, unless DRESS_SENDS were sent (the end failed "sends")."""

@@ -520,7 +520,9 @@ class Survive(SneakGait, Threat):
     DRESS_MANEUVER = False  # Plan 31 Task 8 (the spec's § 4 item 3; F15's nine unwears refused `moving`): the
                             # care branch's bleeding step is one Dress maneuver (`maneuvers.dress`, set on the Care
                             # each care tick: `care.Care._dress_step`) in place of its bandage, rip and unwear
-                            # sends; off (the default, the ladder's goldens), the bleeding step's own sends
+                            # sends; off (the default, the ladder's goldens), the bleeding step's own sends. A driver
+                            # turns it on for its own planner, `sv.DRESS_MANEUVER = True`, never on the class (fix
+                            # 1, review-t8 m4: a class edit leaks into every later Survive in the process)
     UNWEAR_WOUND = True   # ruling P25-H (Plan 25 Task 7): the care branch's bleeding step unwears a garment to rip on
                           # any quiet care tick (`care.Care._wound`); off, only the idle stock does (P24-AJ). In
                           # T4_SWITCHES, the replay tests' seam onto the goldens before Task 7 (`pre_t4`)
