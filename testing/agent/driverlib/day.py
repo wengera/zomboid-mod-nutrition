@@ -219,13 +219,14 @@ def day_shots(xs, clock=time.time):
 
 
 def make_day_session(xs, transport, planner_factory, extra=None, copied=(), prev=None, clock=time.time,
-                     sleep=time.sleep, free=X.free_gb, polls=None, limits=None, shots=None):
+                     sleep=time.sleep, free=X.free_gb, polls=None, limits=None, shots=None, cls=None, **chain_kw):
     """The day's Chain: the driver's planner, extra record and copied files, LIMITS (with `limits` laid over them),
-    a PollThread on `clock` unless `polls` is given, and `shots` (else day_shots(xs, clock))."""
-    return Chain(xs, transport, prev=prev, extra=extra, copied=copied, planner_factory=planner_factory, clock=clock,
-                 sleep=sleep, free=free, limits=dict(LIMITS, **(limits or {})),
-                 polls=polls if polls is not None else PollThread(clock),
-                 shots=shots if shots is not None else day_shots(xs, clock))
+    a PollThread on `clock` unless `polls` is given, and `shots` (else day_shots(xs, clock)). `cls` is the Chain
+    subclass to build (default Chain; driverlib/trial.py's TrialChain), `chain_kw` its own keywords."""
+    return (cls or Chain)(xs, transport, prev=prev, extra=extra, copied=copied, planner_factory=planner_factory,
+                          clock=clock, sleep=sleep, free=free, limits=dict(LIMITS, **(limits or {})),
+                          polls=polls if polls is not None else PollThread(clock),
+                          shots=shots if shots is not None else day_shots(xs, clock), **chain_kw)
 
 
 def copy_shots_index(repo, run_id, run_dir):
