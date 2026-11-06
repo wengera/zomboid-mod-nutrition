@@ -312,15 +312,21 @@ def test_a_hit_reaction_repins_a_finish_to_the_standing_zombie_within_the_releas
     assert (a.type, a.args["targetId"]) == ("melee", 2)
 
 
-def test_the_meet_s_handback_ends_the_fight_done_repin(tmp_path):
+def test_the_meet_s_handback_ends_the_finish_done_repin_and_the_standing_one_is_fought(tmp_path):
+    """T's pattern (the read's section 2: knock down the nearest, turn to the next standing one, then finish the
+    fallen): the meet hands a finish back for a standing zombie within its HANDBACK_R, beyond the swing radius and with
+    the pin down (so neither guard nor `second_standing` reads it); the Fight ends `done repin` and P3's `reach` takes
+    the standing one."""
     r, sv = rig(tmp_path)
-    r.frame(zombies=[zombie(1, 102.2, 200.0)])
-    tick(r, sv)
-    other_end(r, 2, 0.5)
-    r.frame(zombies=[zombie(1, 102.2, 200.0), zombie(2, 100.5, 200.0)])
+    r.frame(zombies=[fallen(5, 101.5, 200.0)])
+    a = tick(r, sv)
+    assert (a.type, a.args["mode"]) == ("melee", "finish")
+    other_end(r, 2, 1.8)
+    r.frame(zombies=[fallen(5, 101.5, 200.0), zombie(2, 101.7, 200.6)])
     a = tick(r, sv)
     m = mix(tmp_path)
-    assert m["ended"]["why"] == "repin" and (a.type, a.args["targetId"]) == ("melee", 2)
+    assert m["ended"]["why"] == "repin" and (m["target"], m["piece"]) == (2, "reach")
+    assert (a.type, a.args["targetId"], a.args["mode"]) == ("melee", 2, "strike")
 
 
 def test_the_crawler_is_finished_before_the_dress(tmp_path):
