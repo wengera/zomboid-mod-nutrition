@@ -23,7 +23,10 @@ its next command (`step` -> `Step`, or None when it ended at once). Every send g
 - `RetreatExec` (`retreat:door:<x>,<y>`): one run (`WalkTo` at a run) to the filter's post; ends `arrived` (the walk
   done or the player within AT_FILTER_R of the post: `Utility.at_filter` set, so the next selection fights from the
   stance there) or `failed` (the walk failed for anything but a supersede).
-- `GoalExec` (`travel`, `loot`, `sneak`): the goal runner (`Survive._goal`); ends `idle` when it holds nothing.
+- `StandExec` (`stand:<id>`): the stance where the character is, facing the nearest aware zombie of an arriving
+  group (fix 1, review-t11-utility M1); its ends are the fight's.
+- `GoalExec` (`travel`, `loot`, `sneak`): the goal runner (`Survive._goal`, or the answer the context's proposal read
+  this tick); ends `idle` when it holds nothing.
 - `NeedsExec` (`needs:<branch>`): the answer the context read this tick (`Utility._needs`); ends when none.
 - `RestExec` (`rest`): nothing sent (the stance is not held; the endurance comes back standing).
 """
@@ -228,6 +231,24 @@ class FightExec(Exec):
         return Step("threat", self.owner, Aim(vx, vy, AIM_LEG_S, targetId=z.id), dict(why, leg="toward"))
 
 
+class StandExec(FightExec):
+    """The stand (`stand:<id>`, fix 1, review-t11-utility M1): the stance where the character is, facing the nearest
+    aware standing zombie of an arriving group, never a step toward it or away; the arrivals come one at a time and the
+    first within KEEP_R is the fight's (its candidate then wins: the stand is generated only while none is in reach).
+    Its ends are the fight's."""
+    kind = "stand"
+
+    def __init__(self, u, cand):
+        super().__init__(u, cand)
+        self.back = cand.back
+
+    def approach(self, sit, z, why):
+        why = dict(why, leg="stand", back=self.back)
+        if self.owner.busy() and self.owner.last is not None and self.owner.last.type == "aim":
+            return Step("threat", self.owner, None, dict(why, holding=self.owner.last.aid))
+        return Step("threat", self.owner, Aim(0.0, 0.0, AIM_LEG_S, targetId=z.id), why)
+
+
 class DressExec(Exec):
     kind = "dress"
 
@@ -265,7 +286,7 @@ class RetreatExec(Exec):
 
     def observe(self, sit):
         a = self.owner.last
-        if A.filter_at(None, sit, self.filter):
+        if A.filter_at(sit, self.filter):
             self.ended = "arrived"
         elif a is not None and self.u.sv.actions.done(a):
             if a.state == "done":
@@ -289,9 +310,11 @@ class GoalExec(Exec):
 
     def step(self, sit, cand):
         sv = self.u.sv
-        sv.why = {}
-        ans = sv._goal()
-        why = dict(sv.why)
+        got = self.u.take_goal_answer()   # the runner asked this tick already (its proposal: `Utility.context`)
+        if got is None:
+            sv.why = {}
+            got = (sv._goal(), dict(sv.why))
+        ans, why = got
         if ans is None:
             self.ended = "idle"
             return None
@@ -317,5 +340,5 @@ class RestExec(Exec):
         return Step(None, None, None, {"rest": True})
 
 
-EXECUTORS = {"fight": FightExec, "dress": DressExec, "retreat": RetreatExec, "travel": GoalExec, "loot": GoalExec,
-             "sneak": GoalExec, "needs": NeedsExec, "rest": RestExec}
+EXECUTORS = {"fight": FightExec, "stand": StandExec, "dress": DressExec, "retreat": RetreatExec,
+             "travel": GoalExec, "loot": GoalExec, "sneak": GoalExec, "needs": NeedsExec, "rest": RestExec}

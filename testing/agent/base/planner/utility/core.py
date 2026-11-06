@@ -12,7 +12,8 @@ The line (the fork's contract, `planner/control.py`): `branch` "threat" on a fig
 reason at `inputs.branches.threat.flee` ("retreat:door"), `inputs.x`/`inputs.y` from `_read`; a kill read this tick
 at `inputs.branches.threat.kill` (P24-Q's field) and the door read's decision at `inputs.branches.threat.door_held`
 (P30-C's), whatever answered. The scorecard's label (`tools/trial_score.py`): `inputs.intent` {kind, target}, kind
-the act's (`retreat:door` for a retreat, so it reads both a retreat and a refuge), target the zombie id of a fight,
+the act's (`retreat:door` for a retreat, so it reads both a retreat and a refuge; `meet:stand` for the stand), target
+the zombie id of a fight or a stand,
 the filter's door square [x, y] of a retreat, the goal's square of a travel, a loot or a sneak (none for a dress, the
 needs or the rest: a part index is no square). The utility's own: `inputs.utility` {act, kind, target, scores {key:
 [total, {term: weighted}]}, vetoes {key: why}, runner_up, margin, held_by, select, interrupts, end; ride, note and
@@ -22,7 +23,7 @@ rounded to LOG_DIGITS.
 import json
 
 from agent.base.planner.care import DRESS_RETRY_S
-from agent.base.planner.policies import DANGER_R, UNREACHABLE_S, blocked
+from agent.base.planner.policies import DANGER_R, KEEP_R, UNREACHABLE_S, blocked
 from agent.base.planner.survive import Decision
 from agent.base.planner.utility import acts as A
 from agent.base.planner.utility import execute as X
@@ -34,6 +35,8 @@ LOG_DIGITS = 6            # the line's floats: enough to rescore, short enough t
 LOOT_GOALS = ("LootBuilding", "Stock")   # the goal types the goal candidate is labelled `loot` under
 NEED_STEPS = ("need", "load", "night", "care", "stock")   # the ladder's quiet steps, in its order (`survive.STEPS`)
 STATE_KEY = "utility"
+LABELS = {"stand": "meet:stand"}   # the scorecard's label of a kind not its own word: the stand is a meet in place
+                                   # (`tools/trial_score.py` KNOWN_LABELS: `meet`), never a retreat
 
 
 def _r(v):
@@ -58,7 +61,9 @@ class Utility:
         self.dead_now = frozenset()
         self.kill_now = None
         self._near = frozenset()
+        self._reach = frozenset()
         self._goal_key = None
+        self.goal_answer = None   # ((owner, cmd) or None, why) of the runner's tick the context's proposal made
 
     # -- the hooks the executors call -----------------------------------------------------------------------------
     def killed(self, zid):
@@ -72,6 +77,11 @@ class Utility:
 
     def dress_failed(self):
         self.dress_fail = (self.sv.clock(), frozenset(self.sv.world.inventory))
+
+    def take_goal_answer(self):
+        """The goal runner's answer the context's proposal read this tick, once (`execute.GoalExec`), else None."""
+        out, self.goal_answer = self.goal_answer, None
+        return out
 
     # -- the reads ------------------------------------------------------------------------------------------------
     def _observe_retired(self):
@@ -102,21 +112,43 @@ class Utility:
             return (name if name != "stock" else "care"), owner, cmd, dict(sv.why)
         return None
 
+    def _goal_read(self, group):
+        """(the goal candidate's label or None, its target (x, y) or None). A goal is a candidate only while the runner
+        holds one running or a source pending (fix 1, review-t11-utility m6); with neither and no group arriving the
+        runner is asked to propose (its tick, kept for the executor: `take_goal_answer`), as the ladder's last branch
+        asks it. The target: the goal's `stall_target`, else its args' square."""
+        sv = self.sv
+        self.goal_answer = None
+        goals = sv.goals
+        if getattr(goals, "current", None) is None and not goals.pending:
+            if group:
+                return None, None
+            sv.why = {}
+            self.goal_answer = (sv._goal(), dict(sv.why))
+            if getattr(goals, "current", None) is None and not goals.pending:
+                return None, None
+        line = goals.line() or {}
+        g = getattr(goals, "current", None)
+        target = g.stall_target() if hasattr(g, "stall_target") else None
+        args = line.get("args") or {}
+        if target is None and all(isinstance(args.get(k), (int, float)) for k in ("x", "y")):
+            target = (args["x"], args["y"])
+        return ("loot" if line.get("type") in LOOT_GOALS else "travel"), target
+
     def context(self, sit):
         sv = self.sv
         now = sv.clock()
-        line = sv.goals.line() or {}
-        g = getattr(sv.goals, "current", None)
-        target = g.stall_target() if hasattr(g, "stall_target") else None
+        group = A.group_arriving(sit)
+        goal, target = self._goal_read(group)
         cooled = False
         if self.dress_fail is not None:
             at, held = self.dress_fail
             cooled = now - at < DRESS_RETRY_S and frozenset(sv.world.inventory) <= held
-        if self.at_filter is not None and not A.filter_at(None, sit, self.at_filter):
+        if self.at_filter is not None and not A.filter_at(sit, self.at_filter):
             self.at_filter = None
-        self.needs_answer = self._needs(sit)
+        self.needs_answer = None if group else self._needs(sit)
         return A.Context(
-            goal="loot" if line.get("type") in LOOT_GOALS else "travel", goal_target=target,
+            goal=goal, goal_target=target,
             needs=None if self.needs_answer is None else self.needs_answer[0],
             door_open=(sv.door_open or {}).get("zid"),
             unreachable=frozenset(blocked(sv.unreachable, now) | set(sv._edge_out()) | blocked(self.unreach, now)),
@@ -143,6 +175,10 @@ class Utility:
         if near - self._near - {held}:
             out.append("near")
         self._near = near
+        reach = frozenset(z.id for z in sit.aware_standing(KEEP_R))
+        if reach - self._reach - {held}:
+            out.append("reach")   # fix 1: an aware zombie come within the stance's reach, chosen for afresh
+        self._reach = reach
         line = self.sv.goals.line() or {}
         key = (line.get("type"), json.dumps(line.get("args"), sort_keys=True)) if line.get("type") else None
         if key is not None and key != self._goal_key:
@@ -208,9 +244,11 @@ class Utility:
         inputs["consume_refused"] = sv.consume_refused
         inputs["cooled"] = None
         inputs["branches"] = branches
-        label = None if c is None else ("retreat:%s" % c.filter.kind if c.kind == "retreat" else c.kind)
+        label = None if c is None else LABELS.get(c.kind, c.kind)
+        if c is not None and c.kind == "retreat":
+            label = "retreat:%s" % c.filter.kind
         tgt = None
-        if c is not None and c.kind in ("fight", "retreat", "travel", "loot", "sneak"):
+        if c is not None and c.kind in ("fight", "stand", "retreat", "travel", "loot", "sneak"):
             tgt = c.target
         inputs["intent"] = None if c is None else {"kind": label, "target": tgt}
         inputs["utility"] = {

@@ -8,7 +8,11 @@ THE METHOD (no wall clock is read; a run twice gives identical output):
   applied to the World, in order. The alignment is by wall time, not `replay_decisions.align`'s hour match, which
   refuses F15 (two frames share line 164's hour).
 - The clock: Survive's injected clock reads the decision line's recorded `wall`.
-- The goal: `replay_decisions.RecordedGoals`, the record's own goal answers (the goal is not replayed).
+- The goal: `ReplayGoals`, `replay_decisions.RecordedGoals` (the record's own goal answers: the goal is not
+  replayed) reading a line whose record holds no goal at all (the ladder never asked its runner that tick) as a
+  source pending: live, the utility asks its runner then (`core.Utility._goal_read`), which proposes or waits on its
+  source, so the replay's goal candidate holds where the live one would walk or wait (fix 1, review-t11-utility M4:
+  the record's silence is no answer of the runner's).
 - The acts (`OpenLoop`): no recorded act line drives a replayed action (the record's aids are its own); each send
   supersedes every open one (the Lua's one command at a time); a `steer`, `aim` or `melee` ends `done` at its
   `seconds` (PZA/1.10's melee has none: it never ends on time), a `stop` or a posture at POSTURE_DONE_S, any other at
@@ -68,6 +72,15 @@ class OpenLoop:
             b.state, b.reason, b.ended_wall = "failed", "superseded", now
 
 
+class ReplayGoals(RecordedGoals):
+    """The record's goal answers, a line with no goal at all read as a source pending (the module docstring)."""
+
+    def feed(self, row):
+        super().feed(row)
+        if row.get("goal") is None:
+            self.pending = True
+
+
 def walk(lines, rows, world):
     """(k, row) of each decision row, 1-based, once every line written by its `wall` is applied to `world` in order
     (the module docstring's THE FRAMES): the one alignment the replay, the situations and `tools/utility_fit.py`
@@ -86,14 +99,15 @@ def unlisted(world):
     return frozenset(zid for zid, z in world.zombies.items() if z.get("seenWallMs") != world.frame_wall_ms)
 
 
-def situations(lines, rows):
-    """[(k, row, Situation, World)] of each decision row read offline (`walk`, the newest frame's zombies only, the
-    closing speeds across the rows), the World the one being walked (read it before the next row)."""
+def situations(lines, rows, fresh_only=True):
+    """[(k, row, Situation, World)] of each decision row read offline (`walk`, the closing speeds across the rows),
+    the World the one being walked (read it before the next row): with `fresh_only` the newest frame's zombies only
+    (the fit's mining, which knows no kill), else every zombie the World keeps, as the live selector reads it."""
     world, tracks = World(), F.Tracks()
     for k, row in walk(lines, rows, world):
         if world.me is None:
             continue
-        stale = unlisted(world)
+        stale = unlisted(world) if fresh_only else frozenset()
         tracks.update(world, row["wall"], stale)
         yield k, row, F.read(world, row["wall"], tracks, stale), world
 
@@ -114,7 +128,7 @@ def replay(artifact_dir, mutate=None, upto=None):
     with tempfile.TemporaryDirectory() as d:
         log_path = os.path.join(d, "decision.log")
         sv = Survive(world, actions, log_path, clock, source=ScriptedSource(), control="utility")
-        sv.goals = RecordedGoals(sv.goals.kit)
+        sv.goals = ReplayGoals(sv.goals.kit)
         if mutate is not None:
             mutate(sv)
         for _, row in walk(lines, rows, world):

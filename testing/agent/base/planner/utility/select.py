@@ -12,13 +12,17 @@ weight each term is read in, `TERM_WEIGHT`; the decision line logs each weighted
   STOMPS_PER_DOWN finish presses), presses the span left after the approach over the press's seconds.
 - `hit` (H = 1): minus the expected hits over the act's span (`exposure`: each zombie's hazard `models.hazard(d)`,
   summed; a standing zombie that is aware arrives at MELEE_D after (d - MELEE_D) / its closing speed (CHASE_MIN at
-  least) and stands there; an unaware one counts UNAWARE_FACTOR of its hazard where it is; a fallen one
-  FALLEN_FACTOR). A retreat's is the hits it saves: the exposure of fighting the aware group here at once less one at
-  a time at the filter, over the group's kill time, less the route's.
+  least) and stands there, on a walk too (fix 1, review-t11-utility M1: a chaser closes on a walk at its read speed);
+  an unaware one counts UNAWARE_FACTOR of its hazard where it is; a fallen one FALLEN_FACTOR), plus the drag-down
+  (`drag`, fix 1, M2: DRAG_HITS once when three aware listed zombies are predicted within KEEP_R inside the span
+  standing; none on a fight whose target is already in reach, none moving or at a filter). The stand's: its target's
+  and the others' held one at a time where they are (the ruling's string), no drag-down, BACK_FACTOR of it with a wall
+  at the back. A retreat's is the hits it saves: the exposure of fighting the aware group here at once (the drag-down
+  among them) less one at a time at the filter, over the group's kill time, less the route's.
 - `bleed` (B): bleeding-part minutes, minus those the act's span lets run, plus, for a dress, the BLEED_HORIZON_M
   minutes of the part it dresses.
-- `chase` (C): 1 for a fight at a standing zombie that chases (`hasTarget`, PZA/1.9's `known` not false) while armed:
-  the doctrine in one number (a lone chaser is met anyway; running removes no hits).
+- `chase` (C): 1 for a fight (or the stand) at a standing zombie that chases (`hasTarget`, PZA/1.9's `known` not
+  false) while armed: the doctrine in one number (a lone chaser is met anyway; running removes no hits).
 - `goal` (V): the goal's progress: GOAL_VALUE for travel, loot and sneak, NEED_VALUE for the needs, REST_VALUE per
   endurance moodle level for the rest.
 - `regress` (G): minus the tiles a retreat runs off, over 10.
@@ -35,12 +39,14 @@ SELECT_S, unless an interrupt fires), `span` inside its minimum span (SPAN_S; a 
 their own end), `margin` while no rival beats it by delta = DELTA0 + DELTA_FRAC x |U_held|; a rival that does is taken
 (`select` "beat"). An interrupt (a new hit reaction, a part newly bleeding, a standing zombie not the act's target
 entering NEAR_R, a goal answer; the act's own end is the `end` above) re-scores at once and lifts the span, but never a
-retreat's, whose span runs to its filter (the proposal's guard against the closed-loop cycle). A retarget inside the
-fight takes the same margin. Ties go to the KINDS order, then the key.
+retreat's, whose span runs to its filter (the proposal's guard against the closed-loop cycle). The `reach` interrupt
+(fix 1: an aware standing zombie not the fight's target come within KEEP_R) chooses afresh (`select` "fresh"), the
+margin and every span lifted, a retreat's too: one zombie in reach is fought (the controller's ruling on M3). A
+retarget inside the fight takes the same margin. Ties go to the KINDS order, then the key.
 """
 import math
 
-from agent.base.planner.policies import DANGER_R, DRAG_DOWN_N as PDRAG_N, SNEAK_R
+from agent.base.planner.policies import DANGER_R, DRAG_DOWN_N as PDRAG_N, KEEP_R, LISTED_R, SNEAK_R
 from agent.base.planner.utility import acts as A
 from agent.base.planner.utility import models as M
 from agent.base.planner.utility import weights as W
@@ -82,18 +88,23 @@ NEED_VALUE = 2.0          # the needs' (a drink, a meal, the load, the night, th
 REST_VALUE = 0.5          # the rest's per endurance moodle level (the spec's § 4 item 2b: rest once clear)
 REGRESS_TILES = 10.0      # tiles run off per unit of `regress`
 DRAG_DOWN_N = PDRAG_N     # aware standing zombies at once that drag the character down [#4290, #4291]
-DRAG_HITS = 3.0           # hits a drag-down is priced at, per zombie past the second (a first guess: a death's price
-                          # damped by the chance the three attack together)
+DRAG_HITS = 3.0           # hits the drag-down event is priced at, once (a first guess: a death's price damped by the
+                          # chance the three attack together; the fit's K and C caps follow it, the artifact's
+                          # `drag_probe`)
+BACK_FACTOR = 0.75        # the share of the stand's hits with a wall or fence within `acts.BACK_R` behind the
+                          # character (a first guess: the group cannot come round the back)
 
 SELECT_S = 1.0            # seconds between selections (the proposal's "about once a second")
 NEAR_R = 1.5              # tiles: a standing zombie not the act's target entering this is an interrupt (the proposal)
 DELTA0 = 0.3              # hits: the margin's floor (a first guess for the trials)
 DELTA_FRAC = 0.2          # ... and its share of the held act's |U| (the proposal's 0.2)
-SPAN_S = {"fight": 4.0, "travel": 3.0, "loot": 3.0, "sneak": 3.0, "needs": 3.0, "rest": 3.0,
+SPAN_S = {"fight": 4.0, "stand": 4.0, "travel": 3.0, "loot": 3.0, "sneak": 3.0, "needs": 3.0, "rest": 3.0,
           "dress": math.inf, "retreat": math.inf}   # the minimum spans (the proposal: a fight 4 s or its target's
                                                     # end, a dress until done, a travel 3 s; a retreat to its filter)
 SPAN_LOCKED = ("retreat",)   # the kinds whose span no interrupt lifts
-INTERRUPTS = ("hit", "bleeding", "near", "goal")   # the four the frame raises; the act's own end is the fifth
+INTERRUPTS = ("hit", "bleeding", "near", "goal", "reach")   # the frame's; the act's own end is the sixth
+FRESH = ("reach",)        # the interrupts that choose afresh, the margin and every span (a retreat's too) lifted: an
+                          # aware zombie come within the stance's reach is fought (the controller's ruling on M3)
 SPENT_LEVEL = 2           # a moodle at this level or more makes the fight the shove and stomp (the spec's § 4 2b)
 RETREAT_FLOOR = 0.0       # hits: a retreat scoring at or under this saves nothing (an open-ground leg) and is never
                           # chosen (the doctrine: a retreat goes to a filter that takes the group one at a time)
@@ -113,15 +124,22 @@ def arrival(z):
     return max(z.d - MELEE_D, 0.0) / max(z.closing, CHASE_MIN)
 
 
-def drag(zs, span, filtered=False):
-    """The drag-down's price over `span` seconds standing (#4290: three zombies attacking from under 0.9 tiles zero the
-    defences and the hit is `EndDeath`, #4291's kill): DRAG_HITS for each aware standing zombie past DRAG_DOWN_N - 1
-    that arrives within the span (`arrival`); none at a filter or on the move (`filtered`: they come one at a time,
-    or follow strung out). Structure, not a fit: the rings hold no drag-down to fit one on."""
+def reach_arrival(z):
+    """Seconds an aware standing zombie takes to come within the stance's reach (KEEP_R)."""
+    return max(z.d - KEEP_R, 0.0) / max(z.closing, CHASE_MIN)
+
+
+def drag(zs, span, filtered=False, drag_hits=None):
+    """The drag-down's price over `span` seconds standing, as the rows' event (#4290: three zombies attacking together
+    from under 0.9 tiles zero the defences and the hit is `EndDeath`, #4291's kill): DRAG_HITS (`drag_hits`) once
+    when DRAG_DOWN_N aware standing zombies listed (within LISTED_R, a group arriving: `acts.group_arriving`) are
+    predicted within the stance's reach (`reach_arrival` within the span),
+    else 0; none at a filter or on the move (`filtered`: they come one at a time, or follow strung out). Structure,
+    not a fit: the rings hold no drag-down to fit one on."""
     if filtered:
         return 0.0
-    n = sum(1 for z in zs if z.standing and z.aware and arrival(z) <= span)
-    return DRAG_HITS * max(n - (DRAG_DOWN_N - 1), 0)
+    n = sum(1 for z in zs if z.standing and z.aware and z.d <= LISTED_R and reach_arrival(z) <= span)
+    return (DRAG_HITS if drag_hits is None else drag_hits) if n >= DRAG_DOWN_N else 0.0
 
 
 def exposure(zs, span, models, skip=None, filtered=False):
@@ -169,20 +187,29 @@ def fight_plan(sit, z, models):
     return p_kill, t_app + min(t_kill, left), t_app
 
 
-def terms(c, sit, ctx, models=M.FITTED):
-    """{term: raw} of candidate `c` (the module docstring)."""
+def _own_hit(z, models, span, t_app):
+    """The target's own hits over a fight's span: at its distance while it comes, at MELEE_D after."""
+    own = models.hazard(MELEE_D) * (span - t_app) + models.hazard(z.d) * t_app
+    return own * FALLEN_FACTOR if z.fallen else own
+
+
+def terms(c, sit, ctx, models=M.FITTED, drag_hits=None):
+    """{term: raw} of candidate `c` (the module docstring); `drag_hits` the drag-down's price (DRAG_HITS)."""
     n_bleed = len(sit.bleeding)
     zs = sit.zeds
     filtered = ctx.at_filter is not None
     t = dict.fromkeys(TERMS, 0.0)
-    if c.kind == "fight":
+    if c.kind in ("fight", "stand"):
         z = c.zed
         p_kill, span, t_app = fight_plan(sit, z, models)
-        own = models.hazard(MELEE_D) * (span - t_app) + models.hazard(z.d) * t_app
-        if z.fallen:
-            own *= FALLEN_FACTOR
+        own = _own_hit(z, models, span, t_app)
         t["kill"] = p_kill
-        t["hit"] = -(own + exposure(zs, span, models, skip=z.id, filtered=filtered) + drag(zs, span, filtered))
+        if c.kind == "fight":
+            dr = 0.0 if z.d <= KEEP_R else drag(zs, span, filtered, drag_hits)   # a target in reach is the stance's
+            t["hit"] = -(own + exposure(zs, span, models, skip=z.id, filtered=filtered) + dr)
+        else:   # the stand: the string, the arrivals fought one at a time where the character is, the back covered
+            back = BACK_FACTOR if c.back else 1.0
+            t["hit"] = -back * (own + exposure(zs, span, models, skip=z.id, filtered=True))
         t["bleed"] = -n_bleed * span / 60.0
         t["chase"] = 1.0 if z.standing and z.aware and sit.armed else 0.0
     elif c.kind == "dress":
@@ -190,14 +217,14 @@ def terms(c, sit, ctx, models=M.FITTED):
         if c.ride:
             t["hit"] = -exposure(zs, span, models, filtered=True)   # moving on: the chasers keep their distance
         else:
-            t["hit"] = -(exposure(zs, span, models, filtered=filtered) + drag(zs, span, filtered))
+            t["hit"] = -(exposure(zs, span, models, filtered=filtered) + drag(zs, span, filtered, drag_hits))
         t["bleed"] = BLEED_HORIZON_M - (n_bleed - 1) * span / 60.0
     elif c.kind == "retreat":
         f = c.filter
         t_f = f.d / RUN_PACE
         group = sit.aware_standing(DANGER_R)
         kill_s = sum(min(fight_plan(sit, z, models)[1], T_MAX) for z in group)
-        here = exposure(group, kill_s, models) + drag(group, kill_s)
+        here = exposure(group, kill_s, models) + drag(group, kill_s, drag_hits=drag_hits)
         at_f = models.hazard(MELEE_D) * kill_s
         route = exposure(zs, t_f, models, filtered=True)
         t["hit"] = here - at_f - route
@@ -207,13 +234,13 @@ def terms(c, sit, ctx, models=M.FITTED):
         near_unaware = [z for z in zs if z.d <= SNEAK_R and not z.aware and z.standing]
         share = SNEAK_FACTOR if c.kind == "sneak" else 1.0
         moving = [z for z in zs if z.aware or z.fallen]
-        t["hit"] = -(exposure(moving, ROUTE_S, models, filtered=True)
+        t["hit"] = -(exposure(moving, ROUTE_S, models)   # an aware chaser closes on a walk at its read speed
                      + share * (UNAWARE_FACTOR * sum(models.hazard(z.d) for z in near_unaware) * ROUTE_S
                                 + NOTICE_HITS * len(near_unaware)))
         t["bleed"] = -n_bleed * ROUTE_S / 60.0
         t["goal"] = GOAL_VALUE
     elif c.kind == "needs":
-        t["hit"] = -(exposure(zs, ROUTE_S, models, filtered=filtered) + drag(zs, ROUTE_S, filtered))
+        t["hit"] = -(exposure(zs, ROUTE_S, models, filtered=filtered) + drag(zs, ROUTE_S, filtered, drag_hits))
         t["bleed"] = -n_bleed * ROUTE_S / 60.0
         t["goal"] = NEED_VALUE
     elif c.kind == "rest":
@@ -229,11 +256,11 @@ def weighted(raw, weights=None):
     return sum(out.values()), out
 
 
-def score_all(cands, sit, ctx, models=M.FITTED, weights=None):
+def score_all(cands, sit, ctx, models=M.FITTED, weights=None, drag_hits=None):
     """{key: (total, {term: weighted})} of every candidate, the vetoed included."""
     out = {}
     for c in cands:
-        out[c.key] = weighted(terms(c, sit, ctx, models), weights)
+        out[c.key] = weighted(terms(c, sit, ctx, models, drag_hits), weights)
     return out
 
 
@@ -283,6 +310,8 @@ class Selector:
         if held is None or ended:
             info["select"] = "new" if self.key is None else ("end" if ended else "gone")
             chosen = best
+        elif any(i in FRESH for i in interrupts):
+            info["select"], chosen = "fresh", best
         elif not due:
             info["held_by"], chosen = "cadence", held
         elif (now - self.since < SPAN_S.get(held.kind, 0.0)

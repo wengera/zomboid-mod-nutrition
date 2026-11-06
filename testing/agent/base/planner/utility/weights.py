@@ -31,12 +31,16 @@ class Dial:
 # The values are the linear program's chosen point; the intervals its feasible ones (`data/fits/utility-weights.json`).
 FIT = "data/fits/utility-weights.json, lp"
 WEIGHTS = {
-    "K": Dial(3.711636319, 1.490792473, 7.835043183, "hits per kill", FIT),
-    "B": Dial(1.091670854, 0.381663317, 1.683248441, "hits per bleeding part-minute", FIT),
-    "C": Dial(3.34655424, 0.260328065, 6.001882499, "hits per fight at a chaser", FIT),
-    "G": Dial(0.341536797, 0.0, 3.450900685, "hits per ten tiles run off", FIT + " (at its lower bound 0)"),
-    "V": Dial(0.498601125, 0.0, 1.645209731, "hits per goal horizon", FIT + " (at its lower bound 0)"),
+    "K": Dial(0.503151335, 0.0, 4.903087796, "hits per kill",
+              FIT + " (at its lower bound 0; no direction sets it: the artifact's `unset`)"),
+    "B": Dial(1.228502656, 0.28640423, 3.236459563, "hits per bleeding part-minute", FIT),
+    "C": Dial(3.473035325, 0.0, 4.992137631, "hits per fight at a chaser", FIT + " (at its lower bound 0)"),
+    "G": Dial(1.320235198, 0.0, 3.450900685, "hits per ten tiles run off", FIT + " (at its lower bound 0)"),
+    "V": Dial(0.503151335, 0.0, 1.899793811, "hits per goal horizon",
+              FIT + " (at its lower bound 0; no direction sets it: the artifact's `unset`)"),
 }
+# The fit's caps on K and C follow the drag-down's first-guess price `select.DRAG_HITS` (the artifact's
+# `lp.drag_probe`: K's upper end 1.66, 3.56, 4.90, 8.16 and C's 2.99, 3.99, 4.99, 7.99 at 1, 2, 3, 6 hits).
 NAMES = tuple(WEIGHTS)
 
 

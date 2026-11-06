@@ -28,6 +28,14 @@ utility: an unreachable target, and a leg bandage while moving).
 - `needs:<branch>` while no standing zombie is within DANGER_R and one of the ladder's need, load, night, care or
   stock steps would answer (`Context.needs`).
 - `rest` with no zombie listed and the endurance moodle at level 1 or more [#3926].
+- A group arriving (`group_arriving`: GROUP_N or more aware standing zombies listed; fix 1, review-t11-utility M1, the
+  refuge ruling: no open-ground leg): no travel, loot, sneak or needs candidate (the walk away from an arriving group
+  is the open leg, whatever the goal); in their place `stand:<id>`, the stand where the character is at the nearest
+  aware standing zombie (the ruling's string: the arrivals fought one at a time, `back` when a wall or fence lies
+  within BACK_R behind the character, away from the aware ones), generated while none is within KEEP_R (one within
+  reach is the fight's: the controller's ruling on M3). The retreat to a filter stays a candidate.
+- The dress is vetoed `in_reach` while an aware standing zombie is within KEEP_R (fix 1, M2: a zombie in reach is
+  fought, never dressed in front of).
 """
 import dataclasses
 import math
@@ -35,8 +43,8 @@ import math
 from agent.base.planner import care as C
 from agent.base.planner import night as N
 from agent.base.planner.edges import edge_read
-from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, ENGAGE_R, FINISH_R, LISTED_R, SNEAK_R, centre,
-                                         in_building, in_corridor, stand_post)
+from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, ENGAGE_R, FINISH_R, KEEP_R, LISTED_R, SNEAK_R,
+                                         centre, in_building, in_corridor, stand_post)
 from agent.base.planner.utility import models as M
 
 FIGHT_N = 3               # the nearest standing zombies a fight is generated for (the proposal's "the three nearest")
@@ -46,7 +54,11 @@ FILTERS_N = 3             # the nearest filters a retreat is generated to (a fir
 AT_FILTER_R = 1.0         # tiles: the player this near a filter's target stands on it (the Lua walk's DONE_R,
                           # `policies.WALK_DONE_R`)
 MOVING_KINDS = ("travel", "sneak", "loot", "retreat")   # the acts a riding bandage rides
-KINDS = ("fight", "dress", "retreat", "travel", "loot", "sneak", "needs", "rest")
+KINDS = ("fight", "stand", "dress", "retreat", "travel", "loot", "sneak", "needs", "rest")
+GROUP_N = 3               # aware standing zombies listed that make a group arriving (the doctrine's "three or more
+                          # aware zombies", the common amendments' item 5)
+BACK_R = 2.0              # tiles: a wall or fence this near behind the character covers the stand's back (the fix
+                          # brief's "within two tiles")
 
 
 @dataclasses.dataclass(frozen=True)
@@ -73,6 +85,7 @@ class Candidate:
     ride: bool = False
     filter: object = None      # Filter of a retreat
     door: bool = False         # a fight through a door the door read opens
+    back: bool = False         # a stand with a wall or fence within BACK_R behind
     veto: object = None
     note: object = None        # a vetoed alternative's reason kept on the line (the ride's `leg`)
 
@@ -90,21 +103,31 @@ class Context:
     at_filter: object = None        # the Filter the player stands on after its retreat
 
 
+def group_arriving(sit):
+    """GROUP_N or more aware standing zombies listed (within LISTED_R): a group arriving."""
+    return len(sit.aware_standing(LISTED_R)) >= GROUP_N
+
+
 def generate(sit, ctx, world):
     """The tick's candidates, in KINDS order then by distance (the module docstring)."""
     out = _fights(sit, ctx, world)
+    group = group_arriving(sit)
+    if group:
+        st = _stand(sit, world)
+        if st is not None:
+            out.append(st)
     d = _dress(sit, ctx, world)
     if d is not None:
         out.append(d)
     if ctx.at_filter is None:
         out.extend(Candidate("retreat", f.key, target=[f.square[0], f.square[1]], filter=f)
                    for f in filters(world, sit))
-    if ctx.goal is not None:
+    if ctx.goal is not None and not group:
         out.append(Candidate(ctx.goal, ctx.goal, target=_xy(ctx.goal_target)))
         near = [z for z in sit.zeds if z.d <= SNEAK_R]
         if any(z.standing for z in near) and not any(z.aware for z in near):
             out.append(Candidate("sneak", "sneak", target=_xy(ctx.goal_target)))
-    if ctx.needs is not None and not sit.standing(DANGER_R):
+    if ctx.needs is not None and not group and not sit.standing(DANGER_R):
         out.append(Candidate("needs", "needs:%s" % ctx.needs, target=ctx.needs))
     if not [z for z in sit.zeds if z.d <= LISTED_R] and M.endurance_level(sit.endurance) >= 1:
         out.append(Candidate("rest", "rest"))
@@ -139,6 +162,31 @@ def _fight_veto(sit, ctx, world, z):
     return None
 
 
+def _stand(sit, world):
+    """The stand at the nearest aware standing zombie, while none is within KEEP_R (the module docstring), else None."""
+    aware = sit.aware_standing(LISTED_R)
+    if not aware or aware[0].d <= KEEP_R:
+        return None
+    z = aware[0]
+    away = _away(sit, aware)
+    back = away is not None and world.line_clear(
+        (sit.x, sit.y), (sit.x + BACK_R * away[0], sit.y + BACK_R * away[1]), unknown_open=True, trans=True) is False
+    return Candidate("stand", "stand:%s" % z.id, target=z.id, zed=z, back=back)
+
+
+def _away(sit, zs):
+    """The unit vector away from the zombies `zs`, each weighted by 1 / its distance (`policies.away_vector`'s rule,
+    read off the situation), else None."""
+    vx = vy = 0.0
+    for q in zs:
+        dx, dy = sit.x - q.x, sit.y - q.y
+        d2 = dx * dx + dy * dy
+        if d2 > 0.0:
+            vx, vy = vx + dx / d2, vy + dy / d2
+    n = math.hypot(vx, vy)
+    return None if n == 0.0 else (vx / n, vy / n)
+
+
 def _dress(sit, ctx, world):
     if not sit.bleeding:
         return None
@@ -147,6 +195,8 @@ def _dress(sit, ctx, world):
     key = "dress:%d" % p.i
     if item is None:
         return Candidate("dress", key, target=p.i, part=p, veto="nothing")
+    if sit.aware_standing(KEEP_R):
+        return Candidate("dress", key, target=p.i, part=p, item=item, veto="in_reach")
     if ctx.dress_cooled:
         return Candidate("dress", key, target=p.i, part=p, item=item, veto="cooled")
     moving = ctx.held_kind in MOVING_KINDS and sit.moving
@@ -187,6 +237,6 @@ def filters(world, sit):
     return out[:FILTERS_N]
 
 
-def filter_at(world, sit, f):
+def filter_at(sit, f):
     """The player stands on filter `f`'s target (within AT_FILTER_R)."""
     return f is not None and math.hypot(f.target[0] - sit.x, f.target[1] - sit.y) <= AT_FILTER_R

@@ -36,28 +36,36 @@ zero is structural (no weight moves it): it holds or not, reported. The rest:
   radius under 0 means the region is empty: two directions conflict, reported by rule pairs, never resolved here.
 - `intervals`: each weight's least and greatest value over the region inside the box BOX; an end at the box is a
   weight at its bound, reported.
-- `slacks`: each row's slack at the chosen point, rows grouped by (rule, labelled kind, other kind): their n, least
-  and greatest slack and the least one's line.
-- `stability`: each weight times 0.95 and 1.05 at the chosen point, the labelled lines whose margin (the labelled
-  score less the best rival's) moves; a weight that moves none is flat.
+- `slacks`: each row's slack at the chosen point, one per row: [ring, line, rule, act, other, slack].
+- `decision_probes` (below): the decisions the +-5 % probes move, never margins.
 
 THE RULES (Angus's directions; memories `stand-and-fight-dress-first`, `intent-doors-sneak`, `combat-stance-and-wound-
-care`, the spec's § 4 item 2b): `one`, armed with one standing zombie within DANGER_R, fewer than GROUP_N aware
-standing ones listed, and the one aware or the character not spent (2b: no new fight is sought spent), the fight at
-it beats every candidate that is not a fight; `dress_quiet`, a part bleeding and no standing zombie within DANGER_R,
-and `dress_far`, a part bleeding and the nearest standing zombie beyond KEEP_R, fewer than GROUP_N aware standing
-ones listed, the dress beats every candidate that is not a fight (the memory's "before the goal and before any flee
-from a zombie beyond the stance's reach": a zombie, not a group, which the doctrine avoids; the dress against a fight
-is left to the scores, no direction ruling on it); `sneak`, the goal walking with a standing zombie within SNEAK_R
-and every one unaware, the sneak beats the travel, the loot and every retreat; `group`, GROUP_N or more aware standing zombies
-within KEEP_R and a filter generated (the amendments' rule), the nearest filter's retreat beats every fight at a
-zombie beyond KEEP_R (one within the stance's reach is struck: the doctrine's first word, left to the scores);
-`group_coming`, the same with them within DANGER_R (the doctrine's "a group is avoided before it arrives"); `door`
-(structural), a zombie within DOOR_HELD_R behind a portal (`door_held.portal_between`): the candidates hold no wait
-(no candidate is a hold), counted.
+care`; the controller's ruling on review-t11-utility M3, fix 1): `one`, armed with an aware standing zombie within
+KEEP_R, the fight at the nearest such beats every candidate that is not a fight, whatever else is listed (one zombie
+in reach is fought); `dress_quiet`, a part bleeding and no standing zombie within DANGER_R, and `dress_far`, a part
+bleeding and the nearest standing zombie beyond KEEP_R, fewer than GROUP_N aware standing ones listed, the dress beats
+every candidate that is not a fight (the memory's "before the goal and before any flee from a zombie beyond the
+stance's reach": a zombie, not a group, which the doctrine avoids; the dress against a fight is left to the scores);
+`sneak`, the goal walking with a standing zombie within SNEAK_R and every one unaware, the sneak beats the travel,
+the loot and every retreat; `group`, GROUP_N or more aware standing zombies within KEEP_R and a filter generated (the
+amendments' rule), the nearest filter's retreat beats every fight at a zombie beyond KEEP_R; `group_coming`, the acts
+beyond reach under a group (the ruling): with GROUP_N aware standing within DANGER_R and a filter generated, the
+nearest filter's retreat beats the stand and every fight beyond KEEP_R, else with no filter and a group arriving
+(`acts.group_arriving`) the stand beats each walk into the group, a fight at another aware standing zombie beyond
+KEEP_R whose span the drag-down reaches (a fight the group does not come round within its span is no walk into it,
+and is left out); `door` (structural), a zombie within DOOR_HELD_R behind a portal (`door_held.portal_between`): the
+candidates hold no wait (no candidate is a hold), counted.
+
+FIX 1's ADDITIONS (review-t11-utility): the rows' constants are linear in the drag-down's price (`c0`, `cd`), so
+`lp.drag_probe` solves the program at DRAG_PROBE prices (the caps on K and C follow the first-guess price);
+`lp.unset` names each weight the box, not a direction, places (the Chebyshev ball touching a box face) and what that
+means; `lp.slacks` lists one slack per row; `decision_probes` replays the two goldens' rings (`utility.replay.RUNS`)
+whole at the chosen point and counts the lines whose decision moves with each weight, the drag-down's price and the
+hazard's intercept scaled by PROBE, a parameter that moves none reported `flat` with its WIDE_PROBE counts.
 """
 import argparse
 import bisect
+import dataclasses
 import hashlib
 import json
 import math
@@ -99,6 +107,8 @@ NEWTON_ITERS = 50
 MARGIN = 0.1              # hits: a labelled candidate beats each other by at least this (a first guess)
 BOX = (0.0, 20.0)         # every weight's bounds in the program (hits; K = 20 is a kill worth twenty hits)
 PROBE = (0.95, 1.05)      # the +-5 % probes (CLAUDE.md § 6, fits)
+DRAG_PROBE = (1.0, 2.0, 3.0, 6.0)   # the drag-down prices the program is solved at too (fix 1, M2)
+WIDE_PROBE = (0.5, 2.0)   # the scales a parameter flat at +-5 % is probed at too, reported (fix 1, M5)
 TOL = 1e-9
 DIGITS = 9                # the artifact's floats
 NAMES = W.NAMES           # ("K", "B", "C", "G", "V")
@@ -354,14 +364,17 @@ def fit_models():
 
 # ================================================================ stage 2: the verdicts
 def _ctx(row):
+    """The context off the record's own line: the goal only while one ran or a source was pending (fix 1, m6), its
+    square from its args; the needs branch when the line answered from one; no mark."""
     g = row.get("goal") or {}
     args = g.get("args") or {}
     target = (args["x"], args["y"]) if isinstance(args.get("x"), (int, float)) and isinstance(
         args.get("y"), (int, float)) else None
     branch = row.get("branch")
     needs = branch if branch in ("need", "load", "night") else None
-    return A.Context(goal="loot" if g.get("type") in ("LootBuilding", "Stock") else "travel", goal_target=target,
-                     needs=needs)
+    live = g.get("state") == "running" or "pending" in g
+    goal = None if not live else ("loot" if g.get("type") in ("LootBuilding", "Stock") else "travel")
+    return A.Context(goal=goal, goal_target=target, needs=needs)
 
 
 def _walking(row):
@@ -384,9 +397,9 @@ def label(sit, cands, world, row):
     out = []
     near = sit.standing(DANGER_R)
     crowd = sit.aware_standing(LISTED_R)
-    if (sit.armed and len(near) == 1 and "fight:%s" % near[0].id in by and len(crowd) < GROUP_N
-            and (near[0].aware or not S.spent(sit))):
-        c = by["fight:%s" % near[0].id]
+    reach = [z for z in sit.aware_standing(KEEP_R) if "fight:%s" % z.id in by]
+    if sit.armed and reach:   # the controller's ruling on M3: one zombie in reach is fought, whatever else is listed
+        c = by["fight:%s" % reach[0].id]
         out.append(("one", c, [o for o in ok if o.kind != "fight"]))
     dress = next((c for c in ok if c.kind == "dress"), None)
     if dress is not None and len(crowd) < GROUP_N:
@@ -399,18 +412,29 @@ def label(sit, cands, world, row):
     if sneak is not None and _walking(row):
         out.append(("sneak", sneak, [o for o in ok if o.kind in ("travel", "loot", "retreat")]))
     rets = sorted((c for c in ok if c.kind == "retreat"), key=lambda c: (c.filter.d, c.key))
+    stand = next((c for c in ok if c.kind == "stand"), None)
     far = [o for o in ok if o.kind == "fight" and o.zed.d > KEEP_R]
-    if rets and far and len(sit.aware_standing(KEEP_R)) >= GROUP_N:
-        out.append(("group", rets[0], far))
-    elif rets and far and len(sit.aware_standing(DANGER_R)) >= GROUP_N:
-        out.append(("group_coming", rets[0], far))
+    walk_in = [o for o in far if o.zed.standing and o.zed.aware]   # a walk into the arriving group
+    if rets and len(sit.aware_standing(KEEP_R)) >= GROUP_N:
+        if far:
+            out.append(("group", rets[0], far))
+    elif rets and len(sit.aware_standing(DANGER_R)) >= GROUP_N:   # the ruling on M3: beyond reach, the retreat to a
+        others = far + ([stand] if stand is not None else [])     # named filter ...
+        if others:
+            out.append(("group_coming", rets[0], others))
+    elif not rets and stand is not None:                          # ... else the stand
+        others = [o for o in walk_in if o.target != stand.target]
+        if others:
+            out.append(("group_coming", stand, others))
     if _behind_door(world, sit):
         out.append(("door", None, ok))
     return out
 
 
 def verdicts(models, keys=VERDICT_SET):
-    """{rows: [...], structural: {...}, door: {...}, labelled: [...], candidates: n} over the rings."""
+    """{rows, structural, door, labelled, candidates} over the rings. Each row carries `c0` (its constant with no
+    drag-down price) and `cd` (its constant's change per hit of DRAG_HITS): the drag term is linear in its price, so
+    the program is solved at any price without mining again (`drag_probe`)."""
     rows, structural, labelled = [], {}, []
     door = {"lines": 0, "with_fight_or_goal": 0, "wait_candidates": 0}
     n_cands = 0
@@ -420,33 +444,51 @@ def verdicts(models, keys=VERDICT_SET):
             ctx = _ctx(row)
             cands = A.generate(sit, ctx, world)
             n_cands += len(cands)
-            raws = {c.key: S.terms(c, sit, ctx, models) for c in cands}
+            raw0 = {c.key: S.terms(c, sit, ctx, models, drag_hits=0.0) for c in cands}
+            raw1 = {c.key: S.terms(c, sit, ctx, models, drag_hits=1.0) for c in cands}
             for rule, lab, others in label(sit, cands, world, row):
                 if rule == "door":
                     door["lines"] += 1
-                    door["with_fight_or_goal"] += any(c.kind in ("fight", "travel", "loot", "sneak") for c in others)
+                    door["with_fight_or_goal"] += any(c.kind in ("fight", "stand", "travel", "loot", "sneak")
+                                                      for c in others)
                     door["wait_candidates"] += sum(1 for c in others if c.kind == "wait")
                     continue
-                labelled.append({"ring": key, "line": k, "rule": rule, "act": lab.key,
-                                 "raw": {c.key: raws[c.key] for c in [lab] + others}})
-                pairs = [(o.key, o.kind, raws[o.key]) for o in others]
+                labelled.append({"ring": key, "line": k, "rule": rule, "act": lab.key})
+                zero = dict.fromkeys(S.TERMS, 0.0)
+                pairs = [(o.key, o.kind, raw0[o.key], raw1[o.key]) for o in others]
                 if lab.kind == "retreat":   # a retreat is chosen only above RETREAT_FLOOR (`select.eligible`)
-                    pairs.append(("floor", "floor", dict.fromkeys(S.TERMS, 0.0)))
-                for okey, okind, oraw in pairs:
-                    a, const = _row(raws[lab.key], oraw)
+                    pairs.append(("floor", "floor", zero, zero))
+                for okey, okind, o0, o1 in pairs:
+                    a, c0 = _row(raw0[lab.key], o0)
+                    _, c1 = _row(raw1[lab.key], o1)
+                    if rule == "group_coming" and lab.kind == "stand" and c1 - c0 <= TOL:
+                        continue   # a fight the group does not come round within its span: no walk into it
                     if okind == "floor":
-                        const -= S.RETREAT_FLOOR
+                        c0 -= S.RETREAT_FLOOR
+                        c1 -= S.RETREAT_FLOOR
                     rec = {"ring": key, "line": k, "rule": rule, "act": lab.key, "kind": lab.kind, "other": okey,
-                           "other_kind": okind, "a": a, "c": const}
+                           "other_kind": okind, "a": a, "c0": c0, "cd": c1 - c0}
                     if all(abs(x) <= TOL for x in a):
-                        s = structural.setdefault(rule, {"n": 0, "held": 0, "least": None})
-                        s["n"] += 1
-                        s["held"] += const >= MARGIN - TOL
-                        if s["least"] is None or const < s["least"]["c"]:
-                            s["least"] = {"ring": key, "line": k, "act": lab.key, "other": okey, "c": const}
+                        structural.setdefault(rule, []).append(rec)
                     else:
                         rows.append(rec)
     return {"rows": rows, "structural": structural, "door": door, "labelled": labelled, "candidates": n_cands}
+
+
+def _at(rows, drag_hits):
+    """The rows with their constant at the drag-down price `drag_hits`."""
+    return [dict(r, c=r["c0"] + drag_hits * r["cd"]) for r in rows]
+
+
+def structural_report(structural, drag_hits):
+    out = {}
+    for rule, recs in sorted(structural.items()):
+        cs = [(r["c0"] + drag_hits * r["cd"], r) for r in recs]
+        least = min(cs, key=lambda p: p[0])
+        out[rule] = {"n": len(cs), "held": sum(1 for c, _ in cs if c >= MARGIN - TOL),
+                     "least": {"ring": least[1]["ring"], "line": least[1]["line"], "act": least[1]["act"],
+                               "other": least[1]["other"], "c": least[0]}}
+    return out
 
 
 def _row(raw_l, raw_o):
@@ -462,20 +504,15 @@ def _row(raw_l, raw_o):
     return [a[n] for n in NAMES], c
 
 
-def fit_lp(rows):
-    """The chosen point, the intervals, the slacks (the module docstring)."""
+def chebyshev(rows):
+    """(status, the deepest point, its radius) of the region the rows (and the box) make."""
     n = len(NAMES)
-    if not rows:
-        return {"status": "no rows"}
-    Arow = np.array([r["a"] for r in rows])
-    crow = np.array([r["c"] for r in rows])
-    norms = np.linalg.norm(Arow, axis=1)
     lo, hi = BOX
-    # chebyshev: max t; -a.w + |a| t <= c - MARGIN; -w + t <= -lo; w + t <= hi; t in [-hi, hi]
     G, h = [], []
-    for a, c, nm in zip(Arow, crow, norms):
-        G.append(list(-a) + [nm])
-        h.append(c - MARGIN)
+    for r in rows:
+        a = np.array(r["a"])
+        G.append(list(-a) + [float(np.linalg.norm(a))])
+        h.append(r["c"] - MARGIN)
     for j in range(n):
         e = [0.0] * (n + 1)
         e[j], e[n] = -1.0, 1.0
@@ -490,38 +527,62 @@ def fit_lp(rows):
     G.append([0.0] * n + [-1.0])
     h.append(hi)
     status, x, t = lp_max([0.0] * n + [1.0], G, h)
-    out = {"status": status, "radius": t, "box": list(BOX), "margin": MARGIN, "rows": len(rows)}
     if status != "optimal" or t < -TOL:
-        out["status"] = "empty"
+        return "empty", None, t
+    return "optimal", x[:n], t
+
+
+def intervals_of(rows):
+    """{weight: [least, greatest]} over the region the rows (and the box) make."""
+    n = len(NAMES)
+    lo, hi = BOX
+    G2 = [list(-np.array(r["a"])) for r in rows] + [e for j in range(n) for e in (_unit(n, j, -1.0),
+                                                                                _unit(n, j, 1.0))]
+    h2 = [r["c"] - MARGIN for r in rows] + [v for j in range(n) for v in (-lo, hi)]
+    out = {}
+    for j, name in enumerate(NAMES):
+        _, _, va = lp_max(_unit(n, j, 1.0), G2, h2)
+        _, _, vb = lp_max(_unit(n, j, -1.0), G2, h2)
+        out[name] = [float(-vb), float(va)]
+    return out
+
+
+UNSET = {
+    "G": "no direction sets it: the region leaves G free down to 0 and the chosen point's value is the ball's radius "
+         "off that face, the box's geometry; a retreat's run off the way is priced by no ruling",
+    "V": "no direction sets it: no labelled line asks the goal to pull (no rule ranks the travel or the loot first), "
+         "so the goal's pull is bounded only from above, by the dress's and the fight's rows; at V near 0 a quiet "
+         "tick's goal walk scores about nothing, and only the commitment and the goal runner keep the character "
+         "moving",
+    "K": "no direction sets it: no labelled line needs the kill's own worth (the rule `one` ranks the fight at an "
+         "aware zombie in reach first through the chase credit C), so K's value is the ball's radius off its lower "
+         "face; a fight at an unaware zombie, priced by K alone, is sought only weakly",
+    "B": "no direction sets it: B rests on the box face, the chosen value is the ball's radius off it",
+    "C": "no direction sets it: C rests on the box face, the chosen value is the ball's radius off it",
+}
+
+
+def fit_lp(rows):
+    """The chosen point, the intervals, the slacks (the module docstring)."""
+    if not rows:
+        return {"status": "no rows"}
+    status, w, t = chebyshev(rows)
+    out = {"status": status, "radius": t, "box": list(BOX), "margin": MARGIN, "rows": len(rows),
+           "drag_hits": S.DRAG_HITS}
+    if status != "optimal":
         out["conflicts"] = conflicts(rows)
         return out
-    w = x[:n]
     out["chosen"] = dict(zip(NAMES, map(float, w)))
-    # intervals: rows -a.w <= c - MARGIN, box
-    G2 = [list(-a) for a in Arow] + [list(e) for j in range(n) for e in (_unit(n, j, -1.0), _unit(n, j, 1.0))]
-    h2 = list(crow - MARGIN) + [v for j in range(n) for v in (-lo, hi)]
-    intervals, at_bound = {}, []
-    for j, name in enumerate(NAMES):
-        _, xa, va = lp_max(_unit(n, j, 1.0), G2, h2)
-        _, xb, vb = lp_max(_unit(n, j, -1.0), G2, h2)
-        intervals[name] = [float(-vb), float(va)]
-        for end, b in ((-vb, lo), (va, hi)):
-            if abs(end - b) <= 1e-7:
-                at_bound.append({"weight": name, "bound": b})
-    out["intervals"] = intervals
-    out["at_bound"] = at_bound
-    slack = Arow @ w + crow - MARGIN
-    groups = {}
-    for r, s in zip(rows, slack):
-        g = groups.setdefault("%s|%s|%s" % (r["rule"], r["kind"], r["other_kind"]),
-                              {"n": 0, "least": None, "greatest": None})
-        g["n"] += 1
-        if g["least"] is None or s < g["least"]["slack"]:
-            g["least"] = {"slack": float(s), "ring": r["ring"], "line": r["line"], "act": r["act"],
-                          "other": r["other"]}
-        if g["greatest"] is None or s > g["greatest"]:
-            g["greatest"] = float(s)
-    out["slacks"] = dict(sorted(groups.items()))
+    lo, hi = BOX
+    out["intervals"] = intervals_of(rows)
+    out["at_bound"] = [{"weight": name, "bound": b} for name in NAMES
+                       for end, b in zip(out["intervals"][name], (lo, hi)) if abs(end - b) <= 1e-7]
+    out["unset"] = {name: UNSET[name] for name, v in out["chosen"].items()
+                    if min(v - lo, hi - v) <= t + 1e-9}
+    A_ = np.array([r["a"] for r in rows])
+    slack = A_ @ w + np.array([r["c"] for r in rows]) - MARGIN
+    out["slacks"] = [[r["ring"], r["line"], r["rule"], r["act"], r["other"], round(float(s), 6)]
+                     for r, s in zip(rows, slack)]
     out["least_slack"] = float(np.min(slack))
     return out
 
@@ -547,37 +608,66 @@ def conflicts(rows):
 def fit_lp_feasible(rows):
     n = len(NAMES)
     lo, hi = BOX
-    G = [list(-np.array(r["a"])) for r in rows] + [e for j in range(n) for e in (_unit(n, j, -1.0), _unit(n, j, 1.0))]
+    G = [list(-np.array(r["a"])) for r in rows] + [e for j in range(n) for e in (_unit(n, j, -1.0),
+                                                                               _unit(n, j, 1.0))]
     h = [r["c"] - MARGIN for r in rows] + [v for j in range(n) for v in (-lo, hi)]
     status, _, _ = lp_max([0.0] * n, G, h)
     return status == "optimal"
 
 
-def stability(labelled, chosen):
-    """{weight: {x0.95: {moved, least, greatest}, x1.05: ...}}: the labelled lines whose margin (the labelled score
-    less the best rival's) moves when the weight is scaled (the module docstring)."""
-    def margins(w):
-        out = []
-        for v in labelled:
-            raw = v["raw"]
-            score = {k: sum(w[S.TERM_WEIGHT[t]] * x for t, x in r.items()) for k, r in raw.items()}
-            rivals = [s for k, s in score.items() if k != v["act"]]
-            if rivals:
-                out.append(score[v["act"]] - max(rivals))
-        return np.array(out)
+def drag_probe(rows):
+    """{price: {status, radius, K, C}} of the program at each DRAG_PROBE price of the drag-down (fix 1, M2: the fit's
+    caps on K and C follow the first-guess price)."""
+    out = {}
+    for d in DRAG_PROBE:
+        at = _at(rows, d)
+        status, _, t = chebyshev(at)
+        rec = {"status": status, "radius": t}
+        if status == "optimal":
+            iv = intervals_of(at)
+            rec.update(K=iv["K"], C=iv["C"])
+        out["%g" % d] = rec
+    return out
+
+
+def decision_probes(models, chosen):
+    """{name: {x0.95: moved, x1.05: moved}}: the decisions (a line's branch, action and act) that move on the two
+    goldens' rings (`utility.replay.RUNS`, replayed whole with the commitment) when one weight, the drag-down's price
+    or the hazard's intercept is scaled by each PROBE (fix 1, M5: decisions, never margins); `lines` the lines read."""
+    from agent.base.planner.utility import core as Ucore
+
+    def run(key, weights, mods, drag_hits):
+        def mutate(sv):
+            sv.control_state[Ucore.STATE_KEY] = Ucore.Utility(sv, models=mods, weights=weights)
+        old = S.DRAG_HITS
+        S.DRAG_HITS = drag_hits
+        try:
+            rows = R.decisions(R.replay(R.run_dir(key), mutate=mutate))
+        finally:
+            S.DRAG_HITS = old
+        return [(r["branch"], json.dumps(r["action"], sort_keys=True), r["act"]) for r in rows]
+
+    keys = sorted(R.RUNS)
     base_w = dict(chosen, H=W.H)
-    base = margins(base_w)
-    res = {}
-    for name in NAMES:
-        row = {}
-        for k in PROBE:
-            m = margins(dict(base_w, **{name: base_w[name] * k}))
-            diff = m - base
-            moved = int(np.sum(np.abs(diff) > 1e-9))
-            row["x%.2f" % k] = {"moved": moved, "least": float(np.min(diff)) if len(diff) else 0.0,
-                                "greatest": float(np.max(diff)) if len(diff) else 0.0}
-        res[name] = row
-    return {"lines": int(len(base)), "probes": res}
+    base = {k: run(k, base_w, models, S.DRAG_HITS) for k in keys}
+
+    def moved(weights, mods, drag_hits):
+        return sum(sum(1 for a, b in zip(base[k], run(k, weights, mods, drag_hits)) if a != b) for k in keys)
+
+    def probe(name, f):
+        if name == "DRAG_HITS":
+            return moved(base_w, models, S.DRAG_HITS * f)
+        if name == "hit_b0":
+            return moved(base_w, dataclasses.replace(models, hit_b0=models.hit_b0 * f), S.DRAG_HITS)
+        return moved(dict(base_w, **{name: base_w[name] * f}), models, S.DRAG_HITS)
+
+    out, wide = {}, {}
+    for name in NAMES + ("DRAG_HITS", "hit_b0"):
+        out[name] = {"x%.2f" % f: probe(name, f) for f in PROBE}
+        if not any(out[name].values()):   # flat at +-5 %: how far the decisions hold, for the ruling
+            wide[name] = {"x%.2f" % f: probe(name, f) for f in WIDE_PROBE}
+    return {"rings": keys, "lines": sum(len(v) for v in base.values()), "probes": out, "flat": sorted(wide),
+            "wide": wide}
 
 
 # ================================================================ the artifact
@@ -585,8 +675,10 @@ def compute():
     _LOADED.clear()
     models, model_rep = fit_models()
     ver = verdicts(models)
-    lp = fit_lp(ver["rows"])
-    stab = stability(ver["labelled"], lp["chosen"]) if "chosen" in lp else None
+    rows = _at(ver["rows"], S.DRAG_HITS)
+    lp = fit_lp(rows)
+    lp["drag_probe"] = drag_probe(ver["rows"])
+    probes = decision_probes(models, lp["chosen"]) if "chosen" in lp else None
     counts = dict.fromkeys((r for r in RULES if r != "door"), 0)
     for v in ver["labelled"]:
         counts[v["rule"]] = counts.get(v["rule"], 0) + 1
@@ -595,10 +687,11 @@ def compute():
         "inputs": {key: {os.path.basename(p): sha256(p) for p in ring_files(key)} for key in RINGS},
         "rings": dict(RINGS),
         "models": model_rep,
-        "verdicts": {"labelled_lines": counts, "rows": len(ver["rows"]), "structural": ver["structural"],
+        "verdicts": {"labelled_lines": counts, "rows": len(rows),
+                     "structural": structural_report(ver["structural"], S.DRAG_HITS),
                      "door": ver["door"], "candidates": ver["candidates"]},
         "lp": lp,
-        "stability": stab,
+        "decision_probes": probes,
     }
 
 
