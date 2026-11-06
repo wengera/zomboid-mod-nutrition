@@ -968,3 +968,67 @@ def test_prepare_switches_the_dropped_ladder_reads_off_on_the_instance_only(tmp_
     D.prepare(sv)
     assert (sv.DOOR_HELD, sv.GOAL_CONTINUE, sv.goals.goal_continue) == (False, False, False)
     assert Survive.DOOR_HELD is True and Survive.GOAL_CONTINUE is True
+
+
+def test_an_avoid_ends_alone_when_one_armed_reachable_chaser_is_left(tmp_path):
+    """Fix 1 (review-t11 H1): the avoid's own bound, beside the rule's switch."""
+    r, sv = make(tmp_path)
+    r.scan(house(1, 90, y0=199) + [PO_square(x, y) for x in range(93, 108) for y in range(196, 205)])
+    r.frame(zombies=[z(7, 104.0, 200.0), z(8, 103.0, 202.0), z(9, 103.0, 198.0)])
+    t = sv.control_state["tactician"]
+    view = t.view()
+    t._start(P.validate({"play": "avoid", "toward": "D1", "gait": "walk", "bound": "clear", "why": "group"}, view),
+             view, V.binding(sv.world, view), "model")
+    assert t.exec.bound() is None
+    r.advance(11.0)
+    r.frame(zombies=[z(7, 104.0, 200.0)])
+    assert t.exec.bound() == "alone"
+
+
+def test_a_running_play_is_the_same_by_its_target_s_id_whatever_its_label_now(tmp_path):
+    """Fix 1 (review-t11 H4): `_same` compares ids; the same zombie under a new label is the same play, another zombie
+    under the old label is not."""
+    r, sv = make(tmp_path)
+    r.frame(zombies=[z(7, 104.0, 200.0)])
+    tick(r, sv)
+    t = sv.control_state["tactician"]
+    assert t.exec.zid == 7
+    r.frame(zombies=[z(7, 104.0, 200.0), z(9, 103.0, 200.0)])
+    view = t.view()
+    bind = V.binding(sv.world, view)
+    assert bind["Z1"] == ("zombie", 9) and bind["Z2"] == ("zombie", 7)
+    assert t._same(P.Play("fight", {"target": "Z2"}), bind)
+    assert not t._same(P.Play("fight", {"target": "Z1"}), bind)
+
+
+def test_a_running_fight_is_held_against_the_dressing_while_a_zombie_stands_within_the_margin(tmp_path):
+    """Fix 1 (the rule's hysteresis, DRESS_MARGIN): a chaser at 3 tiles keeps the fight; at 4 the dressing takes it."""
+    r, sv = make(tmp_path)
+    r.event("item_added", itemId=11, fullType="Base.Bandage", weight=0.1, use="bandage")
+    r.frame(zombies=[z(7, 103.0, 200.0)])
+    tick(r, sv)
+    t = sv.control_state["tactician"]
+    bleed = {"parts": [part(1, bleeding=True, bleedingTime=5.0)], "bleeding": 1}
+    r.frame(zombies=[z(7, 103.0, 200.0)], wounds=bleed)
+    tick(r, sv)
+    assert t.exec.play.play == "fight" and lines(tmp_path)[-1]["inputs"]["tactician"]["table"] == "held"
+    r.frame(zombies=[z(7, 104.0, 200.0)], wounds=bleed)
+    tick(r, sv)
+    assert t.exec.play.play == "dress"
+
+
+def test_a_running_fight_at_a_chaser_within_engage_r_is_held_against_a_trigger_s_loot(tmp_path):
+    """Fix 1 (the table's hysteresis): the count's edge at 6 tiles does not hand a fight at a chaser to a loot."""
+    r, sv = make(tmp_path)
+    sqs = house(1, 80) + [PO_square(x, y) for x in range(83, 112) for y in range(196, 205)]
+    r.scan([dict(q, containers=[CRATE]) if (q["x"], q["y"]) == (81, 201) else q for q in sqs])
+    t = sv.control_state["tactician"]
+    r.frame(zombies=[z(7, 105.0, 200.0)])
+    tick(r, sv)
+    assert t.exec.play.play == "fight"
+    t.table = T.Table({T.key(t.view()).replace("s1", "s0"): "loot"})
+    for dt in (0.5, 1.0, 0.5):
+        r.frame(zombies=[z(7, 107.0, 200.0)])   # beyond DANGER_R, chasing, within ENGAGE_R
+        tick(r, sv, dt=dt)
+    tacs = [x["inputs"]["tactician"] for x in lines(tmp_path)[-3:]]
+    assert t.exec.play.play == "fight" and any(x.get("table") == "held" for x in tacs)
