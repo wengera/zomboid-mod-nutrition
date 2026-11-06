@@ -6,6 +6,7 @@ import math
 
 import pytest
 
+from agent.base.planner.policies import SEEK_SKIP_S, UNREACHABLE_S
 from agent.base.planner.survive import Survive
 from agent.base.planner.utility import acts as A
 from agent.base.planner.utility import core
@@ -424,6 +425,54 @@ def test_the_melee_inputs_fit_task_2_s_three_field_class():
         reach: float
         floor_swing: bool
     assert X.melee_inputs("shove", 1.4, False, cls=Meet) == Meet("shove", 1.4, False)
+
+
+class _EndedMelee:
+    """A maneuver that ended `end` (`end_why` PZA/1.10's, absent before it) with a kill read or none."""
+
+    def __init__(self, end, why=None, kills=()):
+        self.end, self.kills = end, list(kills)
+        if why is not None:
+            self.end_why = why
+
+    def observe(self):
+        pass
+
+    def take_kills(self):
+        out, self.kills = self.kills, []
+        return out
+
+    def take_span(self):
+        return None
+
+    def over(self):
+        return self.end
+
+    def log(self):
+        return {"maneuver": "melee"}
+
+
+@pytest.mark.parametrize("end, why, ended, marked", [
+    ("dead", None, "dead", None), ("kill", None, "dead", None),
+    ("crowd", None, "crowd", None), ("handback", "standing", "crowd", None),
+    ("out of reach", None, "out of reach", "seek"), ("lost", "out of reach", "out of reach", "seek"),
+    ("lost", "no progress", "no progress", "unreachable"), ("lost", "out of range", None, None),
+    ("superseded", None, None, None)])
+def test_the_melee_s_ends_under_either_api(tmp_path, end, why, ended, marked):
+    r, sv = build(tmp_path)
+    r.frame(zombies=[chaser(7, 1.6)])
+    sv.tick(r.world, r.acts)
+    u = sv.control_state[core.STATE_KEY]
+    ex = u.ex
+    ex.m = ex.owner.m = _EndedMelee(end, why, kills=[7] if end in ("dead", "kill") else [])
+    ex.observe(F.read(r.world, r.clock()))
+    assert ex.ended == ended and ex.m is None
+    until = u.unreach.get(7)
+    if marked is None:
+        assert until is None
+    else:
+        assert until == pytest.approx(r.clock() + (SEEK_SKIP_S if marked == "seek" else UNREACHABLE_S))
+    assert (7 in r.world.killed) == (end in ("dead", "kill"))
 
 
 # ================================================================ end to end on the fake mod
