@@ -45,7 +45,11 @@
 --       (below), a swing or shove's knock-down (isKnockedDown) counted and the knock wait armed, the no-progress run
 --       (stall reached: done lost, why no progress). A press isAttackStarted reads false on the tick after it was
 --       refused (fix 1, F3: pressedAttack sets attackStarted at the press, review-t2): its leaf cut_by refused, no
---       stall counted, and the meet presses again on that tick.
+--       stall counted, and the meet presses again on that tick. The retry is bounded (the residual): after
+--       K.REFUSE_MAX refusals in a row the press waits K.REFUSE_WAIT_MS (step refused, the facing still written), then
+--       retries; K.REFUSE_END in a row end it done lost, why refused. A run of refusals writes its leaf only on its
+--       first and an act line again at its end (the next accepted press, or the melee's end), each carrying
+--       `refusals`, the run's count so far.
 --    3. d beyond releaseR: done lost, why out of range; another standing zombie within K.STAND_R (the engine's press
 --       would take it): done handback, why crowd, with its id and d (the last frame's records within K.STAND_R +
 --       MELEE_CROWD_SLACK read live).
@@ -127,6 +131,10 @@ K.MELEE_FACE_SLACK = 0.5     -- tiles: the faceR latch released only past faceR 
 K.MELEE_WALK_GAIN = 0.1      -- tiles a walk must gain on its best distance to restart its bound (a tolerance)
 K.MELEE_LUNGE_BONUS = 0.2    -- tiles the collision's reach adds against a zombie lunging at the attacker (#4681)
 K.MELEE_LUNGE_R = 2.0        -- tiles: ... from under this (#4681)
+K.REFUSE_MAX = 5             -- refused presses in a row after which the press waits (the residual of review-t2 F3: a
+                             -- persistent refusal pressed every tick wrote about 60 act lines a second), a judgment
+K.REFUSE_WAIT_MS = K.SWING_MS / 2   -- the wait, half the swing's own bound (750 ms), the facing still written
+K.REFUSE_END = 15            -- refused presses in a row that end the melee lost, why refused (three runs), a judgment
 
 local NUMS = { "reach", "shoveR", "releaseR", "faceR", "pressAngle", "pressLo", "floorR", "handbackR", "stall" }
 local NONNEG = { "reach", "shoveR", "faceR", "pressLo", "floorR", "handbackR" }
@@ -398,6 +406,7 @@ end
 -- held while an attack still runs (isAttackStarted: the engine drops a press then, #4292); the step, or failed, reason
 local function press(p, st, kind, d, pred, off, waitStep, dmin, ax, ay)
     stopWalk(p, st)
+    if st.refuseUntil ~= nil and PZA.now() < st.refuseUntil then return "refused" end   -- the residual: the wait
     if (kind == "swing" or kind == "floor") and weaponOf(p) == nil then return "failed", "no weapon" end
     local _, busy = PZA.call(p, "isAttackStarted")
     if busy == true then return waitStep end
@@ -418,6 +427,9 @@ local function strikeOver(p, st)
     s.ticks = s.ticks + 1
     local _, started = PZA.call(p, "isAttackStarted")
     if started == true then
+        if not s.started and st.refusals > 0 then   -- the residual: an accepted press ends a refusal run, its count kept
+            st.refuseRun, st.refusals, st.refuseUntil = st.refusals, 0, nil
+        end
         s.started = true
     elseif s.started then
         s.ended = true
@@ -446,7 +458,13 @@ local function strikeResult(p, st)
     st.strike = nil
     if s.kind == "shove" or s.kind == "stomp" then K.releaseShove(p) end
     local leaf, knocked = leafOf(st, s, s.cut)
-    st.leaf = leaf
+    if s.refused then   -- the residual: one leaf a run (its first), the wait after each K.REFUSE_MAX
+        st.refusals = st.refusals + 1
+        if st.refusals == 1 then st.leaf = leaf end
+        if st.refusals % K.REFUSE_MAX == 0 then st.refuseUntil = PZA.now() + K.REFUSE_WAIT_MS end
+    else
+        st.leaf = leaf
+    end
     if knocked and (s.kind == "swing" or s.kind == "shove") then
         st.knockdowns = st.knockdowns + 1
         st.knocked = true
@@ -559,6 +577,7 @@ local function reflex(p, st, d, px, py, zx, zy, now)
         end
         strikeResult(p, st)
         if st.nothing >= st.stall then return "done", "lost", { why = "no progress" } end
+        if st.refusals >= K.REFUSE_END then return "done", "lost", { why = "refused" } end
     end
     if d > st.releaseR then return "done", "lost", { why = "out of range" } end
     local cid, cd = standingNear(p, st, K.STAND_R)
@@ -589,9 +608,19 @@ local function counts(st, out)
     return out
 end
 
+-- the refusal run's count a line carries (the residual): a run just ended (its count, once), else the running run's
+-- count on its first refusal's leaf line or on an end line; nil otherwise
+local function refusalsOf(st, ending)
+    local n = st.refuseRun
+    st.refuseRun = nil
+    if n == nil and st.refusals > 0 and (ending or st.leaf ~= nil) then n = st.refusals end
+    return n
+end
+
 -- the progress result, the pending press leaf carried once
 local function progressResult(st, d)
-    local out = counts(st, { step = st.step, d = d, hp = healthOf(st.z), spent = st.spent == true, press = st.leaf })
+    local out = counts(st, { step = st.step, d = d, hp = healthOf(st.z), spent = st.spent == true,
+                             refusals = refusalsOf(st, false), press = st.leaf })
     st.leaf = nil
     return out
 end
@@ -602,7 +631,8 @@ local function doneResult(p, st, how, extra)
     K.releaseShove(p)
     extra = extra or {}
     local out = counts(st, { ["end"] = how, kill = how == "kill", why = extra.why, id = extra.id, d = extra.d,
-                             hp0 = st.hp0, hp1 = healthOf(st.z), dMin = st.dMin, steps = st.steps, press = st.leaf })
+                             hp0 = st.hp0, hp1 = healthOf(st.z), dMin = st.dMin, steps = st.steps,
+                             refusals = refusalsOf(st, true), press = st.leaf })
     st.leaf = nil
     return out
 end
@@ -650,7 +680,7 @@ K.types.melee = {
                            faced = 0, swings = 0, shoves = 0, stomps = 0, floors = 0, knockdowns = 0, hits = 0,
                            nothing = 0, steps = {}, strike = nil, leaf = nil, knocked = false, inHit = false,
                            walk = nil, wx = nil, wy = nil, walkBest = nil, walkMs = 0, weaponReach = nil, minR = nil,
-                           rawReach = nil,
+                           rawReach = nil, refusals = 0, refuseRun = nil, refuseUntil = nil,
                            spent = false, spentFrame = nil, spentAt = nil }
     end,
     tick = function(p, st)
@@ -679,7 +709,7 @@ K.types.melee = {
         if step == "failed" then return "failed", why, res end
         if step == "done" then return "done", doneResult(p, st, why, res) end
         st.steps[step] = (st.steps[step] or 0) + 1
-        if step ~= st.step or st.leaf ~= nil or now - st.lastP >= K.PROGRESS_MS then
+        if step ~= st.step or st.leaf ~= nil or st.refuseRun ~= nil or now - st.lastP >= K.PROGRESS_MS then
             st.step, st.lastP = step, now
             return "progress", progressResult(st, d)
         end
@@ -693,6 +723,6 @@ K.types.melee = {
         local leaf = st.leaf
         if st.strike ~= nil then leaf = leafOf(st, st.strike, reason or "") end
         st.leaf, st.strike = nil, nil
-        return counts(st, { press = leaf })
+        return counts(st, { refusals = refusalsOf(st, true), press = leaf })
     end,
 }

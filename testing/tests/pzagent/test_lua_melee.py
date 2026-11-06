@@ -1072,18 +1072,63 @@ def test_the_facing_is_written_every_tick_of_a_swing_in_flight_and_of_the_hit_st
 
 def test_a_refused_press_is_read_on_the_next_tick_and_pressed_again(lua, fs):
     """F3: pressedAttack sets attackStarted at the press, so a press reading isAttackStarted false on the next tick was
-    refused: its leaf is cut_by refused on that tick, it counts in no stall, and the press goes again at once, never
-    waited out for K.SWING_MS."""
+    refused: it ends on that tick, counts in no stall, and the press goes again at once, never waited out for
+    K.SWING_MS; the run's first refusal writes its leaf (cut_by refused, `refusals` 1), the later ones none."""
     p, z, w = world(lua, zx=11.0, attack_ticks=0)                     # the fake's attack never starts: refused
     go(lua, p)
-    run(lua, p, w, 6)
-    assert [x["tick"] for x in w["presses"]] == [1, 2, 3, 4, 5, 6] and not ended(lua)
-    run(lua, p, w)
-    assert all(x["cut_by"] == "refused" for x in leaves(lua, fs)) and len(leaves(lua, fs)) >= 5
-    w["attack_ticks"] = 8                                             # accepted from now on
-    n = len(w["presses"])
     run(lua, p, w, 5)
-    assert len(w["presses"]) == n + 1 and cur_step(lua) == "swing"
+    assert [x["tick"] for x in w["presses"]] == [1, 2, 3, 4, 5] and not ended(lua)
+    lv = leaves(lua, fs)
+    assert len(lv) == 1 and lv[0]["cut_by"] == "refused"
+    first = [a for a in progress(lua, fs) if "press" in a["result"]][0]
+    assert first["result"]["refusals"] == 1
+
+
+def test_a_refusal_run_writes_a_line_at_its_end_with_its_count(lua, fs):
+    """The residual: two refusals, then an accepted press: the tick the press reads started writes a line carrying
+    `refusals` 2, the run's count, and the run restarts."""
+    p, z, w = world(lua, zx=11.0, attack_ticks=0)
+    go(lua, p)
+    run(lua, p, w, 2)                                                 # press 1, its refusal and press 2
+    w["attack_ticks"] = 8                                             # press 3 (tick 3) is accepted
+    run(lua, p, w, 2)
+    counts_ = [a["result"].get("refusals") for a in progress(lua, fs)]
+    assert counts_.count(2) == 1 and lua.eval("PZA.skills.cur.st.refusals") == 0 and len(w["presses"]) == 3
+
+
+def test_a_sustained_refusal_writes_a_few_act_lines_a_second(lua, fs):
+    """The residual: the engine refusing every press for a second (60 ticks) writes at most 6 act lines for the melee
+    (about 60 before it), while it still presses again on the tick after each refusal outside the waits."""
+    p, z, w = world(lua, zx=11.0, attack_ticks=0)
+    go(lua, p)
+    run(lua, p, w, 60)
+    lines = [a for a in acts(lua, fs) if a["aid"] == "m1"]
+    assert len(lines) <= 6 and len(w["presses"]) >= 5, [(a["state"], a.get("result", {}).get("step")) for a in lines]
+
+
+def test_after_refuse_max_refusals_the_press_waits_facing_then_retries(lua, fs):
+    """The residual: after K.REFUSE_MAX (5) refusals in a row the press waits K.REFUSE_WAIT_MS (half K.SWING_MS),
+    step refused, the facing written on every tick of it, then presses again."""
+    p, z, w = world(lua, zx=11.0, attack_ticks=0)
+    go(lua, p)
+    assert (lua.eval("PZA.skills.REFUSE_MAX"), lua.eval("PZA.skills.REFUSE_WAIT_MS"),
+            lua.eval("PZA.skills.REFUSE_END")) == (5, lua.eval("PZA.skills.SWING_MS") / 2, 15)
+    run(lua, p, w, 5)
+    n0 = len(p.faced)
+    wait_ticks = int(lua.eval("PZA.skills.REFUSE_WAIT_MS") / TICK_MS)
+    for k in range(wait_ticks - 1):
+        run(lua, p, w)
+        assert len(w["presses"]) == 5 and cur_step(lua) == "refused" and len(p.faced) == n0 + k + 1, k
+    run(lua, p, w, 3, stop=lambda: len(w["presses"]) > 5)
+    assert len(w["presses"]) == 6 and w["presses"][5]["tick"] - w["presses"][4]["tick"] >= wait_ticks
+
+
+def test_refuse_end_refusals_in_a_row_end_the_melee_lost_refused(lua, fs):
+    p, z, w = world(lua, zx=11.0, attack_ticks=0)
+    go(lua, p)
+    run(lua, p, w, 400, stop=lambda: ended(lua))
+    r = last(lua, fs)["result"]
+    assert (r["end"], r["why"], r["refusals"]) == ("lost", "refused", 15) and len(w["presses"]) == 15
 
 
 def test_an_accepted_press_is_never_read_refused(lua, fs):
