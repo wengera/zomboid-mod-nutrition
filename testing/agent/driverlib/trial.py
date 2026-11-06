@@ -69,7 +69,13 @@ out["loop"]["trial"]["teleport"] {cmd, ack, arrived, waitS, pos}. The waves (`Wa
 session's clock, started at the loop's first frame and stopped at the loop's stop (before the closing Stop's settle),
 never on the planner's tick: each wave sends CREATEHORDE2_CMD per spawn at the square of the character's last frame
 position plus the spawn's distance at its bearing (`wave_square`), on the character's floor;
-out["loop"]["trial"]["waves"] its rows.
+out["loop"]["trial"]["waves"] its rows. The confirmation (Plan 31 Task 12's loop fix): WAVE_CONFIRM_S after a wave's
+send the frames must list as many zombie ids never listed before the send as the wave spawned (`TrialChain.listed_ids`,
+every id any frame listed); a wave short of them re-sends its missing spawns once, at the square off the character's
+last frame (rows `resend_of`), and the confirmations are out["loop"]["trial"]["waves"]["confirm"]. The symptom that
+drove it: the server logged every createhorde2 spawn, but the frames never listed three of six (Task 10's
+`x_trial-ladder-20261105-201433`, waves 1-3) and three of six again in trial 1 (`x_trial-ladder-20261105-215332`,
+waves 1, 2 and 4: ids 11981, 11982 and 11984 never listed), so a trial fought half its plan.
 
 THE RCON FORMS (TELEPORT_CMD, CREATEHORDE2_CMD) are read off the jar at 42.21 by the scoping read (TeleportToCommand's
 "Teleport user" form; CreateHorde2Command's -x -y -z -count -radius) and are unconfirmed until the first smoke boot
@@ -166,6 +172,8 @@ DEFAULT_GOALS = "scripted"
 HOLD_REST_S = REST_S                 # the hold's Rest: the scripted source's own rest, 30 s, a fresh one when it ends
 WAVE_POLL_S = 0.5                    # the wave thread's pass
 WAVE_JOIN_S = 6.0                    # its join at the loop's stop: one RCON call's 5 s socket timeout and 1 s
+WAVE_CONFIRM_S = 8.0                 # seconds a wave's new zombies have to reach the frames before its one re-send
+                                     # (a read spawn was listed within 0.3 s on Task 10's boots and trial 1)
 
 # ---------------------------------------------------------------- the fixture snapshot
 SNAPSHOT_SESSION = 1
@@ -490,13 +498,20 @@ class Waves:
     socket timeout). `rcon(cmd, tag)` is xs.rcon; `position()` the character's last frame position (x, y, z) or
     None; `clock` the session's own (TrialChain passes it, so the waves and the loop read one clock).
     The first wave fires at `begin`, then one at each period_s boundary; a late pass fires the latest boundary's wave
-    and skips the missed ones (no burst), its lateness and the count missed in the row."""
+    and skips the missed ones (no burst), its lateness and the count missed in the row. `listed()` (None: no
+    confirmation) is the set of zombie ids any frame has listed: `confirm_s` after a wave's send, a wave whose new ids
+    fall short of its spawned count re-sends its missing spawns once (the module docstring), each confirmation in
+    `confirms`."""
 
-    def __init__(self, plan, rcon, position, clock=time.time, poll_s=WAVE_POLL_S, join_s=WAVE_JOIN_S):
+    def __init__(self, plan, rcon, position, clock=time.time, poll_s=WAVE_POLL_S, join_s=WAVE_JOIN_S, listed=None,
+                 confirm_s=WAVE_CONFIRM_S):
         spec = WAVE_PLANS[plan]
         self.plan, self.period_s, self.spawns = plan, spec["period_s"], tuple(spec["spawns"])
         self.rcon, self.position, self.clock = rcon, position, clock
         self.poll_s, self.join_s = poll_s, join_s
+        self.listed, self.confirm_s = listed, confirm_s
+        self.pending = []        # {wave, due, before, need, resend}: a send waiting for its confirmation
+        self.confirms = []
         self.t0 = None
         self.next_i = 0
         self.rows = []
@@ -510,22 +525,47 @@ class Waves:
         self.t0, self.started = now, True
 
     def step(self, now):
-        """Fire the wave due at `now`, if any; the rows it added."""
+        """Confirm the sends that are due, re-sending a short wave's missing spawns once, then fire the wave due at
+        `now`, if any; the rows added."""
         if self.t0 is None or not self.spawns or self.period_s is None:
             return []
+        added = self.confirm(now)
         k = int((now - self.t0) // self.period_s)        # the latest wave boundary at or before now
         if k < self.next_i:
-            return []
+            return added
         missed, self.next_i = k - self.next_i, k + 1
-        return self.fire(k, now, now - (self.t0 + k * self.period_s), missed)
+        return added + self.fire(k, now, now - (self.t0 + k * self.period_s), missed)
 
-    def fire(self, i, now, late_s=0.0, missed=0):
-        pos = self.position()
+    def confirm(self, now):
+        """The pending sends past their `confirm_s`: each one's new ids (listed now and not before its send) against
+        the zombies it spawned, recorded in `confirms`; a wave's first send short of them re-sends that many of its
+        spawns (in plan order) once, its own confirmation pending in turn and never re-sent. The rows re-sent."""
         added = []
-        for j, (count, dist, bearing) in enumerate(self.spawns):
+        for p in [p for p in self.pending if now >= p["due"]]:
+            self.pending.remove(p)
+            new = sorted(set(self.listed()) - p["before"], key=repr)
+            rec = {"wave": p["wave"], "resend": p["resend"], "need": p["need"], "new": new, "t": round(now - self.t0, 3)}
+            self.confirms.append(rec)
+            short = p["need"] - len(new)
+            if short > 0 and not p["resend"]:
+                rec["resent"] = short
+                added += self.fire(p["wave"], now, resend=short)
+        return added
+
+    def fire(self, i, now, late_s=0.0, missed=0, resend=None):
+        """Wave `i`'s spawns at the square off the character's last frame (`resend` N: only the plan's first N
+        spawns, the rows marked `resend_of`); one pending confirmation for the zombies sent, when `listed` is set."""
+        pos = self.position()
+        before = frozenset(self.listed()) if self.listed is not None else None
+        added = []
+        need = 0
+        spawns = self.spawns if resend is None else self.spawns[:resend]
+        for j, (count, dist, bearing) in enumerate(spawns):
             row = {"wave": i, "spawn": j, "t": round(now - self.t0, 3), "lateS": round(late_s, 3), "missed": missed,
                    "count": count, "dist": dist, "bearing": bearing, "from": list(pos) if pos else None, "at": None,
                    "cmd": None, "ack": None}
+            if resend is not None:
+                row["resend_of"] = i
             if pos is None:
                 row["skipped"] = "no frame position"
             else:
@@ -533,9 +573,13 @@ class Waves:
                 z = int(pos[2]) if len(pos) > 2 and DS._num(pos[2]) is not None else 0     # the character's floor
                 row["at"] = [x, y, z]
                 row["cmd"] = CREATEHORDE2_CMD.format(x=x, y=y, z=z, count=int(count), radius=WAVE_RADIUS)
-                row["ack"] = self.rcon(row["cmd"], "wave_%d_%d" % (i, j))
+                row["ack"] = self.rcon(row["cmd"], "wave_%d_%d%s" % (i, j, "" if resend is None else "_resend"))
+                need += int(count)
             self.rows.append(row)
             added.append(row)
+        if before is not None and need:
+            self.pending.append({"wave": i, "due": now + self.confirm_s, "before": before, "need": need,
+                                 "resend": resend is not None})
         return added
 
     def _run(self):
@@ -563,7 +607,7 @@ class Waves:
     def record(self):
         return {"plan": self.plan, "period_s": self.period_s, "spawns": [list(s) for s in self.spawns],
                 "started": self.started, "rows": [dict(r) for r in self.rows], "error": self.error,
-                "joined": self.joined}
+                "joined": self.joined, "confirm": [dict(c) for c in self.confirms]}
 
 
 # ---------------------------------------------------------------- the session
@@ -596,14 +640,19 @@ class TrialChain(DY.Chain):
         # (x, y, z) of the last frame: a tuple assigned whole, so the wave thread reads it without a lock (the frames
         # deque is the loop's)
         self.last_pos = None
+        self.listed_ids = frozenset()            # every zombie id a frame listed: assigned whole, read by the waves
         super().__init__(xs, transport, **kw)
-        self.waves = Waves(waves, xs.rcon, lambda: self.last_pos, **dict({"clock": self.clock}, **(wave_kw or {})))
+        self.waves = Waves(waves, xs.rcon, lambda: self.last_pos,
+                           **dict({"clock": self.clock, "listed": lambda: self.listed_ids}, **(wave_kw or {})))
 
     def on_frame(self, line):
         super().on_frame(line)
         me = line.get("me")
         if isinstance(me, dict) and DS._num(me.get("x")) is not None and DS._num(me.get("y")) is not None:
             self.last_pos = (me["x"], me["y"], me.get("z"))
+        ids = {z.get("id") for z in line.get("zombies") or () if isinstance(z, dict) and z.get("id") is not None}
+        if not ids <= self.listed_ids:
+            self.listed_ids = self.listed_ids | ids
         if self.t_loop0 is not None and self.stopped is None and not self.waves.started:    # the loop's, not the stop's
             self.waves.start()
 

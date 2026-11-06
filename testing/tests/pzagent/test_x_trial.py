@@ -230,7 +230,71 @@ def test_street_spawns_nothing_and_starts_no_thread():
     assert w.started is True and w._thread is None and w.step(1e9) == [] and sent == []
     w.stop()
     assert w.record() == {"plan": "street", "period_s": None, "spawns": [], "started": True, "rows": [],
-                          "error": None, "joined": None}
+                          "error": None, "joined": None, "confirm": []}
+
+
+def _confirming(plan, listed):
+    sent = []
+    w = TR.Waves(plan, lambda cmd, tag: sent.append(tag) or {"ok": True}, lambda: (100.0, 200.0),
+                 listed=lambda: listed)
+    return w, sent
+
+
+def test_a_wave_its_frames_never_list_is_re_sent_once_after_the_confirm_window():
+    """Task 12's loop fix (trial 1: the server spawned six, the frames listed three): no new id WAVE_CONFIRM_S after
+    the send re-sends the wave's spawn once, its own confirmation recorded and never re-sent."""
+    listed = {7}
+    w, sent = _confirming("lone", listed)
+    w.begin(0.0)
+    assert len(w.step(0.0)) == 1 and sent == ["wave_0_0"] and TR.WAVE_CONFIRM_S == 8.0
+    assert w.step(7.9) == [] and sent == ["wave_0_0"]
+    rows = w.step(8.0)
+    assert sent == ["wave_0_0", "wave_0_0_resend"] and len(rows) == 1 and rows[0]["resend_of"] == 0
+    assert rows[0]["wave"] == 0 and rows[0]["cmd"] == "createhorde2 -x 108 -y 200 -z 0 -count 1 -radius 1"
+    assert w.confirms == [{"wave": 0, "resend": False, "need": 1, "new": [], "t": 8.0, "resent": 1}]
+    assert w.step(16.0) == [] and sent == ["wave_0_0", "wave_0_0_resend"]           # the re-send is never re-sent
+    assert w.confirms[-1] == {"wave": 0, "resend": True, "need": 1, "new": [], "t": 16.0}
+    assert len(w.step(60.0)) == 1 and sent[-1] == "wave_1_0"
+    listed.add(9)                                                                    # wave 1's zombie read after its send
+    assert w.step(68.0) == [] and w.confirms[-1] == {"wave": 1, "resend": False, "need": 1, "new": [9], "t": 68.0}
+
+
+def test_a_wave_read_by_the_frames_is_confirmed_and_never_re_sent():
+    listed = {7}
+    w, sent = _confirming("lone", listed)
+    w.begin(0.0)
+    w.step(0.0)
+    listed.add(11)                                                                   # the frames list the spawn
+    assert w.step(8.0) == [] and sent == ["wave_0_0"]
+    assert w.confirms == [{"wave": 0, "resend": False, "need": 1, "new": [11], "t": 8.0}]
+    assert w.record()["confirm"] == w.confirms and "resend_of" not in w.rows[0]
+
+
+def test_a_pair_short_of_one_re_sends_one_spawn():
+    listed = set()
+    w, sent = _confirming("pair", listed)
+    w.begin(0.0)
+    assert len(w.step(0.0)) == 2
+    listed.add(5)                                                                    # one of the two read
+    rows = w.step(8.0)
+    assert [r["spawn"] for r in rows] == [0] and sent == ["wave_0_0", "wave_0_1", "wave_0_0_resend"]
+    assert w.confirms[0]["need"] == 2 and w.confirms[0]["new"] == [5] and w.confirms[0]["resent"] == 1
+
+
+def test_waves_without_a_listing_never_confirm():
+    w, sent = _waves("lone")
+    w.begin(0.0)
+    w.step(0.0)
+    assert w.pending == [] and w.step(30.0) == [] and w.confirms == [] and sent == [("createhorde2 -x 108 -y 200 -z 0 "
+                                                                                         "-count 1 -radius 1", "wave_0_0")]
+
+
+def test_the_trial_chain_collects_every_listed_id_for_the_waves(tmp_path):
+    c, _ = _chain(tmp_path, ["--variant", "ladder", "--fixture", "agent", "--no-llm", "--waves", "lone"])
+    assert c.listed_ids == frozenset() and c.waves.listed() == frozenset()
+    c.on_frame({"me": {"x": 1.0, "y": 2.0, "z": 0}, "zombies": [{"id": 4}, {"id": 6}]})
+    c.on_frame({"me": {"x": 1.0, "y": 2.0, "z": 0}, "zombies": [{"id": 6}, {"id": 8}, "junk", {"id": None}]})
+    assert c.waves.listed() == frozenset({4, 6, 8})
 
 
 def test_a_wave_spawns_on_the_characters_floor():
@@ -715,7 +779,7 @@ def test_a_trial_writes_trial_json_at_the_run_root_and_copies_nothing(tmp_path, 
     assert "make_fixture" not in out and "llm" not in out["loop"]
     assert out["loop"]["trial"] == {"teleport": None, "idle": False,
                                     "waves": {"plan": "street", "period_s": None, "spawns": [], "started": True,
-                                              "rows": [], "error": None, "joined": None}}
+                                              "rows": [], "error": None, "joined": None, "confirm": []}}
     assert r.calls == [("teardown",)]                                  # no RCON on the street, no snapshot
     persisted = json.loads(open(os.path.join(r.run_dir, "x_trial.json"), encoding="utf-8").read())
     assert persisted["finished"] is True and persisted["trial"]["variant"] == "ladder"
@@ -755,12 +819,14 @@ def test_the_lone_wave_spawns_at_the_square_off_the_last_frame(tmp_path, monkeyp
     r = boot_trial(tmp_path, monkeypatch, ["--variant", "ladder", "--fixture", "agent", "--minutes", "0.2",
                                            "--no-llm", "--waves", "lone"])
     rcon = [c for c in r.calls if c[0] == "rcon"]
-    assert rcon == [("rcon", "createhorde2 -x 108 -y 200 -z 0 -count 1 -radius 1")]   # wave 0 at once; 12 s < 60
+    # wave 0 at once; 12 s < 60; the fake lists no spawned zombie, so the wave is re-sent once at WAVE_CONFIRM_S
+    assert rcon == [("rcon", "createhorde2 -x 108 -y 200 -z 0 -count 1 -radius 1")] * 2
     w = r.out["loop"]["trial"]["waves"]
     assert w["plan"] == "lone" and w["started"] is True and w["joined"] is True and w["error"] is None
-    assert len(w["rows"]) == 1 and w["rows"][0]["at"] == [108, 200, 0] and w["rows"][0]["ack"]["ok"] is True
+    assert len(w["rows"]) == 2 and w["rows"][0]["at"] == [108, 200, 0] and w["rows"][0]["ack"]["ok"] is True
+    assert w["rows"][1]["resend_of"] == 0 and w["confirm"][0]["resent"] == 1 and w["confirm"][0]["new"] == []
     steps = [s for s in r.out["steps"] if s.get("cmd") == "rcon"]
-    assert [s["step"] for s in steps] == ["wave_0_0"]
+    assert [s["step"] for s in steps] == ["wave_0_0", "wave_0_0_resend"]
     # the waves read the session's clock and began at the loop's first frame read (one pass after the loop's start),
     # never at the hello frame, tens of seconds before it on the fake clock (the kit phase between)
     assert r.sess.waves.clock == r.sess.clock
