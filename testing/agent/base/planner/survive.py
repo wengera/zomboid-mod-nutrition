@@ -404,6 +404,7 @@ from typing import Optional
 
 from agent.base.items import days_fresh
 from agent.base.planner.care import RIDE_FREE, Care
+from agent.base.planner.control import LADDER, load as load_control
 from agent.base.planner.edges import same_side
 from agent.base.planner.goal_runner import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
@@ -560,7 +561,13 @@ class Survive(SneakGait, Threat):
                           # the tick to the care branch (`assess`, `trapped_pass`); off, the hold takes it. In
                           # T5_SWITCHES with `Threat.UNARMED_FIGHT` (P25-P), the replay tests' `pre_t5`
 
-    def __init__(self, world, actions, log_path, clock=time.time, source=None):
+    def __init__(self, world, actions, log_path, clock=time.time, source=None, control=LADDER):
+        """`control` (Plan 31 Task 1, `planner/control.py`): "ladder", the ordered branches of `_assess_ladder`, or a
+        package name under `agent.base.planner` whose `assess(survive, frame)` answers in its place; an unknown name
+        raises `ControlError` here, never at the first tick. A variant's own state lives on `control_state`."""
+        self.control = control
+        self._control_assess = load_control(control)   # None: the ladder
+        self.control_state = {}
         self.world = world
         self.actions = actions
         self.log_path = log_path
@@ -1141,6 +1148,13 @@ class Survive(SneakGait, Threat):
         self.night.observe()
 
     def assess(self, inputs):
+        """The tick's one decision, by the control (Plan 31 Task 1): a variant's `assess(self, inputs)`, else the
+        ladder's `_assess_ladder`. Either returns the Decision `_apply` takes, nothing sent or logged here."""
+        if self._control_assess is not None:
+            return self._control_assess(self, inputs)
+        return self._assess_ladder(inputs)
+
+    def _assess_ladder(self, inputs):
         """The tick's one decision (refactor A): the branches tried in BRANCHES order, the first that answers taken
         (a branch's command cooled, `_cooling`, passes it over; the threat branch never is), `inputs` completed with
         `need`, `consume_refused`, `cooled` and `branches` (each branch tried, its own why; a kill the running Fight
