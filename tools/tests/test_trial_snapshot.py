@@ -77,8 +77,43 @@ def test_a_dirty_tree_stamp_carries_the_diff_hash_and_the_tree_the_edit():
         assert open(os.path.join(tree, "a.txt")).read() == "alpha\nedited\n"
         assert open(os.path.join(tree, ts.DIFF), "rb").read() == diff
         assert not os.path.exists(os.path.join(tree, "scratch.txt")) and left == 1
+        assert stamp["untracked_left_out"] == 1
         # the commit's own clean tree is not touched by it
         assert git(repo, "show", "HEAD:a.txt") == "alpha"
+
+
+def test_a_clean_commits_stamp_says_no_untracked_file_was_left_out():
+    with tempfile.TemporaryDirectory() as repo, tempfile.TemporaryDirectory() as root:
+        make_repo(repo)
+        _tree, stamp, _r, _l = ts.build(repo, "HEAD", root)
+        assert stamp["untracked_left_out"] == 0
+
+
+def test_a_reused_dirty_tree_keeps_the_untracked_marker_in_the_summary(capsys):
+    with tempfile.TemporaryDirectory() as repo, tempfile.TemporaryDirectory() as root:
+        make_repo(repo)
+        with open(os.path.join(repo, "a.txt"), "w", newline="\n") as f:
+            f.write("alpha\nedited\n")
+        with open(os.path.join(repo, "new_variant.py"), "w") as f:
+            f.write("x = 1\n")
+        assert ts.main([ts.WORKTREE, "--root", root, "--repo", repo]) == 0
+        assert "untracked_left_out: 1" in capsys.readouterr().out
+        os.remove(os.path.join(repo, "new_variant.py"))  # the count is now 0, the tree's stamp still says 1
+        assert ts.main([ts.WORKTREE, "--root", root, "--repo", repo]) == 0
+        out = capsys.readouterr().out
+        assert "(reused)" in out and "untracked_left_out: 1" in out
+
+
+def test_the_diff_survives_a_users_diff_prefix_config():
+    with tempfile.TemporaryDirectory() as repo, tempfile.TemporaryDirectory() as root:
+        make_repo(repo)
+        git(repo, "config", "diff.noprefix", "true")
+        git(repo, "config", "diff.mnemonicPrefix", "true")
+        with open(os.path.join(repo, "a.txt"), "w", newline="\n") as f:
+            f.write("alpha\nedited\n")
+        tree, stamp, _r, _l = ts.build(repo, ts.WORKTREE, root)
+        assert stamp["dirty"] is True
+        assert open(os.path.join(tree, "a.txt")).read() == "alpha\nedited\n"
 
 
 def test_a_worktree_with_no_edits_is_the_clean_commits_tree():
@@ -197,16 +232,47 @@ def test_a_large_archive_extracts_whole_and_the_archiver_exits_clean():
         assert open(os.path.join(tree, "big.bin"), "rb").read() == blob
 
 
+def _ext(path):
+    """The test's own extended-length form, so the check does not lean on the tool's helper."""
+    path = os.path.abspath(path)
+    return "\\\\?\\" + path if os.name == "nt" else path
+
+
 def test_a_root_deeper_than_the_windows_path_limit_still_extracts():
     base = tempfile.mkdtemp()
     try:
         with tempfile.TemporaryDirectory() as repo:
             make_repo(repo)
             deep = os.path.join(base, *["d" * 40] * 6)  # past 260 characters once the tree's own paths are added
-            os.makedirs(ts.long(deep))
+            os.makedirs(_ext(deep))
             tree, stamp, _r, _l = ts.build(repo, "HEAD", deep)
-            assert os.path.isfile(ts.long(os.path.join(tree, "sub", "b.txt")))
-            assert os.path.isfile(ts.long(os.path.join(tree, "testing", "agent", "drivers", "x_trial.py")))
+            assert os.path.isfile(_ext(os.path.join(tree, "sub", "b.txt")))
+            assert os.path.isfile(_ext(os.path.join(tree, "testing", "agent", "drivers", "x_trial.py")))
             assert stamp["dirty"] is False
     finally:
-        shutil.rmtree(ts.long(base), ignore_errors=True)
+        shutil.rmtree(_ext(base), ignore_errors=True)
+
+
+FAKE_ARCHIVER = """
+import io, sys, tarfile
+buf = io.BytesIO()
+with tarfile.open(fileobj=buf, mode="w") as tf:
+    data = b"hello\\n"
+    info = tarfile.TarInfo("a.txt")
+    info.size = len(data)
+    tf.addfile(info, io.BytesIO(data))
+out = sys.stdout.buffer
+out.write(buf.getvalue())
+for _ in range(8):   # a zero tail past the pipe buffer, which the tar reader stops short of
+    out.write(bytes(1 << 20))
+out.flush()
+"""
+
+
+def test_a_zero_tail_after_the_archive_is_drained_so_the_archiver_exits_clean(monkeypatch):
+    # fails without the drain: the unread tail is a broken pipe for the archiver, whose non-zero exit is an error
+    monkeypatch.setattr(ts, "archive_command", lambda repo, sha: [sys.executable, "-c", FAKE_ARCHIVER])
+    with tempfile.TemporaryDirectory() as root:
+        dest = os.path.join(root, "t")
+        ts.extract_archive(".", "ignored", dest)
+        assert open(os.path.join(dest, "a.txt")).read() == "hello\n"

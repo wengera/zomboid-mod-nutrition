@@ -11,14 +11,16 @@ everything the session loads resolves from `__file__` inside the tree. The tool
   * extracts `git archive <sha>` into `<root>/<name>/` (the archive carries no `.git`; the tool only reads the
     repository and never sets a GIT_* variable: the git calls run under a scrubbed environment),
   * reuses a tree already present (one tree per name; the stamp's `made_at` is left as it was),
-  * writes `TRIAL_STAMP.json` {"commit", "dirty", "diff_sha256", "made_at"} at the tree's root (a dirty tree also
-    holds the diff as `TRIAL_DIFF.patch`), and
+  * writes `TRIAL_STAMP.json` {"commit", "dirty", "diff_sha256", "untracked_left_out", "made_at"} at the tree's root
+    (a dirty tree also holds the diff as `TRIAL_DIFF.patch`), and
   * prints the launch line, in the Bash and the PowerShell form, with `PZT_FIXTURES` and `PZT_RUNS` pointing at the
     main tree's `testing/fixtures` and `testing/runs` (a bare archive has no fixture caches and a run's folder belongs
     in the main tree's runs).
 
 Untracked files are not part of a dirty tree (a new file in a variant is committed, or reached through a branch
-head): the tool says how many it left out.
+head): the stamp's `untracked_left_out` and the summary say how many it left out (0 for a commit), and a reused tree
+keeps the count it was made with. The extraction takes directories and regular files only: a symlink or any other
+special member of the archive is skipped.
 
 The root is `--root`, else `$PZT_SCRATCH/trials`, else `%LOCALAPPDATA%/pz-trials`, else `~/.pz-trials`.
 The main tree is `--main-tree`, else the parent of the repository's common git dir (a linked worktree's main
@@ -95,7 +97,8 @@ def default_root(environ=None):
 
 def tracked_diff(repo):
     """`git diff HEAD --binary` of the working tree (the tracked files' uncommitted edits), as bytes."""
-    return _git(toplevel(repo), "diff", "HEAD", "--binary")
+    # the prefixes and the external-diff switch are pinned so a user's diff config cannot break `git apply -p1`
+    return _git(toplevel(repo), "diff", "HEAD", "--binary", "--no-ext-diff", "--src-prefix=a/", "--dst-prefix=b/")
 
 
 def untracked_count(repo):
@@ -120,12 +123,16 @@ def _extract(tf, dest):
                 shutil.copyfileobj(tf.extractfile(m), out, 1 << 20)
 
 
+def archive_command(repo, sha):
+    """The archiver's argv (a function so a test can stand a fake in for it)."""
+    return ["git", "-C", repo, "archive", "--format=tar", sha]
+
+
 def extract_archive(repo, sha, dest):
     """`git archive <sha>` read as a tar stream into `dest`, no tar binary and no .git."""
     dest = long(dest)
     os.makedirs(dest)
-    p = subprocess.Popen(["git", "-C", repo, "archive", "--format=tar", sha], stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE, env=_env())
+    p = subprocess.Popen(archive_command(repo, sha), stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=_env())
     try:
         with tarfile.open(fileobj=p.stdout, mode="r|") as tf:
             _extract(tf, dest)
@@ -176,7 +183,7 @@ def build(repo, ref, root):
             apply_diff(part, diff)
             with open(long(os.path.join(part, DIFF)), "wb") as f:
                 f.write(diff)
-        stamp = {"commit": sha, "dirty": dirty, "diff_sha256": digest,
+        stamp = {"commit": sha, "dirty": dirty, "diff_sha256": digest, "untracked_left_out": left_out,
                  "made_at": datetime.datetime.now().astimezone().isoformat(timespec="seconds")}
         with open(long(os.path.join(part, STAMP)), "w", encoding="utf-8", newline="\n") as f:
             json.dump(stamp, f, indent=2)
@@ -222,8 +229,8 @@ def main(argv=None):
     print("tree: %s (%s)" % (tree, "reused" if reused else "made"))
     print("stamp: commit %s dirty %s diff_sha256 %s made_at %s" % (stamp["commit"], str(stamp["dirty"]).lower(),
                                                                    stamp["diff_sha256"], stamp["made_at"]))
-    if left_out:
-        print("note: %d untracked file(s) are not in the tree (commit them to take them)" % left_out)
+    left_out = stamp.get("untracked_left_out", 0)  # the count when the tree was made, which a reused tree keeps
+    print("untracked_left_out: %d%s" % (left_out, " (not in the tree: commit them to take them)" if left_out else ""))
     print("bash: %s" % sh)
     print("powershell: %s" % ps)
     return 0
