@@ -207,37 +207,59 @@ def test_toward_counts_a_line_whose_distance_to_its_named_target_fell_past_the_d
 
 
 def _frame(seq, minute, parts):
-    """A frame at game minute `minute` (me.hour), its parts {i: (bleeding, bandaged)}."""
+    """A frame at game minute `minute` (me.hour), its parts {i: (bleeding, bandaged)} or {i: (bleeding, bandaged,
+    wound)} (a part with no third element carries no `wound` key, a frame of before PZA/1.7.2)."""
     return {"seq": seq, "wallMs": 1000 * seq, "me": {"hour": minute / 60.0},
-            "body": {"parts": [{"i": i, "bleeding": b, "bandaged": d} for i, (b, d) in parts.items()]}}
+            "body": {"parts": [dict({"i": i, "bleeding": v[0], "bandaged": v[1]}, **({"wound": v[2]} if len(v) > 2
+                                                                                      else {}))
+                               for i, v in parts.items()]}}
 
 
-def test_dressed_reads_each_bleed_onset_to_its_parts_first_frame_not_bleeding_within_a_game_minute():
-    """The rule: each false-to-true `bleeding` on a part is a wound (the first frame's bleeding parts too); it ends at
-    the part's first later frame not bleeding (or not listed); dressed when that is within DRESS_MIN game minutes.
-    Part 1 bleeds from the first frame and stops 0.5 min later (dressed); part 2 bleeds at 600.2 and stops at 602
-    (1.8 min: not); part 2 bleeds again at 603 and never stops; part 3 bleeds at 601 and drops from the list at 601.9
-    (0.9 min: ends, dressed by the rule)."""
+def test_dressed_reads_each_wound_onset_to_its_parts_first_frame_bandaged_within_a_game_minute():
+    """The rule: a wound is taken when a part first reads `bleeding` true (or `wound`; the first frame's wounded parts
+    too) and is not under a bandage; it closes at the part's first later frame reading `bandaged`, or neither
+    (healed, or not listed); dressed when it closed bandaged within DRESS_MIN game minutes. Part 1 bleeds from the first
+    frame and is bandaged 0.5 min later (dressed); part 2 bleeds at 600.2 and is bandaged at 602 (1.8 min: not); at
+    603 its bandage is off and the wound flag stays (no new wound), at 604 it bleeds again (a new wound, never
+    closed); part 3 bleeds at 601 and drops from the list at 601.9 (0.9 min: closed healed, not dressed)."""
     frames = [_frame(1, 600.0, {1: (True, False), 2: (False, False)}),
               _frame(2, 600.2, {1: (True, False), 2: (True, False)}),
               _frame(3, 600.5, {1: (False, True), 2: (True, False)}),
               _frame(4, 601.0, {1: (False, True), 2: (True, False), 3: (True, False)}),
               _frame(5, 601.9, {1: (False, True), 2: (True, False)}),
               _frame(6, 602.0, {1: (False, True), 2: (False, True)}),
-              _frame(7, 603.0, {1: (False, True), 2: (True, True)}),
-              _frame(8, 604.0, {1: (False, True), 2: (True, True)})]
+              _frame(7, 603.0, {1: (False, True), 2: (False, False, True)}),
+              _frame(8, 604.0, {1: (False, True), 2: (True, False, True)})]
     dr = TS.dressed(frames)
-    assert [(r["part"], r["seq0"], r["seq1"]) for r in dr["rows"]] == [(1, 1, 3), (2, 2, 6), (3, 4, 5), (2, 7, None)]
+    assert [(r["part"], r["seq0"], r["seq1"]) for r in dr["rows"]] == [(1, 1, 3), (2, 2, 6), (3, 4, 5), (2, 8, None)]
     assert [None if r["minutes"] is None else round(r["minutes"], 3) for r in dr["rows"]] == [0.5, 1.8, 0.9, None]
-    assert (dr["dressed"], dr["wounds"], dr["stopped"]) == (2, 4, 3)
+    assert [r["bandaged"] for r in dr["rows"]] == [True, True, False, None]
+    assert (dr["dressed"], dr["wounds"], dr["stopped"]) == (1, 4, 3)
     assert TS.dressed([]) == {"wounds": 0, "dressed": 0, "stopped": 0, "rows": []}
+
+
+def test_dressed_takes_a_scratch_that_never_bleeds_as_a_wound_and_dresses_it_on_the_bandage():
+    """Round two's trial 12: two scratches (`wound` true, `bleeding` false throughout) read 0 of 0 while health fell
+    from 92.7 to 16.2. Part 4's scratch at 610 is bandaged at 610.9 (dressed); part 5's at 611 is never bandaged and
+    stays open (not dressed, never closed); a part already bandaged on its first frame is no wound taken."""
+    frames = [_frame(1, 609.0, {6: (False, True, True)}),
+              _frame(2, 610.0, {6: (False, True, True), 4: (False, False, True)}),
+              _frame(3, 610.9, {6: (False, True, True), 4: (False, True, True)}),
+              _frame(4, 611.0, {6: (False, True, True), 4: (False, True, True), 5: (False, False, True)}),
+              _frame(5, 614.0, {6: (False, True, True), 4: (False, True, True), 5: (False, False, True)})]
+    dr = TS.dressed(frames)
+    assert [(r["part"], r["seq0"], r["seq1"]) for r in dr["rows"]] == [(4, 2, 3), (5, 4, None)]
+    assert dr["rows"][0]["minutes"] == pytest.approx(0.9)
+    assert (dr["dressed"], dr["wounds"], dr["stopped"]) == (1, 2, 1)
 
 
 def test_dressed_holds_a_wound_ending_at_exactly_one_game_minute_off_the_frames_game_minute():
     """The bound is inclusive (review-t7 L1): a frame with no `me.hour` reads its whole `gameMin`, so a bleed from
-    minute 600 to 601 is exactly DRESS_MIN and dressed; one from 601 to 603 is not."""
-    frames = [{"seq": s, "wallMs": s, "gameMin": m, "body": {"parts": [{"i": i, "bleeding": b} for i, b in p]}}
-              for s, m, p in ((1, 600, [(4, True)]), (2, 601, [(4, False), (5, True)]), (3, 603, [(5, False)]))]
+    minute 600 bandaged at 601 is exactly DRESS_MIN and dressed; one from 601 bandaged at 603 is not."""
+    frames = [{"seq": s, "wallMs": s, "gameMin": m,
+               "body": {"parts": [{"i": i, "bleeding": b, "bandaged": d} for i, b, d in p]}}
+              for s, m, p in ((1, 600, [(4, True, False)]), (2, 601, [(4, False, True), (5, True, False)]),
+                              (3, 603, [(4, False, True), (5, False, True)]))]
     dr = TS.dressed(frames)
     assert [r["minutes"] for r in dr["rows"]] == [1.0, 2.0]
     assert (dr["dressed"], dr["wounds"]) == (1, 2)
@@ -513,3 +535,117 @@ def test_the_dry_run_prints_the_clock_note_naming_the_base_of_the_seconds(tmp_pa
     assert "run -3.00 to 19.50 s" in clock and "first frame sits 3.00 s before the loop" in clock
     assert "clipped at the stop: 3 state lines (2 frames), 1 decision lines, 1 actions" in clock
     assert "loop clock's zero" in TS.__doc__
+
+
+# ================================================================ the hits' union and the log's row block (Plan 31 Task 15 pre-step)
+def _hit_frame(seq, wall, reaction):
+    return {"kind": "frame", "seq": seq, "wallMs": wall, "me": {"hitReaction": reaction}, "body": {}}
+
+
+def _hit_act(aid, seq, wall, state, step=None):
+    return {"kind": "act", "type": "melee", "aid": aid, "seq": seq, "state": state, "reason": "", "wallMs": wall,
+            "result": {"step": step} if step else {}}
+
+
+def _dying_ring():
+    """A dying character's frames (100 ms apart from wall 1000, 15 frames): no reaction on the first two, then one
+    continuous reaction to the end of the ring that changes type four times (Bite k2-4, CrawlerBite k5-7, Bite k8-9,
+    EndDeath k10-14), and one melee a1 whose progress alternates `hit` and `swing` six times, at 1195 (within a frame
+    interval of the first Bite), 1550, 1850, 2050 (each the first in its segment's span) and 2250 and 2350 (further
+    steps in the EndDeath segment's span)."""
+    kinds = [""] * 2 + ["Bite"] * 3 + ["CrawlerBite"] * 3 + ["Bite"] * 2 + ["EndDeath"] * 5
+    frames = [_hit_frame(i + 1, 1000 + 100 * i, r) for i, r in enumerate(kinds)]
+    lines = [_hit_act("a1", 100, 1000, "accepted")]
+    seq = 101
+    for w in (1195, 1550, 1850, 2050, 2250, 2350):
+        lines.append(_hit_act("a1", seq, w, "progress", "hit"))
+        lines.append(_hit_act("a1", seq + 1, w + 20, "progress", "swing"))
+        seq += 2
+    lines.append(_hit_act("a1", seq, 2400, "done"))
+    return frames, lines
+
+
+def test_a_dying_characters_continuous_reaction_reads_its_landed_attacks_not_one():
+    """Round two's trial 9: a character dying under a swarm reads one continuous `hitReaction` run to its death, which
+    `e21.e_hits_union` counted once (1 / 1) against four bite reactions and seven `hit` steps. Split at the type's
+    changes the run is four segments (Bite, CrawlerBite, Bite, EndDeath); the first step in each segment's span joins it
+    (4 joined of 6 steps) and the two further steps in the EndDeath segment's span are hits of their own: 4 + 2 = 6
+    landed, the e21 reading kept beside it at 1."""
+    frames, lines = _dying_ring()
+    old = TS.G21.e_hits_union(frames, lines, 0)
+    assert (old["runs"], old["steps"], old["union"]) == (1, 6, 1)
+    hu = TS.landed_hits(frames, lines, 3)
+    assert (hu["runs"], hu["steps"], hu["joined"], hu["union"]) == (4, 6, 4, 6)
+    assert hu["per_kill_union"] == 2.0 and hu["kills"] == 3
+    assert [(r["source"], r["kind"]) for r in hu["rows"]] == [
+        ("both", "Bite"), ("both", "CrawlerBite"), ("both", "Bite"), ("both", "EndDeath"), ("step", None),
+        ("step", None)]
+    assert TS.reaction_segments(frames) == [(2, 4), (5, 7), (8, 9), (10, 14)]
+
+
+def test_one_reaction_run_with_one_step_lagging_its_first_frame_is_still_one_hit():
+    """The step that lags the reaction's first frame by under a frame interval joins it as `e_hits_union` joins it: a
+    Bite at k2-4 with a step at 1290 (the frame after the first is 1300) is 1 landed attack, 1 reaction, and a run
+    of one type with no step at all is 1; a step in no reaction is a hit of its own."""
+    frames = [_hit_frame(i + 1, 1000 + 100 * i, r) for i, r in enumerate(["", "", "Bite", "Bite", "Bite", "", ""])]
+    lines = [_hit_act("a1", 1, 1000, "accepted"), _hit_act("a1", 2, 1290, "progress", "hit"),
+             _hit_act("a1", 3, 1295, "progress", "swing"), _hit_act("a1", 4, 1600, "done")]
+    hu = TS.landed_hits(frames, lines, 0)
+    assert (hu["runs"], hu["steps"], hu["joined"], hu["union"]) == (1, 1, 1, 1)
+    assert TS.landed_hits(frames, [], 0)["union"] == 1
+    lone = lines[:1] + [_hit_act("a1", 2, 1050, "progress", "hit"), _hit_act("a1", 3, 1600, "done")]
+    hu = TS.landed_hits([_hit_frame(i + 1, 1000 + 100 * i, "") for i in range(3)], lone, 0)
+    assert (hu["runs"], hu["steps"], hu["joined"], hu["union"]) == (0, 1, 0, 1)
+    assert TS.landed_hits([], lines, 0) == {"read": False}
+
+
+def _section_log(path):
+    """A log with two rows, a blank line, a `## Round two ranking` section with blank lines inside it and a table row
+    in it, ending in a newline."""
+    row = lambda tid, seen="": TS.format_row([tid] + ["-"] * 13 + [seen])
+    head = TS.read_log(TRIALS)[0]
+    tail = ["", "## Round two ranking (2026-11-06)", "", "| arm | kills |", "|---|---|", "| ladder | 17 |", "",
+            "Best by kills: the ladder.", ""]
+    TS.write_log(path, head, [row("x_trial-a-20261106-000001", "kept"), row("x_trial-b-20261106-000002")], tail)
+    return head, tail
+
+
+def test_the_row_block_ends_at_the_first_line_that_is_not_a_row_and_a_write_keeps_the_tail_byte_for_byte(tmp_path):
+    """Round two's defect: every non-empty line after the table was a row, so the ranking section at the log's end
+    lost its blank lines and a new row landed after it. Now the block ends at the first blank line or heading; a
+    replaced row and an appended row land inside it, and everything after it (the section's own table too) is the
+    same bytes."""
+    p = str(tmp_path / "trials.md")
+    head, tail = _section_log(p)
+    before = open(p, "rb").read()
+    h, rows, t = TS.read_log_parts(p)
+    assert h == head and len(rows) == 2 and t == tail
+    assert TS.read_log(p) == (head, rows)
+    TS.write_log(p, h, rows, t)
+    assert open(p, "rb").read() == before                          # a write with nothing changed is the file
+    new = TS.format_row(["x_trial-c-20261106-000003"] + ["-"] * 13 + [""])
+    cs = TS.parse_row(new)
+    TS.put_row(p, cs[:-1] + ["new"])                               # appended, in the block
+    TS.put_row(p, TS.parse_row(rows[0])[:5] + ["9"] + TS.parse_row(rows[0])[6:-1] + [""])   # replaced, seen kept
+    h, rows2, t = TS.read_log_parts(p)
+    assert t == tail and h == head
+    assert [TS.parse_row(r)[0] for r in rows2] == ["x_trial-a-20261106-000001", "x_trial-b-20261106-000002",
+                                                   "x_trial-c-20261106-000003"]
+    assert TS.parse_row(rows2[0])[5] == "9" and TS.parse_row(rows2[0])[-1] == "kept"
+    assert open(p, "rb").read().endswith(("\n".join(tail)).encode("utf-8"))
+
+
+def test_rescore_all_keeps_a_trailing_section_and_a_new_folders_row_lands_before_it(tmp_path):
+    runs = str(tmp_path / "runs")
+    a = _write_run(os.path.join(runs, "x_trial-a-20261106-000001"), health=40.0)
+    _write_run(os.path.join(runs, "x_trial-c-20261106-000003"))
+    p = str(tmp_path / "trials.md")
+    head, tail = _section_log(p)
+    assert TS.main(["--rescore-all", "--log", p, "--runs", runs]) == 0
+    h, rows, t = TS.read_log_parts(p)
+    assert t == tail and h == head
+    assert [TS.parse_row(r)[0] for r in rows] == ["x_trial-a-20261106-000001", "x_trial-b-20261106-000002",
+                                                  "x_trial-c-20261106-000003"]
+    assert TS.parse_row(rows[0])[13] == "40" and TS.parse_row(rows[0])[-1] == "kept"
+    assert TS.parse_row(rows[1])[1:] == ["-"] * 13 + [""]          # no folder: kept as it stands
+    assert a and os.path.isdir(a)

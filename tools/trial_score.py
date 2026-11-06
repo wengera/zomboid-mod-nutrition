@@ -29,11 +29,23 @@ The readers are imported live from the grades (the scorecard is not a frozen gra
 P31-T): `gates_e.session_lines` (the state lines of every rotation), `gates_e._Lines` (the decision lines with the frame
 at or before each line's wall, by the wall-time bisect `gates_e._frame_at`; `replay_decisions.align` refuses a log
 whose two frames share a line's hour, F15's write-up), `grades.e21.e_kills_matched` (the kills read whole and the
-`zombie_dead` events matched to a press), `grades.e21.e_hits_union` (the frames' reaction runs and their union with
-the reflex's `hit` steps), `grades.e21.e_goal_wait` (`unmoved_near_s`, the standing on a model wait),
+`zombie_dead` events matched to a press), `grades.e21`'s hit readers (`_reaction_runs`, `_step_runs`, `_joins`: the
+frames' reaction runs and the reflex's `hit` steps, counted here by `landed_hits`), `grades.e21.e_goal_wait` (`unmoved_near_s`, the standing on a model wait),
 `grades.e21.e_standing` (the standing stretches) and `grades.e19._spans` (the melee spans). The four new readings are
 `flee_minutes` (with the frame-based `away_minutes` beside it in its cell, and the ladder's `leg_minutes` in its
 detail), `toward_minutes`, `dressed` and `melees_superseded`, each documented with its rule.
+
+Round two's other three fixes (Plan 31 Task 15's pre-step). The hits (`landed_hits`, which replaces
+`e21.e_hits_union`, whose rule counts a dying character's one continuous reaction as one hit: trial 9 read 1 against
+four bite reactions and seven reflex `hit` steps): the frames' reaction runs are split where the reaction type changes
+(a Bite, then a CrawlerBite, then an EndDeath are three), and a run holds one reflex `hit` step, the first within one
+frame interval of its span (`e21._joins`); every further step in it, and every step in no run, is one more hit, so the
+union is the runs plus the steps that joined none, and a death's run reads the attacks landed in it, not one. The
+dressing (`dressed`): a wound is a body part newly reading `wound` (scratched, cut, bitten or deep-wounded:
+`body.parts[i].wound`, the flag `planner/care.py` `_wounds` reads) or `bleeding`, not only bleeding, so a scratch that
+never bleeds is taken; it is dressed when the part reads `bandaged` within one game minute of it. The log's row block
+(`read_log`) ends at the first line that is not a table row (a blank line or a heading), and a write keeps every line
+after it as it stands.
 
 The loop's stop (round two's first fix, Plan 31 Task 14): every reading clips at the record's `stop`: the loop ended at
 `stop.wallS` seconds after `loop.startPyMs` (the loop clock's zero, epoch ms on the frames' clock), so a state line
@@ -492,32 +504,46 @@ def away_minutes(L):
 
 
 def dressed(frames):
-    """The wounds dressed within one game minute: {wounds, dressed, stopped, rows}. A wound is a bleed's onset on a
-    body part: a frame (wall order) whose `body.parts` entry {i, bleeding} reads `bleeding` true while the part has no
-    open wound (so the first frame's bleeding parts are onsets), the parts as the care readers read them
-    (`gates_e.real_part`'s `body.parts[i]` entries). It ends at the part's first later frame reading `bleeding` not
-    true, or the first frame not listing the part; `dressed` the wounds ending within DRESS_MIN game minutes of their
-    onset (`frame_minutes`), `stopped` those ending at all; each row {part, seq0, seq1, minutes, bandaged (the end
-    frame's `bandaged`)}, None past the log's end. `wounds` the denominator."""
+    """The wounds dressed within one game minute: {wounds, dressed, stopped, rows}. A wound is taken on a body part
+    (a `body.parts[i]` entry, as the care readers read them) at the first frame (wall order) it reads `wound` or
+    `bleeding` true while it has no open wound and is not under a bandage (so the first frame's wounded parts are
+    taken): the `wound` flag is the Lua's rank-1 test of a bandageable part (scratched, cut, bitten or deep-wounded,
+    `planner/care.py` `_wounds`), so a scratch that never bleeds is a wound, as a bleed is (a frame without the key
+    reads `bleeding` alone). It closes at the part's first later frame reading `bandaged` true (dressed, `bandaged`
+    True), or reading neither `wound` nor `bleeding`, or not listed (healed, `bandaged` False); `dressed` the wounds
+    closed bandaged within DRESS_MIN game minutes of their onset (`frame_minutes`, inclusive), `stopped` those closed
+    either way; each row {part, seq0, seq1, minutes, bandaged}, the last three None past the log's end. A dressed part
+    takes a new wound only when it reads `bleeding` true again unbandaged (its removed bandage leaves the old wound's
+    flag, no new wound); it is clean again when it reads neither. `wounds` the denominator."""
     gm = frame_minutes(frames)
-    opened, rows = {}, []
+    opened, under, rows = {}, set(), []
     for f, m in zip(frames, gm):
         cur = {p.get("i"): p for p in (E._d(x) for x in E._l(E._d(f.get("body")).get("parts"))) if "i" in p}
         for i, p in cur.items():
-            b = p.get("bleeding") is True
-            if b and i not in opened:
+            bleed = p.get("bleeding") is True
+            hurt, band = bleed or p.get("wound") is True, p.get("bandaged") is True
+            if i in opened:
+                if band or not hurt:
+                    r = rows[opened.pop(i)]
+                    r.update(seq1=f.get("seq"), minutes=_gap(r["m0"], m), bandaged=band)
+                    if band:
+                        under.add(i)
+            elif band:
+                under.add(i)
+            elif hurt and (bleed or i not in under):
+                under.discard(i)
                 opened[i] = len(rows)
                 rows.append({"part": i, "seq0": f.get("seq"), "m0": m, "seq1": None, "minutes": None,
                              "bandaged": None})
-            elif not b and i in opened:
-                r = rows[opened.pop(i)]
-                r.update(seq1=f.get("seq"), minutes=_gap(r["m0"], m), bandaged=p.get("bandaged"))
-        for i in [i for i in opened if i not in cur]:   # a part no longer listed reads not bleeding
+            elif not hurt:
+                under.discard(i)
+        for i in [i for i in opened if i not in cur]:   # a part no longer listed reads healed
             r = rows[opened.pop(i)]
-            r.update(seq1=f.get("seq"), minutes=_gap(r["m0"], m))
+            r.update(seq1=f.get("seq"), minutes=_gap(r["m0"], m), bandaged=False)
+        under -= {i for i in under if i not in cur}
     for r in rows:
         r.pop("m0")
-    return {"wounds": len(rows), "dressed": sum(1 for r in rows if r["minutes"] is not None
+    return {"wounds": len(rows), "dressed": sum(1 for r in rows if r["bandaged"] is True
                                                 and r["minutes"] <= DRESS_MIN),
             "stopped": sum(1 for r in rows if r["seq1"] is not None), "rows": rows}
 
@@ -545,6 +571,55 @@ def melees_superseded(out, lines):
     acts = [a for a in (E._d(x) for x in E._l(E._d(E._d(out).get("loop")).get("actions"))) if a.get("type") == "melee"]
     return {"superseded_before": before, "superseded": sup, "no_swing_step": noswing,
             "sent": len(acts) if acts else len(spans), "spans": len(spans), "aids": aids}
+
+
+def reaction_segments(frames):
+    """[(first, last)] frame indices of the reaction runs of `frames` (`e21._reaction_runs`: a run lasts while the
+    frames read `me.hitReaction` non-empty) split where the reaction type changes between two frames of one run (a
+    Bite, then a CrawlerBite, then an EndDeath are three segments)."""
+    out = []
+    for a, b in G21._reaction_runs(frames):
+        start = a
+        for i in range(a + 1, b + 1):
+            if G18._reaction(frames[i]) != G18._reaction(frames[i - 1]):
+                out.append((start, i - 1))
+                start = i
+        out.append((start, b))
+    return out
+
+
+def landed_hits(frames, lines, kills):
+    """The attacks landed (the hits' union, Plan 31 Task 15's pre-step): {read, runs, steps, joined, union, kills,
+    per_kill_union, rows}, the shape of `e21.e_hits_union`'s ({"read": False} without a frame). `runs` the reaction
+    segments (`reaction_segments`), `steps` the reflex's `hit` step runs (`e21._step_runs`); each step joins the first
+    segment, in wall order, that has no step yet and lies within one frame interval of it (`e21._joins`, so a step
+    lagging the reaction's first frame still joins it), and a step that joins none (a second step in a segment's span, or
+    one in no reaction) is a hit of its own: `union` is the segments plus the steps that joined none, `per_kill_union`
+    over `kills` (None at 0). A dying character's reaction stays set to the end of its life: its continuous run, which
+    `e_hits_union` counted once, reads here the segments of its types and the steps the reflex wrote in it. `rows` the
+    union in wall order {source ("reaction", "step", "both"), seq, wallMs, aid, kind (the segment's reaction)}."""
+    if not frames:
+        return {"read": False}
+    walls = [E._n(f.get("wallMs")) for f in frames]
+    segs, steps = reaction_segments(frames), G21._step_runs(lines)
+    rows = [{"source": "reaction", "seq": frames[a].get("seq"), "wallMs": walls[a], "aid": None,
+             "kind": G18._reaction(frames[a])} for a, _ in segs]
+    taken, joined = set(), 0
+    for w, seq, aid in steps:
+        k = next((i for i, s in enumerate(segs) if i not in taken and G21._joins(walls, s, w)), None)
+        if k is None:
+            rows.append({"source": "step", "seq": seq, "wallMs": w, "aid": aid, "kind": None})
+            continue
+        taken.add(k)
+        joined += 1
+        row = rows[k]
+        row.update(source="both", aid=aid)
+        if w < row["wallMs"]:
+            row.update(seq=seq, wallMs=w)
+    k = E._n(kills) or 0
+    union = len(segs) + len(steps) - joined
+    return {"read": True, "runs": len(segs), "steps": len(steps), "joined": joined, "union": union, "kills": k,
+            "per_kill_union": G21._per(union, k), "rows": sorted(rows, key=lambda r: r["wallMs"])}
 
 
 # ---------------------------------------------------------------- the score
@@ -582,7 +657,7 @@ def score(run, clipped=True):
     frames = L.index[1]
     km = G21.e_kills_matched(out, lines)
     events = len(set(E._l(km.get("event_ids")))) if km.get("event_ids") is not None else None
-    hu = G21.e_hits_union(frames, lines, events)
+    hu = landed_hits(frames, lines, events)
     loop = E._d(out.get("loop"))
     g0, g1 = E._n(loop.get("first_game_min")), E._n(loop.get("game_min"))
     health = E._n(E._d(frames[-1].get("body")).get("health")) if frames else None
@@ -672,7 +747,7 @@ def detail(s):
     return [
         "kills: %s zombie_dead events, %s matched to a press (e21.e_kills_matched)" % (s["kills_events"],
                                                                                        s["kills_matched"]),
-        "hits: %s reaction runs, %s hit steps, %s landed by the union, over %s kills" % (
+        "hits: %s reaction runs (split by type), %s hit steps, %s landed by the union, over %s kills" % (
             hu.get("runs"), hu.get("steps"), hu.get("union"), s["kills_events"]),
         "fleeing: %d lines, %.2f game minutes (%.1f s) over %.2f, by %s; the ladder's legs %s" % (
             fl["lines"], fl["minutes"], fl["seconds"], fl["total_minutes"], fl["by"],
@@ -684,7 +759,7 @@ def detail(s):
         "targets resolved to nothing), by %s" % (
             tw["lines"], tw["minutes"], tw["total_minutes"], tw["named_lines"], tw["named_minutes"],
             tw["unresolved"], tw["by"]),
-        "dressed within %.0f game minute: %d of %d wounds (%d stopped bleeding): %s" % (
+        "dressed within %.0f game minute: %d of %d wounds taken (%d closed, dressed or healed): %s" % (
             DRESS_MIN, dr["dressed"], dr["wounds"], dr["stopped"],
             [(r["part"], r["seq0"], r["seq1"], None if r["minutes"] is None else round(r["minutes"], 2))
              for r in dr["rows"]]),
@@ -717,19 +792,34 @@ def parse_row(line):
     return parts
 
 
-def read_log(path):
-    """(the lines before the first data row and the separator included, [row line]) of the log."""
+def read_log_parts(path):
+    """(head, rows, tail) of the log: `head` the lines up to and including the table's separator, `rows` the row block
+    (the lines after it up to the first that is not a table row, `parse_row`: a blank line or a heading ends it), `tail`
+    every line after the block as it stands (the file's last empty element, when it ends in a newline, included), so
+    `"\\n".join(head + rows + tail)` is the file."""
     with open(path, encoding="utf-8") as fh:
-        text = fh.read().splitlines()
+        text = fh.read().split("\n")
     sep = next((i for i, ln in enumerate(text) if re.match(r"^\|(\s*-+\s*\|)+\s*$", ln)), None)
     if sep is None:
         raise ScoreError("no table in %s" % path)
-    return text[:sep + 1], [ln for ln in text[sep + 1:] if ln.strip()]
+    end = sep + 1
+    while end < len(text) and parse_row(text[end]) is not None:
+        end += 1
+    return text[:sep + 1], text[sep + 1:end], text[end:]
 
 
-def write_log(path, head, rows):
+def read_log(path):
+    """(the lines before the first data row and the separator included, [row line]) of the log: the row block only
+    (`read_log_parts`)."""
+    head, rows, _ = read_log_parts(path)
+    return head, rows
+
+
+def write_log(path, head, rows, tail=None):
+    """The log written: `head`, `rows`, then `tail` (the lines `read_log_parts` returned after the row block, kept as
+    they stand); with none, the lines end in one newline."""
     with open(path, "w", encoding="utf-8", newline="\n") as fh:
-        fh.write("\n".join(head + rows) + "\n")
+        fh.write("\n".join(head + rows + tail) if tail is not None else "\n".join(head + rows) + "\n")
 
 
 def _row_id(line):
@@ -740,7 +830,7 @@ def _row_id(line):
 def put_row(path, cs, keep_seen=True):
     """The row `cs` written into the log at `path`: in place of the row with its trial id (that row's `seen` kept when
     `cs` has none and `keep_seen`), else appended; the row written."""
-    head, rows = read_log(path)
+    head, rows, tail = read_log_parts(path)
     for i, ln in enumerate(rows):
         if _row_id(ln) == cs[0]:
             if keep_seen and not cs[-1]:
@@ -750,14 +840,14 @@ def put_row(path, cs, keep_seen=True):
             break
     else:
         rows.append(format_row(cs))
-    write_log(path, head, rows)
+    write_log(path, head, rows, tail)
     return format_row(cs)
 
 
 def rescore_all(log, runs, dry=False):
     """The log rebuilt from every run folder `x_trial-*` under `runs`: each row rescored keeping its `seen`, a row whose
     folder is gone kept, a new folder's row appended in name order; the rows."""
-    head, rows = read_log(log)
+    head, rows, tail = read_log_parts(log)
     seen = {}
     for ln in rows:
         p = parse_row(ln)
@@ -771,7 +861,7 @@ def rescore_all(log, runs, dry=False):
     out = [fresh.pop(_row_id(ln)) if _row_id(ln) in fresh else ln for ln in rows]
     out += [fresh[k] for k in sorted(fresh)]
     if not dry:
-        write_log(log, head, out)
+        write_log(log, head, out, tail)
     return out
 
 
