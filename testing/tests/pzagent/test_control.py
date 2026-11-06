@@ -7,6 +7,8 @@ ladder byte for byte; this file pins the line's shape against the variant contra
 answers `assess(survive, frame)` with a Decision `_apply` sends, and keeps its state on `survive.control_state`. The
 stubs live in this file (a `sys.modules` entry or a temporary package directory on the planner's `__path__`), never
 importable from the planner in production."""
+import contextlib
+import importlib
 import json
 import sys
 import types
@@ -81,26 +83,37 @@ def test_a_package_without_assess_is_a_control_error(monkeypatch):
         C.load("ctl_stub")
 
 
-def test_a_package_found_on_disk_by_name_loads(tmp_path, monkeypatch):
-    pkg = tmp_path / "ctl_disk"
+@contextlib.contextmanager
+def disk_package(tmp_path, monkeypatch, name, source):
+    """A package `name` written under `tmp_path` and put on the planner's `__path__`; on exit the module, the
+    attribute the import set on the planner package and the path finder's cache entries are all gone."""
+    pkg = tmp_path / name
     pkg.mkdir()
-    (pkg / "__init__.py").write_text("def assess(survive, frame):\n    return None\n", encoding="utf-8")
+    (pkg / "__init__.py").write_text(source, encoding="utf-8")
     monkeypatch.setattr(planner_pkg, "__path__", [str(tmp_path)] + list(planner_pkg.__path__))
-    monkeypatch.delitem(sys.modules, "agent.base.planner.ctl_disk", raising=False)
+    monkeypatch.delitem(sys.modules, f"agent.base.planner.{name}", raising=False)
+    importlib.invalidate_caches()
     try:
-        assert C.load("ctl_disk")(None, None) is None
+        yield
     finally:
-        sys.modules.pop("agent.base.planner.ctl_disk", None)
+        sys.modules.pop(f"agent.base.planner.{name}", None)
+        if hasattr(planner_pkg, name):
+            delattr(planner_pkg, name)
+        for key in [k for k in sys.path_importer_cache if str(tmp_path) in k]:
+            del sys.path_importer_cache[key]
+        importlib.invalidate_caches()
+
+
+def test_a_package_found_on_disk_by_name_loads(tmp_path, monkeypatch):
+    with disk_package(tmp_path, monkeypatch, "ctl_disk", "def assess(survive, frame):\n    return None\n"):
+        assert C.load("ctl_disk")(None, None) is None
+    assert "agent.base.planner.ctl_disk" not in sys.modules and not hasattr(planner_pkg, "ctl_disk")
 
 
 def test_a_variant_s_own_missing_import_propagates_never_an_unknown_name(tmp_path, monkeypatch):
-    pkg = tmp_path / "ctl_broken"
-    pkg.mkdir()
-    (pkg / "__init__.py").write_text("import not_a_real_module_zz\n", encoding="utf-8")
-    monkeypatch.setattr(planner_pkg, "__path__", [str(tmp_path)] + list(planner_pkg.__path__))
-    monkeypatch.delitem(sys.modules, "agent.base.planner.ctl_broken", raising=False)
-    with pytest.raises(ModuleNotFoundError, match="not_a_real_module_zz"):
-        C.load("ctl_broken")
+    with disk_package(tmp_path, monkeypatch, "ctl_broken", "import not_a_real_module_zz\n"):
+        with pytest.raises(ModuleNotFoundError, match="not_a_real_module_zz"):
+            C.load("ctl_broken")
 
 
 # ================================================================ the fork
@@ -155,6 +168,44 @@ def test_the_stub_line_keeps_the_decision_line_contract(tmp_path, stub):
     (line,) = decisions(tmp_path)
     assert (line["inputs"]["x"], line["inputs"]["y"]) == (100.0, 200.0)
     assert "branches" in line["inputs"] and "branch" in line
+
+
+def flee_stub(survive, frame):
+    """A threat-branch control: a flee leg with the reason on `inputs.branches.threat.flee`."""
+    frame["need"], frame["consume_refused"], frame["cooled"] = None, None, None
+    frame["branches"] = {"threat": {"flee": "health"}}
+    return Decision("threat", None, WalkTo(frame["x"] - 5.0, frame["y"], "run"), frame)
+
+
+def test_a_threat_branch_stub_keeps_the_fight_and_flee_contract_on_the_line(tmp_path, monkeypatch):
+    """The contract `session.Fights` and the grades read: `branch == "threat"` on a fight tick, the flee's reason at
+    `inputs.branches.threat.flee`, the position at `inputs.x`/`inputs.y`; and the fork adds no field of its own."""
+    monkeypatch.setitem(sys.modules, "agent.base.planner.ctl_stub", stub_module(assess=flee_stub))
+    r, sv = build(tmp_path, control="ctl_stub")
+    r.frame(x=100.0, y=200.0)
+    sv.tick(r.world, r.acts)
+    (line,) = decisions(tmp_path)
+    assert line["branch"] == "threat" and sv.last_branch == "threat"
+    assert line["inputs"]["branches"]["threat"]["flee"] == "health"
+    assert (line["inputs"]["x"], line["inputs"]["y"]) == (100.0, 200.0)
+    assert line["action"] == {"type": "walkTo", "args": {"x": 95.0, "y": 200.0, "gait": "run"}}
+    assert "control" not in line and "control" not in line["inputs"]
+
+
+def test_the_ladder_body_is_never_run_under_a_variant(tmp_path, stub, monkeypatch):
+    def boom(self, inputs):
+        raise AssertionError("the ladder ran under a variant")
+    monkeypatch.setattr(Survive, "_assess_ladder", boom)
+    r, sv = build(tmp_path, control=stub)
+    r.frame()
+    assert sv.tick(r.world, r.acts) is not None
+    assert sv.control_state == {"n": 1}
+    other = tmp_path / "ladder"   # the control: the ladder does reach `_assess_ladder`
+    other.mkdir()
+    r2, ladder = build(other)
+    r2.frame()
+    with pytest.raises(AssertionError, match="ladder ran"):
+        ladder.tick(r2.world, r2.acts)
 
 
 def test_a_stub_control_s_state_persists_across_ticks_and_is_per_instance(tmp_path, stub):

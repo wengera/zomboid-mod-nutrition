@@ -564,7 +564,8 @@ class Survive(SneakGait, Threat):
     def __init__(self, world, actions, log_path, clock=time.time, source=None, control=LADDER):
         """`control` (Plan 31 Task 1, `planner/control.py`): "ladder", the ordered branches of `_assess_ladder`, or a
         package name under `agent.base.planner` whose `assess(survive, frame)` answers in its place; an unknown name
-        raises `ControlError` here, never at the first tick. A variant's own state lives on `control_state`."""
+        raises `ControlError` here, never at the first tick. A variant's own state lives on `control_state`, a dict
+        never cleared by the fork (a variant clears its own per-tick keys)."""
         self.control = control
         self._control_assess = load_control(control)   # None: the ladder
         self.control_state = {}

@@ -15,7 +15,7 @@ import importlib
 
 LADDER = "ladder"
 CONTROLS = (LADDER,)   # the built-in; any other name is a package found by name under `agent.base.planner`
-PACKAGE = "agent.base.planner"
+PACKAGE = __package__   # "agent.base.planner"
 
 
 class ControlError(ValueError):
