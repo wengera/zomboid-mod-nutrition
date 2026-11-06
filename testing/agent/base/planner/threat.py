@@ -218,7 +218,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     SWING_CLOSE = True    # ruling P30-A: the melee's `closeR` is SWING_CLOSE_R, so the Lua swings at a chaser only
                           # inside it and presses a swing that did nothing again with no back leg (the Fight's
                           # `swing_close` rule, `dispatch.FightDispatch._melee_inputs`); off, `closeR` 0: the swing at
-                          # the reach and the back leg after every miss, as before
+                          # the reach and the back leg after every miss, as before. PZA/1.10 (Plan 31 Task 2) retired
+                          # `closeR` and the back leg (the meet's press at the predicted collision): the rule reads
+                          # nothing since, kept as iteration 24's record in T14_SWITCHES
     MELEE = True          # cut 1 of the maneuver layer: where the Fight's ladder would send an in-reach stance leg,
                           # an attack, a shove, a stomp or a floor swing at its pin, the melee maneuver to a build
                           # announcing `melee` (`dispatch.FightDispatch`); off, the ladder's command

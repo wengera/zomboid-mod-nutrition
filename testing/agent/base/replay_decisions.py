@@ -39,7 +39,8 @@ THE METHOD (no wall clock is read; a run twice gives identical output):
   supersede); a bound one fails only the older unbound ones (the record's own act lines supersede the bound ones);
   an unbound `steer`, `aim` or `melee` ends `done` (an empty result) once its `seconds` have passed on the clock (the
   Lua ends a steer, a stance leg and a melee at its seconds; Task 10 fix 1, the review's major 3: an unbound aim held
-  open would make every stand one leg; Plan 28 Task 7b: the melee of PZA/1.8), and any other unbound action ends only
+  open would make every stand one leg; Plan 28 Task 7b: the melee of PZA/1.8; a PZA/1.10 melee, Plan 31 Task 2, has
+  no `seconds` and no time end, so an unbound one ends only as any other), and any other unbound action ends only
   by a supersede or the Actions deadline. An action the replay superseded is
   unbound, its later recorded act lines dropped. A recorded aid the replay did not send has its act lines dropped.
   The replay is open loop: the World follows the recorded frames whatever the replay sends, so after a first
@@ -315,9 +316,11 @@ class _Acts:
         return cur is not None and any(ln["aid"] == cur.aid and ln["state"] in TERMINAL for ln in self.translate(got))
 
     def end_legs(self, now):
-        """Each unbound steer, aim or melee (LEG_TYPES) ends `done` once its `seconds` have passed (the Lua's end)."""
+        """Each unbound steer, aim or melee (LEG_TYPES) ends `done` once its `seconds` have passed (the Lua's end); one
+        with no `seconds` (a PZA/1.10 melee) never ends on time."""
         for a in self.unbound:
-            if a.type in LEG_TYPES and a.state not in TERMINAL and now - a.sent_wall >= a.args["seconds"]:
+            secs = a.args.get("seconds")
+            if a.type in LEG_TYPES and a.state not in TERMINAL and secs is not None and now - a.sent_wall >= secs:
                 a.state, a.ended_wall, a.result = "done", now, {}
 
     def sent(self, k, row, a, open_before, now):

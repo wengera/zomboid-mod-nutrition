@@ -151,7 +151,7 @@ end
 -- leave the Motor re-asserting a run with no skill); every read and setter is guarded (S-15: K.snapshot's reads here,
 -- each setter in MO.off), so a raise at a skill's end never leaves K.cur set or a latch untried; MO.off's caught
 -- raises are counted in K.errors. A skill's stop hook runs at every end but done, after MO.off and before the line,
--- under the same guard (ruling P23-AB: the sleep's wake).
+-- under the same guard (ruling P23-AB: the sleep's wake); a table it answers is the line's result where none was given (PZA/1.10: the melee's cut press).
 local function finish(p, cur, state, reason, result)
     K.cur = nil
     if state == "failed" then
@@ -166,7 +166,7 @@ local function finish(p, cur, state, reason, result)
     local stop = cur.def.stop
     if state ~= "done" and stop ~= nil then
         local ran, why = pcall(stop, p, cur.st, reason)
-        if not ran then caught(why) end
+        if not ran then caught(why) elseif result == nil and type(why) == "table" then result = why end
     end
     emitAct(p, cur.aid, cur.type, state, reason, result)
 end

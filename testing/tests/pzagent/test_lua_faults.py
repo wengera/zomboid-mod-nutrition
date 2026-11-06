@@ -67,8 +67,9 @@ VALID = {
     "unwear": ("unwear", {"itemId": 1005}),              # PZA/1.7 (Task 9 fix 11)
     "shove": ("shove", {"targetId": 5}),
     "stomp": ("stomp", {"targetId": 5}),
-    "melee": ("melee", {"targetId": 5, "mode": "strike", "reach": 1.4, "keepR": 2.5, "shoveR": 1.1,   # PZA/1.8
-                        "releaseR": 2.75, "backVx": -1.0, "backVy": 0.0, "seconds": 2.5, "closeR": 0.0}),
+    "melee": ("melee", {"targetId": 5, "mode": "strike", "reach": 1.4, "shoveR": 0.9, "releaseR": 2.75,   # PZA/1.10
+                        "faceR": 3.0, "pressAngle": 41.4, "pressLo": 0.0, "floorR": 1.0, "handbackR": 2.0,
+                        "stall": 3}),
     "sneak": ("sneak", {"on": True}),                   # PZA/1.9 (Plan 30 Task 1): answered on its tick, no skill
     "scan": ("scan", {"r": 3}),
     "rate": ("rate", {"hz": 5}),

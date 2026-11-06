@@ -2187,17 +2187,21 @@ def test_iteration_23_s_hit_rules_move_the_goldens_at_the_many_count_and_the_fle
 
 
 def test_an_unbound_melee_ends_done_at_its_seconds():
-    """`melee` is one of the replay's LEG_TYPES (Plan 28 Task 7b): an unbound one ends `done`, its result empty, once
-    its `seconds` have passed on the clock, as an unbound stance leg does, so a replayed span is MELEE_S long."""
+    """`melee` is one of the replay's LEG_TYPES (Plan 28 Task 7b): an unbound PZA/1.8 one ends `done`, its result
+    empty, once its `seconds` have passed on the clock, as an unbound stance leg does, so a replayed span was 2.5 s
+    long (Plan 28's MELEE_S); a PZA/1.10 one (Plan 31 Task 2) has no `seconds` and never ends on time."""
     from agent.base.actions import Action
     assert R.LEG_TYPES == ("steer", "aim", "melee")
     acts = R._Acts(None, [])
-    a = Action(aid="a1", type="melee", args={"targetId": 9, "seconds": P.MELEE_S}, deadline_s=30.0, sent_wall=100.0)
-    acts.unbound.append(a)
-    acts.end_legs(100.0 + P.MELEE_S - 0.1)
+    a = Action(aid="a1", type="melee", args={"targetId": 9, "seconds": 2.5}, deadline_s=30.0, sent_wall=100.0)
+    b = Action(aid="a2", type="melee", args={"targetId": 9, "faceR": 3.0}, deadline_s=30.0, sent_wall=100.0)
+    acts.unbound.extend([a, b])
+    acts.end_legs(100.0 + 2.5 - 0.1)
     assert a.state == "sent"
-    acts.end_legs(100.0 + P.MELEE_S)
-    assert (a.state, a.result, a.ended_wall) == ("done", {}, 100.0 + P.MELEE_S)
+    acts.end_legs(100.0 + 2.5)
+    assert (a.state, a.result, a.ended_wall) == ("done", {}, 100.0 + 2.5)
+    acts.end_legs(100.0 + 3600.0)
+    assert b.state == "sent"
 
 
 # ================================================================ Plan 30 Task 3: iteration 24 on the goldens

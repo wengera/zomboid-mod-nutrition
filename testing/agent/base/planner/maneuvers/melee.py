@@ -1,64 +1,59 @@
-"""The melee maneuver (Plan 28 Task 7b, survival iteration 22; the architecture review `arch-review-cerebellum.md`
-§ 3.5, cut 1 of the maneuver layer): `Melee`, the planner's face of Task 7a's reflex skill `melee` (PZA/1.8,
-`PZAgent_StanceMelee.lua`), which owns one zombie from the combat stance to the kill at the client's tick rate (the
-hit-reaction hold, the strike's end read, the floor swing or the stomp at a fallen target, the knock wait, the shove,
-the swing a tick after its face, the back leg after a miss, the close, the stand). The Fight (`fight.Fight.m`) starts
-one where its ladder would send an in-reach command at its pin and sets its `inputs` before each `step`.
+"""The melee maneuver (Plan 28 Task 7b, survival iteration 22, cut 1 of the maneuver layer; the meet of PZA/1.10, Plan 31
+Task 2): `Melee`, the planner's face of the reflex skill `melee` (`PZAgent_StanceMelee.lua`), which owns one zombie to
+the kill at the client's tick rate: the stance beyond FACE_R, the facing every tick inside it, the press when the look is
+on the target and its distance at the swing's collision is predicted inside the reach, the press again at once after a
+swing that left it standing (no back step, no pause), the knock wait, the finish at a fallen target's head, the spent
+meet's shove and stomp, the press leaf on each result. It ends on the kill, a hand-back or a lost target, never on time.
+The Fight (`fight.Fight.m`) starts one where its ladder would send an in-reach command at its pin and sets its `inputs`
+before each `step`; a decider variant may start one wherever it fights.
 
-- `step()`: `pza1.Melee` at `target` from `inputs` (`MeleeInputs`: the Fight's mode, reach, `back` heading and
-  floor swing, read afresh at each send) and the policies table (`keepR` KEEP_R, `shoveR` SHOVE_SEND_R, inside the
-  engine's reach SHOVE_R: Task 7e, ruling P28-H 1; `releaseR`
-  MELEE_RELEASE_R, `seconds` MELEE_S); None while the running melee is not yet due its re-send. The re-send
-  (`resend`): "early" once MELEE_S - MELEE_RESEND_MARGIN_S have passed since the running melee's accept (its
-  `acked_wall`, else its `sent_wall`), so the Lua supersedes a melee of the same target and keeps the stance (Task
-  7a's report, item 10: a `done` releases it), but never while the last progress line's step is a strike's
-  (STRIKE_STEPS: fix 1, review-t7c M1, a re-send would supersede the swing or shove in flight and lose its end), going
-  on the first tick after it; "time" after a `done time` (the stance taken again).
+- `step()`: `pza1.Melee` at `target` from `inputs` (`MeleeInputs`: the mode, the reach and the floor swing, read afresh
+  at each step) and the policies table (`shoveR` SHOVE_SEND_R, `releaseR` MELEE_RELEASE_R, `faceR` FACE_R,
+  `pressAngle` PRESS_ANGLE, `pressLo` PRESS_LO, `floorR` FLOOR_R, `handbackR` HANDBACK_R, `stall` STALL_SWINGS); None
+  while the running melee runs on inputs that are still its own. One send a target: the melee has no time end, so the
+  only re-send (`resend` "inputs") is for inputs that changed the reflex's behaviour (`resend_due`: the spent mode
+  shove against the meet's strike or finish, which the Lua runs alike by the target's posture, the floor swing, the
+  reach), never while the last progress line's step is a press in flight (STRIKE_STEPS: its result is read first).
 - The ends (`ended`): a `done` whose result reads `kill` true names its target in the kills its owner takes
-  (`take_kills`), whichever of its sends it was (an early re-send's predecessor too); the current send's `done`
-  ends the maneuver `dead` when its `end` reads dead, else (`time`, or a replay's result-less done) it goes on, its
-  span (`take_span`: the strikes, the swings, floor swings and stomps, and whether the target's health fell from
-  `hp0` to `hp1`, None when either is unreadable) read by the owner's no-progress streak; any other end of the current
-  send ends it with its reason (`out of range`, `crowd` with its result kept in `crowd`, `stood`, `out of reach`,
-  `superseded`, `not loaded`, `interrupted`, a rejection's `too far`, `no target`, `no weapon`), or its state
-  (`timeout`).
-- The walk to a fallen target (fix 1, review-t7b m1): the Lua's `stomp_walk` fails `out of reach` after
-  K.STOMP_APPROACH_MS, but its `seconds` end it first and every send restarts that walk's clock, so the maneuver keeps
-  its own: from the first progress line reading `stomp_walk` (`_walk_since`, reset by any other step), an observe
-  whose last step is still the walk once MELEE_WALK_S have passed ends the maneuver `out of reach`, as the Lua would.
-  Read in `observe` (the residual of fix 1's re-review: a check on the `done` alone never fired live, since the early
-  re-send supersedes a walking melee before its `done time`), not in `step`, whose superseded retry would start a
-  fresh maneuver with a fresh clock.
-- `why` (logged by the Fight as `maneuver`): target, mode, sends, and the last progress line's step and distance,
-  with its counts once one carries them, and `swing_close` {held, pressed_again} (ruling P30-A: the Lua's `held` and
-  `again`, the stance held at a chaser beyond `closeR` and the swings pressed again after one that did nothing) once a
-  progress line carries them.
+  (`take_kills`), whichever of its sends it was (a re-send's predecessor too); the current send's `done` ends the
+  maneuver with its `end` (`kill`; `handback`, its other zombie {id, d} kept in `handback`; `lost`), its `why` in
+  `end_why` (out of range, out of reach, no progress; crowd, standing) and its span (`take_span`: the strikes, the
+  swings, floor swings and stomps, and whether the target's health fell from `hp0` to `hp1`, None when either is
+  unreadable) read by the owner's no-progress streak; any other end of the current send ends it with its reason
+  (`superseded`, `not loaded`, `no weapon`, `interrupted`, `dead`, a rejection's `too far`, `no target`, `bad args`),
+  or its state (`timeout`).
+- `press`: the last press leaf a line carried (`{d_press, d_collide_pred, look_off, hp0, hp1, knock, cut_by}`), kept
+  for its owner's log.
+- `why` (logged by the Fight as `maneuver`): target, mode, sends, and the last progress line's step and distance, with
+  its counts and `spent` once one carries them, and the last press leaf.
 """
 import dataclasses
 import time
 
 from agent.base import pza1
 from agent.base.planner.maneuvers.base import Maneuver
-from agent.base.planner.policies import (KEEP_R, MELEE_RELEASE_R, MELEE_RESEND_MARGIN_S, MELEE_S, MELEE_WALK_S,
-                                         SHOVE_SEND_R)
+from agent.base.planner.policies import (FACE_R, FLOOR_R, HANDBACK_R, MELEE_RELEASE_R, PRESS_ANGLE, PRESS_LO,
+                                         SHOVE_SEND_R, STALL_SWINGS)
 
 STRIKE_KEYS = ("swings", "floors", "stomps")   # a span's strikes the no-progress streak counts: the ladder's attack
                                                # (the swing and the floor swing) and its stomp (`Fight.observe`)
-COUNT_KEYS = ("swings", "shoves", "stomps", "floors", "knockdowns", "hits")   # the progress line's counts, logged
-CLOSE_KEYS = (("held", "held"), ("again", "pressed_again"))   # P30-A's counts -> `swing_close`'s keys
-STRIKE_STEPS = ("face", "swing", "shove", "stomp", "floor")   # the Lua's strike steps (PZAgent_StanceMelee.lua's
-                                                              # header: each from its face to its result), in which no
-                                                              # early re-send goes (fix 1, review-t7c M1)
+COUNT_KEYS = ("swings", "shoves", "stomps", "floors", "knockdowns", "hits", "spent")   # the progress line's, logged
+STRIKE_STEPS = ("swing", "shove", "stomp", "floor")   # the Lua's presses in flight (PZAgent_StanceMelee.lua's header:
+                                                      # each from its press to its result), in which no re-send goes
+PRESS_KEYS = ("d_press", "d_collide_pred", "look_off", "hp0", "hp1", "knock", "cut_by")   # the press leaf's keys
 
 
 @dataclasses.dataclass(frozen=True)
 class MeleeInputs:
-    """What the Fight reads for one send (`fight.Fight._melee_inputs`)."""
-    mode: str           # strike, shove or finish
-    reach: float        # the swing's distance at a standing target, 0 for the Lua's own (`K.reachOf`)
-    back: tuple         # the back leg's world heading (vx, vy); (0, 0) stands
+    """What the owner reads for one send (`fight.Fight._melee_inputs`)."""
+    mode: str           # strike, shove (the spent meet) or finish (sent at a fallen target)
+    reach: float        # the swing's distance at the collision, 0 for the Lua's own (`K.reachOf`)
     floor_swing: bool   # the weapon's floor swing at a fallen target allowed
-    close_r: float = 0.0   # the swing close's distance (ruling P30-A, SWING_CLOSE_R), 0 for the rule off
+
+    def behaviour(self):
+        """The inputs as the reflex runs them: strike and finish are one meet (the target's posture picks the finish),
+        shove the spent meet."""
+        return ("shove" if self.mode == "shove" else "meet", float(self.reach), bool(self.floor_swing))
 
 
 def _number(v):
@@ -75,22 +70,22 @@ class Melee(Maneuver):
         self.target = target    # the zombie id every send goes at
         self.inputs = None      # MeleeInputs, set by the owner before each `step`
         self.mode = None        # the mode of the last send
-        self.resend = None      # the last step's re-send: "early", "time", or None for the first send
-        self.crowd = None       # the `crowd` end's result {id, d}
+        self.resend = None      # the last step's re-send: "inputs", or None for the first send
+        self.handback = None    # a `handback` end's other zombie {id, d}
+        self.end_why = None     # a `done` end's why (out of range, out of reach, no progress; crowd, standing)
+        self.press = None       # the last press leaf a line carried
         self.d = None           # the last progress line's distance to the target
+        self._sent = None       # the running send's inputs (`MeleeInputs.behaviour`)
         self._progress = {}     # the last progress line's result
         self._kills = []        # the target ids a `done` {kill} read, not yet taken
         self._span = None       # the current send's `done` span, not yet taken
-        self._walk_since = None   # the wall of the first progress line of the running walk to a fallen target
 
     def resend_due(self):
-        """The running melee has run MELEE_S - MELEE_RESEND_MARGIN_S since its accept (else its send), and its last
-        progress line's step is no strike's (STRIKE_STEPS: the strike's end is read first)."""
-        a = self.action
-        if a is None or not self.running() or self._progress.get("step") in STRIKE_STEPS:
+        """The running melee runs on inputs the current ones change (`MeleeInputs.behaviour`), and its last progress
+        line's step is no press in flight (STRIKE_STEPS: its result is read first)."""
+        if self.action is None or not self.running() or self.inputs is None:
             return False
-        t0 = a.acked_wall if a.acked_wall is not None else a.sent_wall
-        return self.clock() - t0 >= MELEE_S - MELEE_RESEND_MARGIN_S
+        return self.inputs.behaviour() != self._sent and self._progress.get("step") not in STRIKE_STEPS
 
     def step(self):
         """The next `pza1.Melee` (the module docstring), else None."""
@@ -102,12 +97,15 @@ class Melee(Maneuver):
             return None
         if live and not self.resend_due():
             return None
-        self.resend = None if self.action is None else ("early" if live else "time")
+        if self.action is not None and not live:
+            return None   # its end is read by `observe`, which ends the maneuver
+        self.resend = None if self.action is None else "inputs"
         i = self.inputs
         self.mode = i.mode
-        cmd = pza1.Melee(targetId=self.target, mode=i.mode, reach=float(i.reach), keepR=KEEP_R, shoveR=SHOVE_SEND_R,
-                         releaseR=MELEE_RELEASE_R, backVx=float(i.back[0]), backVy=float(i.back[1]),
-                         seconds=MELEE_S, closeR=float(i.close_r), floorSwing=bool(i.floor_swing))
+        self._sent = i.behaviour()
+        cmd = pza1.Melee(targetId=self.target, mode=i.mode, reach=float(i.reach), shoveR=SHOVE_SEND_R,
+                         releaseR=MELEE_RELEASE_R, faceR=FACE_R, pressAngle=PRESS_ANGLE, pressLo=PRESS_LO,
+                         floorR=FLOOR_R, handbackR=HANDBACK_R, stall=STALL_SWINGS, floorSwing=bool(i.floor_swing))
         self._log(sends=self.n + 1)
         return cmd
 
@@ -119,37 +117,32 @@ class Melee(Maneuver):
         res = a.result if isinstance(a.result, dict) else {}
         if a.state == "done" and res.get("kill") is True:
             self._kills.append(a.args.get("targetId"))
+        self._keep_press(res)
         if not current:
             return
         if a.state == "done":
             strikes = sum(res.get(k) for k in STRIKE_KEYS if _number(res.get(k)))
             hp0, hp1 = res.get("hp0"), res.get("hp1")
             self._span = (strikes, hp1 < hp0 if _number(hp0) and _number(hp1) else None)
-            if res.get("end") == "dead":
-                self._end = "dead"
+            self.end_why = res.get("why")
+            if res.get("end") == "handback":
+                self.handback = {"id": res.get("id"), "d": res.get("d")}
+            self._end = res.get("end") or "done"   # a replay's result-less done ends it as done
             return
-        if a.reason == "crowd":
-            self.crowd = res
         self._end = a.reason or a.state
-
-    def observe(self):
-        """The base's read, then the walk's bound (the module docstring): the walk to a fallen target still in force
-        MELEE_WALK_S after its first progress line, summed across the sends, ends the maneuver `out of reach`."""
-        super().observe()
-        if (self._end is None and self._progress.get("step") == "stomp_walk" and self._walk_since is not None
-                and self.clock() - self._walk_since >= MELEE_WALK_S):
-            self._end = "out of reach"   # fix 1, m1: the Lua's own bound, summed across the sends
 
     def progressed(self, line):
         res = line.get("result")
         if isinstance(res, dict):
             self._progress = res
             self.d = res.get("d")
-            if res.get("step") != "stomp_walk":
-                self._walk_since = None
-            elif self._walk_since is None:
-                self._walk_since = self.clock()
+            self._keep_press(res)
             self._log()
+
+    def _keep_press(self, res):
+        leaf = res.get("press")
+        if isinstance(leaf, dict):
+            self.press = {k: leaf.get(k) for k in PRESS_KEYS}
 
     def take_kills(self):
         """The target ids read killed since the last take."""
@@ -165,5 +158,5 @@ class Melee(Maneuver):
         self.why = {"target": self.target, "mode": self.mode, "sends": self.n if sends is None else sends,
                     "step": self._progress.get("step"), "d": self.d}
         self.why.update({k: self._progress[k] for k in COUNT_KEYS if k in self._progress})
-        if all(k in self._progress for k, _ in CLOSE_KEYS):
-            self.why["swing_close"] = {name: self._progress[k] for k, name in CLOSE_KEYS}   # P30-A
+        if self.press is not None:
+            self.why["press"] = dict(self.press)

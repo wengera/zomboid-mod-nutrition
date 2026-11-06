@@ -29,7 +29,8 @@ def rand_frame(rng, seq=1):
     zombies = [{"id": rng.randrange(1, 9999), "x": lua_float(rng), "y": lua_float(rng), "dist": lua_float(rng, 0, 30),
                 "hasTarget": b(), "crawler": b(), "health": maybe(rng, lua_float(rng, 0, 2)),
                 "onFloor": maybe(rng, True, 0.3), "known": maybe(rng, b()),                     # PZA/1.9: the awareness
-                "state": maybe(rng, rng.choice(["", "idle", "walktoward", "lunge-network"])), "behind": maybe(rng, b())}
+                "state": maybe(rng, rng.choice(["", "idle", "walktoward", "lunge-network"])), "behind": maybe(rng, b()),
+                "headX": maybe(rng, lua_float(rng)), "headY": maybe(rng, lua_float(rng))}             # PZA/1.10
                for _ in range(rng.choice([0, 0, 1, 2, 5]))]
     parts = [{"i": i, "h": lua_float(rng, 0, 100), "bleeding": b(), "bleedingTime": lua_float(rng, 0, 20),
               "bandaged": b(), "bandageLife": maybe(rng, lua_float(rng, 0, 5)), "bandageDirty": maybe(rng, b()),
@@ -48,7 +49,8 @@ def rand_frame(rng, seq=1):
                                     "scratch": lua_float(rng, 0, 100), "holes": rng.randrange(0, 4),
                                     "cond": lua_float(rng, 0, 10)} for _ in range(rng.choice([0, 1, 2]))], 0.7),
                "loadedWidth": maybe(rng, rng.choice([104, 152]), 0.5),
-               "sneaking": maybe(rng, b()), "sneakLevel": maybe(rng, rng.randrange(0, 11))},   # PZA/1.9
+               "sneaking": maybe(rng, b()), "sneakLevel": maybe(rng, rng.randrange(0, 11)),   # PZA/1.9
+               "lookAngle": maybe(rng, lua_float(rng, -4, 4)), "bodyAngle": maybe(rng, lua_float(rng, -4, 4))},   # 1.10
         "stats": {k: lua_float(rng, 0, 1) for k in pza1.GROUPS["stats"]},
         "body": {"health": lua_float(rng, 0, 100), "bleeding": rng.randrange(0, 3), "scratched": rng.randrange(0, 3),
                  "bitten": 0, "parts": parts, "armPain": maybe(rng, lua_float(rng, 0, 40)),
@@ -870,7 +872,7 @@ def test_sneak_is_the_last_action_with_its_bool_arg_and_its_result():
 
 def test_me_appends_sneaking_and_sneak_level_and_a_1_8_frame_decodes_with_them_none():
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["me"]
-    assert pza1.GROUPS["me"][-2:] == ("sneaking", "sneakLevel") and pza1.PRIOR["me"] == 11
+    assert pza1.GROUPS["me"][21:23] == ("sneaking", "sneakLevel") and pza1.PRIOR["me"] == 11
     assert d["properties"]["sneaking"]["type"] == "boolean" and d["properties"]["sneakLevel"]["type"] == "integer"
     assert "isSneaking()" in d["properties"]["sneaking"]["description"]
     assert "getPerkLevel(Perks.Sneak)" in d["properties"]["sneakLevel"]["description"]
@@ -878,7 +880,7 @@ def test_me_appends_sneaking_and_sneak_level_and_a_1_8_frame_decodes_with_them_n
     f["me"].update(sneaking=True, sneakLevel=3)
     arr = json.loads(pza1.encode("frame", f))
     me = pza1.ORDER["frame"].index("me")
-    assert arr[me][-2:] == [True, 3] and pza1.decode(arr) == f
+    assert arr[me][21:23] == [True, 3] and pza1.decode(arr) == f
     arr[me] = arr[me][:21]                                       # a PZA/1.8 me
     m = pza1.decode(arr)["me"]
     assert m["sneaking"] is None and m["sneakLevel"] is None and m["x"] == f["me"]["x"]
@@ -886,17 +888,18 @@ def test_me_appends_sneaking_and_sneak_level_and_a_1_8_frame_decodes_with_them_n
 
 def test_the_zombie_record_appends_known_state_and_behind_and_a_1_8_record_decodes_with_them_none():
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["zombie"]
-    assert pza1.RECORDS["zombie"][-3:] == ("known", "state", "behind") and pza1.PRIOR["zombie"] == 7
+    assert pza1.RECORDS["zombie"][8:11] == ("known", "state", "behind") and pza1.PRIOR["zombie"] == 7
     assert [d["properties"][k]["type"] for k in ("known", "state", "behind")] == ["boolean", "string", "boolean"]
     getters = (("known", "isTargetLocationKnown()"), ("state", "getRealState()"), ("behind", "isBehind(zombie)"))
     for k, getter in getters:
         assert getter in d["properties"][k]["description"], k
     f = rand_frame(random.Random(91))
     f["zombies"] = [{"id": 5, "x": 1.5, "y": 2.0, "dist": 1.25, "hasTarget": True, "crawler": False, "health": 1.0,
-                     "onFloor": None, "known": True, "state": "lunge-network", "behind": False}]
+                     "onFloor": None, "known": True, "state": "lunge-network", "behind": False, "headX": None,
+                     "headY": None}]
     arr = json.loads(pza1.encode("frame", f))
     zi = pza1.ORDER["frame"].index("zombies")
-    assert arr[zi] == [[5, 1.5, 2, 1.25, True, False, 1, None, True, "lunge-network", False]]
+    assert arr[zi] == [[5, 1.5, 2, 1.25, True, False, 1, None, True, "lunge-network", False, None, None]]
     assert pza1.decode(arr) == f
     arr[zi] = [arr[zi][0][:8]]                                   # a PZA/1.8 zombie
     z = pza1.decode(arr)["zombies"][0]
@@ -907,5 +910,71 @@ def test_the_lua_encoder_writes_the_1_9_fields_as_python_does(lua_schema):
     f = rand_frame(random.Random(92), 4)
     f["me"].update(x=1.5, y=2.5, pace=0.5, sneaking=False, sneakLevel=0)
     f["zombies"] = [{"id": 7, "x": 3.5, "y": 4.0, "dist": 2.0, "hasTarget": False, "crawler": False, "health": 1.5,
-                     "onFloor": None, "known": False, "state": "", "behind": True}]
+                     "onFloor": None, "known": False, "state": "", "behind": True, "headX": None, "headY": None}]
     assert json.loads(lua_frame(lua_schema, f)) == json.loads(pza1.encode("frame", f))
+
+
+# ---- PZA/1.10 (Plan 31 Task 2): me's lookAngle and bodyAngle, the zombie record's headX and headY, the melee ---------
+
+def test_me_appends_look_angle_and_body_angle_and_a_1_9_frame_decodes_with_them_none():
+    d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["me"]
+    assert pza1.GROUPS["me"][-2:] == ("lookAngle", "bodyAngle") and pza1.PRIOR["me"] == 11
+    assert d["properties"]["lookAngle"]["type"] == "number" == d["properties"]["bodyAngle"]["type"]
+    assert "getLookAngleRadians()" in d["properties"]["lookAngle"]["description"]
+    assert "calibrated on the first live frame" in d["properties"]["lookAngle"]["description"]
+    assert "getAnimAngleRadians()" in d["properties"]["bodyAngle"]["description"]
+    f = rand_frame(random.Random(100))
+    f["me"].update(lookAngle=0.5, bodyAngle=0.25)
+    arr = json.loads(pza1.encode("frame", f))
+    me = pza1.ORDER["frame"].index("me")
+    assert arr[me][-2:] == [0.5, 0.25] and pza1.decode(arr) == f
+    arr[me] = arr[me][:23]                                       # a PZA/1.9 me
+    m = pza1.decode(arr)["me"]
+    assert m["lookAngle"] is None and m["bodyAngle"] is None and m["sneakLevel"] == f["me"]["sneakLevel"]
+
+
+def test_the_zombie_record_appends_head_x_and_head_y_and_a_1_9_record_decodes_with_them_none():
+    d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["zombie"]
+    assert pza1.RECORDS["zombie"][-2:] == ("headX", "headY") and pza1.PRIOR["zombie"] == 7
+    assert "#4679" in d["properties"]["headX"]["description"] and "isFallOnFront" in d["properties"]["headX"]["description"]
+    f = rand_frame(random.Random(101))
+    f["zombies"] = [{"id": 5, "x": 1.5, "y": 2.0, "dist": 1.25, "hasTarget": True, "crawler": False, "health": 1.0,
+                     "onFloor": True, "known": True, "state": "onground", "behind": False, "headX": 1.0,
+                     "headY": 2.0}]
+    arr = json.loads(pza1.encode("frame", f))
+    zi = pza1.ORDER["frame"].index("zombies")
+    assert arr[zi] == [[5, 1.5, 2, 1.25, True, False, 1, True, True, "onground", False, 1, 2]]
+    assert pza1.decode(arr) == f
+    arr[zi] = [arr[zi][0][:11]]                                  # a PZA/1.9 zombie
+    z = pza1.decode(arr)["zombies"][0]
+    assert (z["headX"], z["headY"]) == (None, None) and z["behind"] is False
+
+
+def test_the_lua_encoder_writes_the_1_10_fields_as_python_does(lua_schema):
+    f = rand_frame(random.Random(102), 4)
+    f["me"].update(x=1.5, y=2.5, pace=0.5, lookAngle=-1.25, bodyAngle=3.5)
+    f["zombies"] = [{"id": 7, "x": 3.5, "y": 4.0, "dist": 2.0, "hasTarget": False, "crawler": False, "health": 1.5,
+                     "onFloor": True, "known": False, "state": "", "behind": True, "headX": 3.0, "headY": 4.0}]
+    assert json.loads(lua_frame(lua_schema, f)) == json.loads(pza1.encode("frame", f))
+
+
+def test_the_melee_s_pza1_10_args_and_result():
+    """The meet's arguments (the back leg's, the time span's and closeR gone), the ends kill, handback and lost with
+    why, spent and the press leaf of seven keys, in result_melee and the step result."""
+    d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
+    assert tuple(pza1.ACTION_ARGS["melee"]) == ("targetId", "mode", "reach", "shoveR", "releaseR", "faceR",
+                                                 "pressAngle", "pressLo", "floorR", "handbackR", "stall", "floorSwing")
+    assert pza1.ACTION_ARGS["melee"]["stall"] == "int"
+    assert d["args_melee"]["additionalProperties"] is False
+    leaf = {"d_press", "d_collide_pred", "look_off", "hp0", "hp1", "knock", "cut_by"}
+    for k in ("result_melee", "result_melee_step"):
+        props = d[k]["properties"]
+        assert set(props["press"]["properties"]) == leaf and "spent" in props and "held" not in props, k
+    assert {"why", "end"} <= set(d["result_melee"]["properties"])
+    assert "kill" in d["result_melee"]["properties"]["end"]["description"]
+    body = {"kind": "act", "seq": 3, "tick": 1, "wallMs": 2, "aid": "a1", "type": "melee", "state": "done",
+            "reason": "", "result": {"end": "handback", "why": "standing", "id": 8, "d": 1.5, "kill": False,
+                                     "press": {"d_press": 0.25, "d_collide_pred": 0.25, "look_off": 3.5, "hp0": 1.0,
+                                               "hp1": 0.5, "knock": False, "cut_by": ""}},
+            "snapshot": {"me": {"x": 1.0, "y": 2.0, "z": 0, "health": 100.0}, "nearest": None}}
+    assert pza1.decode(json.loads(pza1.encode("act", body))) == body

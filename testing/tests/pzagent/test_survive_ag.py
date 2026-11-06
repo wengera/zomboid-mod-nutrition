@@ -216,15 +216,17 @@ def test_a_sneaking_walk_at_a_run_goes_at_a_walk_but_a_flee_s_keeps_its_run(tmp_
 
 
 # ================================================================ P30-A: the swing close (`SWING_CLOSE`, the closeR)
-def test_the_melee_carries_close_r_swing_close_r_and_zero_with_the_rule_off(tmp_path):
-    """P30-A: the Fight's melee sends `closeR` SWING_CLOSE_R (1.0) with its `swing_close` rule on (Survive's
-    SWING_CLOSE, in `_fight_rules`); off, 0 (the Lua's rule off: the swing at the reach, as E23's)."""
+def test_the_swing_close_rule_reads_nothing_since_pza1_10(tmp_path):
+    """P30-A's `closeR` went with PZA/1.10 (Plan 31 Task 2: the meet presses at the predicted collision): the Fight's
+    melee carries no `closeR` and its arguments are the same with the `swing_close` rule (Survive's SWING_CLOSE, kept
+    as iteration 24's record in T14_SWITCHES) on or off."""
     from agent.base.planner import fight as F
     from agent.base.planner import policies as P
     from .fakemod import MELEE_CAPS
     from .test_survive_q import fr, z
-    assert P.SWING_CLOSE_R == 1.0 and "swing_close" in F.FIGHT_RULES
-    for on, close in ((True, 1.0), (False, 0.0)):
+    assert not hasattr(P, "SWING_CLOSE_R") and "swing_close" in F.FIGHT_RULES
+    sent = []
+    for on in (True, False):
         r = Rig(tmp_path / str(on), caps=MELEE_CAPS)
         fr(r, [z(9, 102.0)])
         f = F.Fight(r.world, r.acts, r.clock)
@@ -232,23 +234,29 @@ def test_the_melee_carries_close_r_swing_close_r_and_zero_with_the_rule_off(tmp_
         if not on:
             f.rules = f.rules - {"swing_close"}
         a = f.step()
-        assert (a.type, a.args["closeR"]) == ("melee", close), on
+        assert a.type == "melee" and "closeR" not in a.args, on
+        sent.append(a.args)
+    assert sent[0] == sent[1]
     off = type("Off", (), {n: getattr(S.Survive, n) for n in [r.upper() for r in F.FIGHT_RULES]})()
     off.SWING_CLOSE = False
     assert "swing_close" not in S.Survive._fight_rules(off)
 
 
-def test_the_maneuver_logs_the_swing_close_counts_off_its_progress(tmp_path):
-    """P30-A's why: the progress line's `held` and `again` logged `swing_close` {held, pressed_again} on the
-    maneuver's log (Task 4's reader)."""
+def test_the_maneuver_logs_the_counts_spent_and_the_last_press_leaf_off_its_progress(tmp_path):
+    """PZA/1.10 (Plan 31 Task 2; P30-A's `swing_close` {held, pressed_again} gone with the Lua's counts): the progress
+    line's counts and `spent` logged on the maneuver's log, and the last press leaf a line carried kept as `press`
+    until another replaces it."""
     from agent.base.planner.maneuvers import Melee
     from .fakemod import MELEE_CAPS
     r = Rig(tmp_path, caps=MELEE_CAPS)
     m = Melee(r.world, r.acts, r.clock, 9)
-    m.progressed({"result": {"step": "stand", "d": 1.3, "swings": 1, "held": 2, "again": 1}})
-    assert m.log()["swing_close"] == {"held": 2, "pressed_again": 1}
-    m.progressed({"result": {"step": "stand", "d": 1.3}})
-    assert "swing_close" not in m.log()
+    leaf = {"d_press": 1.6, "d_collide_pred": 1.18, "look_off": 7.5, "hp0": 1.0, "hp1": 1.0, "knock": False,
+            "cut_by": "hit"}
+    m.progressed({"result": {"step": "face", "d": 1.3, "swings": 1, "spent": False, "press": leaf}})
+    log = m.log()
+    assert (log["swings"], log["spent"], log["press"]) == (1, False, leaf) and "swing_close" not in log
+    m.progressed({"result": {"step": "swing", "d": 1.2, "swings": 2}})
+    assert m.log()["press"] == leaf and m.press == leaf
 
 
 # ================================================================ P30-C: the door held (`DOOR_HELD`, `door_held.py`)

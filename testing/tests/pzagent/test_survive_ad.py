@@ -10,13 +10,14 @@ announcing `melee` only where a test asks (`fakemod.MELEE_CAPS`); each test's ge
   Fight's ladder would send an in-reach `aim` leg (`enter`, `back`, `stand` within KEEP_R), an `attack`, a `shove`, a
   `stomp` or a floor swing at its pin within MELEE_RELEASE_R, the Fight starts or continues its `Melee` instead
   (`fight.Fight.m`): each argument from its source (`mode` strike, shove under `_hold_bars` (P28-H: the arms' pain
-  alone no longer selects it), finish at a fallen pin;
-  `reach` the frame's `weapon.reach` plus ATTACK_MARGIN, 0 without one; the `back` heading with P28-E's arc, fresh at
-  each send), re-sent MELEE_RESEND_MARGIN_S before MELEE_S runs out (`resend` "early") and after a `done time`
-  (`resend` "time"); its ends mapped (`out of range` to the ladder's path, `crowd` to a re-pin to the nearer,
-  `stood` to the ladder, a span with strikes and no health fall to the no-progress mark, a kill read once); a flee's
-  hand-over supersedes it; the corner, the door fight and the doorway stand keep the ladder; without the cap or with
-  the rule off the ladder as before.
+  alone no longer selects it), finish at a fallen pin; `reach` the frame's `weapon.reach` plus ATTACK_MARGIN, 0
+  without one; PZA/1.10's meet arguments off the policies table: `faceR` FACE_R, `pressAngle` PRESS_ANGLE, `pressLo`
+  PRESS_LO, `floorR` FLOOR_R, `handbackR` HANDBACK_R, `stall` STALL_SWINGS), sent once a target and re-sent only when
+  its inputs change (`resend` "inputs", never while a press is in flight; Plan 31 Task 2: the meet has no back leg and
+  no time end); its ends mapped (`lost` to the ladder's path, out of reach and no progress marking the target,
+  `handback` to a re-pin to the nearer, a span with strikes and no health fall to the no-progress mark, a kill read
+  once); a flee's hand-over supersedes it; the corner, the door fight and the doorway stand keep the ladder; without
+  the cap or with the rule off the ladder as before.
 """
 import pytest
 
@@ -151,10 +152,9 @@ def test_a_new_send_s_progress_lines_are_read_from_its_first(tmp_path):
 
 
 # ================================================================ Melee and the MELEE switch: the dispatch and its args
-ARC = P._rotate((-1.0, 0.0), P.CIRCLE_TURN)   # the `back` heading from a lone zombie due east, P28-E's first side
 STRIKE_R = BAT["reach"] + P.ATTACK_MARGIN      # the rig's bat's reach and ATTACK_MARGIN (`FightReach.reach_r`)
-DONE_TIME = {"end": "time", "kill": False, "swings": 0, "shoves": 0, "stomps": 0, "floors": 0, "knockdowns": 0,
-             "hits": 0, "hp0": 1.0, "hp1": 1.0, "dMin": 1.2, "steps": {"stand": 25}}
+DONE_LOST = {"end": "lost", "why": "out of range", "kill": False, "swings": 0, "shoves": 0, "stomps": 0, "floors": 0,
+             "knockdowns": 0, "hits": 0, "hp0": 1.0, "hp1": 1.0, "dMin": 1.2, "steps": {"face": 25}}   # PZA/1.10
 
 
 def rig(tmp_path, name, caps=MELEE_CAPS):
@@ -174,31 +174,35 @@ def fight(r, stance=True, **k):
 
 
 def done(r, a, **res):
-    act(r, a, "done", result=dict(DONE_TIME, **res))
+    act(r, a, "done", result=dict(DONE_LOST, **res))
 
 
-def want(target, mode="strike", reach=STRIKE_R, back=ARC, floor=True, close=P.SWING_CLOSE_R):
-    """A melee's wire args: `floorSwing` left off when False (`pza1._Cmd.args`); `closeR` SWING_CLOSE_R (ruling P30-A,
-    Plan 30 Task 3: the Fight's `swing_close` rule on)."""
-    out = {"targetId": target, "mode": mode, "reach": reach, "keepR": P.KEEP_R, "shoveR": P.SHOVE_SEND_R,
-           "releaseR": P.MELEE_RELEASE_R, "backVx": back[0], "backVy": back[1], "seconds": P.MELEE_S, "closeR": close}
+def want(target, mode="strike", reach=STRIKE_R, floor=True):
+    """A melee's wire args (PZA/1.10, Plan 31 Task 2): `floorSwing` left off when False (`pza1._Cmd.args`)."""
+    out = {"targetId": target, "mode": mode, "reach": reach, "shoveR": P.SHOVE_SEND_R, "releaseR": P.MELEE_RELEASE_R,
+           "faceR": P.FACE_R, "pressAngle": P.PRESS_ANGLE, "pressLo": P.PRESS_LO, "floorR": P.FLOOR_R,
+           "handbackR": P.HANDBACK_R, "stall": P.STALL_SWINGS}
     if floor:
         out["floorSwing"] = True
     return out
 
 
-def test_the_melee_constants_are_the_policies_table_s():
-    """MELEE_S 2.5 (between AIM_LEG_S and the re-send's cost), its re-send MELEE_RESEND_MARGIN_S 0.5 before it (one
-    planner tick at the drivers' PLANNER_HZ 2), the release KEEP_R + KEEP_MARGIN (the backpedal's own give-way)."""
-    assert (P.MELEE_S, P.MELEE_RESEND_MARGIN_S) == (2.5, 0.5)
-    assert P.AIM_LEG_S < P.MELEE_S and P.MELEE_RELEASE_R == P.KEEP_R + P.KEEP_MARGIN == 2.75
+def test_the_meet_constants_are_the_policies_table_s():
+    """PZA/1.10 (Plan 31 Task 2): FACE_R 3.0 (the spec's), PRESS_ANGLE acos(0.75) (the bat's MinAngle, #4591, #4681),
+    PRESS_LO 0 (the collision tests no lower distance, #4682), FLOOR_R 1.0 (WeaponLength 0.5 + 0.5, #4679), HANDBACK_R
+    2.0 (the spec's), the release KEEP_R + KEEP_MARGIN (the backpedal's own give-way); the time span, its re-send
+    margin, the planner's walk bound and P30-A's swing close gone with the Lua's time end and back leg."""
+    import math
+    assert (P.FACE_R, P.PRESS_LO, P.FLOOR_R, P.HANDBACK_R) == (3.0, 0.0, 1.0, 2.0)
+    assert P.PRESS_ANGLE == math.degrees(math.acos(0.75)) and P.MELEE_RELEASE_R == P.KEEP_R + P.KEEP_MARGIN == 2.75
+    assert not any(hasattr(P, n) for n in ("MELEE_S", "MELEE_RESEND_MARGIN_S", "MELEE_WALK_S", "SWING_CLOSE_R"))
 
 
 def test_a_standing_fight_s_target_within_keep_r_starts_melee_with_each_argument_from_its_source(tmp_path):
     """A chaser 2.0 tiles off (within FIGHT_REACH, the stance not held): where the ladder sends the `enter` leg, the
-    melee goes: `mode` strike, `reach` the bat's 1.2 plus ATTACK_MARGIN, `keepR` KEEP_R, `shoveR` SHOVE_SEND_R (P28-H),
-    `releaseR` MELEE_RELEASE_R, `seconds` MELEE_S, `floorSwing` true, the `back` heading the circle's arc off the
-    straight away heading; logged `maneuver` {maneuver melee, target, mode, sends 1} beside the ladder's own why."""
+    melee goes: `mode` strike, `reach` the bat's 1.2 plus ATTACK_MARGIN, `shoveR` SHOVE_SEND_R (P28-H), `releaseR`
+    MELEE_RELEASE_R, the meet's `faceR`, `pressAngle`, `pressLo`, `floorR`, `handbackR` and `stall` off the policies
+    table, `floorSwing` true; logged `maneuver` {maneuver melee, target, mode, sends 1} beside the ladder's own why."""
     r = Rig(tmp_path, caps=MELEE_CAPS)
     fr(r, [z(9, 102.0)])
     f = fight(r)
@@ -238,16 +242,14 @@ def test_the_reach_is_zero_without_the_frame_s_weapon_reach_or_with_attack_reach
     assert f.step().args["reach"] == 0.0
 
 
-def test_the_back_heading_is_straight_with_circle_off_or_a_second_zombie_within_keep_r(tmp_path):
-    """P28-E's arc only from a lone standing zombie within KEEP_R with `circle` on; else the straight away heading."""
-    for i, (zs, rules) in enumerate((([z(9, 102.0)], {"circle"}), ([z(9, 102.0), z(7, 100.0, 202.2)], set()))):
-        r = rig(tmp_path, str(i))
-        fr(r, zs)
-        f = fight(r, target=9)
-        f.rules = f.rules - rules
-        a = f.step()
-        assert a.type == "melee" and (a.args["backVx"], a.args["backVy"]) == (-1.0, 0.0)
-        assert "circle" not in f.why
+def test_the_melee_sends_no_back_heading_no_seconds_and_no_close_r(tmp_path):
+    """PZA/1.10: the args are the meet's; the back leg's heading, the time span and P30-A's closeR are gone, whatever
+    the `circle` and `swing_close` rules read."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 102.0)])
+    a = fight(r).step()
+    assert a.type == "melee" and set(a.args) == set(want(9))
+    assert not {"keepR", "backVx", "backVy", "seconds", "closeR"} & set(a.args)
 
 
 def test_the_back_leg_within_keep_r_is_the_melee_and_the_stand_beyond_it_the_ladder_s(tmp_path):
@@ -351,55 +353,58 @@ def test_the_melee_switch_is_iteration_22_s_and_drops_its_rule(tmp_path):
 
 
 # ================================================================ the re-sends
-def test_the_melee_is_re_sent_early_with_a_fresh_heading_before_its_seconds_run_out(tmp_path):
-    """Held (`busy`) until MELEE_S - MELEE_RESEND_MARGIN_S after its accept, then re-sent at the same target (the Lua
-    keeps the stance across it) with the `back` heading recomputed: the zombie moved due south, the arc turns off
-    north; logged `melee` {resend "early"}, `maneuver` sends 2."""
+def test_a_running_melee_is_held_with_no_re_send_while_its_inputs_hold(tmp_path):
+    """PZA/1.10: one send a target. Accepted and running, the melee is held (`busy`) on every tick for 20 s, the
+    target moving, with no re-send: the meet has no time end, and its heading is the Lua's."""
     r = Rig(tmp_path, caps=MELEE_CAPS)
     fr(r, [z(9, 102.0)])
     f = fight(r)
     a = f.step()
     act(r, a, "accepted")
-    r.advance(P.MELEE_S - P.MELEE_RESEND_MARGIN_S - 0.5)
-    fr(r, [z(9, 100.0, 202.0)])
-    assert f.step() is None and f.busy()
-    r.advance(0.5)
-    fr(r, [z(9, 100.0, 202.0)])
-    b = f.step()
-    assert (b.type, b.args) == ("melee", want(9, back=P._rotate((0.0, -1.0), P.CIRCLE_TURN)))
-    assert f.why["melee"]["resend"] == "early" and f.why["maneuver"]["sends"] == 2 and f.m.action is b
+    for k in range(40):
+        r.advance(0.5)
+        fr(r, [z(9, 101.5, 200.0 + 0.01 * k)])
+        assert f.busy() and f.step() is None and f.m.action is a and f.m.n == 1, k
 
 
-def test_a_done_time_re_sends_while_the_target_stands(tmp_path):
-    """A `done` `time` with the target standing: the next step re-sends (the stance taken again), logged `melee`
-    {resend "time"}."""
+def test_a_change_of_mode_re_sends_once_with_resend_inputs(tmp_path):
+    """A hold read (`spent`, `_hold_bars`) turns the mode to shove: the running melee is re-sent at the same target (the
+    Lua keeps the stance across it) with mode shove and the floor swing barred, logged `melee` {resend "inputs"},
+    `maneuver` sends 2; strike and finish are one meet (the target's posture picks the finish), so a pin falling sends
+    nothing."""
     r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 102.0)])
+    f = fight(r)
+    a = f.step()
+    act(r, a, "accepted")
+    r.advance(0.5)
+    fr(r, [z(9, 101.2, floor=True)])
+    assert f.busy() and f.step() is None                                # strike to finish: no re-send
+    r.advance(0.5)
+    fr(r, [z(9, 102.0)])
+    f.spent = ("arms",)
+    assert not f.busy()
+    b = f.step()
+    assert (b.type, b.args) == ("melee", want(9, mode="shove", floor=False))
+    assert f.why["melee"]["resend"] == "inputs" and f.why["maneuver"]["sends"] == 2 and f.m.action is b
+
+
+# ================================================================ the ends
+def test_lost_out_of_range_takes_the_ladder_s_path_for_one_choose(tmp_path):
+    """`done lost` (why out of range): the next choose is the ladder's whatever it sends (the frame may still read the
+    target within KEEP_R: its `back` leg), logged `melee_end` {.., end lost, why}; the target is not marked; the
+    choose after that leg's end dispatches again; beyond KEEP_R the ladder's `stand`."""
+    r = rig(tmp_path, "lag")
     fr(r, [z(9, 102.0)])
     f = fight(r)
     a = f.step()
     act(r, a, "accepted")
     done(r, a)
     r.advance(0.5)
-    fr(r, [z(9, 102.0)])
-    b = f.step()
-    assert b.type == "melee" and f.why["melee"]["resend"] == "time" and f.m.n == 2
-
-
-# ================================================================ the ends
-def test_out_of_range_takes_the_ladder_s_path_for_one_choose(tmp_path):
-    """`failed out of range`: the next choose is the ladder's whatever it sends (the frame may still read the target
-    within KEEP_R: its `back` leg), logged `melee_end` {.., end}; the choose after that leg's end dispatches again;
-    beyond KEEP_R the ladder's `stand`."""
-    r = rig(tmp_path, "lag")
-    fr(r, [z(9, 102.0)])
-    f = fight(r)
-    a = f.step()
-    act(r, a, "accepted")
-    act(r, a, "failed", "out of range")
-    r.advance(0.5)
     fr(r, [z(9, 102.3)])
     b = f.step()
-    assert (b.type, f.why["leg"]) == ("aim", "back") and f.why["melee_end"]["end"] == "out of range"
+    assert (b.type, f.why["leg"]) == ("aim", "back") and f.why["melee_end"]["end"] == "lost"
+    assert f.why["melee_end"]["why"] == "out of range" and 9 not in f.unreachable
     assert f.m is None and "maneuver" not in f.why
     act(r, b, "done", result={})
     r.advance(0.5)
@@ -409,7 +414,7 @@ def test_out_of_range_takes_the_ladder_s_path_for_one_choose(tmp_path):
     fr(r, [z(9, 102.0)])
     f = fight(r)
     a = f.step()
-    act(r, a, "failed", "out of range")
+    done(r, a)
     r.advance(0.5)
     fr(r, [z(9, 102.6)])
     b = f.step()
@@ -428,24 +433,24 @@ def test_too_far_takes_the_ladder_s_path_as_out_of_range_does(tmp_path):
     assert (b.type, f.why["leg"]) == ("aim", "enter") and f.why["melee_end"]["end"] == "too far"
 
 
-def test_crowd_re_pins_to_the_other_zombie_the_lua_reports_nearer(tmp_path):
-    """`failed crowd` {id, d}: the other standing zombie the engine's press would take (within K.STAND_R 0.6, where
-    the Lua fails it) is pinned when it is nearer than the target, and the next melee goes at it. Fix 1 (review-t7b
-    M1): the geometry the Lua reports, 8 closing from 0.9 tiles to 0.55 while pin 9 stands 1.0 off."""
+def test_a_handback_re_pins_to_the_other_zombie_the_lua_reports_nearer(tmp_path):
+    """`done handback` {why crowd, id, d}: the other standing zombie the engine's press would take (within K.STAND_R
+    0.6, where the Lua hands back) is pinned when it is nearer than the target, and the next melee goes at it. Fix 1
+    (review-t7b M1): the geometry the Lua reports, 8 closing from 0.9 tiles to 0.55 while pin 9 stands 1.0 off."""
     r = Rig(tmp_path, caps=MELEE_CAPS)
     fr(r, [z(9, 101.0), z(8, 100.0, 200.9)])
     f = fight(r, target=9)
     a = f.step()
     assert (a.type, a.args["targetId"]) == ("melee", 9)
     act(r, a, "accepted")
-    act(r, a, "failed", "crowd", result={"id": 8, "d": 0.55})
+    done(r, a, end="handback", why="crowd", id=8, d=0.55)
     r.advance(0.5)
     fr(r, [z(9, 101.0), z(8, 100.0, 200.55)])
     b = f.step()
-    assert (b.type, b.args["targetId"], f.target) == ("melee", 8, 8) and f.why["melee_end"]["end"] == "crowd"
+    assert (b.type, b.args["targetId"], f.target) == ("melee", 8, 8) and f.why["melee_end"]["end"] == "handback"
 
 
-def test_a_crowd_end_that_re_pins_nothing_gives_the_ladder_its_press(tmp_path):
+def test_a_handback_that_re_pins_nothing_gives_the_ladder_its_press(tmp_path):
     """Fix 1 (review-t7b M1, the loop's probe): pin 9 at 0.4 tiles, 8 closing to 0.55 (the Lua's `crowd`, 8 not the
     nearer): no fresh melee on that geometry. The crowd end hands the next choose to the ladder (`_m_ladder`), and while
     8 stands within STAND_MIN_R of the player no melee is dispatched (`_melee_mode`): over six ticks the ladder's leg
@@ -456,14 +461,14 @@ def test_a_crowd_end_that_re_pins_nothing_gives_the_ladder_its_press(tmp_path):
     a = f.step()
     assert (a.type, a.args["targetId"]) == ("melee", 9)
     act(r, a, "accepted")
-    act(r, a, "failed", "crowd", result={"id": 8, "d": 0.55})
+    done(r, a, end="handback", why="crowd", id=8, d=0.55)
     sends = []
     for k in range(6):
         r.advance(0.5)
         fr(r, [z(9, 100.4), z(8, 100.0, 200.55)])
         b = f.step()
         if k == 0:
-            assert f.why["melee_end"]["end"] == "crowd" and f.target == 9
+            assert f.why["melee_end"]["end"] == "handback" and f.target == 9
         if b is not None:
             sends.append((b.type, b.args.get("targetId")))
             act(r, b, "accepted")
@@ -513,18 +518,18 @@ def test_a_marked_attacker_at_point_blank_re_pins_through_a_running_melee_on_its
     assert f.busy() and f.step() is None and f.target == 9
 
 
-def test_a_finish_whose_target_stood_takes_the_ladder_and_the_strike(tmp_path):
-    """A finish failed `stood` (the pin rose): the ladder reads it standing, and the next melee is a strike."""
+def test_a_finish_whose_pin_stands_holds_its_melee(tmp_path):
+    """PZA/1.10: no `stood` end; the finish's pin rising is met by the same melee (the Lua's meet), held with no
+    re-send: finish and strike are one behaviour."""
     r = Rig(tmp_path, caps=MELEE_CAPS)
     fr(r, [z(9, 101.2, floor=True)])
     f = fight(r)
     a = f.step()
     assert a.args["mode"] == "finish"
-    act(r, a, "failed", "stood")
+    act(r, a, "accepted")
     r.advance(0.5)
     fr(r, [z(9, 101.2)])
-    b = f.step()
-    assert (b.type, b.args["mode"], f.why["melee_end"]["end"]) == ("melee", "strike", "stood") and f.m.n == 1
+    assert f.busy() and f.step() is None and f.m.n == 1
 
 
 def test_a_build_that_cannot_run_the_melee_falls_back_to_the_ladder_for_the_fight(tmp_path):
@@ -546,7 +551,8 @@ def test_a_build_that_cannot_run_the_melee_falls_back_to_the_ladder_for_the_figh
 def test_spans_with_strikes_and_no_health_fall_reach_the_no_progress_mark(tmp_path):
     """A `done` span with strikes (swings, floor swings, stomps) and `hp1` not under `hp0` counts its strikes in the
     no-progress streak STALL_SWINGS reads: the third such strike marks the target unreachable, and the Fight sends
-    nothing at it; a span whose health fell restarts the streak."""
+    nothing at it; a span whose health fell restarts the streak. Each `done lost` (out of range) gives one choose to
+    the ladder (its leg, ended) before the next melee."""
     for falls in (False, True):
         r = rig(tmp_path, str(falls))
         fr(r, [z(9, 102.0)])
@@ -558,6 +564,12 @@ def test_spans_with_strikes_and_no_health_fall_reach_the_no_progress_mark(tmp_pa
             done(r, a, swings=1, hp1=0.8 if (falls and k == 1) else 1.0)
             r.advance(0.5)
             fr(r, [z(9, 102.0)])
+            if k < P.STALL_SWINGS - 1 or falls:
+                leg = f.step()
+                assert leg.type == "aim", k
+                act(r, leg, "done", result={})
+                r.advance(0.5)
+                fr(r, [z(9, 102.0)])
         b = f.step()
         if falls:
             assert b.type == "melee" and f.no_progress == 1 and 9 not in f.unreachable
@@ -566,37 +578,38 @@ def test_spans_with_strikes_and_no_health_fall_reach_the_no_progress_mark(tmp_pa
 
 
 def test_a_kill_is_read_once(tmp_path):
-    """A `done` {end dead, kill true}: the Fight's `kill` names the target on that observe, the World counts it once,
+    """A `done` {end kill, kill true}: the Fight's `kill` names the target on that observe, the World counts it once,
     and it is read dead for UNREACHABLE_S, unpinned."""
     r = Rig(tmp_path, caps=MELEE_CAPS)
     fr(r, [z(9, 102.0)])
     f = fight(r)
     a = f.step()
     act(r, a, "accepted")
-    done(r, a, end="dead", kill=True, swings=2, hp1=0.0)
+    done(r, a, end="kill", why=None, kill=True, swings=2, hp1=0.0)
     r.advance(0.5)
     fr(r, [])
     f.step()
     assert f.kill == 9 and r.world.kills == 1 and 9 in f.dead and f.target is None
-    assert f.why["melee_end"]["end"] == "dead"
+    assert f.why["melee_end"]["end"] == "kill" and "why" not in f.why["melee_end"]
     f.observe()
     assert f.kill is None and r.world.kills == 1
 
 
-def test_a_kill_on_the_melee_an_early_re_send_superseded_is_read_too(tmp_path):
-    """The race the base's late-end read covers: the first melee ends `done` {kill} after its early re-send left
-    (the line written before the re-send reached the Lua), and the re-send is rejected `no target`: the kill counts
-    once."""
+def test_a_kill_on_the_melee_a_re_send_superseded_is_read_too(tmp_path):
+    """The race the base's late-end read covers: the first melee ends `done` {kill} after its re-send (a mode change)
+    left (the line written before the re-send reached the Lua), and the re-send is rejected `no target`: the kill
+    counts once."""
     r = Rig(tmp_path, caps=MELEE_CAPS)
     fr(r, [z(9, 102.0)])
     f = fight(r)
     a = f.step()
     act(r, a, "accepted")
-    r.advance(P.MELEE_S - P.MELEE_RESEND_MARGIN_S)
+    r.advance(0.5)
     fr(r, [z(9, 102.0)])
+    f.spent = ("arms",)
     b = f.step()
     assert b.type == "melee"
-    done(r, a, end="dead", kill=True)
+    done(r, a, end="kill", why=None, kill=True)
     act(r, b, "rejected", "no target")
     r.advance(0.5)
     fr(r, [])
@@ -616,7 +629,7 @@ def test_a_kill_on_a_melee_the_ladder_s_send_replaced_is_read_too(tmp_path):
     fr(r, [z(9, 102.0), z(8, 101.2, floor=True)])
     b = f.step()
     assert b.type == "attack" and f.m is None
-    done(r, a, end="dead", kill=True)
+    done(r, a, end="kill", why=None, kill=True)
     r.advance(0.5)
     fr(r, [z(8, 101.2, floor=True)])
     f.observe()
@@ -697,14 +710,7 @@ def test_the_ladder_s_backpedal_at_a_fallen_pin_keeps_the_ladder(tmp_path):
     assert (a.type, f.why["leg"]) == ("aim", "back") and f.m is None and "maneuver" not in f.why
 
 
-def test_boxed_in_the_back_heading_is_zero(tmp_path):
-    """No clear heading west, north or south of the player (the solid squares round it, the target due east): the
-    `back` heading is (0, 0), the Lua standing in the stance after a miss."""
-    r = Rig(tmp_path, caps=MELEE_CAPS)
-    r.scan([square(x, y, solid=True) for x, y in ((99, 199), (99, 200), (99, 201), (100, 199), (100, 201))])
-    r.frame(x=100.5, y=200.5, zombies=[dict(z(9, 102.5, 200.5), dist=2.0)])
-    a = fight(r).step()
-    assert a.type == "melee" and (a.args["backVx"], a.args["backVy"]) == (0.0, 0.0)
+
 
 
 def test_floor_swing_is_off_with_the_floor_finish_rule_off(tmp_path):
@@ -751,12 +757,21 @@ def test_a_span_whose_health_is_unreadable_restarts_the_streak_and_one_with_no_s
     f = fight(r)
     for res, n in (({"swings": 2}, 2), ({"swings": 1, "hp1": None}, 0), ({"swings": 1}, 1), ({"hp1": None}, 1)):
         a = f.step()
+        if a.type == "aim":   # the ladder's one choose after a `lost` end
+            act(r, a, "done", result={})
+            r.advance(0.5)
+            fr(r, [z(9, 102.0)])
+            a = f.step()
         act(r, a, "accepted")
         done(r, a, **res)
         r.advance(0.5)
         fr(r, [z(9, 102.0)])
         f.observe()
         assert f.no_progress == n, res
+    a = f.step()
+    act(r, a, "done", result={})
+    r.advance(0.5)
+    fr(r, [z(9, 102.0)])
     a = f.step()
     act(r, a, "accepted")
     done(r, a, swings=0, floors=1, stomps=1)
@@ -765,21 +780,7 @@ def test_a_span_whose_health_is_unreadable_restarts_the_streak_and_one_with_no_s
     assert f.step() is None and 9 in f.unreachable
 
 
-def test_the_re_send_is_timed_from_the_accept(tmp_path):
-    """The early re-send reads the running melee's accept wall: accepted 0.5 s after its send, it is held until
-    MELEE_S - MELEE_RESEND_MARGIN_S after the accept."""
-    r = Rig(tmp_path, caps=MELEE_CAPS)
-    fr(r, [z(9, 102.0)])
-    f = fight(r)
-    a = f.step()
-    r.advance(0.5)
-    act(r, a, "accepted")
-    r.advance(P.MELEE_S - P.MELEE_RESEND_MARGIN_S - 0.25)
-    fr(r, [z(9, 102.0)])
-    assert f.step() is None
-    r.advance(0.25)
-    fr(r, [z(9, 102.0)])
-    assert f.step().type == "melee" and f.why["melee"]["resend"] == "early"
+
 
 
 def test_a_melee_whose_send_another_sender_superseded_sends_nothing_and_ends(tmp_path):
@@ -788,7 +789,7 @@ def test_a_melee_whose_send_another_sender_superseded_sends_nothing_and_ends(tmp
     from agent.base.planner.maneuvers.melee import MeleeInputs
     r = Rig(tmp_path, caps=MELEE_CAPS)
     m = Melee(r.world, r.acts, r.clock, 9)
-    m.inputs = MeleeInputs("strike", 0.0, (0.0, 0.0), False)
+    m.inputs = MeleeInputs("strike", 0.0, False)
     a = send(r, m)
     act(r, a, "accepted")
     r.acts.send(Scan(2))
@@ -827,52 +828,33 @@ def test_a_melee_is_the_swing_after_a_shove(tmp_path):
 
 
 # ================================================================ fix 1 (review-t7b): the minors
-def test_out_of_reach_marks_the_fallen_target_and_takes_the_ladder(tmp_path):
-    """Fix 1 (review-t7b m1): `failed out of reach` (the stomp's walk to a fallen target did not close) leaves the
-    target unreachable for SEEK_SKIP_S, as the ladder's failed stomp walk is left, and the next choose is the
-    ladder's."""
+def test_lost_out_of_reach_marks_the_fallen_target_and_takes_the_ladder(tmp_path):
+    """Fix 1 (review-t7b m1): `done lost` why out of reach (the walk to a fallen target's head did not close, the Lua's
+    K.STOMP_APPROACH_MS bound) leaves the target unreachable for SEEK_SKIP_S, as the ladder's failed stomp walk is
+    left, and the next choose is the ladder's; why no progress leaves it for UNREACHABLE_S, the ladder's own mark."""
     r = Rig(tmp_path, caps=MELEE_CAPS)
     fr(r, [z(9, 102.4, floor=True)])
     f = fight(r)
     a = f.step()
     assert (a.type, a.args["mode"]) == ("melee", "finish")
     act(r, a, "accepted")
-    act(r, a, "failed", "out of reach")
+    done(r, a, why="out of reach")
     r.advance(0.5)
     fr(r, [z(9, 102.4, floor=True)])
     assert f.step() is None and f.unreachable[9] == r.clock() + P.SEEK_SKIP_S
-    assert f.why["melee_end"]["end"] == "out of reach" and f.m is None
+    assert (f.why["melee_end"]["end"], f.why["melee_end"]["why"]) == ("lost", "out of reach") and f.m is None
+    r = rig(tmp_path, "stall")
+    fr(r, [z(9, 102.0)])
+    f = fight(r)
+    a = f.step()
+    act(r, a, "accepted")
+    done(r, a, why="no progress", swings=3)
+    r.advance(0.5)
+    fr(r, [z(9, 102.0)])
+    assert f.step() is None and f.unreachable[9] == r.clock() + P.UNREACHABLE_S
 
 
-def test_the_walk_to_a_fallen_target_is_bounded_across_the_sends(tmp_path):
-    """Fix 1 (review-t7b m1): the Lua's `seconds` (MELEE_S) end a melee before its walk's own bound
-    (K.STOMP_APPROACH_MS) and each send restarts that walk, so the maneuver keeps the walk's clock: a `done` whose last
-    step is still `stomp_walk` MELEE_WALK_S after the walk's first progress line ends it `out of reach`, the target
-    marked; a walk that reached its stomp in between restarts the clock."""
-    for reached in (False, True):
-        r = rig(tmp_path, str(reached))
-        fr(r, [z(9, 102.4, floor=True)])
-        f = fight(r)
-        a = f.step()
-        act(r, a, "accepted")
-        act(r, a, "progress", result={"step": "stomp_walk", "d": 2.4})
-        f.observe()
-        r.advance(P.MELEE_S)
-        done(r, a)
-        fr(r, [z(9, 102.4, floor=True)])
-        b = f.step()
-        assert b.type == "melee" and f.why["melee"]["resend"] == "time"
-        act(r, b, "accepted")
-        act(r, b, "progress", result={"step": "stomp" if reached else "stomp_walk", "d": 1.6})
-        act(r, b, "progress", result={"step": "stomp_walk", "d": 1.6})
-        r.advance(P.MELEE_WALK_S - P.MELEE_S)
-        done(r, b)
-        fr(r, [z(9, 102.4, floor=True)])
-        c = f.step()
-        if reached:
-            assert c.type == "melee" and 9 not in f.unreachable
-        else:
-            assert c is None and f.why["melee_end"]["end"] == "out of reach" and 9 in f.unreachable
+
 
 
 def test_interrupted_timeout_and_no_target_back_off_to_the_ladder(tmp_path):
@@ -900,12 +882,7 @@ def test_interrupted_timeout_and_no_target_back_off_to_the_ladder(tmp_path):
                 act(r, b, "done", result={})
 
 
-def test_the_melee_walk_bound_is_the_lua_s_stomp_approach(lua):
-    """Plan 28 close fix 1 (review-close item 13): `MELEE_WALK_S` (the planner-side bound on the walk to a fallen target
-    across re-sends, fix 1's residual `c2b6bae2`) mirrors the stance skill's `K.STOMP_APPROACH_MS`, read here off the
-    loaded Lua; a tune of one side without the other breaks that bound."""
-    load(lua)
-    assert P.MELEE_WALK_S * 1000 == lua.eval("PZA.skills.STOMP_APPROACH_MS")
+
 
 
 def test_a_maneuver_without_kills_or_a_span_is_observed_whole(tmp_path):
@@ -928,26 +905,32 @@ def test_a_maneuver_without_kills_or_a_span_is_observed_whole(tmp_path):
     assert dead == [] and f.m.take_kills() == [] and f.m.take_span() is None
 
 
-def test_the_decision_line_carries_the_ladder_the_re_send_and_the_end(tmp_path):
+def test_the_decision_line_carries_the_ladder_the_press_leaf_and_the_end(tmp_path):
     """Fix 1 (review-t7b m3): Survive's decision line (the threat branch's why) carries `ladder` on the dispatching
-    tick, `melee` {resend "early"} on the early re-send, and `melee_end` {.., end} on the choose after an end."""
+    tick, the last press leaf in `maneuver` once a line carried one (PZA/1.10), and `melee_end` {.., end, why} on the
+    choose after an end."""
     r, sv = make(tmp_path, caps=MELEE_CAPS)
     fr(r, [z(9, 102.0)])
     a = tick(r, sv)
     w = threat_why(tmp_path)
     assert a.type == "melee" and w["ladder"] == "aim" and "resend" not in w["melee"] and "melee_end" not in w
     act(r, a, "accepted")
-    r.advance(P.MELEE_S - P.MELEE_RESEND_MARGIN_S)
-    fr(r, [z(9, 102.0)])
-    b = tick(r, sv)
-    assert b.type == "melee" and threat_why(tmp_path)["melee"]["resend"] == "early"
-    act(r, b, "accepted")
-    act(r, b, "failed", "out of range")
+    leaf = {"d_press": 1.6, "d_collide_pred": 1.2, "look_off": 12.5, "hp0": 1.0, "hp1": 0.8, "knock": False,
+            "cut_by": ""}
+    act(r, a, "progress", result={"step": "face", "d": 1.5, "hp": 0.8, "swings": 1, "shoves": 0, "stomps": 0,
+                                  "floors": 0, "knockdowns": 0, "hits": 0, "spent": False, "press": leaf})
+    r.advance(0.5)
+    fr(r, [z(9, 101.5)])
+    assert tick(r, sv) is None
+    w = threat_why(tmp_path)
+    assert w["maneuver"]["press"] == leaf and w["maneuver"]["spent"] is False
+    done(r, a)
     r.advance(0.5)
     fr(r, [z(9, 102.6)])
     c = tick(r, sv)
     w = threat_why(tmp_path)
-    assert c.type == "aim" and w["melee_end"]["end"] == "out of range" and w["melee_end"]["sends"] == 2
+    assert c.type == "aim" and (w["melee_end"]["end"], w["melee_end"]["why"]) == ("lost", "out of range")
+    assert w["melee_end"]["sends"] == 1
 
 
 def test_the_fake_s_default_caps_are_the_pza1_7_build_s_literal_list():
@@ -960,29 +943,29 @@ def test_the_fake_s_default_caps_are_the_pza1_7_build_s_literal_list():
     assert fakemod.MELEE_CAPS == list(fakemod.CAPS_17) + ["melee"]
 
 
-def test_the_early_re_send_waits_for_a_strike_in_flight(tmp_path):
-    """Fix 1 (review-t7c M1): a swing pressed 1.9 s after the accept (its progress line's step `swing`) holds the
-    early re-send past MELEE_S - MELEE_RESEND_MARGIN_S, so the Lua reads the strike's end; the first tick after the
-    strike (its step `back`) re-sends."""
+def test_the_re_send_waits_for_a_press_in_flight(tmp_path):
+    """Fix 1 (review-t7c M1): a mode change read while a swing is in flight (its progress line's step `swing`) holds
+    the re-send, so the Lua reads the press's result; the first tick after it (its step `face`) re-sends."""
     r = Rig(tmp_path, caps=MELEE_CAPS)
     fr(r, [z(9, 101.0)])
     f = fight(r)
     a = f.step()
     act(r, a, "accepted")
-    r.advance(1.9)
+    r.advance(0.4)
     act(r, a, "progress", result={"step": "swing", "d": 1.0})
     r.advance(0.1)
     fr(r, [z(9, 101.0)])
+    f.spent = ("arms",)
     assert f.step() is None and f.busy() and f.m.action is a
     r.advance(0.2)
-    act(r, a, "progress", result={"step": "back", "d": 1.1})
+    act(r, a, "progress", result={"step": "face", "d": 1.1})
     r.advance(0.1)
     fr(r, [z(9, 101.1)])
     b = f.step()
-    assert b.type == "melee" and f.why["melee"]["resend"] == "early"
+    assert b.type == "melee" and b.args["mode"] == "shove" and f.why["melee"]["resend"] == "inputs"
 
 
-def test_a_crowd_end_with_the_frame_behind_still_gives_the_ladder_the_choose(tmp_path):
+def test_a_handback_with_the_frame_behind_still_gives_the_ladder_the_choose(tmp_path):
     """Fix 1 (review-t7b M1): the Lua reads the other zombie live, the frame up to a tenth of a second behind it; with
     the next frame still listing 8 beyond STAND_MIN_R (0.9 tiles, so the guard reads nothing), the crowd end alone
     hands that choose to the ladder: its leg, never a fresh melee on the geometry the Lua refused."""
@@ -991,39 +974,14 @@ def test_a_crowd_end_with_the_frame_behind_still_gives_the_ladder_the_choose(tmp
     f = fight(r, target=9)
     a = f.step()
     act(r, a, "accepted")
-    act(r, a, "failed", "crowd", result={"id": 8, "d": 0.55})
+    done(r, a, end="handback", why="crowd", id=8, d=0.55)
     r.advance(0.5)
     fr(r, [z(9, 100.4), z(8, 100.0, 200.9)])
     b = f.step()
-    assert b.type == "aim" and f.why["melee_end"]["end"] == "crowd" and f.m is None
+    assert b.type == "aim" and f.why["melee_end"]["end"] == "handback" and f.m is None
 
 
-def test_the_walk_s_bound_fires_across_early_re_sends(tmp_path):
-    """Fix 1's residual (review-t7b re-review): a finish melee walking to a fallen pin it cannot reach is re-sent early
-    every MELEE_S - MELEE_RESEND_MARGIN_S, before any `done`; the walk's bound is read on the observe, summed across the
-    re-sends, so by MELEE_WALK_S of `stomp_walk` the target is unreachable for SEEK_SKIP_S and the ladder takes the
-    next choose."""
-    r = Rig(tmp_path, caps=MELEE_CAPS)
-    fr(r, [z(9, 102.4, floor=True)])
-    f = fight(r)
-    a = f.step()
-    act(r, a, "accepted")
-    act(r, a, "progress", result={"step": "stomp_walk", "d": 2.4})
-    t0, resends = r.clock(), 0
-    while r.clock() - t0 < P.MELEE_WALK_S - 0.25:
-        r.advance(0.5)
-        fr(r, [z(9, 102.4, floor=True)])
-        b = f.step()
-        assert 9 not in f.unreachable and f.m is not None
-        if b is not None:
-            assert b.type == "melee" and f.why["melee"]["resend"] == "early"
-            resends += 1
-            act(r, b, "accepted")
-            act(r, b, "progress", result={"step": "stomp_walk", "d": 2.4})
-    r.advance(0.5)
-    fr(r, [z(9, 102.4, floor=True)])
-    assert f.step() is None and f.unreachable[9] == r.clock() + P.SEEK_SKIP_S
-    assert resends >= 1 and f.why["melee_end"]["end"] == "out of reach" and f.m is None
+
 
 
 # ================================================================ Task 7e (ruling P28-H, from E22's reading)

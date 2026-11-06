@@ -292,8 +292,8 @@ def test_an_argument_enum_reaches_the_class_check_the_tool_description_and_the_l
     assert _DEFS["meleeMode"]["enum"] == ["strike", "shove", "finish"]
     mod = load_py_module()
     assert mod.ACTION_ARGS["melee"]["mode"] == "meleeMode" and mod.MELEE_MODES == ("strike", "shove", "finish")
-    args = dict(targetId=7, reach=1.4, keepR=2.5, shoveR=1.1, releaseR=2.75, backVx=-1.0, backVy=0.0, seconds=2.5,
-                closeR=0.0)
+    args = dict(targetId=7, reach=1.4, shoveR=0.9, releaseR=2.75, faceR=3.0, pressAngle=41.4, pressLo=0.0,
+                floorR=1.0, handbackR=2.0, stall=3)   # PZA/1.10 (Plan 31 Task 2)
     assert mod.Melee(mode="shove", **args).args()["mode"] == "shove"
     with pytest.raises(ValueError):
         mod.Melee(mode="kick", **args)

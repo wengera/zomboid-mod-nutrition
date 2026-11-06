@@ -131,15 +131,18 @@ def make_item(ft, iid, food=()):
              hasTag=lambda s, t: t == "RIP_CLOTHING_COTTON" and "Tshirt" in ft)
 
 
-def make_weapon(max_range=1.25, range_mod=1.0, cond=10, wid=900, two_hands=False):
+def make_weapon(max_range=1.25, range_mod=1.0, cond=10, wid=900, two_hands=False, min_range=None):
     """A held melee weapon: getMaxRange(chr) and getRangeMod(chr) answer max_range and range_mod (None makes the
-    member absent)."""
+    member absent); getMinRange() answers min_range, absent by default (PZA/1.10: the melee fake's bat sets the bat's
+    0.61, weapon.txt:6703)."""
     w = J(_cls="HandWeapon", getFullType=lambda s: "Base.BaseballBat", getCondition=lambda s: cond,
           getID=lambda s: wid, isTwoHandWeapon=lambda s: two_hands)
     if max_range is not None:
         w.getMaxRange = lambda s, chr: max_range
     if range_mod is not None:
         w.getRangeMod = lambda s, chr: range_mod
+    if min_range is not None:
+        w.getMinRange = lambda s: min_range
     return w
 
 
@@ -283,6 +286,10 @@ def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_
     p.perks = perks
     p.getPerkLevel = lambda s, perk: perks.get(perk, 0)
     p.isBehind = lambda s, z: getattr(z, "behind", None) is True
+    # PZA/1.10 (Plan 31 Task 2): getLookAngleRadians and getAnimAngleRadians answer p.angles["look"] and ["body"]
+    angles = {"look": 0.0, "body": 0.0}
+    p.angles = angles
+    p.getLookAngleRadians, p.getAnimAngleRadians = (lambda s: angles["look"]), (lambda s: angles["body"])
     return p
 
 
@@ -290,7 +297,8 @@ def make_zombie(zid, x, y, dead=False, health=1.0):
     return J(getOnlineID=lambda s: zid, getX=lambda s: x, getY=lambda s: y, isDead=lambda s: dead,
              getTarget=lambda s: None, isCrawling=lambda s: False, getHealth=lambda s: health,
              isOnFloor=lambda s: False,                                       # PZA/1.7: a standing zombie
-             isTargetLocationKnown=lambda s: False, getRealState=lambda s: "idle")   # PZA/1.9: an unaware one
+             isTargetLocationKnown=lambda s: False, getRealState=lambda s: "idle",   # PZA/1.9: an unaware one
+             getAnimAngleRadians=lambda s: 0.0, isFallOnFront=lambda s: False)       # PZA/1.10: facing +x
 
 
 def make_cell(zombies=(), squares=None):
@@ -495,6 +503,8 @@ def agent_fixture(tmp_path, monkeypatch):
 WALK_SPEED = 2.0          # tiles a second: the walk (#4197), the player's auto-walk speed in the fake
 TICK_MS = 17              # one client tick on the fake clock (about 60 Hz)
 ZOMBIE_STOP_R = 0.45      # tiles: a chasing zombie stops closing here (the fake keeps the two bodies apart)
+TURN_RATE = 3.6           # radians a second: the body's turn toward the written facing walking (#4689: 206 degrees)
+BAT_MIN_R = 0.61          # tiles: the bat's MinRange (weapon.txt:6703), the fake bat's getMinRange
 
 
 def zdist(w):
@@ -503,7 +513,8 @@ def zdist(w):
 
 
 def make_mover(px=10.0, py=20.0, zx=12.0, zy=20.0, zid=7, zspeed=0.0, chasing=True, weapon="bat", attack_ticks=20,
-               windup_ticks=None, hit_ticks=30, bite_r=0.9, dist_member=True):
+               windup_ticks=None, hit_ticks=30, bite_r=0.9, dist_member=True, look=None, turn=TURN_RATE,
+               combat_speed=1.0, zangle=0.0, front=False):
     """A player and one zombie whose positions and states live in the dict w, moved by step_world once a client tick
     (before the OnTick that runs the runner, as the engine's update precedes OnTick): the zombie closes on the player at
     w["zspeed"] tiles a second while w["chasing"] (its getTarget answers the player then, None otherwise) and it neither
@@ -516,12 +527,20 @@ def make_mover(px=10.0, py=20.0, zx=12.0, zy=20.0, zid=7, zspeed=0.0, chasing=Tr
     zombie within w["bite_r"] (#4290's 0.9) for that many ticks in a row sets the player's hit reaction ("Bite") for
     w["hit_ticks"] ticks, counted in w["bites"]. The zombie's isDead, getHealth, isOnFloor and isKnockedDown answer
     w["zdead"], w["zhp"], w["floor"] and w["knocked"], which a test toggles. dist_member gives the player the engine's
-    DistToProper (the planar distance, T91.3); False leaves it absent (the four position reads)."""
+    DistToProper (the planar distance, T91.3); False leaves it absent (the four position reads).
+    PZA/1.10 (Plan 31 Task 2): the look. faceThisObject(o) and faceLocationF(x, y) write the facing (w["face_to"], the
+    bearing from the player to o or to (x, y), atan2's convention), and step_world turns w["look"] toward it at
+    w["turn"] radians a second (#4689's 206 degrees walking by default; 0 never turns), so the face written on a tick
+    is read by getLookAngleRadians (and getAnimAngleRadians) on the next, as the engine's update follows OnTick
+    (#4590); w["look"] starts on the zombie unless look is given. getCombatSpeed answers w["cs"]; the bat answers
+    getMinRange BAT_MIN_R; the zombie's getAnimAngleRadians and isFallOnFront answer w["zangle"] and w["front"]."""
     w = {"px": px, "py": py, "zx": zx, "zy": zy, "zspeed": zspeed, "chasing": chasing, "zdead": False, "zhp": 1.0,
          "knocked": False, "floor": False, "attack": 0, "attack_ticks": attack_ticks, "windup": windup_ticks,
          "wound": 0, "hit": 0, "hit_ticks": hit_ticks, "bite_r": bite_r, "bites": 0, "on_attack": None,
-         "presses": [], "tick": 0, "shove": False, "walk": None}
-    p = make_player(weapon=make_weapon() if weapon == "bat" else weapon)
+         "presses": [], "tick": 0, "shove": False, "walk": None,
+         "look": math.atan2(zy - py, zx - px) if look is None else look, "face_to": None, "turn": turn,
+         "cs": combat_speed, "zangle": zangle, "front": front}
+    p = make_player(weapon=make_weapon(min_range=BAT_MIN_R) if weapon == "bat" else weapon)
     p.getX, p.getY = (lambda s: w["px"]), (lambda s: w["py"])
     if dist_member:
         p.DistToProper = lambda s, o: math.hypot(o.getX(o) - w["px"], o.getY(o) - w["py"])
@@ -545,10 +564,23 @@ def make_mover(px=10.0, py=20.0, zx=12.0, zy=20.0, zid=7, zspeed=0.0, chasing=Tr
         w["walk"] = (wx / n, wy / n) if n > 0 else None
     p.DoAttack, p.setDoShove, p.setAutoWalkDirection = do_attack, set_shove, set_dir
     p.isAttackStarted = lambda s: w["attack"] > 0
+
+    def face_obj(s, o):
+        p.faced.append(o)
+        w["face_to"] = math.atan2(o.getY(o) - w["py"], o.getX(o) - w["px"])
+
+    def face_at(s, x, y):
+        p.faced.append((x, y))
+        w["face_to"] = math.atan2(y - w["py"], x - w["px"])
+        return True
+    p.faceThisObject, p.faceLocationF = face_obj, face_at
+    p.getLookAngleRadians = p.getAnimAngleRadians = lambda s: w["look"]
+    p.getCombatSpeed = lambda s: w["cs"]
     z = J(getOnlineID=lambda s: zid, getX=lambda s: w["zx"], getY=lambda s: w["zy"], isDead=lambda s: w["zdead"],
           getTarget=lambda s: p if w["chasing"] else None, isCrawling=lambda s: False, getHealth=lambda s: w["zhp"],
           isOnFloor=lambda s: w["floor"], isKnockedDown=lambda s: w["knocked"],
-          isTargetLocationKnown=lambda s: w["chasing"], getRealState=lambda s: "idle")   # PZA/1.9
+          isTargetLocationKnown=lambda s: w["chasing"], getRealState=lambda s: "idle",   # PZA/1.9
+          getAnimAngleRadians=lambda s: w["zangle"], isFallOnFront=lambda s: w["front"])   # PZA/1.10
     return p, z, w
 
 
@@ -557,6 +589,10 @@ def step_world(w, p):
     its auto-walk, the zombie closes, and the zombie's scripted attack winds up."""
     w["tick"] += 1
     dt = TICK_MS / 1000.0
+    if w["face_to"] is not None and w["turn"] > 0:   # PZA/1.10: the body turns toward the written facing
+        off = (w["face_to"] - w["look"] + math.pi) % (2 * math.pi) - math.pi
+        stepr = w["turn"] * dt
+        w["look"] += off if abs(off) <= stepr else math.copysign(stepr, off)
     if w["attack"] > 0:
         w["attack"] -= 1
     if w["hit"] > 0:

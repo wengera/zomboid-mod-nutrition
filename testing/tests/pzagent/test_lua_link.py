@@ -34,7 +34,8 @@ def frame_body(x=10.5, stats_hunger=0.25, **over):
                 "sprinting": False, "forceRun": False, "forceSprint": False, "autoWalk": False, "zombiesSeen": 0,
                 "zombiesListed": 0, "hour": 13.5, "attackers": 1, "hitReaction": "", "dragDown": False,
                 "aiming": True, "forceAim": True, "worn": [{"loc": "base:tshirt", "bite": 0, "scratch": 10.5, "holes": 1, "cond": 8}],
-                "loadedWidth": 104, "sneaking": True, "sneakLevel": 2},             # PZA/1.9
+                "loadedWidth": 104, "sneaking": True, "sneakLevel": 2,              # PZA/1.9
+                "lookAngle": 1.5, "bodyAngle": 1.25},                                # PZA/1.10
          "stats": {"hunger": stats_hunger, "thirst": 0.5, "fatigue": 0.125, "endurance": 0.75, "panic": 0, "pain": 0,
                    "sickness": 0, "wetness": 5, "temperature": 37},
          "body": {"health": 100, "bleeding": 0, "scratched": 0, "bitten": 0, "parts": [], "armPain": 2.5,
@@ -425,9 +426,10 @@ def test_a_frame_and_its_delta_decode_through_pza1(lua, fs):
     f1["act"] = {"aid": "a3", "state": "progress", "step": None}         # PZA/1.8: step null but for a melee
     f1["zombies"] = [{"id": 11, "x": 12.5, "y": 13.0, "dist": 2.5, "hasTarget": True, "crawler": False, "health": 0.75,
                       "onFloor": None,
-                      "known": True, "state": "lunge-network", "behind": False},                  # PZA/1.9
+                      "known": True, "state": "lunge-network", "behind": False,                   # PZA/1.9
+                      "headX": None, "headY": None},                                                # PZA/1.10
                      {"id": 12, "x": 14.25, "y": 9, "dist": 4.0, "hasTarget": False, "crawler": True, "health": 1,
-                      "onFloor": True, "known": False, "state": "", "behind": True}]
+                      "onFloor": True, "known": False, "state": "", "behind": True, "headX": 13.75, "headY": 9}]
     f2 = copy.deepcopy(f1)
     f2["me"]["x"] = 11.25
     f2["zombies"] = []

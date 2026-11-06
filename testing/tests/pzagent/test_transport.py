@@ -33,7 +33,7 @@ def test_every_kind_round_trips_through_the_transport(tmp_path):
         m.frame(),
         m.frame(zombies=[{"id": 4, "x": 101.5, "y": 199.25, "dist": 1.6, "hasTarget": True, "crawler": False,
                           "health": 1.75, "onFloor": None, "known": True, "state": "walktoward",   # PZA/1.9
-                          "behind": False}]),
+                          "behind": False, "headX": None, "headY": None}]),                # PZA/1.10
         m.event("damage", tag="ZOMBIE", amount=0.25, side="client"),
         m.map_full([SQUARE], scan_id=3, missing=["getModData"]),
         m.map_delta(dict(SQUARE, solid=True)),

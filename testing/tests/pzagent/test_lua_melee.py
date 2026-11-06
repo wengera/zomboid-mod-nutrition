@@ -1,13 +1,16 @@
-"""PZAgent_StanceMelee.lua (PZA/1.8, Plan 28 Task 7a; survival iteration 22, cut 1 of the maneuver layer): the melee
-reflex skill `melee {targetId, mode, reach, keepR, shoveR, releaseR, backVx, backVy, seconds, floorSwing}`, which owns
-one target from the combat stance to the kill at the client's tick rate, its reflexes in order (first match wins: dead,
-the hit reaction, a strike running, out of range and crowd, the time, the target fallen, the knock wait, the shove, the
-swing, the back leg after a miss, the close, the stand), its progress lines carrying a result, the frame's act.step,
-the stance kept across a same-target re-send, and its per-tick cost. Run on the lupa host over conftest.make_mover's
-kinematic fake (the zombie closing at a set speed, the player along its auto-walk at the walk's 2.0 tiles a second,
-DoAttack starting an attack that reads isAttackStarted true for N ticks, a scripted zombie attack setting the hit
-reaction after a windup). Each reflex has a positive case and a falsifier; the mutants of the task report (each reflex
-a tick late, its distance test inverted, its order swapped with its neighbour's) each fail one of them."""
+"""PZAgent_StanceMelee.lua (PZA/1.10, Plan 31 Task 2: the meet, the finish aimed at the head and the spent meet; first
+cut PZA/1.8, Plan 28 Task 7a): the melee reflex skill `melee {targetId, mode, reach, shoveR, releaseR, faceR,
+pressAngle, pressLo, floorR, handbackR, stall, floorSwing}`, which owns one target to the kill at the client's tick rate:
+the stance beyond faceR, the facing every tick inside it, the press when the look is on the target and the target's
+distance at the swing's collision event is predicted inside the reach, the press again after a swing that left it
+standing (no back step), the shove only inside MinRange, the knock wait, the finish at the fallen target's head (the
+floor swing within floorR, else the stomp within 0.3 tiles), never broken by a zombie beyond handbackR, the spent meet's
+shove and stomp, the press leaf on the line after each result, the ends kill, handback and lost (never time), the stance
+kept across a same-target re-send, and its per-tick cost. Run on the lupa host over conftest.make_mover's kinematic fake
+(the zombie closing at a set speed, the player along its auto-walk at the walk's 2.0 tiles a second, the body turning
+toward the written facing at #4689's 206 degrees a second, DoAttack starting an attack that reads isAttackStarted true
+for N ticks, a scripted zombie attack setting the hit reaction after a windup). Each behaviour has a positive case and a
+falsifier."""
 import json
 import math
 import os
@@ -15,15 +18,21 @@ import os
 import pytest
 
 from agent.base import pza1
-from .conftest import ROOT, TICK_MS, J, make_cell, make_mover, make_zombie, step_world, zdist, lua_file
+from agent.base.planner import policies as P
+from .conftest import (BAT_MIN_R, ROOT, TICK_MS, TURN_RATE, J, lua_file, make_cell, make_mover, make_zombie,
+                       step_world, zdist)
 from .test_lua_skills import acts, load, sense, start, states, tick
 from .test_lua_stance import Rec
 
-ARGS = {"targetId": 7, "mode": "strike", "reach": 1.4, "keepR": 2.5, "shoveR": 1.1, "releaseR": 2.75,
-        "backVx": -1.0, "backVy": 0.0, "seconds": 2.5, "closeR": 0.0}
-STRIKES = ("face", "swing", "shove", "stomp", "floor")
+ARGS = {"targetId": 7, "mode": "strike", "reach": 1.25, "shoveR": P.SHOVE_SEND_R, "releaseR": 2.75, "faceR": P.FACE_R,
+        "pressAngle": P.PRESS_ANGLE, "pressLo": P.PRESS_LO, "floorR": P.FLOOR_R, "handbackR": P.HANDBACK_R,
+        "stall": P.STALL_SWINGS}
+PRESSES = ("swing", "shove", "stomp", "floor")
+LEAF = {"d_press", "d_collide_pred", "look_off", "hp0", "hp1", "knock", "cut_by"}
+COUNTS = {"swings", "shoves", "stomps", "floors", "knockdowns", "hits"}
 R2 = 1 / math.sqrt(2)
 SCHEMA = os.path.join(ROOT, "testing", "agent", "base", "schema", "pza1.json")
+UPDATE_S = TICK_MS / 1000.0
 
 
 def world(lua, **kw):
@@ -32,6 +41,13 @@ def world(lua, **kw):
     p, z, w = make_mover(**kw)
     sense(lua, [z])
     return p, z, w
+
+
+def with_head(lua, z):
+    """Sense's own S.headOf (PZAgent_Sense.lua) loaded beside the stub, the stub's zombie lookup kept."""
+    lua.execute("local keep = PZA.sense; _keepById, _keepNear = keep.zombieById, keep.nearestZombie")
+    lua.execute(open(lua_file("client/PZAgent_Sense.lua"), encoding="utf-8").read())
+    lua.execute("PZA.sense.zombieById, PZA.sense.nearestZombie = _keepById, _keepNear")
 
 
 def go(lua, p, aid="m1", **over):
@@ -66,6 +82,10 @@ def step_seq(lua, fs, aid="m1"):
     return [a["result"]["step"] for a in progress(lua, fs, aid)]
 
 
+def leaves(lua, fs, aid="m1"):
+    return [a["result"]["press"] for a in acts(lua, fs) if a["aid"] == aid and "press" in (a.get("result") or {})]
+
+
 def last(lua, fs):
     return acts(lua, fs)[-1]
 
@@ -79,17 +99,41 @@ def walk_dir(p):
     return v.x, v.y
 
 
+def frame_last(lua, zombies=(), arm_pain=None, objs=None):
+    """PZA.sense.last as Sense leaves it (the records the crowd and hand-back reads take, the body's armPain) and
+    PZA.sense.zobj."""
+    g = lua.globals()
+    g._objs = lua.table_from(objs or {})
+    lua.execute("PZA.sense.zobj = _objs")
+    recs = ", ".join("{ id = %d, dist = %r }" % (i, d) for i, d in zombies)
+    pain = "nil" if arm_pain is None else repr(arm_pain)
+    lua.execute("PZA.sense.last = { zombies = { %s }, body = { armPain = %s } }" % (recs, pain))
+
+
+def moodles(p, levels):
+    p.getMoodles = lambda s: J(getMoodleLevel=lambda s2, t: levels.get(t, 0))
+
+
 # ---- the command's checks ------------------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("over", [{"mode": "kick"}, {"mode": 3}, {"seconds": 0}, {"reach": "x"}, {"reach": -1},
-                                  {"floorSwing": "yes"}, {"targetId": "z"}, {"backVx": None}, {"closeR": None},
-                                  {"closeR": -0.5}, {"closeR": "x"}])
+@pytest.mark.parametrize("over", [{"mode": "kick"}, {"mode": 3}, {"reach": "x"}, {"reach": -1}, {"floorSwing": "yes"},
+                                  {"targetId": "z"}, {"faceR": None}, {"faceR": -1}, {"pressAngle": 0},
+                                  {"pressAngle": 181}, {"pressLo": -0.1}, {"floorR": None}, {"handbackR": -2},
+                                  {"stall": 0}, {"releaseR": 0}, {"shoveR": None}, {"stall": "x"}])
 def test_melee_with_bad_args_is_rejected(lua, fs, over):
     p, z, w = world(lua)
     a = dict(ARGS)
     a.update(over)
     a = {k: v for k, v in a.items() if v is not None}
     start(lua, p, "melee", aid="m1", **a)
+    assert states(acts(lua, fs)) == [("m1", "rejected", "bad args")]
+
+
+def test_the_pza1_9_arguments_are_bad_args(lua, fs):
+    """PZA/1.10 dropped keepR, backVx, backVy, seconds and closeR: a PZA/1.9 melee is refused, never half run."""
+    p, z, w = world(lua)
+    start(lua, p, "melee", aid="m1", targetId=7, mode="strike", reach=1.4, keepR=2.5, shoveR=1.1, releaseR=2.75,
+          backVx=-1.0, backVy=0.0, seconds=2.5, closeR=0.0)
     assert states(acts(lua, fs)) == [("m1", "rejected", "bad args")]
 
 
@@ -104,9 +148,10 @@ def test_an_unknown_or_dead_target_is_no_target_a_far_one_too_far_and_a_strike_w
     p2.getX, p2.getY = p.getX, p.getY
     go(lua, p2, aid="n")
     go(lua, p2, aid="s", mode="shove")                                # the shove needs no weapon
+    go(lua, p2, aid="t", mode="finish")                               # nor does the finish
     assert states(acts(lua, fs)) == [("u", "rejected", "no target"), ("f", "rejected", "too far"),
                                      ("d", "rejected", "no target"), ("n", "rejected", "no weapon"),
-                                     ("s", "accepted", "")]
+                                     ("s", "accepted", ""), ("s", "failed", "superseded"), ("t", "accepted", "")]
 
 
 @pytest.mark.parametrize("missing", ["setForceAim", "nullifyAiming", "faceThisObject", "DoAttack", "setDoShove",
@@ -127,10 +172,10 @@ def test_the_melee_without_vector2_fails_not_loaded(lua, fs):
     assert states(acts(lua, fs))[-1] == ("m1", "failed", "not loaded")
 
 
-# ---- 1: dead ---------------------------------------------------------------------------------------------------------
+# ---- the ends: kill, handback, lost; never time ----------------------------------------------------------------------
 
-def test_a_target_that_dies_ends_the_melee_done_dead_with_a_kill_and_its_counts(lua, fs):
-    p, z, w = world(lua, zx=12.0)
+def test_a_target_that_dies_ends_the_melee_done_kill_with_its_counts(lua, fs):
+    p, z, w = world(lua, zx=11.0, look=math.pi, turn=0.0)            # 1 tile, the look away: no press
     go(lua, p)
     run(lua, p, w, 5)
     assert not ended(lua)                                             # the falsifier: alive, it runs on
@@ -139,15 +184,15 @@ def test_a_target_that_dies_ends_the_melee_done_dead_with_a_kill_and_its_counts(
     a = last(lua, fs)
     assert (a["state"], a["reason"]) == ("done", "")
     r = a["result"]
-    assert r["end"] == "dead" and r["kill"] is True and r["hp0"] == 1.0 and r["hp1"] == 0.0
-    assert r["swings"] == 0 and r["hits"] == 0 and r["dMin"] == pytest.approx(2.0)
-    assert r["steps"] == {"stand": 5}
+    assert r["end"] == "kill" and r["kill"] is True and r["hp0"] == 1.0 and r["hp1"] == 0.0 and "why" not in r
+    assert r["swings"] == 0 and r["hits"] == 0 and r["dMin"] == pytest.approx(1.0) and "press" not in r
+    assert sum(r["steps"].values()) == 5
     assert lua.eval("PZA.skills.stance.held") is False and lua.eval("PZA.motor.wantAim") is False
 
 
 def test_a_dead_player_fails_the_melee_dead_and_releases_the_stance(lua, fs):
-    p, z, w = world(lua)
-    go(lua, p)
+    p, z, w = world(lua, zx=13.4, zspeed=1.0)                         # beyond faceR: the stance
+    go(lua, p, releaseR=4.0)
     run(lua, p, w, 3)
     assert p.aim["force"] is True
     p.getBodyDamage = lambda s: J(getOverallBodyHealth=lambda s2: 0.0)
@@ -156,589 +201,491 @@ def test_a_dead_player_fails_the_melee_dead_and_releases_the_stance(lua, fs):
     assert p.aim["force"] is False and lua.eval("PZA.motor.wantAim") is False
 
 
-# ---- 2: the hit reaction -----------------------------------------------------------------------------------------
+def test_no_time_end_a_standoff_runs_on(lua, fs):
+    """PZA/1.10: the melee ends kill, handback or lost, never on time: 60 s of a target faced with the look held off
+    (no press, so no stall) is still running."""
+    p, z, w = world(lua, zx=11.0, look=math.pi / 2, turn=0.0)
+    go(lua, p)
+    run(lua, p, w, int(60000 / TICK_MS))
+    assert not ended(lua) and w["presses"] == [] and cur_step(lua) == "face"
+    assert all(a["state"] in ("accepted", "progress") for a in acts(lua, fs))
+
+
+def test_a_target_beyond_release_r_ends_done_lost_out_of_range(lua, fs):
+    p, z, w = world(lua, zx=12.5, look=math.pi, turn=0.0)
+    go(lua, p)
+    run(lua, p, w, 2)
+    assert not ended(lua)
+    w["zx"] = 12.8                                                    # 2.8 > releaseR 2.75
+    run(lua, p, w)
+    a = last(lua, fs)
+    assert (a["state"], a["result"]["end"], a["result"]["why"], a["result"]["kill"]) == ("done", "lost",
+                                                                                          "out of range", False)
+    assert p.aim["force"] is False
+
+
+def crowd_world(lua, other_floor=False, other_d=0.5, **kw):
+    p, z, w = world(lua, **kw)
+    o = make_zombie(8, 10.0 + other_d, 20.0)
+    if other_floor:
+        o.isOnFloor = lambda s: True
+    frame_last(lua, [(8, other_d), (7, zdist(w))], objs={7: z, 8: o})
+    return p, z, w
+
+
+def test_another_standing_zombie_within_stand_r_ends_done_handback_crowd_with_its_id_and_distance(lua, fs):
+    p, z, w = crowd_world(lua, zx=12.0)
+    go(lua, p)
+    run(lua, p, w)
+    a = last(lua, fs)
+    r = a["result"]
+    assert (a["state"], r["end"], r["why"], r["id"], r["d"]) == ("done", "handback", "crowd", 8, 0.5)
+
+
+@pytest.mark.parametrize("floor, d", [(True, 0.5), (False, 0.7)])
+def test_a_fallen_or_a_farther_other_zombie_is_no_crowd(lua, fs, floor, d):
+    p, z, w = crowd_world(lua, other_floor=floor, other_d=d, zx=12.0, look=math.pi, turn=0.0)
+    go(lua, p)
+    run(lua, p, w, 3)
+    assert not ended(lua)
+
+
+def test_presses_that_lowered_nothing_end_done_lost_no_progress_at_the_stall(lua, fs):
+    """`stall` (STALL_SWINGS) swings in a row that left the target unhurt and standing end it lost (the existing
+    no-progress read, now the Lua's: the melee has no time end)."""
+    p, z, w = world(lua, zx=11.0, attack_ticks=6)
+    go(lua, p)
+    run(lua, p, w, 300, stop=lambda: ended(lua))
+    a = last(lua, fs)
+    assert (a["state"], a["result"]["end"], a["result"]["why"]) == ("done", "lost", "no progress")
+    assert a["result"]["swings"] == P.STALL_SWINGS and len(w["presses"]) == P.STALL_SWINGS
+
+
+def test_a_press_that_lowered_the_health_restarts_the_stall(lua, fs):
+    """The stall's falsifier: a swing that lowers the health (the fake's on_attack) restarts the run, so ten presses
+    in, the melee runs on."""
+    p, z, w = world(lua, zx=11.0, attack_ticks=6)
+    w["on_attack"] = lambda wd, shove: wd.__setitem__("zhp", wd["zhp"] - 0.01)
+    go(lua, p)
+    run(lua, p, w, 400, stop=lambda: len(w["presses"]) >= 10)
+    assert len(w["presses"]) == 10 and not ended(lua)
+
+
+# ---- the hit reaction ----------------------------------------------------------------------------------------------
 
 def test_no_press_goes_on_any_tick_reading_a_hit_reaction_and_each_run_of_it_counts_one_hit(lua, fs):
-    p, z, w = world(lua, zx=11.2)                                     # within the reach 1.4
+    p, z, w = world(lua, zx=11.2)                                     # within the reach 1.25, the look on
     p.combat["hitReaction"] = "Bite"
     go(lua, p)
     run(lua, p, w, 12)
     assert w["presses"] == [] and cur_step(lua) == "hit"
     p.combat["hitReaction"] = ""
-    run(lua, p, w)                                                    # the face
-    assert w["presses"] == [] and cur_step(lua) == "face"
-    p.combat["hitReaction"] = "Bite"                                  # a second reaction between the face and the press
-    run(lua, p, w, 3)
-    assert w["presses"] == []
-    p.combat["hitReaction"] = ""
-    run(lua, p, w, 2)
-    assert len(w["presses"]) == 1
-    assert progress(lua, fs)[-1]["result"]["hits"] == 2
+    run(lua, p, w)
+    assert len(w["presses"]) == 1 and cur_step(lua) == "swing"       # the falsifier: the reaction gone, the press
+    assert progress(lua, fs)[-1]["result"]["hits"] == 1
 
 
-def test_without_a_hit_reaction_the_press_comes_on_the_second_tick(lua, fs):
-    """The falsifier of the hit hold: the same geometry with no reaction presses a tick after the face."""
-    p, z, w = world(lua, zx=11.2)
-    go(lua, p)
-    run(lua, p, w, 2)
-    assert len(w["presses"]) == 1 and w["presses"][0]["tick"] == 2 and w["presses"][0]["shove"] is False
-
-
-# ---- 3: a strike running -----------------------------------------------------------------------------------------
-
-def test_no_second_press_while_the_strike_runs_and_its_knockdown_is_read_at_its_end(lua, fs):
-    p, z, w = world(lua, zx=11.2, attack_ticks=20)
-
-    def knock(wd, shove):
-        wd["knocked"] = True
-    w["on_attack"] = knock
-    go(lua, p)
-    run(lua, p, w, 15)
-    assert len(w["presses"]) == 1 and cur_step(lua) == "swing"
-    run(lua, p, w, 8)                                                 # the attack ends; the result read a tick after
-    assert len(w["presses"]) == 1 and cur_step(lua) == "knock_wait"
-    assert progress(lua, fs)[-1]["result"]["knockdowns"] == 1
-
-
-def test_a_strike_that_leaves_the_target_standing_is_a_miss_and_the_back_leg_follows(lua, fs):
-    p, z, w = world(lua, zx=11.3, attack_ticks=10)
-    go(lua, p)
-    run(lua, p, w, 14)
-    assert len(w["presses"]) == 1 and cur_step(lua) == "back"
-    assert step_seq(lua, fs) == ["face", "swing", "back"]              # the back leg on the result's own tick
-
-
-def test_a_strike_that_hurt_but_left_the_target_standing_is_a_miss_too(lua, fs):
-    """Fix round 1 (the controller's ruling on review-t7a M2): standing is the miss, hurt or not (the bites came after
-    strikes that left the zombie standing): the back leg, not the swing again."""
-    p, z, w = world(lua, zx=11.3, attack_ticks=10)
-
-    def hurt(wd, shove):
-        wd["zhp"] -= 0.2
-    w["on_attack"] = hurt
-    go(lua, p)
-    run(lua, p, w, 14)
-    assert len(w["presses"]) == 1 and cur_step(lua) == "back"
-
-
-def test_a_strike_that_knocked_the_target_down_is_no_miss(lua, fs):
-    """The falsifier of the miss: a knockdown is the knock wait, never the back leg."""
-    p, z, w = world(lua, zx=11.3, attack_ticks=10)
-    w["on_attack"] = lambda wd, shove: wd.__setitem__("knocked", True)
-    go(lua, p)
-    run(lua, p, w, 14)
-    assert cur_step(lua) == "knock_wait" and "back" not in step_seq(lua, fs)
-
-
-def test_a_hit_during_a_running_strike_reads_hit_and_counts_it(lua, fs):
-    """The order of 2 before 3: a reaction while the swing runs is the hit step, counted, the swing's end still read."""
-    p, z, w = world(lua, zx=11.2, attack_ticks=30)
+def test_a_hit_during_a_press_in_flight_reads_hit_counts_it_and_marks_the_leaf_cut_by_hit(lua, fs):
+    """A reaction while the swing runs is the hit step, counted, the swing's end still read; the leaf's cut_by is hit
+    (the reaction leaves the swing's state, #4664, before its collision no damage, #4665)."""
+    p, z, w = world(lua, zx=11.0, attack_ticks=30)
     go(lua, p)
     run(lua, p, w, 3)
     assert cur_step(lua) == "swing"
     p.combat["hitReaction"] = "Bite"
     run(lua, p, w)
     assert cur_step(lua) == "hit" and progress(lua, fs)[-1]["result"]["hits"] == 1
+    p.combat["hitReaction"] = ""
+    run(lua, p, w, 60, stop=lambda: leaves(lua, fs))
+    assert leaves(lua, fs)[0]["cut_by"] == "hit"
 
 
-def test_a_target_dying_in_a_hit_reaction_ends_done_dead(lua, fs):
-    """The order of 1 before 2."""
+def test_a_target_dying_in_a_hit_reaction_ends_done_kill(lua, fs):
     p, z, w = world(lua, zx=12.3)
     go(lua, p)
     run(lua, p, w, 2)
     p.combat["hitReaction"] = "Bite"
     w["zdead"] = True
     run(lua, p, w)
-    assert (last(lua, fs)["state"], last(lua, fs)["result"]["end"]) == ("done", "dead")
+    assert (last(lua, fs)["state"], last(lua, fs)["result"]["end"]) == ("done", "kill")
 
 
-# ---- 4: out of range and crowd -----------------------------------------------------------------------------------
+# ---- the meet: the facing from faceR, the look, the predicted band ---------------------------------------------------
 
-def test_a_target_beyond_release_r_fails_out_of_range(lua, fs):
-    p, z, w = world(lua, zx=12.5)
+def test_the_stance_is_released_and_the_target_faced_every_tick_from_face_r(lua, fs):
+    """Beyond faceR (3.0) a closing chaser is met in the stance (aimed, `stand`); from faceR on the stance is
+    released and faceThisObject written every tick (`face`), never the mouse (#4589, #4590)."""
+    p, z, w = world(lua, zx=13.2, zspeed=1.0)
+    go(lua, p, releaseR=4.0)
+    run(lua, p, w, 3)
+    assert cur_step(lua) == "stand" and p.aim["force"] is True and zdist(w) > P.FACE_R
+    run(lua, p, w, 30, stop=lambda: zdist(w) <= P.FACE_R)
+    n0 = len(p.faced)
+    run(lua, p, w, 5)
+    assert cur_step(lua) == "face" and p.aim["force"] is False and calls(p)[-1] == "nullifyAiming"
+    assert len(p.faced) == n0 + 5 and all(o is z for o in p.faced[n0:])
+    assert w["presses"] == [] and w["walk"] is None                  # a chaser: faced, not walked to
+
+
+def test_inside_a_smaller_face_r_the_stance_holds(lua, fs):
+    """The falsifier of faceR: the same chaser with faceR 2.0 is still met in the stance at 2.9 tiles."""
+    p, z, w = world(lua, zx=13.2, zspeed=1.0)
+    go(lua, p, releaseR=4.0, faceR=2.0)
+    run(lua, p, w, 30, stop=lambda: zdist(w) <= P.FACE_R - 0.1)
+    assert cur_step(lua) == "stand" and p.aim["force"] is True
+
+
+def test_no_press_while_the_look_is_off_and_the_press_once_it_comes_within_press_angle(lua, fs):
+    """The target faced at 1.0 tiles with the look 90 degrees off and the body not turning: no press; the body turning
+    at 206 degrees a second, the press goes on the first tick the look reads within pressAngle, its leaf's look_off
+    the angle read then."""
+    p, z, w = world(lua, zx=11.0, look=math.pi / 2, turn=0.0)
     go(lua, p)
-    run(lua, p, w, 2)
-    assert not ended(lua)
-    w["zx"] = 12.8                                                    # 2.8 > releaseR 2.75
-    run(lua, p, w)
-    assert states(acts(lua, fs))[-1] == ("m1", "failed", "out of range") and p.aim["force"] is False
+    run(lua, p, w, 30)
+    assert w["presses"] == [] and cur_step(lua) == "face"
+    w["turn"] = TURN_RATE
+    offs = []
+    for _ in range(60):
+        run(lua, p, w)
+        offs.append(abs(w["look"]) * 180 / math.pi)
+        if w["presses"]:
+            break
+    assert len(w["presses"]) == 1
+    run(lua, p, w, 30, stop=lambda: leaves(lua, fs))
+    off = leaves(lua, fs)[0]["look_off"]
+    assert off <= P.PRESS_ANGLE < off + TURN_RATE * UPDATE_S * 180 / math.pi + 1e-9
+    assert offs[-2] > P.PRESS_ANGLE                                   # the tick before, the look read off
 
 
-def crowd_world(lua, other_floor=False, other_d=0.5):
-    p, z, w = world(lua, zx=12.0)
-    o = make_zombie(8, 10.0 + other_d, 20.0)
-    if other_floor:
-        o.isOnFloor = lambda s: True
-    g = lua.globals()
-    g._o, g._z = o, z
-    lua.execute("PZA.sense.zobj = { [7] = _z, [8] = _o }")
-    lua.execute("PZA.sense.last = { zombies = { { id = 8, dist = %r }, { id = 7, dist = 2.0 } } }" % other_d)
-    return p, z, w
-
-
-def test_another_standing_zombie_within_stand_r_fails_crowd_with_its_id_and_distance(lua, fs):
-    p, z, w = crowd_world(lua)
+@pytest.mark.parametrize("cs", [1.0, 1.6])
+def test_the_swing_is_pressed_at_the_predicted_collision_band_not_at_the_raw_distance(lua, fs, cs):
+    """A chaser closing at 1.6 tiles a second from 2.5 tiles: the press goes once d - v * (one update + 0.25 /
+    CombatSpeed) reads inside the reach 1.25 (#4665, #4668), so at a raw distance beyond the reach, and the zombie
+    stands inside the reach at the collision 25 % into the clip."""
+    p, z, w = world(lua, zx=12.5, zspeed=1.6, combat_speed=cs, attack_ticks=80)
     go(lua, p)
-    run(lua, p, w)
-    a = last(lua, fs)
-    assert (a["state"], a["reason"]) == ("failed", "crowd") and a["result"] == {"id": 8, "d": 0.5}
+    run(lua, p, w, 200, stop=lambda: w["presses"])
+    tc = UPDATE_S + 0.25 / cs
+    dp = w["presses"][0]["d"]
+    assert 1.25 < dp <= 1.25 + 1.6 * tc + 1.6 * UPDATE_S
+    run(lua, p, w, math.ceil(tc / UPDATE_S))
+    assert zdist(w) <= 1.25                                           # the collision inside the reach
+    run(lua, p, w, 120, stop=lambda: leaves(lua, fs))
+    leaf = leaves(lua, fs)[0]
+    assert leaf["d_press"] == pytest.approx(dp) and leaf["d_collide_pred"] <= 1.25
+    assert leaf["d_collide_pred"] == pytest.approx(dp - 1.6 * tc, abs=1e-6)
 
 
-@pytest.mark.parametrize("floor, d", [(True, 0.5), (False, 0.7)])
-def test_a_fallen_or_a_farther_other_zombie_is_no_crowd(lua, fs, floor, d):
-    p, z, w = crowd_world(lua, other_floor=floor, other_d=d)
+def test_a_chaser_that_is_not_closing_is_pressed_at_the_raw_distance(lua, fs):
+    """The prediction's falsifier: a chaser standing still at 1.3 tiles (v 0, beyond the reach) is not pressed at but
+    walked to, and pressed at the reach."""
+    p, z, w = world(lua, zx=11.3, zspeed=0.0)
     go(lua, p)
     run(lua, p, w, 3)
-    assert not ended(lua)
+    assert w["presses"] == [] and cur_step(lua) == "close" and p.motor["autoWalk"] is True
+    run(lua, p, w, 60, stop=lambda: w["presses"])
+    assert 1.2 < w["presses"][0]["d"] <= 1.25 and p.aim["force"] is False
 
 
-def test_a_strike_running_beyond_release_r_is_held_to_its_end_then_out_of_range(lua, fs):
-    """The order of 3 before 4: a swing in flight is never cut by the range."""
-    p, z, w = world(lua, zx=11.2, attack_ticks=20)
-    go(lua, p)
-    run(lua, p, w, 3)
-    w["zx"] = 13.0
+def test_an_idle_target_beyond_face_r_is_walked_to_in_the_stance_and_pressed_at_the_reach(lua, fs):
+    p, z, w = world(lua, zx=13.3, chasing=False)
+    go(lua, p, releaseR=4.0)
     run(lua, p, w)
-    assert not ended(lua) and cur_step(lua) == "swing"
-    run(lua, p, w, 30, stop=lambda: ended(lua))
-    assert states(acts(lua, fs))[-1] == ("m1", "failed", "out of range")
-
-
-def test_out_of_range_at_the_time_end_fails_out_of_range(lua, fs):
-    """The range read before the time end (4's order)."""
-    p, z, w = world(lua, zx=12.3)
-    go(lua, p, seconds=1.0)
-    run(lua, p, w)
-    lua.globals()._clock["ms"] += 1000
-    w["zx"] = 13.0
-    run(lua, p, w)
-    assert states(acts(lua, fs))[-1] == ("m1", "failed", "out of range")
-
-
-def test_the_time_end_comes_before_a_fallen_targets_stomp(lua, fs):
-    """The time end before 5."""
-    p, z, w = world(lua, zx=10.4)
-    go(lua, p, seconds=1.0, mode="finish")
-    w["floor"] = True
-    run(lua, p, w)                                                    # the stomp's face
-    assert cur_step(lua) == "stomp"
-    lua.globals()._clock["ms"] += 1000
-    run(lua, p, w)
-    assert last(lua, fs)["result"]["end"] == "time" and w["presses"] == []
-
-
-# ---- 5: the target fallen --------------------------------------------------------------------------------------
-
-def test_the_stomp_faces_on_the_first_tick_reading_on_floor_and_presses_the_shove_pair_the_next(lua, fs):
-    p, z, w = world(lua, zx=10.4, zspeed=0.0)
-    go(lua, p, mode="finish", floorSwing=False)
-    w["floor"] = True
-    run(lua, p, w)
-    assert cur_step(lua) == "stomp" and w["presses"] == [] and p.faced[-1] is z
-    assert p.aim["force"] is False                                    # the press goes unaimed
-    run(lua, p, w)
-    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is True and w["presses"][0]["aiming"] is False
-
-
-def test_with_floor_swing_and_a_weapon_in_reach_the_fallen_target_takes_the_floor_swing(lua, fs):
-    """The falsifier of the stomp: floorSwing true with a weapon and the target in reach swings the weapon (no shove
-    flag)."""
-    p, z, w = world(lua, zx=11.0)
-    go(lua, p, mode="finish", floorSwing=True)
-    w["floor"] = True
-    run(lua, p, w, 2)
-    assert cur_step(lua) == "floor" and len(w["presses"]) == 1 and w["presses"][0]["shove"] is False
-
-
-def test_a_fallen_target_beyond_stomp_r_is_walked_to_unaimed_and_then_stomped(lua, fs):
-    p, z, w = world(lua, zx=11.2)
-    go(lua, p, mode="finish")
-    w["floor"] = True
-    run(lua, p, w)
-    assert cur_step(lua) == "stomp_walk" and p.motor["autoWalk"] is True and p.aim["force"] is False
+    assert cur_step(lua) == "close" and p.aim["force"] is True and p.motor["autoWalk"] is True
     assert walk_dir(p) == pytest.approx((R2, R2))                    # world +x in input space
-    run(lua, p, w, 40, stop=lambda: len(w["presses"]) > 0)
-    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is True and w["presses"][0]["d"] < 0.5
+    run(lua, p, w, 200, stop=lambda: w["presses"])
+    assert 1.2 < w["presses"][0]["d"] <= 1.25 and w["presses"][0]["aiming"] is False
+    assert {"close", "swing"} <= set(step_seq(lua, fs))
 
 
-def test_a_stomp_walk_past_its_budget_fails_out_of_reach(lua, fs):
-    p, z, w = world(lua, zx=11.2)
-    p.setAutoWalkDirection = lambda s, v: p.sets.append(("setAutoWalkDirection", v))   # the walk never moves
-    go(lua, p, mode="finish", seconds=10)
-    w["floor"] = True
-    run(lua, p, w)
-    lua.globals()._clock["ms"] += 4000
-    run(lua, p, w)
-    assert states(acts(lua, fs))[-1] == ("m1", "failed", "out of reach")
-
-
-def test_a_finish_whose_target_stands_fails_stood(lua, fs):
+def test_the_press_waits_facing_while_an_attack_already_runs(lua, fs):
     p, z, w = world(lua, zx=11.0)
+    w["attack"] = 999                                                 # an attack the melee did not start
+    go(lua, p)
+    run(lua, p, w, 5)
+    assert w["presses"] == [] and cur_step(lua) == "face"
+    w["attack"] = 0
+    run(lua, p, w)
+    assert len(w["presses"]) == 1
+
+
+def test_a_reach_of_0_takes_the_weapons_reach(lua, fs):
+    """reach 0: the weapon's K.reachOf, 1.25 x 1.0 x 0.9 = 1.125 for the fake's bat; a still chaser at 1.2 is walked
+    to, not pressed at."""
+    p, z, w = world(lua, zx=11.2)
+    go(lua, p, reach=0.0)
+    run(lua, p, w, 3)
+    assert w["presses"] == [] and cur_step(lua) == "close"
+    run(lua, p, w, 60, stop=lambda: w["presses"])
+    assert w["presses"][0]["d"] <= 1.125
+
+
+# ---- after a press: no back step, no pause ------------------------------------------------------------------------
+
+def test_a_swing_that_did_nothing_is_followed_by_a_press_never_a_back_step(lua, fs):
+    """A swing at a standing chaser 1.0 tiles off whose result reads it standing and unhurt: the next press goes as
+    soon as the swing has ended (its end and one tick), with no back step and no walk."""
+    p, z, w = world(lua, zx=11.0, attack_ticks=8)
+    go(lua, p)
+    run(lua, p, w, 60, stop=lambda: len(w["presses"]) > 1)
+    assert len(w["presses"]) == 2 and w["presses"][1]["tick"] - w["presses"][0]["tick"] <= 8 + 2
+    assert "back" not in step_seq(lua, fs) and w["walk"] is None and (w["px"], w["py"]) == (10.0, 20.0)
+    assert [x for x in p.sets if x[0] == "setAutoWalk"] == []
+
+
+def test_a_swing_that_lowered_the_health_is_pressed_again_too(lua, fs):
+    p, z, w = world(lua, zx=11.0, attack_ticks=8)
+    w["on_attack"] = lambda wd, shove: wd.__setitem__("zhp", wd["zhp"] - 0.2)
+    go(lua, p)
+    run(lua, p, w, 60, stop=lambda: len(w["presses"]) > 1)
+    assert len(w["presses"]) == 2 and "back" not in step_seq(lua, fs)
+
+
+def test_a_knockdown_is_waited_on_never_pressed_again_until_it_lies(lua, fs):
+    p, z, w = world(lua, zx=11.0, attack_ticks=8)
+    w["on_attack"] = lambda wd, shove: wd.__setitem__("knocked", True)
+    go(lua, p)
+    run(lua, p, w, 40)
+    assert len(w["presses"]) == 1 and cur_step(lua) == "knock_wait"
+    assert progress(lua, fs)[-1]["result"]["knockdowns"] == 1
+
+
+def test_the_f15_probe_a_chaser_from_three_tiles_takes_swings_at_the_band_and_no_shove(lua, fs):
+    """F15's geometry (the spec's section 1: a chaser closing at about 1.6 tiles a second, its swings pressed at 0.95
+    to 0.98 reading the zombie 0.31 to 0.55 at the collision): from 3 tiles every press is a swing pressed beyond the
+    reach whose predicted collision lies inside it; no shove (the zombie never closes inside MinRange before a press),
+    no back step."""
+    p, z, w = world(lua, zx=13.0, zspeed=1.6, attack_ticks=60)
+    go(lua, p, releaseR=4.0)
+    run(lua, p, w, 400, stop=lambda: len(w["presses"]) >= 1 and not w["attack"])
+    assert w["presses"] and all(not x["shove"] for x in w["presses"])
+    assert w["presses"][0]["d"] > 1.25 and "back" not in step_seq(lua, fs)
+
+
+# ---- the shove only inside MinRange -------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("d, shove", [(0.5, True), (0.7, False)])
+def test_the_shove_only_inside_min_range(lua, fs, d, shove):
+    """Inside the bat's MinRange 0.61 (#4372) the press is the shove; beyond it the swing."""
+    p, z, w = world(lua, zx=10.0 + d)
+    go(lua, p)
+    run(lua, p, w, 2)
+    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is shove
+    assert cur_step(lua) == ("shove" if shove else "swing")
+
+
+def test_no_swing_whose_swing_state_entry_falls_inside_min_range(lua, fs):
+    """The review's caveat 1: the shove verdict is taken again at the swing state's entry one update after the press,
+    so a chaser at 0.622 closing at 1 tile a second (0.605 one update on, its predicted collision at 0.355 inside the
+    band) is not swung at; the next tick, inside MinRange, it is shoved. A tick earlier (0.639, 0.622 one update on)
+    it would have been swung at."""
+    p, z, w = world(lua, zx=11.2, zspeed=1.0, look=math.pi, turn=0.0)
+    go(lua, p)
+    run(lua, p, w, 60, stop=lambda: zdist(w) < 0.64)
+    assert w["presses"] == [] and zdist(w) - 1.0 * UPDATE_S > BAT_MIN_R
+    w["look"] = 0.0                                                   # the look on, the zombie due +x
+    run(lua, p, w)
+    assert w["presses"] == [] and zdist(w) - 1.0 * UPDATE_S < BAT_MIN_R < zdist(w)
+    run(lua, p, w)
+    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is True
+
+
+# ---- the finish: aimed at the head, never broken beyond handbackR ----------------------------------------------------
+
+def test_the_finish_faces_the_head_and_takes_the_floor_swing_within_floor_r(lua, fs):
+    """A zombie on the floor at 1.0 tiles lying on its back with its body angle 0 (its head 0.5 behind along -x, at
+    (10.5, 20)): the facing is pointed at the head (faceLocationF), the floor swing pressed with the head within floorR
+    1.0 (the weapon's line against the head bone first, #4679)."""
+    p, z, w = world(lua, zx=11.0)
+    with_head(lua, z)
+    w["floor"] = True
+    go(lua, p, mode="finish", floorSwing=True)
+    run(lua, p, w)
+    assert p.faced[-1] == pytest.approx((10.5, 20.0)) and p.aim["force"] is False
+    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is False and cur_step(lua) == "floor"
+
+
+def test_a_head_beyond_floor_r_is_walked_to_and_floor_swung_at_from_floor_r(lua, fs):
+    """The falsifier of the head: the same zombie lying the other way (its head at (11.5, 20), 1.5 off) is walked to,
+    unaimed, toward its head, and swung at once the head is within floorR."""
+    p, z, w = world(lua, zx=11.0, zangle=math.pi)
+    with_head(lua, z)
+    w["floor"] = True
+    go(lua, p, mode="finish", floorSwing=True)
+    run(lua, p, w)
+    assert w["presses"] == [] and cur_step(lua) == "stomp_walk" and p.faced[-1] == pytest.approx((11.5, 20.0))
+    run(lua, p, w, 60, stop=lambda: w["presses"])
+    assert len(w["presses"]) == 1 and math.hypot(11.5 - w["px"], 20.0 - w["py"]) <= P.FLOOR_R
+
+
+def test_without_the_floor_swing_the_stomp_goes_within_0_3_of_the_head(lua, fs):
+    p, z, w = world(lua, zx=10.9)                                     # the head at (10.4, 20), 0.4 off
+    with_head(lua, z)
+    w["floor"] = True
     go(lua, p, mode="finish")
     run(lua, p, w)
-    assert states(acts(lua, fs))[-1] == ("m1", "failed", "stood")
+    assert w["presses"] == [] and cur_step(lua) == "stomp_walk"
+    run(lua, p, w, 30, stop=lambda: w["presses"])
+    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is True
+    assert math.hypot(10.4 - w["px"], 20.0 - w["py"]) <= 0.3
+    run(lua, p, w, 40, stop=lambda: leaves(lua, fs))
+    assert leaves(lua, fs)[0]["d_press"] <= 0.3
 
 
-# ---- 6: the knock wait -----------------------------------------------------------------------------------------
+def test_the_finish_repeats_until_zombie_dead_with_no_time_end(lua, fs):
+    p, z, w = world(lua, zx=10.3, attack_ticks=6)
+    w["on_attack"] = lambda wd, shove: wd.__setitem__("zhp", wd["zhp"] - 0.01)   # each stomp lowers it a little
+    w["floor"] = True
+    go(lua, p, mode="finish")
+    run(lua, p, w, 3000, stop=lambda: len(w["presses"]) >= 12)
+    assert len(w["presses"]) == 12 and not ended(lua) and all(x["shove"] for x in w["presses"])
+    w["zdead"] = True
+    run(lua, p, w)
+    assert last(lua, fs)["result"]["end"] == "kill"
 
-def test_a_knockdown_not_yet_on_the_floor_is_waited_on_then_stomped_on_the_first_floor_tick(lua, fs):
+
+@pytest.mark.parametrize("other_d, broken", [(2.5, False), (1.5, True)])
+def test_a_standing_zombie_breaks_the_finish_only_inside_handback_r(lua, fs, other_d, broken):
+    """Another standing zombie inside handbackR (2.0) hands back (done handback, why standing, its id and d); one
+    beyond it never breaks the finish (F15's two knock-downs lost to `pair` flees)."""
+    p, z, w = crowd_world(lua, other_d=other_d, zx=10.3)
+    w["floor"] = True
+    go(lua, p, mode="finish")
+    run(lua, p, w, 3)
+    if broken:
+        r = last(lua, fs)["result"]
+        assert (r["end"], r["why"], r["id"], r["d"]) == ("handback", "standing", 8, 1.5)
+    else:
+        assert not ended(lua) and len(w["presses"]) == 1
+
+
+def test_a_finish_whose_target_stands_meets_it(lua, fs):
+    """PZA/1.10: no `stood` failure; a finish's target that stands is met (here swung at within the reach)."""
+    p, z, w = world(lua, zx=11.0)
+    go(lua, p, mode="finish")
+    run(lua, p, w, 2)
+    assert not ended(lua) and len(w["presses"]) == 1 and w["presses"][0]["shove"] is False
+
+
+def test_a_knockdown_not_yet_on_the_floor_is_waited_on_then_stomped_at_the_head(lua, fs):
     p, z, w = world(lua, zx=10.4, attack_ticks=6)
-
-    def knock(wd, shove):
-        wd["knocked"] = True
-    w["on_attack"] = knock
+    w["on_attack"] = lambda wd, shove: wd.__setitem__("knocked", True)
     go(lua, p, mode="shove")
     run(lua, p, w, 10)
     assert len(w["presses"]) == 1 and cur_step(lua) == "knock_wait"
     run(lua, p, w, 20)
     assert len(w["presses"]) == 1 and cur_step(lua) == "knock_wait"   # no press while it falls
     w["floor"] = True
-    run(lua, p, w)
-    assert cur_step(lua) == "stomp"
-    run(lua, p, w)
+    run(lua, p, w, 20, stop=lambda: len(w["presses"]) > 1)
     assert len(w["presses"]) == 2 and w["presses"][1]["shove"] is True
 
 
-# ---- 7: the shove ------------------------------------------------------------------------------------------------
-
-def test_shove_mode_shoves_at_shove_r_and_never_beyond(lua, fs):
-    p, z, w = world(lua, zx=11.3, chasing=False)
-    go(lua, p, mode="shove")
-    run(lua, p, w, 3)
-    assert w["presses"] == [] and cur_step(lua) == "close"            # beyond shoveR 1.1: closed on, not shoved
-    w["zx"] = 11.05
-    run(lua, p, w, 2)
-    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is True
-
-
-def test_in_strike_mode_a_chasing_target_closing_through_shove_r_is_swung_at_within_the_reach_not_shoved(lua, fs):
-    """Ruling P28-H (2): in strike mode the swing comes before the shove. With the reach (0.8) under shoveR (1.1), a
-    chasing target closing through 1.1 is not shoved at shoveR (P28-B1's early shove, E22's shoves at 1.068 to 1.100
-    that knocked nothing down); it is swung at within the reach, beyond K.STAND_R."""
-    p, z, w = world(lua, zx=11.6, zspeed=1.2, chasing=True)
-    go(lua, p, reach=0.8)
-    run(lua, p, w, 60, stop=lambda: len(w["presses"]) > 0)
-    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is False
-    assert lua.eval("PZA.skills.STAND_R") < w["presses"][0]["d"] <= 0.8
-    assert "shove" not in step_seq(lua, fs)
-
-
-def test_in_strike_mode_a_chasing_target_lunging_inside_stand_r_is_shoved(lua, fs):
-    """Ruling P28-H (2): the strike-mode shove stays within K.STAND_R (0.6), where the engine would turn the swing into
-    a shove anyway (#4372): a chaser lunging from 1.6 to 0.5 in one tick, closing, is shoved."""
-    p, z, w = world(lua, zx=11.6, chasing=True)
-    go(lua, p)
-    run(lua, p, w, 2)
-    assert cur_step(lua) == "stand"
-    w["zx"] = 10.5
-    run(lua, p, w, 2)
-    assert cur_step(lua) == "shove" and len(w["presses"]) == 1 and w["presses"][0]["shove"] is True
-
-
-def test_an_idle_target_at_the_same_distance_is_not_shoved(lua, fs):
-    """The falsifier of the early shove: an idle target inside shoveR in strike mode is not chasing: closed on and
-    swung at within the reach, never shoved."""
-    p, z, w = world(lua, zx=11.0, chasing=False)
-    go(lua, p, reach=0.8)
-    run(lua, p, w, 30, stop=lambda: len(w["presses"]) > 0)
-    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is False and w["presses"][0]["d"] <= 0.8
-
-
-def test_after_a_miss_a_follower_at_point_blank_meets_the_back_leg_to_its_end_then_the_swing(lua, fs):
-    """Fix round 1 (M2): a follower faster than the walk closing to point blank during the back leg is not struck at
-    once; the leg runs to its end (the player walked keepR less its starting d), and the next strike is the mode's own,
-    the swing in strike mode."""
-    p, z, w = world(lua, zx=11.3, zspeed=0.0, attack_ticks=8)
-    go(lua, p, seconds=10)
-    run(lua, p, w, 40, stop=lambda: cur_step(lua) == "back")
-    assert cur_step(lua) == "back"
-    x0 = w["px"]
-    w["zspeed"] = 4.0                                                 # it follows faster than the walk
-    run(lua, p, w, 120, stop=lambda: len(w["presses"]) > 1)
-    assert [x["shove"] for x in w["presses"]] == [False, False]
-    assert x0 - w["px"] >= ARGS["keepR"] - 1.3 - 0.05                 # the leg walked its length first
-    seq = step_seq(lua, fs)
-    assert seq.index("back") < len(seq) - 1 and "shove" not in seq
-
-
-def test_in_strike_mode_a_chasing_target_lunging_to_1_0_is_swung_at_not_shoved(lua, fs):
-    """Ruling P28-H (2)'s falsifier: in strike mode a chaser lunging from 1.6 to 1.0 in one client tick, inside the
-    reach (1.4) and shoveR (1.1), chasing and closing, beyond K.STAND_R: no shove, the swing (its face, the press a tick
-    later, no shove flag)."""
-    p, z, w = world(lua, zx=11.6, chasing=True)
-    go(lua, p)
-    run(lua, p, w, 2)
-    assert cur_step(lua) == "stand"
-    w["zx"] = 11.0
-    run(lua, p, w)
-    assert cur_step(lua) == "face" and w["presses"] == []
-    run(lua, p, w)
-    assert cur_step(lua) == "swing" and len(w["presses"]) == 1 and w["presses"][0]["shove"] is False
-    assert ("setDoShove", True) not in p.sets
-
-
-def test_in_shove_mode_a_chasing_target_lunging_to_1_0_is_shoved(lua, fs):
-    """Ruling P28-H (2) gates the swing-first order on strike mode only: the same lunge in shove mode is shoved."""
-    p, z, w = world(lua, zx=11.6, chasing=True)
-    go(lua, p, mode="shove")
-    run(lua, p, w, 2)
-    w["zx"] = 11.0
-    run(lua, p, w, 2)
-    assert cur_step(lua) == "shove" and len(w["presses"]) == 1 and w["presses"][0]["shove"] is True
-
-
-def test_after_a_miss_a_target_inside_shove_r_meets_the_back_leg_not_a_shove(lua, fs):
-    """Fix round 1 (M2): the miss arm of the shove is gone; a target inside shoveR while the miss stands is backed off
-    from, never shoved at once."""
-    p, z, w = world(lua, zx=11.3, zspeed=0.0, attack_ticks=8)
-    go(lua, p, backVx=0.0, backVy=-1.0, seconds=10)
-    run(lua, p, w, 13)
-    assert cur_step(lua) == "back"
-    w["chasing"], w["zx"] = False, w["px"] + 1.0
-    run(lua, p, w, 5)
-    assert len(w["presses"]) == 1 and cur_step(lua) == "back"
-
-
-# ---- 8: the swing ------------------------------------------------------------------------------------------------
-
-@pytest.mark.parametrize("speed", [0.5, 1.2, 2.0])
-def test_the_swing_faces_inside_the_reach_and_presses_once_a_tick_later_unaimed(lua, fs, speed):
-    p, z, w = world(lua, zx=12.6, zspeed=speed)
-    go(lua, p)
-    faces = []
-    for _ in range(200):
-        run(lua, p, w)
-        if cur_step(lua) == "face" and not faces:
-            faces.append(zdist(w))
-        if w["presses"]:
-            break
-    one = speed * TICK_MS / 1000.0
-    assert len(w["presses"]) == 1 and len(faces) == 1
-    assert ARGS["reach"] - one - 1e-9 <= faces[0] <= ARGS["reach"]
-    assert w["presses"][0]["d"] >= ARGS["reach"] - 2 * one - 1e-9 and w["presses"][0]["aiming"] is False
-    assert w["presses"][0]["shove"] is False
-
-
-def test_the_press_waits_facing_while_an_attack_already_runs(lua, fs):
-    """A melee started while the engine's attack runs (a superseded attack's swing): the face, then no press while
-    isAttackStarted reads true (the engine would drop it, #4292), the press on the first tick after."""
-    p, z, w = world(lua, zx=11.2)
-    w["attack"] = 10
-    go(lua, p)
-    run(lua, p, w, 8)
-    assert w["presses"] == [] and cur_step(lua) == "face"
-    run(lua, p, w, 3, stop=lambda: len(w["presses"]) > 0)
-    assert len(w["presses"]) == 1 and w["presses"][0]["tick"] == 10
-
-
-def test_a_chasing_target_held_beyond_the_reach_is_never_swung_at(lua, fs):
-    """The falsifier of the swing's distance test: a target that stays at 1.6 (beyond the reach 1.4) and chases is
-    stood against, never pressed."""
-    p, z, w = world(lua, zx=11.6, zspeed=0.0, chasing=True)
-    go(lua, p)
-    run(lua, p, w, 60)
-    assert w["presses"] == [] and cur_step(lua) == "stand"
-
-
-def test_a_reach_of_0_takes_the_weapons_reach(lua, fs):
-    """reach 0 lets the Lua use K.reachOf (the bat's 1.25 x 0.9 = 1.125)."""
-    p, z, w = world(lua, zx=11.2)
-    go(lua, p, reach=0)
-    run(lua, p, w, 4)
-    assert w["presses"] == [] and cur_step(lua) == "stand"
-    w["zx"] = 11.12                                                   # inside 1.125, outside shoveR 1.1
-    run(lua, p, w, 2)
-    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is False
-
-
-# ---- 9: the back leg ---------------------------------------------------------------------------------------------
-
-def test_after_a_miss_the_back_leg_walks_the_heading_in_the_stance_facing_the_target_until_keep_r(lua, fs):
-    p, z, w = world(lua, zx=11.3, zspeed=0.0, attack_ticks=8)
-    go(lua, p, backVx=0.0, backVy=-1.0, seconds=10)
-    run(lua, p, w, 12)
-    assert cur_step(lua) == "back" and p.motor["autoWalk"] is True and p.aim["force"] is True
-    assert walk_dir(p) == pytest.approx((R2, -R2))                   # world (0, -1) in input space
-    n = len(p.faced)
-    run(lua, p, w, 5)
-    assert len(p.faced) == n + 5 and all(f is z for f in p.faced[n:])
-    run(lua, p, w, 120, stop=lambda: cur_step(lua) != "back")
-    walked = 20.0 - w["py"]                                           # from the leg's start, where the player stood
-    assert walked >= ARGS["keepR"] - 1.3 - 0.05 - 0.04 and zdist(w) > ARGS["reach"]   # its length, about 1.2 tiles
-    assert walked <= ARGS["keepR"] - 1.3 + 0.05                       # keepR less the leg's starting d, not keepR
-    assert cur_step(lua) == "stand" and p.motor["autoWalk"] is False
-
-
-def test_the_back_leg_ends_when_the_target_leaves_keep_r(lua, fs):
-    """The miss also clears when the target leaves keepR before the leg's length is walked (a target moved away)."""
-    p, z, w = world(lua, zx=11.3, zspeed=0.0, attack_ticks=8)
-    go(lua, p, seconds=10)
-    run(lua, p, w, 12)
-    assert cur_step(lua) == "back"
-    w["zx"] = w["px"] + 2.6
-    run(lua, p, w)
-    assert cur_step(lua) == "stand"
-
-
-def test_a_back_heading_of_zero_clears_the_miss_and_the_swing_goes_again(lua, fs):
-    """Fix round 1 (M2): no heading is the leg's end at once; the next strike is the mode's own, the swing."""
-    p, z, w = world(lua, zx=11.3, zspeed=0.0, attack_ticks=8)
-    go(lua, p, backVx=0.0, backVy=0.0)
-    run(lua, p, w, 14)
-    assert "back" not in step_seq(lua, fs) and len(w["presses"]) == 2 and w["presses"][1]["shove"] is False
-
-
-def test_a_blocked_back_leg_ends_after_its_still_ticks_and_the_swing_follows(lua, fs):
-    """Fix round 1 (M2): a back walk that does not move (a wall) is the leg's end after K.MELEE_STILL_TICKS (12)."""
-    p, z, w = world(lua, zx=11.3, zspeed=0.0, attack_ticks=8)
+def test_a_stomp_walk_that_gains_nothing_ends_done_lost_out_of_reach(lua, fs):
+    p, z, w = world(lua, zx=11.5)
     p.setAutoWalkDirection = lambda s, v: p.sets.append(("setAutoWalkDirection", v))   # the walk never moves
-    go(lua, p, seconds=10)
-    run(lua, p, w, 11)
-    assert cur_step(lua) == "back"                                    # the leg's first tick, its start recorded
-    run(lua, p, w, 11)
-    assert cur_step(lua) == "back"                                    # still 11 ticks
+    w["floor"] = True
+    go(lua, p, mode="finish")
     run(lua, p, w)
-    assert cur_step(lua) == "face"                                    # the 12th: the leg's end, the swing's face
-    run(lua, p, w, 2)
-    assert cur_step(lua) in ("face", "swing") and len(w["presses"]) >= 1
+    assert cur_step(lua) == "stomp_walk"
+    run(lua, p, w, int(4000 / TICK_MS) + 2, stop=lambda: ended(lua))
+    r = last(lua, fs)["result"]
+    assert (r["end"], r["why"]) == ("lost", "out of reach")
 
 
-PROBE = {"reach": 1.475, "shoveR": 1.1, "keepR": 2.5, "releaseR": 2.75, "seconds": 12, "backVx": -1.0, "backVy": 0.0}
+# ---- the spent meet --------------------------------------------------------------------------------------------------
 
-
-@pytest.mark.parametrize("mode", ["strike", "shove"])
-def test_the_review_probe_reads_a_back_leg_between_every_two_strikes(lua, fs, mode):
-    """review-t7a M2's probe: the live-like arguments (reach 1.475 = weapon.reach 1.125 + ATTACK_MARGIN 0.35, shoveR
-    1.1, keepR 2.5), a chaser at 1.2 tiles a second, a 30-tick attack and no knockdown, 12 s: a back leg between every
-    two presses; in strike mode every press a swing (P25-A); no two shoves within SHOVE_REPEAT_S 3 s with no back leg
-    between them."""
-    p, z, w = world(lua, zx=12.4, zspeed=1.2, attack_ticks=30)
-    go(lua, p, mode=mode, **PROBE)
-    marks = []
-    for _ in range(int(12000 / TICK_MS) + 60):
-        n = len(w["presses"])
-        run(lua, p, w)
-        if len(w["presses"]) > n:
-            marks.append(("press", w["tick"], w["presses"][-1]["shove"]))
-        if cur_step(lua) == "back" and (not marks or marks[-1][0] != "back"):
-            marks.append(("back", w["tick"], None))
-        if ended(lua):
-            break
-    presses = [m for m in marks if m[0] == "press"]
-    assert len(presses) >= 3, marks
-    for a, b in zip(marks, marks[1:]):
-        assert not (a[0] == "press" and b[0] == "press"), marks           # a back leg between every two presses
-    if mode == "strike":
-        assert all(m[2] is False for m in presses)
-    else:
-        assert all(m[2] is True for m in presses)
-    for i, a in enumerate(presses):
-        for b in presses[i + 1:]:
-            between = [m for m in marks if m[0] == "back" and a[1] < m[1] < b[1]]
-            if a[2] and b[2] and (b[1] - a[1]) * TICK_MS < 3000:
-                assert between, (a, b)
-
-
-@pytest.mark.parametrize("speed", [1.2, 2.2])
-def test_the_p28h_probe_a_chaser_from_three_tiles_in_strike_mode_takes_swings_at_reach_never_a_shove_at_shove_r(
-        lua, fs, speed):
-    """Ruling P28-H's probe (E22's live arguments: reach 1.475, shoveR 1.1, keepR 2.5; releaseR 3.5 to start it at 3
-    tiles, beyond the live 2.75): a chaser closing from 3 tiles,
-    at 1.2 tiles a second (slower than the walk) and at 2.2 (a follower faster than the walk, inside shoveR and closing
-    when the back leg ends), a 12-tick attack and no knockdown, 12 s in strike mode: the first strike a swing at d
-    within the reach, and no shove anywhere beyond K.STAND_R; every swing pressed within the reach. The 1.2 case cannot
-    tell the old code from the new (the reach 1.475 exceeds shoveR, so the old code swung first there too); the gate
-    is falsified by the 2.2 follower alone (review-t7e m5)."""
-    p, z, w = world(lua, zx=13.0, zspeed=speed, attack_ticks=12)
-    go(lua, p, mode="strike", **dict(PROBE, releaseR=3.5))
-    run(lua, p, w, int(12000 / TICK_MS) + 60, stop=lambda: ended(lua))
-    presses = w["presses"]
-    stand_r = lua.eval("PZA.skills.STAND_R")
-    assert len(presses) >= 3, presses
-    assert presses[0]["shove"] is False and presses[0]["d"] <= PROBE["reach"]
-    assert all(x["d"] <= stand_r for x in presses if x["shove"]), presses
-    assert all(x["d"] <= PROBE["reach"] for x in presses if not x["shove"]), presses
-    if speed > 2.0:                                                   # the follower: swings inside shoveR, not shoves
-        assert any(stand_r < x["d"] <= PROBE["shoveR"] and not x["shove"] for x in presses), presses
-
-
-def test_an_idle_target_missed_is_backed_off_from_not_closed_on(lua, fs):
-    """The order of 9 before 10: after a miss an idle target in the reach's band is backed off from, never walked to."""
-    p, z, w = world(lua, zx=11.3, zspeed=0.0, chasing=False, attack_ticks=8)
-    go(lua, p, seconds=10)
-    run(lua, p, w, 13)
-    assert cur_step(lua) == "back" and walk_dir(p) == pytest.approx((-R2, -R2))   # world (-1, 0), away from it
-    run(lua, p, w, 20)
-    assert ARGS["reach"] < zdist(w) < ARGS["keepR"] and cur_step(lua) == "back"     # past the reach: still the back leg
-
-
-# ---- 10: the close; 11: the stand ----------------------------------------------------------------------------------
-
-def test_an_idle_target_beyond_the_reach_is_closed_on_at_a_walk_in_the_stance_and_swung_at_within_it(lua, fs):
-    p, z, w = world(lua, zx=12.3, chasing=False)
-    go(lua, p)
-    run(lua, p, w)
-    assert cur_step(lua) == "close" and p.motor["autoWalk"] is True and p.aim["force"] is True
-    assert walk_dir(p) == pytest.approx((R2, R2)) and lua.eval("PZA.motor.wantRun") is False
-    run(lua, p, w, 100, stop=lambda: len(w["presses"]) > 0)
-    assert len(w["presses"]) == 1 and w["presses"][0]["d"] <= ARGS["reach"] and w["presses"][0]["aiming"] is False
-    assert step_seq(lua, fs)[:3] == ["close", "face", "swing"]
-
-
-def test_a_chasing_target_beyond_the_reach_is_stood_against_facing_it_with_no_walk(lua, fs):
-    """The falsifier of the close: a chasing target is let come (the stand), never walked to."""
-    p, z, w = world(lua, zx=12.3, chasing=True, zspeed=0.0)
-    go(lua, p)
-    run(lua, p, w, 6)
-    assert cur_step(lua) == "stand" and ("setAutoWalk", True) not in p.sets and p.aim["force"] is True
-    assert p.faced == [z] * 6
-
-
-# ---- 12: the time ------------------------------------------------------------------------------------------------
-
-def test_seconds_passed_with_no_strike_ends_done_time_and_releases_the_stance(lua, fs):
-    p, z, w = world(lua, zx=12.3, zspeed=0.0)
-    go(lua, p, seconds=1.0)
+@pytest.mark.parametrize("how", ["pain", "endurance", "tired", "mode"])
+def test_the_spent_meet_shoves_within_shove_r_and_never_swings(lua, fs, how):
+    """The arms' pain over 10 (#4370), the endurance or tired moodle at 2 (#4371), or mode shove: a standing target at
+    1.1 (inside the reach, beyond shoveR 0.9) is closed on and shoved within shoveR, never swung at."""
+    p, z, w = world(lua, zx=11.1, attack_ticks=6)
+    frame_last(lua, arm_pain=25.0 if how == "pain" else 2.0)
+    if how in ("endurance", "tired"):
+        moodles(p, {how.upper(): 2})
+    go(lua, p, mode="shove" if how == "mode" else "strike")
     run(lua, p, w, 3)
-    assert not ended(lua)
-    lua.globals()._clock["ms"] += 1000
+    assert w["presses"] == [] and cur_step(lua) == "close"
+    run(lua, p, w, 60, stop=lambda: w["presses"])
+    assert w["presses"][0]["shove"] is True and w["presses"][0]["d"] <= P.SHOVE_SEND_R
+    assert progress(lua, fs)[-1]["result"]["spent"] is True
+
+
+def test_not_spent_the_same_target_is_swung_at(lua, fs):
+    """The spent meet's falsifier: the arms' pain 10 (not over) and the moodles at 1: the swing at 1.1."""
+    p, z, w = world(lua, zx=11.1)
+    frame_last(lua, arm_pain=10.0)
+    moodles(p, {"ENDURANCE": 1, "TIRED": 1})
+    go(lua, p)
+    run(lua, p, w, 2)
+    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is False
+
+
+def test_the_spent_finish_stomps_and_never_floor_swings(lua, fs):
+    p, z, w = world(lua, zx=10.3)
+    frame_last(lua, arm_pain=40.0)
+    w["floor"] = True
+    go(lua, p, mode="finish", floorSwing=True)
+    run(lua, p, w, 2)
+    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is True and cur_step(lua) == "stomp"
+
+
+# ---- the press leaf ------------------------------------------------------------------------------------------------
+
+def test_each_press_s_result_carries_the_press_leaf_s_seven_keys(lua, fs):
+    p, z, w = world(lua, zx=11.0, attack_ticks=8)
+    go(lua, p)
+    run(lua, p, w, 30, stop=lambda: leaves(lua, fs))
+    leaf = leaves(lua, fs)[0]
+    assert set(leaf) == LEAF
+    assert (leaf["d_press"], leaf["hp0"], leaf["hp1"], leaf["knock"], leaf["cut_by"]) == (1.0, 1.0, 1.0, False, "")
+    assert leaf["d_collide_pred"] == pytest.approx(1.0) and leaf["look_off"] == pytest.approx(0.0, abs=1e-9)
+    pr = [a for a in progress(lua, fs) if "press" in a["result"]]
+    assert len(pr) == 1 and set(pr[0]["result"]) == {"step", "d", "hp", "spent", "press"} | COUNTS
+
+
+def test_a_kill_during_a_press_carries_its_leaf_on_the_done_line(lua, fs):
+    p, z, w = world(lua, zx=11.0, attack_ticks=30)
+    go(lua, p)
+    run(lua, p, w, 3)
+    w["zdead"], w["zhp"] = True, 0.0
     run(lua, p, w)
-    a = last(lua, fs)
-    assert (a["state"], a["result"]["end"], a["result"]["kill"]) == ("done", "time", False)
-    assert calls(p)[-1] == "nullifyAiming" and lua.eval("PZA.skills.stance.held") is False
+    r = last(lua, fs)["result"]
+    assert r["end"] == "kill" and set(r["press"]) == LEAF and r["press"]["hp1"] == 0.0
 
 
-def test_a_running_strike_holds_the_time_end_until_it_ends(lua, fs):
-    p, z, w = world(lua, zx=11.2, attack_ticks=30)
-    go(lua, p, seconds=0.1)
-    run(lua, p, w, 2)                                                 # the face, the press
-    lua.globals()._clock["ms"] += 1000
-    run(lua, p, w, 5)
-    assert not ended(lua) and cur_step(lua) == "swing"
-    run(lua, p, w, 40, stop=lambda: ended(lua))
-    assert last(lua, fs)["result"]["end"] == "time" and last(lua, fs)["result"]["swings"] == 1
+def test_a_press_superseded_in_flight_carries_its_leaf_cut_by_superseded(lua, fs):
+    p, z, w = world(lua, zx=11.0, attack_ticks=30)
+    go(lua, p)
+    run(lua, p, w, 3)
+    start(lua, p, "steer", aid="s", vx=1, vy=0, seconds=1)
+    a = [x for x in acts(lua, fs) if x["aid"] == "m1"][-1]
+    assert (a["state"], a["reason"]) == ("failed", "superseded")
+    assert a["result"]["press"]["cut_by"] == "superseded" and a["result"]["swings"] == 1
 
 
-# ---- the stance across re-sends -----------------------------------------------------------------------------------
+# ---- the stance across re-sends -------------------------------------------------------------------------------------
+
+STANCE = {"zx": 13.4, "chasing": False}   # beyond faceR: the stance (an idle target, the close in the stance)
+
 
 def test_a_same_target_resend_keeps_the_stance(lua, fs):
-    p, z, w = world(lua, zx=12.3)
-    go(lua, p, aid="m1")
+    p, z, w = world(lua, **STANCE)
+    go(lua, p, aid="m1", releaseR=4.0)
     run(lua, p, w, 3)
-    go(lua, p, aid="m2")
+    go(lua, p, aid="m2", releaseR=4.0)
     run(lua, p, w, 3)
     st = states(acts(lua, fs))
-    assert ("m1", "failed", "superseded") in st and ("m2", "accepted", "") in st          # review-t7a minor 4: both
+    assert ("m1", "failed", "superseded") in st and ("m2", "accepted", "") in st
     assert "nullifyAiming" not in calls(p) and p.aim["force"] is True
 
 
 def test_another_target_or_another_skill_releases_the_stance(lua, fs):
-    p, z, w = world(lua, zx=12.3)
-    z8 = make_zombie(8, 12.0, 21.0)
+    p, z, w = world(lua, **STANCE)
+    z8 = make_zombie(8, 13.4, 21.0)
     sense(lua, [z, z8])
-    go(lua, p, aid="m1")
+    go(lua, p, aid="m1", releaseR=4.0)
     run(lua, p, w, 2)
-    go(lua, p, aid="m2", targetId=8)
+    go(lua, p, aid="m2", targetId=8, releaseR=4.0)
     assert calls(p)[-1] == "nullifyAiming"
     run(lua, p, w, 2)
     assert p.aim["force"] is True
@@ -747,10 +694,8 @@ def test_another_target_or_another_skill_releases_the_stance(lua, fs):
 
 
 def test_a_melee_superseded_by_an_aim_keeps_the_stance(lua, fs):
-    """Fix round 1 (review-t7a minor 7): the planner's legs beyond keepR are aims, so a melee handing to an aim keeps
-    the stance as an aim handing to a melee does."""
-    p, z, w = world(lua, zx=12.3)
-    go(lua, p)
+    p, z, w = world(lua, **STANCE)
+    go(lua, p, releaseR=4.0)
     run(lua, p, w, 2)
     start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5, targetId=7)
     run(lua, p, w, 2)
@@ -758,8 +703,8 @@ def test_a_melee_superseded_by_an_aim_keeps_the_stance(lua, fs):
 
 
 def test_a_resent_melee_waits_on_a_target_falling_from_another_strike(lua, fs):
-    """Fix round 1 (review-t7a minor 6): a melee re-sent while its target reads isKnockedDown, not yet isOnFloor,
-    within the reach: knock_wait, no press, whatever the mode."""
+    """A melee re-sent while its target reads isKnockedDown, not yet isOnFloor, within the reach: knock_wait, no
+    press, whatever the mode."""
     p, z, w = world(lua, zx=11.2)
     w["knocked"] = True
     go(lua, p)
@@ -768,10 +713,10 @@ def test_a_resent_melee_waits_on_a_target_falling_from_another_strike(lua, fs):
 
 
 def test_an_aim_superseded_by_a_melee_keeps_the_stance(lua, fs):
-    p, z, w = world(lua, zx=12.3)
+    p, z, w = world(lua, zx=13.4, zspeed=1.0)
     start(lua, p, "aim", aid="aim", vx=0, vy=0, seconds=5, targetId=7)
     run(lua, p, w)
-    go(lua, p)
+    go(lua, p, releaseR=4.0)
     run(lua, p, w, 2)
     assert ("m1", "accepted", "") in states(acts(lua, fs)) and cur_step(lua) == "stand"
     assert calls(p) == ["setForceAim"] and p.aim["force"] is True
@@ -779,58 +724,61 @@ def test_an_aim_superseded_by_a_melee_keeps_the_stance(lua, fs):
 
 # ---- the act lines: progress with a result, the frame's step --------------------------------------------------------
 
-def test_a_progress_line_on_every_step_change_carries_the_step_distance_health_and_counts(lua, fs):
-    p, z, w = world(lua, zx=12.0, zspeed=1.5)
+def test_a_progress_line_on_every_step_change_carries_the_step_distance_health_counts_and_spent(lua, fs):
+    p, z, w = world(lua, zx=12.0, zspeed=1.5, look=math.pi / 2)
     go(lua, p)
-    run(lua, p, w, 40, stop=lambda: len(w["presses"]) > 0)
+    run(lua, p, w, 80, stop=lambda: w["presses"])
     pr = progress(lua, fs)
-    assert [x["result"]["step"] for x in pr] == ["stand", "face", "swing"]
-    keys = {"step", "d", "hp", "swings", "shoves", "stomps", "floors", "knockdowns", "hits", "held", "again"}   # P30-A
-    assert all(set(x["result"]) == keys for x in pr)
-    assert pr[-1]["result"]["swings"] == 1 and pr[0]["result"]["hp"] == 1.0
+    assert [x["result"]["step"] for x in pr] == ["face", "swing"]
+    assert all(set(x["result"]) == {"step", "d", "hp", "spent"} | COUNTS for x in pr)
+    assert pr[-1]["result"]["swings"] == 1 and pr[0]["result"]["hp"] == 1.0 and pr[0]["result"]["spent"] is False
     assert pr[0]["result"]["d"] == pytest.approx(2.0 - 1.5 * TICK_MS / 1000.0)
 
 
 def test_the_heartbeat_of_a_long_step_carries_the_counts_too(lua, fs):
-    p, z, w = world(lua, zx=12.3)
-    go(lua, p, seconds=5)
-    run(lua, p, w, 70)                                                # 1.19 s of stand
+    p, z, w = world(lua, zx=11.0, look=math.pi, turn=0.0)
+    go(lua, p)
+    run(lua, p, w, 70)                                                # 1.19 s of face
     pr = progress(lua, fs)
-    assert len(pr) == 2 and all(x["result"]["step"] == "stand" for x in pr)
+    assert len(pr) == 2 and all(x["result"]["step"] == "face" for x in pr)
 
 
 def test_the_frame_act_group_carries_the_melee_step_and_decodes_through_pza1(lua, fs):
     load(lua)
     lua.execute(open(lua_file("client/PZAgent_Sense.lua"), encoding="utf-8").read())
-    p, z, w = make_mover(zx=12.3)
+    p, z, w = make_mover(zx=12.3, look=math.pi, turn=0.0)
     lua.globals()._cell = make_cell(zombies=[z])
     go(lua, p)
     run(lua, p, w)
     f = lua.eval("PZA.sense.frame")(p)
-    assert (f.act.aid, f.act.state, f.act.step) == ("m1", "progress", "stand")
-    assert json.loads(lua.eval("PZA.enc.act")(f.act)) == ["m1", "progress", "stand"]
-    assert pza1.GROUPS["act"] == ("aid", "state", "step") and pza1.PRIOR["act"] == 2
-    line = [None] * len(pza1.ORDER["frame"])
-    order = pza1.ORDER["frame"]
-    line[0], line[order.index("act")], line[order.index("zombies")] = "frame", ["a", "done"], []
-    assert pza1.decode(line)["act"] == {"aid": "a", "state": "done", "step": None}      # a PZA/1.7 frame's act
+    assert (f.act.aid, f.act.state, f.act.step) == ("m1", "progress", "face")
+    assert json.loads(lua.eval("PZA.enc.act")(f.act)) == ["m1", "progress", "face"]
     start(lua, p, "steer", aid="t", vx=1, vy=0, seconds=1)
     assert lua.eval("PZA.skills.status().step") is None               # another skill's frame carries no step
 
 
-def test_a_done_result_and_a_progress_result_keys_are_in_the_schema(lua, fs):
-    p, z, w = world(lua, zx=12.0, zspeed=1.5)
-    go(lua, p, seconds=1.0)
-    run(lua, p, w, 120, stop=lambda: ended(lua))
+def test_every_result_key_is_in_the_schema(lua, fs):
+    """Every key of every act line the melee writes (progress, done, failed; the leaf's) is in result_melee, and the
+    step result's are a subset of it."""
     with open(SCHEMA, encoding="utf-8") as fh:
         defs = json.load(fh)["$defs"]
+    props = defs["result_melee"]["properties"]
+    p, z, w = world(lua, zx=12.0, zspeed=1.5, attack_ticks=8)
+    w["on_attack"] = lambda wd, shove: wd.__setitem__("knocked", True)
+    go(lua, p)
+    run(lua, p, w, 200, stop=lambda: cur_step(lua) == "knock_wait")
+    w["floor"] = True
+    run(lua, p, w, 30)
+    w["zdead"] = True
+    run(lua, p, w)
     for a in acts(lua, fs):
-        assert set(a["result"]) <= set(defs["result_melee"]["properties"]), a
+        assert set(a["result"]) <= set(props), a
+        if "press" in a["result"]:
+            assert set(a["result"]["press"]) == set(props["press"]["properties"]) == LEAF
         assert a["reason"] == "" or a["reason"] in pza1.REASONS
-    assert set(defs["result_melee_step"]["properties"]) <= set(defs["result_melee"]["properties"])
+    assert set(defs["result_melee_step"]["properties"]) <= set(props)
+    assert last(lua, fs)["result"]["end"] == "kill"
 
-
-# ---- the runner: a skill's own progress result, a failure's result -------------------------------------------------
 
 def test_a_tick_answering_progress_emits_a_progress_line_now_with_its_result(lua, fs):
     load(lua)
@@ -843,6 +791,26 @@ def test_a_tick_answering_progress_emits_a_progress_line_now_with_its_result(lua
     a = acts(lua, fs)
     assert [(x["state"], x["result"]) for x in a] == [("accepted", {}), ("progress", {"n": 2}), ("failed", {"id": 4})]
     assert a[2]["reason"] == "crowd" and "snapshot" not in a[1]
+
+
+def test_a_stop_hook_s_table_is_the_failed_line_s_result_only_where_none_was_given(lua, fs):
+    """PZA/1.10 (PZAgent_Skills.lua's finish): a stop hook answering a table gives a failed line its result; a failed
+    line with its own result keeps it; a hook answering nothing leaves the result empty."""
+    load(lua)
+    lua.execute("PZA.skills.types.blop = { check = function(args, p) return true, '', { n = 0 } end,"
+                " tick = function(p, st) st.n = st.n + 1; if st.n == 2 then return 'failed', 'crowd', { id = 4 } end end,"
+                " stop = function(p, st, reason) return { why = reason } end }")
+    lua.execute("PZA.skills.types.blank = { check = function(args, p) return true, '', {} end,"
+                " tick = function(p, st) end, stop = function(p, st, reason) end }")
+    p = make_mover()[0]
+    start(lua, p, "blop", aid="b1")
+    start(lua, p, "blop", aid="b2")                                   # b1 superseded: the hook's table
+    tick(lua, p, 2)                                                   # b2 fails crowd with its own result
+    start(lua, p, "blank", aid="c1")
+    start(lua, p, "blank", aid="c2")                                  # c1 superseded: the hook answers nothing
+    ends = [(x["aid"], x["reason"], x["result"]) for x in acts(lua, fs) if x["state"] == "failed"]
+    assert ends == [("b1", "superseded", {"why": "superseded"}), ("b2", "crowd", {"id": 4}),
+                    ("c1", "superseded", {})]
 
 
 # ---- the cost ------------------------------------------------------------------------------------------------------
@@ -869,37 +837,68 @@ def counted(lua, p, z, w, ticks_before, setup=None):
     return log, made
 
 
-@pytest.mark.parametrize("case", ["stand", "back", "swing_running", "knock_wait", "hit"])
-def test_the_reflex_makes_at_most_ten_java_calls_a_tick_with_no_press(lua, fs, case):
-    """The architecture review's section 4.1 budget (8-10 a tick with both strikes idle), counted through the fake:
-    the stand reads the dead check (2), the target's isDead (1), DistToProper (1), hasHitReaction (1), isOnFloor (1),
-    getTarget (1, the close or stand choice) and the facing (1): 8."""
-    kw = {"stand": {"zx": 12.3}, "back": {"zx": 11.3, "attack_ticks": 8}, "swing_running": {"zx": 11.2},
-          "knock_wait": {"zx": 10.4, "attack_ticks": 6}, "hit": {"zx": 12.3}}[case]
+FACE_TICK = [("p", "getBodyDamage"), ("bd", "getOverallBodyHealth"), ("z", "isDead"), ("p", "getX"), ("p", "getY"),
+             ("z", "getX"), ("z", "getY"), ("p", "hasHitReaction"), ("z", "isOnFloor"), ("p", "faceThisObject"),
+             ("p", "getLookAngleRadians")]
+
+
+@pytest.mark.parametrize("case", ["face", "face_on", "stand", "swing_running", "knock_wait", "hit"])
+def test_the_reflex_s_no_press_tick_costs(lua, fs, case):
+    """The no-press ticks' Java calls, counted through the fake (the spent read once a frame, here once a second with
+    no frame, outside the counted tick): face (a closing chaser inside faceR beyond the reach, the look off) 11, the
+    dead check (2), isDead, the two positions (4), the hit read, isOnFloor, the facing and the look; with the look on
+    the prediction adds getCombatSpeed (12); the stand beyond faceR 10 (no look: the stance's facing is the mouse's;
+    isKnockedDown is read only within the reach or shoveR); a press in flight 9 (isAttackStarted); the knock wait 11
+    (isKnockedDown); a hit reaction 9 (its step change's progress line reads the target's health)."""
+    kw = {"face": {"zx": 12.3, "zspeed": 0.3, "look": math.pi, "turn": 0.0},
+          "face_on": {"zx": 12.3, "zspeed": 0.3},
+          "stand": {"zx": 13.4, "zspeed": 0.3},
+          "swing_running": {"zx": 11.0, "attack_ticks": 30},
+          "knock_wait": {"zx": 10.4, "attack_ticks": 6}, "hit": {"zx": 12.3, "zspeed": 0.3}}[case]
     p, z, w = world(lua, **kw)
     if case == "knock_wait":
         w["on_attack"] = lambda wd, shove: wd.__setitem__("knocked", True)
-    over = {"mode": "shove"} if case == "knock_wait" else {}
+    over = {"mode": "shove"} if case == "knock_wait" else {"releaseR": 4.0}
     go(lua, p, **over)
-    before = {"stand": 3, "back": 12, "swing_running": 4, "knock_wait": 10, "hit": 3}[case]
+    before = {"face": 3, "face_on": 3, "stand": 3, "swing_running": 4, "knock_wait": 10, "hit": 3}[case]
     setup = (lambda: p.combat.__setitem__("hitReaction", "Bite")) if case == "hit" else None
     log, made = counted(lua, p, z, w, before, setup)
-    assert cur_step(lua) == {"swing_running": "swing"}.get(case, case)
-    assert len(log) <= 10 and made == [], sorted(log)
-    if case == "stand":
-        assert sorted(log) == sorted([("p", "getBodyDamage"), ("bd", "getOverallBodyHealth"), ("z", "isDead"),
-                                      ("p", "DistToProper"), ("p", "hasHitReaction"), ("z", "isOnFloor"),
-                                      ("z", "getTarget"), ("p", "faceThisObject")])
+    assert cur_step(lua) == {"face_on": "face", "swing_running": "swing"}.get(case, case)
+    want = {"face": 11, "face_on": 12, "stand": 10, "swing_running": 9, "knock_wait": 11, "hit": 9}[case]
+    assert len(log) == want and made == [], sorted(log)
+    if case == "face":
+        assert sorted(log) == sorted(FACE_TICK)
+    if case == "face_on":
+        assert sorted(log) == sorted(FACE_TICK + [("p", "getCombatSpeed")])
 
 
 def test_the_close_step_re_aims_its_walk_only_when_the_heading_turns(lua, fs):
-    """The close (an idle target beyond the reach) reads the two positions to steer at a walk (4 calls beyond the
-    stand's 8, the getTarget read included), and sets the walk's direction only when it turned: 12 a tick at a still
-    target, no Vector2 made."""
+    """The close (a target not closing beyond the press's distance) sets the walk's direction only when it turned:
+    no Vector2 made on a straight walk."""
     p, z, w = world(lua, zx=12.3, chasing=False)
     go(lua, p)
     log, made = counted(lua, p, z, w, 3)
-    assert cur_step(lua) == "close" and made == [] and len(log) == 12, sorted(log)
+    assert cur_step(lua) == "close" and made == [], sorted(log)
+    assert ("p", "setAutoWalkDirection") not in log
+
+
+def test_the_spent_read_runs_once_a_frame(lua, fs):
+    """The moodles are read once a frame (Sense's S.last), not every tick: three ticks on one frame read getMoodles
+    once; a new frame reads it again."""
+    p, z, w = world(lua, zx=12.3, zspeed=0.3, look=math.pi, turn=0.0)
+    n = {"moodles": 0}
+
+    def mo(s):
+        n["moodles"] += 1
+        return J(getMoodleLevel=lambda s2, t: 0)
+    p.getMoodles = mo
+    frame_last(lua, arm_pain=0.0)
+    go(lua, p)
+    run(lua, p, w, 3)
+    assert n["moodles"] == 1
+    frame_last(lua, arm_pain=0.0)
+    run(lua, p, w)
+    assert n["moodles"] == 2
 
 
 # ---- the faults (test_lua_faults.py's pattern, for the largest per-tick body the harness runs: review 4.4) ---------
@@ -908,19 +907,23 @@ PCALL_COUNTER = ("pcallFails = 0; local raw = pcall; pcall = function(...) local
                  " if not r[1] then pcallFails = pcallFails + 1 end; return unpack(r) end")
 P_MEMBERS = ("getBodyDamage", "DistToProper", "hasHitReaction", "isAttackStarted", "faceThisObject", "setForceAim",
              "nullifyAiming", "DoAttack", "setDoShove", "setAutoWalk", "setAutoWalkDirection", "setForceRun",
-             "setForceSprint", "getPrimaryHandItem", "getX", "getY")
+             "setForceSprint", "getPrimaryHandItem", "getX", "getY", "getLookAngleRadians", "getCombatSpeed")
 Z_MEMBERS = ("isDead", "getX", "getY", "isOnFloor", "isKnockedDown", "getTarget", "getHealth")
+OUT_TICK = 200   # the fault scenario's zombie leaves releaseR here should nothing have ended it
 
 
 def fault_run(lua, fs, p, z, w, fault=None):
-    """The fault scenario: a target at 1.2 tiles in the reach, standing still and chasing; the swing (face, press, an
-    attack of 6 ticks), its miss, the back leg to keepR, the stand, the time at 3 s; fault() applied after the first
-    tick. Answers the end line."""
-    go(lua, p, seconds=3)
+    """The fault scenario: a target at 1.2 tiles in the reach, standing still and chasing; the swings (an attack of 6
+    ticks each) that leave it standing and unhurt to the stall (done lost, no progress), else at OUT_TICK the target
+    moved beyond releaseR (done lost, out of range); fault() applied after the first tick. Answers the end line."""
+    go(lua, p)
     run(lua, p, w)
     if fault is not None:
         fault()
-    run(lua, p, w, 400, stop=lambda: ended(lua))
+    run(lua, p, w, OUT_TICK, stop=lambda: ended(lua))
+    if not ended(lua):
+        w["zx"] = 14.0
+        run(lua, p, w, 100, stop=lambda: ended(lua))
     ends = [a for a in acts(lua, fs) if a["aid"] == "m1" and a["state"] in ("rejected", "failed", "done")]
     assert len(ends) == 1, states(acts(lua, fs))
     return ends[0]
@@ -936,23 +939,25 @@ def assert_released(lua, p, autowalk=True):
 
 
 def test_the_fault_scenario_runs_its_whole_course_clean(lua, fs):
-    """The scenario every fault case perturbs, unperturbed: done time after the swing, its miss, the back leg and the
-    stand, with no raise caught anywhere."""
+    """The scenario every fault case perturbs, unperturbed: done lost (no progress) after the stall's three swings,
+    with no raise caught anywhere."""
     p, z, w = world(lua, zx=11.2, zspeed=0.0, attack_ticks=6)
     lua.execute(PCALL_COUNTER)
     end = fault_run(lua, fs, p, z, w)
-    assert (end["state"], end["result"]["end"]) == ("done", "time") and end["result"]["swings"] == 1
-    assert {"face", "swing", "back", "stand"} <= set(step_seq(lua, fs))
+    assert (end["state"], end["result"]["end"], end["result"]["why"]) == ("done", "lost", "no progress")
+    assert end["result"]["swings"] == P.STALL_SWINGS
     assert lua.eval("PZA.skills.errors") == 0 and lua.globals().pcallFails == 0
     assert_released(lua, p)
 
 
 # each player member absent from the start: the members the first tick checks fail not loaded; a missing weapon
-# reader is the check's no weapon; every other member is read index-first and skipped, so the run ends done time
+# reader is the check's no weapon; the player's position not loaded; every other member is read index-first and
+# skipped, so the run ends done (the stall, or out of range)
 ABSENT_P = {"setForceAim": ("failed", "not loaded"), "nullifyAiming": ("failed", "not loaded"),
             "faceThisObject": ("failed", "not loaded"), "DoAttack": ("failed", "not loaded"),
             "setDoShove": ("failed", "not loaded"), "setAutoWalk": ("failed", "not loaded"),
-            "setAutoWalkDirection": ("failed", "not loaded"), "getPrimaryHandItem": ("rejected", "no weapon")}
+            "setAutoWalkDirection": ("failed", "not loaded"), "getPrimaryHandItem": ("rejected", "no weapon"),
+            "getX": ("failed", "not loaded"), "getY": ("failed", "not loaded")}
 
 
 @pytest.mark.parametrize("member", P_MEMBERS)
@@ -967,7 +972,7 @@ def test_a_player_member_absent_ends_as_pinned_with_no_raise(lua, fs, member):
 
 
 # each target member absent from the start (the planar distance through the positions, no DistToProper): an
-# unreadable position fails the check no target; every other read is fail-closed, so the run ends done time
+# unreadable position fails the check no target; every other read is fail-closed, so the run ends done
 ABSENT_Z = {"getX": ("rejected", "no target"), "getY": ("rejected", "no target")}
 
 
@@ -988,11 +993,13 @@ def raising(name):
     return f
 
 
-# each member raising from the second tick on: the runner catches it (S-12) and the melee ends failed interrupted,
-# its stop hook releasing the stance; a member the skill calls under its own pcall (the press, the shove flag, the
-# release) runs on to done time with the raise caught there (fix round 1: the player's getX and getY, read by the back
-# leg since, now end it interrupted)
-RAISE_DONE_P = {"DoAttack", "setDoShove", "nullifyAiming"}
+# each member raising from the second tick on: the runner catches it (S-12) and the melee ends failed interrupted, its
+# stop hook releasing the stance; a member the skill calls under its own pcall (the press, the shove flag, the
+# release) or never calls again after the first tick in this scenario (the check's DistToProper, the walk's setters,
+# the stance's and the run latches' setters, set once on the first tick inside faceR) runs on to its done
+RAISE_DONE_P = {"DoAttack", "setDoShove", "nullifyAiming", "DistToProper", "setAutoWalk", "setAutoWalkDirection",
+                "setForceAim", "setForceRun", "setForceSprint"}
+RAISE_DONE_Z = {"getTarget"}   # read only before two positions are kept
 
 
 @pytest.mark.parametrize("member", P_MEMBERS)
@@ -1010,124 +1017,8 @@ def test_a_player_member_raising_never_propagates_and_releases_the_stance(lua, f
 def test_a_target_member_raising_never_propagates_and_releases_the_stance(lua, fs, member):
     p, z, w = world(lua, zx=11.2, zspeed=0.0, attack_ticks=6, dist_member=False)
     end = fault_run(lua, fs, p, z, w, fault=lambda: setattr(z, member, raising(member)))
-    assert (end["state"], end["reason"]) == ("failed", "interrupted"), member
-    assert lua.eval("PZA.skills.errors") >= 1
+    want = ("done", "") if member in RAISE_DONE_Z else ("failed", "interrupted")
+    assert (end["state"], end["reason"]) == want, member
+    if want[0] == "failed":
+        assert lua.eval("PZA.skills.errors") >= 1
     assert_released(lua, p)
-
-
-# ---- P30-A: the swing close (closeR; Plan 30 Task 3, survival iteration 24) --------------------------------------
-# E23 (`e_day_23-20261105-095110`): a125's swing went at 1.4342941045761108 tiles at a chaser (a130 at
-# 1.4385623931884766, a131 at 1.4340101480484009), each left it standing and the bite came in the back leg after it
-# (the guide's section 3); F14 (`f_goals_15-20261105-092752`): swings inside a tile knocked down (a121 at
-# 0.9472782015800476, a131 at 0.9590644240379333). The fixtures are the fake mover's, at E23's reach (the bat's 1.475).
-E23_REACH = 1.475
-CLOSE_R = 1.0   # the planner's SWING_CLOSE_R
-
-
-def test_e23_s_chaser_at_1_43_is_held_in_the_stance_and_swung_at_inside_close_r(lua, fs):
-    """P30-A: a chaser closing through the reach (1.475) is not swung at at 1.43 (E23's a125); the stance holds
-    (`stand`, one run counted in `held`), and the swing's face and press go once it is inside closeR (1.0)."""
-    p, z, w = world(lua, zx=11.6, zspeed=0.6, chasing=True)
-    go(lua, p, reach=E23_REACH, closeR=CLOSE_R, seconds=10)
-    run(lua, p, w, 400, stop=lambda: len(w["presses"]) > 0)
-    assert len(w["presses"]) == 1 and lua.eval("PZA.skills.STAND_R") < w["presses"][0]["d"] <= CLOSE_R
-    seq = step_seq(lua, fs)
-    assert seq[:3] == ["stand", "face", "swing"] and progress(lua, fs)[-1]["result"]["held"] == 1
-
-
-def test_with_close_r_0_the_chaser_is_swung_at_the_reach_as_before(lua, fs):
-    """P30-A's falsifier: closeR 0 (the planner's SWING_CLOSE off) presses at the reach, as E23 did."""
-    p, z, w = world(lua, zx=11.6, zspeed=0.6, chasing=True)
-    go(lua, p, reach=E23_REACH, seconds=10)
-    run(lua, p, w, 400, stop=lambda: len(w["presses"]) > 0)
-    assert CLOSE_R < w["presses"][0]["d"] <= E23_REACH
-
-
-def test_an_idle_target_at_1_4_is_swung_at_the_reach_as_today(lua, fs):
-    p, z, w = world(lua, zx=11.4, zspeed=0.0, chasing=False)
-    go(lua, p, reach=E23_REACH, closeR=CLOSE_R)
-    run(lua, p, w, 4)
-    assert len(w["presses"]) == 1 and w["presses"][0]["d"] == pytest.approx(1.4)
-
-
-def test_a_chaser_that_stops_closing_at_1_3_is_swung_at_the_reach(lua, fs):
-    """P30-A reads the chase as the target's getTarget the player and its distance falling: one standing still at 1.3
-    (its distance not falling) is swung at within the reach."""
-    p, z, w = world(lua, zx=11.3, zspeed=0.0, chasing=True)
-    go(lua, p, reach=E23_REACH, closeR=CLOSE_R)
-    run(lua, p, w, 4)
-    assert len(w["presses"]) == 1 and w["presses"][0]["d"] == pytest.approx(1.3)
-
-
-def test_a_swing_that_did_nothing_at_0_9_is_pressed_again_with_no_back_leg(lua, fs):
-    """P30-A: a swing at a standing chaser 0.9 tiles off whose result reads it standing, its health not fallen (the
-    fake's miss): no back leg; the swing again at the cadence (`again` 1), the stance never walking back."""
-    p, z, w = world(lua, zx=10.9, zspeed=0.0, chasing=True, attack_ticks=8)
-    go(lua, p, reach=E23_REACH, closeR=CLOSE_R, seconds=10)
-    run(lua, p, w, 60, stop=lambda: len(w["presses"]) > 1)
-    assert len(w["presses"]) == 2 and "back" not in step_seq(lua, fs) and w["walk"] is None
-    run(lua, p, w)
-    assert progress(lua, fs)[-1]["result"]["again"] == 1
-
-
-def test_a_swing_that_lowered_the_health_takes_the_back_leg_as_today(lua, fs):
-    """P30-A's other side: the result reads the health fallen from the press (a landed hit, the zombie staggered):
-    the back leg (P28-B2's), as before."""
-    p, z, w = world(lua, zx=10.9, zspeed=0.0, chasing=True, attack_ticks=8)
-
-    def hurt(wd, shove):
-        wd["zhp"] -= 0.2
-    w["on_attack"] = hurt
-    go(lua, p, reach=E23_REACH, closeR=CLOSE_R, seconds=10)
-    run(lua, p, w, 14)
-    assert len(w["presses"]) == 1 and cur_step(lua) == "back"
-
-
-def test_a_swing_that_did_nothing_at_point_blank_takes_the_back_leg(lua, fs):
-    """P30-A: within K.STAND_R (0.6) the back leg stands after a press that did nothing."""
-    p, z, w = world(lua, zx=10.5, zspeed=0.0, chasing=False, attack_ticks=8)
-    go(lua, p, reach=E23_REACH, closeR=CLOSE_R, seconds=10)
-    run(lua, p, w, 14)
-    assert len(w["presses"]) == 1 and cur_step(lua) == "back"
-
-
-def test_shove_mode_s_miss_takes_the_back_leg_as_p28_b2(lua, fs):
-    p, z, w = world(lua, zx=10.9, zspeed=0.0, chasing=False, attack_ticks=8)
-    go(lua, p, mode="shove", reach=E23_REACH, closeR=CLOSE_R, seconds=10)
-    run(lua, p, w, 14)
-    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is True and cur_step(lua) == "back"
-
-
-def test_a_swing_cut_by_a_hit_reaction_is_a_press_that_did_nothing(lua, fs):
-    """Task 2's refinement (T95.2: a hit reaction leaves the melee state before the 25 % collision event, no damage):
-    the reaction ends the swing with the health unfallen; once it ends no back leg, the swing again inside closeR."""
-    p, z, w = world(lua, zx=10.9, zspeed=0.0, chasing=True, attack_ticks=30)
-    go(lua, p, reach=E23_REACH, closeR=CLOSE_R, seconds=10)
-    run(lua, p, w, 3)
-    assert cur_step(lua) == "swing"
-    p.combat["hitReaction"] = "Bite"
-    run(lua, p, w, 5)
-    assert cur_step(lua) == "hit"
-    p.combat["hitReaction"] = ""
-    run(lua, p, w, 60, stop=lambda: len(w["presses"]) > 1)
-    assert len(w["presses"]) == 2 and "back" not in step_seq(lua, fs)
-
-
-def test_the_close_r_counts_reach_the_done_line(lua, fs):
-    """`held` and `again` on the done line (P30-A's counts, the planner's `swing_close`)."""
-    p, z, w = world(lua, zx=11.6, zspeed=0.3, chasing=True)
-    go(lua, p, reach=E23_REACH, closeR=CLOSE_R, seconds=1.0)
-    run(lua, p, w, 120, stop=lambda: ended(lua))
-    r = last(lua, fs)["result"]
-    assert r["end"] == "time" and r["held"] == 1 and r["again"] == 0
-
-
-def test_a_swing_after_the_point_blank_back_leg_is_no_press_again(lua, fs):
-    """Fix 1 (review-t3 m2): the press that did nothing at point blank takes the back leg, so the swing after that
-    leg is the mode's own, never counted in `again` (`again`: no back leg between)."""
-    p, z, w = world(lua, zx=10.5, zspeed=0.0, chasing=False, attack_ticks=8)
-    go(lua, p, reach=E23_REACH, closeR=CLOSE_R, seconds=10)
-    run(lua, p, w, 400, stop=lambda: len(w["presses"]) > 1)
-    assert len(w["presses"]) == 2 and "back" in step_seq(lua, fs)
-    run(lua, p, w)
-    assert progress(lua, fs)[-1]["result"]["again"] == 0

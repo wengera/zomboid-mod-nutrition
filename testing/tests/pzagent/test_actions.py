@@ -197,7 +197,7 @@ def test_a_melee_through_actions_check_takes_the_three_modes(mode):
     meleeMode enum, which actions.check reads through the generated _ENUMS."""
     from agent.base import actions
     from agent.base.pza1 import Melee
-    m = Melee(7, mode, 1.475, 2.5, 1.1, 2.75, -1.0, 0.0, 2.5, 0.0)
+    m = Melee(7, mode, 1.25, 0.9, 2.75, 3.0, 41.4, 0.0, 1.0, 2.0, 3)   # PZA/1.10
     assert actions.check(m)["mode"] == mode
 
 
@@ -206,7 +206,7 @@ def test_a_melee_through_actions_check_refuses_a_fourth_mode():
     the frozen command reaches the check."""
     from agent.base import actions
     from agent.base.pza1 import Melee
-    m = Melee(7, "strike", 1.475, 2.5, 1.1, 2.75, -1.0, 0.0, 2.5, 0.0)
+    m = Melee(7, "strike", 1.25, 0.9, 2.75, 3.0, 41.4, 0.0, 1.0, 2.0, 3)   # PZA/1.10
     object.__setattr__(m, "mode", "kick")
     with pytest.raises(TypeError):
         actions.check(m)

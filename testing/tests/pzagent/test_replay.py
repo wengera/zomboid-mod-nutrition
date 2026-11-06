@@ -33,7 +33,11 @@ checked before re-recording. All five were re-recorded under "PZA/1.9: me's snea
 known, state and behind" (Plan 30 Task 1): the logs decode with those fields null, which the World's final me and
 zombie records carry; with the null keys dropped (me's two in all five, the zombie's three in the three whose final
 World lists a zombie: 2, 2 and 5 zombies) and the JSON re-serialised as to_json does, each hashed to its previous
-golden, checked before re-recording. Before recording, each streamed replay's JSON was checked equal to the
+golden, checked before re-recording. All five were re-recorded under "PZA/1.10: me's lookAngle and bodyAngle and
+the zombie's headX and headY" (Plan 31 Task 2): the logs decode with those fields null, which the World's final me and
+zombie records carry; with the null keys dropped (me's two in all five, the zombie's two in the three whose final World
+lists a zombie: 2, 5 and 2 zombies) and the JSON re-serialised as to_json does, each hashed to its previous golden,
+checked before re-recording. Before recording, each streamed replay's JSON was checked equal to the
 whole-file replay of `world.replay` at 19ee80ca (the function this module's replay replaced).
 
 The frame counts, from each guide (the driver's `frames.n` plus the frames after its last read):
@@ -62,13 +66,13 @@ LIVE = {
     # field additions of 1d2e2d24 (Plan 22 X4 fix pass 1: me's zombiesSeen and zombiesListed, cost's pollMs .. maxStartMs),
     # which the X4 fix pass 1b decoder reads as None in these logs written before them: the final World carries the ten
     # keys as null, and with them removed each JSON hashed to its previous golden (checked before re-recording).
-    "x4_link-20261027-171916": (7533, "30b818ab36b8c12ced0bff34e48d5dcb9e696a87fea009d28077fc1524492bf1"),
-    "x5_combat-20261027-173248": (993, "6539433241d9ad2e82e54eed8bede4348a4b8423d47477f8c4bc6f4899585422"),
-    "d_survive-20261027-173724": (5033, "584c73be7c6e22820e64a75dba93a2f86d87cc517f8fc97975cb31d5b7f38e4f"),
-    "d_survive-20261027-175917": (2568, "c6bcfa7ca1db67f2ee9025cd549078a9dfd97878336e75969bc9f25bf1b8b854"),
+    "x4_link-20261027-171916": (7533, "770587feb32fd3f8f17a414e06ad6ca074cb3fcdfd929275f110d6251387fb2e"),
+    "x5_combat-20261027-173248": (993, "2374c921a84752317078a9ffc3e55cf17667af2a8f6832d3cd55e4ef12459a16"),
+    "d_survive-20261027-173724": (5033, "141705ce94b6e1047883a1ce2ffb9b157936e7bdafbdaf46e44fa2d19e4485df"),
+    "d_survive-20261027-175917": (2568, "fa1f6d62edd03fe53e54be23bce774d43f5a58438db8c325361d22c331f19714"),
     # The X4 fix pass session (PZA/1.1 written natively; the fifth live run), recorded at the close on 25d8bd6f:
     # x4_link_2-20261027-210612/GUIDE.md:15 "The driver read 7505 frames" plus the 17 frames after its last read -> 7522.
-    "x4_link_2-20261027-210612": (7522, "dad57543a74ee02617fb69f8dd79914960d6574945204c9e35267c6aba3167e1"),
+    "x4_link_2-20261027-210612": (7522, "dbc9206c8a7e0d3a94c4f038b052d44645abb26d9fc75be01f1e11b06bbba20f"),
 }
 
 

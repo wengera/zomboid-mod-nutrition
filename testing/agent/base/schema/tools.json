@@ -495,7 +495,7 @@
   },
   {
     "name": "melee",
-    "description": "The melee reflex (PZA/1.8, Plan 28 Task 7a): owns one zombie from the combat stance to the kill at the client's tick rate for up to seconds, each tick reading the target's distance live and taking the first reflex that matches: a hit reaction holds (no press); a running strike holds and its end is read (a knockdown, a health fall; a strike that left the target standing and unhurt is a miss); beyond releaseR it fails out of range; another standing zombie within 0.6 tiles fails crowd; seconds passed ends done time; a fallen target takes the floor swing (floorSwing, a weapon, within the reach), else the stomp within 0.5 tiles, else a walk to it (failed out of reach after 4 s); a knockdown not yet on the floor is waited on; then the shove (shove mode within shoveR, a chasing target closing within shoveR, or after a miss within shoveR), the swing (strike mode within the reach, not after a miss), the back leg after a miss within keepR along (backVx, backVy) in the stance facing the target, the close at a walk in the stance on an idle target beyond the reach, else the stand in the stance facing it. Every press faces the target a tick before it and goes with the stance released (the aimed player faces the cursor, #4589). Progress lines on every step change carry the step and the counts; the frame's act.step names it. Rejected no target (unknown, dead or unreadable), too far (beyond releaseR), no weapon (strike mode, nothing held); a finish whose target stands fails stood. A melee re-sent at the same target keeps the stance; its end releases it.",
+    "description": "The melee reflex (PZA/1.10, Plan 31 Task 2: the meet, the finish aimed at the head and the spent meet; first cut PZA/1.8, Plan 28 Task 7a): owns one zombie to the kill at the client's tick rate, each tick reading the two positions and taking the first reflex that matches: a hit reaction holds (no press; a press in flight is marked cut_by hit); a press in flight holds to its end, then its result (the press leaf, a knock-down, the no-progress run: stall presses that lowered nothing end it lost); beyond releaseR it ends lost; another standing zombie within 0.6 tiles ends it handback (crowd); a fallen target takes the finish (another standing zombie within handbackR ends it handback, one beyond never breaks it; the facing at the head, the floor swing within floorR of it with floorSwing and a weapon and not spent, else the stomp within 0.3 tiles of it, each once the look is within pressAngle, else the walk to it); a knock-down not yet on the floor is waited on; else the meet: beyond faceR the stance (a target not closing walked to), inside it the stance released and the target faced every tick, the swing pressed once the look (getLookAngleRadians) is within pressAngle of the bearing, the predicted distance at the collision event (d - v * (one update + 0.25 / CombatSpeed), v the target's closing speed over the last three ticks) within [pressLo, reach] and the distance one update on beyond the weapon's MinRange; the shove only inside MinRange; spent (mode shove, nothing held, the arms' pain over 10, or the endurance or tired moodle at 2 or more) the shove within shoveR, never a swing; a target not closing beyond the press's distance closed on at a walk. After a press no back step and no pause: the press again as soon as the swing ends. It ends done kill, handback or lost, never on time. Progress lines on every step change and each press leaf carry the step and the counts; the frame's act.step names it. Rejected no target (unknown, dead or unreadable), too far (beyond releaseR), no weapon (strike mode, nothing held). A melee re-sent at the same target keeps the stance; its end releases it.",
     "input_schema": {
       "type": "object",
       "properties": {
@@ -510,43 +510,47 @@
             "shove",
             "finish"
           ],
-          "description": "strike (the weapon swing within the reach, the shove per the reflexes), shove (no weapon swing at a standing target: the shove-only fights) or finish (the target is fallen: the stomp or the floor swing only; a target that stands fails stood)."
+          "description": "strike (the meet with the weapon swing; the spent meet once the arms or the moodles are spent), shove (the spent meet: no weapon swing, the shove at a standing target, the stomp at a fallen one) or finish (sent at a fallen target: its finish, then the meet should it stand; no weapon needed)."
         },
         "reach": {
           "type": "number",
-          "description": "The swing's distance at a standing target in tiles; 0 takes the held weapon's reach (getMaxRange x getRangeMod x 0.9)."
-        },
-        "keepR": {
-          "type": "number",
-          "description": "The back leg after a miss runs while the target is within this, in tiles."
+          "description": "The swing's distance at the collision event in tiles; 0 takes the held weapon's reach (getMaxRange x getRangeMod x 0.9)."
         },
         "shoveR": {
           "type": "number",
-          "description": "The shove's distance in tiles: shove mode's, a chasing closing target's (the early shove) and the point blank after a miss."
+          "description": "The spent meet's shove distance in tiles."
         },
         "releaseR": {
           "type": "number",
-          "description": "Beyond this the melee fails out of range, in tiles; a target beyond it is rejected too far."
+          "description": "Beyond this the melee ends lost (out of range), in tiles; a target beyond it is rejected too far."
         },
-        "backVx": {
+        "faceR": {
           "type": "number",
-          "description": "The back leg's world heading, x (0 with backVy 0: stand in the stance instead)."
+          "description": "Inside this the stance is released and the target faced every tick until the press, in tiles (the body turns toward a written facing over time, about 0.4 s for 90 degrees, #4689)."
         },
-        "backVy": {
+        "pressAngle": {
           "type": "number",
-          "description": "The back leg's world heading, y."
+          "description": "The most the look may lie off the target's bearing at a press, in degrees, above 0 and at most 180 (the hit list's dot from the weapon's MinAngle, #4591, #4681)."
         },
-        "seconds": {
+        "pressLo": {
           "type": "number",
-          "description": "The span after which the melee ends done time with no strike running, in seconds."
+          "description": "The least predicted distance at the collision event a swing is pressed at, in tiles (the collision tests no lower distance, #4682)."
         },
-        "closeR": {
+        "floorR": {
           "type": "number",
-          "description": "PZA/1.9 (Plan 30 Task 3): the distance in tiles inside which a target chasing the player (its getTarget the player, its distance falling) is swung at, read by the swing-close reflex; 0 swings at a chaser within the reach, as before PZA/1.9; negative is bad args."
+          "description": "The floor swing's distance to a fallen target's head, in tiles (the floor attack's line, WeaponLength + 0.5, #4679)."
+        },
+        "handbackR": {
+          "type": "number",
+          "description": "Inside this another standing zombie ends a finish handback (why standing), in tiles; beyond it none breaks the finish."
+        },
+        "stall": {
+          "type": "integer",
+          "description": "The presses in a row (a swing, a floor swing or a stomp) that neither lowered the target's health nor knocked it down after which it ends lost (no progress), 1 or more."
         },
         "floorSwing": {
           "type": "boolean",
-          "description": "True to let the weapon's floor swing finish a fallen target within the reach (a floor attack multiplies its damage by at least 5, #4374); false stomps.",
+          "description": "True to let the weapon's floor swing finish a fallen target (a floor attack multiplies its damage by at least 5, #4374); false stomps.",
           "default": false
         }
       },
@@ -554,13 +558,14 @@
         "targetId",
         "mode",
         "reach",
-        "keepR",
         "shoveR",
         "releaseR",
-        "backVx",
-        "backVy",
-        "seconds",
-        "closeR"
+        "faceR",
+        "pressAngle",
+        "pressLo",
+        "floorR",
+        "handbackR",
+        "stall"
       ],
       "additionalProperties": false
     }

@@ -1009,3 +1009,68 @@ function S.frame(p)
     guarded("zombies:aware", zombiesAware, p, f)
     return f
 end
+
+-- me.lookAngle and me.bodyAngle, and the fallen zombie record's headX and headY (PZA/1.10, Plan 31 Task 2; the swing jar
+-- read's rows #4678-#4691 and its review's three design readings). lookAngle is getLookAngleRadians(), the animation
+-- player's angle plus its twist plus the head look, the angle the hit list's dot (#4591) and the bite's facing skip
+-- (#4688) read; bodyAngle is getAnimAngleRadians(), the body alone (each the forward direction's angle while the
+-- animation player is not ready). Both are radians in the engine's Vector2.getDirection convention, atan2(y, x) on the
+-- world axes (Vector2.getDirection(FF) L105; AnimationPlayer.calculateAnimPlayerAngle L889 sets the body's target angle
+-- the same way, setTargetDirection L894), so a bearing from the player to (x, y) is math.atan2(y - py, x - px); the
+-- convention is a jar read, confirmed on the first live frame before a grade relies on it. headX and headY are carried
+-- for a zombie lying on the floor only (nil when it stands), from S.headOf: the floor attack tests its weapon line
+-- against the fallen zombie's head bone first (#4679), but the bone's world position is out of Lua's reach (the jar's
+-- CombatManager.getBoneWorldPos and Model.boneToWorldCoords are on no exposed class, and the bone matrix's translation
+-- is a public field), so the head is estimated: the zombie's position (its pelvis) plus S.HEAD_R along its body angle
+-- (getAnimAngleRadians) when it lies on its front (isFallOnFront) or crawls, else along the reverse (on its back,
+-- fallen backwards); an inference to calibrate on the first live shot. An absent member leaves the fields nil, named in
+-- missing; each block runs under its own guard (raise:me:angles, raise:zombies:head). Cost a frame: two calls on me and
+-- three a fallen zombie (none a standing one). Appended here (CLAUDE.md section 5: the repo: pointers into Sense keep
+-- their lines); S.frame is wrapped, Main calls it through the table.
+S.HEAD_R = 0.5            -- tiles from a fallen zombie's position (its pelvis) to its head, the estimate's (Task 2's brief)
+
+-- the head of fallen zombie z as (x, y), or nil when its position or body angle cannot be read; crawler its isCrawling
+-- read when the caller has it (nil reads it)
+function S.headOf(z, crawler)
+    local x, y = W.posOf(z)
+    if x == nil or y == nil then return nil end
+    local ok, a = PZA.call(z, "getAnimAngleRadians")
+    if not ok or type(a) ~= "number" then return nil end
+    if crawler == nil then
+        local _, c = PZA.call(z, "isCrawling")
+        crawler = c == true
+    end
+    local _, front = PZA.call(z, "isFallOnFront")
+    if front ~= true and not crawler then a = a + math.pi end
+    return x + S.HEAD_R * math.cos(a), y + S.HEAD_R * math.sin(a)
+end
+
+local function meAngles(p, f)
+    local m = f.me
+    get(m, "lookAngle", p, "getLookAngleRadians")
+    get(m, "bodyAngle", p, "getAnimAngleRadians")
+end
+
+local function zombiesHead(f)
+    local objs = S.zobj
+    if objs == nil or f.zombies == nil then return end
+    for i = 1, #f.zombies do
+        local rec = f.zombies[i]
+        local z = rec.id ~= nil and objs[rec.id] or nil
+        if z ~= nil and rec.onFloor == true then
+            if not PZA.field(z, "getAnimAngleRadians") then
+                PZA.missing(S.missing, "getAnimAngleRadians")
+            else
+                rec.headX, rec.headY = S.headOf(z, rec.crawler)
+            end
+        end
+    end
+end
+
+local frameAnglesBase = S.frame
+function S.frame(p)
+    local f = frameAnglesBase(p)
+    if f.me ~= nil then guarded("me:angles", meAngles, p, f) end
+    guarded("zombies:head", zombiesHead, f)
+    return f
+end

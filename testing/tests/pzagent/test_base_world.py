@@ -86,11 +86,13 @@ def _write_synthetic(state_dir, sink=None):
         stats = dict(DEFAULT_FRAME["stats"], hunger=0.1 if i < 20 else 0.25)
         zs = [{"id": 11, "x": 110.0 - i * 0.25, "y": 200.0, "dist": 10.0 - i * 0.25,
                "hasTarget": i >= 5, "crawler": False, "health": 1.5, "onFloor": None,
-               "known": i >= 5, "state": "walktoward" if i >= 5 else "idle", "behind": False}]      # PZA/1.9
+               "known": i >= 5, "state": "walktoward" if i >= 5 else "idle", "behind": False,      # PZA/1.9
+               "headX": None, "headY": None}]                                                   # PZA/1.10
         if i < 15:
             zs.append({"id": 12, "x": 104.0, "y": 204.0 - i * 0.25, "dist": 5.5 - i * 0.125,
                        "hasTarget": True, "crawler": i >= 10, "health": 0.5, "onFloor": None,
-                       "known": None, "state": None, "behind": None})                            # PZA/1.9: unread
+                       "known": None, "state": None, "behind": None,                             # PZA/1.9: unread
+                       "headX": 103.5 if i >= 10 else None, "headY": 203.75 if i >= 10 else None})   # PZA/1.10
         m.frame(me=me, stats=stats, zombies=zs, gameMin=480.0 + i)
         step()
         if i in (5, 6, 7):
@@ -1124,3 +1126,17 @@ def test_the_world_reads_the_sneak_fields_and_the_zombie_awareness_and_can_sneak
     del old["sneaking"], old["sneakLevel"]                       # a frame before PZA/1.9, as a dict without them
     w.apply(frame(1100, [zed(7, 2.5)], me=old))
     assert w.me.get("sneaking") is None and w.zombies[7].get("known") is None
+
+
+# -- PZA/1.10 (Plan 31 Task 2): the look and body angles, the fallen zombie's head ------------------------------------
+
+def test_the_world_keeps_the_angles_and_the_fallen_head_as_the_frame_sent_them():
+    w = World()
+    z = dict(zed(7, 3.0), onFloor=True, headX=12.5, headY=20.25)
+    w.apply(frame(1000, [z], me=dict(DEFAULT_FRAME["me"], lookAngle=1.5, bodyAngle=1.25)))
+    assert (w.me["lookAngle"], w.me["bodyAngle"]) == (1.5, 1.25)
+    assert (w.zombies[7]["headX"], w.zombies[7]["headY"]) == (12.5, 20.25)
+    old = dict(DEFAULT_FRAME["me"])
+    del old["lookAngle"], old["bodyAngle"]                       # a frame before PZA/1.10, as a dict without them
+    w.apply(frame(1100, [zed(7, 2.5)], me=old))
+    assert w.me.get("lookAngle") is None and w.zombies[7].get("headX") is None

@@ -331,25 +331,33 @@ CIRCLE_TURN = 45.0        # degrees the stance's `back` leg from a lone standing
                           # toward or away from the target): half of STEER_TURNS' 90, the arc keeping the target within
                           # the swing's reach while it follows, a judgment (the spec's number)
 # survival iteration 22 (Plan 28 Task 7b, cut 1 of the maneuver layer: the melee reflex of PZA/1.8, `maneuvers.Melee`)
-MELEE_S = 2.5             # seconds one `melee` runs before the Lua ends it done `time` (its `seconds`): longer than
-                          # AIM_LEG_S 2.0, the stance leg it replaces in reach, by a quarter of it, since each send's
-                          # heading is fresh and a `done time` releases the stance the next send re-takes (Task 7a's
-                          # report, item 10), a judgment
-MELEE_RESEND_MARGIN_S = 0.5   # seconds before MELEE_S (from the running melee's accept) the Fight re-sends it at the
-                          # same target with a fresh `back` heading, so the Lua supersedes a melee still running and
-                          # keeps the stance (Task 7a: only a melee superseding a melee of the same target keeps it):
-                          # one planner tick at the drivers' PLANNER_HZ 2, so a tick lands inside the margin, a judgment
-MELEE_RELEASE_R = KEEP_R + KEEP_MARGIN   # tiles beyond which the melee ends `out of range` (its `releaseR`): the
+MELEE_RELEASE_R = KEEP_R + KEEP_MARGIN   # tiles beyond which the melee ends lost, out of range (its `releaseR`): the
                           # running backpedal's own give-way past KEEP_R (`Fight.busy`), the ladder's legs taking the
                           # target there
-MELEE_WALK_S = 4.0        # seconds the melee's walk to a fallen target (its `stomp_walk` step) may run, summed across
-                          # its sends, before the Fight reads it `out of reach` (Plan 28 Task 7b fix 1, review-t7b m1):
-                          # the Lua's own bound, K.STOMP_APPROACH_MS 4000 (PZAgent_Stance.lua), which a melee never
-                          # reaches alone since its `seconds` (MELEE_S) end it first and each send restarts the walk
 MELEE_BACKOFF_TICKS = 10  # planner ticks after a melee ended `interrupted`, `timeout` or `no target` in which no melee
                           # goes at that target, the ladder's command going instead (fix 1, review-t7b m2): Survive's
                           # FAILED_COOLDOWN_TICKS, the cooling of a failed command, mirrored (survive.py imports this
                           # module, so it cannot be read from there)
+# the meet (PZA/1.10, Plan 31 Task 2: the melee reflex's arguments; the spec `2026-11-05-plan-31-the-rebuild-design.md`
+# section 4 items 1, 2 and 2b; the swing jar read's rows #4678-#4691, `docs/platform/agent.md`)
+FACE_R = 3.0              # tiles: the melee's `faceR`, inside which the stance is released and the target faced every
+                          # tick until the press: the body turns toward a written facing at about 206 degrees a second
+                          # walking and an idle turn's clip runs about 0.83 s for 90 degrees (#4689 and the review's
+                          # arithmetic), while a chaser closes at about 1.6 tiles a second (the spec's section 1), so 3
+                          # tiles leave the turn about a second and a half before the reach; the spec's number
+PRESS_ANGLE = 41.40962210927086   # degrees: the melee's `pressAngle`, the most the look may lie off the bearing at a
+                          # press: acos(0.75), the bat's MinAngle 0.75 (weapon.txt:6701), the dot band the hit list
+                          # holds a target in at the press (#4591: an empty list makes the attack a MISS) and at the
+                          # collision (#4681), inside the bite's facing skip's 0.7 (#4688)
+PRESS_LO = 0.0            # tiles: the melee's `pressLo`, the least predicted distance at the collision a swing is
+                          # pressed at: the collision's rebuild tests the range and MaxRange, never a lower distance,
+                          # and never MinRange (#4681, #4682); MinRange binds the press and the swing's entry only, the
+                          # Lua's own test
+FLOOR_R = 1.0             # tiles: the melee's `floorR`, the floor swing's distance to a fallen target's head: the floor
+                          # attack's line reaches WeaponLength + 0.5 (#4679), the bat's WeaponLength 0.5 (weapon.txt:6716)
+HANDBACK_R = 2.0          # tiles: the melee's `handbackR`, inside which another standing zombie ends a finish handback
+                          # and beyond which none breaks it (F15's two knock-downs were lost to `pair` flees from zombies
+                          # beyond it, the spec's section 1); the spec's number
 SHOVE_SEND_R = 0.9        # tiles: the melee's `shoveR` (Plan 28 Task 7e, ruling P28-H 1), the shove sent inside its
                           # reach, not at its edge: the engine's reach SHOVE_R 1.1 (to the nearest of head, pelvis and
                           # position, #4592) read as a bound, not a target; E22's eight shoves at 1.068 to 1.100 tiles
@@ -367,13 +375,6 @@ EXPLORE_HOP_MIN = 12.0    # tiles: an ExploreToward answer nearer than this is e
                           # 196 to 274, the spec's § 1 reading 2) ran 1 to 6 tiles, each ended in a 7 to 14 s wait with
                           # the character standing over calls of median 4.60 s; a walk of 12 tiles outlasts a median
                           # call at the walk's pace, the spec's number
-SWING_CLOSE_R = 1.0       # tiles: the melee's `closeR` (ruling P30-A, the Lua's swing close): a chasing target is swung
-                          # at only inside this, and a swing that did nothing is pressed again while it stays inside:
-                          # E23's five misses (`e_day_23-20261105-095110`, #4649, #4650) went at 1.231863021850586 to
-                          # 1.4385623931884766 tiles (a125 at 1.4342941045761108), each followed by a bite in the back
-                          # leg, while a swing that lands stops the zombie at about 0.95 tiles and takes no hit (the
-                          # spec's § 1 reading 1); F14's swings inside a tile (a121 at 0.9472782015800476, a131 at
-                          # 0.9590644240379333) knocked down, #4640; the spec's number
 DOOR_HELD_R = 4.0         # tiles: a zombie behind a closed door, a locked gate or a window this near is a decision
                           # (ruling P30-C, `door_held.ThreatDoorHeld`): F14's 32307 chased at 0.91 tiles behind the
                           # locked gate (10732, 10642) on decision lines 146 to 192 and its 32448 stood 0.90 tiles

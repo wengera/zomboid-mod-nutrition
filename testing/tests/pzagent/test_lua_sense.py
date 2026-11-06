@@ -5,6 +5,8 @@ import json
 import os
 import re
 
+import pytest
+
 from .conftest import ROOT, lua_file, make_player, make_weapon, make_zombie, make_cell, J
 
 SCHEMA = os.path.join(ROOT, "testing", "agent", "base", "schema", "pza1.json")
@@ -89,7 +91,7 @@ def test_the_frames_groups_have_exactly_the_schemas_keys(lua):
         assert sorted(f[grp].keys()) == sorted(want), grp
     unbandaged = {"bandageLife", "bandageDirty"}                 # PZA/1.5: nil on an unbandaged part
     assert sorted(f["body"]["parts"][1].keys()) == sorted(set(d["part"]["x-order"]) - unbandaged)
-    assert sorted(f["zombies"][1].keys()) == sorted(set(d["zombie"]["x-order"]) - {"onFloor"})   # PZA/1.7: nil while standing
+    assert sorted(f["zombies"][1].keys()) == sorted(set(d["zombie"]["x-order"]) - {"onFloor", "headX", "headY"})   # PZA/1.7, 1.10: nil while standing
     assert lua.eval("PZA.sense.RATE") == 10 and lua.eval("PZA.sense.ZOMBIE_RADIUS") == 12
 
 
@@ -1257,7 +1259,7 @@ def test_each_zombie_carries_known_state_and_behind(lua):
                                                                           (2, False, "", False)]
     assert missing(lua) == []
     order = list(lua.eval("PZA.schema.records.zombie").values())
-    assert order[-3:] == ["known", "state", "behind"]
+    assert order[8:11] == ["known", "state", "behind"]
 
 
 def test_the_behind_read_is_the_players_is_behind_of_each_zombie(lua):
@@ -1307,3 +1309,48 @@ def test_the_sneak_block_sits_at_the_end_of_sense():
     with open(lua_file("client/PZAgent_Sense.lua"), encoding="utf-8") as f:
         src = f.read()
     assert src.index("local function zombiesAware") > src.index("function S.woundOf")
+
+
+# ---- PZA/1.10 (Plan 31 Task 2): me.lookAngle and me.bodyAngle, a fallen zombie's headX and headY ---------------------
+
+def test_me_carries_the_look_angle_and_the_body_angle(lua):
+    """lookAngle is getLookAngleRadians() (the angle the hit list and the bite read, #4591, #4688), bodyAngle
+    getAnimAngleRadians(), each as read; an absent member leaves its field nil, named in missing."""
+    load(lua)
+    p = make_player()
+    p.angles.update(look=1.25, body=1.0)
+    f = frame(lua, p)
+    assert (f["me"]["lookAngle"], f["me"]["bodyAngle"]) == (1.25, 1.0) and missing(lua) == []
+    p.getLookAngleRadians = None
+    f = frame(lua, p)
+    assert f["me"]["lookAngle"] is None and f["me"]["bodyAngle"] == 1.0 and "getLookAngleRadians" in missing(lua)
+
+
+@pytest.mark.parametrize("angle, front, crawl, head", [(0.0, False, False, (10.5, 20.0)),    # on its back: behind
+                                                       (0.0, True, False, (11.5, 20.0)),     # on its front: ahead
+                                                       (0.0, False, True, (11.5, 20.0)),     # a crawler: ahead
+                                                       (1.5707963267948966, False, False, (11.0, 19.5))])
+def test_a_fallen_zombie_carries_its_head_estimate_and_a_standing_one_none(lua, angle, front, crawl, head):
+    """The head is the zombie's position plus S.HEAD_R (0.5) along its body angle when it lies on its front or crawls,
+    else along the reverse (S.headOf, the bone out of Lua's reach): a zombie on the floor at (11, 20) carries it; the
+    standing one beside it carries none and costs no read."""
+    load(lua)
+    a, b = make_zombie(1, 11.0, 20.0), make_zombie(2, 14.0, 20.0)
+    a.isOnFloor = lambda s: True
+    a.getAnimAngleRadians, a.isFallOnFront, a.isCrawling = (lambda s: angle), (lambda s: front), (lambda s: crawl)
+    reads = []
+    b.getAnimAngleRadians = lambda s: reads.append("b") or 0.0
+    lua.globals()._cell = make_cell(zombies=[a, b])
+    zs = {z["id"]: dict(z) for z in frame(lua, make_player())["zombies"].values()}
+    assert (zs[1]["headX"], zs[1]["headY"]) == pytest.approx(head)
+    assert zs[2].get("headX") is None and zs[2].get("headY") is None and reads == []
+    assert lua.eval("PZA.sense.HEAD_R") == 0.5 and missing(lua) == []
+
+
+def test_a_fallen_zombie_without_its_body_angle_carries_no_head_and_names_it_missing(lua):
+    load(lua)
+    a = make_zombie(1, 11.0, 20.0)
+    a.isOnFloor, a.getAnimAngleRadians = (lambda s: True), None
+    lua.globals()._cell = make_cell(zombies=[a])
+    z = dict(list(frame(lua, make_player())["zombies"].values())[0])
+    assert z.get("headX") is None and "getAnimAngleRadians" in missing(lua)
