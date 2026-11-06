@@ -804,7 +804,7 @@ def test_the_goal_is_a_candidate_only_with_a_goal_running_or_pending_and_names_i
     sv.goals.current = Running()
     assert u._goal_read(False) == ("travel", (110, 205))
     sv.goals.current = None
-    assert u._goal_read(True) == (None, None)   # a group arriving: the runner is not asked
+    assert u._goal_read(True) == (None, None) and u.take_goal_answer() is None   # a group arriving: not asked
 
 
 def test_a_goal_answer_is_an_interrupt_once(tmp_path, monkeypatch):
