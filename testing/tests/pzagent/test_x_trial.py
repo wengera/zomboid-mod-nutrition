@@ -57,30 +57,61 @@ def test_the_driver_refuses_arguments_before_main():
                 base + ["--make-fixture", "agent"], base + ["--make-fixture", "arena-east", "--waves", "lone"],
                 base + ["--make-fixture", "arena-east", "--waves", "pair"], base + ["--make-fixture", "../x"],
                 ["--variant", "Ladder", "--fixture", "agent"], ["--variant", "a-b", "--fixture", "agent"],
-                ["--variant", "ladder", "--fixture", "../agent"], base + ["--waves", "lone", "x"]):
+                ["--variant", "ladder", "--fixture", "../agent"], base + ["--waves", "lone", "x"],
+                base + ["--minutes", "6"], base + ["--minutes", "6", "--no-llm"], base + ["--detached", "--detached"],
+                base + ["--detached", "x"], base + ["--minutes", "61", "--detached"],
+                base + ["--make-fixture", "arena-east"]):          # 688 s: five minutes, the model and the snapshot
         r = XT.parse_argv(bad, ME)
         assert r and "x_trial.py" in r and "\n" not in r, bad
     for good in (base, base + ["--minutes", "5"], base + ["--minutes", "0.5"], base + ["--no-llm"],
                  ["--no-llm"] + base, base + ["--waves", "lone"], base + ["--waves", "pair"],
                  base + ["--waves", "street"], base + ["--teleport", "10750,10620"],
-                 base + ["--teleport", "10750.5,-3"], base + ["--make-fixture", "arena-east"],
+                 base + ["--teleport", "10750.5,-3"],
+                 base + ["--make-fixture", "arena-east", "--no-llm", "--minutes", "1"],
                  base + ["--teleport", "10750,10620", "--make-fixture", "arena-east", "--waves", "street",
-                         "--minutes", "1", "--no-llm"]):
+                         "--minutes", "1", "--no-llm"], base + ["--detached"],
+                 base + ["--minutes", "6", "--detached"], base + ["--minutes", "60", "--detached", "--no-llm"]):
         assert XT.parse_argv(good, ME) is None, good
     assert XT.flags(base) == {"variant": "ladder", "fixture": "agent", "minutes": 5, "no_llm": False,
-                              "waves": "street", "teleport": None, "make_fixture": None}
+                              "waves": "street", "teleport": None, "make_fixture": None, "detached": False}
     assert XT.flags(base + ["--minutes", "0.5", "--no-llm", "--waves", "pair", "--teleport", "10750,10620.5",
-                            "--make-fixture", "arena-east"]) == {
+                            "--make-fixture", "arena-east", "--detached"]) == {
         "variant": "ladder", "fixture": "agent", "minutes": 0.5, "no_llm": True, "waves": "pair",
-        "teleport": [10750, 10620.5], "make_fixture": "arena-east"}
+        "teleport": [10750, 10620.5], "make_fixture": "arena-east", "detached": True}
 
 
 def test_the_refusal_names_why():
     r = XT.parse_argv(["--variant", "ladder", "--fixture", "agent", "--make-fixture", "a", "--waves", "lone"], ME)
     assert r.startswith("x_trial.py takes only --variant <name> --fixture <name> [--minutes N] [--no-llm] "
-                        "[--waves lone|pair|street] [--teleport X,Y] [--make-fixture <name>]; refused: ")
+                        "[--waves lone|pair|street] [--teleport X,Y] [--make-fixture <name>] [--detached]; refused: ")
     assert "spawned zombies into the fixture" in r
     assert "(missing --fixture)" in XT.parse_argv(["--variant", "ladder"], ME)
+    r = XT.parse_argv(["--variant", "ladder", "--fixture", "agent", "--minutes", "6"], ME)
+    assert r.endswith("(the wall bound 628 s passes the foreground cap 570 s: pass --detached (the controller "
+                      "launches it detached after Angus approves))")
+
+
+# ================================================================ the wall-time bound
+def test_the_wall_bound_sums_every_wait_and_the_default_fits_the_foreground_cap():
+    base = ["--variant", "ladder", "--fixture", "agent"]
+    w = TR.wall_bound(XT.flags(base))
+    assert w["parts"] == {"preboot": 15.0, "budget": 410.0, "stop_settle": 2.0, "polls_join": 35.0,
+                          "wave_join": 6.0, "teardown": 75.0, "llm_join": 25.0, "snapshot": 0.0}
+    assert w["total_s"] == 568.0 and w["total_s"] <= TR.FOREGROUND_CAP_S == 570.0 and w["launch"] == "foreground"
+    # each part off its owner: the budget's extra, the library's settle and joins, bounded_teardown's two waits
+    assert TR.BUDGET_EXTRA_S == 110.0 and TR.TEARDOWN_S == TR.B.TEARDOWN_QUIT_S + TR.B.TEARDOWN_STOP_S == 75
+    assert TR.POLLS_JOIN_S == max(S.STEP_TIMEOUT_S, S.DEFAULTS["SERVER_TIMEOUT_S"]) + 5 and S.STOP_SETTLE_S == 2.0
+    assert TR.LLM_JOIN_S == TR.L.LLM_TIMEOUT_S + 5 and TR.WAVE_JOIN_S == 6.0
+    assert TR.wall_bound(XT.flags(base + ["--no-llm"]))["total_s"] == 543.0
+    six = TR.wall_bound(XT.flags(base + ["--minutes", "6"]))
+    assert six["total_s"] == 628.0 and six["launch"] == "detached"
+    snap = TR.wall_bound(XT.flags(base + ["--minutes", "1", "--no-llm", "--teleport", "1,2", "--make-fixture", "a1"]))
+    assert snap["parts"]["snapshot"] == 120.0 and snap["total_s"] == 15 + 170 + 2 + 35 + 6 + 75 + 120
+    line = TR.bound_line(XT.flags(base))
+    assert line == ("x_trial wall bound 568 s (preboot 15 + budget 410 + stop_settle 2 + polls_join 35 + wave_join 6 "
+                    "+ teardown 75 + llm_join 25): foreground: under the 570 s cap")
+    assert TR.bound_line(XT.flags(base + ["--minutes", "6", "--detached"])).endswith(
+        "detached: past the ten-minute cap, the controller launches it after Angus approves")
 
 
 def test_the_constants_name_the_drivers_own_file_key_artifact_and_profile():
@@ -160,7 +191,8 @@ def test_lone_fires_one_zombie_at_8_tiles_at_the_start_then_every_60_s():
     assert [t for _, t in sent] == ["wave_0_0", "wave_1_0", "wave_2_0"]
     r = w.rows
     assert [x["t"] for x in r] == [0.0, 60.0, 120.5] and r[2]["lateS"] == 0.5 and r[2]["missed"] == 0
-    assert r[0]["from"] == [100.0, 200.0] and r[0]["at"] == [108, 200] and r[0]["ack"] == {"ok": True, "reply": "ok"}
+    assert r[0]["from"] == [100.0, 200.0] and r[0]["at"] == [108, 200, 0]
+    assert r[0]["ack"] == {"ok": True, "reply": "ok"}
     # a late pass fires the latest boundary's wave, never the missed ones in a burst, and the next is the next boundary
     assert len(w.step(1310.0)) == 1 and w.rows[-1]["wave"] == 5 and w.rows[-1]["lateS"] == 10.0
     assert w.rows[-1]["missed"] == 2                                       # waves 3 and 4 skipped
@@ -184,6 +216,17 @@ def test_street_spawns_nothing_and_starts_no_thread():
     w.stop()
     assert w.record() == {"plan": "street", "period_s": None, "spawns": [], "started": True, "rows": [],
                           "error": None, "joined": None}
+
+
+def test_a_wave_spawns_on_the_characters_floor():
+    w, sent = _waves("lone", pos=(100.0, 200.0, 1))
+    w.begin(0.0)
+    w.step(0.0)
+    assert sent == [("createhorde2 -x 108 -y 200 -z 1 -count 1 -radius 1", "wave_0_0")]
+    w, sent = _waves("lone", pos=(100.0, 200.0, None))
+    w.begin(0.0)
+    w.step(0.0)
+    assert sent[0][0].endswith("-z 0 -count 1 -radius 1")
 
 
 def test_a_wave_without_a_frame_position_is_recorded_skipped():
@@ -224,8 +267,8 @@ def test_provenance_reads_the_snapshot_stamp_when_present(tmp_path):
     def no_git(*a):
         raise AssertionError("git is never asked beside a stamp")
     p = TR.provenance(str(tmp_path), git=no_git)
-    assert p == {"commit": "a" * 40, "stamp": stamp, "dirty": True, "diff_sha256": "b" * 64, "provenance": "stamp",
-                 "diff": None}
+    assert p == {"commit": "a" * 40, "stamp": stamp, "dirty": True, "diff_sha256": "b" * 64, "untracked": None,
+                 "provenance": "stamp", "diff": None}
     (tmp_path / TR.STAMP).write_text("{nope", encoding="utf-8")
     p = TR.provenance(str(tmp_path), git=no_git)
     assert p["provenance"] == "stamp" and p["commit"] is None and "error" in p["stamp"]
@@ -240,24 +283,76 @@ def test_provenance_reads_git_over_the_sessions_paths_without_a_stamp(tmp_path):
             return 0, b"c" * 40 + b"\n"
         if args[0] == "status":
             return 0, b" M testing/agent/base/planner/survive.py\n"
+        if args[0] == "ls-files":
+            return 0, b""
         return 0, b"diff --git a/x b/x\n+1\n"
     p = TR.provenance(str(tmp_path), git=git)
     import hashlib
     assert p["commit"] == "c" * 40 and p["dirty"] is True and p["provenance"] == "git" and p["stamp"] is None
-    assert p["diff"] == "diff --git a/x b/x\n+1\n"
+    assert p["diff"] == "diff --git a/x b/x\n+1\n" and p["untracked"] == []
     assert p["diff_sha256"] == hashlib.sha256(b"diff --git a/x b/x\n+1\n").hexdigest()
     assert asked[1] == ("status", "--porcelain", "--") + TR.SESSION_PATHS
     assert asked[2] == ("diff", "HEAD", "--") + TR.SESSION_PATHS
+    assert asked[3] == ("ls-files", "-o", "--exclude-standard", "-z", "--") + TR.SESSION_PATHS
     clean = TR.provenance(str(tmp_path), git=lambda repo, *a: (0, b"d" * 40) if a[0] == "rev-parse" else (0, b""))
     assert clean["dirty"] is False and clean["diff"] is None and clean["diff_sha256"] is None
+    assert clean["untracked"] is None
     broken = TR.provenance(str(tmp_path), git=lambda repo, *a: (128, b""))
     assert broken["commit"] is None and broken["dirty"] is None
 
 
+def test_an_uncommitted_variant_package_lands_in_the_diff_and_its_hash(tmp_path):
+    """The untracked files under SESSION_PATHS (a new planner package nobody committed yet) are appended to the diff
+    in their named blocks and hashed with it; a file not under the paths is never read."""
+    import hashlib
+    pkg = tmp_path / "testing" / "agent" / "base" / "planner" / "doctrine"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_bytes(b"CONTROL = 1\n")
+    (pkg / "assess.py").write_bytes(b"def assess(s, f):\n    return None")          # no final newline
+    tracked = b"diff --git a/testing/agent/x.py b/testing/agent/x.py\n+1\n"
+
+    def git(repo, *args):
+        assert repo == str(tmp_path)
+        if args[0] == "rev-parse":
+            return 0, b"c" * 40
+        if args[0] == "status":
+            return 0, b"?? testing/agent/base/planner/doctrine/\n"
+        if args[0] == "ls-files":
+            assert args[-len(TR.SESSION_PATHS):] == TR.SESSION_PATHS
+            return 0, (b"testing/agent/base/planner/doctrine/assess.py\0"
+                       b"testing/agent/base/planner/doctrine/__init__.py\0")
+        return 0, tracked
+    p = TR.provenance(str(tmp_path), git=git)
+    a, i = b"def assess(s, f):\n    return None", b"CONTROL = 1\n"
+    want = (tracked
+            + (TR.UNTRACKED_HEAD % ("testing/agent/base/planner/doctrine/__init__.py",
+                                    hashlib.sha256(i).hexdigest(), len(i))).encode() + i
+            + (TR.UNTRACKED_HEAD % ("testing/agent/base/planner/doctrine/assess.py",
+                                    hashlib.sha256(a).hexdigest(), len(a))).encode() + a + b"\n")
+    assert p["dirty"] is True and p["untracked"] == ["testing/agent/base/planner/doctrine/__init__.py",
+                                                     "testing/agent/base/planner/doctrine/assess.py"]
+    assert p["diff"] == want.decode() and p["diff_sha256"] == hashlib.sha256(want).hexdigest()
+    # an edit of the untracked file moves the hash: the run is tied to the bytes that ran
+    (pkg / "assess.py").write_bytes(b"def assess(s, f):\n    return 1")
+    assert TR.provenance(str(tmp_path), git=git)["diff_sha256"] != p["diff_sha256"]
+
+
+def _git_answers(repo):
+    import subprocess
+    try:
+        return subprocess.run(["git", "-C", repo, "rev-parse", "HEAD"], capture_output=True).returncode == 0
+    except OSError:
+        return False
+
+
+@pytest.mark.skipif(not _git_answers(REPO) and not os.path.isfile(os.path.join(REPO, TR.STAMP)),
+                    reason="a tree with neither git nor a TRIAL_STAMP.json (a bare archive): provenance records None")
 def test_provenance_on_this_tree_names_its_head():
     p = TR.provenance(REPO)
     if p["provenance"] == "git":
         assert p["commit"] and re.match(r"^[0-9a-f]{40}$", p["commit"]) and p["dirty"] in (True, False)
+    else:
+        assert p["stamp"] is not None
 
 
 def test_the_switches_are_every_t_tuple_read_off_the_planner():
@@ -504,22 +599,28 @@ def _survive_recording(monkeypatch):
     return seen
 
 
-def boot_trial(tmp_path, monkeypatch, argv, prov=None):
+def boot_trial(tmp_path, monkeypatch, argv, prov=None, rc=0, mem_ok=True, preboot_print=None):
     """trial.boot_and_run on the real profile and a real run layout with the boot, the teardown and the kill injected
-    (the module docstring); the fake RCON's calls and the snapshot's argv land in one ordered list."""
+    (the module docstring); the fake RCON's calls and the snapshot's argv land in one ordered list. The fake teardown
+    marks `server_stopped` with `rc` as bounded_teardown does; `mem_ok` False refuses at the memory gate."""
     clock = Clock()
     calls = []
     runs = tmp_path / "runs"
     from pzt import paths as PZ
     monkeypatch.setattr(PZ, "RUNS", str(runs))
-    monkeypatch.setattr(S.DL, "wait_memory", lambda g: (True, [{"wall": 0, "free_gb": 15.0}]))
+    waits = []
+
+    def wait_memory(g, **kw):
+        waits.append(kw)
+        return mem_ok, [{"wall": 0, "free_gb": 15.0 if mem_ok else 3.0}]
+    monkeypatch.setattr(S.DL, "wait_memory", wait_memory)
     monkeypatch.setattr(X, "free_gb", lambda: 15.0)
     monkeypatch.setattr(X, "java_gb", lambda: {"pids": [], "gb": 0.0, "each": []})
     monkeypatch.setattr(S.DL, "time", types.SimpleNamespace(time=clock.now))
     monkeypatch.setattr(DY, "copy_run", lambda *a, **k: pytest.fail("copy_run is never called by a trial"))
     monkeypatch.setattr(X.Xs, "copy_artifacts", lambda *a, **k: pytest.fail("no artifact copy in a trial"))
     seen = _survive_recording(monkeypatch)
-    got = {}
+    got = {"run_dir": None, "mod": None}
 
     def boot(xs, prof, rec_fx, run_dir, users, started, clients, holder, make_client=None):
         cache = tmp_path / "client-cache"
@@ -540,20 +641,28 @@ def boot_trial(tmp_path, monkeypatch, argv, prov=None):
         got["sess"] = sess
         return sess
 
+    def teardown(tl, srv, cl):
+        calls.append(("teardown",))
+        tl.mark("server_stopped", rc=rc, errors=0)
+
     def snap(cmd, **kw):
         calls.append(("run", cmd))
         return Proc("FIXTURE snapshotted", 0)
 
+    def preboot():
+        if preboot_print:
+            print(preboot_print)
+        return {"checks": {"ok": True}}, True
+
     args = XT.flags(argv)
-    out = TR.boot_and_run(args, lambda: ({"checks": {"ok": True}}, True), key=XT.KEY, driver=XT.DRIVER,
-                          artifact=XT.ARTIFACT, profile=XT.PROFILE, argv=argv,
-                          run_session_fn=run_session_fn, boot=boot, teardown=lambda tl, srv, cl: calls.append(
-                              ("teardown",)), kill=lambda srv, every: None, run=snap,
+    out = TR.boot_and_run(args, preboot, key=XT.KEY, driver=XT.DRIVER, artifact=XT.ARTIFACT, profile=XT.PROFILE,
+                          argv=argv, run_session_fn=run_session_fn, boot=boot, teardown=teardown,
+                          kill=lambda srv, every: None, run=snap,
                           provenance_fn=prov or (lambda repo: {"commit": "e" * 40, "stamp": None, "dirty": False,
-                                                               "diff_sha256": None, "provenance": "git",
-                                                               "diff": None}))
+                                                               "diff_sha256": None, "untracked": None,
+                                                               "provenance": "git", "diff": None}))
     return types.SimpleNamespace(out=out, calls=calls, seen=seen, clock=clock, run_dir=got["run_dir"],
-                                 sess=got.get("sess"), mod=got["mod"], runs=runs, args=args)
+                                 sess=got.get("sess"), mod=got["mod"], runs=runs, args=args, waits=waits)
 
 
 # ================================================================ the boot on a real run layout
@@ -569,35 +678,58 @@ def test_a_trial_writes_trial_json_at_the_run_root_and_copies_nothing(tmp_path, 
     assert tuple(trial) == TR.TRIAL_KEYS
     assert trial["variant"] == "ladder" and trial["fixture"] == "agent" and trial["minutes"] == 0.5
     assert trial["commit"] == "e" * 40 and trial["dirty"] is False and trial["stamp"] is None
-    assert trial["provenance"] == "git" and trial["diff_sha256"] is None
+    assert trial["provenance"] == "git" and trial["diff_sha256"] is None and trial["untracked"] is None
     assert trial["waves"] == "street" and trial["wave_plan"] == {"period_s": None, "spawns": []}
     assert trial["no_llm"] is True and trial["teleport"] is None and trial["make_fixture"] is None
+    assert trial["detached"] is False and trial["wall_bound_s"] == 15 + 140 + 2 + 35 + 6 + 75
     assert trial["argv"] == argv and re.match(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$", trial["started_at"])
+    assert trial["end_pos"] == [100.0, 200.0, 0] and trial["end_health"] == 100.0       # the last kept frame's
     assert trial["switches"] == TR.switches(r.sess.planner) and trial["switches"]["SWING_CLOSE"] is True
     assert json.loads(json.dumps(out["trial"])) == trial
     assert r.seen == ["ladder"]                                       # Survive(control="ladder")
     assert isinstance(r.sess, TR.TrialChain) and isinstance(r.sess.planner.goals.source, ScriptedSource)
-    assert r.sess.lim["DAY_CAP_S"] == 30.0 and out["constants"]["BUDGET_S"] == 330.0
+    assert r.sess.idle is False and r.sess.ticks > 0                 # the variant decides on a trial
+    assert r.sess.lim["DAY_CAP_S"] == 30.0 and out["constants"]["BUDGET_S"] == 140.0
+    assert out["wall_bound"] == TR.wall_bound(r.args)
+    assert r.waits == [{"max_wait_s": 0.0}]                           # the memory gate reads once, never waits
     assert out["driver_commit"] == "e" * 40 and out["session_key"] == "x_trial" and out["driver"] == "x_trial.py"
     # no auto-copy (copy_run and copy_artifacts fail the test if called): nothing under this tree's artifacts
     assert not os.path.exists(os.path.join(REPO, "testing", "artifacts", run_id))
     assert "make_fixture" not in out and "llm" not in out["loop"]
-    assert out["loop"]["trial"] == {"teleport": None, "waves": {"plan": "street", "period_s": None, "spawns": [],
-                                                                "started": True, "rows": [], "error": None,
-                                                                "joined": None}}
+    assert out["loop"]["trial"] == {"teleport": None, "idle": False,
+                                    "waves": {"plan": "street", "period_s": None, "spawns": [], "started": True,
+                                              "rows": [], "error": None, "joined": None}}
     assert r.calls == [("teardown",)]                                  # no RCON on the street, no snapshot
     persisted = json.loads(open(os.path.join(r.run_dir, "x_trial.json"), encoding="utf-8").read())
     assert persisted["finished"] is True and persisted["trial"]["variant"] == "ladder"
     json.dumps(out, allow_nan=False, default=str)
 
 
+def test_the_bound_is_printed_before_the_preboot(tmp_path, monkeypatch, agent_fixture, capsys):
+    argv = ["--variant", "ladder", "--fixture", "agent", "--minutes", "0.1", "--no-llm"]
+    boot_trial(tmp_path, monkeypatch, argv, preboot_print="PREBOOT-RAN")
+    text = capsys.readouterr().out
+    line = TR.bound_line(XT.flags(argv))
+    assert line.startswith("x_trial wall bound 249 s (") and line.endswith("foreground: under the 570 s cap")
+    assert text.index(line) < text.index("PREBOOT-RAN")
+
+
+def test_a_memory_gate_refusal_leaves_no_run_folder(tmp_path, monkeypatch, agent_fixture):
+    with pytest.raises(SystemExit):
+        boot_trial(tmp_path, monkeypatch, ["--variant", "ladder", "--fixture", "agent", "--minutes", "0.1",
+                                           "--no-llm"], mem_ok=False)
+    assert not (tmp_path / "runs").exists() or os.listdir(str(tmp_path / "runs")) == []
+
+
 def test_a_dirty_tree_saves_its_diff_beside_trial_json(tmp_path, monkeypatch, agent_fixture):
-    prov = {"commit": "f" * 40, "stamp": None, "dirty": True, "diff_sha256": "0" * 64, "provenance": "git",
-            "diff": "diff --git a/x b/x\r\n+1\n"}
+    prov = {"commit": "f" * 40, "stamp": None, "dirty": True, "diff_sha256": "0" * 64,
+            "untracked": ["testing/agent/base/planner/doctrine/__init__.py"], "provenance": "git",
+            "diff": "diff --git a/x b/x\r\n+1\n### untracked file testing/agent/base/planner/doctrine/__init__.py\n"}
     r = boot_trial(tmp_path, monkeypatch, ["--variant", "ladder", "--fixture", "agent", "--minutes", "0.1",
                                            "--no-llm"], prov=lambda repo: prov)
     trial = json.loads(open(os.path.join(r.run_dir, "trial.json"), encoding="utf-8").read())
     assert trial["dirty"] is True and trial["diff_sha256"] == "0" * 64 and "diff" not in trial
+    assert trial["untracked"] == prov["untracked"]
     with open(os.path.join(r.run_dir, "trial.diff"), encoding="utf-8", newline="") as fh:
         assert fh.read() == prov["diff"]
 
@@ -609,11 +741,15 @@ def test_the_lone_wave_spawns_at_the_square_off_the_last_frame(tmp_path, monkeyp
     assert rcon == [("rcon", "createhorde2 -x 108 -y 200 -z 0 -count 1 -radius 1")]   # wave 0 at once; 12 s < 60
     w = r.out["loop"]["trial"]["waves"]
     assert w["plan"] == "lone" and w["started"] is True and w["joined"] is True and w["error"] is None
-    assert len(w["rows"]) == 1 and w["rows"][0]["at"] == [108, 200] and w["rows"][0]["ack"]["ok"] is True
+    assert len(w["rows"]) == 1 and w["rows"][0]["at"] == [108, 200, 0] and w["rows"][0]["ack"]["ok"] is True
     steps = [s for s in r.out["steps"] if s.get("cmd") == "rcon"]
     assert [s["step"] for s in steps] == ["wave_0_0"]
-    # the wave thread started on the loop's first frame, never before the loop
-    assert r.sess.waves.t0 >= r.sess.t_loop0
+    # the waves read the session's clock and began at the loop's first frame read (one pass after the loop's start),
+    # never at the hello frame, tens of seconds before it on the fake clock (the kit phase between)
+    assert r.sess.waves.clock == r.sess.clock
+    assert r.sess.t_loop0 - r.mod.t0 > 5.0
+    assert r.sess.t_loop0 <= r.sess.waves.t0 <= r.sess.t_loop0 + 1.0
+    assert w["rows"][0]["t"] < 1.0
 
 
 def test_the_fixture_making_path_teleports_then_snapshots_in_order(tmp_path, monkeypatch, agent_fixture):
@@ -625,57 +761,114 @@ def test_the_fixture_making_path_teleports_then_snapshots_in_order(tmp_path, mon
     assert snap[-8:] == ["--from-run", r.run_dir, "--name", "arena-east", "--parent", "agent", "--session", "1"]
     tp = r.out["loop"]["trial"]["teleport"]
     assert tp["cmd"] == 'teleportto "admin" 10750,10620,0' and tp["ack"]["ok"] is True and tp["arrived"] is True
-    assert tp["pos"] == [10750.0, 10620.0]
+    assert tp["pos"] == [10750.0, 10620.0, 0]
     steps = [s for s in r.out["steps"] if s.get("cmd") == "rcon"]
     assert [s["step"] for s in steps] == ["setup_tp"] and steps[0]["phase"] == "loop"
-    # the teleport was read before the loop began: the loop's first kept frame is at the new square
-    assert r.sess.first_frame["me"]["x"] == 100.0                          # the hello-phase first frame: before it
+    assert r.sess.first_frame["me"]["x"] == 100.0                     # the hello-phase frame, before the teleport
+    # the planner idle under --make-fixture: no tick decided, only the kit's equip and the loop's closing stop sent
+    assert r.sess.idle is True and r.sess.ticks == 0 and r.out["loop"]["trial"]["idle"] is True
+    assert {c["type"] for c in r.mod.cmds} <= {"equip", "stop"}
+    end = {"pos": [10750.0, 10620.0, 0], "health": 100.0, "start_health": 100.0}
     mf = r.out["make_fixture"]
     assert mf == {"name": "arena-east", "cmd": snap, "ran": True, "exit": 0, "output": "FIXTURE snapshotted",
-                  "skipped": None, "error": None}
+                  "skipped": None, "error": None, "server_stop": {"marked": True, "rc": 0, "clean": True}, "end": end}
     trial = json.loads(open(os.path.join(r.run_dir, "trial.json"), encoding="utf-8").read())
     assert trial["teleport"] == [10750, 10620] and trial["make_fixture"] == "arena-east"
+    assert trial["end_pos"] == [10750.0, 10620.0, 0] and trial["end_health"] == 100.0
 
 
-def test_make_fixture_skips_a_session_that_did_not_end_at_its_cap():
+def test_a_killed_server_never_becomes_a_fixture(tmp_path, monkeypatch, agent_fixture):
+    argv = ["--variant", "ladder", "--fixture", "agent", "--minutes", "0.1", "--no-llm", "--teleport", "10750,10620",
+            "--make-fixture", "arena-east"]
+    r = boot_trial(tmp_path, monkeypatch, argv, rc=None)                 # the 45 s stop timed out: killed
+    assert [c[0] for c in r.calls] == ["rcon", "teardown"]
+    assert r.out["make_fixture"]["skipped"] == "the server did not stop cleanly (rc None, marked True)"
+
+
+def test_make_fixture_skips_each_failed_gate():
     args = XT.flags(["--variant", "ladder", "--fixture", "agent", "--teleport", "1,2", "--make-fixture", "a1"])
 
     def never(*a, **k):
         raise AssertionError("no snapshot")
-    ok_tp = {"loop": {"trial": {"teleport": {"arrived": True}}}}
-    assert "stopped death" in TR.make_fixture(dict(ok_tp, stop={"reason": "death"}), args, "r", never)["skipped"]
-    assert "failed" in TR.make_fixture(dict(ok_tp, stop={"reason": "day_cap"}, error="X: y"), args, "r",
-                                       never)["skipped"]
-    assert "teleport" in TR.make_fixture({"stop": {"reason": "day_cap"}, "loop": {"trial": {"teleport": {
-        "arrived": False}}}}, args, "r", never)["skipped"]
-    r = TR.make_fixture(dict(ok_tp, stop={"reason": "day_cap"}), args, "r",
-                        lambda cmd, **k: Proc("", 1, "refused: fixture 'a1' already exists"))
-    assert r["ran"] is True and r["exit"] == 1 and "already exists" in r["output"]
+    clean = [{"phase": "server_stopped", "rc": 0, "errors": 0}]
+    ok = {"stop": {"reason": "day_cap"}, "timeline": clean, "loop": {"trial": {"teleport": {"arrived": True}}}}
+    at = {"pos": [1.5, 2.5, 0], "health": 100.0, "start_health": 100.0}
+
+    def skip(out, end=at):
+        return TR.make_fixture(out, args, "r", end, never)["skipped"]
+    assert "stopped death" in skip(dict(ok, stop={"reason": "death"}))
+    assert "failed" in skip(dict(ok, error="X: y"))
+    assert "did not stop cleanly (rc None, marked False)" in skip(dict(ok, timeline=[]))
+    assert "did not stop cleanly (rc None" in skip(dict(ok, timeline=[{"phase": "server_stopped", "rc": None}]))
+    assert "did not stop cleanly (rc 1" in skip(dict(ok, timeline=[{"phase": "server_stopped", "rc": 1}]))
+    assert "did not stop cleanly" in skip(dict(ok, hard_kill_error="OSError: x"))
+    assert "did not stop cleanly" in skip(dict(ok, teardown_error="TimeoutExpired: x"))
+    assert "teleport's square" in skip(dict(ok, loop={"trial": {"teleport": {"arrived": False}}}))
+    assert "ended at [9.0, 2.0, 0], not within 2.0 tiles" in skip(ok, dict(at, pos=[9.0, 2.0, 0]))
+    assert "ended at None" in skip(ok, dict(at, pos=None))
+    assert "ended wounded or unread (health 80.0, 100.0 at the start)" in skip(ok, dict(at, health=80.0))
+    assert "ended wounded or unread (health None" in skip(ok, dict(at, health=None))
+    r = TR.make_fixture(ok, args, "r", at, lambda cmd, **k: Proc("", 1, "refused: fixture 'a1' already exists"))
+    assert r["ran"] is True and r["exit"] == 1 and "already exists" in r["output"] and r["skipped"] is None
+    # without a teleport the square is not asked, the stop and the health still are
+    plain = XT.flags(["--variant", "ladder", "--fixture", "agent", "--make-fixture", "a1"])
+    r = TR.make_fixture(dict(ok, loop={}), plain, "r", dict(at, pos=[50.0, 60.0, 0]), lambda cmd, **k: Proc("", 0))
+    assert r["ran"] is True and r["skipped"] is None
+    nothing = TR.make_fixture(dict(ok, loop={}), plain, "r", None, never)             # no session: nothing read
+    assert nothing["skipped"] == "the character ended wounded or unread (health None, None at the start)"
 
 
-def test_the_model_trial_builds_the_llm_source_and_its_record(tmp_path):
-    args = XT.flags(["--variant", "ladder", "--fixture", "agent"])
+def _chain(tmp_path, argv, **kw):
+    args = XT.flags(argv)
     xs = types.SimpleNamespace(copied=[], out=S.new_out(), user="admin", path=str(tmp_path / "a.json"),
                                rcon=lambda cmd, tag: {"ok": True})
     seen = []
 
-    def make(*a, **kw):
-        seen.append(kw.get("control", "<absent>"))
+    def make(*a, **k):
+        seen.append(k.get("control", "<absent>"))
         if not FORK:
-            kw.pop("control", None)
-        return Survive(*a, **kw)
+            k.pop("control", None)
+        return Survive(*a, **k)
     orig = TR.Survive
     TR.Survive = make
     try:
-        c = TR.make_session(xs, None, args, cli_version="2.1", clock=lambda: 5.0)
+        return TR.make_session(xs, None, args, clock=lambda: 5.0, **kw), seen
     finally:
         TR.Survive = orig
+
+
+def test_the_model_trial_builds_the_llm_source_and_its_record(tmp_path):
+    c, seen = _chain(tmp_path, ["--variant", "ladder", "--fixture", "agent"], cli_version="2.1")
     assert seen == ["ladder"] and isinstance(c, TR.TrialChain) and isinstance(c.planner.goals.source, LLMSource)
     assert c.planner.goals.source.log_path == str(tmp_path / "goals.log")
     assert c.lim["DAY_CAP_S"] == 300.0 and c.lim["PLANNER_HZ"] == 2
     rec = c.extra_record()
     assert rec["llm"]["model"] == TR.MODEL and rec["llm"]["cli_version"] == "2.1" and rec["llm"]["calls"] == []
-    assert rec["trial"]["waves"]["plan"] == "street"
+    assert rec["trial"]["waves"]["plan"] == "street" and c.waves.clock is c.clock
+
+
+def test_the_waves_stop_at_the_loops_stop_before_its_settle(tmp_path, monkeypatch):
+    c, _ = _chain(tmp_path, ["--variant", "ladder", "--fixture", "agent", "--no-llm", "--waves", "lone"])
+    order = []
+    c.waves.stop = lambda: order.append("waves.stop")
+    monkeypatch.setattr(S.Session, "stop_character", lambda self: order.append("stop_character"))
+    c.stop_character()
+    assert order == ["waves.stop", "stop_character"]
+
+
+def test_a_teleport_that_raises_still_stops_the_waves_and_saves(tmp_path, monkeypatch):
+    c, _ = _chain(tmp_path, ["--variant", "ladder", "--fixture", "agent", "--no-llm", "--teleport", "1,2"])
+    order = []
+
+    def boom(sess, x, y):
+        raise X.Budget("wall past the budget")
+    monkeypatch.setattr(TR, "teleport", boom)
+    c.ready = True
+    c.waves.stop = lambda: order.append("waves.stop")
+    c.save = lambda: order.append("save")
+    with pytest.raises(X.Budget):
+        c.phase_loop()
+    assert order == ["waves.stop", "save"]
 
 
 def test_the_planner_factory_passes_the_variant_as_control():
