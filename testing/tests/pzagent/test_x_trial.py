@@ -910,17 +910,33 @@ def test_the_ladder_arm_runs_the_dress_maneuver_on_its_instance_and_records_it(t
 HOLD_ARGV = ["--variant", "ladder", "--fixture", "agent", "--no-llm", "--goals", "hold"]
 
 
-def test_the_hold_source_answers_a_rest_and_notes_the_start_square():
+def test_the_hold_source_scans_in_place_then_rests_and_notes_the_start_square():
+    """Task 12's loop fix: the first request on a scan place is ExploreToward to the character's own square (the
+    place's scan, ended arrived), every later one there a Rest; a new place takes its own scan, never a walk off."""
     src = TR.HoldSource()
-    assert src.NAME == "hold" and src.square is None
+    assert src.NAME == "hold" and src.square is None and src.scanned == []
     g = src.propose({"pos": {"x": 10750.5, "y": 10620.5, "z": 0}})
-    assert g.TYPE == "Rest" and g.seconds == TR.HOLD_REST_S == 30.0 and src.square == [10750.5, 10620.5]
-    src.propose({"pos": {"x": 10790.0, "y": 10600.0, "z": 0}})       # the square is the first pos, never moved
-    assert src.square == [10750.5, 10620.5]
+    assert g.TYPE == "ExploreToward" and (g.x, g.y) == (10750, 10620) and src.square == [10750.5, 10620.5]
+    assert src.scanned == [(10750, 10620)]
+    g = src.propose({"pos": {"x": 10751.2, "y": 10619.0, "z": 0}})    # the same place: a rest
+    assert g.TYPE == "Rest" and g.seconds == TR.HOLD_REST_S == 30.0
+    g = src.propose({"pos": {"x": 10790.0, "y": 10600.0, "z": 0}})    # a new place: its own scan in place
+    assert g.TYPE == "ExploreToward" and (g.x, g.y) == (10790, 10600)
+    assert src.square == [10750.5, 10620.5]                            # the square is the first pos, never moved
+    assert src.propose({"pos": {"x": 10790.4, "y": 10600.3}}).TYPE == "Rest"
     late = TR.HoldSource()
-    assert late.propose({}).TYPE == "Rest" and late.square is None    # no pos yet: still a rest
+    assert late.propose({}).TYPE == "Rest" and late.square is None    # no pos yet: a rest, no scan
     assert late.propose({"pos": {"x": None, "y": 3}}).TYPE == "Rest" and late.square is None
-    assert late.propose({"pos": {"x": 5, "y": 6}}).TYPE == "Rest" and late.square == [5, 6]
+    assert late.propose({"pos": {"x": 5, "y": 6}}).TYPE == "ExploreToward" and late.square == [5, 6]
+    assert late.propose({"pos": {"x": 5, "y": 6}}).TYPE == "Rest"
+
+
+def test_the_hold_place_is_the_explore_grid(monkeypatch):
+    """HoldSource.place rounds as policies.place_of does (half up on the SCAN_R grid)."""
+    from agent.base.planner import policies as PO
+    for x, y in ((10789.5, 10614.5), (10785.0, 10615.0), (10784.99, 10604.99), (-5.0, 5.0), (0.0, 0.0)):
+        monkeypatch.setattr(PO, "me_xy", lambda w, x=x, y=y: (x, y))
+        assert TR.HoldSource.place(x, y) == PO.place_of(types.SimpleNamespace())
 
 
 def test_the_hold_source_reissues_a_fresh_rest_when_one_ends_and_never_walks():
@@ -930,13 +946,14 @@ def test_the_hold_source_reissues_a_fresh_rest_when_one_ends_and_never_walks():
             "buildings": [{"id": 7, "dist": 5.0, "looted": False, "containers": 3, "shelter": True, "door": [9, 9]}],
             "needs_wanted": ["water", "food", "bandage"], "stock_uses": ["water", "food"], "want_shelter": True,
             "stuck": {"edge": [4, 5, "N"]}, "cooled": []}
-    for _ in range(5):
+    for _ in range(6):
         g = src.propose(view)
         seen.append(g)
         g.end("done", "rested")                                       # the goal ends: the next request is a new one
-    assert {g.TYPE for g in seen} == {"Rest"} and len({id(g) for g in seen}) == 5
-    assert all(g.args() == {"seconds": 30.0} for g in seen)
-    assert not any(g.TYPE in ("ExploreToward", "LootBuilding", "Shelter", "Stock") for g in seen)
+    assert seen[0].TYPE == "ExploreToward" and seen[0].args() == {"x": 1, "y": 2}     # the scan in place, no walk
+    assert {g.TYPE for g in seen[1:]} == {"Rest"} and len({id(g) for g in seen}) == 6
+    assert all(g.args() == {"seconds": 30.0} for g in seen[1:])
+    assert not any(g.TYPE in ("LootBuilding", "Shelter", "Stock") for g in seen)
 
 
 def test_the_hold_planner_rests_through_the_quiet_where_the_scripted_one_walks(tmp_path):

@@ -45,13 +45,20 @@ frame's, written after the teardown; None before). The same dict is out["trial"]
 
 THE HOLD (`HoldSource`, `--goals hold`, Plan 31 Task 12's pre-step): the arena's goal source. Task 10's first arena
 trial (`x_trial-ladder-20261105-201433`) showed the scripted source's `ExploreToward` legs walking the character up to
-33 tiles off the arena square between the waves, so three of six waves spawned where nobody was. The hold answers every
-goal request with `Rest(HOLD_REST_S)` and nothing else (never an `ExploreToward`, `LootBuilding`, `Shelter` or
-`Stock`), a fresh one whenever one ends: a `Rest` sends nothing, so the goal layer never moves the character, and the
-quiet is filled with standing where it stands. The planner's instincts above the goal (the threat branch, the
-variant) still take any zombie that comes. `Rest` carries no square, so the hold cannot walk the character back to the
-square it started on; the square is noted (`HoldSource.square`, the first pos a view reads) for the record and the
-tests, and a fight that moves the character leaves it where the fight ended.
+33 tiles off the arena square between the waves, so three of six waves spawned where nobody was. The hold answers a
+goal request with `Rest(HOLD_REST_S)` (never a `LootBuilding`, `Shelter` or `Stock`), a fresh one whenever one ends:
+a `Rest` sends nothing, so the goal layer never moves the character, and the quiet is filled with standing where it
+stands. The one other answer is the scan in place (Plan 31 Task 12's loop fix): the first request on each scan place
+(`place_of`'s SCAN_R grid off the view's pos) is `ExploreToward` to the character's own square, which sends the place's
+`Scan(SCAN_R)` and ends `arrived` at once (ARRIVE_R), never a walk off the square. The symptom that drove it: trial 1's
+first boot (`x_trial-ladder-20261105-214209`) held Rest only, no scan was ever sent, the map stayed empty, and the
+ladder's engage (`engage._engageable`: an idle zombie needs a clear line or a square in the player's bounded flood,
+both read off the map) marked each wave's idle zombie `unsought`: six zombies stood idle 7 to 9 tiles east and the
+character never fought. The scripted source scans as its first act, so the hold now gives every arm the same map.
+The planner's instincts above the goal (the threat branch, the variant) still take any zombie that comes. `Rest`
+carries no square, so the hold cannot walk the character back to the square it started on; the square is noted
+(`HoldSource.square`, the first pos a view reads) for the record and the tests, and a fight that moves the character
+leaves it where the fight ended.
 
 THE SESSION (`TrialChain`, day.Chain with two hooks more): the planner is `Survive(..., source=..., control=<the
 variant>)`, the scripted goal source under `--no-llm`, else the LLMSource over it (goals.log beside decision.log, the
@@ -83,7 +90,8 @@ import time
 
 from agent.base.planner import llm as L
 from agent.base.planner import survive as SV
-from agent.base.planner.goals import REST_S, Rest, ScriptedSource
+from agent.base.planner.goals import REST_S, ExploreToward, Rest, ScriptedSource
+from agent.base.planner.policies import SCAN_R
 from agent.base.planner.survive import Survive
 from agent.driverlib import chain as CH
 from agent.driverlib import day as DY
@@ -633,17 +641,30 @@ class TrialChain(DY.Chain):
 
 class HoldSource:
     """The arena's goal source (the module docstring, THE HOLD): `Rest(HOLD_REST_S)` for every request, a fresh goal
-    each time one ends, never a walk, a loot, a shelter or a stock. `square` is the first pos a view reads (None
-    before one), noted and never walked to: a `Rest` carries no square."""
+    each time one ends, never a loot, a shelter or a stock; the first request on each scan place (`place`, the view's
+    pos on the SCAN_R grid as `policies.place_of` rounds it) is the scan in place, `ExploreToward` to the character's
+    own square (floored), which scans and ends arrived. `square` is the first pos a view reads (None before one), noted
+    and never walked to: a `Rest` carries no square. `scanned` the places a scan was proposed on."""
     NAME = "hold"
 
     def __init__(self):
         self.square = None
+        self.scanned = []
+
+    @staticmethod
+    def place(x, y):
+        return int(math.floor(x / SCAN_R + 0.5)) * SCAN_R, int(math.floor(y / SCAN_R + 0.5)) * SCAN_R
 
     def propose(self, view):
         pos = (view or {}).get("pos") or {}
-        if self.square is None and isinstance(pos.get("x"), (int, float)) and isinstance(pos.get("y"), (int, float)):
+        if not (isinstance(pos.get("x"), (int, float)) and isinstance(pos.get("y"), (int, float))):
+            return Rest(HOLD_REST_S)
+        if self.square is None:
             self.square = [pos["x"], pos["y"]]
+        place = self.place(pos["x"], pos["y"])
+        if place not in self.scanned:
+            self.scanned.append(place)
+            return ExploreToward(int(math.floor(pos["x"])), int(math.floor(pos["y"])))
         return Rest(HOLD_REST_S)
 
 
