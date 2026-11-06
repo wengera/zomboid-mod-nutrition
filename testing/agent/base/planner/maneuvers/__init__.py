@@ -3,5 +3,6 @@
 time, which a policy holds while it runs (the Fight's `m`)."""
 from agent.base.planner.maneuvers.base import Maneuver
 from agent.base.planner.maneuvers.melee import Melee
+from agent.base.planner.maneuvers.dress import Dress
 
-__all__ = ["Maneuver", "Melee"]
+__all__ = ["Dress", "Maneuver", "Melee"]

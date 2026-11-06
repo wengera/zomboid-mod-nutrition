@@ -66,6 +66,11 @@ OFF_ENDS = ("not loaded", "bad args", "unknown type")    # ... that end the mele
 BACKOFF_ENDS = ("interrupted", "timeout", "no target")   # ... that leave its target to the ladder for
                                                          # MELEE_BACKOFF_TICKS (fix 1, review-t7b m2)
 
+# The maneuver registry (Plan 31 Task 8): every maneuver by its logged name, the one table a decider (a variant, the
+# ladder's care branch) reads to start one; the Fight's dispatch above starts its Melee directly.
+from agent.base.planner.maneuvers import Dress   # noqa: E402  (Task 8's registration lines, one block)
+MANEUVERS = {m.name: m for m in (Melee, Dress)}
+
 
 def _number(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)

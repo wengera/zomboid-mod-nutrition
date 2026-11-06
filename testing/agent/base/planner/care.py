@@ -120,6 +120,14 @@ decision golden moves. `Care` is a `Policy` (Task 10 fix 1, minor 13): Survive s
 The item reads are names (`care_kind`, `rippable`): what `ISApplyBandage` reads, `Dirty` in the type (#4299); the
 `RipClothing` recipe's cotton tag is in no dataset the repository carries, so `rippable` is a guess the Lua's refusal
 corrects.
+
+The item choice (Plan 31 Task 8) is a set of pure reads of the World and a caller's refusal memory (`held_dressings`,
+`dressing_pick`, `rip_pick`, `unwear_pick`, and the Dress maneuver's whole order `dress_pick`), which the care branch
+reads with its own `held_out` and `unwear_at` and the Dress (`maneuvers.dress`) with its own. Survive's
+`DRESS_MANEUVER` (off: the ladder's goldens) sets `dress_cls`, and the bleeding step is then one `Dress` of the worst
+bleeding part in place of its three sends (`_dress_step`): the Dress's commands go through this policy (`sent` hands
+them to it, `owns` names them), its waits hold the care branch's tick (`dressing`), and its end is logged once
+(`dress_end`); the spent, wound and wash steps follow as before when no Dress runs.
 """
 import math
 import re
@@ -179,7 +187,8 @@ WEAR_SETTLE_MAX = 12      # frames after a wear's done the exclusive-location ch
                           # at most (the Lua marks the list dirty at the done and otherwise sends it every
                           # S.WORN_EVERY (10) frames: review-t24 minor 4)
 
-__all__ = ["Care", "care_kind", "rippable", "wear_gain", "UNWEAR_NEVER", "WEAR_RETRY_MIN", "WEAR_QUIET_R", "WEAR_SETTLE_MAX", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "CARE_R", "CARE_HOLD_R",
+__all__ = ["Care", "care_kind", "rippable", "wear_gain", "held_dressings", "dressing_pick", "rip_pick", "unwear_pick",
+           "dress_pick", "UNWEAR_NEVER", "WEAR_RETRY_MIN", "WEAR_QUIET_R", "WEAR_SETTLE_MAX", "CARE_RETRY_MIN", "DIRTY_RAG_MIN", "WASH_R", "CARE_R", "CARE_HOLD_R",
            "CARE_STILL_TICKS", "KINDS", "DRY_REASONS", "LEG_FIRST", "RIDE_R", "RIDE_MANY_R", "FLEE_CARE_S",
            "FLEE_CARE_N", "RIDE_RETRY_S", "RAG_STOCK"]
 
@@ -228,6 +237,99 @@ def wear_gain(c, e):
     return cs if (cs >= nominal and cs > 0) else None
 
 
+# -- the item choice (Plan 31 Task 8): pure reads of the World and a caller's refusal memory, shared by the care
+# branch (`Care`, its `held_out` and `unwear_at`) and the Dress maneuver (`maneuvers.dress`, its own) --------------------
+def _out(held_out, iid, now):
+    """Item `iid` was refused within CARE_RETRY_MIN game minutes of `now` (`held_out`: id -> world minute)."""
+    return now - held_out.get(iid, -math.inf) < CARE_RETRY_MIN
+
+
+def held_dressings(world, held_out=None):
+    """{kind: [held ids]} by `care_kind` (KINDS), ids ascending: an id marked `in_bag`, or refused within
+    CARE_RETRY_MIN game minutes (`held_out`), left out."""
+    held_out = held_out or {}
+    now = world.world_minutes()
+    out = {k: [] for k in KINDS}
+    barred = world.marked("in_bag")
+    for iid, it in world.inventory.items():
+        k = care_kind(it.get("fullType"))
+        if k is None or not item_id_ok(iid) or iid in barred or _out(held_out, iid, now):
+            continue
+        out[k].append(iid)
+    return {k: sorted(v) for k, v in out.items()}
+
+
+def dressing_pick(items, bleeding_time, dirty_ok=False):
+    """`(kind, id)` of the best dressing in `items` (`held_dressings`) for a bleeding part, else None: a clean bandage,
+    then a clean rag, then a dirty one only past DIRTY_RAG_MIN of the part's `bleeding_time` (P24-G 2's time rule) or
+    with `dirty_ok` (the Dress maneuver's: an unwashed rag is taken while the part bleeds)."""
+    kinds = KINDS if dirty_ok or bleeding_time > DIRTY_RAG_MIN else ("bandage", "rag")
+    k = next((k for k in kinds if items[k]), None)
+    return None if k is None else (k, items[k][0])
+
+
+def rip_pick(world, held_out=None, prefer=None):
+    """The least held id that can be ripped (`prefer`, the garment just taken off, first when it can), else None:
+    never one marked `unrippable` or `in_bag`, or refused within CARE_RETRY_MIN game minutes (`held_out`). On a
+    PZA/1.5.2 hello's log (`World.item_fields`) the item record says: `rip` cotton and not `worn` (denim and leather
+    need a tool the planner has no action for; absent is no class). On an older log the name guess `rippable` stands
+    and the inventory's first sight (the clothes worn) is left out."""
+    held_out = held_out or {}
+    now = world.world_minutes()
+    marked = world.marked("unrippable") | world.marked("in_bag")
+    fields = world.item_fields()
+    ids = [iid for iid, it in world.inventory.items() if item_id_ok(iid) and iid not in marked
+           and (it.get("rip") == "cotton" and it.get("worn") is not True if fields
+                else rippable(it.get("fullType")) and iid not in world.first_sight)
+           and not _out(held_out, iid, now)]
+    if prefer in ids:
+        return prefer   # P24-AJ: the garment just taken off is the one ripped
+    return min(ids) if ids else None
+
+
+def unwear_pick(world, held_out=None, unwear_at=None):
+    """`(item id, loc, cover)` of the worn cotton garment covering the least (its clothing record's bite + scratch,
+    ties by the least id), else None: the item record reads `worn` and `rip` "cotton" and carries a clothing record
+    whose `loc` UNWEAR_NEVER does not match; never one marked `unrippable` or `in_bag`, refused within CARE_RETRY_MIN
+    game minutes (`held_out`) or unworn within WEAR_RETRY_MIN (`unwear_at`: id -> world minute of its unwear)."""
+    held_out, unwear_at = held_out or {}, unwear_at or {}
+    now = world.world_minutes()
+    barred = world.marked("unrippable") | world.marked("in_bag")
+    best = None
+    for iid, it in world.inventory.items():
+        c = it.get("clothing")
+        loc = c.get("loc") if isinstance(c, dict) else None
+        if (not item_id_ok(iid) or it.get("worn") is not True or it.get("rip") != "cotton" or iid in barred
+                or not isinstance(loc, str) or UNWEAR_NEVER.search(loc) or _out(held_out, iid, now)
+                or now - unwear_at.get(iid, -math.inf) < WEAR_RETRY_MIN):
+            continue
+        cover = (c.get("bite") or 0.0) + (c.get("scratch") or 0.0)
+        if best is None or (cover, iid) < best[0]:
+            best = ((cover, iid), iid, loc, cover)
+    return None if best is None else best[1:]
+
+
+def dress_pick(world, bleeding_time, held_out=None, unwear_at=None, prefer=None, dirty_ok=True):
+    """The Dress maneuver's choice for one bleeding part, in its order: `("bandage", id, kind)` with the best held
+    dressing (`dressing_pick`, an unwashed rag taken with `dirty_ok`), else `("rip", id)` of a held unworn cotton
+    garment (`rip_pick`, `prefer` first), else `("unwear", id, loc, cover)` of the worn cotton garment covering the
+    least (`unwear_pick`); else None, nothing held and nothing to tear. Each step needs its skill announced
+    (`World.can`: `bandage`; `rip`; `unwear` with `rip` and the item record's fields, as the care branch's unwear)."""
+    if not world.can("bandage"):
+        return None
+    got = dressing_pick(held_dressings(world, held_out), bleeding_time, dirty_ok)
+    if got is not None:
+        return ("bandage", got[1], got[0])
+    rip = rip_pick(world, held_out, prefer) if world.can("rip") else None
+    if rip is not None:
+        return ("rip", rip)
+    if world.can("unwear") and world.can("rip") and world.item_fields():
+        pick = unwear_pick(world, held_out, unwear_at)
+        if pick is not None:
+            return ("unwear",) + tuple(pick)
+    return None
+
+
 class Care(Policy):
     """The care branch's policy (the module docstring): `observe()` every tick, `choose()` when not busy, `quiet` set
     by Survive each tick (no zombie within DISENGAGE_R: the wash's condition)."""
@@ -271,8 +373,24 @@ class Care(Policy):
         self.wound_dress = True   # ruling P28-A: a part reading `wound`, not bleeding, is dressed (Survive sets it each
                                   # care tick from its `WOUND_DRESS`); off, no wound step and no want for it
         self.near_n = 0           # Survive sets it each care tick: the zombies within DANGER_R (P28-A's quiet test)
+        self.dress_cls = None     # Plan 31 Task 8 (Survive's DRESS_MANEUVER, set each care tick): the maneuver class the
+                                  # bleeding step starts in place of its three sends (`maneuvers.Dress`); None, the
+                                  # bleeding step's own sends, the rule before it
+        self.dress = None         # the running Dress (`_dress_step`), else None
+        self.dress_end = None     # the last Dress's log with its end, put on the next choose's why once (`dress_end`)
+
+    def dressing(self):
+        """The running Dress (Plan 31 Task 8), else None: while it runs, Survive's care branch holds its tick."""
+        return self.dress
+
+    def owns(self, cmd):
+        """`cmd` is the running Dress's step this tick (its send is the Dress's, never cooled: Survive's `assess`)."""
+        return self.dress is not None and cmd is not None and cmd is self.dress.cmd
 
     def sent(self, cmd, action):
+        if self.owns(cmd):
+            self.dress.sent(cmd, action)   # Plan 31 Task 8: the Dress keeps its own sends and refusals
+            return
         self.sends[cmd.itemId] = action
         if cmd.TYPE == "unwear":
             self.unwear_at[cmd.itemId], self.unworn_item = self.world.world_minutes(), cmd.itemId
@@ -294,13 +412,21 @@ class Care(Policy):
         return self.ride if self.ride is not None and not self.actions.done(self.ride) else None
 
     def busy(self):
-        """The Policy's rule, or a ride running (its leg, or a re-aimed one, is the current action meanwhile)."""
+        """The Policy's rule, or a ride running (its leg, or a re-aimed one, is the current action meanwhile); a Dress
+        that ended (Plan 31 Task 8: `superseded` by a standing zombie within KEEP_R) no longer holds its action's slot,
+        so the choose reads its end."""
+        d = self.dress
+        if d is not None and d.over() is not None and d.action is not None and self.last is d.action:
+            return False
         return super().busy() or self.riding() is not None
 
     def observe(self):
         """Each care action's end, once: a bandage done leaves its part out until a newer frame (`fresh`); a refusal
         holds its item out for CARE_RETRY_MIN; a rip refused for good marks it `unrippable`; a wash refused for its
-        water leaves its source out (`World.mark_dry`). A part's `fresh` entry goes once a newer frame came."""
+        water leaves its source out (`World.mark_dry`). A part's `fresh` entry goes once a newer frame came. A running
+        Dress (Plan 31 Task 8) reads its own ends first."""
+        if self.dress is not None:
+            self.dress.observe()
         n = self.world.frame_n
         self.fresh = {i: at for i, at in self.fresh.items() if at >= n}
         for iid, a in list(self.sends.items()):
@@ -359,17 +485,8 @@ class Care(Policy):
 
     # -- the reads ------------------------------------------------------------------------------------------------
     def _items(self):
-        """{kind: [held ids]} by `care_kind`, an id held out by a refusal left out, ids ascending."""
-        now = self.world.world_minutes()
-        out = {k: [] for k in KINDS}
-        barred = self.world.marked("in_bag")
-        for iid, it in self.world.inventory.items():
-            k = care_kind(it.get("fullType"))
-            if (k is None or not item_id_ok(iid) or iid in barred
-                    or now - self.held_out.get(iid, -math.inf) < CARE_RETRY_MIN):
-                continue
-            out[k].append(iid)
-        return {k: sorted(v) for k, v in out.items()}
+        """{kind: [held ids]} by `care_kind`, an id held out by a refusal left out, ids ascending (`held_dressings`)."""
+        return held_dressings(self.world, self.held_out)
 
     def _parts(self):
         """The frame's part records, a part whose bandage ended done on this very frame left out (`fresh`)."""
@@ -401,20 +518,8 @@ class Care(Policy):
         return not self.spent_keep or p.get("bleeding") is True or not _num(bt) or bt <= SPENT_REDRESS_BT
 
     def _rip_item(self):
-        """The least held id that can be ripped, never one marked `unrippable` or `in_bag`, or held out. On a PZA/1.5.2
-        hello's log (`World.item_fields`) the item record says: `rip` cotton and not `worn` (denim and leather need a
-        tool the planner has no action for; absent is no class). On an older log the name guess `rippable` stands and
-        the inventory's first sight (the clothes worn) is left out."""
-        now = self.world.world_minutes()
-        marked = self.world.marked("unrippable") | self.world.marked("in_bag")
-        fields = self.world.item_fields()
-        ids = [iid for iid, it in self.world.inventory.items() if item_id_ok(iid) and iid not in marked
-               and (it.get("rip") == "cotton" and it.get("worn") is not True if fields
-                    else rippable(it.get("fullType")) and iid not in self.world.first_sight)
-               and now - self.held_out.get(iid, -math.inf) >= CARE_RETRY_MIN]
-        if self.unworn_item in ids:
-            return self.unworn_item   # P24-AJ: the garment just taken off is the one ripped
-        return min(ids) if ids else None
+        """The least held id that can be ripped, the garment the last unwear took off first (`rip_pick`)."""
+        return rip_pick(self.world, self.held_out, self.unworn_item)
 
     # -- the choice -----------------------------------------------------------------------------------------------
     def _wound(self, items, bleeding, ride=False, unwear=False):
@@ -436,14 +541,14 @@ class Care(Policy):
             return None, None
         p = bleeding[0]
         bt = p.get("bleedingTime") or 0.0
-        kinds = ("bandage", "rag", "dirty") if bt > DIRTY_RAG_MIN else ("bandage", "rag")
-        k = next((k for k in kinds if items[k]), None)
-        if k is not None:
-            why = {"reason": "bleeding", "part": p["i"], "item": items[k][0], "kind": k, "bleedingTime": bt,
+        got = dressing_pick(items, bt)
+        if got is not None:
+            k, iid = got
+            why = {"reason": "bleeding", "part": p["i"], "item": iid, "kind": k, "bleedingTime": bt,
                    "deep": p.get("deep") is True}
             if ride:
                 why["ride"] = True
-            return Bandage(items[k][0], part=p["i"], keepMoving=ride), why
+            return Bandage(iid, part=p["i"], keepMoving=ride), why
         if ride or any(items[k] for k in (("bandage", "rag") if self.dirty_rag_rip else KINDS)):
             return None, None
         # ruling P25-Y (`dirty_rag_rip`): reaching here with a dirty rag held means its bleedingTime is at or under
@@ -497,26 +602,8 @@ class Care(Policy):
         return Unwear(iid), {"reason": "unwear", "item": iid, "loc": loc, "cover": cover}
 
     def _unwear_pick(self):
-        """`(item id, loc, cover)` of the worn cotton garment covering the least (its clothing record's bite + scratch,
-        ties by the least id), else None: the item record reads `worn` and `rip` "cotton" and carries a clothing record
-        whose `loc` UNWEAR_NEVER does not match; never one marked `unrippable` or `in_bag`, held out by a refusal
-        (CARE_RETRY_MIN) or unworn within WEAR_RETRY_MIN game minutes."""
-        w = self.world
-        now = w.world_minutes()
-        barred = w.marked("unrippable") | w.marked("in_bag")
-        best = None
-        for iid, it in w.inventory.items():
-            c = it.get("clothing")
-            loc = c.get("loc") if isinstance(c, dict) else None
-            if (not item_id_ok(iid) or it.get("worn") is not True or it.get("rip") != "cotton" or iid in barred
-                    or not isinstance(loc, str) or UNWEAR_NEVER.search(loc)
-                    or now - self.held_out.get(iid, -math.inf) < CARE_RETRY_MIN
-                    or now - self.unwear_at.get(iid, -math.inf) < WEAR_RETRY_MIN):
-                continue
-            cover = (c.get("bite") or 0.0) + (c.get("scratch") or 0.0)
-            if best is None or (cover, iid) < best[0]:
-                best = ((cover, iid), iid, loc, cover)
-        return None if best is None else best[1:]
+        """`(item id, loc, cover)` of the worn cotton garment covering the least, else None (`unwear_pick`)."""
+        return unwear_pick(self.world, self.held_out, self.unwear_at)
 
     def _rags(self, dirty_ok=False):
         """The rag stock's rip (ruling P24-AB, the module docstring): fewer than RAG_STOCK clean dressings held, an
@@ -667,15 +754,53 @@ class Care(Policy):
 
     def choose(self):
         """The next care command, or None (the module docstring's order). Under a held threat (P24-P) Survive runs
-        the branch only when `tends_wound` answers, so the bleeding step is the one that sends there."""
+        the branch only when `tends_wound` answers, so the bleeding step is the one that sends there. The last
+        Dress's end (Plan 31 Task 8) is logged once, `dress_end` on the why."""
+        cmd = self._choose()
+        if self.dress_end is not None:
+            self.why = dict(self.why, dress_end=self.dress_end)
+            self.dress_end = None
+        return cmd
+
+    def _dress_step(self, bleeding):
+        """Plan 31 Task 8 (`dress_cls` set): the bleeding step as one Dress maneuver. The running Dress steps (its
+        command, or None while it waits: the tick held); one that ended is logged (`dress_end`) and dropped; with none
+        running the worst bleeding part (`bleeding[0]`) starts one, riding when Survive's `ride_now` asks (then the
+        worst above the legs, as `_wound`'s ride; the Dress rides only a part above them). `(command or None, held)`: `held` False when no Dress runs after the step
+        (none to start, or it ended at once: nothing to tear, a zombie within KEEP_R, the part no longer bleeding)."""
+        d = self.dress
+        if d is not None and d.over() is not None:
+            self.dress_end, self.dress, d = dict(d.log(), end=d.over()), None, None
+        if self.ride_now:   # P24-U: a ride tick dresses the worst bleeding part above the legs, as `_wound` rides
+            bleeding = [p for p in bleeding if p["i"] < LEG_FIRST]
+        if d is None and bleeding:
+            d = self.dress = self.dress_cls(self.world, self.actions, self.clock, part=bleeding[0]["i"],
+                                            ride=self.ride_now)
+        if d is None:
+            return None, False
+        cmd = d.step()
+        if d.over() is not None:
+            self.dress_end, self.dress = dict(d.log(), end=d.over()), None
+            return None, False
+        self.why = {"reason": "dress", "dress": d.log()}
+        return cmd, True
+
+    def _choose(self):
         w = self.world
         items = self._items()
         any_rag = any(items[k] for k in KINDS)
         bleeding = self._bleeding()
-        cmd, why = self._wound(items, bleeding, ride=self.ride_now, unwear=self.unwear_wound)
-        if cmd is not None or self.ride_now:
-            self.why = why or {}
-            return cmd
+        if self.dress_cls is not None:   # Plan 31 Task 8: the Dress is the bleeding step, none of its three sends
+            cmd, held = self._dress_step(bleeding)
+            if held or self.ride_now:
+                if not held:
+                    self.why = {}
+                return cmd
+        else:
+            cmd, why = self._wound(items, bleeding, ride=self.ride_now, unwear=self.unwear_wound)
+            if cmd is not None or self.ride_now:
+                self.why = why or {}
+                return cmd
         clean = items["bandage"] + items["rag"]
         spent = self._spent()
         kept, held = None, None

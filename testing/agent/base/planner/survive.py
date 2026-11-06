@@ -173,7 +173,10 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
      inventory's first sight; never with no wound: Task 10 fix 1, the review's major 2), a spent bandage replaced
      with a clean one, a dirty rag washed at a known water source within `care.WASH_R` with no zombie within
      DISENGAGE_R; its own action holds the branch, the Sleep passes it, and a refused item waits
-     `care.CARE_RETRY_MIN` game minutes.
+     `care.CARE_RETRY_MIN` game minutes. Plan 31 Task 8 (`DRESS_MANEUVER`, off for the goldens): the bleeding step
+     is one `maneuvers.Dress` of the worst bleeding part (`dispatch.MANEUVERS`; `care.Care._dress_step`), which
+     stops, tears a garment when nothing is held and bandages, its waits holding the branch's tick and its sends
+     never cooled (`assess`).
   3. The water chain (`_need`, then `planner/water.py`'s `Water`, its docstring the record since refactor A): thirst
      over THIRST_T drinks a held `water` item, a clean one first (`World.tainted_ids` only with none clean); with
      none, a held `container` is filled (`fill`) at the nearest known clean source (`Water.plan`), its done marking the
@@ -405,6 +408,7 @@ from typing import Optional
 from agent.base.items import days_fresh
 from agent.base.planner.care import RIDE_FREE, Care
 from agent.base.planner.control import LADDER, load as load_control
+from agent.base.planner.dispatch import MANEUVERS
 from agent.base.planner.edges import same_side
 from agent.base.planner.goal_runner import GoalRunner, ScriptedSource
 from agent.base.planner.night import Night
@@ -513,6 +517,10 @@ def _key(typ, args):
 
 
 class Survive(SneakGait, Threat):
+    DRESS_MANEUVER = False  # Plan 31 Task 8 (the spec's § 4 item 3; F15's nine unwears refused `moving`): the
+                            # care branch's bleeding step is one Dress maneuver (`maneuvers.dress`, set on the Care
+                            # each care tick: `care.Care._dress_step`) in place of its bandage, rip and unwear
+                            # sends; off (the default, the ladder's goldens), the bleeding step's own sends
     UNWEAR_WOUND = True   # ruling P25-H (Plan 25 Task 7): the care branch's bleeding step unwears a garment to rip on
                           # any quiet care tick (`care.Care._wound`); off, only the idle stock does (P24-AJ). In
                           # T4_SWITCHES, the replay tests' seam onto the goldens before Task 7 (`pre_t4`)
@@ -859,11 +867,14 @@ class Survive(SneakGait, Threat):
         c.chasing_n = sum(1 for z in self._within(LISTED_R) if chasing(z))
         c.wound_dress = self.WOUND_DRESS   # P28-A: the wound step, on a care tick with nothing within DANGER_R
         c.near_n = len(self._within(DANGER_R))
+        c.dress_cls = MANEUVERS["dress"] if self.DRESS_MANEUVER else None   # Plan 31 Task 8
         cmd = c.choose()
         self.why = dict(c.why)
         if self.STOCK_EARLY and cmd is not None and cmd.TYPE == "rip" and self.care_yield is not None:
             self.why["stock_early"] = dict(c.dressings_held(), branch="yield")   # P27-K1: the yield's wound rip
-        self._dressing_want(cmd is None and c.wants_dressing())
+        self._dressing_want(cmd is None and c.dressing() is None and c.wants_dressing())
+        if cmd is None and c.dressing() is not None:
+            return c, None   # Plan 31 Task 8: the running Dress waits (the stop's still, a garment unworn, a rag)
         return None if cmd is None else (c, cmd)
 
     def _dressing_want(self, want):
@@ -1199,7 +1210,8 @@ class Survive(SneakGait, Threat):
                 continue
             if ans is None:
                 continue
-            if name != "threat" and ans[1] is not None and self._cooling(ans[1]):   # a threat is never waited out
+            if (name != "threat" and ans[1] is not None and self._cooling(ans[1])   # a threat is never waited out
+                    and not self.care.owns(ans[1])):   # Plan 31 Task 8: a Dress's retry is its own, bounded
                 cooled = {"type": ans[1].TYPE, "args": ans[1].args()}
                 continue
             branch, (owner, cmd) = name, ans
