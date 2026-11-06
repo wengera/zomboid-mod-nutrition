@@ -20,18 +20,25 @@ on, with its `clear` label, its held dressings and refuges), and the tick's deci
   KEEP_R (mix_1's hold: it would rise during the dressing).
 - `group`: three or more standing within DANGER_R → a fight (one within KEEP_R, or no refuge: the stand), a retreat
   whose label names its refuge (never `kite_stance`), on the threat branch with its flee reason, or the dressing where
-  it is due (the doctrine's order: a bleed is dressed before any retreat from zombies beyond KEEP_R).
+  it is due (the doctrine's order: a bleed is dressed before any retreat from zombies beyond KEEP_R). The ticks that
+  fight a group beyond KEEP_R with a refuge listed are the tactician's, inherited: `group` is not in its `bound`, so a
+  fight running when the group forms runs on (fix 1, review-t13-mix1 finding 2: E23's three, INHERITED_GROUP, named
+  for Harden as the tactician's gap and asserted exactly, so the list never grows unseen).
 - `door`: the nearest standing zombie within DANGER_R behind a door → the tick sends or holds a running action (its
   play's own, or the goal runner's under a strategic play), never a wait. (Within LISTED_R, as the tactician's
   doctrine-level replay reads it, a loot's goal runner holds one tick between its interact and its next step with a
   zombie behind a door at 10 tiles, E23: the runner's pace, no wait at a door.)
-- `clear` (piece 1): the lone zombie binds (`rules.clear_due`) → a fight at it, or a guard's fight.
+- `clear` (piece 1): the lone zombie binds (`rules.clear_due`) → a fight at it, or a guard's fight; and the seek's
+  end (fix 1, finding 1): no `rule.clear` tick runs at an idle zombie standing beyond DANGER_R that the rule no longer
+  names (`lapsed_ticks`); E23 113.0-117.0 s (the walk toward the idle 26267 while five more listed at 8 to 9 tiles)
+  and 240.0-241.5 s (26271, refused by `_engageable`) carry no such tick.
 - `crawler` (piece 2): a crawler within KEEP_R, nothing standing within KEEP_R, no retreat running → a fight at a
   zombie on the floor within KEEP_R; and no tick dresses while a crawler lies within KEEP_R.
 
 Each ring's situations are counted and the counts asserted (`SEEN`), so a ring that stops carrying one fails here.
 The ring-specific readings: trial 4's 6073 is fought from the first tick the lone-zombie rule names it; trial 10's
-crawler is finished by the `crawler` guard and never dressed beside."""
+crawler is finished by the `crawler` guard and never dressed beside; every crawler record of every ring reads
+`onFloor` true too (the both-fields assumption the rules no longer need, pinned: fix 1, finding 3)."""
 import json
 import os
 
@@ -64,6 +71,11 @@ SEEN = {           # the situations each ring carries at least (`situations`); t
 }
 IDLE_6073 = 6073     # trial 4: idle at 8.4 tiles for 79 s under the tactician (task-13-composition-read.md § 2)
 CRAWLER_15465 = 15465   # trial 10: bit at 48.4, 50.5 and 63.4 s through the doctrine's Dress (ibid. § 3, group C)
+INHERITED_GROUP = {   # (fix 1, finding 2) the tactician's: a fight running when a group forms beyond KEEP_R runs on
+    "e_day_23-20261105-095110": (1793890520.086, 1793890520.588, 1793890591.586),
+}
+E23_LAPSES = ((113.0, 117.0, 26267), (240.0, 241.5, 26271))   # (from, to, zombie): the review's two seek lapses, s
+                      # from the replay's first line (the report's "71.5-73.5 s" base)
 
 
 def load(name):
@@ -137,7 +149,8 @@ def replay(name, tmp_path):
                           cur is not None and cur.state not in ("done", "failed", "rejected", "timeout")),
                       "retreat": t.exec.play.play in ("kite", "avoid"),
                       "crawler_near": [z["id"] for z in M.crawlers(v, KEEP_R)],
-                      "floor_near": [z["id"] for z in v["zombies"] if z["posture"] != "standing" and z["dist"] <= KEEP_R]})
+                      "floor_near": [z["id"] for z in v["zombies"]
+                                     if z["posture"] != "standing" and z["dist"] <= KEEP_R]})
     rows = [json.loads(x) for x in (tmp_path / "decision.log").read_text(encoding="utf-8").splitlines()]
     assert len(rows) == len(ticks) > 100
     return rows, ticks, tr
@@ -158,7 +171,10 @@ def check(sit, row, tk):
     if sit == "bleed":
         return play["kind"] == "dress" or (play["type"] == "fight" and mx["target"] in tk["floor_near"])
     if sit == "group":
-        if play["type"] == "fight" or (play["kind"] == "dress" and M.dress_due(tk["view"])):
+        v = tk["view"]
+        if play["type"] == "fight":
+            return bool(F._standing(v, KEEP_R)) or F.refuge(v) is None
+        if play["kind"] == "dress" and M.dress_due(v):
             return True
         return play["kind"] in RETREAT_REFUGE and row["branch"] == "threat" and bool(inp["branches"]["threat"]["flee"])
     if sit == "door":
@@ -170,23 +186,42 @@ def check(sit, row, tk):
     return True
 
 
+def lapsed_ticks(rows, ticks):
+    """The `rule.clear` ticks at an idle zombie standing beyond DANGER_R that the rule no longer names (fix 1)."""
+    out = []
+    for r, tk in zip(rows, ticks):
+        mx = r["inputs"]["mix_1"]
+        if mx["piece"] != "rule.clear" or mx["target"] == mx["clear"]:
+            continue
+        z = next((z for z in tk["view"]["zombies"] if z["id"] == mx["target"]), None)
+        if z is not None and z["posture"] == "standing" and not z["targets_me"] and z["dist"] > DANGER_R:
+            out.append(r["wall"])
+    return out
+
+
 def test_the_doctrine_and_the_two_pieces_hold_at_every_situation_the_ring_carries(ring):
     name, rows, ticks, _ = ring
-    seen, bad = {}, []
+    seen, bad, inherited = {}, [], []
     for row, tk in zip(rows, ticks):
         for sit in tk["sits"]:
             seen[sit] = seen.get(sit, 0) + 1
             if not check(sit, row, tk):
+                if sit == "group" and row["inputs"]["play"]["type"] == "fight":
+                    inherited.append(round(row["wall"], 3))
+                    continue
                 bad.append((row["wall"], sit, row["inputs"]["mix_1"], row["inputs"]["tactician"].get("table")))
-    print("%s: %s" % (name, seen))
+    print("%s: %s inherited %s" % (name, seen, inherited))
     assert not bad, bad[:5]
+    assert tuple(inherited) == INHERITED_GROUP.get(name, ()), inherited
+    assert not lapsed_ticks(rows, ticks)
     for sit, n in SEEN[name].items():
         assert seen.get(sit, 0) >= n, (sit, seen)
 
 
 def test_no_tick_dresses_with_a_crawler_within_keep_r_and_none_sprints(ring):
     name, rows, ticks, tr = ring
-    assert not [r["wall"] for r, tk in zip(rows, ticks) if r["inputs"]["play"]["kind"] == "dress" and tk["crawler_near"]]
+    assert not [r["wall"] for r, tk in zip(rows, ticks)
+                if r["inputs"]["play"]["kind"] == "dress" and tk["crawler_near"]]
     assert all(c["type"] != "steer" or c["args"].get("gait") != "sprint" for c in tr.sent)
     for r in rows:   # the line's contract: a piece on every tick, a retreat on the threat branch with its reason
         mx = r["inputs"]["mix_1"]
@@ -212,3 +247,24 @@ def test_trial_10_s_crawler_is_finished_by_the_guard_and_never_dressed_beside(tm
     assert guard and {r["inputs"]["mix_1"]["target"] for r in guard} == {CRAWLER_15465}
     near = [(r, tk) for r, tk in zip(rows, ticks) if CRAWLER_15465 in tk["crawler_near"]]
     assert near and not [r["wall"] for r, _ in near if r["inputs"]["play"]["kind"] == "dress"]
+
+
+def test_e23_s_two_seek_lapses_end_the_walk(tmp_path):
+    """Fix 1 (finding 1): at E23 113.0-117.0 s and 240.0-241.5 s no tick runs the seek at the lapsed zombie."""
+    rows, ticks, _ = replay(COMMITTED[1], tmp_path)
+    t0 = rows[0]["wall"]
+    for lo, hi, zid in E23_LAPSES:
+        win = [r for r in rows if lo <= r["wall"] - t0 <= hi]
+        assert win
+        assert not [r["wall"] for r in win if r["inputs"]["mix_1"]["piece"] == "rule.clear"
+                    and r["inputs"]["mix_1"]["target"] == zid], (lo, hi, zid)
+    ends = [json.loads(x) for x in (tmp_path / TD.PLAYS_LOG).read_text(encoding="utf-8").splitlines()]
+    assert [e for e in ends if e["kind"] == "play_end" and e["end"] == "lapsed"]
+
+
+@pytest.mark.parametrize("name", COMMITTED + TRIALS)
+def test_every_crawler_record_also_reads_on_floor(name):
+    """Fix 1 (finding 3): one predicate (`crawler`) reads a crawler; the rings never split the two fields."""
+    split = [z.get("id") for ln in load(name) if ln["kind"] == "frame" for z in ln.get("zombies") or ()
+             if isinstance(z, dict) and z.get("crawler") is True and z.get("onFloor") is not True]
+    assert not split, split[:5]

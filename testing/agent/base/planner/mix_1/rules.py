@@ -22,9 +22,10 @@ The two pieces:
    decider's `crawler` guard finishes it first. The rubric's `crawler_first` vetoes a model answer that leaves a
    crawler within KEEP_R unfinished (nothing standing within KEEP_R) for anything but a retreat.
 
-A crawler in the view is `posture == "crawler"` (`tactician.tview.posture`: the frame's `crawler` true); on the
-world's record it is `crawler` and `onFloor` both true (`is_crawler`): every crawler record in the four rings read for
-this package (F15, E23, trials 4 and 10) carried both.
+A crawler is the frame's `crawler` true, one predicate for the view and the world (fix 1, review-t13-mix1 finding 3):
+the view's `posture == "crawler"` (`tactician.tview.posture`) and the world record's `is_crawler` read the same field,
+whatever `onFloor` reads. Every crawler record in the four rings read for this package (F15, E23, trials 4 and 10: 528,
+all trial 10's) carried `onFloor` true too, which `test_mix_1_replay.py` pins.
 
 The view's `clear` key: the label of the zombie `lone(view)` names, set by the decider (`decide.Mix1._masked`) only
 when `Survive._engageable` reads it reachable (the ladder's own reading: on the character's side of a building's
@@ -33,19 +34,18 @@ holds a room or door square is not), else None. The rules read it as given: they
 
 No constant is new or changed: ENGAGE_R, DANGER_R, KEEP_R and LISTED_R are `policies`'; GROUP_N the tactician's."""
 from agent.base.planner.night import TIRED_T
-from agent.base.planner.policies import DANGER_R, ENGAGE_R, KEEP_R, on_floor
+from agent.base.planner.policies import DANGER_R, ENGAGE_R, KEEP_R
 from agent.base.planner.tactician import fallback as F
 from agent.base.planner.tactician import table as TT
 from agent.base.planner.tactician.plays import RETREATS
 
 RULE_NAMES = ("reach", "bleed", "group", "fight", "unarmed", "clear", "night", "goal", "loot", "travel", "explore")
-RUBRIC = ("lone_not_fight", "bleed_not_dress", "travel_nowhere", "lone_not_cleared", "crawler_first")
 
 
 # -- the crawler ----------------------------------------------------------------------------------------------------
 def is_crawler(z):
-    """World record `z` is a crawler: the frame's `crawler` and `onFloor` both true (the module docstring)."""
-    return z.get("crawler") is True and on_floor(z)
+    """World record `z` is a crawler: the frame's `crawler` true, as the view reads it (the module docstring)."""
+    return z.get("crawler") is True
 
 
 def crawlers(view, r):
@@ -77,13 +77,14 @@ def clear_target(view):
 # -- the doctrine (tactician.fallback's, with the two pieces) -------------------------------------------------------
 def _tests(view):
     """(rule, play type, test) in RULE_NAMES order: `tactician.fallback._tests` (829038d6) with `bleed` reading
-    `keep_clear` (piece 2) and `clear` after `unarmed` (piece 1); every other test as the tactician's."""
+    `dress_due` (its own test with `keep_clear`, piece 2) and `clear` after `unarmed` (piece 1); every other test as
+    the tactician's."""
     s6, keep = F._standing(view, DANGER_R), F._standing(view, KEEP_R)
     n = view.get("needs") or {}
     tired = (n.get("fatigue") or 0) > TIRED_T
     bs = view.get("buildings") or ()
     yield "reach", "fight", F.armed(view) and bool(keep)
-    yield "bleed", "dress", bool(F.bleeding(view)) and keep_clear(view) and F.dress_with(view) is not None
+    yield "bleed", "dress", dress_due(view)
     yield "group", ("kite" if s6 else "avoid"), F.is_group(view)
     coming = [z for z in F._standing(view, ENGAGE_R) if z.get("targets_me")]
     yield "fight", "fight", F.armed(view) and (1 <= len(s6) <= 2 or 1 <= len(coming) <= 2)
@@ -141,12 +142,13 @@ def clear_due(view):
 
 
 def crawler_due(view):
-    """A crawler within KEEP_R and nothing standing within KEEP_R: it is finished first (piece 2; the decider's guard)."""
+    """A crawler within KEEP_R and nothing standing within KEEP_R: it is finished first (piece 2; the decider's
+    guard)."""
     return bool(crawlers(view, KEEP_R)) and not F._standing(view, KEEP_R)
 
 
 def violations(view, answer):
-    """The RUBRIC rules `answer` breaks at `view`, in order: the tactician's three (`tactician.rubric.violations`, its
+    """The rules `answer` breaks at `view`, in order: the tactician's three (`tactician.rubric.violations`, its
     `dress_due` and `fight_due` this module's), then `lone_not_cleared` (no fight while `clear` binds) and
     `crawler_first` (a crawler within KEEP_R, nothing standing within KEEP_R, and the answer neither a fight at a
     crawler nor a retreat)."""
@@ -187,6 +189,3 @@ class Table(TT.Table):
         rule, ans = doctrine(view)
         return "doctrine", rule, ans
 
-
-__all__ = ("RULE_NAMES", "RUBRIC", "is_crawler", "crawlers", "keep_clear", "lone", "clear_target", "doctrine",
-           "target_for", "dress_due", "fight_due", "clear_due", "crawler_due", "violations", "bound", "Table")

@@ -7,29 +7,42 @@ the guards, the table, the executors, `PlaySource`), kept on `survive.control_st
    reads `rules.lone` on the tick's view and asks the Survive instance's own `_engageable` (`engage.py`, Task 18 fix 1:
    its side, chase, line and bounded-flood reading, its `unsought` marks and its cached flood, called on the instance
    and never copied) whether that zombie may be engaged; the label goes on the masked view as `clear`, which the
-   doctrine, the table, the bound and the veto read (`_masked`).
-2. **The crawler**: a `crawler` guard after the tactician's three (`_guard`): a crawler within KEEP_R (`rules.
-   is_crawler`), nothing standing within KEEP_R, the running play no retreat, and no finish at hand already running
-   at a zombie on the floor as near (within the ladder's re-pin margin, `policies.REPIN_MARGIN` 0.3: trial 10's ring,
-   the knocked-down 15436 at 2.0 tiles finished while the crawler bit at 0.9) → a `fight` at the nearest such crawler
-   (the executor's mode `finish`, its target on the floor). A
-   running finish at hand (a zombie on the floor within KEEP_R, a crawler or one knocked down, nothing standing within
-   KEEP_R) is held against the table's other answers but a retreat (`_fight_holds`), so a trigger does not hand it to
-   a travel or to a standing zombie beyond KEEP_R and back. The dressing waits for it (`rules.keep_clear`).
+   doctrine, the table, the bound and the veto read (`_masked`). The seek ends when its condition lapses (fix 1,
+   review-t13-mix1 finding 1): a running fight the rule `clear` started, at an idle zombie standing beyond DANGER_R
+   that is no longer the rule's (a second zombie listed within ENGAGE_R, or `_engageable` refusing it), is replaced by
+   the doctrine's answer (`_table_due`'s `lapsed`, the play logged ended `lapsed`). E23 113-117 s walked the stance
+   toward the idle 26267 at 7.0 to 9.4 tiles while five more listed at 8 to 9.
+2. **The crawler**: a `crawler` guard after the tactician's three (`_guard`). It fires on a crawler within KEEP_R
+   (`rules.is_crawler`: the frame's `crawler`, the view's own reading) when nothing else stands within KEEP_R
+   (`_standing_keep`: a crawler is never the standing zombie that comes first, whatever its `onFloor` reads), the
+   running play is no retreat, and no finish at hand already runs at a zombie on the floor as near (within the
+   ladder's re-pin margin, `policies.REPIN_MARGIN` 0.3: trial 10's ring, the knocked-down 15436 at 2.0 tiles finished
+   while the crawler bit at 0.9). It starts a `fight` at the nearest such crawler (the reflex's finish: the target's
+   posture picks it). A running finish at hand (a crawler or a zombie on the floor within KEEP_R, nothing else
+   standing within KEEP_R) is held against the table's other answers but a retreat (`_fight_holds`), so a trigger does
+   not hand it to a travel or to a standing zombie beyond KEEP_R and back. The dressing waits for it
+   (`rules.keep_clear`).
 
 What is copied, and why: `Tactician.assess` and `Tactician._table_due` read the tactician's own `rubric.violations` and
 `table.bound` by module name, so this module carries both bodies as they stand at 829038d6 with those two reads pointed
 at `rules` (`_veto`, `rules.bound`), the view's `clear` computed before the first read, and the decision line's
-`mix_1` key added. Every other method is the tactician's, inherited.
+`mix_1` key added; `test_mix_1.py` pins each copy's difference from the tactician's source line by line, so a later
+fix to the tactician's body fails there rather than being lost. Every other method is the tactician's, inherited.
 
 The decision line keeps the tactician's keys (`play`, `tactician`, `branches`, `need`, `consume_refused`, `cooled`)
-and adds `inputs.mix_1` `{piece, added, started, kind, play, target, clear}`: `piece` the rule that decided the tick,
-the running play's starter (`guard.hit`, `guard.swing`, `guard.fallen`, `guard.crawler`, `rule.<doctrine rule>`
-(`rule.clear` among them), `table`, `model`); `added` true for mix_1's two pieces (ADDED); `started` true on the
-tick its play began; `kind` the scorecard's label (`inputs.play.kind`: `fight`, `dress`, `loot`, `travel`, `shelter`,
-or a retreat `kite_*`/`avoid_*`); `play` the play type; `target` a zombie id (fight, kite), a square [x, y] (the rest),
-or the part label of a dress; `clear` the zombie id the `clear` rule could fight this tick, else None."""
-from agent.base.planner.policies import KEEP_R, REPIN_MARGIN, blocked, on_floor, standing, zdist
+and adds `inputs.mix_1` `{piece, clear_why, added, started, kind, play, target, clear}`:
+- `piece`: the rule that decided the tick, the running play's starter (`guard.hit`, `guard.swing`, `guard.fallen`,
+  `guard.crawler`, `rule.<doctrine rule>` (`rule.clear` among them), `table`, `model`);
+- `clear_why`: on a `rule.clear` play, `idle` (the seek of an idle zombie) or `coming` (an aware zombie coming within
+  ENGAGE_R, the tactician's `fight` rule's own target taken earlier: fix 1, finding 4), read off its target at the
+  start; else None;
+- `added`: true for mix_1's two pieces (ADDED); `started`: true on the tick its play began;
+- `kind`: the scorecard's label (`inputs.play.kind`: `fight`, `dress`, `loot`, `travel`, `shelter`, or a retreat
+  `kite_*`/`avoid_*`); `play`: the play type;
+- `target`: a zombie id (fight, kite), a square [x, y] (the rest), or the part label of a dress;
+- `clear`: the zombie id the `clear` rule could fight this tick, else None."""
+from agent.base.planner.policies import (DANGER_R, KEEP_R, REPIN_MARGIN, blocked, chasing, on_floor, standing,
+                                         zdist)
 from agent.base.planner.survive import Decision
 from agent.base.planner.tactician import decide as TD
 from agent.base.planner.tactician import executors as X
@@ -39,7 +52,6 @@ from agent.base.planner.mix_1 import rules as M
 
 STATE_KEY = "mix_1"
 ADDED = ("rule.clear", "guard.crawler")   # the pieces mix_1 adds to the tactician (the module docstring)
-GUARDS = TD.GUARDS + ("crawler",)
 
 
 def mix(survive):
@@ -69,6 +81,7 @@ class Mix1(TD.Tactician):
         self._clear = None        # this tick's `clear` label (`_clear_label`), on every masked view
         self._clear_id = None     # ... and its zombie id, for the line
         self._by_clear = False    # this tick's `rule` path fired on the lone zombie's binding alone
+        self._doctrine_table = M.Table()   # no cells: the doctrine alone (`_doctrine`)
 
     # -- piece 1: the lone zombie's reach -----------------------------------------------------------------------------
     def _clear_label(self, view):
@@ -98,9 +111,14 @@ class Mix1(TD.Tactician):
         g = super()._guard(view)
         return g if g is not None else self._crawler_guard(view)
 
+    def _standing_keep(self):
+        """The standing zombies within KEEP_R, crawlers left out (`rules.is_crawler`: the frame's `crawler`, as the
+        view reads it; fix 1, finding 3, so one predicate decides a crawler for the view and the world)."""
+        return [z for z in standing(self.sv.world, KEEP_R) if not M.is_crawler(z)]
+
     def _crawler_guard(self, view):
         w = self.sv.world
-        if standing(w, KEEP_R):
+        if self._standing_keep():
             return None   # the standing first: the swing guard, the `reach` rule (the tactician's order)
         ex = self.exec
         if ex is not None and ex.play.play in P.RETREATS:
@@ -124,7 +142,8 @@ class Mix1(TD.Tactician):
         crawler, or one knocked down), nothing standing within KEEP_R, held against every answer but a retreat (the
         module docstring). The crawler guard leaves such a finish running, so the hold is the guard's other half: the
         tactician's table hands a finish at 0.9 tiles to a travel on a `down` trigger (trial 10's ring, 15436 at 0.9
-        with the crawler at 2.2), and the guard would then take the crawler and leave the knocked-down zombie to rise."""
+        with the crawler at 2.2), and the guard would then take the crawler and leave the knocked-down zombie to
+        rise."""
         if super()._fight_holds(ans, why):
             return True
         ex = self.exec
@@ -133,12 +152,32 @@ class Mix1(TD.Tactician):
         return self._finishing(ex)
 
     def _finishing(self, ex):
-        """`ex`, a fight, is at a zombie on the floor within KEEP_R and nothing stands within KEEP_R."""
+        """`ex`, a fight, is at a crawler or a zombie on the floor within KEEP_R, and nothing else stands within
+        KEEP_R."""
         t, w = ex.target(), self.sv.world
-        return (t is not None and t.get("x") is not None and on_floor(t) and zdist(w, t) <= KEEP_R
-                and not standing(w, KEEP_R))
+        return (t is not None and t.get("x") is not None and (on_floor(t) or M.is_crawler(t))
+                and zdist(w, t) <= KEEP_R and not self._standing_keep())
 
-    # -- the copies (the module docstring: the tactician's bodies at 829038d6, two reads pointed at `rules`) ------------
+    def _lapsed(self, ex):
+        """Fix 1 (finding 1): `ex` is a fight the rule `clear` started at an idle zombie standing beyond DANGER_R that
+        the rule no longer names (`_clear_id`): its condition lapsed."""
+        if not isinstance(ex, X.FightExec) or self.meta.get("rule") != "clear" or ex.zid == self._clear_id:
+            return False
+        t = ex.target()
+        return (t is not None and t.get("x") is not None and not chasing(t) and not on_floor(t)
+                and zdist(self.sv.world, t) > DANGER_R)
+
+    # -- the copies (the module docstring: the tactician's bodies at 829038d6, two reads pointed at `rules`) ---------
+    def _doctrine(self, view):
+        """The tactician's `_table` read through an empty table (`rules.Table()`): the doctrine's own answer, never a
+        cell's (fix 1, finding 1: at a lapsed seek the tactician's cell for no standing zombie within DANGER_R reads
+        `fight`, the nearest, which is the seek's own walk again: E23 at 457 s)."""
+        keep, self.table = self.table, self._doctrine_table
+        try:
+            return self._table(view)
+        finally:
+            self.table = keep
+
     def _veto(self, view, row):
         return M.violations(self._masked(view), row)
 
@@ -148,12 +187,17 @@ class Mix1(TD.Tactician):
         ring: a table fight at the idle 16038 at 9.9 tiles held on while the aware 16032 came at 8.7), unless that
         fight is a finish at hand (`_fight_holds`). A `rule` answer only the lone zombie's binding gives is marked
         `_by_clear`, and its play starts with the rule `clear` (piece 1: an aware zombie coming within ENGAGE_R, which
-        the doctrine's `fight` rule names, fought at once over a running play)."""
+        the doctrine's `fight` rule names, fought at once over a running play). A seek whose condition lapsed
+        (`_lapsed`) is `lapsed`: the doctrine's own answer takes it (`_doctrine`, no cell), never held; where that
+        answer is the same fight (the tactician's `fight` rule at the nearest standing, one coming within ENGAGE_R),
+        the play runs on re-owned by that rule."""
         ex = self.exec
         if ex is None:
             return "none"
         if vetoed:
             return "veto"
+        if self._lapsed(ex):
+            return "lapsed"
         masked = self._masked(view)
         if M.bound(masked):
             _, _, ans = self.table.answer(masked)
@@ -208,7 +252,7 @@ class Mix1(TD.Tactician):
         else:
             why = self._table_due(view, fired, vetoed)
             if why is not None:
-                play, src, rule = self._table(view)
+                play, src, rule = self._doctrine(view) if why == "lapsed" else self._table(view)
                 if why == "rule" and self._by_clear:
                     rule = "clear"
                 tac["table"] = why
@@ -217,7 +261,13 @@ class Mix1(TD.Tactician):
                     tac["table"] = "held"
                 elif not self._same(play, bind):
                     self._start(play, view, bind, src, rule, fired,
-                                end="doctrine" if why in ("rule", "veto") else "replaced")
+                                end="doctrine" if why in ("rule", "veto") else ("lapsed" if why == "lapsed" else
+                                                                                 "replaced"))
+                    if rule == "clear":
+                        t = self.exec.target()
+                        self.meta["clear_why"] = "coming" if t is not None and chasing(t) else "idle"
+                elif why == "lapsed":
+                    self.meta = dict(self.meta, source=src, rule=rule, clear_why=None)   # the same fight, re-owned
         branch, owner, cmd, why = self.exec.step()
         ex = self.exec
         tac.update(play=ex.play.play, target=ex.play.target(), source=self.meta.get("source"), bound=ex.play.bound,
@@ -250,6 +300,7 @@ class Mix1(TD.Tactician):
         inputs["branches"] = branches
         inputs["play"] = line_play
         inputs["tactician"] = tac
-        inputs[STATE_KEY] = {"piece": piece, "added": piece in ADDED, "started": self.play_id != started_at,
-                             "kind": ex.label, "play": ex.play.play, "target": target, "clear": self._clear_id}
+        inputs[STATE_KEY] = {"piece": piece, "clear_why": self.meta.get("clear_why"), "added": piece in ADDED,
+                             "started": self.play_id != started_at, "kind": ex.label, "play": ex.play.play,
+                             "target": target, "clear": self._clear_id}
         return Decision(branch, owner, cmd, inputs)

@@ -52,6 +52,16 @@ tiles; trial 8's 25371 and 25372).
 **Two or more within ENGAGE_R: no seek.** The `fight` rule's stand lets them come. That kept T's pair trial at 0 hits,
 and it avoids U's trial-7 walk toward one of a pair.
 
+**The seek ends when its condition lapses** (fix 1, review-t13-mix1 finding 1). A running fight the rule `clear`
+started, at an idle zombie standing beyond DANGER_R that the rule no longer names, is replaced. The rule stops naming
+it when a second zombie lists within ENGAGE_R, or when `_engageable` refuses it. The replacement is the doctrine's own
+answer (`Mix1._doctrine`, no table cell: the tactician's cell for no zombie within DANGER_R reads `fight` at the
+nearest, which would be the seek's walk again). The play is logged ended `lapsed`. Where the doctrine's answer is the
+same fight (its `fight` rule at the nearest standing zombie, with one coming within ENGAGE_R), the play runs on,
+owned by that rule. E23 shows both cases:
+- 112.5 s: the walk toward the idle 26267 ends in a travel as five more list at 8 to 9 tiles.
+- 240.0 s: the walk at 26271, which `_engageable` refused, ends in a loot.
+
 ### 2. The crawler, a threat at the dressing
 
 **What it does.**
@@ -61,16 +71,20 @@ and it avoids U's trial-7 walk toward one of a pair.
   - nothing stands within KEEP_R (the standing first, the tactician's order);
   - the running play is no retreat;
   - no finish at hand is already running at a zombie on the floor as near, within REPIN_MARGIN.
-- The executor's mode is `finish`.
+- The executor sends mode `finish` at a target on the floor; the reflex picks the finish by the target's posture
+  either way (`MeleeInputs.behaviour`: strike and finish are one meet).
 - A running finish at hand is held against the table's answers, a retreat's excepted (`Mix1._fight_holds`). A finish
   at hand is a fight at a zombie on the floor within KEEP_R, a crawler or one knocked down, with nothing standing within
   KEEP_R. Without the hold, the tactician's table hands such a finish to a travel on a `down` trigger, and the guard then
   takes the crawler while the knocked-down zombie rises (trial 10's ring: 15436 at 0.9 tiles, the crawler at 2.2).
 - A model answer that leaves the crawler for anything but a retreat is vetoed `crawler_first`.
 
-**How a crawler reads.** In the frame, a crawler has `crawler` and `onFloor` both true (the zombie record in `schema/pza1.json`;
-`rules.is_crawler`). In the tactical view it is `posture` "crawler" (`tactician.tview.posture`). Every crawler record in
-the four rings read had both fields: 528 in trial 10, none in F15, E23 or trial 4.
+**How a crawler reads.** One predicate decides it for the view and the world: the frame's `crawler` true (the zombie
+record in `schema/pza1.json`). The view reads it as `posture` "crawler" (`tactician.tview.posture`); the world record
+as `rules.is_crawler`, whatever `onFloor` reads (fix 1, finding 3). The guard's "nothing standing within KEEP_R" leaves
+crawlers out (`Mix1._standing_keep`), because `policies.standing` counts a crawler without `onFloor` as standing. Every
+crawler record in the four rings read also had `onFloor` true: 528 in trial 10, none in F15, E23 or trial 4.
+`test_mix_1_replay.py` pins that.
 
 **Why.** Round one's doctrine death, trial 10. The crawler 15465 lay at 1.0 to 1.1 tiles in `attack` and bit at 48.4,
 50.5 and 63.4 s through the Dress. Every variant's `standing` drops a crawler. T's bleed rule had the same gap,
@@ -91,9 +105,12 @@ None is new, and none is changed. ENGAGE_R 9 (P24-X), DANGER_R 6, KEEP_R 2.5, LI
 The tactician's keys stay on the line as they are: `play` `{kind, type, target, play_id}`, `tactician`, `branches`
 (`threat.flee` the retreat's why), `need`, `consume_refused` and `cooled`.
 
-`inputs.mix_1` is `{piece, added, started, kind, play, target, clear}`:
+`inputs.mix_1` is `{piece, clear_why, added, started, kind, play, target, clear}`:
 - `piece`: the running play's starter, the rule that decided the tick. It is one of `guard.hit`, `guard.swing`,
   `guard.fallen`, `guard.crawler`, `rule.<doctrine rule>` (`rule.clear` among them), `table` or `model`.
+- `clear_why`: on a `rule.clear` play, `idle` (the seek of an idle zombie) or `coming` (an aware zombie coming within
+  ENGAGE_R, the tactician's `fight` rule's own target taken earlier), read off the target at the play's start; else
+  None (fix 1, finding 4). Round two credits the seek by `idle`.
 - `added`: true for mix_1's own pieces, `rule.clear` and `guard.crawler`.
 - `started`: true on the tick its play began.
 - `kind`: the scorecard's label (`tools/trial_score.py`). It is `fight`, `dress`, `loot`, `travel` or `shelter`, or a
@@ -104,7 +121,19 @@ The tactician's keys stay on the line as they are: `play` `{kind, type, target, 
 - `clear`: the zombie id `clear` could fight this tick, else None.
 
 `plays.log` beside `decision.log` keeps the tactician's three line kinds. `rule` is `clear` on a start the lone
-zombie's binding alone caused, and `crawler` on the guard's.
+zombie's binding alone caused, and `crawler` on the guard's. A `play_end` reads `lapsed` where the seek's condition
+lapsed.
+
+The copies of `Tactician.assess` and `Tactician._table_due` are pinned against the tactician's source, line by line,
+by `test_mix_1.py`, so a later fix to the tactician's bodies fails there rather than being lost.
+
+## A tactician gap, inherited (for Harden)
+
+A group forming during a fight beyond KEEP_R does not replace the fight: `group` is not in the tactician's `bound`. On
+E23's ring, three ticks fight with three to five standing within DANGER_R, none within KEEP_R, and a refuge listed
+(walls 1793890520.086 and 1793890520.588, a table fight at 26250; 1793890591.586, the `fight` rule at 26291).
+`test_mix_1_replay.py` names them as INHERITED_GROUP and asserts the list exactly. mix_1 leaves this to the
+tactician, as the read's "nothing of T's dropped" asks.
 
 ## Observations for Harden (the Lua and the schema are frozen here)
 

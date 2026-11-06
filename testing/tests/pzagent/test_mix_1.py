@@ -107,11 +107,24 @@ def test_the_rubric_wants_the_crawler_finished_but_lets_a_retreat_run():
                                                    "why": "group"})
 
 
-def test_a_world_crawler_is_crawler_and_on_the_floor():
-    assert M.is_crawler(crawler(7, 101.0, 200.0))
-    assert not M.is_crawler(z(7, 101.0, 200.0, floor=True))     # knocked down, not crawling
-    assert not M.is_crawler(dict(z(7, 101.0, 200.0), crawler=True))   # never seen without onFloor; standing then
-    assert V.posture(crawler(7, 101.0, 200.0)) == "crawler"
+def test_the_world_and_the_view_read_a_crawler_by_one_predicate():
+    """Fix 1 (review-t13-mix1 finding 3): the frame's `crawler`, whatever `onFloor` reads, for both reads."""
+    for rec in (crawler(7, 101.0, 200.0), dict(z(7, 101.0, 200.0), crawler=True)):
+        assert M.is_crawler(rec) and V.posture(rec) == "crawler"
+    knocked = z(7, 101.0, 200.0, floor=True)
+    assert not M.is_crawler(knocked) and V.posture(knocked) == "floor"
+
+
+def test_a_crawler_whose_frame_omits_on_floor_is_still_finished_first_and_never_the_standing_zombie(tmp_path):
+    r, sv = make(tmp_path)
+    r.event("item_added", itemId=11, fullType="Base.Bandage", weight=0.1, use="bandage")
+    rec = dict(z(9, 101.5, 200.0), crawler=True)                  # crawler true, onFloor absent
+    r.frame(zombies=[rec], wounds=BLEED)
+    tick(r, sv)
+    t = sv.control_state["mix_1"]
+    assert lines(tmp_path)[-1]["inputs"]["mix_1"]["piece"] in ("guard.crawler", "guard.swing", "rule.reach")
+    assert t.exec.play.play == "fight" and t.exec.zid == 9
+    assert t._standing_keep() == [] and t._finishing(t.exec)
 
 
 # ================================================================ the decider through the fork
@@ -151,7 +164,8 @@ def test_the_composition_loads_by_name_with_the_tactician_s_switches_and_its_own
     assert t.table.cells == TT.Table.load().cells               # the tactician's committed cells
     line = lines(tmp_path)[-1]
     assert line["inputs"]["mix_1"]["piece"] == "rule.explore" and line["inputs"]["play"]["type"] == "travel"
-    assert set(line["inputs"]["mix_1"]) == {"piece", "added", "started", "kind", "play", "target", "clear"}
+    assert set(line["inputs"]["mix_1"]) == {"piece", "clear_why", "added", "started", "kind", "play", "target",
+                                            "clear"}
 
 
 def test_a_lone_idle_zombie_at_eight_tiles_is_fought_at_once_toward_it_in_the_stance(tmp_path):
@@ -214,6 +228,76 @@ def test_the_tactician_alone_lets_the_travel_run_with_the_chaser_at_seven_tiles(
     r.frame(zombies=[z(7, 107.2, 200.0)])
     tick(r, sv)
     assert lines(tmp_path)[-1]["inputs"]["play"]["type"] == "travel"
+
+
+def test_a_clear_play_names_why_idle_or_coming(tmp_path):
+    """Fix 1 (finding 4): round two credits the seek of an idle zombie apart from the earlier take of one coming."""
+    r, sv = make(tmp_path)
+    r.frame()
+    tick(r, sv)
+    r.frame(zombies=[z(7, 108.0, 200.0, target=False)])
+    tick(r, sv)
+    assert lines(tmp_path)[-1]["inputs"]["mix_1"]["clear_why"] == "idle"
+    r2, sv2 = make(tmp_path / "b")
+    r2.frame()
+    tick(r2, sv2)
+    r2.frame(zombies=[z(7, 107.2, 200.0)])
+    tick(r2, sv2)
+    mx = lines(tmp_path / "b")[-1]["inputs"]["mix_1"]
+    assert (mx["piece"], mx["clear_why"]) == ("rule.clear", "coming")
+    r2.frame(zombies=[z(7, 104.0, 200.0)])
+    tick(r2, sv2)
+    assert lines(tmp_path / "b")[-1]["inputs"]["mix_1"]["clear_why"] == "coming"   # the play's own, while it runs
+
+
+def seek(tmp_path):
+    """A Survive whose `clear` fight runs at the idle zombie 7 at 8 tiles."""
+    r, sv = make(tmp_path)
+    r.frame()
+    tick(r, sv)
+    r.frame(zombies=[z(7, 108.0, 200.0, target=False)])
+    tick(r, sv)
+    t = sv.control_state["mix_1"]
+    assert t.exec.zid == 7 and t.meta["rule"] == "clear"
+    return r, sv, t
+
+
+def test_a_seek_ends_when_a_second_idle_zombie_lists_within_engage_r(tmp_path):
+    """Fix 1 (finding 1; E23 113-117 s: the walk toward the idle 26267 while five more listed at 8 to 9 tiles)."""
+    r, sv, t = seek(tmp_path)
+
+    class Fight(dict):
+        def get(self, k, default=None):
+            return "fight"
+    t.table.cells = Fight()   # every cell `fight` (the nearest: the seek's own walk): the lapse reads the doctrine
+    r.frame(zombies=[z(7, 107.5, 200.0, target=False), z(8, 100.0, 208.0, target=False)])
+    tick(r, sv)
+    ends = [x for x in lines(tmp_path, TD.PLAYS_LOG) if x["kind"] == "play_end"]
+    assert ends[-1]["end"] == "lapsed" and ends[-1]["play"] == "fight"
+    line = lines(tmp_path)[-1]
+    assert line["inputs"]["play"]["type"] != "fight" and line["inputs"]["tactician"]["table"] == "lapsed"
+
+
+def test_a_seek_ends_when_its_zombie_stops_reading_reachable(tmp_path, monkeypatch):
+    r, sv, t = seek(tmp_path)
+    monkeypatch.setattr(sv, "_engageable", lambda zid, z: False)
+    r.frame(zombies=[z(7, 107.5, 200.0, target=False)])
+    tick(r, sv)
+    assert t.exec.play.play != "fight"
+    assert [x for x in lines(tmp_path, TD.PLAYS_LOG) if x["kind"] == "play_end"][-1]["end"] == "lapsed"
+
+
+def test_a_seek_runs_on_when_its_zombie_turns_aware_or_comes_within_danger_r(tmp_path):
+    """The lapse reads an idle zombie beyond DANGER_R only: a chaser, or one within DANGER_R, is the tactician's own
+    `fight` rule's (two are fought one at a time, the nearest first)."""
+    r, sv, t = seek(tmp_path)
+    r.frame(zombies=[z(7, 107.5, 200.0, target=True), z(8, 100.0, 208.0, target=False)])
+    tick(r, sv)
+    assert t.exec.zid == 7
+    r, sv, t = seek(tmp_path / "b")
+    r.frame(zombies=[z(7, 105.5, 200.0, target=False), z(8, 100.0, 208.0, target=False)])
+    tick(r, sv)
+    assert t.exec.zid == 7
 
 
 def test_two_idle_zombies_within_engage_r_are_not_sought(tmp_path):
@@ -399,6 +483,85 @@ def test_each_play_s_starter_names_its_piece(meta, piece):
 
 
 def test_the_guards_are_the_tactician_s_three_and_the_crawler():
-    assert MD.GUARDS == ("hit", "swing", "fallen", "crawler") and set(MD.ADDED) == {"rule.clear", "guard.crawler"}
+    assert TD.GUARDS == ("hit", "swing", "fallen") and set(MD.ADDED) == {"rule.clear", "guard.crawler"}
     assert M.RULE_NAMES == F.RULE_NAMES[:5] + ("clear",) + F.RULE_NAMES[5:]
     assert X.MELEE_API == "1.10"                                 # Task 2's three-field MeleeInputs on main
+
+
+# ================================================================ the copies cannot drift (fix 1, finding 5)
+def _body(fn):
+    """`fn`'s source lines, dedented, its docstring and blank lines dropped, each line stripped of a trailing comment
+    that follows code."""
+    import ast
+    import inspect
+    import textwrap
+    src = textwrap.dedent(inspect.getsource(fn))
+    node = ast.parse(src).body[0]
+    doc = node.body[0] if isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant) else None
+    lines = src.splitlines()
+    skip = set(range(doc.lineno - 1, doc.end_lineno)) if doc is not None else set()
+    out = []
+    for i, ln in enumerate(lines):
+        if i in skip or not ln.strip():
+            continue
+        code = ln.split("   # ")[0].rstrip()
+        out.append(code)
+    return out
+
+
+def _diff(a, b):
+    import difflib
+    return [ln for ln in difflib.unified_diff(a, b, lineterm="", n=0)
+            if ln[:1] in "+-" and ln[:3] not in ("+++", "---")]
+
+
+ASSESS_DIFF = [
+    '-    prepare(sv)',
+    '+    TD.prepare(sv)',
+    '+    self._clear, self._clear_id = self._clear_label(view)',
+    '+    self._by_clear = False',
+    '+    started_at = self.play_id',
+    '-            if r["_play"] is not None and R.violations(self._masked(view), r["_play"].row()):',
+    '+            if r["_play"] is not None and self._veto(view, r["_play"].row()):',
+    '-            play, src, rule = self._table(view)',
+    '+            play, src, rule = self._doctrine(view) if why == "lapsed" else self._table(view)',
+    '+            if why == "rule" and self._by_clear:',
+    '+                rule = "clear"',
+    '-                            end="doctrine" if why in ("rule", "veto") else "replaced")',
+    '+                            end="doctrine" if why in ("rule", "veto") else ("lapsed" if why == "lapsed" else',
+    '+                                                                             "replaced"))',
+    '+                if rule == "clear":',
+    '+                    t = self.exec.target()',
+    '+                    self.meta["clear_why"] = "coming" if t is not None and chasing(t) else "idle"',
+    '+            elif why == "lapsed":',
+    '+                self.meta = dict(self.meta, source=src, rule=rule, clear_why=None)',
+    '+    piece = piece_of(self.meta)',
+    '+    target = line_play.get("target")',
+    '+    if target is None and isinstance(ex, X.DressExec):',
+    '+        target = ex.play.args.get("part")',
+    '+    inputs[STATE_KEY] = {"piece": piece, "clear_why": self.meta.get("clear_why"), "added": piece in ADDED,',
+    '+                         "started": self.play_id != started_at, "kind": ex.label, "play": ex.play.play,',
+    '+                         "target": target, "clear": self._clear_id}',
+]
+TABLE_DUE_DIFF = [
+    '+    if self._lapsed(ex):',
+    '+        return "lapsed"',
+    '-    if T.bound(masked):',
+    '+    if M.bound(masked):',
+    '-        if ans is not None and ans["play"] != ex.play.play:',
+    '+        lone = M.clear_due(masked)',
+    '+        if ans is not None and (ans["play"] != ex.play.play or (',
+    '+                lone and isinstance(ex, X.FightExec) and ex.zid != self._clear_id)):',
+    '+            self._by_clear = lone and not (M.fight_due(masked) or M.dress_due(masked))',
+    '-    if self.source is None and fired and (any(t in INTERRUPTS for t in fired) or ex.age() >= TABLE_HOLD_S):',
+    '+    if self.source is None and fired and (any(t in TD.INTERRUPTS for t in fired) or ex.age() >= TD.TABLE_HOLD_S):',
+]
+
+
+@pytest.mark.parametrize("name, named", [("assess", ASSESS_DIFF), ("_table_due", TABLE_DUE_DIFF)])
+def test_each_copied_body_differs_from_the_tactician_s_only_at_its_named_lines(name, named):
+    """Fix 1 (finding 5): `Mix1.assess` and `Mix1._table_due` are copies of the tactician's (829038d6); a change to the
+    tactician's body, or to the copy beyond the named lines, fails here, so a later tactician fix is carried by hand
+    and never lost silently."""
+    got = _diff(_body(getattr(TD.Tactician, name)), _body(getattr(MD.Mix1, name)))
+    assert got == named, "\n".join(got)
