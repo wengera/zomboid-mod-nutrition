@@ -102,3 +102,5 @@ testing/tests/pzagent/test_p_stance.py::test_with_no_zombie_the_target_legs_are_
 testing/tests/pzagent/test_a_pipe_2.py::test_a_clean_run_records_hello_build_chunked_scans_and_twenty_unvoided_legs
 testing/tests/pzagent/test_a_pipe_2.py::test_a_leg_whose_health_falls_or_meets_zombies_is_voided_and_excluded
 testing/tests/kernel/test_sodium_balance.py::test_the_heat_work_table_is_reported
+testing/tests/pzagent/test_utility_fit.py::test_the_tool_reproduces_its_artifact
+testing/tests/pzagent/test_utility_replay.py
