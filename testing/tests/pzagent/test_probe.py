@@ -3,11 +3,15 @@ the real `claude` CLI is never called; every test injects `run` and `which`.
 
 The tests are test_f_goals_16.py's own tests of `claude_available`, `probe_argv` and `claude_answers`, copied against
 the library (the driver's, through its `preboot`, stay in that file and stay green on the frozen copy), plus one
-fidelity test: the library's three functions are the frozen driver's, source for source."""
+fidelity test: the library's three functions are the frozen driver's, source for source. That test pins the copy only
+while the frozen driver file exists (it is skipped without it), and the one deliberate difference it normalises is the
+timeout's owner: the driver reads its own `LLM_TIMEOUT_S`, the library `L.LLM_TIMEOUT_S` of `planner/llm.py`."""
 import ast
 import json
 import os
 import subprocess
+
+import pytest
 
 from agent.base.planner import llm as L
 from agent.driverlib import probe as P
@@ -66,7 +70,7 @@ def test_claude_answers_is_ok_only_on_exit_0_with_a_result_text():
     assert set(r) == {"ok", "exit", "answer", "latency_s", "error"}
     assert len(seen) == 1                                                    # one call, read once
     argv, kw = seen[0]
-    assert kw["input"] == P.PROBE_INPUT and kw["input"].strip() and kw["timeout"] == P.LLM_TIMEOUT_S == 20.0
+    assert kw["input"] == P.PROBE_INPUT and kw["input"].strip() and kw["timeout"] == L.LLM_TIMEOUT_S
     assert kw["capture_output"] is True and kw["text"] is True
     r = P.claude_answers(run=lambda argv, **kw: Proc("", 1))
     assert r["ok"] is False and r["exit"] == 1 and r["error"] == "exit 1" and r["answer"] is None
@@ -158,12 +162,18 @@ def _constants(path, names):
     return out
 
 
+@pytest.mark.skipif(not os.path.isfile(FROZEN), reason="the frozen driver f_goals_16.py is absent")
 def test_the_three_functions_and_their_constants_are_the_frozen_drivers():
+    """Pins the copy only while the frozen driver exists: skipped without it. The library's `L.LLM_TIMEOUT_S` is read
+    as the driver's own `LLM_TIMEOUT_S` (the one difference, the constant's owner)."""
     names = {"claude_available", "probe_argv", "claude_answers"}
     lib = _segments(P.__file__, names)
+    lib = {n: t.replace("L.LLM_TIMEOUT_S", "LLM_TIMEOUT_S") for n, t in lib.items()}
     frozen = _segments(FROZEN, names)
     assert set(lib) == set(frozen) == names
     for name in names:
         assert lib[name].replace("\r\n", "\n") == frozen[name].replace("\r\n", "\n"), name
-    consts = {"LLM_TIMEOUT_S", "CLAUDE_VERSION_TIMEOUT_S", "PROBE_SYSTEM", "ERR_SNIPPET", "PROBE_INPUT"}
-    assert _constants(P.__file__, consts) == _constants(FROZEN, consts) and len(_constants(P.__file__, consts)) == 5
+    consts = {"CLAUDE_VERSION_TIMEOUT_S", "PROBE_SYSTEM", "ERR_SNIPPET", "PROBE_INPUT"}
+    assert _constants(P.__file__, consts) == _constants(FROZEN, consts) and len(_constants(P.__file__, consts)) == 4
+    assert _constants(FROZEN, {"LLM_TIMEOUT_S"}) == {"LLM_TIMEOUT_S": L.LLM_TIMEOUT_S}      # the driver's value is llm.py's
+    assert "LLM_TIMEOUT_S" not in vars(P)

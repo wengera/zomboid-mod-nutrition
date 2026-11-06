@@ -7,10 +7,10 @@ section 5, Writing a driver): a driver whose session calls the `claude` CLI make
 checks, `CLAUDECODE` stripped from the probe's environment, the exit code and a stderr snippet on failure, since a
 rate-limited account answers every call with exit 1 (F6) and `claude --version` does not touch the limit.
 
-The constants the three functions read are the driver's, copied with them: `LLM_TIMEOUT_S` (a probe answering later
-than the goal source's own limit refuses the boot), `CLAUDE_VERSION_TIMEOUT_S`, `PROBE_SYSTEM`, `ERR_SNIPPET` and
-`PROBE_INPUT`. `L` is the goal source's module (`planner/llm.py`: `DEFAULT_CLI`, `_cwd`), so the probe runs the
-LLMSource's own argv in the directory its worker gives the CLI. A caller's pre-boot stores `claude_available`'s dict
+The constants the three functions read are the driver's, copied with them: `CLAUDE_VERSION_TIMEOUT_S`,
+`PROBE_SYSTEM`, `ERR_SNIPPET` and `PROBE_INPUT`. `L` is the goal source's module (`planner/llm.py`: `DEFAULT_CLI`,
+`_cwd` and `LLM_TIMEOUT_S`, the one owner of the call's time limit: a probe answering later than the goal source's own
+limit refuses the boot), so the probe runs the LLMSource's own argv in the directory its worker gives the CLI. A caller's pre-boot stores `claude_available`'s dict
 and `claude_answers`'s (only when the CLI answers `--version`) and refuses the boot on an ok False. Nothing here
 calls the CLI unless a caller does: tests inject `run` and `which`.
 """
@@ -22,7 +22,6 @@ import time
 
 from agent.base.planner import llm as L
 
-LLM_TIMEOUT_S = 20.0                 # P23-11: a call answering later than this is a fallback
 CLAUDE_VERSION_TIMEOUT_S = 30
 PROBE_SYSTEM = "Reply with the single word ok."     # the probe's whole system prompt
 ERR_SNIPPET = 200                                   # characters of stderr and of stdout a refusal records
@@ -73,7 +72,7 @@ def claude_answers(cli=L.DEFAULT_CLI, run=subprocess.run, which=shutil.which):
     env.pop("CLAUDECODE", None)                          # as llm.py's worker does
     t0 = time.monotonic()
     try:
-        proc = run([exe] + argv[1:], input=PROBE_INPUT, timeout=LLM_TIMEOUT_S, cwd=L._cwd(), env=env,
+        proc = run([exe] + argv[1:], input=PROBE_INPUT, timeout=L.LLM_TIMEOUT_S, cwd=L._cwd(), env=env,
                    capture_output=True, text=True, encoding="utf-8", errors="replace")
     except Exception as e:                               # noqa: BLE001 - a CLI that cannot answer refuses the boot
         r["latency_s"] = round(time.monotonic() - t0, 3)
