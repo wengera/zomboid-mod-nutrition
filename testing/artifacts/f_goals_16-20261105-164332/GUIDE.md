@@ -134,7 +134,7 @@ The three `BiteDefended` runs left no wound. **The sixth wound frame, seq 12355,
 
 ## 5. The back steps and P30-A
 
-**What the swing close did.** `grade_f12.swing_close`: `held` 42 (the stance held at a chaser beyond `closeR`), `again` 1 (a225's second press, which knocked its zombie down), on 102 decision lines carrying `swing_close`. Every press but one went at or inside 1.0 tiles: a44 at 1.0924121141433716 and a238 at 1.130726933479309 (review-t3's note: rule 9's chase test is a strict per-tick fall of `d`, so a tick with no fall lets the swing go at the reach).
+**What the swing close did.** `grade_f12.swing_close`: `held` 42 (the stance held at a chaser beyond `closeR`), `again` 1 (a225's second press, which knocked its zombie down), on 102 decision lines carrying `swing_close`. Every press but two went at or inside 1.0 tiles: a44 at 1.0924121141433716 and a238 at 1.130726933479309 (review-t3's note: rule 9's chase test is a strict per-tick fall of `d`, so a tick with no fall lets the swing go at the reach).
 
 **The back steps.** 18 entries into the `back` step (`melee.steps.back` 18), read off the act lines:
 
