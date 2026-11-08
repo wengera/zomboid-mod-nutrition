@@ -38,8 +38,8 @@ LIB = os.path.dirname(S.__file__)
 
 # ================================================================ static: the package, its constants, its imports
 def test_the_defaults_are_the_briefs():
-    # MIN_FREE_GB is the one-client pre-boot floor, 10.0 since ruling P27-4c (2026-11-03; was 12.0)
-    want = {"BUDGET_S": 1200.0, "MIN_FREE_GB": 10.0, "DAY_CAP_S": 840, "PLANNER_HZ": 2, "SERVER_POLL_S": 60,
+    # MIN_FREE_GB: no pre-boot floor since Angus's ruling of 2026-11-08 (was 10.0 under P27-4c, 12.0 before it)
+    want = {"BUDGET_S": 1200.0, "MIN_FREE_GB": 0.0, "DAY_CAP_S": 840, "PLANNER_HZ": 2, "SERVER_POLL_S": 60,
             "DAMAGE_POLL_S": 5, "PERSIST_S": 30, "MEM_POLL_S": 300, "LIVE_MIN_FREE_GB": 0.5, "STOP_HEALTH": 0.0,
             "MEM_LOW_READS": 2, "BUS_DEAD_S": 60, "BUS_DEAD_POLLS": 2, "STORM_N": 10, "STORM_WINDOW_S": 60,
             "HELLO_TIMEOUT_S": 60.0, "FRAME_TIMEOUT_S": 10.0, "KIT": "Base.BaseballBat", "POLL_S": 0.1,
@@ -344,7 +344,7 @@ def test_make_day_session_is_the_one_chain_builder(tmp_path):
     names its planner, its extra record and its copied files."""
     assert DY.LIMITS == {"DAY_CAP_S": 840, "PLANNER_HZ": 2, "DAMAGE_POLL_S": 5}
     assert DY.CONSTANTS == dict(S.DEFAULTS, **DY.LIMITS, BUDGET_S=1200.0)
-    assert (DY.USER, DY.BUDGET_S, DY.MIN_FREE_GB) == ("admin", 1200.0, 10.0)
+    assert (DY.USER, DY.BUDGET_S, DY.MIN_FREE_GB) == ("admin", 1200.0, 0.0)
     xs = types.SimpleNamespace(copied=[], out=S.new_out(), user="admin", path=str(tmp_path / "a.json"))
     made = []
 

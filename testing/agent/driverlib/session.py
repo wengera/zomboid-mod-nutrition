@@ -118,7 +118,7 @@ DEATH_WINDOW_S = 300              # the damage records and frames a death record
 STOP_SETTLE_S = 2.0               # the loop's closing Stop: how long the pump waits for its act line and a later frame
 DEFAULTS = {
     "BUDGET_S": 1200.0,           # the wall budget from the end of the memory gate, the boot included
-    "MIN_FREE_GB": 10.0,          # the one-client pre-boot floor (CLAUDE.md § 5; ruling P27-4c, 2026-11-03: E17, E18 and F9 ran steady at 3.3 GB available from 12.0 to 16.6 before the boot, and the LIVE_MIN_FREE_GB stop guards the run)
+    "MIN_FREE_GB": 0.0,           # no pre-boot memory floor (Angus, 2026-11-08, CLAUDE.md § 5: a floor returns only when a session is shown to have failed for memory; F17 booted at 8.7 GB available; was 10.0 under ruling P27-4c, 12.0 before it); the reading is still ledgered and the LIVE_MIN_FREE_GB stop guards the run
     "DAY_CAP_S": 840,             # the loop's own wall time
     "PLANNER_HZ": 2,
     "SERVER_POLL_S": 60,          # stats.all and players

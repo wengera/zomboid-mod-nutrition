@@ -64,7 +64,7 @@ def test_the_constants_name_the_drivers_own_file_key_artifact_and_profile():
     assert (E.BUDGET_S, E.DAY_CAP_S, E.PLANNER_HZ, E.DAMAGE_POLL_S) == (1200.0, 840, 2, 5)
     assert E.LIMITS is DY.LIMITS and E.CONSTANTS is DY.CONSTANTS and E.USER is DY.USER == "admin"
     assert E.ALLOWED == ("--session", "--fixture", "--prev") and E.DEFAULT_FIXTURE == "agent"
-    assert E.MIN_FREE_GB == S.DEFAULTS["MIN_FREE_GB"] == 10.0
+    assert E.MIN_FREE_GB == S.DEFAULTS["MIN_FREE_GB"] == 0.0
     assert E.GRADE_KEY == "grade_x1" and E1.GRADE_KEY == "grade_e21"
 
 

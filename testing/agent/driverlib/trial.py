@@ -20,8 +20,8 @@ snapshot's timeout. The default five minutes with the model is 568 s, under the 
 
 THE BOOT (`boot_and_run`, a copy of `day.boot_and_run` with three edits): no `copy_run` (nothing is auto-copied into
 `testing/artifacts/`), no `next_steps` (no chain), no grade (the scorecard reads the run). The pre-boot checks
-(`preboot`): the profile on disk, `pzt doctor` clean, the profile's layout lint, the host's free memory at the floor
-(MIN_FREE_GB through `xlib.free_gb`), no game Java process (`pzt.doctor`'s own reader: the doctor only warns on one),
+(`preboot`): the profile on disk, `pzt doctor` clean, the profile's layout lint, the host's free memory read
+(MIN_FREE_GB through `xlib.free_gb`: no floor since Angus's ruling of 2026-11-08, a reading that cannot be taken refuses), no game Java process (`pzt.doctor`'s own reader: the doctor only warns on one),
 the fixture's record and cache (`fx.load`), the variant buildable (`variant_check`: Survive's `control` keyword and
 the variant loader), a `--make-fixture` name not taken, and the `claude -p` probe (`driverlib.probe`) only without
 `--no-llm`; every check's result in out["preboot"], a failure printed and exit 1 before anything starts. Then the
@@ -124,7 +124,7 @@ MAX_MINUTES = 60                     # a trial is short; a longer reading is an 
 # launch, the pre-boot about 10 s of it): with it the default five minutes fits the foreground cap (wall_bound); a
 # slower boot ends the loop early on the budget, named in out["stop"]
 BUDGET_EXTRA_S = 110.0
-MIN_FREE_GB = DS.DEFAULTS["MIN_FREE_GB"]     # the one-client floor, 10 GB (CLAUDE.md section 5)
+MIN_FREE_GB = DS.DEFAULTS["MIN_FREE_GB"]     # the pre-boot floor: 0.0, no floor (CLAUDE.md section 5, Angus 2026-11-08)
 TRIAL_JSON = "trial.json"
 TRIAL_DIFF = "trial.diff"
 STAMP = "TRIAL_STAMP.json"           # tools/trial_snapshot.py's stamp at the extracted tree's root

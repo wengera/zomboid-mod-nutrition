@@ -63,7 +63,7 @@ def test_the_constants_name_the_drivers_own_file_key_artifact_and_profile():
     assert E.LIMITS == {"DAY_CAP_S": 840, "PLANNER_HZ": 2, "DAMAGE_POLL_S": 5}
     assert E.CONSTANTS == dict(S.DEFAULTS, **E.LIMITS, BUDGET_S=1200.0)
     assert E.ALLOWED == ("--session", "--fixture", "--prev") and E.DEFAULT_FIXTURE == "agent" and E.USER == "admin"
-    assert E.MIN_FREE_GB == S.DEFAULTS["MIN_FREE_GB"] == 10.0   # the one-client floor since ruling P27-4c (was 12.0)
+    assert E.MIN_FREE_GB == S.DEFAULTS["MIN_FREE_GB"] == 0.0   # no floor since Angus's ruling of 2026-11-08 (was 10.0 under P27-4c, 12.0 before it)
     # M-8: the day's constants are day.py's, imported (one copy for e_day and f_goals)
     assert E.LIMITS is CH_DAY.LIMITS and E.CONSTANTS is CH_DAY.CONSTANTS and E.USER is CH_DAY.USER
 

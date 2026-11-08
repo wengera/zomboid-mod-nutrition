@@ -133,7 +133,7 @@ def test_the_constants_name_the_drivers_own_file_key_artifact_and_profile():
     assert os.path.basename(ME) == XT.DRIVER == XT.KEY + ".py" == "x_trial.py"
     assert (XT.KEY, XT.PROFILE, XT.ARTIFACT) == ("x_trial", "testing/profiles/agent.toml", "x_trial.json")
     assert os.path.isfile(os.path.join(REPO, XT.PROFILE))
-    assert TR.MIN_FREE_GB == S.DEFAULTS["MIN_FREE_GB"] == 10.0
+    assert TR.MIN_FREE_GB == S.DEFAULTS["MIN_FREE_GB"] == 0.0
     assert TR.DEFAULT_MINUTES == 5 and TR.DEFAULT_WAVES == "street" and TR.USER == "admin"
     src = open(ME, encoding="utf-8").read()
     assert ("TR.boot_and_run(args, lambda: TR.preboot(args, PROFILE), key=KEY, driver=DRIVER, artifact=ARTIFACT,"
@@ -590,8 +590,8 @@ def test_preboot_with_the_model_probes_once_and_refuses_on_a_failed_probe(agent_
 def test_preboot_refuses_each_failed_check(agent_fixture, monkeypatch):
     args = XT.flags(["--variant", "ladder", "--fixture", "agent", "--no-llm"])
     kw = {"which": _no_cli, "run": _no_cli}
-    assert _preboot(monkeypatch, args, free=lambda: 9.9, **kw)[1] is False
-    assert _preboot(monkeypatch, args, free=lambda: None, **kw)[1] is False
+    assert _preboot(monkeypatch, args, free=lambda: 9.9, **kw)[1] is True    # no floor (Angus, 2026-11-08): a low reading passes
+    assert _preboot(monkeypatch, args, free=lambda: None, **kw)[1] is False   # a reading that cannot be taken still refuses
     assert _preboot(monkeypatch, args, java_pids=lambda: ["4242"], **kw)[1] is False
 
     def unread():
