@@ -245,8 +245,6 @@ def test_the_regrade_e_grade_22_reads_the_artifact_folder_the_auto_copy_leaves(t
     assert text.splitlines()[-1] == "}" and "dresses" in text
 
 
-@pytest.mark.xfail(strict=True, reason="Survive.DRESS_MANEUVER is on by default only once Plan 31 Task 15a lands; "
-                   "the controller drops this marker at the re-base after it (review-t15b F4)")
 def test_the_dress_maneuver_is_on_by_default_in_the_planner_the_driver_builds():
     assert Survive.DRESS_MANEUVER is True
 

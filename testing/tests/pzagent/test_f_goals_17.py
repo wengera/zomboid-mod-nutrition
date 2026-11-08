@@ -340,8 +340,6 @@ def test_run_session_returns_the_session_and_the_worker_is_joined_after_the_tear
     assert out == {"llm_joined": True} and joins == [25.0]
 
 
-@pytest.mark.xfail(strict=True, reason="Survive.DRESS_MANEUVER is on by default only once Plan 31 Task 15a lands; "
-                   "the controller drops this marker at the re-base after it (review-t15b F4)")
 def test_the_dress_maneuver_is_on_by_default_in_the_planner_the_driver_builds():
     assert Survive.DRESS_MANEUVER is True
 
