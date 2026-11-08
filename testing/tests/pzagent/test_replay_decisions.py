@@ -867,7 +867,8 @@ def test_with_the_stand_decision_off_the_sixth_golden_is_f1_s_own(monkeypatch):
     the PZA/1.5 caps reach on F1's frames: no part bleeds, no square holds water, no goal is replayed).
     Named change, ruling P24-X (Plan 24 Task 18): read on the replay with P24-X off (`pre_x`), the rules it pins
     being earlier; P24-X re-recorded the golden from its line 1.
-    """
+    Named change, Plan 31 Task 15a: the chaser met in the stance; pinned with `CHASER_STANCE` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CHASER_STANCE", False)
     monkeypatch.setattr(S.Survive, "_stance_ok", lambda self, held, inside: False)
     got = {d["line"]: d for d in pre_run(SIXTH)}
     assert got == pre_gold("f1") and pre_moved_from_sixth(list(got.values()))[0] == 106

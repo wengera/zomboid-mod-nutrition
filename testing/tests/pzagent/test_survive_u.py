@@ -152,9 +152,11 @@ def test_an_unworn_cotton_garment_held_is_ripped_never_the_unwear(tmp_path):
     assert c._unwear_step()[0] is not None   # an unwear was possible, and the rip took precedence
 
 
-def test_after_the_unwear_s_done_the_still_worn_garment_waits_then_is_ripped_once_read_unworn(tmp_path):
+def test_after_the_unwear_s_done_the_still_worn_garment_waits_then_is_ripped_once_read_unworn(tmp_path, monkeypatch):
     """The settle (WEAR_SETTLE_MAX frames after the done while the garment still reads worn): nothing is unworn or
-    ripped; once the Lua's item_changed reads it unworn, the next care tick rips it (P24-AJ's `unworn_item`)."""
+    ripped; once the Lua's item_changed reads it unworn, the next care tick rips it (P24-AJ's `unworn_item`).
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = unwear_rig(tmp_path)
     tick(r, sv)
     assert r.cmd() == ("unwear", {"itemId": 20}) and care_why(tmp_path)["reason"] == "unwear"   # the bleeding step's
@@ -190,9 +192,11 @@ def goal_rig(tmp_path):
     return r, sv
 
 
-def test_through_survive_the_care_s_unwear_pre_empts_a_running_goal_on_a_quiet_tick(tmp_path):
+def test_through_survive_the_care_s_unwear_pre_empts_a_running_goal_on_a_quiet_tick(tmp_path, monkeypatch):
     """F4's 903 goal lines: the care branch, before the goal's, sends the unwear while the goal's loot runs; its line
-    is the care branch's with the why. With UNWEAR_WOUND off the goal keeps the tick (the stock waits for an idle one)."""
+    is the care branch's with the why. With UNWEAR_WOUND off the goal keeps the tick (the stock waits for an idle one).
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = goal_rig(tmp_path)
     goal_cmd = r.cmd()
     bleed(r)
@@ -208,9 +212,11 @@ def test_through_survive_the_care_s_unwear_pre_empts_a_running_goal_on_a_quiet_t
     assert not any(a.type == "unwear" for a in r2.acts.history)
 
 
-def test_with_the_switch_off_the_idle_stock_unwears_as_before(tmp_path):
+def test_with_the_switch_off_the_idle_stock_unwears_as_before(tmp_path, monkeypatch):
     """`Survive.UNWEAR_WOUND` off (`T4_SWITCHES`, the replay tests' `pre_t4`): P24-AJ's idle stock's unwear, its why under
-    the care's `stock`."""
+    the care's `stock`.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     assert S.T4_SWITCHES[0] == "UNWEAR_WOUND" and S.Survive.UNWEAR_WOUND is True   # named change, Plan 25 Task 8:
     # iteration 14's second half adds its switches after it (`test_survive_v`)
     r, sv = unwear_rig(tmp_path)

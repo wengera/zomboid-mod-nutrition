@@ -200,10 +200,11 @@ FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finis
                "floor_finish", "fallen_seek", "shove_close", "low_exit", "attack_reach",
                "point_blank_pin", "busy_retry", "floor_pain", "shove_back",
                "drift_stand", "circle", "approach_walk", "melee",
-               "route_cross", "close_idle", "swing_close")   # survival iterations 13 to 24's Fight
-                     # rules (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E; P27-G, P27-H,
-                     # P27-J, P27-K2; fix 2's P27-M and P27-N; P28-D, P28-C, P28-B2, P28-B3, P28-E, the approach walk;
-                     # the melee, cut 1 of the maneuver layer; P29-A's route, P29-C's close; P30-A's swing close),
+               "route_cross", "close_idle", "swing_close", "chaser_stance")   # survival iterations 13 to 24's
+                     # Fight rules and Plan 31's (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E;
+                     # P27-G, P27-H, P27-J, P27-K2; fix 2's P27-M and P27-N; P28-D, P28-C, P28-B2, P28-B3, P28-E, the
+                     # approach walk; the melee, cut 1 of the maneuver layer; P29-A's route, P29-C's close; P30-A's
+                     # swing close; Plan 31 Task 15a's chaser stance),
                      # each on in `rules`
                      # unless Survive's switch for it is off
 
@@ -246,6 +247,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         self._leg_read = None               # the last stance leg whose end observe() has read
         self._stand = None                  # (target id, wall of the stand clock's start, its health then)
         self._leg = None                    # the kind of the last stance leg sent: enter, stand, back or toward
+        self._chaser_leg = None             # the last aim the chaser stance sent (Plan 31 Task 15a), held by `busy`
         self.kill = None                    # this observe's kill: the target id its attack or aim read dead (P24-Q)
         self.ride = None                    # Survive sets it each tick: the riding bandage while one runs (P24-U)
         self._kill_read = None              # the last attack or aim whose result the kill read has seen
@@ -591,6 +593,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             return read is not None and read[0] == self._fence_leg
         if self.point_blank and self._leg == "stand":   # P28-B3: the drifted pin's stand holds while it comes
             return t[2] > CORNERED_R and self._drift_stands(t[1], t[2])
+        if self._chaser_leg is not None and self.last is self._chaser_leg:   # Task 15a: the chaser's stand holds
+            return t[2] > KEEP_R and self._chaser_stands(t[1], t[2])   # while it comes, to the melee's KEEP_R
         if self._back_leg is not None and self.last is self._back_leg[0]:   # P28-B2 (fix 1, M1): the leg after a miss
             if t[2] <= POINT_BLANK_R:   # held at point blank until the target left it, then the shove on its return
                 return not self._back_left
@@ -1019,6 +1023,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
                 self.why["ride"] = self.ride.aid           # until it ends, a target within reach excepted
                 return None
             return self._stance_leg(zid, z, d)   # P24-N: every leg of a standing fight is an aim, the first one too
+        if self._chaser_stands(z, d):   # Plan 31 Task 15a: a chaser within DANGER_R met in the stance, never walked to
+            self.why.update({"stance": True, "chaser_stance": True})
+            return self._stance_leg(zid, z, d, kind="stand")
         if self.approach or d > FIGHT_REACH:
             self._seek_send = self.seeking(t) and not self.approach   # P24-X: its failure marks the target
             if self._seek_send and d > AIM_R:           # beyond the aim's range the seek walks, never runs
@@ -1051,6 +1058,20 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             if self.reach_r() is not None:
                 self.why["attack"] = {"dist": d, "reach": self.world.weapon["reach"]}   # P27-M
         return Attack(zid)   # nearest_zombie yields int ids only (M7)
+
+    def _chaser_stands(self, z, d):
+        """Plan 31 Task 15a (`chaser_stance`, Survive's CHASER_STANCE; the ladder's street defect (a): round two's
+        trial 8, `x_trial-ladder-20261106-030051`, decision line 200: the stance count read 3, over MAX_FIGHT, so the
+        Fight was not in the stance and its approach walk sent an unaimed walkTo at 10095 chasing 5.39 tiles off, which
+        closed to 0.26 in 2 s and bit at 101.7 s; trial 12, `x_trial-ladder-20261106-031801`, sent four more on lines
+        433, 446, 452 and 492 at chasers 4.84 to 5.81 tiles off): pin `z`, `d` tiles off, standing (not `on_floor`)
+        and chasing, beyond FIGHT_REACH and within DANGER_R, the build announcing `aim`, no stand-off fallback (its aim
+        failed), no riding bandage (P24-U: an aim ends it): the stance's standing leg, the chaser faced while it comes,
+        so the meet owns the approach (the melee takes the leg within KEEP_R, `dispatch.FightDispatch._melee_mode`, and
+        the ladder's attack within FIGHT_REACH). Cost if wrong: a walk toward a chaser that would have closed anyway,
+        a few seconds of standing."""
+        return ("chaser_stance" in self.rules and self.world.can("aim") and not self.standoff and self.ride is None
+                and FIGHT_REACH < d <= DANGER_R and not on_floor(z) and chasing(z))
 
     def _stance_leg(self, zid, z, d, kind=None):
         """One stance leg (rulings P24-G 1 and P24-N): `aim` at the target for AIM_LEG_S (its `targetId`: the frames'
@@ -1146,6 +1167,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
                 self._backed[cmd.targetId] = self._shove_a.get(cmd.targetId)
                 self._back_leg, self._back_left = (action, cmd.targetId), False
             self._fence_leg = self.why["fence_wait"]["leg"] if "fence_wait" in self.why else None   # P25-F
+            self._chaser_leg = action if "chaser_stance" in self.why else None   # Plan 31 Task 15a
             if self._leg == "pull":
                 self._pulled = cmd.targetId   # P24-AN: kept to DISENGAGE_R from here (`_pull_waits`)
         elif cmd.TYPE == "walkTo":

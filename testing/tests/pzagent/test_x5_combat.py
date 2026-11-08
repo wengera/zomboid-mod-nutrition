@@ -16,6 +16,7 @@ import pytest
 
 from agent.base import gates as GT
 from agent.base import pza1
+from agent.base.planner import fight as F
 from agent.base.transport.files import FileTransport
 from agent.drivers import x5_combat as D
 from .fakemod import DEFAULT_FRAME, FakeMod
@@ -310,7 +311,11 @@ def run_x5(tmp_path, budget_s=1e9, **flags):
 
 @pytest.fixture(scope="module")
 def clean_run(tmp_path_factory):
-    return run_x5(tmp_path_factory.mktemp("x5"))
+    """Named change, Plan 31 Task 15a: the chaser met in the stance (the driver's Fight takes the live rules); pinned
+    with `chaser_stance` off."""
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(F, "FIGHT_RULES", tuple(r for r in F.FIGHT_RULES if r != "chaser_stance"))
+        return run_x5(tmp_path_factory.mktemp("x5"))
 
 
 def _act(lines, aid, states):

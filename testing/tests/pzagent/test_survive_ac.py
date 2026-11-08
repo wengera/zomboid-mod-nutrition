@@ -270,13 +270,15 @@ def test_the_flee_s_finish_under_a_hold_still_stomps(tmp_path, hold, monkeypatch
 def test_the_non_stance_fight_walks_to_a_zombie_beyond_fight_reach(tmp_path):
     """The spec's 1 (b) (ruling P27-9; E20's a190 ran 1.762922801715824 tiles into 3189, #4571): the approach-and-swing
     Fight's walk to a zombie beyond FIGHT_REACH goes at a walk, logged `leg` "walk"; with the `approach_walk` rule off
-    (Survive's APPROACH_WALK, fix 1's seventh switch) at a run."""
+    (Survive's APPROACH_WALK, fix 1's seventh switch) at a run. Named change, Plan 31 Task 15a: the chaser met in the
+    stance; pinned with `chaser_stance` off."""
     for on in (True, False):
         d = tmp_path / str(on)
         d.mkdir()
         r = Rig(d)
         r.frame(zombies=[z(7, 105.6, 200.2)])
         f = fight(r)
+        f.rules = f.rules - {"chaser_stance"}
         if not on:
             f.rules = f.rules - {"approach_walk"}
         f.step()
@@ -411,9 +413,11 @@ def test_the_lowest_health_part_is_dressed_first_then_the_least_index(tmp_path):
     assert c.choose().args()["part"] == 6
 
 
-def test_survive_dresses_the_wound_on_a_quiet_care_tick_and_not_with_wound_dress_off(tmp_path):
+def test_survive_dresses_the_wound_on_a_quiet_care_tick_and_not_with_wound_dress_off(tmp_path, monkeypatch):
     """The care branch of a Survive with no zombie listed: part 4 dressed (the care line's `reason` "wound"); a part so
-    dressed is left out until a newer frame (`fresh`, as a bleed's); with `WOUND_DRESS` off nothing is sent."""
+    dressed is left out until a newer frame (`fresh`, as a bleed's); with `WOUND_DRESS` off nothing is sent.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     for on in (True, False):
         d = tmp_path / str(on)
         d.mkdir()

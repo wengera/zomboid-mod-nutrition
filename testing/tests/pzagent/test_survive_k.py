@@ -282,9 +282,11 @@ def test_a_window_done_ends_the_route_and_logs_cut_and_wounds(tmp_path):
     assert (g.why["ended"], g.why["cut"], g.why["wounds"]) == ("window", True, 1)
 
 
-def test_the_care_branch_reads_the_wounds_after_a_window_whatever_cut_says(tmp_path):
+def test_the_care_branch_reads_the_wounds_after_a_window_whatever_cut_says(tmp_path, monkeypatch):
     """The window result's `cut` is unreliable in multiplayer: a window that ended done with `cut` false but a bleeding
-    part in the next frame is bandaged by the care branch (the frame's body parts are the truth), the goal superseded."""
+    part in the next frame is bandaged by the care branch (the frame's body parts are the truth), the goal superseded.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     r.scan(with_window(house(1, 110)))
     hold(r, 10, "Base.Bandage")

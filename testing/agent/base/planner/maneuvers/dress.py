@@ -3,7 +3,8 @@ of 2026-11-05, memory `stand-and-fight-dress-first`: the dressing first, even by
 one commitment from the stop to the dressing of one bleeding part, sent one command at a time under the maneuver
 contract (`base.Maneuver`: its owner calls `observe` every tick, asks `step` for the next command, sends it and tells
 `sent`; the Dress reads its own actions' ends and never sends itself). Every decider uses it: the variants, and the
-ladder's care branch behind Survive's `DRESS_MANEUVER` (`care.Care._dress_step`).
+ladder's care branch behind Survive's `DRESS_MANEUVER`, on by default since Plan 31 Task 15a
+(`care.Care._dress_step`).
 
 The reading behind it (F15, `f_goals_16-20261105-164332`, its `f_grade.txt`: "9 unwears sent, 0 done, rejected
 {'moving': 9}"; "bandage sent 3 done 1"): both hands bled undressed from game minute 587 to the death at 702, every
@@ -36,6 +37,13 @@ The sequence (`phase`, logged):
   the legs (index under `care.LEG_FIRST`) is bandaged with `keepMoving` and no stop, the caller's walk kept (the
   riding bandage runs until its own end, whatever leg the caller sends meanwhile); a leg or foot part never rides; a
   pick that finds no dressing held drops the ride and stops to tear.
+
+- The wound (`wound=True`, Plan 31 Task 15a: the ladder's street defect (b), two scratches undressed from 92.7 to
+  16.2 health): a part reading `wound` and not bleeding (a scratch drains its part where a bandage suppresses it,
+  #2364) is dressed the same way, a clean dressing first and the tear for one next, an unwashed rag only when there
+  is nothing else (#4299: under a dirty dressing the wound's infection odds about double against none, a judgment
+  against #2364's drain, which any bandage suppresses: trial 12's undressed scratches took the health from 92.7 to
+  16.2), never riding, and done once its record reads `bandaged` true.
 
 The ends (`over`, ENDS): `done` once the frame's record of the part reads `bleeding` false (or the frame's parts list
 no longer lists it); `failed` when the pick finds nothing held and nothing to tear (`why.fail` "nothing"), past
@@ -82,10 +90,12 @@ class Dress(Maneuver):
 
     name = "dress"
 
-    def __init__(self, world, actions, clock=time.time, part=None, ride=False):
+    def __init__(self, world, actions, clock=time.time, part=None, ride=False, wound=False):
         super().__init__(world, actions, clock)
         self.part = part        # the body part index this Dress dresses
-        self.ride = bool(ride) and isinstance(part, int) and not isinstance(part, bool) and part < C.LEG_FIRST
+        self.wound = bool(wound)   # Plan 31 Task 15a: a wound not bleeding (a scratch), dressed until it reads bandaged
+        self.ride = (bool(ride) and not self.wound and isinstance(part, int) and not isinstance(part, bool)
+                     and part < C.LEG_FIRST)
         self.phase = "pick" if self.ride else "stop"
         self.cmd = None         # the command the last `step` returned (its owner's `sent` routes by it)
         self.item = None        # the item the last command named
@@ -217,8 +227,11 @@ class Dress(Maneuver):
     def _choice(self):
         """`care.dress_pick` over this Dress's refusal memory, an unwashed rag taken (`dirty_ok`)."""
         p = self._record() or {}
-        return C.dress_pick(self.world, p.get("bleedingTime") or 0.0, held_out=self.held_out,
-                            unwear_at=self.unwear_at, prefer=self.garment, dirty_ok=True)
+        got = C.dress_pick(self.world, p.get("bleedingTime") or 0.0, held_out=self.held_out,
+                           unwear_at=self.unwear_at, prefer=self.garment, dirty_ok=not self.wound)
+        if got is None and self.wound:   # Task 15a: a scratch takes an unwashed rag only with nothing else to dress
+            got = C.dress_pick(self.world, 0.0, held_out=self.held_out, unwear_at=self.unwear_at, dirty_ok=True)
+        return got
 
     def _out(self, cmd):
         """`cmd` as the step's command, unless DRESS_SENDS were sent (the end failed "sends")."""
@@ -256,13 +269,14 @@ class Dress(Maneuver):
         return next((p for p in parts if isinstance(p, dict) and p.get("i") == self.part), None)
 
     def _check(self):
-        """The frame's ends: `done` once the part reads `bleeding` false (or a parts list no longer lists it); else
-        `superseded` with a standing zombie within KEEP_R."""
+        """The frame's ends: `done` once the part reads `bleeding` false (a wound Dress: `bandaged` true), or a parts
+        list no longer lists it; else `superseded` with a standing zombie within KEEP_R."""
         if self._end is not None:
             return
         parts = (self.world.body or {}).get("parts")
         rec = self._record()
-        if isinstance(parts, list) and (rec is None or rec.get("bleeding") is False):
+        dressed = rec is not None and (rec.get("bandaged") is True if self.wound else rec.get("bleeding") is False)
+        if isinstance(parts, list) and (rec is None or dressed):
             self._end = "done"
         elif standing(self.world, KEEP_R):
             self._end = "superseded"
@@ -270,5 +284,7 @@ class Dress(Maneuver):
     def _log(self):
         self.why = {"part": self.part, "phase": self.phase, "sends": self.n, "item": self.item, "kind": self.kind,
                     "ride": self.ride, "lost": self.lost, "moved": self.moved}
+        if self.wound:
+            self.why["wound"] = True   # Plan 31 Task 15a: a scratch's Dress
         if self.fail is not None:
             self.why["fail"] = self.fail

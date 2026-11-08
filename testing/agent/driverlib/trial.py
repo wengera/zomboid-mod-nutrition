@@ -134,9 +134,8 @@ MODEL = L.model_of(L.DEFAULT_CLI)
 SESSION_PATHS = ("testing/agent", "testing/PZAgent", "testing/PZTestKit", "testing/pzt", "testing/experiments")
 SWITCH_RX = re.compile(r"^T(\d+)_SWITCHES$")
 # the instance switches outside every T<n>_SWITCHES tuple that a trial records after them (Plan 31 Task 12): the Dress
-# maneuver (Task 8), off on the class for the goldens, on for the ladder arm (planner_factory)
+# maneuver (Task 8), on by default since Plan 31 Task 15a (so Task 12's ladder-arm override, 62776c14, is gone)
 EXTRA_SWITCHES = ("DRESS_MANEUVER",)
-LADDER_ON = {"DRESS_MANEUVER": True}   # the ladder arm L runs the Dress; a variant sets its own in its prepare
 TRIAL_KEYS = ("variant", "switches", "commit", "stamp", "dirty", "diff_sha256", "untracked", "provenance", "fixture",
               "minutes", "waves", "wave_plan", "no_llm", "goals", "teleport", "make_fixture", "detached", "wall_bound_s",
               "argv", "started_at", "end_pos", "end_health")
@@ -780,8 +779,8 @@ class HoldSource:
 def planner_factory(variant, no_llm, runner=None, goals=DEFAULT_GOALS):
     """Survive with `control=<variant>` over the scripted goal source (no_llm), the HoldSource (`goals` "hold"), else
     the LLMSource over the scripted source, goals.log beside the decision log; `runner` the CLI's (None: the real
-    one; tests inject a fake). The ladder arm takes LADDER_ON on its instance (never the class: Task 8's switch is
-    per instance), the Dress maneuver on; a variant sets its own switches in its `prepare`."""
+    one; tests inject a fake). Every arm runs Survive's own defaults (the Dress maneuver on since Plan 31 Task 15a);
+    a variant sets its own switches in its `prepare`."""
     def planner(world, actions, log_path, clock):
         if goals == "hold":
             source = HoldSource()
@@ -790,11 +789,7 @@ def planner_factory(variant, no_llm, runner=None, goals=DEFAULT_GOALS):
         else:
             source = L.LLMSource(ScriptedSource(), log_path=os.path.join(os.path.dirname(log_path), GOALS_LOG),
                                  timeout_s=L.LLM_TIMEOUT_S, clock=clock, runner=runner)
-        sv = Survive(world, actions, log_path, clock, source=source, control=variant)
-        if variant == "ladder":
-            for name, value in LADDER_ON.items():
-                setattr(sv, name, value)
-        return sv
+        return Survive(world, actions, log_path, clock, source=source, control=variant)
     return planner
 
 

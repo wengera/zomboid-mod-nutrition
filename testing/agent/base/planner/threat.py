@@ -221,6 +221,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # the reach and the back leg after every miss, as before. PZA/1.10 (Plan 31 Task 2) retired
                           # `closeR` and the back leg (the meet's press at the predicted collision): the rule reads
                           # nothing since, kept as iteration 24's record in T14_SWITCHES
+    CHASER_STANCE = True  # Plan 31 Task 15a (the ladder's street defect (a), in `survive.T15_SWITCHES`): a Fight not in
+                          # the stance meets a chasing pin within DANGER_R in the stance's standing leg, never a walk
+                          # toward it (`fight.Fight._chaser_stands`; the Fight's `chaser_stance` rule); off, the
+                          # approach walk (APPROACH_WALK) as before
     MELEE = True          # cut 1 of the maneuver layer: where the Fight's ladder would send an in-reach stance leg,
                           # an attack, a shove, a stomp or a floor swing at its pin, the melee maneuver to a build
                           # announcing `melee` (`dispatch.FightDispatch`); off, the ladder's command
@@ -894,6 +898,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.care_yield, self.care.ride_now, self.engaging, self.avoid = None, False, False, set()
         self.ride_flee = None   # P27-O: this tick's ride the health flee's clock admitted
         self.bleed_yield = None   # P26-D: this tick's yield the bleed's rule made
+        self.scratch_yield = None   # Plan 31 Task 15a: this tick's yield to a scratch's Dress
         self.bleed_held = False   # P26-L2: this tick's yield the dressing's hold made
         self.finish_block = None   # Task 36 fix 1: this tick's refusal only (`_finish_chaser` sets it)
         self.held_cut = None       # P29-H': this tick's cut flee walk (`flee.Flee.take_held_cut`)
@@ -965,6 +970,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             self.why = {"care": True, "nearest": self.care_yield, "held": len(held)}
             if self.care.ride_now:
                 self.why["ride"] = {"flee": self.ride_flee} if self.ride_flee else True   # P27-O: the health ride
+            if self.scratch_yield is not None:
+                self.why["care_yield"] = {"why": "scratch", "near": self.scratch_yield}   # Plan 31 Task 15a
             if self.bleed_yield is not None:
                 self.why["care_yield"] = {"why": "bleed", "near": self.bleed_yield}   # P26-D
                 if self.bleed_held:
@@ -1233,7 +1240,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("circle", self.CIRCLE), ("approach_walk", self.APPROACH_WALK),
                                                ("melee", self.MELEE), ("route_cross", self.ROUTE_CROSS),
                                                ("close_idle", self.CLOSE_IDLE),
-                                               ("swing_close", self.SWING_CLOSE))
+                                               ("swing_close", self.SWING_CLOSE),
+                                               ("chaser_stance", self.CHASER_STANCE))
                          if on)
 
     def _flee_rules(self):

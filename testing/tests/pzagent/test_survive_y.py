@@ -605,10 +605,12 @@ def test_a_zombie_within_fight_reach_keeps_the_threat_branch(tmp_path):
     assert "care_yield" not in threat_why(tmp_path)
 
 
-def test_a_closing_chaser_beyond_fight_reach_leaves_room_for_the_bandage(tmp_path):
+def test_a_closing_chaser_beyond_fight_reach_leaves_room_for_the_bandage(tmp_path, monkeypatch):
     """One chaser closing from 4.5 tiles (P24-P's closing read refuses it): on the Fight's second tick nothing within
     FIGHT_REACH, the nearest beyond POINT_BLANK_R, a dressing held: the bandage (standing), logged `care_yield`; with
-    the switch off the threat branch as before."""
+    the switch off the threat branch as before.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = fight_ticks(tmp_path, 4.5)
     assert last(tmp_path)["branch"] == "care" and r.cmd() == ("bandage", {"itemId": 10, "part": 2})
     assert threat_why(tmp_path)["care_yield"] == {"why": "bleed", "near": pytest.approx(4.4)}

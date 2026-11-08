@@ -173,10 +173,12 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
      inventory's first sight; never with no wound: Task 10 fix 1, the review's major 2), a spent bandage replaced
      with a clean one, a dirty rag washed at a known water source within `care.WASH_R` with no zombie within
      DISENGAGE_R; its own action holds the branch, the Sleep passes it, and a refused item waits
-     `care.CARE_RETRY_MIN` game minutes. Plan 31 Task 8 (`DRESS_MANEUVER`, off for the goldens): the bleeding step
-     is one `maneuvers.Dress` of the worst bleeding part (`dispatch.MANEUVERS`; `care.Care._dress_step`), which
-     stops, tears a garment when nothing is held and bandages, its waits holding the branch's tick and its sends
-     never cooled (`assess`).
+     `care.CARE_RETRY_MIN` game minutes. Plan 31 Task 8 (`DRESS_MANEUVER`, on by default since Task 15a, ruling
+     P31-H; no golden reaches the care branch): the bleeding step is one `maneuvers.Dress` of the worst bleeding part
+     (`dispatch.MANEUVERS`; `care.Care._dress_step`), which stops, tears a garment when nothing is held and bandages,
+     its waits holding the branch's tick and its sends never cooled (`assess`). Plan 31 Task 15a (`SCRATCH_DRESS`): a
+     wound not bleeding is one Dress too once no zombie stands within KEEP_R (`care.Care.scratch_wanted`), the threat
+     branch yielding to it (`care_yield.CareYield._wound_yields`), in place of P28-A's wound step.
   3. The water chain (`_need`, then `planner/water.py`'s `Water`, its docstring the record since refactor A): thirst
      over THIRST_T drinks a held `water` item, a clean one first (`World.tainted_ids` only with none clean); with
      none, a held `container` is filled (`fill`) at the nearest known clean source (`Water.plan`), its done marking the
@@ -332,6 +334,11 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     (`still.py`'s module docstring the rule); P30-F, a running dressing on a part bleeding faster than BLEED_FAST a
     game minute waited on by the flee with a zombie within DANGER_R too, superseded only within KEEP_R
     (`threat.Threat._dress_waits`); `T14_SWITCHES` (SWING_CLOSE, GOAL_CONTINUE, DOOR_HELD, SNEAK, STILL, DRESS_RIDE).
+    Plan 31 Task 15a (Harden, the ladder's two street defects of round two's trials): a Fight not in the stance meets a
+    chasing pin within DANGER_R in the stance's standing leg, never the approach walk toward it
+    (`fight.Fight._chaser_stands`); a wound not bleeding is one Dress once no zombie stands within KEEP_R, the threat
+    branch yielding to it (`care.Care.scratch_wanted`, `care_yield.CareYield._wound_yields`); `T15_SWITCHES`
+    (CHASER_STANCE, SCRATCH_DRESS).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -477,6 +484,10 @@ T14_SWITCHES = ("SWING_CLOSE", "GOAL_CONTINUE", "DOOR_HELD", "SNEAK", "STILL", "
 # survival iteration 24 (Plan 30 Task 3): P30-A on `threat.Threat` (SWING_CLOSE, the Fight's `swing_close` rule); P30-B
 # on `Survive` (GOAL_CONTINUE, copied to the goal runner); P30-C on `door_held.ThreatDoorHeld` (DOOR_HELD); P30-D on
 # `sneak.SneakGait` (SNEAK); P30-E on `still.ThreatStill` (STILL); P30-F on `threat.Threat` (DRESS_RIDE)
+T15_SWITCHES = ("CHASER_STANCE", "SCRATCH_DRESS")
+# Plan 31 Task 15a (Harden, the ladder's two street defects): (a) on `threat.Threat` (CHASER_STANCE, the Fight's
+# `chaser_stance` rule); (b) on `Survive` (SCRATCH_DRESS: the wound Dress and the threat branch's yield to it, copied to
+# the Care and read by `care_yield.CareYield._wound_yields`)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -498,7 +509,7 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "NEED_STATS", "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_RETRY_MIN", "FILL_SETTLE_S", "FILL_WANTS",
            "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T3_SWITCHES",
            "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES", "T7_SWITCHES", "T8_SWITCHES", "T9_SWITCHES", "T10_SWITCHES",
-           "T11_SWITCHES", "T12_SWITCHES", "T13_SWITCHES", "T14_SWITCHES"]
+           "T11_SWITCHES", "T12_SWITCHES", "T13_SWITCHES", "T14_SWITCHES", "T15_SWITCHES"]
 
 
 @dataclass
@@ -517,12 +528,20 @@ def _key(typ, args):
 
 
 class Survive(SneakGait, Threat):
-    DRESS_MANEUVER = False  # Plan 31 Task 8 (the spec's § 4 item 3; F15's nine unwears refused `moving`): the
+    DRESS_MANEUVER = True   # Plan 31 Task 8 (the spec's § 4 item 3; F15's nine unwears refused `moving`): the
                             # care branch's bleeding step is one Dress maneuver (`maneuvers.dress`, set on the Care
                             # each care tick: `care.Care._dress_step`) in place of its bandage, rip and unwear
-                            # sends; off (the default, the ladder's goldens), the bleeding step's own sends. A driver
-                            # turns it on for its own planner, `sv.DRESS_MANEUVER = True`, never on the class (fix
-                            # 1, review-t8 m4: a class edit leaks into every later Survive in the process)
+                            # sends; off, the bleeding step's own sends (the rule before it, which the earlier
+                            # rules' unit tests pin with it off). On by default since Plan 31 Task 15a (ruling
+                            # P31-H: the composition hardened is the ladder with the Dress; no golden reaches the
+                            # care branch, so none moved). A test or a driver sets it on its own planner,
+                            # `sv.DRESS_MANEUVER = False`, never on the class (fix 1, review-t8 m4: a class edit
+                            # leaks into every later Survive in the process)
+    SCRATCH_DRESS = True    # Plan 31 Task 15a (the ladder's street defect (b), in T15_SWITCHES): with DRESS_MANEUVER, a
+                            # wound not bleeding is one Dress (tearing a garment when nothing is held) once no zombie
+                            # stands within KEEP_R (`care.Care.scratch_wanted`), and the threat branch yields to it
+                            # (`care_yield.CareYield._wound_yields`); off, P28-A's wound step as before. Set on the
+                            # Care each tick (`_read`)
     UNWEAR_WOUND = True   # ruling P25-H (Plan 25 Task 7): the care branch's bleeding step unwears a garment to rip on
                           # any quiet care tick (`care.Care._wound`); off, only the idle stock does (P24-AJ). In
                           # T4_SWITCHES, the replay tests' seam onto the goldens before Task 7 (`pre_t4`)
@@ -623,6 +642,7 @@ class Survive(SneakGait, Threat):
         self.stand_end = None     # this tick: any end the doorway stand took (`doorway_left`): the why only
         self.care_yield = None    # this tick: the nearest zombie's tiles when the threat yielded to the care (P24-P)
         self.bleed_yield = None   # this tick: those tiles when the yield was the bleed's rule's alone (P26-D)
+        self.scratch_yield = None   # this tick: those tiles when the yield was a scratch's Dress's (Plan 31 Task 15a)
         self.bleed_held = False   # this tick: that yield was made by the dressing's hold alone (P26-L2)
         self.bleed_dressing = None   # the last bandage the care sent, when the bleed's yield made its tick (P26-L2)
         self.flee_reason = None   # the running flee's reason at its last decision, else None (P26-D's `pair` and
@@ -1132,6 +1152,7 @@ class Survive(SneakGait, Threat):
         self.care.wear_worn = self.WEAR_WORN   # P26-E: read by the Care's observe (`_read_observes`)
         self.care.spent_keep = self.SPENT_KEEP   # P27-D: read by the Care's choose
         self.care.stock_early = self.STOCK_EARLY   # P27-K1: read by the threat branch's care yield (`_care_yields`)
+        self.care.scratch_dress = self.SCRATCH_DRESS and self.DRESS_MANEUVER   # Task 15a: read by the yield too
         self.goals.stuck_leave = self.STUCK_LEAVE   # P27-F: read by the goal runner's observe, below
         self.goals.goal_stall = self.GOAL_STALL   # P29-B: read by the goal runner's observe, below
         self.goals.goal_continue = self.GOAL_CONTINUE   # P30-B: read by the goal runner's tick

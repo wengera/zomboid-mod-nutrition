@@ -116,11 +116,12 @@ def all_sends_valid(rig):
 # ================================================================ Fight
 def test_fight_walks_at_a_run_to_the_zombie_square_beyond_reach_then_attacks_within_it(tmp_path):
     """Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
-    rule before it (the non-stance Fight's walk to a zombie at a run)."""
+    rule before it (the non-stance Fight's walk to a zombie at a run). Named change, Plan 31 Task 15a: the chaser met
+    in the stance; pinned with `chaser_stance` off."""
     r = Rig(tmp_path)
     r.frame(zombies=[zombie(7, 105.6, 200.2)])
     f = Fight(r.world, r.acts, r.clock)
-    f.rules = f.rules - {"approach_walk"}
+    f.rules = f.rules - {"approach_walk", "chaser_stance"}
     a = f.step()
     assert a is not None and r.cmd() == ("walkTo", {"x": 105.5, "y": 200.5, "gait": "run"})
     r.frame(zombies=[zombie(7, 104.0, 200.0)])
@@ -306,11 +307,12 @@ def test_the_unreachable_memory_is_shared_with_a_later_fight(tmp_path):
 
 def test_a_nil_id_zombie_is_never_a_target(tmp_path):
     """Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
-    rule before it (the non-stance Fight's walk to a zombie at a run)."""
+    rule before it (the non-stance Fight's walk to a zombie at a run). Named change, Plan 31 Task 15a: the chaser met
+    in the stance; pinned with `chaser_stance` off."""
     r = Rig(tmp_path)
     r.frame(zombies=[dict(zombie(7, 101.0, 200.0), id=None)])
     f = Fight(r.world, r.acts, r.clock)
-    f.rules = f.rules - {"approach_walk"}
+    f.rules = f.rules - {"approach_walk", "chaser_stance"}
     assert f.step() is None and r.acts.history == []
     r.frame(zombies=[dict(zombie(7, 101.0, 200.0), id=None), zombie(8, 103.0, 200.0)])
     f.step()
@@ -811,11 +813,12 @@ def test_a_dead_pinned_target_is_dropped_and_the_fight_re_pins_the_nearest(tmp_p
 
 def test_a_pinned_target_beyond_disengage_r_is_dropped(tmp_path):
     """Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
-    rule before it (the non-stance Fight's walk to a zombie at a run)."""
+    rule before it (the non-stance Fight's walk to a zombie at a run). Named change, Plan 31 Task 15a: the chaser met
+    in the stance; pinned with `chaser_stance` off."""
     r = Rig(tmp_path)
     r.frame(zombies=[zombie(7, 101.5, 200.0), zombie(8, 103.0, 200.0)])
     f = Fight(r.world, r.acts, r.clock)
-    f.rules = f.rules - {"approach_walk"}
+    f.rules = f.rules - {"approach_walk", "chaser_stance"}
     f.step()
     r.answer({"state": "done", "result": swing(True)})
     r.frame(zombies=[zombie(7, 111.0, 200.0), zombie(8, 103.0, 200.0)])   # 7 at 11 tiles: beyond DISENGAGE_R
@@ -825,11 +828,12 @@ def test_a_pinned_target_beyond_disengage_r_is_dropped(tmp_path):
 
 def test_the_target_keyword_pins_from_the_start(tmp_path):
     """Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
-    rule before it (the non-stance Fight's walk to a zombie at a run)."""
+    rule before it (the non-stance Fight's walk to a zombie at a run). Named change, Plan 31 Task 15a: the chaser met
+    in the stance; pinned with `chaser_stance` off."""
     r = Rig(tmp_path)
     r.frame(zombies=[zombie(7, 101.0, 200.0), zombie(9, 104.0, 200.0)])
     f = Fight(r.world, r.acts, r.clock, target=9)
-    f.rules = f.rules - {"approach_walk"}
+    f.rules = f.rules - {"approach_walk", "chaser_stance"}
     f.step()
     assert r.cmd() == ("walkTo", {"x": 104.5, "y": 200.5, "gait": "run"}) and f.why["target"] == 9
     assert f.why["pinned"] is True

@@ -256,9 +256,11 @@ def test_the_many_flee_s_finish_sends_no_floor_strike_unarmed(tmp_path):
 TWO_IN = [z(1, 100.5, 202.5), z(2, 102.5, 200.5)]   # two zombies 2 tiles off in the closed room: the unarmed flee
 
 
-def test_trapped_a_bleeding_part_is_bandaged_with_the_held_bandage(tmp_path):
+def test_trapped_a_bleeding_part_is_bandaged_with_the_held_bandage(tmp_path, monkeypatch):
     """F5: five parts bleeding, a bandage and four rags held, 215 `trapped` lines sending nothing: the trapped hold
-    passes the tick to the care, which bandages the bleeding part (no ride); the threat's why keeps `trapped`."""
+    passes the tick to the care, which bandages the bleeding part (no ride); the threat's why keeps `trapped`.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     r.scan(closed_room())
     hold(r, 501, "Base.Bandage")
@@ -271,7 +273,9 @@ def test_trapped_a_bleeding_part_is_bandaged_with_the_held_bandage(tmp_path):
     assert d["inputs"]["branches"]["threat"]["flee"] == "unarmed" and care_why(tmp_path)["reason"] == "bleeding"
 
 
-def test_trapped_the_running_bandage_holds_the_care_s_tick(tmp_path):
+def test_trapped_the_running_bandage_holds_the_care_s_tick(tmp_path, monkeypatch):
+    """Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     r.scan(closed_room())
     hold(r, 501, "Base.Bandage")
@@ -286,9 +290,11 @@ def test_trapped_the_running_bandage_holds_the_care_s_tick(tmp_path):
     assert d["branch"] == "care" and "holding" in care_why(tmp_path) and sends(r) == ["bandage"]
 
 
-def test_trapped_with_no_dressing_and_a_worn_cotton_garment_the_unwear(tmp_path):
+def test_trapped_with_no_dressing_and_a_worn_cotton_garment_the_unwear(tmp_path, monkeypatch):
     """P25-H's unwear on the trapped hold's tick (quiet reads false with the zombies in the room; the trapped tick
-    counts as quiet for the unwear, never for the wash): the T-shirt covering the least comes off."""
+    counts as quiet for the unwear, never for the wash): the T-shirt covering the least comes off.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = unwear_rig(tmp_path)
     r.scan(closed_room())
     care_frame(r, [part(9, bleeding=True, bleedingTime=14.7)], x=TRAP_ME[0], y=TRAP_ME[1], zombies=TWO_IN,

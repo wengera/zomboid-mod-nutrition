@@ -119,13 +119,15 @@ def test_the_unwear_never_list():
     assert not any(C.UNWEAR_NEVER.search(loc) for loc in (TSHIRT, SHIRT, "base:socks", "base:underwearbottom"))
 
 
-def test_the_chain_unwears_the_least_covering_cotton_garment_then_rips_it(tmp_path):
+def test_the_chain_unwears_the_least_covering_cotton_garment_then_rips_it(tmp_path, monkeypatch):
     """P24-AJ: nothing to dress part 9 and nothing unworn to rip: the quiet tick unwears the T-shirt (covering 3,
     less than the shirt's 7; never the trousers or the shoes), its line the care branch's; while its done is read but
     the garment still reads worn nothing else is unworn; once the item_changed reads it unworn the bleeding step rips
     that same garment (`no_rag`). Named change, ruling P25-H (Plan 25 Task 7): the bleeding step itself takes the
     unwear (its why the care's own, with the part), ahead of the idle stock; with `UNWEAR_WOUND` off the stock's
-    (`stock` `unwear`) as before."""
+    (`stock` `unwear`) as before.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = unwear_rig(tmp_path)
     tick(r, sv)
     assert r.cmd() == ("unwear", {"itemId": 20}) and last(tmp_path)["branch"] == "care"
@@ -146,9 +148,11 @@ def test_the_chain_unwears_the_least_covering_cotton_garment_then_rips_it(tmp_pa
     all_sends_valid(r)
 
 
-def test_the_rip_takes_the_unworn_garment_before_any_other(tmp_path):
+def test_the_rip_takes_the_unworn_garment_before_any_other(tmp_path, monkeypatch):
     """P24-AJ: the rip is on the same item: with a lower-id unworn cotton garment looted meanwhile, the unworn one
-    goes first."""
+    goes first.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = unwear_rig(tmp_path)
     tick(r, sv)
     unworn(r, 20)

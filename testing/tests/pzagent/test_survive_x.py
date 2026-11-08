@@ -240,9 +240,11 @@ def test_a_stand_ended_drag_at_the_door_with_the_way_out_taken_holds_trapped_nev
     assert not closes(r) and sv.flee.plan is None
 
 
-def test_with_no_way_out_the_trapped_hold_passes_the_tick_to_the_care(tmp_path):
+def test_with_no_way_out_the_trapped_hold_passes_the_tick_to_the_care(tmp_path, monkeypatch):
     """P25-Q's care on the end's trapped tick: a zombie outside nearer the door's outside square than the player
-    refuses the way out; the wound end's tick holds trapped and the care bandages the new bleeding part."""
+    refuses the way out; the wound end's tick holds trapped and the care bandages the new bleeding part.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     from .test_survive_g import hold
     from .test_survive import last
     r, sv = stood(tmp_path)
@@ -620,38 +622,49 @@ def test_the_iteration_16_care_switch():
     assert S.T6_SWITCHES[-1] == "DIRTY_RAG_RIP" and vars(S.Survive)["DIRTY_RAG_RIP"] is True
 
 
-def test_a_dirty_rag_alone_under_dirty_rag_min_no_longer_blocks_the_rip_of_an_unworn_garment(tmp_path):
+def test_a_dirty_rag_alone_under_dirty_rag_min_no_longer_blocks_the_rip_of_an_unworn_garment(tmp_path, monkeypatch):
     """P25-Y (F6: part 3 bled from game minute 701 to 743 with a dirty rag the only dressing and a cotton T-shirt held
     unworn): bleedingTime 3.0, under DIRTY_RAG_MIN: the garment is ripped, logged `no_rag` with the dirty rag's id
-    (`dirty`); the next care tick the clean rag dresses the part."""
+    (`dirty`); the next care tick the clean rag dresses the part.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = _dirty_rig(tmp_path, [(12, "Base.RippedSheetsDirty")])
     assert r.cmd() == ("rip", {"itemId": 30})
     assert care_why(tmp_path) == {"reason": "no_rag", "part": 9, "item": 30, "dirty": 12}
 
 
-def test_with_a_clean_rag_held_the_part_is_bandaged_with_it_never_the_rip(tmp_path):
+def test_with_a_clean_rag_held_the_part_is_bandaged_with_it_never_the_rip(tmp_path, monkeypatch):
+    """Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = _dirty_rig(tmp_path, [(12, "Base.RippedSheetsDirty"), (11, "Base.RippedSheets")])
     assert r.cmd() == ("bandage", {"itemId": 11, "part": 9})
     assert care_why(tmp_path)["kind"] == "rag"
 
 
-def test_past_dirty_rag_min_the_dirty_rag_dresses_the_part_as_before(tmp_path):
+def test_past_dirty_rag_min_the_dirty_rag_dresses_the_part_as_before(tmp_path, monkeypatch):
+    """Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = _dirty_rig(tmp_path, [(12, "Base.RippedSheetsDirty")], bleeding_time=12.0)
     assert r.cmd() == ("bandage", {"itemId": 12, "part": 9}) and care_why(tmp_path)["kind"] == "dirty"
 
 
-def test_a_dirty_rag_alone_with_no_garment_unworn_takes_the_unwear_of_a_worn_cotton_one(tmp_path):
+def test_a_dirty_rag_alone_with_no_garment_unworn_takes_the_unwear_of_a_worn_cotton_one(tmp_path, monkeypatch):
     """P25-H's unwear behind the same block: no unworn garment, a worn cotton T-shirt, a quiet tick: the unwear, logged
-    with the dirty rag's id."""
+    with the dirty rag's id.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = _dirty_rig(tmp_path, [(12, "Base.RippedSheetsDirty")], unworn=False,
                        garments=[(20, "Base.Tshirt_White", TSHIRT, 1.0, 2.0)])
     assert r.cmd() == ("unwear", {"itemId": 20})
     assert care_why(tmp_path) == {"reason": "unwear", "item": 20, "loc": TSHIRT, "cover": 3.0, "part": 9, "dirty": 12}
 
 
-def test_with_dirty_rag_rip_off_a_dirty_rag_held_blocks_the_rip_and_the_unwear_as_in_iteration_15(tmp_path):
+def test_with_dirty_rag_rip_off_a_dirty_rag_held_blocks_the_rip_and_the_unwear_as_in_iteration_15(tmp_path,
+                                                                                                  monkeypatch):
     """Named change, ruling P27-K1 (Plan 27 Task 5): pinned with `STOCK_EARLY` off (on, the stock's early rip counts
-    the clean dressings alone, so the unworn T-shirt is ripped whatever the dirty rag: `test_survive_ab`)."""
+    the clean dressings alone, so the unworn T-shirt is ripped whatever the dirty rag: `test_survive_ab`).
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = _dirty_rig(tmp_path, [(12, "Base.RippedSheetsDirty")], switch=False, stock_early=False)
     assert last(tmp_path)["branch"] != "care" and not [a for a in r.acts.history if a.type in ("rip", "unwear")]
     (tmp_path / "w").mkdir()

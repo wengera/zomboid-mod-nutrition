@@ -767,10 +767,12 @@ def test_f10_s_wound_rip_under_the_flee_is_held_while_the_nearest_stays_beyond_c
             assert a.type == "steer" and r.acts.history[-1] is a
 
 
-def test_the_bleed_s_yield_under_a_fight_takes_the_wound_s_rip(tmp_path):
+def test_the_bleed_s_yield_under_a_fight_takes_the_wound_s_rip(tmp_path, monkeypatch):
     """P26-D's yield (a Fight's tick with no zombie within FIGHT_REACH, the nearest within CARE_R) with nothing to
     dress part 7 but the T-shirt: the rip goes (the threat why's `care_yield` {why bleed}, the care line's
-    `stock_early` {branch yield}); with `STOCK_EARLY` off the yield takes a dressing only and the Fight answers."""
+    `stock_early` {branch yield}); with `STOCK_EARLY` off the yield takes a dressing only and the Fight answers.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     one = [z(1, 103.0)]
     for on in (True, False):
         d = tmp_path / str(on)
@@ -1252,11 +1254,13 @@ def ridden(r):
     return [a for a in r.acts.history if a.type == "bandage" and a.args.get("keepMoving") is True]
 
 
-def test_e20_s_health_flee_rides_the_bandage_once_flee_care_s_have_passed_whatever_the_distance(tmp_path):
+def test_e20_s_health_flee_rides_the_bandage_once_flee_care_s_have_passed_whatever_the_distance(tmp_path, monkeypatch):
     """E20's `health` flee (98 lines, lines 748 to 845; 3189 chasing 1.283800888761518 to 5.083229199369507 tiles
     behind, inside RIDE_R; no dressing sent with six held while parts 9 and 7 bled): FLEE_CARE_S after the flee began
     with a part bleeding, the chaser 2.0 tiles behind, the bandage rides the flee's running leg (`keepMoving`) on the
-    worst part above the legs, logged `ride` {flee "health"}."""
+    worst part above the legs, logged `ride` {flee "health"}.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = health_flee(tmp_path, 102.0, since=C.FLEE_CARE_S)
     assert len(ridden(r)) == 1 and r.cmd()[0] == "bandage" and r.cmd()[1]["keepMoving"] is True
     w = threat_why(tmp_path)

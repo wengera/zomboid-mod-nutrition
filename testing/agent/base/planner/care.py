@@ -124,19 +124,25 @@ corrects.
 The item choice (Plan 31 Task 8) is a set of pure reads of the World and a caller's refusal memory (`held_dressings`,
 `dressing_pick`, `rip_pick`, `unwear_pick`, and the Dress maneuver's whole order `dress_pick`), which the care branch
 reads with its own `held_out` and `unwear_at` and the Dress (`maneuvers.dress`) with its own. Survive's
-`DRESS_MANEUVER` (off: the ladder's goldens) sets `dress_cls`, and the bleeding step is then one `Dress` of the worst
-bleeding part in place of its three sends (`_dress_step`): the Dress's commands go through this policy (`sent` hands
+`DRESS_MANEUVER` (on by default since Plan 31 Task 15a) sets `dress_cls`, and the bleeding step is then one `Dress` of
+the worst bleeding part in place of its three sends (`_dress_step`): the Dress's commands go through this policy (`sent` hands
 them to it, `owns` names them, and a riding bandage of the Dress is recorded as `ride`, so every P24-U reader and
 RIDE_RETRY_S read it), its waits hold the care branch's tick (`dressing`), and each end is logged once (`dress_end`, a
 list); the spent, wound and wash steps follow as before when no Dress runs. Fix 1 (review-t8): no new Dress after a
 failed one until the inventory gains an item or DRESS_RETRY_S pass, and on a ride tick no standing Dress is stepped
-and nothing but a riding bandage is sent (`_dress_step`).
+and nothing but a riding bandage is sent (`_dress_step`). Plan 31 Task 15a (Survive's SCRATCH_DRESS, `scratch_dress`):
+with no part bleeding, a wound not bleeding (P28-A's `_wounds`) is one Dress too (`wound`: done once the part reads
+bandaged, an unwashed rag only as its last resort), started once no zombie stands within KEEP_R and something can be
+put on or torn (`scratch_wanted`, which the threat branch's yield reads), in place of P28-A's wound step and its
+WOUND_RESERVE (the Dress tears what a later bleed needs); a bleed drops a running scratch's Dress (`dress_end` {end
+"bleed"}); a scratch no Dress started is logged `wound_held` {part, standing}.
 """
 import math
 import re
 import time
 
-from agent.base.planner.policies import SPENT_REDRESS_BT, WOUND_RESERVE, Policy, PREEMPTED, item_id_ok
+from agent.base.planner.policies import (KEEP_R, SPENT_REDRESS_BT, WOUND_RESERVE, Policy, PREEMPTED, item_id_ok,
+                                         standing)
 from agent.base.pza1 import Bandage, Drop, Rip, Unwear, Wash, Wear
 from agent.base.world import me_floor
 
@@ -394,6 +400,8 @@ class Care(Policy):
         self.dress_cls = None     # Plan 31 Task 8 (Survive's DRESS_MANEUVER, set each care tick): the maneuver class the
                                   # bleeding step starts in place of its three sends (`maneuvers.Dress`); None, the
                                   # bleeding step's own sends, the rule before it
+        self.scratch_dress = False   # Plan 31 Task 15a (Survive's SCRATCH_DRESS with DRESS_MANEUVER, set each tick): a
+                                     # wound not bleeding is one Dress too (`_dress_step`), in place of P28-A's step
         self.dress = None         # the running Dress (`_dress_step`), else None
         self.dress_end = []       # the ended Dresses' logs, each with its end, put on the next choose's why once
                                   # (`dress_end`, a list: fix 1, m2, two may end in one call)
@@ -754,6 +762,8 @@ class Care(Policy):
         and no garment to rip (`rip` announced and `_rip_item`)."""
         if not self.wound_dress or not self._wounds():
             return False
+        if self.scratch_dress:   # Task 15a: the scratch's Dress tears what it needs; wanted when nothing is there
+            return dress_pick(self.world, 0.0, dirty_ok=False) is None
         if len(items["bandage"]) + len(items["rag"]) > WOUND_RESERVE:
             return False
         return not (self.world.can("rip") and self._rip_item() is not None)
@@ -807,6 +817,9 @@ class Care(Policy):
         if d is not None and d.over() is not None:
             self._dress_ended(d)
             d = None
+        if d is not None and d.wound and bleeding:   # Task 15a: a bleed takes the place of a scratch's Dress
+            self._dress_ended(d, "bleed")
+            d = None
         if self.ride_now:   # P24-U: a ride tick dresses the worst bleeding part above the legs, as `_wound` rides
             bleeding = [p for p in bleeding if p["i"] < LEG_FIRST]
             if d is not None and not d.ride:   # fix 1, M2: a standing Dress is never stepped into the flee's leg
@@ -818,6 +831,9 @@ class Care(Policy):
         if d is None and bleeding and not self._dress_held_off():
             d = self.dress = self.dress_cls(self.world, self.actions, self.clock, part=bleeding[0]["i"],
                                             ride=self.ride_now)
+        if d is None and not bleeding and not self.ride_now and self.scratch_wanted():   # Task 15a: the scratch
+            d = self.dress = self.dress_cls(self.world, self.actions, self.clock, part=self._wounds()[0]["i"],
+                                            wound=True)
         if d is None:
             return None, False
         cmd = d.step()
@@ -828,6 +844,22 @@ class Care(Policy):
             cmd = None   # fix 1, M2: only a riding bandage goes out on a ride tick
         self.why = {"reason": "dress", "dress": d.log()}
         return cmd, True
+
+    def scratch_wanted(self):
+        """Plan 31 Task 15a (`scratch_dress`, Survive's SCRATCH_DRESS; the ladder's street defect (b): round two's trial
+        12, `x_trial-ladder-20261106-031801`, its parts 9 and 6 scratched from decision lines 305 and 307 and never
+        dressed, health 92.7 to 16.2 by the cap, every care line reading P28-A's `wound_held` {clean 0}: no clean
+        dressing held past WOUND_RESERVE, and the old wound step tears nothing): a new Dress of a wound not bleeding
+        starts now: a part `_wounds` lists, no part bleeding, no standing zombie within KEEP_R (the Dress's own end),
+        no failed Dress's hold (`_dress_held_off`), and something to dress it or to tear for it (`dress_pick`, an
+        unwashed rag only as the last resort: the Dress's `_choice`; WOUND_RESERVE does not hold the last clean
+        dressing back, since the Dress can tear one for a later bleed). Read by the threat branch's yield
+        (`care_yield.CareYield._wound_yields`) too."""
+        if not (self.scratch_dress and self.wound_dress) or self._bleeding() or not self._wounds():
+            return False
+        if standing(self.world, KEEP_R) or self._dress_held_off():
+            return False
+        return dress_pick(self.world, 0.0, dirty_ok=True) is not None
 
     def _dress_ended(self, d, end=None):
         """Dress `d` is dropped: its log with its end (`end`, else its own) kept for the next why (`dress_end`); a
@@ -890,7 +922,9 @@ class Care(Policy):
                 return Bandage(clean[0], part=p["i"])
         wound_held = None
         wounds = self._wounds() if self.wound_dress and w.can("bandage") else []
-        if wounds and len(clean) > WOUND_RESERVE:
+        if wounds and self.scratch_dress and self.dress_cls is not None:   # Task 15a: the scratch is the Dress's
+            wound_held = {"part": wounds[0]["i"], "standing": len(standing(w, KEEP_R))}   # (none started: logged)
+        elif wounds and len(clean) > WOUND_RESERVE:
             if not self.near_n:   # P28-A: the wound dressed on a quiet care tick
                 p = wounds[0]
                 self.why = {"reason": "wound", "part": p["i"], "item": clean[0],

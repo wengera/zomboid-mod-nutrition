@@ -452,10 +452,12 @@ def test_with_health_near_off_line_749_flees_health_at_a_run_as_e22_did(tmp_path
     assert (a.type, a.args["gait"]) == ("steer", "run") and w["flee"] == "health" and "health_near" not in w
 
 
-def test_with_none_in_view_the_threat_branch_passes_to_the_care_s_dressing(tmp_path):
+def test_with_none_in_view_the_threat_branch_passes_to_the_care_s_dressing(tmp_path, monkeypatch):
     """P29-E: line 749 with a wall between the character and 11515 (its line read blocked) and a part bleeding with a
     rag held (the test's own): no flee and no stance; the threat episode ends (`mode` None), logged `health_near`
-    {near 0}, and the care branch's dressing takes the tick."""
+    {near 0}, and the care branch's dressing takes the tick.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     from .test_survive_g import part
     r, sv, a = health_flee(tmp_path, walls=True, parts=[part(5, bleeding=True, bleedingTime=5.0)], rag=True)
     row = last(tmp_path)

@@ -300,7 +300,7 @@ def test_a_climb_interrupted_once_is_sent_again_and_refused_on_the_second(tmp_pa
     assert Y.WIN_OUT in f.refused and f.exit is None and [a.type for a in r.acts.history] == ["window"]
 
 
-def test_e17_s_window_act_is_dropped_at_its_stall_and_the_window_noted_stalled():
+def test_e17_s_window_act_is_dropped_at_its_stall_and_the_window_noted_stalled(monkeypatch):
     """E17 replayed with P26-J alone on: the `inside` end's walk and a81 go as the record sent them, and the record's
     lines hold a81 to line 392 (each `holding` it); line 393 is the first tick whose read of the act's hold reaches
     WINDOW_STALL_S (the player on (10721.51, 10634.64) since frame seq 3482): a81 is dropped, the counter window noted
@@ -313,7 +313,9 @@ def test_e17_s_window_act_is_dropped_at_its_stall_and_the_window_noted_stalled()
     floor swing at a fallen zombie in reach reaches the same lines). Named change, ruling P29-A (Plan 29 Task 1):
     iteration 23's (`survive.T13_SWITCHES`) off with them (the Fight's route at the gate (10747, 10642) on line 142
     walks to the step beyond its far square at a walk under ROUTE_CROSS). Named change, ruling P30-E (Plan 30 Task 3):
-    iteration 24's (`survive.T14_SWITCHES`) off with them (the still read reaches the same lines)."""
+    iteration 24's (`survive.T14_SWITCHES`) off with them (the still read reaches the same lines).
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     kept = {}
 
     def mutate(sv):
@@ -706,12 +708,14 @@ BACKPEDAL = 1385   # a273: the backpedal that superseded it, 28762 at 1.45880330
 REDRESSED, FLED = 1408, 1412   # a280, the second; a281, the `health` flee's steer that superseded it
 
 
-def test_f8_s_two_bleed_dressings_were_superseded_each_by_a_zombie_closing_inside_fight_reach():
+def test_f8_s_two_bleed_dressings_were_superseded_each_by_a_zombie_closing_inside_fight_reach(monkeypatch):
     """The reading: P26-D's yield sent a272 at line 1381 and a280 at 1408 (each `care_yield` {why bleed}); the threat
     branch's sends superseded both (a273, the backpedal at line 1385, and a281, the `health` flee's steer at 1412),
     each with 28762 inside FIGHT_REACH and beyond POINT_BLANK_R, nearer than two ticks before (the `_closing` read:
     3.1445653688463455 at line 1383, 2.285627371974817 at 1410). P26-L2 holds a dressing only from a zombie that is not
-    closing, so F8 replayed with BLEED_HOLD alone on sends what the record sent on every line from 1381 to 1420."""
+    closing, so F8 replayed with BLEED_HOLD alone on sends what the record sent on every line from 1381 to 1420.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     lines, rows, _ = f8()
     aids, _ = R.recorded_aids(lines, rows)
     for k, aid in ((DRESSED, "a272"), (REDRESSED, "a280")):
@@ -768,11 +772,13 @@ def bleed_fight(tmp_path, first, then, hold=True, mark=True, second=None):
     return r, sv, a, tick(r, sv)
 
 
-def test_a_bleed_dressing_holds_while_the_zombie_in_reach_is_not_closing(tmp_path):
+def test_a_bleed_dressing_holds_while_the_zombie_in_reach_is_not_closing(tmp_path, monkeypatch):
     """Line 1385's distance (1.4588033009706454, within FIGHT_REACH, beyond POINT_BLANK_R) reached from
     1.2192022022657956 two ticks before (line 1378's): not closing; the dressing is held (no send, the care branch
     holding it), logged `care_yield` {why bleed, near, held true}; with the switch off the Fight's send supersedes
-    it."""
+    it.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv, dressing, a = bleed_fight(tmp_path, 1.2192022022657956, 1.4588033009706454)
     w = threat_why(tmp_path)
     assert a is None and last(tmp_path)["branch"] == "care" and r.acts.current is dressing
@@ -783,34 +789,42 @@ def test_a_bleed_dressing_holds_while_the_zombie_in_reach_is_not_closing(tmp_pat
     assert a is not None and last(d)["branch"] == "threat" and "care_yield" not in threat_why(d)
 
 
-def test_a_bleed_dressing_is_not_held_with_two_zombies_in_fight_reach(tmp_path):
+def test_a_bleed_dressing_is_not_held_with_two_zombies_in_fight_reach(tmp_path, monkeypatch):
     """Ruling P26-L2a: line 1385's lone zombie (1.4588033009706454, not closing) with a second 1.5 tiles off, both
     within FIGHT_REACH: the hold does not apply (`_bleed_holds` wants exactly one in reach), the threat branch decides
-    and sends, no `care_yield` held; the same case with the second absent holds (the test above)."""
+    and sends, no `care_yield` held; the same case with the second absent holds (the test above).
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv, dressing, a = bleed_fight(tmp_path, 1.2192022022657956, 1.4588033009706454, second=1.5)
     assert len(sv._within(P.FIGHT_REACH)) == 2 and not sv._closing()
     assert a is not None and last(tmp_path)["branch"] == "threat"
     assert "care_yield" not in threat_why(tmp_path) and not sv._bleed_holds()
 
 
-def test_a_zombie_closing_inside_fight_reach_supersedes_the_bleed_dressing(tmp_path):
+def test_a_zombie_closing_inside_fight_reach_supersedes_the_bleed_dressing(tmp_path, monkeypatch):
     """F8's own case: 2.6 tiles two ticks before, 1.4588033009706454 now (closing inside FIGHT_REACH): the threat
-    branch's send supersedes the dressing, as a273 did."""
+    branch's send supersedes the dressing, as a273 did.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv, dressing, a = bleed_fight(tmp_path, 2.6, 1.4588033009706454)
     assert a is not None and a.type == "aim" and last(tmp_path)["branch"] == "threat"
     assert threat_why(tmp_path)["leg"] == "back" and "care_yield" not in threat_why(tmp_path)
 
 
-def test_a_zombie_at_point_blank_supersedes_the_bleed_dressing_with_the_shove(tmp_path):
+def test_a_zombie_at_point_blank_supersedes_the_bleed_dressing_with_the_shove(tmp_path, monkeypatch):
     """0.9873355970062675 tiles (line 1386's), not closing (0.9 two ticks before): within POINT_BLANK_R the shove
-    goes."""
+    goes.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv, dressing, a = bleed_fight(tmp_path, 0.9, 0.9873355970062675)
     assert (a.type, a.args) == ("shove", {"targetId": 1}) and last(tmp_path)["branch"] == "threat"
 
 
-def test_only_the_bleed_s_own_dressing_is_held(tmp_path):
+def test_only_the_bleed_s_own_dressing_is_held(tmp_path, monkeypatch):
     """The hold is the bleed yield's dressing's (`bleed_dressing`, set at its send): the same running bandage with its
-    mark cleared (as a bandage P24-P's yield sent beyond CARE_R) is superseded at line 1385's distance, not closing."""
+    mark cleared (as a bandage P24-P's yield sent beyond CARE_R) is superseded at line 1385's distance, not closing.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv, dressing, a = bleed_fight(tmp_path, 1.2192022022657956, 1.4588033009706454, mark=False)
     assert a is not None and last(tmp_path)["branch"] == "threat" and "care_yield" not in threat_why(tmp_path)
 

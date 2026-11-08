@@ -394,12 +394,15 @@ def test_the_corner_keeps_its_swing_and_never_stands(tmp_path):
     assert f.standing()
 
 
-def test_two_held_under_flee_health_pair_with_one_within_danger_r_fight_by_the_approach_not_the_stance(tmp_path):
+def test_two_held_under_flee_health_pair_with_one_within_danger_r_fight_by_the_approach_not_the_stance(tmp_path,
+                                                                                                       monkeypatch):
     """The pair rule reads the DANGER_R count (one here, so the hysteresis fights); the stance reads the held count:
     two held at health 50 (under FLEE_HEALTH_PAIR) is no standing fight: the running stance leg gives way to the
     approach walk once the hold radius (DISENGAGE_R while the fight runs) holds the second.
     Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
-    rule before it (the non-stance Fight's walk to a zombie at a run)."""
+    rule before it (the non-stance Fight's walk to a zombie at a run).
+    Named change, Plan 31 Task 15a: the chaser met in the stance; pinned with `CHASER_STANCE` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CHASER_STANCE", False)
     r, sv = make(tmp_path)
     sv.APPROACH_WALK = False
     r.frame(zombies=[zd(1, 104.0, 200.0), zd(2, 92.0, 200.0)], health=50.0)
@@ -411,9 +414,11 @@ def test_two_held_under_flee_health_pair_with_one_within_danger_r_fight_by_the_a
     assert last(tmp_path)["inputs"]["held"] == 2
 
 
-def test_trapped_on_a_room_square_the_fight_keeps_the_approach_never_the_stance(tmp_path):
+def test_trapped_on_a_room_square_the_fight_keeps_the_approach_never_the_stance(tmp_path, monkeypatch):
     """The corner rules stay for a trapped character (`_trapped`: a room square, no way out, nothing to adopt): the
-    held zombie inside the closed room is walked to and swung at, never backpedalled from inside the walls."""
+    held zombie inside the closed room is walked to and swung at, never backpedalled from inside the walls.
+    Named change, Plan 31 Task 15a: the chaser met in the stance; pinned with `CHASER_STANCE` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CHASER_STANCE", False)
     from .test_survive import closed_room
     r, sv = make(tmp_path)
     r.scan(closed_room())
@@ -506,9 +511,11 @@ def bleeding_rig(tmp_path, items, bleeding_time=5.0, deep=False, caps=None):
     return r, sv
 
 
-def test_a_bleeding_part_takes_a_bandage_before_a_clean_rag_before_a_dirty_one(tmp_path):
+def test_a_bleeding_part_takes_a_bandage_before_a_clean_rag_before_a_dirty_one(tmp_path, monkeypatch):
     """P24-G 2: the best held item: a bandage, then a clean rag; the bandage goes on the part by index; the need
-    (thirst 0.5) waits behind the care branch."""
+    (thirst 0.5) waits behind the care branch.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = bleeding_rig(tmp_path, [(12, "Base.RippedSheetsDirty"), (11, "Base.RippedSheets"), (10, "Base.Bandage")])
     hold(r, 30, "Base.WaterBottle", use="water")                                  # the need would drink it
     tick(r, sv)
@@ -522,7 +529,9 @@ def test_a_bleeding_part_takes_a_bandage_before_a_clean_rag_before_a_dirty_one(t
     all_sends_valid(r2)
 
 
-def test_a_dirty_rag_goes_on_only_past_dirty_rag_min_of_bleeding_time(tmp_path):
+def test_a_dirty_rag_goes_on_only_past_dirty_rag_min_of_bleeding_time(tmp_path, monkeypatch):
+    """Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = bleeding_rig(tmp_path, [(12, "Base.RippedSheetsDirty")], bleeding_time=10.0)
     tick(r, sv)
     assert last(tmp_path)["branch"] != "care"                                    # 10.0: not past the rule
@@ -532,7 +541,9 @@ def test_a_dirty_rag_goes_on_only_past_dirty_rag_min_of_bleeding_time(tmp_path):
     assert r2.cmd() == ("bandage", {"itemId": 12, "part": 5}) and care_why(tmp_path / "b")["kind"] == "dirty"
 
 
-def test_the_deep_wound_is_bandaged_first_then_the_longest_bleeding(tmp_path):
+def test_the_deep_wound_is_bandaged_first_then_the_longest_bleeding(tmp_path, monkeypatch):
+    """Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     r.frame()
     hold(r, 10, "Base.Bandage")
@@ -550,9 +561,11 @@ def test_the_deep_wound_is_bandaged_first_then_the_longest_bleeding(tmp_path):
     assert r.cmd() == ("bandage", {"itemId": 11, "part": 9})
 
 
-def test_with_no_rag_an_unworn_cotton_garment_is_ripped_never_one_of_the_first_sight(tmp_path):
+def test_with_no_rag_an_unworn_cotton_garment_is_ripped_never_one_of_the_first_sight(tmp_path, monkeypatch):
     """P24-G 2: no bandage item of any kind held, the bleeding part waits on a rip of a cotton garment; the T-shirt
-    the character stood in (the inventory's first sight, between the hello and the first frame) is never asked."""
+    the character stood in (the inventory's first sight, between the hello and the first frame) is never asked.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     hold(r, 20, "Base.Tshirt_WhiteLongSleeveTINT", use="other")                   # the first sight: worn
     r.frame()
@@ -567,8 +580,10 @@ def test_with_no_rag_an_unworn_cotton_garment_is_ripped_never_one_of_the_first_s
     all_sends_valid(r)
 
 
-def test_a_rip_refused_worn_marks_the_item_and_it_is_never_asked_again(tmp_path):
-    """Named change, Task 10 fix 1 (the review's major 2): the rip is the wound's, so the case bleeds."""
+def test_a_rip_refused_worn_marks_the_item_and_it_is_never_asked_again(tmp_path, monkeypatch):
+    """Named change, Task 10 fix 1 (the review's major 2): the rip is the wound's, so the case bleeds.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     r.frame()
     hold(r, 21, "Base.Shirt_FormalWhite", use="other")
@@ -632,11 +647,13 @@ def test_a_spent_bandage_is_replaced_with_a_clean_rag(tmp_path):
     assert last(tmp_path / "b")["branch"] != "care"
 
 
-def test_the_care_branch_yields_to_a_threat_within_danger_r(tmp_path):
+def test_the_care_branch_yields_to_a_threat_within_danger_r(tmp_path, monkeypatch):
     """The threat branch runs first: a zombie within DANGER_R answers it (the stance) and the running bandage is
     superseded by that send. Since ruling P24-P (Task 12) that holds for a zombie at CARE_R (4.0 tiles) or nearer;
     named change (Task 12 fix 1, the review's major 2): a running bandage is superseded only inside CARE_HOLD_R (3.0
-    tiles), so a zombie arriving at 4.0 holds it and one at 3.0 takes the tick."""
+    tiles), so a zombie arriving at 4.0 holds it and one at 3.0 takes the tick.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = bleeding_rig(tmp_path, [(10, "Base.Bandage")])
     tick(r, sv)
     assert r.cmd()[0] == "bandage"
@@ -648,7 +665,9 @@ def test_the_care_branch_yields_to_a_threat_within_danger_r(tmp_path):
     assert last(tmp_path)["branch"] == "threat" and r.cmd()[0] == "aim" and r.acts.current is not bandage
 
 
-def test_a_refused_bandage_item_waits_care_retry_min(tmp_path):
+def test_a_refused_bandage_item_waits_care_retry_min(tmp_path, monkeypatch):
+    """Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = bleeding_rig(tmp_path, [(10, "Base.Bandage"), (11, "Base.RippedSheets")])
     tick(r, sv)
     r.answer({"state": "failed", "reason": "not valid"})
@@ -739,14 +758,16 @@ def test_the_first_sight_is_the_inventory_between_a_hello_and_the_first_frame():
     assert w.first_sight == set()
 
 
-def test_no_garment_is_ripped_while_a_rag_is_held(tmp_path):
+def test_no_garment_is_ripped_while_a_rag_is_held(tmp_path, monkeypatch):
     """Named change, Task 10 fix 1: a bleeding part, a dirty rag held under DIRTY_RAG_MIN's rule (so it does not go
     on) and no source to wash it: the garment is still not ripped while any rag is held. Ruling P24-AB's stock rips
     nothing either while a dirty rag is held (Task 21 fix 1, review-t21 minor 5: washing it is the care's job).
     Named change, ruling P25-Y (Plan 25 Task 14 fix 1): `DIRTY_RAG_RIP` off, the rule this pins; on, a dirty rag alone
     under DIRTY_RAG_MIN no longer blocks the bleeding step's rip (`test_survive_x`). Named change, ruling P27-K1 (Plan
     27 Task 5): `STOCK_EARLY` off too (on, the stock's early rip counts the clean dressings alone, the dirty rag
-    aside: `test_survive_ab`)."""
+    aside: `test_survive_ab`).
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     sv.DIRTY_RAG_RIP = False
     sv.STOCK_EARLY = False
@@ -758,11 +779,13 @@ def test_no_garment_is_ripped_while_a_rag_is_held(tmp_path):
     assert last(tmp_path)["branch"] != "care" and not any(a.type == "rip" for a in r.acts.history)
 
 
-def test_no_garment_is_ripped_for_stock_with_no_wound(tmp_path):
+def test_no_garment_is_ripped_for_stock_with_no_wound(tmp_path, monkeypatch):
     """Task 10 fix 1, the review's major 2 (ruling P24-G 2: the rip is the wound's): no rag of any kind held, a looted
     cotton shirt held and no part bleeding: nothing is ripped, the need's drink goes; the first bleeding part rips it.
     Named change, ruling P24-AB (Plan 24 Task 21): the rag stock rips only on an idle tick, behind the need, so the
-    drink still goes first (the idle tick's stock rip is `test_survive_i.py`'s)."""
+    drink still goes first (the idle tick's stock rip is `test_survive_i.py`'s).
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     r.frame()
     hold(r, 21, "Base.Shirt_FormalWhite", use="other")
@@ -1248,9 +1271,11 @@ def test_the_event_after_a_drink_leaves_the_no_effect_mark_of_the_consume_check(
     assert r.world.marks[7][0] == "no_effect" and r.world.by_use()["other"] == [7]
 
 
-def test_a_bandage_refused_in_bag_is_marked_and_never_retried(tmp_path):
+def test_a_bandage_refused_in_bag_is_marked_and_never_retried(tmp_path, monkeypatch):
     """Named change, Task 10 fix 2 (item 3): the Lua moves a bag item itself now (PZA/1.5.2), so in bag means the
-    move could not be queued: a hard refusal, the item marked in_bag for good."""
+    move could not be queued: a hard refusal, the item marked in_bag for good.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = bleeding_rig(tmp_path, [(10, "Base.Bandage")])
     tick(r, sv)
     assert r.cmd() == ("bandage", {"itemId": 10, "part": 5})
@@ -1285,9 +1310,11 @@ def test_a_wash_refused_in_bag_is_marked_never_retried_and_leaves_its_source(tmp
     assert sum(a.type == "wash" for a in r.acts.history) == 1
 
 
-def test_the_ripped_sheets_read_bandage_a_sealed_can_other_and_the_choice_order_holds(tmp_path):
+def test_the_ripped_sheets_read_bandage_a_sealed_can_other_and_the_choice_order_holds(tmp_path, monkeypatch):
     """Item 5: `RippedSheets` and the other CanBandage items count `bandage`, `Base.Pop2` (sealed) `other`; within the
-    `bandage` use the care branch still reads the name: bandage > clean rag > dirty rag."""
+    `bandage` use the care branch still reads the name: bandage > clean rag > dirty rag.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     r.frame()
     for iid, ft in ((1, "Base.RippedSheets"), (2, "Base.RippedSheetsDirty"), (3, "Base.Bandage"),
@@ -1348,10 +1375,12 @@ def test_a_stance_leg_superseded_re_aims_but_one_that_fails_ends_the_stand_at_on
     assert not sv.fight.standoff and sv.fight.advance and sv.fight.standoff_why is None
 
 
-def test_a_bandaged_part_waits_one_frame_newer_than_its_done_before_it_is_bandaged_again(tmp_path):
+def test_a_bandaged_part_waits_one_frame_newer_than_its_done_before_it_is_bandaged_again(tmp_path, monkeypatch):
     """Minor 6: the bandage's done read before a frame reads it on (the stale frame still lists part 5 bleeding and
     unbandaged) puts no second item on the wound; a newer frame that reads it bandaged ends the wait, and one that
-    still reads it bleeding (the bandage did not take) is bandaged again."""
+    still reads it bleeding (the bandage did not take) is bandaged again.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = bleeding_rig(tmp_path, [(10, "Base.Bandage"), (11, "Base.Bandage")])
     tick(r, sv)
     assert r.cmd() == ("bandage", {"itemId": 10, "part": 5})
@@ -1367,10 +1396,12 @@ def test_a_bandaged_part_waits_one_frame_newer_than_its_done_before_it_is_bandag
     assert r.cmd() == ("bandage", {"itemId": 11, "part": 5})
 
 
-def test_care_is_a_policy_and_reads_quiet_from_survive(tmp_path):
+def test_care_is_a_policy_and_reads_quiet_from_survive(tmp_path, monkeypatch):
     """Minor 13: `Care(Policy)`: the house's busy and send, its own `sent` recording each item's action; Survive sets
     `quiet` each tick (no zombie within DISENGAGE_R) before `choose()`. Named change (Task 12 fix 1, P24-U): the
-    Care's own `busy` adds a running ride to the house's rule (`test_a_torso_wound_rides_...`)."""
+    Care's own `busy` adds a running ride to the house's rule (`test_a_torso_wound_rides_...`).
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     assert issubclass(C.Care, P.Policy)
     assert C.Care.send is P.Policy.send and C.Care.sent is not P.Policy.sent and C.Care.busy is not P.Policy.busy
     r, sv = bleeding_rig(tmp_path, [(10, "Base.Bandage")])
@@ -1493,9 +1524,11 @@ def test_item_fields_read_the_hellos_mod_version(tmp_path):
     assert World().item_fields() is False
 
 
-def test_a_worn_garment_on_a_1_5_2_log_is_never_asked_and_an_unworn_one_after_the_hello_is(tmp_path):
+def test_a_worn_garment_on_a_1_5_2_log_is_never_asked_and_an_unworn_one_after_the_hello_is(tmp_path, monkeypatch):
     """Task 10 fix 2, item 1: the record worn replaces the first-sight guess; a garment first seen after the
-    hello with worn absent is a candidate, even one inside the old first-sight window."""
+    hello with worn absent is a candidate, even one inside the old first-sight window.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     hello152(r)
     garment(r, 20, rip="cotton", worn=True)                                       # in the window, worn
@@ -1517,7 +1550,9 @@ def test_a_worn_garment_on_a_1_5_2_log_is_never_asked_and_an_unworn_one_after_th
     assert last(tmp_path / "b")["branch"] != "care" and not any(a.type == "rip" for a in r2.acts.history)
 
 
-def test_item_changed_states_worn_again_and_a_garment_taken_off_becomes_a_candidate(tmp_path):
+def test_item_changed_states_worn_again_and_a_garment_taken_off_becomes_a_candidate(tmp_path, monkeypatch):
+    """Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     hello152(r)
     r.frame()
@@ -1530,10 +1565,12 @@ def test_item_changed_states_worn_again_and_a_garment_taken_off_becomes_a_candid
 
 
 @pytest.mark.parametrize("rip, asked", [("cotton", True), ("denim", False), ("leather", False), (None, False)])
-def test_only_a_cotton_rip_class_is_asked_on_a_1_5_2_log_whatever_the_name(tmp_path, rip, asked):
+def test_only_a_cotton_rip_class_is_asked_on_a_1_5_2_log_whatever_the_name(tmp_path, rip, asked, monkeypatch):
     """Task 10 fix 2, item 2: cotton can run; denim and leather need a tool the planner has no action for; absent
     is no class. The name decides nothing: a shirt named so with no class is never asked, a pair of jeans classed
-    cotton is."""
+    cotton is.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     hello152(r)
     r.frame()
@@ -1547,9 +1584,11 @@ def test_only_a_cotton_rip_class_is_asked_on_a_1_5_2_log_whatever_the_name(tmp_p
         assert not any(a.type == "rip" for a in r.acts.history)
 
 
-def test_a_pre_1_5_2_log_keeps_the_name_guess_and_the_first_sight(tmp_path):
+def test_a_pre_1_5_2_log_keeps_the_name_guess_and_the_first_sight(tmp_path, monkeypatch):
     """The guess stays for older logs: a hello naming 1.5.1 reads the name regex, the inventory first sight is left
-    out, and a rip class on a record is ignored there."""
+    out, and a rip class on a record is ignored there.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     r.fake.hello(mod="1.5.1")
     r.pump()
@@ -1563,9 +1602,11 @@ def test_a_pre_1_5_2_log_keeps_the_name_guess_and_the_first_sight(tmp_path):
 
 
 @pytest.mark.parametrize("kind", ["bandage", "rip"])
-def test_an_in_bag_refusal_is_final_the_item_is_marked_and_never_asked_again(tmp_path, kind):
+def test_an_in_bag_refusal_is_final_the_item_is_marked_and_never_asked_again(tmp_path, kind, monkeypatch):
     """Task 10 fix 2, item 3: in bag means the move could not be queued: marked in_bag, not retried each
-    CARE_RETRY_MIN; the next item of the kind goes instead, and a removal drops the mark."""
+    CARE_RETRY_MIN; the next item of the kind goes instead, and a removal drops the mark.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     hello152(r)
     r.frame()
@@ -1593,12 +1634,15 @@ def test_an_in_bag_refusal_is_final_the_item_is_marked_and_never_asked_again(tmp
     assert 10 not in r.world.marks
 
 
-def test_a_bandage_that_moved_a_bag_item_is_done_and_the_moved_items_first_appearance_is_no_pickup(tmp_path):
+def test_a_bandage_that_moved_a_bag_item_is_done_and_the_moved_items_first_appearance_is_no_pickup(tmp_path,
+                                                                                                   monkeypatch):
     """Task 10 fix 2, item 3: the Lua moves the item to the main inventory first (its item_added arrives before the
     bandage item_removed) and reports moved true; the planner reads an ordinary done. The planner never saw bag
     items and nothing in it counts an item_added as a pickup (loot results come from the interact act moved, the
     view lists raw event names): the sequence leaves no residue in the inventory, the containers or the
-    missing-items count."""
+    missing-items count.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     hello152(r)
     r.frame()
@@ -1771,13 +1815,15 @@ def test_care_r_is_four_tiles_inside_danger_r():
 
 
 @pytest.mark.parametrize("x, care", [(105.0, True), (104.01, True), (104.0, False), (103.0, False)])
-def test_a_bleeding_part_is_bandaged_with_a_zombie_held_beyond_care_r_and_not_inside_it(tmp_path, x, care):
+def test_a_bleeding_part_is_bandaged_with_a_zombie_held_beyond_care_r_and_not_inside_it(tmp_path, x, care, monkeypatch):
     """Ruling P24-P: a fight running on one zombie (held), a part bleeding, a bandage held: with the zombie at 5 or
     4.01 tiles the threat branch yields (`care` on its why) and the care branch bandages; at 4 or 3 tiles the threat
     answers (the stance). Named change (Task 12 fix 1, the review's major 2): the zombie stands at `x` for
     CARE_STILL_TICKS ticks before the yield's start reads it not closing (it came from 6 tiles before). Named change,
     ruling P26-D (Plan 26 Task 2): beyond FIGHT_REACH the bleed's own rule yields at once; these cases pin P24-P's
-    lines with `THREAT_BLEED` off."""
+    lines with `THREAT_BLEED` off.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     sv.THREAT_BLEED = False   # named change, P26-D (Plan 26 Task 2): the bleed's room yields a fight's tick
     r.frame(zombies=[zd(1, 106.0, 200.0)])
@@ -1798,7 +1844,8 @@ def test_a_bleeding_part_is_bandaged_with_a_zombie_held_beyond_care_r_and_not_in
         assert last(tmp_path)["branch"] == "threat" and r.cmd()[0] in ("aim", "attack")
 
 
-def test_the_bandage_runs_under_a_health_flee_and_is_superseded_when_a_zombie_comes_inside_care_hold_r(tmp_path):
+def test_the_bandage_runs_under_a_health_flee_and_is_superseded_when_a_zombie_comes_inside_care_hold_r(tmp_path,
+                                                                                                       monkeypatch):
     """E6's case (lines 285-306: the `health` flee held one or two at 4 to 9.6 tiles, bleeding, no bandage): the
     flee yields to the bandage while the nearest is beyond CARE_R, the bandage holds the tick while it runs, and a
     zombie at 3 tiles takes the tick back: the flee's steer supersedes it. Named change (Task 12 fix 1, the review's
@@ -1806,7 +1853,9 @@ def test_the_bandage_runs_under_a_health_flee_and_is_superseded_when_a_zombie_co
     starting on the last (no fall since the read two ticks before), each flee leg ended before the next tick, and a
     running bandage holds at 3.5 tiles (inside CARE_R,
     beyond CARE_HOLD_R); the supersede line is CARE_HOLD_R (3.0). Named change, ruling P29-E (Plan 29 Task 2): the
-    zombie at 7 tiles is beyond DANGER_R, where no `health` flee goes now; pinned with `HEALTH_NEAR` off."""
+    zombie at 7 tiles is beyond DANGER_R, where no `health` flee goes now; pinned with `HEALTH_NEAR` off.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     sv.HEALTH_NEAR = False   # named change, P29-E (Plan 29 Task 2): from beyond DANGER_R no `health` flee; off, it
@@ -2020,10 +2069,12 @@ def test_a_chaser_closing_half_a_tile_a_tick_from_4_6_starts_no_bandage(tmp_path
     assert not any(a.type == "bandage" for a in r.acts.history)
 
 
-def test_a_still_zombie_at_4_5_is_bandaged_held_at_3_5_and_superseded_at_2_9(tmp_path):
+def test_a_still_zombie_at_4_5_is_bandaged_held_at_3_5_and_superseded_at_2_9(tmp_path, monkeypatch):
     """The review's major 2, its second test: a zombie standing at 4.5 tiles reads not closing on the third tick and
     the bandage starts; once it runs, the zombie at 3.5 (inside CARE_R) holds it, and at 2.9 (inside CARE_HOLD_R) the
-    threat takes the tick back: the stance leg supersedes the bandage."""
+    threat takes the tick back: the stance leg supersedes the bandage.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     sv.THREAT_BLEED = False   # named change, P26-D (Plan 26 Task 2): the bleed's room yields a fight's tick
     hold(r, 10, "Base.Bandage")
@@ -2048,11 +2099,13 @@ def test_a_still_zombie_at_4_5_is_bandaged_held_at_3_5_and_superseded_at_2_9(tmp
 
 
 @pytest.mark.parametrize("chases, care", [(True, False), (False, True)])
-def test_no_standing_bandage_starts_while_a_flee_leg_runs_from_a_chaser(tmp_path, chases, care):
+def test_no_standing_bandage_starts_while_a_flee_leg_runs_from_a_chaser(tmp_path, chases, care, monkeypatch):
     """The review's ruling on concern 2: a `health` flee does not block the yield against a zombie that is not
     closing; against a chaser (`hasTarget`) during a running flee leg the standing bandage waits (it would stop the
     run). Here the leg (a thigh's wound: no ride) runs while the zombie reads 5.5 tiles, then 7 (never closing).
-    Named change, ruling P29-E (Plan 29 Task 2): at 7 tiles no `health` flee goes now; pinned with `HEALTH_NEAR` off."""
+    Named change, ruling P29-E (Plan 29 Task 2): at 7 tiles no `health` flee goes now; pinned with `HEALTH_NEAR` off.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     sv.HEALTH_NEAR = False   # named change, P29-E (Plan 29 Task 2): from beyond DANGER_R no `health` flee; off, it
@@ -2069,10 +2122,12 @@ def test_no_standing_bandage_starts_while_a_flee_leg_runs_from_a_chaser(tmp_path
     assert any(a.type == "bandage" for a in r.acts.history) is care
 
 
-def test_a_running_bandage_whose_part_stops_bleeding_is_superseded_by_the_threat(tmp_path):
+def test_a_running_bandage_whose_part_stops_bleeding_is_superseded_by_the_threat(tmp_path, monkeypatch):
     """The review's minor 7 (Task 12's commit 4 removed the `running` clause, read as equivalent; it is not): once no
     part bleeds, `tends_wound` reads false, the yield ends and the threat's send supersedes the running bandage, the
-    zombie still at 4.5 tiles. Kept: once nothing bleeds the threat matters more."""
+    zombie still at 4.5 tiles. Kept: once nothing bleeds the threat matters more.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     hold(r, 10, "Base.Bandage")
     for _ in range(C.CARE_STILL_TICKS + 1):
@@ -2131,12 +2186,14 @@ def flee_leg_rig(tmp_path, parts, x, chases=True):
     return r, sv
 
 
-def test_a_torso_wound_rides_the_running_flee_leg_with_the_chaser_at_7(tmp_path):
+def test_a_torso_wound_rides_the_running_flee_leg_with_the_chaser_at_7(tmp_path, monkeypatch):
     """Ruling P24-U, the review's first ride test: under the running steer, the chaser at 7 tiles (beyond RIDE_R),
     the upper torso bleeding: the care sends `bandage` with keepMoving on part 6; the Flee's leg is held (it still
     runs: `running`), its end re-aims with a new steer that keeps the ride (the Care busy on the ride's own act lines),
     and the ride's done frees the Care. Named change, ruling P29-D (Plan 29 Task 2): with nobody within DANGER_R the
-    re-aim now waits on the riding dressing; pinned with `DRESS_FINISH` off."""
+    re-aim now waits on the riding dressing; pinned with `DRESS_FINISH` off.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     torso = [part(6, bleeding=True, bleedingTime=5.0)]
     r, sv = flee_leg_rig(tmp_path, torso, 7.0)
     sv.DRESS_FINISH = False
@@ -2191,10 +2248,12 @@ def test_the_worst_part_above_the_legs_rides_past_a_worse_thigh(tmp_path):
     assert r.cmd() == ("bandage", {"itemId": 10, "part": 3, "keepMoving": True})
 
 
-def test_no_ride_starts_in_a_stance_fight_and_its_legs_are_held_off_while_one_runs(tmp_path):
+def test_no_ride_starts_in_a_stance_fight_and_its_legs_are_held_off_while_one_runs(tmp_path, monkeypatch):
     """No ride under an aim (the Lua rejects it `aiming`): a fight's yield is the standing bandage. A ride running
     when the flee turns to a fight (the health back over the refight line) holds the Fight's stance leg off (its aim
-    would end the ride) until the ride ends; then the stance leg goes."""
+    would end the ride) until the ride ends; then the stance leg goes.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     torso = [part(6, bleeding=True, bleedingTime=5.0)]
     r, sv = make(tmp_path)
     sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee

@@ -1,7 +1,7 @@
 """The Dress maneuver (Plan 31 Task 8; the spec `2026-11-05-plan-31-the-rebuild-design.md` § 4 item 3; Angus's direction
 of 2026-11-05, memory `stand-and-fight-dress-first`): `maneuvers.Dress(part)`, one commitment from the stop to the
 dressing of one bleeding part, under the maneuver contract (`maneuvers.base.Maneuver`), and the ladder's care branch
-dispatching it behind Survive's `DRESS_MANEUVER` (off: the goldens' rule). The fake mod over PZA/1.7.
+dispatching it behind Survive's `DRESS_MANEUVER` (on by default since Plan 31 Task 15a). The fake mod over PZA/1.7.
 
 The reading behind it (F15, `f_goals_16-20261105-164332`, its `f_grade.txt` line 60: "9 unwears sent, 0 done, rejected
 {'moving': 9}"; line 14: "bandage sent 3 done 1"): every unwear of the only cotton garment went out while a flee's leg
@@ -454,10 +454,10 @@ def care(tmp_path):
     return last(tmp_path)["inputs"]["branches"]["care"]
 
 
-def test_the_switch_is_off_by_default_and_off_the_care_branch_sends_as_before(tmp_path):
-    """Off (the ladder's goldens): the bleeding step's own unwear goes on the first tick, moving or not (the rule F15
-    ran)."""
-    assert S.Survive.DRESS_MANEUVER is False
+def test_the_switch_is_on_by_default_and_off_the_care_branch_sends_as_before(tmp_path):
+    """On by default since Plan 31 Task 15a (ruling P31-H; no golden reaches the care branch). Off: the bleeding
+    step's own unwear goes on the first tick, moving or not (the rule F15 ran)."""
+    assert S.Survive.DRESS_MANEUVER is True
     r, sv = dress_rig(tmp_path, on=False)
     tick(r, sv)
     assert r.cmd() == ("unwear", {"itemId": 20}) and care(tmp_path)["reason"] == "unwear"

@@ -167,12 +167,14 @@ def test_the_stock_never_supersedes_a_running_goal_walk(tmp_path):
     assert r.cmd() == ("rip", {"itemId": 22}) and last(tmp_path)["branch"] == "care"
 
 
-def test_a_bleeding_part_with_no_dressing_and_no_unworn_cotton_wants_bandage(tmp_path):
+def test_a_bleeding_part_with_no_dressing_and_no_unworn_cotton_wants_bandage(tmp_path, monkeypatch):
     """P24-AB: part 9 bleeding, nothing held but the worn T-shirt (E8 from game minute 617: no bandage, rag or unworn
     cotton): the care branch marks the want `bandage` (logged `want`), the view lists it, the goals' kit takes it
     first, and the scripted source loots the nearest building known to hold a bandage; a dressing found drops the
     want. The worn T-shirt carries no clothing record (a PZA/1.5.2 log), so P24-AJ's unwear, which reads its `loc`,
-    never takes it (Task 27: `test_survive_n.py`)."""
+    never takes it (Task 27: `test_survive_n.py`).
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     hello152(r)
     garment(r, 20, ft="Base.Tshirt_WhiteLongSleeveTINT", rip="cotton", worn=True)

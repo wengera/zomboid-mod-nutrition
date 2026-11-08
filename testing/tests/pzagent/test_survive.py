@@ -1608,11 +1608,14 @@ def test_on_a_room_square_with_no_way_out_the_nearest_within_cornered_r_is_fough
 
 @pytest.mark.parametrize("weapon", [BAT, None])
 def test_a_flee_on_a_room_square_with_no_way_out_and_the_nearest_at_three_tiles_fights_armed_else_holds(tmp_path,
-                                                                                                       weapon):
+                                                                                                       weapon,
+                                                                                                       monkeypatch):
     """Survival 2's "no door known, the nearest at 3 tiles: the steer", turned by fix round 1 (G3, M4): armed, the
     Fight on the nearest; unarmed, the trapped hold (no command): never a steer into the room's walls.
     Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
-    rule before it (the non-stance Fight's walk to a zombie at a run)."""
+    rule before it (the non-stance Fight's walk to a zombie at a run).
+    Named change, Plan 31 Task 15a: the chaser met in the stance; pinned with `CHASER_STANCE` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CHASER_STANCE", False)
     r, sv = make(tmp_path)
     sv.APPROACH_WALK = False
     r.scan(closed_room())
@@ -1659,14 +1662,16 @@ def test_a_flee_starting_inside_walks_out_of_the_door_away_from_the_threats_then
 
 
 def test_an_exit_through_a_closed_door_walks_first_opens_after_a_failed_walk_and_a_walk_ending_inside_refuses_it(
-        tmp_path):
+        tmp_path, monkeypatch):
     """Rule 3 with fix round 1 (I2): threats south, the north door closed: the run walk through it first (the jar's
     path follower opens a door on a player's path); that walk failed, the open, then the walk again; a walk that ended
     done with the frame still inside refuses that way out; with none left the building is adopted (the south door
     open toward the group, its re-close guarded) and dropped, the flee holds `trapped` that tick, and the next tick
     is the trapped fight (G3).
     Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
-    rule before it (the non-stance Fight's walk to a zombie at a run)."""
+    rule before it (the non-stance Fight's walk to a zombie at a run).
+    Named change, Plan 31 Task 15a: the chaser met in the stance; pinned with `CHASER_STANCE` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CHASER_STANCE", False)
     from .test_night import CLOSED, OPEN
     from .test_policies import two_door_house
     r, sv = make(tmp_path)

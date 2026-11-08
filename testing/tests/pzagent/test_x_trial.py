@@ -1054,16 +1054,16 @@ def test_a_teleport_that_raises_still_stops_the_waves_and_saves(tmp_path, monkey
 def test_the_planner_factory_passes_the_variant_as_control():
     """The fork's keyword: `Survive(..., control=<variant>)` in the factory's source, whatever the tree's Survive."""
     src = inspect.getsource(TR.planner_factory)
-    assert "sv = Survive(world, actions, log_path, clock, source=source, control=variant)" in src
+    assert "return Survive(world, actions, log_path, clock, source=source, control=variant)" in src
 
 
-def test_the_ladder_arm_runs_the_dress_maneuver_on_its_instance_and_records_it(tmp_path):
-    """Plan 31 Task 12's pre-run edit: the ladder arm's planner has DRESS_MANEUVER True on the instance (the class
-    keeps False for the goldens), trial.json's switches carry it, and _care hands the Dress class to the care branch."""
-    assert SV.Survive.DRESS_MANEUVER is False and TR.LADDER_ON == {"DRESS_MANEUVER": True}
+def test_the_ladder_arm_runs_the_dress_maneuver_by_default_and_records_it(tmp_path):
+    """Plan 31 Task 15a: the Dress maneuver is Survive's default, so Task 12's pre-run edit (62776c14, the ladder
+    arm's instance override LADDER_ON) is gone: the ladder arm's planner reads DRESS_MANEUVER True off the class, set on
+    no instance, and trial.json's switches still carry it (EXTRA_SWITCHES)."""
+    assert SV.Survive.DRESS_MANEUVER is True and not hasattr(TR, "LADDER_ON")
     c, seen = _chain(tmp_path, ["--variant", "ladder", "--fixture", "agent", "--no-llm", "--goals", "hold"])
-    assert seen == ["ladder"] and "DRESS_MANEUVER" in vars(c.planner) and c.planner.DRESS_MANEUVER is True
-    assert SV.Survive.DRESS_MANEUVER is False                          # never set on the class
+    assert seen == ["ladder"] and "DRESS_MANEUVER" not in vars(c.planner) and c.planner.DRESS_MANEUVER is True
     assert TR.switches(c.planner)["DRESS_MANEUVER"] is True
     c2, _ = _chain(tmp_path, ["--variant", "ladder", "--fixture", "agent", "--no-llm"])
     assert c2.planner.DRESS_MANEUVER is True and c2.planner is not c.planner

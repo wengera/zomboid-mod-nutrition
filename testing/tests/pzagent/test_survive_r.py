@@ -51,9 +51,11 @@ def test_a_many_flee_rides_the_bandage_with_the_chaser_beyond_ride_many_r(tmp_pa
     (C.FLEE_CARE_S, [part(6, bleeding=True, bleedingTime=5.0)], False),
     (None, [part(6, bleeding=True, bleedingTime=5.0), part(3, bleeding=True, bleedingTime=2.0)], False),
 ])
-def test_after_flee_care_s_two_bleeding_parts_ride_whatever_the_distance(tmp_path, since, parts, ride):
+def test_after_flee_care_s_two_bleeding_parts_ride_whatever_the_distance(tmp_path, since, parts, ride, monkeypatch):
     """E9's line 450 (game minute 623: parts 0 and 8 bleeding, the nearest at 0.63 tiles): FLEE_CARE_S since the first
-    `many` with two parts bleeding rides at 1.0 tiles; a second short of it, one part, or no `many` read, does not."""
+    `many` with two parts bleeding rides at 1.0 tiles; a second short of it, one part, or no `many` read, does not.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = many_leg(tmp_path, parts, 1.0, since=since)
     assert rode(r) is ride
 
@@ -75,10 +77,12 @@ def test_the_many_clock_starts_at_the_first_many_and_ends_with_the_threat(tmp_pa
 
 
 @pytest.mark.parametrize("attackers,ride", [(0, True), (1, True), (2, False), (3, False)])
-def test_rule_b_never_rides_under_the_drag_down_guard(tmp_path, attackers, ride):
+def test_rule_b_never_rides_under_the_drag_down_guard(tmp_path, attackers, ride, monkeypatch):
     """Task 32 fix 1, the review's minor 9 (E8's replayed ride at line 389, two ticks after the `drag` steer at 387,
     the nearest 0.51): FLEE_CARE_S since the first `many` with two parts bleeding rides at 1.0 tiles, except with
-    `me.attackers` at DRAG_DOWN_N - 1 (2) or more, the drag-down guard's own line."""
+    `me.attackers` at DRAG_DOWN_N - 1 (2) or more, the drag-down guard's own line.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     hold(r, 10, "Base.Bandage")

@@ -745,6 +745,20 @@ def test_a_spent_shove_that_knocked_down_takes_no_swing_and_the_fall_is_stomped(
     assert len(w["presses"]) == 2 and w["presses"][1]["shove"] is True and cur_step(lua) == "stomp"
 
 
+def test_a_spent_target_that_rises_after_its_knock_down_is_shoved_again(lua, fs):
+    """A spent shove that knocked the target down asks no swing: should it rise before the finish (knocked down, then
+    standing again), the next press is the shove."""
+    p, z, w = world(lua, zx=10.85, attack_ticks=6)
+    frame_last(lua, arm_pain=40.0)
+    w["on_attack"] = lambda wd, shove: wd.__setitem__("knocked", True)
+    go(lua, p)
+    run(lua, p, w, 20)
+    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] and cur_step(lua) == "knock_wait"
+    w["knocked"], w["on_attack"] = False, None
+    run(lua, p, w, 40, stop=lambda: len(w["presses"]) > 1)
+    assert len(w["presses"]) == 2 and w["presses"][1]["shove"] is True
+
+
 def test_an_unarmed_spent_meet_shoves_again_with_no_weapon_to_swing(lua, fs):
     """Nothing held (mode shove): no swing can follow, so a shove that did nothing is followed by the shove, and the
     melee never fails no weapon."""
@@ -777,11 +791,15 @@ def test_knock_p_is_truncated_and_clamped(lua, fs, levels, strength, want):
     assert leaves(lua, fs)[0]["knock_p"] == pytest.approx(want)
 
 
-def test_knock_p_is_absent_when_strength_is_unreadable(lua, fs):
-    """An unread input leaves knock_p absent (a swing's leaf carries none either:
-    `test_each_press_s_result_carries_the_press_leaf_s_keys` reads its keys exactly)."""
+@pytest.mark.parametrize("how", ["no perk", "no level"])
+def test_knock_p_is_absent_when_strength_is_unreadable(lua, fs, how):
+    """An unread input (no Perks.Strength, or getPerkLevel answering no number) leaves knock_p absent (a swing's leaf
+    carries none either: `test_each_press_s_result_carries_the_press_leaf_s_keys` reads its keys exactly)."""
     p, z, w = world(lua, zx=10.5, attack_ticks=6)
-    lua.execute("Perks = { Sneak = 'Sneak' }")
+    if how == "no perk":
+        lua.execute("Perks = { Sneak = 'Sneak' }")
+    else:
+        p.getPerkLevel = lambda s, perk: None
     go(lua, p)
     run(lua, p, w, 20, stop=lambda: leaves(lua, fs))
     assert w["presses"][0]["shove"] and "knock_p" not in leaves(lua, fs)[0]

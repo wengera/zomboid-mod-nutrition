@@ -7,7 +7,7 @@ stays the record of every rule here.
 """
 from agent.base.planner.care import CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, FLEE_CARE_N, FLEE_CARE_S, RIDE_MANY_R, RIDE_R
 from agent.base.planner.policies import (BLEED_SPAN_MIN, BLEED_WINDOW_MIN, DANGER_R, DRAG_DOWN_N, FIGHT_REACH,
-                                         POINT_BLANK_R, blocked, zdist)
+                                         KEEP_R, POINT_BLANK_R, blocked, standing, zdist)
 from agent.base.world import me_xy
 
 
@@ -130,6 +130,9 @@ class CareYield:
                 self.bleed_yield = near if bleed else None
                 self.ride_flee = "health" if health else None
                 return near
+        scratch = self._wound_yields(held, near)   # Plan 31 Task 15a: a scratch's Dress, no part bleeding
+        if scratch is not None:
+            return scratch
         if self.flee_many:
             return None
         rip = self.care.stock_early   # P27-K1: the wound's rip is taken as a dressing is
@@ -147,6 +150,33 @@ class CareYield:
             return None
         self.bleed_yield = near   # P26-D: the yield the bleed's room made
         self.bleed_held = bool(self._within(FIGHT_REACH))   # P26-L2: the room only the dressing's hold made
+        return near
+
+    def _wound_yields(self, held, near):
+        """Plan 31 Task 15a (SCRATCH_DRESS; the ladder's street defect (b): round two's trial 12,
+        `x_trial-ladder-20261106-031801`, whose two scratches went undressed from health 92.7 to 16.2 while the threat
+        branch answered 305 of its 600 lines, among them its flee legs from chasers 8 to 9.6 tiles off over decision
+        lines 316 to 328, none within KEEP_R): the nearest listed zombie's tiles `near` when the threat branch yields
+        this tick to the care's Dress of a wound not bleeding, else None. No part may bleed (the bleed's own rules,
+        P24-P to P27-K1, decide then), no zombie (one read dead aside) stand within KEEP_R (the Dress's own end), and
+        no `many` be read this tick (a group, `_many_read`, as the bleed's yield refuses one; a `many` flee episode whose
+        group is no longer read so, trial 12's lines 314 to 330 with the nearest 6.0 to 9.6 tiles off, is no bar: the
+        bleed's ride has its own rule there, P24-AR, and a scratch cannot ride); a running wound Dress (`Care.dress`)
+        holds the yield while that lasts; a new one starts only with the nearest beyond CARE_R or not closing
+        (`_closing`, the bleed's hysteresis without its flee clause: a scratch is dressed under a flee's lull, the
+        dressing first) and `Care.scratch_wanted`. Logged `care_yield` {why "scratch", near} on the threat's why.
+        Cost if wrong: a stop under a chaser beyond KEEP_R, whose arrival ends the Dress and gives the Fight the tick."""
+        c = self.care
+        if not c.scratch_dress or c.bleeding_n() or standing(self.world, KEEP_R, blocked(self.dead, self.clock())):
+            return None
+        if self._many_read(held, len(self._within(DANGER_R)))[0]:
+            return None
+        self._observe(c)
+        d = c.dress
+        running = d is not None and d.wound and d.over() is None
+        if not running and ((near <= CARE_R and self._closing()) or not c.scratch_wanted()):
+            return None
+        self.scratch_yield = near
         return near
 
     def _bleed_leg(self):

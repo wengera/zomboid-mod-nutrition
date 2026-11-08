@@ -499,11 +499,13 @@ def test_a_failure_no_door_reads_shunned_for_a_shelter_and_failed_for_a_loot(typ
     assert V.why_of({"type": typ, "state": "failed", "reason": "no door"}) == why
 
 
-def test_past_the_settle_window_the_still_worn_garment_gives_way_to_the_next_least_covering(tmp_path):
+def test_past_the_settle_window_the_still_worn_garment_gives_way_to_the_next_least_covering(tmp_path, monkeypatch):
     """P25-H past WEAR_SETTLE_MAX frames with the T-shirt still reading worn (no `item_changed`): `_unwear_pick` leaves
     it out for WEAR_RETRY_MIN game minutes since its send, so the bleeding step unwears the next least-covering cotton
     garment, the shirt 21 (an unwear the Lua did not carry out is not retried at once; the next garment gives the rag);
-    within the window nothing was sent."""
+    within the window nothing was sent.
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = unwear_rig(tmp_path)
     tick(r, sv)
     assert r.cmd() == ("unwear", {"itemId": 20})
@@ -533,10 +535,12 @@ def test_item_fields_reads_a_two_number_mod_version(mod, want):
     assert w.item_fields() is want
 
 
-def test_p25_h_s_unwear_runs_on_the_live_hello_s_mod_1_7(tmp_path):
+def test_p25_h_s_unwear_runs_on_the_live_hello_s_mod_1_7(tmp_path, monkeypatch):
     """P25-H through Survive on the live form of the hello (`mod` "1.7", as every PZA/1.7 session's state.log line 1):
     part 9 bleeding, every cotton garment worn, nothing held, no zombie: the care's bleeding step unwears the T-shirt
-    (before P25-O the three-number match read the hello False, and `_unwear_step` sent nothing)."""
+    (before P25-O the three-number match read the hello False, and `_unwear_step` sent nothing).
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     from .test_survive_n import TSHIRT, worn
     r, sv = make(tmp_path)
     r.fake.hello(mod="1.7")
