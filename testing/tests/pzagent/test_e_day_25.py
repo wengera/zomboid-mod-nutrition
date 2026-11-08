@@ -32,7 +32,7 @@ from .test_driverlib import Clock, DayMod, FakeBus, FakeServer, InlinePolls
 REPO = S.REPO
 X = S.X
 RUN_ID = "e_day_25-20261106-120000"
-BASE_COMMIT = "2b289134"   # the planner's head at the copy (`git log -1 -- testing/agent/base/planner`), re-based
+BASE_COMMIT = "066c4336"   # the planner's head at the copy (`git log -1 -- testing/agent/base/planner`), re-based
 #                            before the boot: the controller's re-base is this one replacement
 BOOT = "# ================================================================ the boot"
 
