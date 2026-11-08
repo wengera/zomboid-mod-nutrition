@@ -10,16 +10,21 @@ command at its pin. Its state is the Fight's own (`_init_dispatch`), and `fight.
   `stand` within KEEP_R at a standing pin (the fence wait's leg excepted), an `attack` (the swing, or at a fallen pin
   the floor swing), a `shove` or a `stomp`. Mode `finish` at a fallen pin or for a stomp, else `shove` under a hold
   or in a shove-and-stomp Fight (`_hold_bars`: `spent`, R2; `shove_only`, but the low fight's full swing when due),
-  else `strike`. Task 7e (ruling P28-H 3, E22: 27 of its 38 melees ran in `shove` mode once the first scratch put
+  else `strike`; in mode `shove` with a weapon held the reflex swings after a shove that knocked nothing down (Plan 31
+  Task 15a, the controller's ruling on review-t15a M1, Angus's stand and fight: a hold or a low fight with a weapon
+  presses on, the spent meet's shove-swing alternation governing; unarmed it cannot swing and shoves again), so the
+  mode bars the ladder's own swing sends only (`no_swing`). Task 7e (ruling P28-H 3, E22: 27 of its 38 melees ran in `shove` mode once the first scratch put
   `body.armPain` past STRAIN_HARD, and 12 of its 13 bites inside a span came 0.746 to 0.932 s after a shove that
   knocked nothing down): the arms' pain alone (`arms_hurt`, P24-AP's bar, which `no_swing` keeps for the ladder) no
   longer selects `shove`, since the melee's swing goes at the reach, where T86 read every swing at a standing zombie
   lowering it, never at point blank, where P27-L's divided swings lowered nothing. The approach-and-swing Fight (a
   non-stance one: more than MAX_FIGHT held, the health under the fight line, a trapped character) is dispatched too:
   its `attack` at the pin is "an attack" (review-t7b's ruling (b): a PZA/1.8 build announcing `melee` announces
-  `aim`, and the Lua takes its own force-aim). Fix 1 (review-t7b M1): no melee while another standing zombie is
-  listed within STAND_MIN_R of the player (the Lua's press would take that one, its `crowd` end), the ladder's P24-AH
-  rules owning that tick as before; nor at a target in its backoff (below).
+  `aim`, and the Lua takes its own force-aim). The crowd gate (fix 1, review-t7b M1, at the Lua's crowd end of the
+  time, two; Plan 31 Task 15a fix 1, review-t15a I1, at its end since Task 15a): no melee while MELEE_CROWD_N standing
+  zombies, a standing pin counted, are listed within MELEE_CROWD_R of the player (the Lua would end it handback crowd
+  with no press, #4290), the ladder's rules owning that tick; with fewer the melee goes, the Lua re-pinning to the
+  nearer of two and pressing it (#4688: the press is the defence); nor at a target in its backoff (below).
   Everything above the point stays the ladder's (the pin and its re-pins, P27-N's pin-first, the finish's choice of a
   fallen zombie other than the pin, the fence wait, the edge route, the reposition, the seek, the pull, the advance's
   `toward` legs and walks, the approach); the corner Fight (`point_blank`), the door fight (`only`) and the doorway
@@ -58,8 +63,9 @@ command at its pin. Its state is the Fight's own (`_init_dispatch`), and `fight.
 """
 from agent.base.planner.maneuvers import Melee
 from agent.base.planner.maneuvers.melee import MeleeInputs
-from agent.base.planner.policies import (KEEP_R, MELEE_BACKOFF_TICKS, MELEE_RELEASE_R, SEEK_SKIP_S, STALL_SWINGS,
-                                         STAND_MIN_R, UNREACHABLE_S, arm_pain, on_floor, target_id_ok, zdist)
+from agent.base.planner.policies import (KEEP_R, MELEE_BACKOFF_TICKS, MELEE_CROWD_N, MELEE_CROWD_R, MELEE_RELEASE_R,
+                                         SEEK_SKIP_S, STALL_SWINGS, UNREACHABLE_S, arm_pain, on_floor, target_id_ok,
+                                         zdist)
 
 MELEE_LEGS = ("enter", "back", "stand")   # the ladder's stance legs within KEEP_R a melee replaces
 MELEE_SENDS = ("attack", "shove", "stomp")   # the ladder's sends at its pin a melee replaces (an attack at a fallen
@@ -205,8 +211,8 @@ class FightDispatch:
         d = zdist(self.world, z)
         if d > MELEE_RELEASE_R or self._m_backoff.get(zid):
             return None
-        if self._standing_near(STAND_MIN_R, (zid,)) is not None:
-            return None   # fix 1, M1: the Lua's press would take that one (its `crowd`): the ladder's P24-AH rules
+        if self._crowded(zid, z):
+            return None   # the crowd gate (the module docstring): the Lua would end it handback crowd
         if cmd.TYPE == "aim":
             if "fence_wait" in self.why or self.why.get("leg") not in MELEE_LEGS or d > KEEP_R or on_floor(z):
                 return None
@@ -215,6 +221,13 @@ class FightDispatch:
         if cmd.TYPE == "stomp":
             return "finish"
         return self._melee_mode_at(z)
+
+    def _crowded(self, zid, z):
+        """The crowd gate (Plan 31 Task 15a fix 1, review-t15a I1): MELEE_CROWD_N standing zombies within
+        MELEE_CROWD_R of the player, pin `zid` (zombie `z`) counted while it stands, the Lua's crowd end mirrored
+        (`PZAgent_StanceMelee.lua`'s `crowdOf`; review-t7b M1's gate at the Lua's old end of two)."""
+        n = len(self._standing(MELEE_CROWD_R, (zid,))) + (0 if on_floor(z) else 1)
+        return n >= MELEE_CROWD_N
 
     def _melee_mode_at(self, z):
         """The melee's mode at pin `z`: finish at a fallen pin, else shove under a hold or in a shove-and-stomp Fight

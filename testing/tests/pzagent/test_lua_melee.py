@@ -242,8 +242,8 @@ def live_zombie(zid, x, y):
 
 
 def three_world(lua, **kw):
-    """Plan 31 Task 15a: the target 7 at 0.5 tiles east and two more standing within K.STAND_R, 8 at 0.5 north and 9 at
-    0.55 south: three standing within the crowd radius."""
+    """Plan 31 Task 15a: the target 7 at 0.5 tiles east and two more standing within K.MELEE_CROWD_R, 8 at 0.5 north
+    and 9 at 0.55 south: three standing within the crowd radius."""
     p, z, w = world(lua, zx=10.5, **kw)
     o8, o9 = make_zombie(8, 10.0, 20.5), make_zombie(9, 10.0, 19.45)
     frame_last(lua, [(8, 0.5), (9, 0.55), (7, 0.5)], objs={7: z, 8: o8, 9: o9})
@@ -261,6 +261,24 @@ def test_three_standing_within_stand_r_end_done_handback_crowd_with_the_count_an
     r = a["result"]
     assert (a["state"], r["end"], r["why"], r["id"], r["d"], r["n"]) == ("done", "handback", "crowd", 8, 0.5, 3)
     assert r["ds"] == pytest.approx([0.5, 0.5, 0.55]) and w["presses"] == []
+
+
+@pytest.mark.parametrize("d9, handback", [(0.7, True), (0.89, True), (0.95, False)])
+def test_the_third_standing_zombie_counts_within_0_9_tiles(lua, fs, d9, handback):
+    """Fix 1, review-t15a M4: the crowd radius is #4290's 0.9 tiles (K.MELEE_CROWD_R), not K.STAND_R's 0.6: the
+    target and 8 at 0.5 and a third, 9, at 0.7 or 0.89 end the meet handback crowd {n 3}; 9 at 0.95 (beyond the
+    radius) leaves two, and the meet presses on (the old radius, 0.6, read two at 0.7 too)."""
+    p, z, w = world(lua, zx=10.5, attack_ticks=6)
+    o8, o9 = make_zombie(8, 10.0, 20.5), make_zombie(9, 10.0, 20.0 - d9)
+    frame_last(lua, [(8, 0.5), (9, d9), (7, 0.5)], objs={7: z, 8: o8, 9: o9})
+    go(lua, p)
+    run(lua, p, w, 30)
+    if handback:
+        r = last(lua, fs)["result"]
+        assert (last(lua, fs)["state"], r["end"], r["why"], r["n"]) == ("done", "handback", "crowd", 3)
+        assert r["ds"] == pytest.approx([0.5, 0.5, d9]) and w["presses"] == []
+    else:
+        assert not ended(lua) and w["presses"]
 
 
 def test_two_standing_at_0_5_tiles_do_not_hand_back_and_the_meet_presses_on(lua, fs):
@@ -707,6 +725,17 @@ def test_the_spent_meet_closes_and_shoves_within_shove_r_first(lua, fs, how):
     assert progress(lua, fs)[-1]["result"]["spent"] is True
 
 
+def test_an_unread_moodle_level_reads_zero_for_the_spent_read(lua, fs):
+    """Fix 1, review-t15a M5 (`moodleLevel` one function, its default 0): moodles whose levels answer no number leave
+    the meet not spent: the swing at 1.1, no error."""
+    p, z, w = world(lua, zx=11.1)
+    frame_last(lua, arm_pain=0.0)
+    p.getMoodles = lambda s: J(getMoodleLevel=lambda s2, t: None)
+    go(lua, p)
+    run(lua, p, w, 2)
+    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is False and not ended(lua)
+
+
 def test_not_spent_the_same_target_is_swung_at(lua, fs):
     """The spent meet's falsifier: the arms' pain 10 (not over) and the moodles at 1: the swing at 1.1."""
     p, z, w = world(lua, zx=11.1)
@@ -729,6 +758,19 @@ def test_after_a_spent_shove_that_did_nothing_the_swing_goes_before_the_next_sho
     run(lua, p, w, 200, stop=lambda: len(w["presses"]) >= 4)
     assert [x["shove"] for x in w["presses"][:4]] == [True, False, True, False]
     assert progress(lua, fs)[-1]["result"]["spent"] is True
+
+
+def test_an_armed_hold_s_shove_mode_swings_after_a_shove_that_did_nothing(lua, fs):
+    """Fix 1, review-t15a M1 (the controller's ruling: Angus's stand and fight): the planner sends mode shove under a
+    hold or a low or hold shove-and-stomp Fight (`fight.Fight._hold_bars`); with the bat held, the arms unhurt and no
+    moodle, the reflex still opens with the shove and swings after the shove that knocked nothing down, never two
+    shoves in a row; the planner's side is `test_survive_ad`'s armed hold case."""
+    p, z, w = world(lua, zx=10.85, attack_ticks=6)
+    frame_last(lua, arm_pain=0.0)
+    moodles(p, {})
+    go(lua, p, mode="shove")
+    run(lua, p, w, 200, stop=lambda: len(w["presses"]) >= 4)
+    assert [x["shove"] for x in w["presses"][:4]] == [True, False, True, False]
 
 
 def test_a_spent_shove_that_knocked_down_takes_no_swing_and_the_fall_is_stomped(lua, fs):
@@ -791,15 +833,18 @@ def test_knock_p_is_truncated_and_clamped(lua, fs, levels, strength, want):
     assert leaves(lua, fs)[0]["knock_p"] == pytest.approx(want)
 
 
-@pytest.mark.parametrize("how", ["no perk", "no level"])
+@pytest.mark.parametrize("how", ["no perk", "no level", "no moodle level"])
 def test_knock_p_is_absent_when_strength_is_unreadable(lua, fs, how):
-    """An unread input (no Perks.Strength, or getPerkLevel answering no number) leaves knock_p absent (a swing's leaf
-    carries none either: `test_each_press_s_result_carries_the_press_leaf_s_keys` reads its keys exactly)."""
+    """An unread input (no Perks.Strength, getPerkLevel answering no number, or, fix 1 of review-t15a M5, a moodle
+    level answering no number: `moodleLevel`'s strict read) leaves knock_p absent (a swing's leaf carries none either:
+    `test_each_press_s_result_carries_the_press_leaf_s_keys` reads its keys exactly)."""
     p, z, w = world(lua, zx=10.5, attack_ticks=6)
     if how == "no perk":
         lua.execute("Perks = { Sneak = 'Sneak' }")
-    else:
+    elif how == "no level":
         p.getPerkLevel = lambda s, perk: None
+    else:
+        p.getMoodles = lambda s: J(getMoodleLevel=lambda s2, t: None if t == "PANIC" else 0)
     go(lua, p)
     run(lua, p, w, 20, stop=lambda: leaves(lua, fs))
     assert w["presses"][0]["shove"] and "knock_p" not in leaves(lua, fs)[0]

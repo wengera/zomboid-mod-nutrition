@@ -408,3 +408,61 @@ def test_trial_12_s_scratch_takes_the_care_s_dress_within_a_game_minute_of_the_f
     assert (rep[first - 1]["inputs"]["hour"] - rows[quiet - 1]["inputs"]["hour"]) * 60 <= 1.0
     _, off = replay(T12, SCRATCH_DRESS=False)
     assert not any(r["branch"] == "care" and r["action"] for r in off[304:])
+
+
+def test_a_running_scratch_dress_gives_way_to_a_chaser_closing_within_care_hold_r(tmp_path):
+    """Fix 1, review-t15a M2: a scratch's Dress started under a chaser 8 tiles off (its stop sent and done) holds the
+    threat branch's yield while the chaser closes beyond CARE_HOLD_R (3.0), as a running bleed bandage does, and gives
+    way once it closes within it (2.8): the threat branch takes that tick, no `care_yield`; the old hold reached KEEP_R
+    (2.5), the Dress's own end."""
+    r, sv = scratch_rig(tmp_path)
+    off = 8.6
+    for k in range(4):
+        off -= 0.2
+        r.advance(0.5)
+        r.frame(zombies=[zombie(7, off)], wounds={"parts": [scratch()], "bleeding": 0})
+        tick(r, sv)
+    assert r.cmd() == ("stop", {}) and sv.care.dress is not None and sv.care.dress.wound
+    r.answer()
+    seen = []
+    for off in (6.0, 4.5, 3.4, 3.1, 2.8):
+        r.advance(0.5)
+        r.frame(zombies=[zombie(7, off)], wounds={"parts": [scratch()], "bleeding": 0})
+        tick(r, sv)
+        th = threat_why(tmp_path)
+        seen.append((off, last(tmp_path)["branch"], (th.get("care_yield") or {}).get("why")))
+    assert seen[:4] == [(6.0, "care", "scratch"), (4.5, "care", "scratch"), (3.4, "care", "scratch"),
+                        (3.1, "care", "scratch")], seen
+    assert seen[4] == (2.8, "threat", None), seen
+
+
+def test_a_zombie_read_dead_but_listed_standing_holds_neither_the_scratch_s_start_nor_its_yield(tmp_path):
+    """Fix 1, review-t15a M5: one standing read (`Care.scratch_room`, the ids read dead left out through the Care's
+    `skip`, which Survive sets each tick, and the Dress's own KEEP_R end through its `skip`) for the scratch's start,
+    the threat branch's yield and the Dress's end: a zombie listed standing at 2.0 tiles but read dead (Survive's
+    `dead`) holds none of them; the Dress's stop goes."""
+    r, sv = scratch_rig(tmp_path)
+    sv.dead[7] = r.clock() + 60.0
+    for _ in range(4):
+        r.advance(0.5)
+        r.frame(zombies=[zombie(7, 2.0, chasing=False)], wounds={"parts": [scratch()], "bleeding": 0})
+        tick(r, sv)
+    assert sv.care.skip == {7} and sv.care.scratch_room() is True
+    assert any(a.type == "stop" for a in r.acts.history) and sv.care.dress is not None and sv.care.dress.wound
+
+
+def test_the_yield_to_the_scratch_leaves_a_zombie_read_dead_out(tmp_path):
+    """Fix 1, review-t15a M5, the yield's half: a live chaser 8 tiles off and closing (the threat branch's tick, the
+    yield's case) and a zombie listed standing at 2.0 tiles but read dead: the yield to the scratch's Dress goes
+    (`care_yield` {why "scratch"}), the dead one held out of the yield's standing read as out of the start's."""
+    r, sv = scratch_rig(tmp_path)
+    sv.dead[7] = r.clock() + 60.0
+    off = 8.6
+    for _ in range(4):
+        off -= 0.2
+        r.advance(0.5)
+        r.frame(zombies=[zombie(7, 2.0, chasing=False), zombie(8, off)], wounds={"parts": [scratch()], "bleeding": 0})
+        tick(r, sv)
+    th = threat_why(tmp_path)
+    assert last(tmp_path)["branch"] == "care" and th.get("care_yield") == {"why": "scratch", "near": th["nearest"]}
+    assert any(a.type == "stop" for a in r.acts.history)

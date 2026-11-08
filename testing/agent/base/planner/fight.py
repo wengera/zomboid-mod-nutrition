@@ -753,13 +753,19 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         halving a swing, #4370, #4371), or a shove-and-stomp Fight (`shove_only`: "unarmed", ruling P25-P, the
         shove and the stomp need no weapon, the Lua's K.STAND_R; "low", ruling P25-S, under FLEE_HEALTH the kill with
         the least exposure; "hold", ruling P27-C, the endurance hold's lone zombie), but for the low fight's full swing
-        when it is due (ruling P27-E, `_low_swing_due`)."""
+        when it is due (ruling P27-E, `_low_swing_due`). The bar is the ladder's sends' only: the melee reflex, sent in
+        mode `shove` under the same bars (`dispatch._melee_mode_at`), swings after a shove that knocked nothing down
+        whenever a weapon is held (Plan 31 Task 15a, the controller's ruling on review-t15a M1, Angus's stand and fight:
+        a hold or a low fight with a weapon presses on, the spent meet's shove-swing alternation governing under the
+        arms' pain); unarmed it cannot swing."""
         return arms_hurt(self.world) or self._hold_bars()
 
     def _hold_bars(self):
         """The swing's bar beside the arms' pain (fix 1, review-t3 minor 5: `no_swing` and `floor_swing_barred` read
         it): any hold read this tick (`spent`, R2) or a shove-and-stomp Fight (`shove_only`) but for the low fight's
-        full swing when due (P27-E, `_low_swing_due`)."""
+        full swing when due (P27-E, `_low_swing_due`). It selects the melee's mode `shove`, which with a weapon held
+        still swings after a shove that knocked nothing down (Plan 31 Task 15a, review-t15a M1's ruling: `no_swing`);
+        so for the melee it bars the opening swing and the floor swing, not the swing between shoves."""
         return bool(self.spent) or (self.shove_only is not None and not self._low_swing_due())
 
     def floor_swing_barred(self):

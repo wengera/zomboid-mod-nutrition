@@ -107,6 +107,8 @@ class Dress(Maneuver):
         self.moved = 0          # still-waits that timed out and motion refusals (DRESS_MOVED)
         self.fail = None        # why it failed: "nothing", "moving" or "sends"
         self._since = 0         # `World.frame_n` when the current wait began
+        self.skip = ()          # the zombie ids its owner read dead this tick, left out of the KEEP_R end (the ladder's
+                                # care sets it before each observe: fix 1, review-t15a M5); a variant's, none
         self._log()
 
     # -- the contract ---------------------------------------------------------------------------------------------
@@ -278,7 +280,7 @@ class Dress(Maneuver):
         dressed = rec is not None and (rec.get("bandaged") is True if self.wound else rec.get("bleeding") is False)
         if isinstance(parts, list) and (rec is None or dressed):
             self._end = "done"
-        elif standing(self.world, KEEP_R):
+        elif standing(self.world, KEEP_R, self.skip):
             self._end = "superseded"
 
     def _log(self):

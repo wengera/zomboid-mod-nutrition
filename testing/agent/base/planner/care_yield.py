@@ -7,7 +7,7 @@ stays the record of every rule here.
 """
 from agent.base.planner.care import CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, FLEE_CARE_N, FLEE_CARE_S, RIDE_MANY_R, RIDE_R
 from agent.base.planner.policies import (BLEED_SPAN_MIN, BLEED_WINDOW_MIN, DANGER_R, DRAG_DOWN_N, FIGHT_REACH,
-                                         KEEP_R, POINT_BLANK_R, blocked, standing, zdist)
+                                         POINT_BLANK_R, blocked, zdist)
 from agent.base.world import me_xy
 
 
@@ -162,18 +162,23 @@ class CareYield:
         no `many` be read this tick (a group, `_many_read`, as the bleed's yield refuses one; a `many` flee episode whose
         group is no longer read so, trial 12's lines 314 to 330 with the nearest 6.0 to 9.6 tiles off, is no bar: the
         bleed's ride has its own rule there, P24-AR, and a scratch cannot ride); a running wound Dress (`Care.dress`)
-        holds the yield while that lasts; a new one starts only with the nearest beyond CARE_R or not closing
+        holds the yield while that lasts, unless the nearest is closing within CARE_HOLD_R (fix 1, review-t15a M2: as a
+        running bleed bandage gives way there, so a scratch, the less urgent wound, never keeps the character still
+        nearer an approaching zombie than a bleed would); a new one starts only with the nearest beyond CARE_R or not closing
         (`_closing`, the bleed's hysteresis without its flee clause: a scratch is dressed under a flee's lull, the
-        dressing first) and `Care.scratch_wanted`. Logged `care_yield` {why "scratch", near} on the threat's why.
+        dressing first) and `Care.scratch_wanted`; the standing read is the Care's own (`Care.scratch_room`, its
+        `skip` the ids read dead: fix 1, review-t15a M5). Logged `care_yield` {why "scratch", near} on the threat's why.
         Cost if wrong: a stop under a chaser beyond KEEP_R, whose arrival ends the Dress and gives the Fight the tick."""
         c = self.care
-        if not c.scratch_dress or c.bleeding_n() or standing(self.world, KEEP_R, blocked(self.dead, self.clock())):
+        if not c.scratch_dress or c.bleeding_n() or not c.scratch_room():
             return None
         if self._many_read(held, len(self._within(DANGER_R)))[0]:
             return None
         self._observe(c)
         d = c.dress
         running = d is not None and d.wound and d.over() is None
+        if running and near <= CARE_HOLD_R and self._closing():
+            return None   # fix 1, review-t15a M2: a running scratch's Dress gives way at CARE_HOLD_R, as a bleed's does
         if not running and ((near <= CARE_R and self._closing()) or not c.scratch_wanted()):
             return None
         self.scratch_yield = near

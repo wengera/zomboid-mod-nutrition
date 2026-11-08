@@ -402,6 +402,8 @@ class Care(Policy):
                                   # bleeding step's own sends, the rule before it
         self.scratch_dress = False   # Plan 31 Task 15a (Survive's SCRATCH_DRESS with DRESS_MANEUVER, set each tick): a
                                      # wound not bleeding is one Dress too (`_dress_step`), in place of P28-A's step
+        self.skip = ()            # the zombie ids read dead this tick (Survive's `dead`, set each tick): the scratch's
+                                  # standing read leaves them out (`scratch_room`; fix 1, review-t15a M5)
         self.dress = None         # the running Dress (`_dress_step`), else None
         self.dress_end = []       # the ended Dresses' logs, each with its end, put on the next choose's why once
                                   # (`dress_end`, a list: fix 1, m2, two may end in one call)
@@ -457,6 +459,7 @@ class Care(Policy):
         water leaves its source out (`World.mark_dry`). A part's `fresh` entry goes once a newer frame came. A running
         Dress (Plan 31 Task 8) reads its own ends first."""
         if self.dress is not None:
+            self.dress.skip = self.skip   # fix 1, review-t15a M5: the one standing read, the dead left out
             self.dress.observe()
         n = self.world.frame_n
         self.fresh = {i: at for i, at in self.fresh.items() if at >= n}
@@ -834,6 +837,7 @@ class Care(Policy):
         if d is None and not bleeding and not self.ride_now and self.scratch_wanted():   # Task 15a: the scratch
             d = self.dress = self.dress_cls(self.world, self.actions, self.clock, part=self._wounds()[0]["i"],
                                             wound=True)
+            d.skip = self.skip   # fix 1, review-t15a M5
         if d is None:
             return None, False
         cmd = d.step()
@@ -857,9 +861,15 @@ class Care(Policy):
         (`care_yield.CareYield._wound_yields`) too."""
         if not (self.scratch_dress and self.wound_dress) or self._bleeding() or not self._wounds():
             return False
-        if standing(self.world, KEEP_R) or self._dress_held_off():
+        if not self.scratch_room() or self._dress_held_off():
             return False
         return dress_pick(self.world, 0.0, dirty_ok=True) is not None
+
+    def scratch_room(self):
+        """No standing zombie within KEEP_R, one read dead (`skip`) left out: the one read the scratch's start
+        (`scratch_wanted`), its `wound_held` log and the threat branch's yield to it (`care_yield._wound_yields`) share
+        (fix 1, review-t15a M5)."""
+        return not standing(self.world, KEEP_R, self.skip)
 
     def _dress_ended(self, d, end=None):
         """Dress `d` is dropped: its log with its end (`end`, else its own) kept for the next why (`dress_end`); a
@@ -923,7 +933,7 @@ class Care(Policy):
         wound_held = None
         wounds = self._wounds() if self.wound_dress and w.can("bandage") else []
         if wounds and self.scratch_dress and self.dress_cls is not None:   # Task 15a: the scratch is the Dress's
-            wound_held = {"part": wounds[0]["i"], "standing": len(standing(w, KEEP_R))}   # (none started: logged)
+            wound_held = {"part": wounds[0]["i"], "standing": len(standing(w, KEEP_R, self.skip))}   # (none started)
         elif wounds and len(clean) > WOUND_RESERVE:
             if not self.near_n:   # P28-A: the wound dressed on a quiet care tick
                 p = wounds[0]

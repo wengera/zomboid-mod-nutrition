@@ -52,9 +52,10 @@
 --       `refusals`, the run's count so far.
 --    3. d beyond releaseR: done lost, why out of range. The crowd (Plan 31 Task 15a, the crowd handback's ruling: the
 --       swing, hit and handback re-pin loop that killed three street trials of round two, two standing within 0.6
---       tiles handing back before every press): the other standing zombies within K.STAND_R, the crowd radius (the
---       last frame's records within K.STAND_R + MELEE_CROWD_SLACK read live). K.MELEE_CROWD_N standing (the target
---       counted while it stands: three attackers within reach zero the defence and drag the character down, #4290):
+--       tiles handing back before every press): the other standing zombies within K.MELEE_CROWD_R, the crowd radius
+--       (#4290's 0.9 tiles; fix 1, review-t15a M4: the read was K.STAND_R's 0.6, under the row; the last frame's
+--       records within K.MELEE_CROWD_R + MELEE_CROWD_SLACK read live). K.MELEE_CROWD_N standing (the target
+--       counted while it stands: three attackers within 0.9 tiles zero the defence and drag the character down, #4290):
 --       done handback, why crowd, with the nearest other's id and d, the count n and the standing zombies' distances
 --       ds, nearest first. Fewer: no hand-back (a player mid-attack facing the zombie is never bitten, #4688: the
 --       press is the defence); a standing target farther than the nearest other by more than K.MELEE_REPIN_SLACK is
@@ -157,9 +158,10 @@ K.REFUSE_MAX = 5             -- refused presses in a row after which the press w
                              -- persistent refusal pressed every tick wrote about 60 act lines a second), a judgment
 K.REFUSE_WAIT_MS = K.SWING_MS / 2   -- the wait, half the swing's own bound (750 ms), the facing still written
 K.REFUSE_END = 15            -- refused presses in a row that end the melee lost, why refused (three runs), a judgment
-K.MELEE_CROWD_N = 3          -- standing zombies within K.STAND_R (the target counted) that end the meet handback crowd:
-                             -- three attackers within reach zero the defence and drag the character down (#4290, at
-                             -- the fixtures' sandbox Strength); with two the nearest is pressed (#4688), Task 15a
+K.MELEE_CROWD_N = 3          -- standing zombies within K.MELEE_CROWD_R (the target counted) that end the meet handback
+                             -- crowd: three attackers within 0.9 tiles zero the defence and drag the character down
+                             -- (#4290, at the fixtures' sandbox Strength); with two the nearest is pressed (#4688), Task 15a
+K.MELEE_CROWD_R = 0.9        -- tiles: the crowd radius, #4290's (fix 1, review-t15a M4: K.STAND_R's 0.6 under-read it)
 K.MELEE_REPIN_SLACK = 0.1    -- tiles a crowd's other zombie must be nearer than the target to be re-pinned (a tolerance
                              -- of the read, so two at one distance do not flap)
 K.KNOCK_BASE = 35            -- the shove's critical chance, calculateCritChance (#4373): the base,
@@ -360,21 +362,15 @@ local function walkToward(p, st, kind, px, py, tx, ty, dd, now)
     return kind
 end
 
-local function moodleLevel(mo, name)
+-- a moodle's level, else `unread` when the moodle type or its level cannot be read: 0 when omitted (the spent read's);
+-- knock_p passes false, its strict read (fix 1, review-t15a M5: one function, not two)
+local function moodleLevel(mo, name, unread)
+    if unread == nil then unread = 0 end
     local t = MoodleType ~= nil and MoodleType[name] or nil
-    if t == nil then return 0 end
+    if t == nil then return unread end
     local ok, l = PZA.call(mo, "getMoodleLevel", t)
     if ok and type(l) == "number" then return l end
-    return 0
-end
-
--- a moodle's level, or nil when the moodle type or its level cannot be read (knock_p's strict read)
-local function levelOf(mo, name)
-    local t = MoodleType ~= nil and MoodleType[name] or nil
-    if t == nil then return nil end
-    local ok, l = PZA.call(mo, "getMoodleLevel", t)
-    if ok and type(l) == "number" then return l end
-    return nil
+    return unread
 end
 
 -- the shove's knock-down chance in [0, 1] (#4373, calculateCritChance's shove at a zombie): KNOCK_BASE - KNOCK_LEVEL
@@ -385,8 +381,9 @@ local function knockP(p)
     local perk = Perks ~= nil and Perks.Strength or nil
     if not ok or mo == nil or perk == nil then return nil end
     local okS, s = PZA.call(p, "getPerkLevel", perk)
-    local e, h, pa = levelOf(mo, "ENDURANCE"), levelOf(mo, "HEAVY_LOAD"), levelOf(mo, "PANIC")
-    if not okS or type(s) ~= "number" or e == nil or h == nil or pa == nil then return nil end
+    local e, h, pa = moodleLevel(mo, "ENDURANCE", false), moodleLevel(mo, "HEAVY_LOAD", false),
+                     moodleLevel(mo, "PANIC", false)
+    if not okS or type(s) ~= "number" or not e or not h or not pa then return nil end
     local c = K.KNOCK_BASE - K.KNOCK_LEVEL * (e + h) - K.KNOCK_PANIC * pa + K.KNOCK_STRENGTH * s
     if c >= 0 then c = math.floor(c) else c = math.ceil(c) end
     return math.max(0, math.min(100, c)) / 100
@@ -645,7 +642,7 @@ local function repin(p, st, c)
     return "repin"
 end
 
--- 3, the crowd (the header's step 3): crowd the other standing zombies within K.STAND_R, nearest first; d the target's
+-- 3, the crowd (the header's step 3): crowd the other standing zombies within K.MELEE_CROWD_R, nearest first; d the target's
 -- distance, fallen whether it lies. K.MELEE_CROWD_N standing (the target counted while it stands): done handback
 -- crowd {id, d of the nearest other, n, ds}; else a standing target farther than the nearest other by more than
 -- K.MELEE_REPIN_SLACK re-pinned to it; else nil (the meet or the finish goes on)
@@ -688,7 +685,7 @@ local function reflex(p, st, d, px, py, zx, zy, now)
         if st.refusals >= K.REFUSE_END then return "done", "lost", { why = "refused" } end
     end
     if d > st.releaseR then return "done", "lost", { why = "out of range" } end
-    local crowd = standingNear(p, st, K.STAND_R)
+    local crowd = standingNear(p, st, K.MELEE_CROWD_R)
     local fallen = K.onFloor(z)
     if crowd ~= nil then
         local step, how, res = crowdOf(p, st, crowd, d, fallen)

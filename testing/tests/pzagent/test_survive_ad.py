@@ -229,6 +229,20 @@ def test_the_mode_is_shove_under_a_shove_only_fight_or_a_hold(tmp_path):
         assert f.why["leg"] == "back" and f.why["ladder"] == "aim"
 
 
+def test_an_armed_hold_sends_the_melee_in_shove_mode_and_no_swing_bars_the_ladder_alone(tmp_path):
+    """Fix 1, review-t15a M1 (the controller's ruling, Angus's stand and fight): under the endurance hold (`spent`) or
+    a low or hold shove-and-stomp Fight, the bat held and the arms unhurt, the melee goes in mode `shove` (the Lua's
+    spent meet: the shove, then the swing after a shove that knocked nothing down, `test_lua_melee`'s armed hold
+    case), and `no_swing` (the ladder's own bar) reads True: the Fight's ladder sends no swing of its own."""
+    for i, k in enumerate(({"spent": ("endurance",)}, {"shove_only": "hold"}, {"shove_only": "low"})):
+        r = rig(tmp_path, "case%d" % i)
+        fr(r, [z(9, 101.0)])
+        f = fight(r, **k)
+        a = f.step()
+        assert (a.type, a.args["mode"]) == ("melee", "shove") and r.world.weapon is not None, k
+        assert f.no_swing() is True, k
+
+
 def test_the_reach_is_zero_without_the_frame_s_weapon_reach_or_with_attack_reach_off(tmp_path):
     """`reach` 0 (the Lua's `K.reachOf`) where `FightReach.reach_r` reads none: no weapon in the frame, or the
     `attack_reach` rule off."""
@@ -451,11 +465,22 @@ def test_a_handback_re_pins_to_the_other_zombie_the_lua_reports_nearer(tmp_path)
     assert (b.type, b.args["targetId"], f.target) == ("melee", 8, 8) and f.why["melee_end"]["end"] == "handback"
 
 
-def test_a_handback_that_re_pins_nothing_gives_the_ladder_its_press(tmp_path):
+def old_gate(self, zid, z):
+    """The crowd gate before Plan 31 Task 15a fix 1 (review-t7b M1): another standing zombie within STAND_MIN_R."""
+    return self._standing_near(P.STAND_MIN_R, (zid,)) is not None
+
+
+OLD_GATE = ("agent.base.planner.dispatch.FightDispatch._crowded", old_gate)
+
+
+def test_a_handback_that_re_pins_nothing_gives_the_ladder_its_press(tmp_path, monkeypatch):
     """Fix 1 (review-t7b M1, the loop's probe): pin 9 at 0.4 tiles, 8 closing to 0.55 (the Lua's `crowd`, 8 not the
     nearer): no fresh melee on that geometry. The crowd end hands the next choose to the ladder (`_m_ladder`), and while
     8 stands within STAND_MIN_R of the player no melee is dispatched (`_melee_mode`): over six ticks the ladder's leg
-    and its swing go as with the rule off, never a melee that the Lua would fail `crowd` with no press."""
+    and its swing go as with the rule off, never a melee that the Lua would fail `crowd` with no press.
+    Named change, Plan 31 Task 15a fix 1 (review-t15a I1): the crowd gate counts the Lua's crowd since; pinned with the
+    gate before it, another standing zombie within STAND_MIN_R (`OLD_GATE`)."""
+    monkeypatch.setattr(*OLD_GATE)
     r = Rig(tmp_path, caps=MELEE_CAPS)
     fr(r, [z(9, 100.4), z(8, 100.0, 200.9)])
     f = fight(r, target=9)
@@ -478,10 +503,13 @@ def test_a_handback_that_re_pins_nothing_gives_the_ladder_its_press(tmp_path):
     assert ("attack", 9) in sends and not any(t == "melee" for t, _ in sends) and f.m is None
 
 
-def test_no_melee_while_another_standing_zombie_is_within_stand_min_r(tmp_path):
+def test_no_melee_while_another_standing_zombie_is_within_stand_min_r(tmp_path, monkeypatch):
     """Fix 1 (review-t7b M1): a second standing zombie within STAND_MIN_R of the player keeps the ladder's command (its
     P24-AH rules own that tick, the Lua's press would take that zombie); a fallen one there, or one beyond it, does
-    not."""
+    not.
+    Named change, Plan 31 Task 15a fix 1 (review-t15a I1): the crowd gate counts the Lua's crowd since; pinned with the
+    gate before it, another standing zombie within STAND_MIN_R (`OLD_GATE`)."""
+    monkeypatch.setattr(*OLD_GATE)
     for i, (other, melee) in enumerate(((z(8, 100.0, 200.55), False), (z(8, 100.0, 200.55, floor=True), True),
                                         (z(8, 100.0, 200.7), True))):
         r = rig(tmp_path, str(i))
@@ -489,6 +517,33 @@ def test_no_melee_while_another_standing_zombie_is_within_stand_min_r(tmp_path):
         f = fight(r, target=9)
         a = f.step()
         assert (a.type == "melee") is melee, other
+
+
+@pytest.mark.parametrize("others, melee", [([(100.0, 200.5)], True), ([(100.0, 200.5), (100.0, 199.3)], False),
+                                           ([(100.0, 200.5), (100.0, 199.05)], True)])
+def test_the_crowd_gate_refuses_the_melee_only_at_the_lua_s_crowd(tmp_path, others, melee):
+    """Plan 31 Task 15a fix 1 (review-t15a I1): the dispatch's crowd gate mirrors the Lua's crowd end (MELEE_CROWD_N
+    3 standing within MELEE_CROWD_R 0.9, a standing pin counted): pin 9 at 0.5 tiles and one other standing at 0.5
+    (mix_2's street geometry) dispatch the melee, where the old gate (one other within STAND_MIN_R) gave the tick to the
+    ladder; a second other at 0.7 refuses it; a second at 0.95, beyond the radius, does not."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 100.5)] + [z(8 + i * 2, x, y) for i, (x, y) in enumerate(others)])
+    f = fight(r, target=9)
+    a = f.step()
+    assert (a is not None and a.type == "melee") is melee, others
+    assert f.target == 9
+
+
+def test_a_fallen_pin_is_not_counted_in_the_crowd(tmp_path):
+    """The gate counts the pin only while it stands, as the Lua's `crowdOf` does: a fallen pin 9 with two others
+    standing within 0.9 is no crowd (the finish's own `standing` hand-back rules there); with a third it is."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    two = [z(9, 100.5, floor=True), z(8, 100.0, 200.5), z(10, 100.0, 199.3)]
+    fr(r, two)
+    f = fight(r, target=9)
+    assert F.Fight._crowded(f, 9, r.world.zombies[9]) is False
+    fr(r, two + [z(12, 99.4, 200.0)])
+    assert F.Fight._crowded(f, 9, r.world.zombies[9]) is True
 
 
 def test_a_marked_attacker_at_point_blank_re_pins_through_a_running_melee_on_its_tick(tmp_path):

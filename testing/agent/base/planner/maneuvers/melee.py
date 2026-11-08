@@ -18,7 +18,7 @@ before each `step`; a decider variant may start one wherever it fights.
 - The ends (`ended`): a `done` whose result reads `kill` true names its target in the kills its owner takes
   (`take_kills`), whichever of its sends it was (a re-send's predecessor too); the current send's `done` ends the
   maneuver with its `end` (`kill`; `handback`, its other zombie {id, d} kept in `handback`, with a crowd's count `n`
-  and distances `ds`, Plan 31 Task 15a: three standing within 0.6 tiles, two pressed; `lost`), its `why` in
+  and distances `ds`, Plan 31 Task 15a: three standing within 0.9 tiles (#4290; fix 1, review-t15a M4), two pressed; `lost`), its `why` in
   `end_why` (out of range, out of reach, no progress; crowd, standing) and its span (`take_span`: the strikes, the
   swings, floor swings and stomps, and whether the target's health fell from `hp0` to `hp1`, None when either is
   unreadable) read by the owner's no-progress streak, `span_id` the zombie it read; a reflex that re-pinned to the

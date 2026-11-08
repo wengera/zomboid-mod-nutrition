@@ -365,6 +365,11 @@ HEAD_AIM = False          # the melee's `headAim` (fix 1, review-t2 F4, the cont
 HANDBACK_R = 2.0          # tiles: the melee's `handbackR`, inside which another standing zombie ends a finish handback
                           # and beyond which none breaks it (F15's two knock-downs were lost to `pair` flees from zombies
                           # beyond it, the spec's section 1); the spec's number
+MELEE_CROWD_N = 3     # standing zombies (a standing pin counted) within MELEE_CROWD_R that end the melee reflex
+                      # handback crowd, the Lua's K.MELEE_CROWD_N copied (Plan 31 Task 15a: three attackers within 0.9
+                      # tiles zero the defence and drag the character down, #4290; with two the press is the defence,
+                      # #4688), read by the Fight's dispatch gate (fix 1, review-t15a I1)
+MELEE_CROWD_R = 0.9   # tiles: that crowd's radius, the Lua's K.MELEE_CROWD_R copied (#4290; fix 1, review-t15a M4)
 SHOVE_SEND_R = 0.9        # tiles: the melee's `shoveR` (Plan 28 Task 7e, ruling P28-H 1), the shove sent inside its
                           # reach, not at its edge: the engine's reach SHOVE_R 1.1 (to the nearest of head, pelvis and
                           # position, #4592) read as a bound, not a target; E22's eight shoves at 1.068 to 1.100 tiles

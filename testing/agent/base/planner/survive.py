@@ -1153,6 +1153,7 @@ class Survive(SneakGait, Threat):
         self.care.spent_keep = self.SPENT_KEEP   # P27-D: read by the Care's choose
         self.care.stock_early = self.STOCK_EARLY   # P27-K1: read by the threat branch's care yield (`_care_yields`)
         self.care.scratch_dress = self.SCRATCH_DRESS and self.DRESS_MANEUVER   # Task 15a: read by the yield too
+        self.care.skip = blocked(self.dead, self.clock())   # Task 15a fix 1 (M5): the scratch's standing read
         self.goals.stuck_leave = self.STUCK_LEAVE   # P27-F: read by the goal runner's observe, below
         self.goals.goal_stall = self.GOAL_STALL   # P29-B: read by the goal runner's observe, below
         self.goals.goal_continue = self.GOAL_CONTINUE   # P30-B: read by the goal runner's tick

@@ -1285,9 +1285,9 @@ def lull_rig(tmp_path, ground=True):
 def test_the_lull_dresses_a_wound_that_is_not_bleeding(tmp_path):
     """Major 3 (P28-A's step, `care.Care.choose`'s `wound`): under the doctrine, no zombie near and no bleed, the
     care's wound step runs in the order, on the care's branch, labelled a dress.
-    Named change, Plan 31 Task 15a: pinned with SCRATCH_DRESS off on its Survive instance, keeping P28-A's lull
-    behaviour under the task's scratch Dress switched off; the doctrine's lull with the switch on is read on its
-    trial rows."""
+    Named change, Plan 31 Task 15a: pinned with SCRATCH_DRESS off on its Survive instance, the pin keeping P28-A's
+    lull behaviour under the new switch off; the doctrine's lull with the switch on is untested (the doctrine is
+    Explore's record, P31-H)."""
     r, sv = lull_rig(tmp_path)
     sv.SCRATCH_DRESS = False
     for iid, ft in RAGS2:
@@ -1383,9 +1383,9 @@ def test_the_lines_of_a_mixed_run_read_no_equal_priority_switch(tmp_path):
 
 def test_a_care_tick_holding_its_running_bandage_is_labelled_a_dress(tmp_path):
     """Review-t11-doctrine-fix1 n6: the lull's care holding its running bandage (no command) is a dress, not stock.
-    Named change, Plan 31 Task 15a: pinned with SCRATCH_DRESS off on its Survive instance, keeping P28-A's lull
-    behaviour under the task's scratch Dress switched off; the doctrine's lull with the switch on is read on its
-    trial rows."""
+    Named change, Plan 31 Task 15a: pinned with SCRATCH_DRESS off on its Survive instance, the pin keeping P28-A's
+    lull behaviour under the new switch off; the doctrine's lull with the switch on is untested (the doctrine is
+    Explore's record, P31-H)."""
     r, sv = lull_rig(tmp_path)
     sv.SCRATCH_DRESS = False
     for iid, ft in RAGS2:
