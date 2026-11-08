@@ -50,9 +50,16 @@
 --       retries; K.REFUSE_END in a row end it done lost, why refused. A run of refusals writes its leaf only on its
 --       first and an act line again at its end (the next accepted press, or the melee's end), each carrying
 --       `refusals`, the run's count so far.
---    3. d beyond releaseR: done lost, why out of range; another standing zombie within K.STAND_R (the engine's press
---       would take it): done handback, why crowd, with its id and d (the last frame's records within K.STAND_R +
---       MELEE_CROWD_SLACK read live).
+--    3. d beyond releaseR: done lost, why out of range. The crowd (Plan 31 Task 15a, the crowd handback's ruling: the
+--       swing, hit and handback re-pin loop that killed three street trials of round two, two standing within 0.6
+--       tiles handing back before every press): the other standing zombies within K.STAND_R, the crowd radius (the
+--       last frame's records within K.STAND_R + MELEE_CROWD_SLACK read live). K.MELEE_CROWD_N standing (the target
+--       counted while it stands: three attackers within reach zero the defence and drag the character down, #4290):
+--       done handback, why crowd, with the nearest other's id and d, the count n and the standing zombies' distances
+--       ds, nearest first. Fewer: no hand-back (a player mid-attack facing the zombie is never bitten, #4688: the
+--       press is the defence); a standing target farther than the nearest other by more than K.MELEE_REPIN_SLACK is
+--       re-pinned in the reflex to that one (step repin, its stall, history, health and walk bound restarted, counted
+--       in `repins`; every line after it carries `target`, the zombie now pressed), and the meet presses it.
 --    4. the target fallen (isOnFloor): the finish. Another standing zombie within handbackR: done handback, why
 --       standing, with its id and d; one beyond it never breaks the finish. The facing is pointed at the aim point
 --       every tick, unaimed: with headAim the head estimate (PZA.sense.headOf; faceLocationF, else faceThisObject),
@@ -81,9 +88,18 @@
 --       K.STAND_R). d_min is the distance the shove test reads, the nearest of the target's readable points as the
 --       engine takes the nearest of head, pelvis and position (#4682; fix 1, F5): for a standing target its position
 --       (no bone is readable from Lua; the head and pelvis stand over it), for a fallen one the nearer of its position
---       and, with headAim, the head estimate. The shove only with d_min inside MinRange at the test (#4372). Spent (mode shove, no weapon, the arms' pain over K.MELEE_SPENT_PAIN or the
---       ENDURANCE or TIRED moodle at K.MELEE_SPENT_MOODLE or more): the shove within shoveR, never a swing. Not
---       pressed: a target not closing beyond the press's distance is closed on at a walk, unaimed (close); else face.
+--       and, with headAim, the head estimate. The shove only with d_min inside MinRange at the test (#4372): these
+--       point-blank presses are protective presses inside MinRange (the engine shoves), kept though most do nothing
+--       (round two's street trials: 7 of 8 at under 0.6 tiles), since the player mid-attack facing the zombie is never
+--       bitten (#4688). Spent (mode shove, no weapon, the arms' pain over K.MELEE_SPENT_PAIN or the
+--       ENDURANCE or TIRED moodle at K.MELEE_SPENT_MOODLE or more): the shove within shoveR. The spent meet never
+--       loops on shoves (Plan 31 Task 15a, the spent meet's ruling: round one's trial 11 read the arms' pain 44 to 363
+--       and 7 of 8 shoves doing nothing): after a shove that knocked nothing down (a shove does no damage, #4373) the
+--       next press is the swing, as the meet's (its damage divided by the arms' pain, #4370, it still lands and
+--       staggers an attacking zombie, #4686), when a weapon is held; inside MinRange that press is the protective
+--       shove; once the swing has gone the shove again. A fallen target is stomped (the finish never floor-swings
+--       spent; the stomp is undivided, #4374). Not pressed: a target not closing beyond the press's distance is
+--       closed on at a walk, unaimed (close); else face.
 --   After a press there is no back step and no pause: knocked down, the knock wait and the finish; else the meet's
 --   press again as soon as the swing has ended and the look holds.
 -- The press leaf, on the act line after each press's result (a progress line, or the done or failed line it ends on):
@@ -92,11 +108,17 @@
 --   floor swing or a stomp), the distance the shove test read (d_min, fix 1, F5), the look's angle off the bearing in
 --   degrees, the target's health at the press and at the result, whether the result read it knocked down, and what
 --   cut the clip early ("hit", "refused" for a press the engine refused, a supersede's reason on the failed line,
---   else ""); a value that could not be read is absent.
+--   else ""); a value that could not be read is absent. A shove's leaf adds knock_p (Plan 31 Task 15a), the chance in
+--   [0, 1] the engine's critical roll knocks the target down (#4373: 35 - 5 per endurance and heavy-load moodle
+--   level - 1.3 per panic level + 2 x Strength, truncated, rolled against Rand.Next(100)), read at the press off the
+--   moodles and getPerkLevel(Perks.Strength); a reading, never a decision, and absent when any input is unread (the
+--   combat config's from-behind and default additions are not read).
 -- The act lines: progress on every step change, on each press leaf and once a second while a step holds, result {step,
---   d, hp, swings, shoves, stomps, floors, knockdowns, hits, spent[, press]}; done {end, kill, why, id, d, the five
---   counts, hits, hp0, hp1, dMin, steps {step: ticks}[, press]}: end kill (the target dead), handback (why crowd or
---   standing, with the other zombie's id and d) or lost (why out of range, out of reach: K.STOMP_APPROACH_MS of
+--   d, hp, swings, shoves, stomps, floors, knockdowns, hits, spent[, press][, target, repins]}; done {end, kill, why,
+--   id, d, the five counts, hits, hp0, hp1, dMin, steps {step: ticks}[, n, ds][, press][, target, repins]}: end kill
+--   (the target dead: the re-pinned one once `target` is on the line), handback (why crowd, with the nearest other's
+--   id and d, the count n and the distances ds, or standing, with the other zombie's id and d) or lost (why out of
+--   range, out of reach: K.STOMP_APPROACH_MS of
 --   walking, summed over the melee's walking steps, with no MELEE_WALK_GAIN on its best distance since its last gain
 --   or press, fix 1, F6; or no progress); failed dead, no weapon, not loaded,
 --   superseded or interrupted (the stop hook's result {the counts[, press]} on the line). The frame's act.step is
@@ -135,6 +157,15 @@ K.REFUSE_MAX = 5             -- refused presses in a row after which the press w
                              -- persistent refusal pressed every tick wrote about 60 act lines a second), a judgment
 K.REFUSE_WAIT_MS = K.SWING_MS / 2   -- the wait, half the swing's own bound (750 ms), the facing still written
 K.REFUSE_END = 15            -- refused presses in a row that end the melee lost, why refused (three runs), a judgment
+K.MELEE_CROWD_N = 3          -- standing zombies within K.STAND_R (the target counted) that end the meet handback crowd:
+                             -- three attackers within reach zero the defence and drag the character down (#4290, at
+                             -- the fixtures' sandbox Strength); with two the nearest is pressed (#4688), Task 15a
+K.MELEE_REPIN_SLACK = 0.1    -- tiles a crowd's other zombie must be nearer than the target to be re-pinned (a tolerance
+                             -- of the read, so two at one distance do not flap)
+K.KNOCK_BASE = 35            -- the shove's critical chance, calculateCritChance (#4373): the base,
+K.KNOCK_LEVEL = 5            -- ... less this per endurance and per heavy-load moodle level,
+K.KNOCK_PANIC = 1.3          -- ... less this per panic moodle level,
+K.KNOCK_STRENGTH = 2         -- ... plus this per Strength level, out of Rand.Next(100)
 
 local NUMS = { "reach", "shoveR", "releaseR", "faceR", "pressAngle", "pressLo", "floorR", "handbackR", "stall" }
 local NONNEG = { "reach", "shoveR", "faceR", "pressLo", "floorR", "handbackR" }
@@ -337,6 +368,30 @@ local function moodleLevel(mo, name)
     return 0
 end
 
+-- a moodle's level, or nil when the moodle type or its level cannot be read (knock_p's strict read)
+local function levelOf(mo, name)
+    local t = MoodleType ~= nil and MoodleType[name] or nil
+    if t == nil then return nil end
+    local ok, l = PZA.call(mo, "getMoodleLevel", t)
+    if ok and type(l) == "number" then return l end
+    return nil
+end
+
+-- the shove's knock-down chance in [0, 1] (#4373, calculateCritChance's shove at a zombie): KNOCK_BASE - KNOCK_LEVEL
+-- per endurance and heavy-load level - KNOCK_PANIC per panic level + KNOCK_STRENGTH x Strength, truncated toward zero
+-- as its f2i, over the roll's 100; nil when any input is unread. Read at the press (Task 15a: a reading for the leaf)
+local function knockP(p)
+    local ok, mo = PZA.call(p, "getMoodles")
+    local perk = Perks ~= nil and Perks.Strength or nil
+    if not ok or mo == nil or perk == nil then return nil end
+    local okS, s = PZA.call(p, "getPerkLevel", perk)
+    local e, h, pa = levelOf(mo, "ENDURANCE"), levelOf(mo, "HEAVY_LOAD"), levelOf(mo, "PANIC")
+    if not okS or type(s) ~= "number" or e == nil or h == nil or pa == nil then return nil end
+    local c = K.KNOCK_BASE - K.KNOCK_LEVEL * (e + h) - K.KNOCK_PANIC * pa + K.KNOCK_STRENGTH * s
+    if c >= 0 then c = math.floor(c) else c = math.ceil(c) end
+    return math.max(0, math.min(100, c)) / 100
+end
+
 -- spent: mode shove, nothing held, the arms' pain (the last frame's body.armPain, Sense's) over MELEE_SPENT_PAIN or the
 -- ENDURANCE or TIRED moodle at MELEE_SPENT_MOODLE or more; read once a frame (once a K.PROGRESS_MS with no frame)
 local function spentOf(p, st, now)
@@ -380,26 +435,32 @@ local function closingOf(st, px, py, zx, zy, d)
     return ((zx - a.x) * (px - zx) + (zy - a.y) * (py - zy)) / d / dt
 end
 
--- another standing zombie within r of the player: its id and distance, or nil. The candidates are the last frame's
--- records (a Lua table, Sense's S.last) within r + MELEE_CROWD_SLACK, each read live (dead, on the floor, its distance)
--- through the frame's own object map (S.zobj); no frame, no candidate
+-- the other standing zombies within r of the player, nearest first ({id, d, o} each), or nil when there is none (no
+-- table made on the common tick). The candidates are the last frame's records (a Lua table, Sense's S.last) within
+-- r + MELEE_CROWD_SLACK, each read live (dead, on the floor, its distance) through the frame's own object map
+-- (S.zobj); no frame, no candidate
 local function standingNear(p, st, r)
     local S = PZA.sense
     local f = S ~= nil and S.last or nil
     local objs = S ~= nil and S.zobj or nil
     local recs = f ~= nil and f.zombies or nil
     if recs == nil or objs == nil then return nil end
+    local out = nil
     for i = 1, #recs do
         local rec = recs[i]
         if rec.id ~= st.id and type(rec.dist) == "number" and rec.dist < r + K.MELEE_CROWD_SLACK then
             local o = objs[rec.id]
             if o ~= nil and not K.zombieDead(o) and not K.onFloor(o) then
                 local d = distTo(p, o)
-                if d ~= nil and d < r then return rec.id, d end
+                if d ~= nil and d < r then
+                    out = out or {}
+                    out[#out + 1] = { id = rec.id, d = d, o = o }
+                end
             end
         end
     end
-    return nil
+    if out ~= nil and #out > 1 then table.sort(out, function(a, b) return a.d < b.d end) end
+    return out
 end
 
 -- a press of kind at the target (the shove flag first for a shove or a stomp; a swing or a floor swing needs a weapon),
@@ -411,10 +472,12 @@ local function press(p, st, kind, d, pred, off, waitStep, dmin, ax, ay)
     local _, busy = PZA.call(p, "isAttackStarted")
     if busy == true then return waitStep end
     local hp = healthOf(st.z)
+    local kp = nil
+    if kind == "shove" then kp = knockP(p) end   -- Task 15a: the roll's chance, read before the press rolls it
     if kind == "shove" or kind == "stomp" then pcall(PZA.call, p, "setDoShove", true) end
     pcall(PZA.call, p, "DoAttack", 0)
     st.strike = { kind = kind, at = PZA.now(), started = false, ended = false, refused = false, ticks = 0, hp0 = hp,
-                  dPress = d, dPred = pred, dMin = dmin or d, off = off, cut = "", ax = ax, ay = ay }
+                  dPress = d, dPred = pred, dMin = dmin or d, off = off, cut = "", ax = ax, ay = ay, knockP = kp }
     st[COUNT[kind]] = st[COUNT[kind]] + 1
     st.walkBest, st.walkMs = nil, 0   -- a press restarts the walk's bound (fix 1, F6)
     return kind
@@ -447,7 +510,7 @@ end
 local function leafOf(st, s, cut)
     local knocked = K.knockedDown(st.z)
     return { d_press = s.dPress, d_collide_pred = s.dPred, d_min = s.dMin, look_off = s.off, hp0 = s.hp0,
-             hp1 = healthOf(st.z), knock = knocked, cut_by = cut }, knocked
+             hp1 = healthOf(st.z), knock = knocked, cut_by = cut, knock_p = s.knockP }, knocked
 end
 
 -- the ended press's result: its leaf, a swing's or a shove's knock-down (counted, the knock wait armed), the shove flag
@@ -469,6 +532,9 @@ local function strikeResult(p, st)
         st.knockdowns = st.knockdowns + 1
         st.knocked = true
     end
+    if not s.refused then   -- Task 15a: a shove that knocked nothing down asks the spent meet's swing next
+        if s.kind == "shove" then st.shoveFailed = not knocked elseif s.kind == "swing" then st.shoveFailed = false end
+    end
     if s.kind ~= "shove" and not s.refused then
         if not knocked and s.hp0 ~= nil and leaf.hp1 ~= nil and leaf.hp1 >= s.hp0 then
             st.nothing = st.nothing + 1
@@ -480,8 +546,8 @@ end
 
 -- 4: the finish at a fallen target's head
 local function finish(p, st, d, px, py, now)
-    local sid, sd = standingNear(p, st, st.handbackR)
-    if sid ~= nil then return "done", "handback", { why = "standing", id = sid, d = sd } end
+    local near = standingNear(p, st, st.handbackR)
+    if near ~= nil then return "done", "handback", { why = "standing", id = near[1].id, d = near[1].d } end
     local S = PZA.sense
     local hx, hy = nil, nil
     if st.headAim and S ~= nil and S.headOf ~= nil then hx, hy = S.headOf(st.z) end
@@ -506,6 +572,28 @@ local function finish(p, st, d, px, py, now)
     return walkToward(p, st, "stomp_walk", px, py, hx, hy, dh, now)
 end
 
+-- the meet's press at a standing target, the step (or failed, reason) it takes, else nil: inside the weapon's MinRange
+-- the shove (the protective press: the engine shoves there, #4372), else the swing once the look is on, the predicted
+-- distance at the collision within [pressLo, at], the swing state's entry beyond MinRange and the raw distance within
+-- the engine's own reach
+local function swingPress(p, st, d, v, off, on, at)
+    local minR = minRangeOf(p, st)
+    local dmin = d   -- the shove test's distance: a standing target's readable point is its position (F5)
+    if dmin <= minR then
+        if on then return press(p, st, "shove", d, d, off, "face", dmin) end
+        stopWalk(p, st)
+        return "face"
+    end
+    if on then
+        local vv = v or 0
+        local pred = d - vv * (st.dtS + K.MELEE_HIT_FRAC / combatSpeed(p))
+        if pred >= st.pressLo and pred <= at and dmin - vv * st.dtS > minR and d <= engineReach(p, st, d) then
+            return press(p, st, "swing", d, pred, off, "face", dmin)
+        end
+    end
+    return nil
+end
+
 -- 6: the meet at a standing target
 local function meet(p, st, d, px, py, zx, zy, now)
     if d <= st.faceR then
@@ -528,31 +616,51 @@ local function meet(p, st, d, px, py, zx, zy, now)
     face(p, st)
     local off = lookOff(p, px, py, zx, zy)
     local on = lookOn(st, off)
-    if spent then
+    local swingNext = spent and st.shoveFailed and weaponOf(p) ~= nil   -- Task 15a: never a loop of shoves
+    if spent and not swingNext then
         if d <= st.shoveR then
             if on then return press(p, st, "shove", d, d, off, "face") end
             stopWalk(p, st)
             return "face"
         end
     else
-        local minR = minRangeOf(p, st)
-        local dmin = d   -- the shove test's distance: a standing target's readable point is its position (F5)
-        if dmin <= minR then
-            if on then return press(p, st, "shove", d, d, off, "face", dmin) end
-            stopWalk(p, st)
-            return "face"
-        end
-        if on then
-            local vv = v or 0
-            local pred = d - vv * (st.dtS + K.MELEE_HIT_FRAC / combatSpeed(p))
-            if pred >= st.pressLo and pred <= at and dmin - vv * st.dtS > minR and d <= engineReach(p, st, d) then
-                return press(p, st, "swing", d, pred, off, "face", dmin)
-            end
-        end
+        if swingNext then at = reachOf(p, st) end
+        local step, why = swingPress(p, st, d, v, off, on, at)
+        if step ~= nil then return step, why end
     end
     if not closing and d > at then return walkToward(p, st, "close", px, py, zx, zy, d, now) end
     stopWalk(p, st)
     return "face"
+end
+
+-- the target re-pinned to crowd entry c (Task 15a: the nearer of two standing is pressed): the reflex's per-target
+-- reads restarted (the closing history, the stall, the knock wait, the walk bound, the health the span reads, the
+-- least distance), the facing turned to it on this tick
+local function repin(p, st, c)
+    stopWalk(p, st)
+    st.z, st.id, st.repins = c.o, c.id, st.repins + 1
+    st.hist, st.nothing, st.knocked, st.shoveFailed = {}, 0, false, false
+    st.walkBest, st.walkMs, st.dMin, st.hp0 = nil, 0, c.d, healthOf(c.o)
+    face(p, st)
+    return "repin"
+end
+
+-- 3, the crowd (the header's step 3): crowd the other standing zombies within K.STAND_R, nearest first; d the target's
+-- distance, fallen whether it lies. K.MELEE_CROWD_N standing (the target counted while it stands): done handback
+-- crowd {id, d of the nearest other, n, ds}; else a standing target farther than the nearest other by more than
+-- K.MELEE_REPIN_SLACK re-pinned to it; else nil (the meet or the finish goes on)
+local function crowdOf(p, st, crowd, d, fallen)
+    local n = #crowd
+    if not fallen then n = n + 1 end
+    if n >= K.MELEE_CROWD_N then
+        local ds = {}
+        if not fallen then ds[1] = d end
+        for i = 1, #crowd do ds[#ds + 1] = crowd[i].d end
+        table.sort(ds)
+        return "done", "handback", { why = "crowd", id = crowd[1].id, d = crowd[1].d, n = n, ds = ds }
+    end
+    if not fallen and crowd[1].d < d - K.MELEE_REPIN_SLACK then return repin(p, st, crowd[1]) end
+    return nil
 end
 
 -- the reflexes in order, first match wins: the step, or "failed", reason[, result], or "done", end, extra
@@ -580,9 +688,13 @@ local function reflex(p, st, d, px, py, zx, zy, now)
         if st.refusals >= K.REFUSE_END then return "done", "lost", { why = "refused" } end
     end
     if d > st.releaseR then return "done", "lost", { why = "out of range" } end
-    local cid, cd = standingNear(p, st, K.STAND_R)
-    if cid ~= nil then return "done", "handback", { why = "crowd", id = cid, d = cd } end
-    if K.onFloor(z) then
+    local crowd = standingNear(p, st, K.STAND_R)
+    local fallen = K.onFloor(z)
+    if crowd ~= nil then
+        local step, how, res = crowdOf(p, st, crowd, d, fallen)
+        if step ~= nil then return step, how, res end
+    end
+    if fallen then
         st.knocked = false
         return finish(p, st, d, px, py, now)
     end
@@ -605,6 +717,7 @@ end
 local function counts(st, out)
     out.swings, out.shoves, out.stomps, out.floors = st.swings, st.shoves, st.stomps, st.floors
     out.knockdowns, out.hits = st.knockdowns, st.hits
+    if st.repins > 0 then out.target, out.repins = st.id, st.repins end   -- Task 15a: the zombie now pressed
     return out
 end
 
@@ -631,8 +744,8 @@ local function doneResult(p, st, how, extra)
     K.releaseShove(p)
     extra = extra or {}
     local out = counts(st, { ["end"] = how, kill = how == "kill", why = extra.why, id = extra.id, d = extra.d,
-                             hp0 = st.hp0, hp1 = healthOf(st.z), dMin = st.dMin, steps = st.steps,
-                             refusals = refusalsOf(st, true), press = st.leaf })
+                             n = extra.n, ds = extra.ds, hp0 = st.hp0, hp1 = healthOf(st.z), dMin = st.dMin,
+                             steps = st.steps, refusals = refusalsOf(st, true), press = st.leaf })
     st.leaf = nil
     return out
 end
@@ -642,7 +755,8 @@ local function keptOnResend(st, reason)
     if reason ~= "superseded" then return false end
     if K.starting == "aim" then return true end
     local c = K.startingCmd
-    return K.starting == "melee" and type(c) == "table" and type(c.args) == "table" and c.args.targetId == st.id
+    return K.starting == "melee" and type(c) == "table" and type(c.args) == "table"
+           and (c.args.targetId == st.id or c.args.targetId == st.argId)   -- Task 15a: the sent or re-pinned target
 end
 
 K.types.melee = {
@@ -672,7 +786,8 @@ K.types.melee = {
         if d > args.releaseR then return false, "too far" end
         local unarmed = weaponOf(p) == nil
         if mode == "strike" and unarmed then return false, "no weapon" end
-        return true, "", { id = id, z = z, mode = mode, reach = args.reach, shoveR = args.shoveR,
+        return true, "", { id = id, argId = id, repins = 0, shoveFailed = false, z = z, mode = mode, reach = args.reach,
+                           shoveR = args.shoveR,
                            releaseR = args.releaseR, faceR = args.faceR, pressAngle = args.pressAngle,
                            pressLo = args.pressLo, floorR = args.floorR, handbackR = args.handbackR, stall = args.stall,
                            floorSwing = fs, headAim = args.headAim == true, unarmed = unarmed, startMs = nil, step = nil, lastP = 0, lastNow = nil,

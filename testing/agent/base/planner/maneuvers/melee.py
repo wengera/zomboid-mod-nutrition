@@ -17,13 +17,17 @@ before each `step`; a decider variant may start one wherever it fights.
   reach), never while the last progress line's step is a press in flight (STRIKE_STEPS: its result is read first).
 - The ends (`ended`): a `done` whose result reads `kill` true names its target in the kills its owner takes
   (`take_kills`), whichever of its sends it was (a re-send's predecessor too); the current send's `done` ends the
-  maneuver with its `end` (`kill`; `handback`, its other zombie {id, d} kept in `handback`; `lost`), its `why` in
+  maneuver with its `end` (`kill`; `handback`, its other zombie {id, d} kept in `handback`, with a crowd's count `n`
+  and distances `ds`, Plan 31 Task 15a: three standing within 0.6 tiles, two pressed; `lost`), its `why` in
   `end_why` (out of range, out of reach, no progress; crowd, standing) and its span (`take_span`: the strikes, the
   swings, floor swings and stomps, and whether the target's health fell from `hp0` to `hp1`, None when either is
-  unreadable) read by the owner's no-progress streak; any other end of the current send ends it with its reason
+  unreadable) read by the owner's no-progress streak, `span_id` the zombie it read; a reflex that re-pinned to the
+  nearer of two standing (Task 15a, the line's `target`) names that one in the kill and in `span_id`; any other end
+  of the current send ends it with its reason
   (`superseded`, `not loaded`, `no weapon`, `interrupted`, `dead`, a rejection's `too far`, `no target`, `bad args`),
   or its state (`timeout`).
-- `press`: the last press leaf a line carried (`{d_press, d_collide_pred, d_min, look_off, hp0, hp1, knock, cut_by}`), kept
+- `press`: the last press leaf a line carried (`{d_press, d_collide_pred, d_min, look_off, hp0, hp1, knock, cut_by,
+  knock_p}`, a shove's knock_p its knock-down chance, Task 15a), kept
   for its owner's log.
 - `why` (logged by the Fight as `maneuver`): target, mode, sends, and the last progress line's step and distance, with
   its counts and `spent` once one carries them, and the last press leaf.
@@ -38,10 +42,13 @@ from agent.base.planner.policies import (FACE_R, FLOOR_R, HANDBACK_R, HEAD_AIM, 
 
 STRIKE_KEYS = ("swings", "floors", "stomps")   # a span's strikes the no-progress streak counts: the ladder's attack
                                                # (the swing and the floor swing) and its stomp (`Fight.observe`)
-COUNT_KEYS = ("swings", "shoves", "stomps", "floors", "knockdowns", "hits", "spent")   # the progress line's, logged
+COUNT_KEYS = ("swings", "shoves", "stomps", "floors", "knockdowns", "hits", "spent", "target", "repins")   # the
+                                       # progress line's, logged (Task 15a: a re-pin's target and repins)
 STRIKE_STEPS = ("swing", "shove", "stomp", "floor")   # the Lua's presses in flight (PZAgent_StanceMelee.lua's header:
                                                       # each from its press to its result), in which no re-send goes
-PRESS_KEYS = ("d_press", "d_collide_pred", "d_min", "look_off", "hp0", "hp1", "knock", "cut_by")   # the leaf's keys
+PRESS_KEYS = ("d_press", "d_collide_pred", "d_min", "look_off", "hp0", "hp1", "knock", "cut_by", "knock_p")   # the
+                                       # leaf's keys (Task 15a: a shove's knock_p)
+PRESS_OPTIONAL = ("knock_p",)   # ... kept only where the leaf carries it (a shove's)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -59,6 +66,11 @@ class MeleeInputs:
 
 def _number(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def _zid(v):
+    """An online id as the act lines carry it: an integer, never a bool."""
+    return isinstance(v, int) and not isinstance(v, bool)
 
 
 class Melee(Maneuver):
@@ -80,6 +92,7 @@ class Melee(Maneuver):
         self._progress = {}     # the last progress line's result
         self._kills = []        # the target ids a `done` {kill} read, not yet taken
         self._span = None       # the current send's `done` span, not yet taken
+        self.span_id = None     # the zombie that span read (the target, or a re-pin's `target`: Task 15a)
 
     def resend_due(self):
         """The running melee runs on inputs the current ones change (`MeleeInputs.behaviour`), and its last progress
@@ -117,8 +130,8 @@ class Melee(Maneuver):
 
     def ended(self, a, current):
         res = a.result if isinstance(a.result, dict) else {}
-        if a.state == "done" and res.get("kill") is True:
-            self._kills.append(a.args.get("targetId"))
+        if a.state == "done" and res.get("kill") is True:   # Task 15a: a re-pinned target's kill names it (`target`)
+            self._kills.append(res["target"] if _zid(res.get("target")) else a.args.get("targetId"))
         self._keep_press(res)
         if not current:
             return
@@ -126,9 +139,11 @@ class Melee(Maneuver):
             strikes = sum(res.get(k) for k in STRIKE_KEYS if _number(res.get(k)))
             hp0, hp1 = res.get("hp0"), res.get("hp1")
             self._span = (strikes, hp1 < hp0 if _number(hp0) and _number(hp1) else None)
+            self.span_id = res["target"] if _zid(res.get("target")) else self.target   # Task 15a: the re-pinned one
             self.end_why = res.get("why")
-            if res.get("end") == "handback":
+            if res.get("end") == "handback":   # Task 15a: a crowd's count and distances beside the nearest other
                 self.handback = {"id": res.get("id"), "d": res.get("d")}
+                self.handback.update({k: res[k] for k in ("n", "ds") if k in res})
             self._end = res.get("end") or "done"   # a replay's result-less done ends it as done
             return
         self._end = a.reason or a.state
@@ -144,7 +159,7 @@ class Melee(Maneuver):
     def _keep_press(self, res):
         leaf = res.get("press")
         if isinstance(leaf, dict):
-            self.press = {k: leaf.get(k) for k in PRESS_KEYS}
+            self.press = {k: leaf.get(k) for k in PRESS_KEYS if k not in PRESS_OPTIONAL or k in leaf}
 
     def take_kills(self):
         """The target ids read killed since the last take."""

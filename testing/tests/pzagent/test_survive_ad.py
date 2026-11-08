@@ -596,6 +596,50 @@ def test_a_kill_is_read_once(tmp_path):
     assert f.kill is None and r.world.kills == 1
 
 
+def test_a_kill_of_the_zombie_the_reflex_re_pinned_names_it(tmp_path):
+    """Plan 31 Task 15a: the reflex re-pinned from 9 to the nearer 8 (two standing within 0.6 tiles: the line's
+    `target` 8, `repins` 1) and killed it: the Fight's kill is 8, read dead, and 9 is not."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 101.0), z(8, 100.0, 200.9)])
+    f = fight(r, target=9)
+    a = f.step()
+    act(r, a, "accepted")
+    done(r, a, end="kill", why=None, kill=True, target=8, repins=1, hp1=0.0)
+    r.advance(0.5)
+    fr(r, [z(9, 101.0)])
+    f.step()
+    assert f.kill == 8 and r.world.kills == 1 and 8 in f.dead and 9 not in f.dead
+
+
+def test_a_re_pinned_span_counts_on_the_zombie_it_read(tmp_path):
+    """Task 15a: a `done` span with strikes and no health fall after a re-pin to 8 counts in 8's no-progress streak,
+    never in the pin 9's."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 101.0), z(8, 100.0, 200.9)])
+    f = fight(r, target=9)
+    a = f.step()
+    act(r, a, "accepted")
+    done(r, a, end="lost", why="no progress", target=8, repins=1, swings=2, hp0=1.0, hp1=1.0)
+    r.advance(0.5)
+    fr(r, [z(9, 101.0), z(8, 100.0, 200.9)])
+    f.step()
+    assert f._streak_id == 8 and f.no_progress == 2
+
+
+def test_a_crowd_handback_keeps_its_count_and_distances(tmp_path):
+    """Task 15a: the crowd end (three standing within 0.6 tiles) carries n and ds beside the nearest other's id and d;
+    the maneuver keeps them in `handback`."""
+    r = Rig(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 100.5), z(8, 100.0, 200.9), z(7, 100.0, 199.1)])
+    f = fight(r, target=9)
+    a = f.step()
+    act(r, a, "accepted")
+    m = f.m
+    done(r, a, end="handback", why="crowd", id=8, d=0.45, n=3, ds=[0.45, 0.5, 0.5])
+    m.observe()
+    assert m.handback == {"id": 8, "d": 0.45, "n": 3, "ds": [0.45, 0.5, 0.5]} and m.end_why == "crowd"
+
+
 def test_a_kill_on_the_melee_a_re_send_superseded_is_read_too(tmp_path):
     """The race the base's late-end read covers: the first melee ends `done` {kill} after its re-send (a mode change)
     left (the line written before the re-send reached the Lua), and the re-send is rejected `no target`: the kill

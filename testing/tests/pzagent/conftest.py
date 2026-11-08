@@ -361,7 +361,8 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
     g._cell = make_cell()
     g.CharacterStat = J(**{n: n for n in STAT_NAMES})
     g.MoodleType = J(**{n: n for n in MOODLE_NAMES})
-    g.Perks = J(Sneak="Sneak")                           # PZA/1.9: me.sneakLevel's getPerkLevel(Perks.Sneak)
+    g.Perks = J(Sneak="Sneak", Strength="Strength")      # PZA/1.9: me.sneakLevel's getPerkLevel(Perks.Sneak); Plan
+                                                         # 31 Task 15a: the melee's knock_p reads Perks.Strength
     g.IsoFlagType = J(HoppableN="HoppableN", HoppableW="HoppableW",   # PZA/1.4: the square's has(flag) reads
                       TallHoppableN="TallHoppableN", TallHoppableW="TallHoppableW")
     g.IsoDirections = J(N="N", S="S", E="E", W="W")                  # PZA/1.5: the climb's facing

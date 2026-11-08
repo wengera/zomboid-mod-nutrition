@@ -233,13 +233,87 @@ def crowd_world(lua, other_floor=False, other_d=0.5, **kw):
     return p, z, w
 
 
-def test_another_standing_zombie_within_stand_r_ends_done_handback_crowd_with_its_id_and_distance(lua, fs):
-    p, z, w = crowd_world(lua, zx=12.0)
+def live_zombie(zid, x, y):
+    """A standing zombie whose death a test sets (`flags["dead"]`), at (x, y)."""
+    flags = {"dead": False}
+    o = make_zombie(zid, x, y)
+    o.isDead = lambda s: flags["dead"]
+    return o, flags
+
+
+def three_world(lua, **kw):
+    """Plan 31 Task 15a: the target 7 at 0.5 tiles east and two more standing within K.STAND_R, 8 at 0.5 north and 9 at
+    0.55 south: three standing within the crowd radius."""
+    p, z, w = world(lua, zx=10.5, **kw)
+    o8, o9 = make_zombie(8, 10.0, 20.5), make_zombie(9, 10.0, 19.45)
+    frame_last(lua, [(8, 0.5), (9, 0.55), (7, 0.5)], objs={7: z, 8: o8, 9: o9})
+    return p, z, w
+
+
+def test_three_standing_within_stand_r_end_done_handback_crowd_with_the_count_and_the_distances(lua, fs):
+    """Plan 31 Task 15a, the crowd handback's ruling (#4290: three attackers within reach zero the defence): the
+    target and two more standing within K.STAND_R end the meet handback crowd, the nearest other's id and d, the count
+    n and the standing zombies' distances ds nearest first; no press goes."""
+    p, z, w = three_world(lua)
     go(lua, p)
     run(lua, p, w)
     a = last(lua, fs)
     r = a["result"]
-    assert (a["state"], r["end"], r["why"], r["id"], r["d"]) == ("done", "handback", "crowd", 8, 0.5)
+    assert (a["state"], r["end"], r["why"], r["id"], r["d"], r["n"]) == ("done", "handback", "crowd", 8, 0.5, 3)
+    assert r["ds"] == pytest.approx([0.5, 0.5, 0.55]) and w["presses"] == []
+
+
+def test_two_standing_at_0_5_tiles_do_not_hand_back_and_the_meet_presses_on(lua, fs):
+    """Task 15a, the ruling's falsifier (the old rule handed back at two: mix_2's street death, two within 0.6 tiles
+    before every press): the target and one more standing at 0.5 tiles, no hand-back, no re-pin (one distance, within
+    K.MELEE_REPIN_SLACK), and the meet presses again and again (inside MinRange: the protective shove)."""
+    p, z, w = world(lua, zx=10.5, attack_ticks=6)
+    o8 = make_zombie(8, 10.0, 20.5)
+    frame_last(lua, [(8, 0.5), (7, 0.5)], objs={7: z, 8: o8})
+    go(lua, p)
+    run(lua, p, w, 60)
+    assert not ended(lua) and len(w["presses"]) >= 3 and all(x["shove"] for x in w["presses"])
+    assert "repin" not in step_seq(lua, fs)
+    assert all("target" not in a["result"] for a in progress(lua, fs))
+
+
+def test_a_nearer_second_standing_zombie_is_re_pinned_and_pressed(lua, fs):
+    """Task 15a: with two standing (the target at 2.0 tiles, the other at 0.5 within K.STAND_R), the nearer is pressed:
+    the reflex re-pins to 8 (step repin, then every line names `target` 8 and `repins` 1) and its first press reads
+    8's distance; the zombie 7 is no longer the one faced."""
+    p, z, w = world(lua, zx=12.0, attack_ticks=6)
+    o8, _ = live_zombie(8, 10.5, 20.0)
+    frame_last(lua, [(8, 0.5), (7, 2.0)], objs={7: z, 8: o8})
+    go(lua, p)
+    run(lua, p, w, 30, stop=lambda: leaves(lua, fs))
+    assert step_seq(lua, fs)[0] == "repin"
+    pr = progress(lua, fs)
+    assert pr[0]["result"]["target"] == 8 and pr[0]["result"]["repins"] == 1
+    assert all(a["result"]["target"] == 8 for a in pr)
+    assert leaves(lua, fs)[0]["d_press"] == pytest.approx(0.5) and p.faced[-1] is o8
+
+
+def test_the_re_pinned_target_s_death_ends_done_kill_naming_it(lua, fs):
+    p, z, w = world(lua, zx=12.0, attack_ticks=6)
+    o8, flags = live_zombie(8, 10.5, 20.0)
+    frame_last(lua, [(8, 0.5), (7, 2.0)], objs={7: z, 8: o8})
+    go(lua, p)
+    run(lua, p, w, 3)
+    flags["dead"] = True
+    run(lua, p, w)
+    r = last(lua, fs)["result"]
+    assert (last(lua, fs)["state"], r["end"], r["kill"], r["target"], r["repins"]) == ("done", "kill", True, 8, 1)
+
+
+def test_a_second_zombie_nearer_by_no_more_than_the_slack_is_not_re_pinned(lua, fs):
+    """The re-pin's falsifier: the other 0.05 tiles nearer than the target (inside K.MELEE_REPIN_SLACK 0.1) leaves
+    the target pinned."""
+    p, z, w = world(lua, zx=10.55, attack_ticks=6)
+    o8 = make_zombie(8, 10.0, 20.5)
+    frame_last(lua, [(8, 0.5), (7, 0.55)], objs={7: z, 8: o8})
+    go(lua, p)
+    run(lua, p, w, 20)
+    assert "repin" not in step_seq(lua, fs) and w["presses"]
 
 
 @pytest.mark.parametrize("floor, d", [(True, 0.5), (False, 0.7)])
@@ -617,9 +691,10 @@ def test_a_stomp_walk_that_gains_nothing_ends_done_lost_out_of_reach(lua, fs):
 # ---- the spent meet --------------------------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("how", ["pain", "endurance", "tired", "mode"])
-def test_the_spent_meet_shoves_within_shove_r_and_never_swings(lua, fs, how):
+def test_the_spent_meet_closes_and_shoves_within_shove_r_first(lua, fs, how):
     """The arms' pain over 10 (#4370), the endurance or tired moodle at 2 (#4371), or mode shove: a standing target at
-    1.1 (inside the reach, beyond shoveR 0.9) is closed on and shoved within shoveR, never swung at."""
+    1.1 (inside the reach, beyond shoveR 0.9) is closed on and shoved within shoveR, not swung at first (Task 15a:
+    the swing follows a shove that did nothing, below)."""
     p, z, w = world(lua, zx=11.1, attack_ticks=6)
     frame_last(lua, arm_pain=25.0 if how == "pain" else 2.0)
     if how in ("endurance", "tired"):
@@ -640,6 +715,76 @@ def test_not_spent_the_same_target_is_swung_at(lua, fs):
     go(lua, p)
     run(lua, p, w, 2)
     assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is False
+
+
+@pytest.mark.parametrize("how", ["pain", "mode"])
+def test_after_a_spent_shove_that_did_nothing_the_swing_goes_before_the_next_shove(lua, fs, how):
+    """Plan 31 Task 15a, the spent meet's ruling (round one's trial 11: the arms' pain 44 to 363, 7 of 8 shoves did
+    nothing): spent (the arms' pain 25, or mode shove with the bat held), a standing target at 0.85 (within shoveR,
+    beyond MinRange): the shove, which knocks nothing down, then the swing (divided by the pain, #4370, it still lands
+    and staggers, #4686), then the shove again: never two shoves in a row."""
+    p, z, w = world(lua, zx=10.85, attack_ticks=6)
+    frame_last(lua, arm_pain=25.0 if how == "pain" else 2.0)
+    go(lua, p, mode="shove" if how == "mode" else "strike")
+    run(lua, p, w, 200, stop=lambda: len(w["presses"]) >= 4)
+    assert [x["shove"] for x in w["presses"][:4]] == [True, False, True, False]
+    assert progress(lua, fs)[-1]["result"]["spent"] is True
+
+
+def test_a_spent_shove_that_knocked_down_takes_no_swing_and_the_fall_is_stomped(lua, fs):
+    """The alternation's falsifier: a spent shove that knocks the target down asks no swing; the knock wait, then on
+    the floor the stomp (undivided, #4374), never the floor swing though floorSwing is allowed."""
+    p, z, w = world(lua, zx=10.3, attack_ticks=6)
+    frame_last(lua, arm_pain=40.0)
+    w["on_attack"] = lambda wd, shove: wd.__setitem__("knocked", True)
+    go(lua, p, floorSwing=True)
+    run(lua, p, w, 20)
+    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] and cur_step(lua) == "knock_wait"
+    w["floor"], w["knocked"] = True, False
+    run(lua, p, w, 20, stop=lambda: len(w["presses"]) > 1)
+    assert len(w["presses"]) == 2 and w["presses"][1]["shove"] is True and cur_step(lua) == "stomp"
+
+
+def test_an_unarmed_spent_meet_shoves_again_with_no_weapon_to_swing(lua, fs):
+    """Nothing held (mode shove): no swing can follow, so a shove that did nothing is followed by the shove, and the
+    melee never fails no weapon."""
+    p, z, w = world(lua, zx=10.85, attack_ticks=6, weapon=None)
+    go(lua, p, mode="shove")
+    run(lua, p, w, 200, stop=lambda: len(w["presses"]) >= 3)
+    assert [x["shove"] for x in w["presses"][:3]] == [True, True, True] and not ended(lua)
+
+
+def test_a_shove_s_leaf_carries_knock_p_from_the_moodles_and_strength(lua, fs):
+    """Task 15a: the shove's leaf carries knock_p, #4373's 35 - 5 x (endurance 1 + heavy load 1) - 1.3 x panic 2 +
+    2 x Strength 5 = 32.4, truncated to 32, over 100: 0.32; a swing's leaf carries none."""
+    p, z, w = world(lua, zx=10.5, attack_ticks=6)
+    moodles(p, {"ENDURANCE": 1, "HEAVY_LOAD": 1, "PANIC": 2})
+    p.perks["Strength"] = 5
+    go(lua, p)
+    run(lua, p, w, 20, stop=lambda: leaves(lua, fs))
+    assert w["presses"][0]["shove"] and leaves(lua, fs)[0]["knock_p"] == pytest.approx(0.32)
+
+
+@pytest.mark.parametrize("levels, strength, want", [({"ENDURANCE": 4, "HEAVY_LOAD": 4, "PANIC": 4}, 0, 0.0),
+                                                    ({}, 10, 0.55), ({"PANIC": 1}, 0, 0.33)])
+def test_knock_p_is_truncated_and_clamped(lua, fs, levels, strength, want):
+    """-10.2 clamps to 0; 55 reads 0.55; 33.7 truncates to 33 (calculateCritChance's f2i)."""
+    p, z, w = world(lua, zx=10.5, attack_ticks=6)
+    moodles(p, levels)
+    p.perks["Strength"] = strength
+    go(lua, p)
+    run(lua, p, w, 20, stop=lambda: leaves(lua, fs))
+    assert leaves(lua, fs)[0]["knock_p"] == pytest.approx(want)
+
+
+def test_knock_p_is_absent_when_strength_is_unreadable(lua, fs):
+    """An unread input leaves knock_p absent (a swing's leaf carries none either:
+    `test_each_press_s_result_carries_the_press_leaf_s_keys` reads its keys exactly)."""
+    p, z, w = world(lua, zx=10.5, attack_ticks=6)
+    lua.execute("Perks = { Sneak = 'Sneak' }")
+    go(lua, p)
+    run(lua, p, w, 20, stop=lambda: leaves(lua, fs))
+    assert w["presses"][0]["shove"] and "knock_p" not in leaves(lua, fs)[0]
 
 
 def test_the_spent_finish_stomps_and_never_floor_swings(lua, fs):
@@ -797,10 +942,47 @@ def test_every_result_key_is_in_the_schema(lua, fs):
     for a in acts(lua, fs):
         assert set(a["result"]) <= set(props), a
         if "press" in a["result"]:
-            assert set(a["result"]["press"]) == set(props["press"]["properties"]) == LEAF
+            assert set(a["result"]["press"]) == LEAF and set(props["press"]["properties"]) == LEAF | {"knock_p"}
         assert a["reason"] == "" or a["reason"] in pza1.REASONS
     assert set(defs["result_melee_step"]["properties"]) <= set(props)
+    assert set(defs["result_melee_step"]["properties"]["press"]["properties"]) == LEAF | {"knock_p"}
     assert last(lua, fs)["result"]["end"] == "kill"
+
+
+def _schema_keys(lua, fs):
+    """Every act line's result keys and leaf keys, each line checked inside result_melee (a progress line inside
+    result_melee_step)."""
+    with open(SCHEMA, encoding="utf-8") as fh:
+        defs = json.load(fh)["$defs"]
+    props, step = defs["result_melee"]["properties"], defs["result_melee_step"]["properties"]
+    keys = set()
+    for a in acts(lua, fs):
+        assert set(a["result"]) <= set(props), a
+        keys.update(set(a["result"]) | set((a["result"].get("press") or {})))
+        if a["state"] == "progress":
+            assert set(a["result"]) <= set(step), a
+    return keys
+
+
+def test_the_crowd_keys_are_in_the_schema(lua, fs):
+    """Task 15a's crowd handback's n and ds are in result_melee."""
+    p, z, w = three_world(lua)
+    go(lua, p)
+    run(lua, p, w)
+    assert {"n", "ds"} <= _schema_keys(lua, fs)
+
+
+def test_the_re_pin_and_knock_p_keys_are_in_the_schema(lua, fs):
+    """Task 15a's re-pin's target and repins (the progress line's too) and a shove leaf's knock_p are in
+    result_melee."""
+    p, z, w = world(lua, zx=12.0, attack_ticks=6)
+    o8, flags = live_zombie(8, 10.5, 20.0)
+    frame_last(lua, [(8, 0.5), (7, 2.0)], objs={7: z, 8: o8})
+    go(lua, p)
+    run(lua, p, w, 12)
+    flags["dead"] = True
+    run(lua, p, w)
+    assert {"target", "repins", "knock_p"} <= _schema_keys(lua, fs)
 
 
 def test_a_tick_answering_progress_emits_a_progress_line_now_with_its_result(lua, fs):

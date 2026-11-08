@@ -111,8 +111,9 @@ class FightDispatch:
         if m is None:
             return
         span = m.take_span()
-        if span is not None:
-            self._melee_span(m.target, span)
+        if span is not None:   # Task 15a: the span names the zombie it read (a re-pin's `target`)
+            sid = getattr(m, "span_id", None)
+            self._melee_span(sid if sid is not None else m.target, span)
         end = m.over()
         if end is None:
             if m.running():

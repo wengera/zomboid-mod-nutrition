@@ -960,17 +960,21 @@ def test_the_lua_encoder_writes_the_1_10_fields_as_python_does(lua_schema):
 
 def test_the_melee_s_pza1_10_args_and_result():
     """The meet's arguments (the back leg's, the time span's and closeR gone), the ends kill, handback and lost with
-    why, spent and the press leaf of seven keys, in result_melee and the step result."""
+    why, spent and the press leaf of seven keys, in result_melee and the step result (Plan 31 Task 15a: the leaf's
+    knock_p, a re-pin's target and repins, a crowd handback's n and ds)."""
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
     assert tuple(pza1.ACTION_ARGS["melee"]) == ("targetId", "mode", "reach", "shoveR", "releaseR", "faceR",
                                                  "pressAngle", "pressLo", "floorR", "handbackR", "stall", "floorSwing",
                                                  "headAim")
     assert pza1.ACTION_ARGS["melee"]["stall"] == "int"
     assert d["args_melee"]["additionalProperties"] is False
-    leaf = {"d_press", "d_collide_pred", "d_min", "look_off", "hp0", "hp1", "knock", "cut_by"}
+    leaf = {"d_press", "d_collide_pred", "d_min", "look_off", "hp0", "hp1", "knock", "cut_by",
+            "knock_p"}   # Plan 31 Task 15a: a shove's knock_p
     for k in ("result_melee", "result_melee_step"):
         props = d[k]["properties"]
         assert set(props["press"]["properties"]) == leaf and "spent" in props and "held" not in props, k
+        assert {"target", "repins"} <= set(props), k   # Task 15a: a re-pin's
+    assert {"n", "ds"} <= set(d["result_melee"]["properties"])   # Task 15a: a crowd handback's
     assert {"why", "end"} <= set(d["result_melee"]["properties"])
     assert "kill" in d["result_melee"]["properties"]["end"]["description"]
     body = {"kind": "act", "seq": 3, "tick": 1, "wallMs": 2, "aid": "a1", "type": "melee", "state": "done",
