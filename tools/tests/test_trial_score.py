@@ -425,7 +425,9 @@ def test_dry_writes_nothing_and_a_run_appends_then_replaces_its_own_row_keeping_
     assert open(log, encoding="utf-8").read().startswith("\n".join(TS.read_log(TRIALS)[0]))
 
 
-def test_rescore_all_rebuilds_each_row_keeping_seen_keeps_a_gone_folders_row_and_appends_a_new_one(tmp_path, log):
+def test_rescore_all_rebuilds_each_row_keeping_seen_keeps_a_gone_folders_row_and_never_adds_a_new_folder(tmp_path, log):
+    """Plan 31's rescore residual: a folder with no row (an aborted boot, a copied run) is never added by --rescore-all;
+    a trial enters the log by its own scoring call."""
     runs = str(tmp_path / "runs")
     a = _write_run(os.path.join(runs, "x_trial-20261106-101010"), health=90.0)
     TS.main([a, "--log", log, "--seen", "kept text"])
@@ -442,10 +444,10 @@ def test_rescore_all_rebuilds_each_row_keeping_seen_keeps_a_gone_folders_row_and
     assert TS.main(["--rescore-all", "--log", log, "--runs", runs]) == 0
     _, rows = TS.read_log(log)
     cells = [TS.parse_row(r) for r in rows]
-    assert [c[0] for c in cells] == ["x_trial-20261106-101010", "x_trial-20261101-000000", "x_trial-20261107-000000"]
+    assert [c[0] for c in cells] == ["x_trial-20261106-101010", "x_trial-20261101-000000"]
     assert (cells[0][13], cells[0][14]) == ("40", "kept text")
     assert rows[1] == gone
-    assert cells[2][14] == ""
+    assert os.path.isdir(os.path.join(runs, "x_trial-20261107-000000"))   # the folder with no row: not added
 
 
 def test_the_command_line_refuses_what_it_does_not_define():
@@ -653,7 +655,7 @@ def test_the_row_block_ends_at_the_first_line_that_is_not_a_row_and_a_write_keep
     assert open(p, "rb").read().endswith(("\n".join(tail)).encode("utf-8"))
 
 
-def test_rescore_all_keeps_a_trailing_section_and_a_new_folders_row_lands_before_it(tmp_path):
+def test_rescore_all_keeps_a_trailing_section_and_a_folder_with_no_row_is_left_out(tmp_path):
     runs = str(tmp_path / "runs")
     a = _write_run(os.path.join(runs, "x_trial-a-20261106-000001"), health=40.0)
     _write_run(os.path.join(runs, "x_trial-c-20261106-000003"))
@@ -662,8 +664,7 @@ def test_rescore_all_keeps_a_trailing_section_and_a_new_folders_row_lands_before
     assert TS.main(["--rescore-all", "--log", p, "--runs", runs]) == 0
     h, rows, t = TS.read_log_parts(p)
     assert t == tail and h == head
-    assert [TS.parse_row(r)[0] for r in rows] == ["x_trial-a-20261106-000001", "x_trial-b-20261106-000002",
-                                                  "x_trial-c-20261106-000003"]
+    assert [TS.parse_row(r)[0] for r in rows] == ["x_trial-a-20261106-000001", "x_trial-b-20261106-000002"]
     assert TS.parse_row(rows[0])[13] == "40" and TS.parse_row(rows[0])[-1] == "kept"
     assert TS.parse_row(rows[1])[1:] == ["-"] * 13 + [""]          # no folder: kept as it stands
     assert a and os.path.isdir(a)

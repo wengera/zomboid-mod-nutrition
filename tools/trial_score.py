@@ -22,8 +22,10 @@ first). It prints one row of `testing/trials/trials.md` in the log's column orde
 with its count and its denominator, and writes the row into the log unless `--dry`: a row whose trial id is already in
 the table is replaced in place (its `seen` text kept unless `--seen` is given), any other appended. `--seen` fills the
 last column, up to three times, the lines joined by ` / `. `--rescore-all` rebuilds every row from the run folders
-named `x_trial-*` under `--runs` (default `$PZT_RUNS`, else `testing/runs/`), keeping each row's `seen` text, a row
-whose folder is gone on this machine kept as it stands, a new folder's row appended in name order.
+named `x_trial-*` under `--runs` (default `$PZT_RUNS`, else `testing/runs/`) that the log already holds, keeping each
+row's `seen` text, a row whose folder is gone on this machine kept as it stands; a folder with no row is never added
+(a trial enters the log by its own scoring call; Plan 31's rescore residual, after `--rescore-all` appended four
+aborted boots' folders).
 
 The readers are imported live from the grades (the scorecard is not a frozen grade and no artifact carries its output,
 P31-T): `gates_e.session_lines` (the state lines of every rotation), `gates_e._Lines` (the decision lines with the frame
@@ -855,8 +857,9 @@ def put_row(path, cs, keep_seen=True):
 
 
 def rescore_all(log, runs, dry=False):
-    """The log rebuilt from every run folder `x_trial-*` under `runs`: each row rescored keeping its `seen`, a row whose
-    folder is gone kept, a new folder's row appended in name order; the rows."""
+    """The log's rows rebuilt from the run folders `x_trial-*` under `runs`: each row whose folder is there rescored
+    keeping its `seen`, a row whose folder is gone kept as it stands, a folder with no row left out (a trial enters the
+    log by its own scoring call, never by a rescore); the rows."""
     head, rows, tail = read_log_parts(log)
     seen = {}
     for ln in rows:
@@ -866,10 +869,11 @@ def rescore_all(log, runs, dry=False):
     folders = sorted(d for d in glob.glob(os.path.join(runs, RUN_GLOB)) if os.path.isdir(d))
     fresh = {}
     for d in folders:
+        if os.path.basename(d) not in seen:
+            continue                                    # a folder with no row: not the log's (an aborted boot, a copy)
         s = score(d)
         fresh[s["run_id"]] = format_row(cells(s, seen.get(s["run_id"], "")))
     out = [fresh.pop(_row_id(ln)) if _row_id(ln) in fresh else ln for ln in rows]
-    out += [fresh[k] for k in sorted(fresh)]
     if not dry:
         write_log(log, head, out, tail)
     return out
@@ -881,7 +885,7 @@ def parse_args(argv):
                                  description="Score a trial's run folder into testing/trials/trials.md.")
     ap.add_argument("run", nargs="?", help="the run folder")
     ap.add_argument("--seen", action="append", default=[], help="a line of what was seen (up to three)")
-    ap.add_argument("--rescore-all", action="store_true", help="rebuild every row from the x_trial-* run folders")
+    ap.add_argument("--rescore-all", action="store_true", help="rescore every row whose x_trial-* run folder is under --runs")
     ap.add_argument("--dry", action="store_true", help="print, write nothing")
     ap.add_argument("--log", default=LOG, help="the trials log (default testing/trials/trials.md)")
     ap.add_argument("--runs", default=RUNS, help="the run folders' root for --rescore-all")
