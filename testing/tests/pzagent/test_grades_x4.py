@@ -576,3 +576,20 @@ def test_the_regrade_scripts_name_themselves_and_refuse_an_argument_they_do_not_
     assert f.startswith('"""f_grade_16 --') and "f_grade_15.py <" not in f and "grade_x3" not in f
     assert "from agent.base.grades.x4 import grade_x4" in f
     assert EG25.grade_x4 is G.grade_x4 and FG16.grade_x4 is G.grade_x4
+
+
+F20 = os.path.join(TESTING, "artifacts", "f_goals_20-20261109-155512")
+
+
+def test_f_grade_16_on_f20_reproduces_the_committed_f_grade_txt_byte_for_byte():
+    """Ruling P26-Q: `f_grade_16.py` on the committed F20 artifact (the first session graded through `grade_x4`: the care, door,
+    retreat, shove, frame-age and leg readings over grade_x3's) reproduces its
+    committed `f_grade.txt` byte for byte (CRLF folded), so a drift in any live name read through the grade chain fails here."""
+    p = os.path.join(F20, "f_goals_20.json")
+    if not os.path.isfile(p):
+        pytest.skip("%s is not checked out" % F20)
+    script = os.path.join(TESTING, "agent", "drivers", "f_grade_16.py")
+    r = subprocess.run([sys.executable, script, p], capture_output=True, cwd=TESTING)
+    assert r.returncode == 0
+    want = open(os.path.join(F20, "f_grade.txt"), "rb").read().replace(b"\r\n", b"\n")
+    assert r.stdout.replace(b"\r\n", b"\n") == want
