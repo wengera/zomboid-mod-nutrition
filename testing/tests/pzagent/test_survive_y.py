@@ -252,11 +252,15 @@ def test_a_climb_that_fails_notes_the_window_and_refuses_it_the_next_choose_hold
     assert f.why["trapped"] == 1 and f.why["refused"] == [[10709, 10596, 0]] and f.adopted and f.plan is None
 
 
-def test_a_window_refused_locked_unsmashed_is_offered_again_as_a_smash_and_a_refused_smash_is_refused(tmp_path):
+def test_a_window_refused_locked_unsmashed_is_offered_again_as_a_smash_and_a_refused_smash_is_refused(tmp_path,
+                                                                                                       monkeypatch):
     """Ruling P26-7c: the shut window's open (`Window` without `smash`) ended `rejected` `locked`: the World notes the
     window `locked` and the exit ends with its outside square not refused, so the next choose walks nothing (the player
     stands on the inside square) and sends `Window(10710, 10596, smash=True)`; that smash ended `rejected` `locked`
-    again is a dead window: the exit refused, the trapped hold."""
+    again is a dead window: the exit refused, the trapped hold.
+    Named change, Plan 32 Task 6 (`windows.GLASS_CLEAR`): a smash now carries `clear` true (the act's own smash leaves
+    the glass in); this case is pinned with `GLASS_CLEAR` off."""
+    monkeypatch.setattr("agent.base.planner.windows.GLASS_CLEAR", False)
     r = e16_rig(tmp_path, me=(10710.5, 10596.5))
     f = flee_on(r)
     f.step()

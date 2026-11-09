@@ -42,7 +42,9 @@ at 2.005 tiles). E23 (`e_day_23-20261105-095110`), lines 121 to 133: the same ga
     a `door` left so marked held (`World.mark_door`, the routes reading it wall for DOOR_RETRY_MIN game
     minutes: the route's next way).
   Logged `door_held` {door, kind, n_behind, decision} on the threat why of the tick the decision is first read
-  (whatever answered), again only when the door, the decision or the zombies behind change.
+  (whatever answered), again only when the door, the decision or the zombies behind change; a `window` whose record
+  reads its broken glass in (`windows.glass_of`, Plan 32 Task 6, T101.1) adds `glass` true: a window is always a
+  `leave` (never opened here), and the glass is the planner's climb gate's (`windows.usable_windows`, `clear_for`).
 - `FightDoorHeld._door_open_cmd`: the plan's steps for the Fight's pin (its why `door_step` the step: `post`,
   `open` or `meet`); a pin that is not the plan's zombie, or no plan this tick, leaves the ladder as it was.
 
@@ -54,6 +56,7 @@ import math
 from agent.base.planner.edges import _across, _door_on, _edge_of, same_side, side_of
 from agent.base.planner.policies import (AIM_LEG_S, DOOR_HELD_R, DOOR_POST_PACE, FLEE_HEALTH_FLOOR, WALK_DONE_R,
                                          _beyond, blocked, stand_post, target_id_ok, zdist)
+from agent.base.planner.windows import glass_of
 from agent.base.pza1 import Aim, Interact
 from agent.base.world import me_xy
 
@@ -186,6 +189,8 @@ class ThreatDoorHeld:
             return   # inside, a `leave` is the inside hold's (the module docstring)
         holder = edge[0]
         rec = {"door": [holder[0], holder[1]], "kind": kind, "n_behind": len(zs), "decision": decision}
+        if kind == "window" and glass_of(self.world, holder) is True:
+            rec["glass"] = True   # Plan 32 Task 6: the module docstring
         key = (edge, decision, tuple(sorted(repr(e[1]) for e in zs)))
         if key != self._door_held_key:
             self.door_held_now = rec

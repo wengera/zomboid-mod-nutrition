@@ -107,8 +107,8 @@ from agent.base.planner.policies import (AHEAD_CONE, AHEAD_R, DANGER_R, DISENGAG
                                          clear_heading, exit_plan, in_building, in_corridor, line_to, on_floor, on_post,
                                          on_room,
                                          running, stand_post, target_id_ok, zdist)
-from agent.base.planner.windows import note_window_end
-from agent.base.pza1 import Climb, Interact, Steer, Stop, WalkTo, Window
+from agent.base.planner.windows import note_window_end, window_cmd
+from agent.base.pza1 import Climb, Interact, Steer, Stop, WalkTo
 from agent.base.world import me_floor, me_xy
 
 __all__ = ["Flee", "FLEE_RULES"]
@@ -701,7 +701,7 @@ class Flee(Policy):
         if e["sent"]:
             return None
         self._chosen = "exit"
-        return Window(x, y, smash=e["smash"])
+        return window_cmd(self.world, e["window"], e["smash"])   # Plan 32 Task 6: clear on a window reading glass
 
     def _adopt(self, ts):
         """Fix round 1 (concern 1): the building stood in, every way out refused, adopted as sheltered: its plan kept

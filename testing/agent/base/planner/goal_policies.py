@@ -16,8 +16,8 @@ from agent.base.planner.night import (SHUN_MIN, door_blocked, hop_after, player_
                                       shelter_step)
 from agent.base.planner.policies import (EXPLORE_HOP_MIN, Explore, LOOT_MAX_LEVEL, LootHouse, PREEMPTED, SCAN_R,
                                          _seg_dist, centre, me_floor, me_xy, place_of)
-from agent.base.planner.windows import note_window_end
-from agent.base.pza1 import Climb, Scan, WalkTo, Window
+from agent.base.planner.windows import note_window_end, window_cmd
+from agent.base.pza1 import Climb, Scan, WalkTo
 
 
 # ---------------------------------------------------------------- the shared machines
@@ -535,7 +535,7 @@ class LootBuilding(_Legs, _Looting, Goal):
                 return None
             self.window = pick[:3]
             self.why = {"building": self.building, "route": "window", "window": [pick[0], pick[1]], "smash": pick[3]}
-            return Window(pick[0], pick[1], smash=pick[3])
+            return window_cmd(world, pick[:3], pick[3])   # Plan 32 Task 6: clear on a window reading glass
         if step in ("close", "done"):   # in: the loot resumes from inside
             self.route_due, self.route = False, None
             return None
