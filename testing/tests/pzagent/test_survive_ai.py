@@ -24,6 +24,7 @@ import tempfile
 import pytest
 
 from agent.base import replay_decisions as R
+from agent.base.planner import care as C
 from agent.base.planner import fight as F
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
@@ -31,6 +32,8 @@ from agent.base.planner import threat as T
 
 from .test_policies import Rig, zombie
 from .test_survive import last, make, threat_why, tick
+from .test_survive_ah import scratch, scratch_rig
+from .test_survive_ah import zombie as ah_zombie
 
 F17 = os.path.join(R.ARTIFACTS, "f_goals_17-20261108-172833")
 T16 = S.T16_SWITCHES
@@ -89,7 +92,7 @@ def flee_counts(rows):
 
 def test_the_t16_switches():
     """`survive.T16_SWITCHES`, each off until the coward rules' commit turns them on by default."""
-    assert T16 == ("POINT_BLANK_FIGHT", "PAIR_NEAREST", "STRAIN_BOUND")
+    assert T16 == ("POINT_BLANK_FIGHT", "PAIR_NEAREST", "CARE_COMMIT", "STRAIN_BOUND")
     assert all(getattr(S.Survive, k) is False for k in T16)
 
 
@@ -311,3 +314,138 @@ def test_f17_s_158_strain_lines_fall_to_none():
     assert {threat(off[k - 1])["strain"]["kind"] for k in lines} == {"endurance"}
     assert flee_counts(on).get("strain") is None
     assert all("strain_bound" in threat(on[k - 1]) for k in lines if on[k - 1]["branch"] == "threat")
+
+
+# ================================================================ (c) one leg, then finish
+def test_the_care_leg_s_constants():
+    """(c)'s leg: to CARE_HOLD_R + CARE_MARGIN (3.0 + 0.5 tiles), at most CARE_LEG_S (6.0 s), at a walk."""
+    assert (C.CARE_HOLD_R, C.CARE_MARGIN, C.CARE_LEG_S) == (3.0, 0.5, 6.0)
+
+
+def commit_rig(tmp_path, on=True):
+    """The scratch rig of Plan 31 Task 15a (`test_survive_ah.scratch_rig`: a PZA/1.7 hello, the worn cotton T-shirt
+    alone held, part 9 scratched) with CARE_COMMIT `on`."""
+    r, sv = scratch_rig(tmp_path)
+    sv.CARE_COMMIT = on
+    return r, sv
+
+
+def step(r, sv, dx, chasing=True):
+    """Half a second on, one frame with zombie 7 `dx` tiles east of the player and part 9 scratched, one tick."""
+    r.advance(0.5)
+    r.frame(zombies=[ah_zombie(7, dx, chasing=chasing)], wounds={"parts": [scratch()], "bleeding": 0})
+    tick(r, sv)
+
+
+def test_a_scratch_wanted_with_a_chaser_inside_care_hold_r_takes_one_walk_away_then_the_dress(tmp_path):
+    """(c): the scratch's Dress wanted with a chaser 2.8 tiles off (inside CARE_HOLD_R, beyond KEEP_R): the threat branch
+    sends one walk directly away from it (`steer` west, CARE_LEG_S, `walk`), logged `care_commit` {phase "leg"}; the leg
+    holds while the chaser stays under CARE_HOLD_R + CARE_MARGIN (3.2 tiles: `phase` "hold"), and once it reads 3.6 the
+    leg is spent and the care's Dress takes the tick (its stop), the threat yielding (`phase` "yield")."""
+    r, sv = commit_rig(tmp_path)
+    step(r, sv, 2.8)
+    assert r.cmd() == ("steer", {"vx": -1.0, "vy": 0.0, "seconds": C.CARE_LEG_S, "gait": "walk"})
+    assert last(tmp_path)["branch"] == "threat" and threat_why(tmp_path)["care_commit"]["phase"] == "leg"
+    assert threat_why(tmp_path)["care_commit"]["key"] == ["wound", 9]
+    r.fake.answer({"steer": ["accepted"]})
+    r.pump()
+    n = len(r.acts.history)
+    step(r, sv, 3.2)
+    assert len(r.acts.history) == n and threat_why(tmp_path)["care_commit"]["phase"] == "hold"
+    step(r, sv, 3.6)
+    assert r.cmd() == ("stop", {}) and last(tmp_path)["branch"] == "care"
+    assert threat_why(tmp_path)["care_commit"]["phase"] == "yield"
+
+
+def test_the_committed_dress_holds_inside_care_hold_r_and_gives_way_only_inside_keep_r(tmp_path):
+    """(c): once the Dress runs it holds the threat branch's yield while the chaser closes to 2.6 tiles (inside
+    CARE_HOLD_R, where the yield before it gave way, `test_survive_ah`'s fix 1), and gives way at 2.4 (inside KEEP_R: the
+    Dress's own end, the threat branch's tick); the chaser back at 2.8 (inside CARE_HOLD_R) takes the action's one leg,
+    none having been sent for it (the Dress started beyond CARE_HOLD_R)."""
+    r, sv = commit_rig(tmp_path)
+    step(r, sv, 3.8, chasing=False)
+    assert r.cmd() == ("stop", {}) and last(tmp_path)["branch"] == "care"
+    r.answer()
+    seen = []
+    for dx in (3.4, 3.0, 2.6):
+        step(r, sv, dx)
+        seen.append((dx, last(tmp_path)["branch"]))
+    assert seen == [(3.4, "care"), (3.0, "care"), (2.6, "care")]
+    step(r, sv, 2.4)
+    assert last(tmp_path)["branch"] == "threat" and "care_commit" not in threat_why(tmp_path)
+    assert not any(a.type == "steer" for a in r.acts.history)
+    step(r, sv, 2.8)
+    assert r.cmd()[0] == "steer" and threat_why(tmp_path)["care_commit"]["phase"] == "leg"
+
+
+def test_never_a_second_leg_for_the_same_dress(tmp_path):
+    """(c): the leg spent (its seconds passed, the chaser still at 3.2), the Dress takes the tick; the chaser into KEEP_R
+    ends it; back at 2.8 the Dress resumes with no second leg (one `steer` sent in all)."""
+    r, sv = commit_rig(tmp_path)
+    step(r, sv, 2.8)
+    r.fake.answer({"steer": ["accepted"]})
+    r.pump()
+    r.advance(C.CARE_LEG_S)
+    step(r, sv, 3.2)
+    assert r.cmd() == ("stop", {}) and last(tmp_path)["branch"] == "care"
+    step(r, sv, 2.3)
+    assert last(tmp_path)["branch"] == "threat"
+    step(r, sv, 2.8)
+    assert sum(1 for a in r.acts.history if a.type == "steer") == 1
+    assert threat_why(tmp_path)["care_commit"]["phase"] == "yield"
+
+
+def test_with_care_commit_off_no_leg_is_sent(tmp_path):
+    """The falsifier: with the rule off, the chaser at 2.8 tiles closing refuses the scratch's yield (Plan 31 Task
+    15a's `_wound_yields`) and nothing logs `care_commit`."""
+    r, sv = commit_rig(tmp_path, on=False)
+    step(r, sv, 3.0)
+    step(r, sv, 2.8)
+    assert "care_commit" not in threat_why(tmp_path) and not any(a.type == "stop" for a in r.acts.history)
+
+
+def test_a_rip_is_never_sent_on_the_move_and_an_unwear_of_a_shirt_neither():
+    """(c)'s on-the-move clause read against the engine: RipClothing is a handcraft whose stopOnWalk is `not
+    craftRecipe:isCanWalk()` (lua:shared/Entity/TimedActions/ISHandcraftAction.lua:405) and its recipe names no CanWalk
+    key (media/scripts/generated/recipes/recipes.txt:217-232; CraftRecipe.Load @1345-@1363 L517-L518 sets canWalk only
+    from one), so a rip stops on a walk; an unwear runs beside a walk only for a garment in
+    ISWearClothing.WalkBodyLocations (lua:shared/TimedActions/ISWearClothing.lua:176-202, the accessories), where no
+    cotton garment the Dress takes (`care.COTTON_RX`: shirts, T-shirts, tank tops, dresses, skirts, socks, underwear)
+    sits. So the Dress keeps its stop before both, and PZAgent_Tend.lua's `moving` rejection stands as it is."""
+    for name in ("Base.Tshirt_White", "Base.Shirt_FormalWhite", "Base.TankTop_Black", "Base.Socks_Ankle",
+                 "Base.Boxers_White"):
+        assert C.COTTON_RX.search(name)
+
+
+def sends_after(rows, types=("rip",)):
+    """(line, the next sending line, its branch) of each sent action of `types`."""
+    sent = [(k, r) for k, r in enumerate(rows, 1) if r["sent"] and r["action"]]
+    return [(k, sent[i + 1][0] if i + 1 < len(sent) else None, sent[i + 1][1]["branch"] if i + 1 < len(sent) else None)
+            for i, (k, r) in enumerate(sent) if r["action"]["type"] in types]
+
+
+def over_commit(rows):
+    """The threat branch's sending lines right after a line whose care commitment yielded."""
+    return [k for k in range(2, len(rows) + 1)
+            if (threat(rows[k - 2]).get("care_commit") or {}).get("phase") == "yield"
+            and rows[k - 1]["branch"] == "threat" and rows[k - 1]["sent"]]
+
+
+def test_f17_s_rips_are_no_longer_superseded_by_the_threat_branch_beyond_keep_r():
+    """(c) on F17, open loop: off, 15 rips sent (the record's: lines 283 to 422), 14 of them followed by a threat-branch
+    send, its flee legs and stance legs (the record's 14 failed rips, each superseded). With CARE_COMMIT alone on the
+    scratch's Dress (part 1) starts at line 277 and holds the yield: 3 rips go (lines 287, 297 and 407; the replay binds
+    the first two to the record's own, whose recorded supersede the Dress answers with its stop again, the open loop's
+    limit), and the threat branch sends after a committed yield only on lines 284, 380, 404, 410 and 437, each with the
+    nearest listed zombie within KEEP_R (the Dress's own end), and on 159 and 789, the tick after a Dress ended done.
+    No leg is sent: on F17's lines the care's want first reads the nearest standing zombie beyond CARE_HOLD_R."""
+    on, off = f17(**only("CARE_COMMIT")), f17(**only())
+    rips_off = sends_after(off)
+    assert len(rips_off) == 15 and sum(1 for _, _, b in rips_off if b == "threat") == 14
+    assert [k for k, _, _ in sends_after(on)] == [287, 297, 407]
+    assert threat(on[276])["care_commit"] == {"key": ["wound", 1], "near": threat(on[276])["care_commit"]["near"],
+                                              "phase": "yield"} and action(on[276]) == "stop"
+    over = over_commit(on)
+    assert over == [159, 284, 380, 404, 410, 437, 789]
+    assert [k for k in over if on[k - 1]["inputs"]["nearest"] > P.KEEP_R] == [159, 789]
+    assert not any((threat(r).get("care_commit") or {}).get("phase") == "leg" for r in on)

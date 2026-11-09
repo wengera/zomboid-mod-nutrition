@@ -257,6 +257,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     PAIR_NEAREST = False   # (b): with two or more within KEEP_R and one standing, the nearest standing one is the
                            # Fight's pin, faced and shoved first, switched only PAIR_SWITCH_R nearer (the Fight's
                            # `pair_nearest` rule, `fight.Fight._pair_pin`); off, the finish and the pin as before
+    CARE_COMMIT = False    # (c): a care action wanted with the nearest within CARE_HOLD_R takes one walk away (to
+                           # CARE_HOLD_R + CARE_MARGIN, at most CARE_LEG_S), then the threat branch yields to it until
+                           # it ends, unless a standing zombie is within KEEP_R (`care_yield.CareYield._care_commit`);
+                           # off, the yields before it
     STRAIN_BOUND = False   # (d): the `strain` flee only at stats.endurance STRAIN_ENDURANCE or under (the ENDURANCE
                            # moodle's second level) and never with exactly one standing within DANGER_R
                            # (`_strain_flees`); off, every hold's `strain` flee as before
@@ -1032,9 +1036,16 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             if self.avoid:   # Task 18 fix 1: the zombies within ENGAGE_R no engage reaches, logged as the goal runs
                 self.why = {"unsought": sorted(self.avoid, key=repr)}
             return None
-        self.care_yield = self._care_yields(held)
+        commit = self._care_commit(held)   # Plan 32 Task 5 (c): one leg, then the care's action finished
+        if commit is not None and commit[0] == "leg":
+            self.care_yield = None
+            self.why = {"care_commit": self.care_commit, "held": len(held)}
+            return commit[1]
+        self.care_yield = commit[1] if commit is not None else self._care_yields(held)
         if self.care_yield is not None:
             self.why = {"care": True, "nearest": self.care_yield, "held": len(held)}
+            if commit is not None:
+                self.why["care_commit"] = self.care_commit
             if self.care.ride_now:
                 self.why["ride"] = {"flee": self.ride_flee} if self.ride_flee else True   # P27-O: the health ride
             if self.scratch_yield is not None:

@@ -343,7 +343,11 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     game minutes): (a) a standing zombie within KEEP_R is fought whatever the flee reason, but under FLEE_HEALTH_FLOOR
     and on a running retreat to a named structure (`threat.Threat._point_blank`); (b) with two or more within KEEP_R
     and one standing, the nearest standing one is the Fight's pin, faced and shoved before any finish, switched only
-    PAIR_SWITCH_R nearer (`fight.Fight._pair_pin`); (d) the `strain` flee only at stats.endurance STRAIN_ENDURANCE or
+    PAIR_SWITCH_R nearer (`fight.Fight._pair_pin`); (c) a care action wanted with the nearest zombie within
+    CARE_HOLD_R takes one walk away (to CARE_HOLD_R + CARE_MARGIN, at most CARE_LEG_S), then the threat branch yields to
+    it until it ends unless a standing zombie is within KEEP_R, never a second leg for the same action
+    (`care_yield.CareYield._care_commit`; the rip and the unwear of a cotton garment keep their stop: the engine stops
+    both on a walk); (d) the `strain` flee only at stats.endurance STRAIN_ENDURANCE or
     under (the ENDURANCE moodle's second level) and never with exactly one standing within DANGER_R
     (`threat.Threat._strain_flees`); `T16_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
@@ -495,7 +499,7 @@ T15_SWITCHES = ("CHASER_STANCE", "SCRATCH_DRESS")
 # Plan 31 Task 15a (Harden, the ladder's two street defects): (a) on `threat.Threat` (CHASER_STANCE, the Fight's
 # `chaser_stance` rule); (b) on `Survive` (SCRATCH_DRESS: the wound Dress and the threat branch's yield to it, copied to
 # the Care and read by `care_yield.CareYield._wound_yields`)
-T16_SWITCHES = ("POINT_BLANK_FIGHT", "PAIR_NEAREST", "STRAIN_BOUND")
+T16_SWITCHES = ("POINT_BLANK_FIGHT", "PAIR_NEAREST", "CARE_COMMIT", "STRAIN_BOUND")
 # Plan 32 Task 5 (the coward fix, Angus's direction of 2026-11-08 watching F17), all on `threat.Threat`: (a)
 # POINT_BLANK_FIGHT, a standing zombie within KEEP_R fought whatever the flee reason (`Threat._point_blank`); (b)
 # PAIR_NEAREST, the Fight's `pair_nearest` rule (`fight.Fight._pair_pin`); (c) CARE_COMMIT, one distance leg, then the
@@ -661,6 +665,8 @@ class Survive(SneakGait, Threat):
                                         # Task 5 (a), `Threat._point_blank`), else None
         self.strain_bound = None  # this tick: {endurance, standing} when a `strain` flee was withheld (Plan 32 Task 5
                                   # (d), `Threat._strain_flees`), else None
+        self.care_leg = None      # the care's one distance leg (Plan 32 Task 5 (c), `care_yield.CareLeg`), else None
+        self.care_commit = None   # this tick: the care commitment's why (Plan 32 Task 5 (c)), else None
         self.bleed_held = False   # this tick: that yield was made by the dressing's hold alone (P26-L2)
         self.bleed_dressing = None   # the last bandage the care sent, when the bleed's yield made its tick (P26-L2)
         self.flee_reason = None   # the running flee's reason at its last decision, else None (P26-D's `pair` and
@@ -1172,6 +1178,8 @@ class Survive(SneakGait, Threat):
         self.care.stock_early = self.STOCK_EARLY   # P27-K1: read by the threat branch's care yield (`_care_yields`)
         self.care.scratch_dress = self.SCRATCH_DRESS and self.DRESS_MANEUVER   # Task 15a: read by the yield too
         self.care.skip = blocked(self.dead, self.clock())   # Task 15a fix 1 (M5): the scratch's standing read
+        self.care.dress_cls = MANEUVERS["dress"] if self.DRESS_MANEUVER else None   # Plan 32 Task 5 (c): read by the
+                                                     # threat branch's care commitment (`Care.commit_key`) too
         self.goals.stuck_leave = self.STUCK_LEAVE   # P27-F: read by the goal runner's observe, below
         self.goals.goal_stall = self.GOAL_STALL   # P29-B: read by the goal runner's observe, below
         self.goals.goal_continue = self.GOAL_CONTINUE   # P30-B: read by the goal runner's tick

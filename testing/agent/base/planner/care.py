@@ -157,6 +157,11 @@ CARE_HOLD_R = CARE_R - 1.0   # tiles: a running bandage is superseded only with 
                           # 12 fix 1, the review's ruling: CARE_R the start line, this the supersede line; at CARE_R
                           # alone a chaser at about 4 tiles alternated the bandage and the steer every tick); a
                           # running Fight's bandage holds while nothing is within FIGHT_REACH (ruling P26-D)
+CARE_MARGIN = 0.5         # tiles past CARE_HOLD_R the care's one distance leg walks to (Plan 32 Task 5 (c),
+                          # `care_yield.CareYield._care_commit`; a judgment, the brief's)
+CARE_LEG_S = 6.0          # seconds the care's one distance leg walks at most (Plan 32 Task 5 (c); a judgment, the brief's)
+COMMIT_TYPES = ("stop", "unwear", "rip", "bandage")   # the care's own running sends a commitment holds (Plan 32 Task 5
+                          # (c): the old bleeding step's, DRESS_MANEUVER off)
 CARE_STILL_TICKS = 2      # threat ticks over which the nearest zombie's distance must not have fallen before a bandage
                           # starts under a held threat (Task 12 fix 1: the yield's start reads it not closing); a
                           # running Fight's tick with room (nothing within FIGHT_REACH) ignores it (ruling P26-D)
@@ -864,6 +869,43 @@ class Care(Policy):
         if not self.scratch_room() or self._dress_held_off():
             return False
         return dress_pick(self.world, 0.0, dirty_ok=True) is not None
+
+    def commit_key(self):
+        """Plan 32 Task 5 (c) (CARE_COMMIT, read by `care_yield.CareYield._care_commit`): the care action wanted or
+        running, as `(kind, part)`: a running Dress's ("wound" for a scratch's, else "bleed"), else a running send of
+        the old bleeding step (`COMMIT_TYPES`, DRESS_MANEUVER off: ("send", its item)); else the bleeding step's want,
+        the worst bleeding part's ("bleed", part) when the Dress has something to dress or tear for it (`dress_pick`,
+        no failed Dress's hold) or the old step would send (`tends_wound`); else a scratch's Dress wanted
+        (`scratch_wanted`: ("wound", part)); else None."""
+        d = self.dress
+        if d is not None and d.over() is None:
+            return ("wound" if d.wound else "bleed", d.part)
+        if self.busy() and self.last is not None and self.last.type in COMMIT_TYPES and not self.owns_last():
+            return ("send", self.last.args.get("itemId"))
+        bleeding = self._bleeding()
+        if bleeding:
+            p = bleeding[0]
+            if self.dress_cls is not None:
+                ok = not self._dress_held_off() and dress_pick(self.world, p.get("bleedingTime") or 0.0) is not None
+            else:
+                ok = self.tends_wound()
+            return ("bleed", p["i"]) if ok else None
+        if self.scratch_wanted():
+            return ("wound", self._wounds()[0]["i"])
+        return None
+
+    def commit_running(self):
+        """Plan 32 Task 5 (c): the care action under way: a Dress not ended (its waits included), or a running send of
+        the old bleeding step (`COMMIT_TYPES`)."""
+        d = self.dress
+        if d is not None and d.over() is None:
+            return True
+        return self.busy() and self.last is not None and self.last.type in COMMIT_TYPES
+
+    def owns_last(self):
+        """The care's last action is the running Dress's (its send through `sent`)."""
+        d = self.dress
+        return d is not None and self.last is not None and d.action is self.last
 
     def scratch_room(self):
         """No standing zombie within KEEP_R, one read dead (`skip`) left out: the one read the scratch's start

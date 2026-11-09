@@ -5,10 +5,31 @@ Moved out of `threat.py` at Plan 25 Task 2 (a pure move: every rule, switch and 
 in `policies.py`'s table); its state is `Survive`'s own, set in `Survive.__init__`, and `survive.py`'s module docstring
 stays the record of every rule here.
 """
-from agent.base.planner.care import CARE_HOLD_R, CARE_R, CARE_STILL_TICKS, FLEE_CARE_N, FLEE_CARE_S, RIDE_MANY_R, RIDE_R
-from agent.base.planner.policies import (BLEED_SPAN_MIN, BLEED_WINDOW_MIN, DANGER_R, DRAG_DOWN_N, FIGHT_REACH,
-                                         POINT_BLANK_R, blocked, zdist)
+from agent.base.planner.care import (CARE_HOLD_R, CARE_LEG_S, CARE_MARGIN, CARE_R, CARE_STILL_TICKS, FLEE_CARE_N,
+                                     FLEE_CARE_S, RIDE_MANY_R, RIDE_R)
+from agent.base.planner.policies import (BLEED_SPAN_MIN, BLEED_WINDOW_MIN, DANGER_R, DRAG_DOWN_N, FIGHT_REACH, KEEP_R,
+                                         POINT_BLANK_R, STEER_TURNS, Policy, _rotate, away_vector, blocked,
+                                         clear_heading, standing, zdist)
+from agent.base.pza1 import Steer
 from agent.base.world import me_xy
+
+
+class CareLeg(Policy):
+    """Plan 32 Task 5 (c): the care's one distance leg, a walk directly away from the nearest zombie, held by the threat
+    branch (`CareYield._care_commit`); `key` the care action it was planned for (`care.Care.commit_key`), `over` once
+    it is spent (its distance gained, its CARE_LEG_S passed, or its steer ended)."""
+
+    def __init__(self, world, actions, clock, key):
+        super().__init__(world, actions, clock)
+        self.key = key
+        self.sent_wall = None
+        self.over = False
+
+    def choose(self):
+        return None
+
+    def sent(self, cmd, action):
+        self.sent_wall = self.clock()
 
 
 def _num(v):
@@ -151,6 +172,80 @@ class CareYield:
         self.bleed_yield = near   # P26-D: the yield the bleed's room made
         self.bleed_held = bool(self._within(FIGHT_REACH))   # P26-L2: the room only the dressing's hold made
         return near
+
+    def _care_commit(self, held):
+        """Plan 32 Task 5 (c) (`CARE_COMMIT`; Angus watching F17, `f_goals_17-20261108-172833`, memory
+        `finish-actions-gain-distance`: of its 15 rips 14 failed, every one superseded, 13 of them sent after the care's
+        stop, each by the threat branch's flee leg or the Dress's own next stop as a chaser closed within CARE_HOLD_R
+        between lines 279 and 330, the scratch on part 1 dressed at the 15th): an action the care wants or runs
+        (`care.Care.commit_key`) is done by gaining distance once and finishing it. `("leg", (policy, command))` while
+        the one leg runs or is sent, `("yield", near)` when the threat branch yields the tick to the care, else None
+        (the yields before it, `_care_yields`, decide): None with the rule off, a riding bandage running, nothing
+        wanted, or a standing zombie (not `onFloor`, one read dead aside) within KEEP_R (the Fight's, rule (a); the
+        Dress's own end). A running action (`commit_running`) is yielded to until it ends. Wanted and not running: with
+        the nearest standing zombie (within DANGER_R; a fallen one makes no leg) within CARE_HOLD_R and no leg spent for
+        this action, one leg (`CareLeg`): a walk directly away from it (the first clear heading of STEER_TURNS), CARE_LEG_S
+        long; it holds the threat branch until the nearest standing reads CARE_HOLD_R + CARE_MARGIN or farther, its
+        CARE_LEG_S pass, or it ends; then (or with the nearest beyond CARE_HOLD_R from the start) the yield, so the care
+        starts the action, and never a second leg for the same action (`key`; an action interrupted within KEEP_R before
+        any leg takes its one leg after). Logged `care_commit` {key, phase "leg" | "hold" | "yield", near}.
+        Cost if wrong: a dressing's seconds standing with a zombie closing from CARE_HOLD_R to KEEP_R."""
+        self.care_commit = None
+        c = self.care
+        if not self.CARE_COMMIT or not self.world.can("bandage") or c.riding() is not None:
+            return None
+        if standing(self.world, KEEP_R, self._skipped()):
+            return None   # the Fight's (rule (a)), the leg kept for its action (no second one)
+        key = c.commit_key()
+        if key is None:
+            self.care_leg = None
+            return None
+        leg = self.care_leg
+        if leg is not None and leg.key != key:
+            leg = self.care_leg = None
+        ids = {id(z): zid for zid, z in self.world.zombies.items()}
+        nz = min(((zdist(self.world, z), repr(ids[id(z)]), ids[id(z)]) for z in standing(self.world, DANGER_R,
+                                                                                       self._skipped())), default=None)
+        near = None if nz is None else nz[0]   # the nearest standing within DANGER_R: a fallen one makes no leg
+        why = {"key": list(key), "near": near}
+        if c.commit_running() or (leg is not None and leg.over):
+            self.care_commit = dict(why, phase="yield")
+            return "yield", self._yield_near()
+        if leg is not None:
+            if (near is None or near >= CARE_HOLD_R + CARE_MARGIN or self.clock() - leg.sent_wall >= CARE_LEG_S
+                    or not leg.busy()):
+                leg.over = True
+                self.care_commit = dict(why, phase="yield")
+                return "yield", self._yield_near()
+            self.care_commit = dict(why, phase="hold", aid=leg.last.aid)
+            return "leg", (leg, None)
+        if near is not None and near <= CARE_HOLD_R:
+            v = self._care_leg_heading(nz[2])
+            if v is not None:
+                self.care_leg = CareLeg(self.world, self.actions, self.clock, key)
+                self.care_commit = dict(why, phase="leg")
+                return "leg", (self.care_leg, Steer(v[0], v[1], CARE_LEG_S, "walk"))
+        self.care_commit = dict(why, phase="yield")
+        return "yield", self._yield_near()
+
+    def _yield_near(self):
+        """The tiles the threat's why logs `nearest` on a commitment's yield: the nearest listed zombie's read this tick
+        (`_nearest_seen`, as every yield logs it), never None (a yield with none listed logs 0.0: no threat tick has
+        none held)."""
+        return self._nearest_seen[-1][1] if self._nearest_seen else 0.0
+
+    def _care_leg_heading(self, zid):
+        """Plan 32 Task 5 (c): the unit heading directly away from zombie `zid` (the nearest standing), turned by the
+        first of STEER_TURNS whose line reads clear (`policies.clear_heading`), else the straight one."""
+        z = self.world.zombies[zid]
+        v = away_vector(self.world, [(z["x"], z["y"])])
+        if v is None:
+            return None
+        for deg in STEER_TURNS:
+            w = _rotate(v, deg)
+            if clear_heading(self.world, w, trans=self.TRANS):
+                return round(w[0], 6), round(w[1], 6)
+        return round(v[0], 6), round(v[1], 6)
 
     def _wound_yields(self, held, near):
         """Plan 31 Task 15a (SCRATCH_DRESS; the ladder's street defect (b): round two's trial 12,
