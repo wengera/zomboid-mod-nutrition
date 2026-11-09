@@ -1136,3 +1136,8 @@ CRAWLER_AVOID_R = 1.2  # tiles: a fallen or crawling zombie this near, other tha
 # line 432, the drag-down at game minute 622)
 RETREAT_REGAIN_S = 1.5   # wall seconds the retreat's back leg after a point-blank press is held while the nearest
                          # standing zombie stays within FIGHT_REACH (RETREAT_REGAIN), then the next press
+# Plan 34 Task 3c fix 1 (the trials `x_trial-ladder-20261109-142418`, lines 343 and 358: POINT_BLANK_FIGHT pinned 8836
+# at 2.455 tiles and 8847 at 2.18 over the `health` flee, each walked in on and shoved at, 27 hit runs in the trial; and
+# `x_trial-ladder-20261109-141434`, line 392: 13837 pinned at 2.24 over `many`; P31-T, not evidence)
+POINT_BLANK_OVER_R = 1.5   # tiles: under a `many` or `health` flee reason POINT_BLANK_FIGHT fights only a standing
+                           # zombie this near (already on the character); beyond it the flee stands (KEEP_R otherwise)

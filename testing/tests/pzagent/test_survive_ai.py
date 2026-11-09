@@ -62,10 +62,12 @@ def f17(**switches):
     CRAWLER_FIRST off (`T17_SWITCHES`) and Plan 33 Task 3's group rules off (`T18_SWITCHES`, fix 1: GROUP_LEAVE's
     entry at GROUP_ENTRY_R reaches F17's lines) and Plan 34's CRAWLER_CLEAR off (ruling P34-A fix B: F17's fallen
     16230 within CRAWLER_AVOID_R beside the standing 16232 is backpedalled from), named changes that move F17's lines,
-    unless a case sets them."""
+    unless a case sets them; and with Plan 34 Task 3c fix 1's POINT_BLANK_OVER_R at KEEP_R (the rule before it: its
+    `many` and `health` point-blank fights between 1.5 and 2.5 tiles), a named change that moves F17's lines."""
     switches = dict({k: False for k in S.T18_SWITCHES}, **switches)
     switches.setdefault("CRAWLER_FIRST", False)
     switches.setdefault("CRAWLER_CLEAR", False)
+    switches.setdefault("POINT_BLANK_OVER_R", P.KEEP_R)
     return json.loads(_f17(tuple(sorted(switches.items()))))
 
 
@@ -116,8 +118,10 @@ def test_with_the_four_off_f17_replays_as_recorded():
 
 def rig(tmp_path, zombies, on=("POINT_BLANK_FIGHT",), **frame):
     """A Survive on a fresh Rig with the T16 switches in `on` set on and the others off (each rule read alone), one
-    frame."""
+    frame. Pinned with Plan 34 Task 3c fix 1's POINT_BLANK_OVER_R at KEEP_R (the rule before it, a named change: the
+    `health` pair at 2.2 tiles below is fought by the rule before it, fled by it)."""
     r, sv = make(tmp_path)
+    sv.POINT_BLANK_OVER_R = P.KEEP_R
     for name in T16:
         setattr(sv, name, name in on)
     r.frame(zombies=zombies, **frame)

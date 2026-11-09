@@ -1321,8 +1321,12 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         (True) while a standing zombie stands within FIGHT_REACH, RETREAT_REGAIN_S have not passed since it went and its
         heading stays within RETREAT_RESEND_DEG of the retreat's (`_on_retreat_heading`), else it gives way (False:
         the choose re-sends it in its window or sends the press); the press's running melee gives way (False) once it
-        has pressed once with no press in flight. A running melee with a standing zombie come within POINT_BLANK_R and
-        no phase in hand arms its press there, a press in flight counted."""
+        has pressed once with no press in flight, and until then holds by the melee's own rule alone
+        (`_melee_holds`): fix 1 (the trial `x_trial-ladder-20261109-142025`, lines 114 to 118: the retreat's re-pin
+        cut the press at 6883 with its shove in flight, then 6854's before its first step, three presses on three
+        lines and no back leg between; `x_trial-ladder-20261109-141434`, lines 265 and 266, the same), so no re-pin and
+        no crawler give-way cuts it. A running melee with a standing zombie come within POINT_BLANK_R and no phase in
+        hand arms its press there, a press in flight counted."""
         if "retreat_regain" not in self.rules or self.retreat is None:
             return None
         g, m = self._regain, self.m
@@ -1340,8 +1344,10 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             if self._standing_near(FIGHT_REACH) is None or self.clock() - g["at"] >= RETREAT_REGAIN_S:
                 return False
             return self._on_retreat_heading()
-        if live and g.get("m") is m and m.presses > g["n0"] and not m.pressing():
-            return False
+        if live and g.get("m") is m:
+            if m.presses > g["n0"] and not m.pressing():
+                return False
+            return self._melee_holds()   # fix 1: the press held to its one press, never cut by a re-pin
         return None
 
     def _ladder(self):

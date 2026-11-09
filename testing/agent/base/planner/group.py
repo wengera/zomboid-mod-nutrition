@@ -110,8 +110,9 @@ from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, DOOR_ABORT_R, DO
                                          FLEE_GAIT,
                                          FLEE_HEALTH_FLOOR, GROUP_ENTRY_R, GROUP_LEAVE_N, KEEP_R,
                                          LEAVE_DOOR_R, RETREAT_MAX_N, SHOVE_R, STAND_MIN_R, SIDE_LOOK, SIDE_R,
-                                         STEER_PROBE, STRUNG_LINES, STUCK_FRAMES, STUCK_FREE_R, WALL_R, _rotate,
-                                         blocked, clear_heading, hit_reaction, on_floor, target_id_ok, zdist)
+                                         STEER_PROBE, STRAIN_SOFT, STRUNG_LINES, STUCK_FRAMES, STUCK_FREE_R, WALL_R,
+                                         _rotate, arm_pain, blocked, clear_heading, hit_reaction, on_floor,
+                                         target_id_ok, zdist)
 from agent.base.pza1 import Shove, Steer
 from agent.base.world import me_floor, me_xy
 
@@ -511,8 +512,15 @@ class ThreatGroup:
         mode `shove` (`dispatch.FightDispatch._melee_mode_at`, `fight.Fight._hold_bars`): a hold the Fight reads
         (`_fight_spent`, R2) or a shove-and-stomp Fight (`_shove_only` of the open-ground Fight, the retreat's). Read off
         this tick's holds, not the Fight's last ones (the `run` drops the Fight, so a read off it would flap); the low
-        fight's full swing (P27-E) needs a lone zombie and never stands beside a group."""
-        return bool(self._fight_spent()) or self._shove_only("fight") is not None
+        fight's full swing (P27-E) needs a lone zombie and never stands beside a group. Fix 1 (the trial
+        `x_trial-ladder-20261109-142025`, lines 119 and 120: `strain` 47.2, the stiffness 5.7 so no arms' hold, the
+        maneuver's `spent` true, `group_leave` {leg "retreat", n 4}): or the arms' pain alone over STRAIN_SOFT, the
+        reflex's own spent read (`PZAgent_StanceMelee.lua`'s `spentOf`: `body.armPain` over K.MELEE_SPENT_PAIN 10,
+        where the meet sent in mode strike runs as the spent one); its moodle half the frame does not carry."""
+        if self._fight_spent() or self._shove_only("fight") is not None:
+            return True
+        pain = arm_pain(self.world)
+        return pain is not None and pain > STRAIN_SOFT
 
     def _drag_defers(self, inside):
         """DRAG_DEFER (Plan 34 Task 3c, ruling P34-I; the trial `x_trial-ladder-20261109-132439`, lines 408 to 446: the

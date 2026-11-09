@@ -283,10 +283,14 @@ def pre_t17(sv, keep=()):
 def pre_t19(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 34 (the column): its switches off (`survive.T19_SWITCHES`:
     LEAVE_CARE, DOOR_INSIDE, LEAVE_DOOR_RACE, RETREAT_GAP, RETREAT_MELEE, STRUNG_HOLD, SHOVE_CLEAR), but those named in
-    `keep`; every seam onto an earlier rule reads them off (`pre_t17`)."""
+    `keep`; every seam onto an earlier rule reads them off (`pre_t17`). Plan 34 Task 3c fix 1: POINT_BLANK_FIGHT's
+    radius over a `many` or `health` reason (`Threat.POINT_BLANK_OVER_R`, no switch) at KEEP_R, the rule before it,
+    unless `keep` names POINT_BLANK_OVER_R."""
     for name in S.T19_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
+    if "POINT_BLANK_OVER_R" not in keep:
+        sv.POINT_BLANK_OVER_R = P.KEEP_R
 
 
 # ---------------------------------------------------------------- the rules before P24-X (Plan 24 Task 18)
@@ -2528,13 +2532,16 @@ PRE_T19 = {"e2": ("b521d04739ecfafb186f857a8646f3898d31e12cde7665daca2af70c56cf8
            "f1": ("28afd0642b5d89ec9c46295a91c6a9b83b73f2983fa1a3ab84aedaf0b44c78e7", "9110c961", "2026-11-09"),
            SIXTH: ("4fb2a7960b9d2fde3a47e71cb8740ecce90d7f5d51394397a69cc7ebd4375730", "9110c961", "2026-11-09")}
 # the first line each column rule moves, alone on, on each golden it moves
-FIRST_T19 = {"e2": {}, "e3": {"LEAVE_ENTRY": 260}, "e4": {"STRUNG_HOLD": 390, "LEAVE_ENTRY": 467}, "e5": {}, "f1": {},
-             SIXTH: {"LEAVE_CARE": 490}}
+FIRST_T19 = {"e2": {"POINT_BLANK_OVER_R": 211}, "e3": {"LEAVE_ENTRY": 260, "POINT_BLANK_OVER_R": 267},
+             "e4": {"STRUNG_HOLD": 390, "LEAVE_ENTRY": 467}, "e5": {}, "f1": {}, SIXTH: {"LEAVE_CARE": 490}}
 # the why each rule logs on the first line it moves alone
 WHY_T19 = {"LEAVE_CARE": "care_withheld", "STRUNG_HOLD": "group_retreat",
-           "LEAVE_ENTRY": "flee"}   # the leave's first leg on both goldens, its one shove (the Flee's `leave`)
+           "LEAVE_ENTRY": "flee",   # the leave's first leg on both goldens, its one shove (the Flee's `leave`)
+           "POINT_BLANK_OVER_R": "flee"}   # Task 3c fix 1: the `health` flee where the point-blank fight held
+# the column's golden movers: its switches and Task 3c fix 1's radius (no switch: `pre_t19` sets it to KEEP_R)
+MOVERS_T19 = S.T19_SWITCHES + ("POINT_BLANK_OVER_R",)
 # every line on each golden whose decision (branch or action) the column's rules move together
-ACTED_T19 = {"e2": [], "e3": [260, 261, 263, 266, 270, 277, 284], "e4": [467, 468, 469, 470], "e5": [], "f1": [],
+ACTED_T19 = {"e2": [211], "e3": [260, 261, 263, 266, 270, 277, 284], "e4": [467, 468, 469, 470], "e5": [], "f1": [],
              SIXTH: []}
 
 
@@ -2577,11 +2584,21 @@ def test_the_column_rules_move_the_goldens_at_their_lines(key):
       ({on [19035, 19032, 19042], near}): the shove at 19035 on 467 (where the golden held the walk), the retreat from
       468 (an attack at 19032 there), so 469's closing entry and its shove no longer come (the held leave's retreat,
       no send) and 470's attack is not sent. Alone on, E3's acted lines are 260, 261, 263, 266 and 269.
+    - Named change `Plan 34 Task 3c fix 1` (POINT_BLANK_FIGHT's radius under a `many` or `health` reason is
+      POINT_BLANK_OVER_R, 1.5, where it was KEEP_R; no switch, `pre_t19` sets KEEP_R), re-recording E2 alone: line 211,
+      where the golden held the Fight's walk a26 under `point_blank_fight` {over "health", dist 1.9249610005180948},
+      sends the `health` flee's run walk to the exit (`flee` "health", `step` "walk"); every later moved line is the
+      action ids one on downstream (the walk's own `a`): `holding` a27 to a28 on 213 to 221, a28 to a29 on 223 and
+      224, a30 to a31 on 227 and 228, no other decision moved. Alone on, it also moves E3 from line 267 (the `many`
+      run steer where the golden held the walk a30 under `point_blank_fight` {over "many", dist 1.7694937931500585},
+      then the attacks within POINT_BLANK_OVER_R on 268 and 270, downstream to 284), lines LEAVE_ENTRY's leave already
+      moves, so E3's file is unchanged. The fix's RETREAT_REGAIN press hold and SPENT_LEAVE pain read move no golden
+      (five files unchanged).
     The rules together move each golden first at the least of those lines; the acted lines are `ACTED_T19`."""
     base, got = pre_t19_gold(key), gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
     assert (diff[0] if diff else None) == min(FIRST_T19[key].values(), default=None)
-    for switch in S.T19_SWITCHES:
+    for switch in MOVERS_T19:
         alone = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
                                                              mutate=lambda sv: pre_t19(sv, keep=(switch,))))}
         moved = [k for k in sorted(set(base) | set(alone)) if base.get(k) != alone.get(k)]

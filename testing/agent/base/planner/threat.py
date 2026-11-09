@@ -26,7 +26,8 @@ from agent.base.planner.policies import (AIM_R, BLEED_FAST, CLOSING_TICKS, CORNE
                                          LISTED_R, MANY_LISTED_N, MANY_TAIL_TICKS, MAX_FIGHT, POINT_BLANK_R,
                                          REFIGHT_MARGIN, STUCK_RETRY_GROUP_S, STUCK_RETRY_S, adoptable, blocked,
                                          chasing, exit_plan, in_building, in_reach, line_to, on_floor, others_behind,
-                                         seek_allowed, spare, target_id_ok, zdist, STRAIN_ENDURANCE)
+                                         seek_allowed, spare, target_id_ok, zdist, STRAIN_ENDURANCE,
+                                         POINT_BLANK_OVER_R)
 from agent.base.planner.pull import ThreatPull
 from agent.base.planner.still import ThreatStill
 from agent.base.pza1 import Drop
@@ -267,7 +268,11 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                            # (`_strain_flees`); off, every hold's `strain` flee as before
     POINT_BLANK_FIGHT = True   # (a): a standing zombie within KEEP_R is fought whatever flee reason the plan would take
                                # (`_point_blank`), the health under FLEE_HEALTH_FLOOR and a running retreat to a named
-                               # structure excepted; off, the flee reasons as before
+                               # structure excepted (Plan 34 Task 3c fix 1: within POINT_BLANK_OVER_R alone under
+                               # a `many` or `health` reason); off, the flee reasons as before
+    POINT_BLANK_OVER_R = POINT_BLANK_OVER_R   # Plan 34 Task 3c fix 1: (a)'s radius under a `many` or `health` reason,
+                                              # the rule's own constant read here, so a seam onto the rules before it
+                                              # (a replay's) sets KEEP_R; no switch
     # Plan 33 Task 3 (the group's entry and the drag guard; F18's death, `planner/group.py`'s docstring the record): in
     # `survive.T18_SWITCHES`
     GROUP_LEAVE = True        # GROUP_LEAVE_N standing zombies closing within GROUP_ENTRY_R in the open with nothing at
@@ -948,11 +953,15 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         logged `point_blank_fight` and pinned by the Fight a new one makes (`_decide`). None with the rule off, under
         FLEE_HEALTH_FLOOR, for `steps` (a running shelter plan or way out: the retreat to a named structure, Plan 31's
         refuge ruling) or with no such zombie. The doorway stand, the drag-down guard and the sheltered Flee keep their
-        own rows. Cost if wrong: a fight held against a second zombie arriving within KEEP_R."""
+        own rows. Plan 34 Task 3c fix 1 (the trials `x_trial-ladder-20261109-142418` lines 343 and 358, a zombie
+        pinned at 2.455 and 2.18 tiles over the `health` flee and walked in on, and `x_trial-ladder-20261109-141434`
+        line 392, 2.24 over `many`): under a `many` or `health` reason the radius is POINT_BLANK_OVER_R (the zombie
+        already on the character, which no flee outruns), beyond it the flee stands; KEEP_R under the others. Cost if
+        wrong: a fight held against a second zombie arriving within KEEP_R."""
         self.point_blank_fight = None
         if not self.POINT_BLANK_FIGHT or reason == "steps" or self._health() < FLEE_HEALTH_FLOOR:
             return None
-        near = self._within(KEEP_R)
+        near = self._within(self.POINT_BLANK_OVER_R if reason in ("many", "health") else KEEP_R)
         skip = self._skipped()
         best = None
         for zid, z in self.world.zombies.items():
