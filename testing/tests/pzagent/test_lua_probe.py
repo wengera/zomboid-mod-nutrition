@@ -261,6 +261,7 @@ def test_ignore_aim_holds_the_stance_with_the_input_ignored_and_restores_it(lua,
     go(lua, p, mode="ignore_aim", x=12.0, y=20.0, ticks=2)
     run(lua, p, 1)
     assert ("setIgnoreAimingInput", True) in calls(p) and lua.eval("PZA.motor.wantAim") is True
+    assert p.faced == [(12.0, 20.0)]
     run(lua, p, 2)
     assert calls(p, "setIgnoreAimingInput") == [("setIgnoreAimingInput", True), ("setIgnoreAimingInput", False)]
     assert lua.eval("PZA.motor.wantAim") is False
@@ -382,6 +383,19 @@ def test_the_summary_medians_and_p90s_over_a_known_series(lua, fs):
     assert r["err_body_med"] == pytest.approx(26.0) and r["err_body_p90"] == pytest.approx(46.0)
     assert r["err_look_med"] == pytest.approx(26.0) and r["err_look_p90"] == pytest.approx(46.0)
     assert r["hold30"] == pytest.approx(0.5) and r["aiming_share"] == pytest.approx(0.5)
+
+
+def test_the_summary_ranks_absolute_errors_by_nearest_rank_over_an_odd_count(lua, fs):
+    """Three ticks whose body errors are -10, 20 and -40 degrees: the absolute values ranked (10, 20, 40), the median
+    the 2nd (ceil(1.5)), 20, and the 90th percentile the 3rd (ceil(2.7)), 40."""
+    load(lua)
+    p = make_player()
+    errs = [-10.0, 20.0, -40.0]
+    go(lua, p, mode="unaimed_face", x=12.0, y=20.0, ticks=3)
+    run(lua, p, 4, between=lambda i: p.angles.update(body=math.radians(errs[min(i, 3) - 1])))
+    r = done(lua, fs)["result"]
+    assert r["err_body_med"] == pytest.approx(20.0) and r["err_body_p90"] == pytest.approx(40.0)
+    assert r["hold30"] == pytest.approx(2 / 3)
 
 
 def test_the_act_lines_decode_and_carry_only_the_schemas_keys(lua, fs):
