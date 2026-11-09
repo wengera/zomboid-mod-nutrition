@@ -1016,7 +1016,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             self.pair = None
             read = self._retreat_read()
             if read is not None and self.target != read[0]:
-                self._retreat_note = {"target": read[0], "from": self.target}
+                if self.target is not None:   # a move, not a fresh Fight's first pin
+                    self._retreat_note = {"target": read[0], "from": self.target}
                 self.target, self.repositioned = read[0], False
             return None if read is None else read[1]
         read = self._pair_read()

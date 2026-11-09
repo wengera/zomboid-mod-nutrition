@@ -624,6 +624,10 @@ def test_under_the_retreat_the_pin_moves_to_the_nearest_standing_zombie_of_the_g
     cmd = f.choose()
     assert f.target == 1 and f.why["retreat_pin"] == {"target": 1, "from": 3} and f.why["retreat"] is True
     assert cmd.TYPE == "aim" and cmd.targetId == 1 and f.why["leg"] == "back"
+    (tmp_path / "fresh").mkdir()
+    r2, f2 = fight4(tmp_path / "fresh", zs)   # a fresh Fight's first pin is no move: no `retreat_pin`
+    f2.choose()
+    assert f2.target == 1 and "retreat_pin" not in f2.why and f2.why["retreat"] is True
 
 
 def test_under_the_retreat_a_nearer_one_by_less_than_pair_switch_r_keeps_the_pin(tmp_path):
