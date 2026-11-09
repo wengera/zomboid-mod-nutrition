@@ -360,6 +360,13 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     walked in while the finish stalled and the drag-down guard sent five run steers under hit reactions into a zombie at
     the side, the character unmoving for 116 frames): GROUP_LEAVE, DRAG_GUARD_FIGHT and SIDE_CLEAR
     (`planner/group.py`'s docstring the record); `T18_SWITCHES`.
+    Plan 34 (the column; F19, `f_goals_19-20261109-060929`: under a column of five to eight standing zombies the leave's
+    `run` alternated with the care, 21 of 55 lines from game minute 770 to 777 the care's, 8 stops, an unwear and 5 rips,
+    none done, each rip superseded as the column closed back to 1.78-2.47 tiles): LEAVE_CARE, no care action but the
+    ride with GROUP_LEAVE_N or more standing within GROUP_ENTRY_R (`group_n`, `group.ThreatGroup._group_read`; the
+    rule in `care_yield.CareYield._care_commit` and `_care_yields`), logged `care_withheld` {why "group", n, key} on the
+    threat's why; DOOR_INSIDE, LEAVE_DOOR_RACE, RETREAT_GAP, RETREAT_MELEE, STRUNG_HOLD and SHOVE_CLEAR (the spec's
+    §§ 3.2 to 3.4, Tasks 2 to 4); `T19_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -524,6 +531,15 @@ T18_SWITCHES = ("GROUP_LEAVE", "DRAG_GUARD_FIGHT", "SIDE_CLEAR")
 # fighting retreat, else above RETREAT_MAX_N the `many` run (`ThreatGroup._group_leave`); DRAG_GUARD_FIGHT, the drag-down guard's shove in its run's place
 # under a hit reaction or STUCK_FRAMES unmoving frames (`ThreatGroup._drag_fight`); SIDE_CLEAR, no run steer within
 # SIDE_R of a standing zombie (`ThreatGroup._side_clear`)
+T19_SWITCHES = ("LEAVE_CARE", "DOOR_INSIDE", "LEAVE_DOOR_RACE", "RETREAT_GAP", "RETREAT_MELEE", "STRUNG_HOLD",
+                "SHOVE_CLEAR")
+# Plan 34 (the column; F19, `f_goals_19-20261109-060929`; the spec's § 3), all on `threat.Threat`: LEAVE_CARE, the care
+# barred under a column of GROUP_LEAVE_N standing within GROUP_ENTRY_R but the ride (`care_yield.CareYield._care_commit`,
+# `_care_yields`); DOOR_INSIDE, the shelter plan's enter read inside and its close sent from inside; LEAVE_DOOR_RACE,
+# the leave's door only with the nearest standing beyond DOOR_RACE_R, a second exit, dropped at DOOR_ABORT_R;
+# RETREAT_GAP, the retreat's leg by the distance's band; RETREAT_MELEE, the strike melee's give-way to the back leg with
+# another standing within RETREAT_BACK_R; STRUNG_HOLD, the `strung` end after STRUNG_LINES lines; SHOVE_CLEAR, the Lua's
+# shove and stomp waiting for the reaction's end. Task 1 declares the seven and lands LEAVE_CARE; Tasks 2 to 4 the rest
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -546,7 +562,7 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T3_SWITCHES",
            "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES", "T7_SWITCHES", "T8_SWITCHES", "T9_SWITCHES", "T10_SWITCHES",
            "T11_SWITCHES", "T12_SWITCHES", "T13_SWITCHES", "T14_SWITCHES", "T15_SWITCHES",
-           "T16_SWITCHES", "T17_SWITCHES", "T18_SWITCHES"]
+           "T16_SWITCHES", "T17_SWITCHES", "T18_SWITCHES", "T19_SWITCHES"]
 
 
 @dataclass
@@ -700,6 +716,9 @@ class Survive(SneakGait, Threat):
                                   # steer or walk (Plan 33 Task 3: STUCK_FRAMES from it), else None
         self._group_prev = {}     # standing zombie id -> tiles on the last tick, within DISENGAGE_R (the closing read)
         self._group_closing = []  # this tick: (id, zombie, tiles) of the standing within GROUP_NEAR_R nearer than before
+        self.group_n = 0          # this tick: the standing zombies within GROUP_ENTRY_R (Plan 34, `_group_read`)
+        self.strung_n = 0         # the consecutive lines the leave's count read under GROUP_LEAVE_N (Plan 34, STRUNG_HOLD)
+        self.care_withheld = None   # this tick: LEAVE_CARE's {why "group", n, key} when the care was barred, else None
         self.care_leg = None      # the care's one distance leg (Plan 32 Task 5 (c), `care_yield.CareLeg`), else None
         self.care_commit = None   # this tick: the care commitment's why (Plan 32 Task 5 (c)), else None
         self.bleed_held = False   # this tick: that yield was made by the dressing's hold alone (P26-L2)

@@ -272,8 +272,19 @@ def pre_t16(sv, keep=()):
 def pre_t17(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 33 Task 3 (the group's entry and the drag guard): its
     switches off (`survive.T18_SWITCHES`: GROUP_LEAVE, DRAG_GUARD_FIGHT, SIDE_CLEAR), but those named in `keep`; every
-    seam onto an earlier rule reads them off (`pre_t16`)."""
+    seam onto an earlier rule reads them off (`pre_t16`). Plan 34 Task 1: the column's switches (`pre_t19`) off with
+    them, so every seam onto an earlier rule reads them off."""
     for name in S.T18_SWITCHES:
+        if name not in keep:
+            setattr(sv, name, False)
+    pre_t19(sv)
+
+
+def pre_t19(sv, keep=()):
+    """The replay's mutate seam onto the rules before Plan 34 (the column): its switches off (`survive.T19_SWITCHES`:
+    LEAVE_CARE, DOOR_INSIDE, LEAVE_DOOR_RACE, RETREAT_GAP, RETREAT_MELEE, STRUNG_HOLD, SHOVE_CLEAR), but those named in
+    `keep`; every seam onto an earlier rule reads them off (`pre_t17`)."""
+    for name in S.T19_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
 
@@ -2479,8 +2490,10 @@ def test_the_group_rules_move_the_goldens_at_their_lines(key):
       sent the shove before (E4 489, F1 and the sixth 614; `side_clear` {least_bad}).
     - DRAG_GUARD_FIGHT moves none (no golden's guard line reads a hit reaction or the unmoving count). E2 moves under
       none, its file unchanged.
-    The three together move each golden first at the least of those lines; the acted lines are `ACTED_T17`."""
-    base, got = pre_t17_gold(key), gold(key)
+    The three together move each golden first at the least of those lines; the acted lines are `ACTED_T17`. Named
+    change, Plan 34 Task 1: read against the goldens with the column's rules off (`pre_t19_gold`), which re-recorded the
+    sixth."""
+    base, got = pre_t17_gold(key), pre_t19_gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
     assert (diff[0] if diff else None) == min(FIRST_T17[key].values(), default=None)
     for switch in S.T18_SWITCHES:
@@ -2493,3 +2506,71 @@ def test_the_group_rules_move_the_goldens_at_their_lines(key):
             assert WHY_T17[switch] in alone[first]["why"] and WHY_T17[switch] not in base[first]["why"], switch
     acted = [k for k in diff if base[k]["action"] != got[k]["action"] or base[k]["branch"] != got[k]["branch"]]
     assert acted == ACTED_T17[key]
+
+
+# ================================================================ Plan 34 Task 1: the column on the goldens
+@functools.lru_cache(maxsize=6)
+def _pre_t19_replayed(key):
+    return json.dumps(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t19), sort_keys=True)
+
+
+def pre_t19_gold(key):
+    """{line: decision} of the replay with the column's rules off: the golden before its re-record."""
+    return {d["line"]: d for d in R.decisions(json.loads(_pre_t19_replayed(key)))}
+
+
+# the goldens as they stood before the column's rules re-recorded them (Plan 34 Task 1, head 51e3f18c, the files of
+# Plan 33's close): sha256, base, recorded
+PRE_T19 = {"e2": ("b521d04739ecfafb186f857a8646f3898d31e12cde7665daca2af70c56cf813e", "8b632ee5", "2026-11-08"),
+           "e3": ("0300867680785c2ae667a2aa88421d446537731305c197ffccdec13b831b79f8", "9110c961", "2026-11-09"),
+           "e4": ("774fca6ff91c5a39db22181d91fcbec16ee37715d612b47293b2a8c682942812", "cb62fd8d", "2026-11-09"),
+           "e5": ("9faa2b389b1b1d5d6fd28f87efc047245a989fe191725843e87be6dd34e9a215", "cb62fd8d", "2026-11-09"),
+           "f1": ("28afd0642b5d89ec9c46295a91c6a9b83b73f2983fa1a3ab84aedaf0b44c78e7", "9110c961", "2026-11-09"),
+           SIXTH: ("4fb2a7960b9d2fde3a47e71cb8740ecce90d7f5d51394397a69cc7ebd4375730", "9110c961", "2026-11-09")}
+# the first line each column rule moves, alone on, on each golden it moves
+FIRST_T19 = {"e2": {}, "e3": {}, "e4": {}, "e5": {}, "f1": {}, SIXTH: {"LEAVE_CARE": 490}}
+# the why each rule logs on the first line it moves alone
+WHY_T19 = {"LEAVE_CARE": "care_withheld"}
+# every line on each golden whose decision (branch or action) the column's rules move together
+ACTED_T19 = {"e2": [], "e3": [], "e4": [], "e5": [], "f1": [], SIXTH: []}
+
+
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_with_the_column_rules_off_the_goldens_are_plan_33_s(key):
+    """The column's golden movers are `survive.T19_SWITCHES`: with them off (`pre_t19`) each golden is the file as it
+    stood before their re-record byte for byte (its sha256 pinned, `PRE_T19`)."""
+    sha, base, recorded = PRE_T19[key]
+    text = R.golden_text(R.decisions(json.loads(_pre_t19_replayed(key))), base, R.RUNS[key], recorded,
+                         R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == sha
+
+
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_the_column_rules_move_the_goldens_at_their_lines(key):
+    """Named change `Plan 34 Task 1: LEAVE_CARE on by default`, each switch alone on against the goldens before it
+    (`pre_t19_gold`):
+    - LEAVE_CARE (the care barred under a column of GROUP_LEAVE_N standing within GROUP_ENTRY_R, the ride alone kept)
+      moves the sixth alone, at its lines 490 and 491 (the `many` flee holding a40 with three and then four standing
+      within 6 tiles): the why only, `care_withheld` {why "group", n, key null}, no care action wanted there (F1's parts
+      decode no `bleeding` or `wound`), so no decision moves; E2 to E5 and F1 announce no `bandage`
+      (`World.can`), so `_care_commit` and `_care_yields` return before the count.
+    - DOOR_INSIDE, LEAVE_DOOR_RACE, RETREAT_GAP, RETREAT_MELEE, STRUNG_HOLD and SHOVE_CLEAR carry no rule at Task 1
+      (Tasks 2 to 4) and move none.
+    The rules together move each golden first at the least of those lines; the acted lines are `ACTED_T19`."""
+    base, got = pre_t19_gold(key), gold(key)
+    diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
+    assert (diff[0] if diff else None) == min(FIRST_T19[key].values(), default=None)
+    for switch in S.T19_SWITCHES:
+        alone = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
+                                                             mutate=lambda sv: pre_t19(sv, keep=(switch,))))}
+        moved = [k for k in sorted(set(base) | set(alone)) if base.get(k) != alone.get(k)]
+        first = moved[0] if moved else None
+        assert first == FIRST_T19[key].get(switch), switch
+        if first is not None:
+            assert WHY_T19[switch] in alone[first]["why"] and WHY_T19[switch] not in base[first]["why"], switch
+    acted = [k for k in diff if base[k]["action"] != got[k]["action"] or base[k]["branch"] != got[k]["branch"]]
+    assert acted == ACTED_T19[key]
+    if key == SIXTH:
+        assert diff == [490, 491]
+        assert [got[k]["why"]["care_withheld"] for k in diff] == [{"why": "group", "n": 3, "key": None},
+                                                                  {"why": "group", "n": 4, "key": None}]

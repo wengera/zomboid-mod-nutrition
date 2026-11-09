@@ -7,8 +7,8 @@ stays the record of every rule here.
 """
 from agent.base.planner.care import (CARE_HOLD_R, CARE_LEG_S, CARE_MARGIN, CARE_R, CARE_STILL_TICKS, FLEE_CARE_N,
                                      FLEE_CARE_S, RIDE_MANY_R, RIDE_R)
-from agent.base.planner.policies import (BLEED_SPAN_MIN, BLEED_WINDOW_MIN, DANGER_R, DRAG_DOWN_N, FIGHT_REACH, KEEP_R,
-                                         POINT_BLANK_R, STEER_TURNS, Policy, _rotate, away_vector, blocked,
+from agent.base.planner.policies import (BLEED_SPAN_MIN, BLEED_WINDOW_MIN, DANGER_R, DRAG_DOWN_N, FIGHT_REACH,
+                                         GROUP_LEAVE_N, KEEP_R, POINT_BLANK_R, STEER_TURNS, Policy, _rotate, away_vector, blocked,
                                          clear_heading, standing, zdist)
 from agent.base.pza1 import Steer
 from agent.base.world import me_xy
@@ -136,7 +136,11 @@ class CareYield:
         sent with six held while parts 9 and 7 bled, the chaser 1.283800888761518 to 5.083229199369507 tiles behind,
         inside RIDE_R): the `health` flee's leg is admitted as the `many` flee's (`_rides_health`), the ride's own
         reads (`_ride_leg`, `Care.rides_wound`) unchanged; a ride only its clock admitted is logged `ride` {flee
-        "health"} (`ride_flee`)."""
+        "health"} (`ride_flee`). Plan 34 (LEAVE_CARE, `_column_bars`; F19's 21 care lines of 55 under the leave's `run`,
+        8 stops, an unwear and 5 rips, each rip superseded 0.5 to 1.5 s later as the column of four or five within 6
+        tiles closed back to 1.78-2.47 tiles): with GROUP_LEAVE_N or more standing within GROUP_ENTRY_R the ride above
+        (P24-U, P24-AR, P26-D, P27-O: a bandage with keepMoving on a part above the legs, which keeps the leg) is the one
+        yield; every one after it (the scratch's, the bleed's standing dressing, the rip) is None, `care_withheld` set."""
         if not self.world.can("bandage") or not self._nearest_seen or self.care.riding() is not None:
             return None
         near = self._nearest_seen[-1][1]
@@ -151,6 +155,8 @@ class CareYield:
                 self.bleed_yield = near if bleed else None
                 self.ride_flee = "health" if health else None
                 return near
+        if self._column_bars(self.care.commit_key()):
+            return None   # Plan 34 (LEAVE_CARE): under a column the ride alone
         scratch = self._wound_yields(held, near)   # Plan 31 Task 15a: a scratch's Dress, no part bleeding
         if scratch is not None:
             return scratch
@@ -189,14 +195,23 @@ class CareYield:
         CARE_LEG_S pass, or it ends; then (or with the nearest beyond CARE_HOLD_R from the start) the yield, so the care
         starts the action, and never a second leg for the same action (`key`; an action interrupted within KEEP_R before
         any leg takes its one leg after). Logged `care_commit` {key, phase "leg" | "hold" | "yield", near}.
-        Cost if wrong: a dressing's seconds standing with a zombie closing from CARE_HOLD_R to KEEP_R."""
+        Cost if wrong: a dressing's seconds standing with a zombie closing from CARE_HOLD_R to KEEP_R.
+        Plan 34 (LEAVE_CARE, `_column_bars`; F19, `f_goals_19-20261109-060929`: of 55 lines from game minute 770 to 777
+        under the leave's `run` 21 were the care's, 8 stops, an unwear and 5 rips (decision.log lines 1559, 1580, 1584,
+        1589, 1599), each rip superseded 0.5 to 1.5 s later as four or five standing zombies within 6 tiles closed back
+        to 1.78-2.47 tiles, every care line logging `care_commit` {phase "yield", key ["bleed", 7]} with the nearest
+        standing 2.9 to 4.2 tiles off: this read only KEEP_R, before the threat plan read the group): with GROUP_LEAVE_N
+        or more standing within GROUP_ENTRY_R (`group_n`) None, no leg and no yield, `care_withheld` set; the care
+        resumes on the line the count falls under GROUP_LEAVE_N."""
         self.care_commit = None
         c = self.care
         if not self.CARE_COMMIT or not self.world.can("bandage") or c.riding() is not None:
             return None
+        key = c.commit_key()   # read before the bars, so a column's bar names what it withheld
+        if self._column_bars(key):
+            return None   # Plan 34 (LEAVE_CARE): the yields after it, the ride alone, decide
         if standing(self.world, KEEP_R, self._skipped()):
             return None   # the Fight's (rule (a)), the leg kept for its action (no second one)
-        key = c.commit_key()
         if key is None:
             self.care_leg = None
             return None
@@ -227,6 +242,17 @@ class CareYield:
                 return "leg", (self.care_leg, Steer(v[0], v[1], CARE_LEG_S, "walk"))
         self.care_commit = dict(why, phase="yield")
         return "yield", self._yield_near()
+
+    def _column_bars(self, key):
+        """Plan 34 (LEAVE_CARE, the spec's § 3.1): the care is barred this tick, a column of GROUP_LEAVE_N or more
+        standing zombies within GROUP_ENTRY_R read (`group_n`, `group.ThreatGroup._group_read`), with the rule on; then
+        `care_withheld` is {why "group", n, key} (`key` the care's `commit_key`, a list, else None), logged on the
+        threat's why. A rip cannot ride a leg (the handcraft stops on a walk: `PZAgent_Tend.lua`'s note), so under a
+        column only the ride (a bandage with keepMoving) dresses."""
+        if not (self.LEAVE_CARE and self.group_n >= GROUP_LEAVE_N):
+            return False
+        self.care_withheld = {"why": "group", "n": self.group_n, "key": list(key) if key is not None else None}
+        return True
 
     def _yield_near(self):
         """The tiles the threat's why logs `nearest` on a commitment's yield: the nearest listed zombie's read this tick

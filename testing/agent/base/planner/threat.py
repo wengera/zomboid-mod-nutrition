@@ -283,6 +283,20 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     FLEE_HELD_STANCE = True   # ruling P29-H': a flee walk whose observed heading runs at a held zombie is dropped with
                               # its plan, its door marked `walled`, and the fight meets it in the stance
                               # (`flee.Flee._held_ahead`, the Flee's `flee_held_stance` rule); off, the walk runs on
+    # Plan 34 (the column; the spec's § 3): in survive.T19_SWITCHES
+    LEAVE_CARE = True        # the care barred under a column of GROUP_LEAVE_N standing within GROUP_ENTRY_R, the ride
+                             # alone kept (`care_yield.CareYield._care_commit`, `_care_yields`), logged `care_withheld`;
+                             # off, the care's yields as before
+    DOOR_INSIDE = True       # the shelter plan's enter read inside (a room square of its building) and its close sent
+                             # from inside (Task 2); off, the enter's `done` and the close as before
+    LEAVE_DOOR_RACE = True   # the leave's door only with the nearest standing beyond DOOR_RACE_R and a second exit,
+                             # dropped at DOOR_ABORT_R (Task 2); off, any `ok` door within LEAVE_DOOR_R
+    RETREAT_GAP = True       # the retreat's leg by the distance's band (Task 3); off, every stance leg a backpedal
+    RETREAT_MELEE = True     # the strike melee's give-way to the back leg with another standing within RETREAT_BACK_R
+                             # (Task 3); off, the melee held
+    STRUNG_HOLD = True       # the leave's `strung` end after STRUNG_LINES lines under GROUP_LEAVE_N (Task 3); off, on
+                             # the first
+    SHOVE_CLEAR = True       # the Lua's shove and stomp waiting for the reaction's end (Task 4); off, refused `busy`
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -992,6 +1006,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.bleed_held = False   # P26-L2: this tick's yield the dressing's hold made
         self.finish_block = None   # Task 36 fix 1: this tick's refusal only (`_finish_chaser` sets it)
         self.held_cut = None       # P29-H': this tick's cut flee walk (`flee.Flee.take_held_cut`)
+        self.care_withheld = None  # Plan 34 (LEAVE_CARE): this tick's care barred under a column
         self._read_bleed()         # P30-F: each part's health sampled, its bleed's rate read by `_dress_waits`
         self._release_edges()   # P25-X: a zombie refused across a blocked edge, read on the player's side, is free
         self._door_held_read()   # P30-C: a zombie behind a door within DOOR_HELD_R, decided before the hold counts
@@ -1046,8 +1061,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
 
     def _threat(self):
         """The threat branch: the tick's bookkeeping (`_threat_read`, read in `_read` with `OBSERVES_IN_READ` on); then
-        the yield to the care (`_care_yields`, P24-P), else the decision (`_decide`), which a corner's retarget may
-        re-plan without them."""
+        the care's commitment (`_care_commit`, Plan 32 Task 5 (c)) and the yield to the care (`_care_yields`, P24-P),
+        both barred but the ride under a column (Plan 34's LEAVE_CARE, logged `care_withheld` on the line's why), else
+        the decision (`_decide`), which a corner's retarget may re-plan without them."""
         self.trapped_pass = False
         if not self.OBSERVES_IN_READ:
             self._threat_read()
@@ -1079,6 +1095,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             ans = self._decide(held, breach)
         if self.many_tail is not None:
             self.why["many_tail"] = self.many_tail   # P27-B: the tick the `many` episode's tail ended it
+        if self.care_withheld is not None:   # Plan 34 (LEAVE_CARE): the care barred under a column
+            self.why = dict(self.why or {}, care_withheld=self.care_withheld)
         return ans
 
     def _decide(self, held, breach, replanned=False):

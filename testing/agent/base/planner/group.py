@@ -54,6 +54,11 @@ before it closes, never by running into it.
   the one whose nearest passed standing zombie lies farthest along the leg (`side_dist`), the nearest turn on a tie;
   never a shove, so DRAG_GUARD_FIGHT's one shove is the only one these rules send. Logged `side_clear` {turn, near} and,
   on the least-bad run, `least_bad` that distance.
+- `LEAVE_CARE` (Plan 34, the spec's § 3.1; F19, `f_goals_19-20261109-060929`: above RETREAT_MAX_N the leave's `run`
+  alternated with the care, 21 of 55 lines from game minute 770 to 777 the care's, 5 rips none done): `_group_read`
+  keeps the tick's standing count within GROUP_ENTRY_R (`group_n`, `_group_standing`'s read, one read dead or across a
+  blocked edge left out); with it at GROUP_LEAVE_N or more the care's commitment and yield are barred but the ride.
+  The rule's home is `care_yield.py` (`CareYield._care_commit`, `_care_yields`), logged `care_withheld` there.
 """
 import math
 
@@ -173,13 +178,15 @@ class ThreatGroup:
         (`_still_n0`: the World's `frame_n` of the first tick reading `me.moving` false while a steer or a walk runs,
         reset by any other) and the stuck episode's end once the character stands STUCK_FREE_R from its start (fix 2).
         Fix 4: the leave's outputs too (`_clear_leave`), so a line the drag guard answers before the leave's row logs no
-        stale `group_retreat`."""
+        stale `group_retreat`. Plan 34: `group_n`, the standing zombies within GROUP_ENTRY_R (LEAVE_CARE's count, read
+        every tick)."""
         self.group_leave, self.drag_fight, self.side_clear = None, None, None
         self._clear_leave()
         ep = self.drag_episode
         if ep is not None and math.hypot(*(a - b for a, b in zip(me_xy(self.world), ep["at"]))) >= STUCK_FREE_R:
             self.drag_episode = None
         near = self._group_standing(DISENGAGE_R)
+        self.group_n = sum(1 for _, _, d in near if d <= GROUP_ENTRY_R)   # Plan 34: LEAVE_CARE's count
         prev = self._group_prev
         self._group_closing = [(zid, z, d) for zid, z, d in near
                                if d <= GROUP_ENTRY_R and zid in prev and d < prev[zid]]
