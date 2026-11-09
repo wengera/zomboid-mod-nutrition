@@ -2426,10 +2426,15 @@ FIRST_T17 = {"e2": {},
 # the why each rule logs on the first line it moves alone
 WHY_T17 = {"GROUP_LEAVE": "group_leave", "DRAG_GUARD_FIGHT": "drag_fight", "SIDE_CLEAR": "side_clear"}
 # every line on each golden whose decision (branch or action) the three rules move together; E4's re-read at Task 3
-# fix 2 (SIDE_CLEAR's least-bad run in its shove's place: line 489 now the wanted heading's run, as the record's)
+# fix 2 (SIDE_CLEAR's least-bad run in its shove's place: line 489 now the wanted heading's run, as the record's);
+# E4's and E5's re-read at Task 3 fix 4 (the leave's `run` leg above RETREAT_MAX_N): E4 gains 478 and 479 (the `many`
+# flee's run steers at five standing) and 489 and 491 (downstream of the run) and loses 482 (the run's held steer, now
+# the pre-group golden's line where the fix-3 retreat attacked); E5 gains 229, 233 and 236 (the run's lines at six and
+# seven standing where the fix-3 retreat attacked) and loses 226 (the retreat pin's attack at 19278, now the pre-group
+# golden's line where the fix-3 retreat held)
 ACTED_T17 = {"e2": [],
              "e3": [],
-             "e4": [388, 395, 469, 470, 471, 474, 477, 482, 485, 492, 494, 495, 499, 501, 502, 503, 506, 509, 513, 516, 519,
+             "e4": [388, 395, 469, 470, 471, 474, 477, 478, 479, 485, 489, 491, 492, 494, 495, 499, 501, 502, 503, 506, 509, 513, 516, 519,
                     522, 526, 529, 533, 536, 539, 543, 546, 550, 552, 556, 558, 563, 565, 566, 567, 568,
                     569, 570, 571, 572, 573, 574, 575, 576, 577, 578, 582, 583, 584, 585, 586, 587, 780,
                     781, 787, 788, 793, 795, 800, 801, 806, 808, 813, 815, 819, 821, 826, 828, 833, 835,
@@ -2444,7 +2449,7 @@ ACTED_T17 = {"e2": [],
                     1522, 1526, 1528, 1533, 1535, 1540, 1542, 1547, 1549, 1554, 1555, 1560, 1562, 1567,
                     1569, 1574, 1576, 1581, 1583, 1588, 1590, 1594, 1596, 1601, 1603, 1608, 1610, 1614,
                     1616, 1621, 1622],
-             "e5": [225, 226, 228],
+             "e5": [225, 228, 229, 233, 236],
              "f1": [610, 614],
              SIXTH: [610, 614]}
 
