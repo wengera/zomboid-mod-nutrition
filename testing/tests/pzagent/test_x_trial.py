@@ -92,7 +92,7 @@ def test_the_driver_refuses_arguments_before_main():
 def test_the_refusal_names_why():
     r = XT.parse_argv(["--variant", "ladder", "--fixture", "agent", "--make-fixture", "a", "--waves", "lone"], ME)
     assert r.startswith("x_trial.py takes only --variant <name> --fixture <name> [--minutes N] [--no-llm] "
-                        "[--goals scripted|hold] [--waves lone|pair|street] [--teleport X,Y] "
+                        "[--goals scripted|hold] [--waves lone|none|pair|street] [--teleport X,Y] "
                         "[--make-fixture <name>] [--detached]; refused: ")
     assert "spawned zombies into the fixture" in r
     assert "(missing --fixture)" in XT.parse_argv(["--variant", "ladder"], ME)
@@ -230,6 +230,30 @@ def test_street_spawns_nothing_and_starts_no_thread():
     assert w.started is True and w._thread is None and w.step(1e9) == [] and sent == []
     w.stop()
     assert w.record() == {"plan": "street", "period_s": None, "spawns": [], "started": True, "rows": [],
+                          "error": None, "joined": None, "confirm": [], "by_wave": [], "server_spawns": None}
+
+
+def test_the_none_plan_runs_the_evidence_fixture_with_the_model_and_refuses_an_unknown_plan():
+    """Plan 33 Task 4: `--fixture agent --waves none` (the model on, the scripted goals off) parses and flags the
+    plan, a no-spawn plan, so --make-fixture takes it; `--waves nope` is refused as before."""
+    assert TR.WAVE_PLANS["none"] == {"period_s": None, "spawns": ()}
+    base = ["--variant", "ladder", "--fixture", "agent", "--waves", "none"]
+    assert XT.parse_argv(base, ME) is None
+    assert XT.flags(base) == {"variant": "ladder", "fixture": "agent", "minutes": 5, "no_llm": False,
+                              "goals": "scripted", "waves": "none", "teleport": None, "make_fixture": None,
+                              "detached": False}
+    assert XT.parse_argv(base + ["--no-llm", "--make-fixture", "agent-x", "--minutes", "1"], ME) is None
+    r = XT.parse_argv(["--variant", "ladder", "--fixture", "agent", "--waves", "nope"], ME)
+    assert r.startswith("x_trial.py takes only ") and r.endswith("(--waves takes one of lone, none, pair, street)")
+    assert os.path.isfile(os.path.join(REPO, "testing", "fixtures", "agent", "fixture.json"))   # the evidence fixture
+
+
+def test_none_spawns_nothing_and_starts_no_thread():
+    w, sent = _waves("none")
+    w.start()
+    assert w.started is True and w._thread is None and w.step(1e9) == [] and sent == []
+    w.stop()
+    assert w.record() == {"plan": "none", "period_s": None, "spawns": [], "started": True, "rows": [],
                           "error": None, "joined": None, "confirm": [], "by_wave": [], "server_spawns": None}
 
 
@@ -1086,6 +1110,28 @@ def test_the_model_trial_builds_the_llm_source_and_its_record(tmp_path):
     rec = c.extra_record()
     assert rec["llm"]["model"] == TR.MODEL and rec["llm"]["cli_version"] == "2.1" and rec["llm"]["calls"] == []
     assert rec["trial"]["waves"]["plan"] == "street" and c.waves.clock is c.clock
+
+
+def test_the_model_trial_on_the_none_plan_records_plan_none(tmp_path):
+    """Plan 33 Task 4: the model on the evidence fixture under `--waves none`: the LLM source, the plan's record with
+    no rows."""
+    c, _ = _chain(tmp_path, ["--variant", "ladder", "--fixture", "agent", "--waves", "none"], cli_version="2.1")
+    assert isinstance(c.planner.goals.source, LLMSource)
+    w = c.extra_record()["trial"]["waves"]
+    assert w["plan"] == "none" and w["rows"] == [] and w["spawns"] == []
+    assert c.waves.spawns == () and c.waves.period_s is None
+
+
+def test_a_none_trial_sends_no_rcon_and_its_trial_json_names_the_plan(tmp_path, monkeypatch, agent_fixture):
+    argv = ["--variant", "ladder", "--fixture", "agent", "--minutes", "0.5", "--no-llm", "--waves", "none"]
+    r = boot_trial(tmp_path, monkeypatch, argv)
+    assert r.out["phase_errors"] == {} and r.out["finished"] is True
+    trial = json.loads(open(os.path.join(r.run_dir, "trial.json"), encoding="utf-8").read())
+    assert trial["waves"] == "none" and trial["wave_plan"] == {"period_s": None, "spawns": []}
+    assert r.out["loop"]["trial"]["waves"] == {"plan": "none", "period_s": None, "spawns": [], "started": True,
+                                               "rows": [], "error": None, "joined": None, "confirm": [],
+                                               "by_wave": [], "server_spawns": None}
+    assert r.calls == [("teardown",)]                                  # no RCON, no snapshot
 
 
 def test_the_waves_stop_at_the_loops_stop_before_its_settle(tmp_path, monkeypatch):

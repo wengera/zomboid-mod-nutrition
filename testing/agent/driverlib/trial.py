@@ -173,6 +173,9 @@ WAVE_PLANS = {
     "lone": {"period_s": 60.0, "spawns": ((1, 8.0, 0.0),)},
     "pair": {"period_s": 90.0, "spawns": ((1, 8.0, -35.0), (1, 8.0, 35.0))},     # 70 degrees apart
     "street": {"period_s": None, "spawns": ()},
+    # Plan 33 Task 4: no spawns, the fixture's own zombies (the evidence fixture `agent` with the model: the trial
+    # on the fixture where the evidence session ran); `Waves.start` starts no thread without spawns
+    "none": {"period_s": None, "spawns": ()},
 }
 DEFAULT_WAVES = "street"
 GOALS = ("scripted", "hold")         # --goals: the goal source's name under --no-llm
