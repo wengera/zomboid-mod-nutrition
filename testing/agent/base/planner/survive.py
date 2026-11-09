@@ -375,7 +375,17 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     trial `x_trial-ladder-20261109-123231`: a wall at the back withheld the leave from a closing trio, and three
     standing at 0.4 to 0.9 tiles, jittering rather than closing, were fought with no leave until the drag-down): the
     leave entered with a wall at the back and with GROUP_LEAVE_N standing within GROUP_ENTRY_R, the nearest within
-    KEEP_R (`group.ThreatGroup._leave_entry`); `T19_SWITCHES`.
+    KEEP_R (`group.ThreatGroup._leave_entry`); Task 3c (ruling P34-I; the trial `x_trial-ladder-20261109-132439`:
+    three standing on the character at 0.5 tiles under the retreat, the band's shove-mode melee and the drag guard's
+    `many` run superseding each other for thirty lines, no back leg, the drag-down at game minute 622):
+    RETREAT_REGAIN, under the retreat a point-blank press (the shove form with two in reach) and then the back leg held
+    until the nearest standing is beyond FIGHT_REACH or RETREAT_REGAIN_S passed (`fight.Fight._regain_back`), logged
+    `retreat_regain`; SPENT_LEAVE, with the meet spent the `run` at GROUP_LEAVE_N (`group.ThreatGroup._leave_leg`);
+    DRAG_DEFER, under the leave's retreat the drag guard's one shove and then the retreat, no run of its own
+    (`group.ThreatGroup._drag_defers`), logged `drag_fight` {deferred}; RUN_HOLD (amendment 1; the trial
+    `x_trial-ladder-20261109-134527`: the leg flicked between the run at five and the retreat at four, the character
+    never running clear), a leave whose leg read `run` keeps it until the leave ends, logged `group_leave` {held};
+    `T19_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -542,7 +552,8 @@ T18_SWITCHES = ("GROUP_LEAVE", "DRAG_GUARD_FIGHT", "SIDE_CLEAR")
 # under a hit reaction or STUCK_FRAMES unmoving frames (`ThreatGroup._drag_fight`); SIDE_CLEAR, no run steer within
 # SIDE_R of a standing zombie (`ThreatGroup._side_clear`)
 T19_SWITCHES = ("LEAVE_CARE", "DOOR_INSIDE", "LEAVE_DOOR_RACE", "RETREAT_GAP", "RETREAT_MELEE", "STRUNG_HOLD",
-                "SHOVE_CLEAR", "CRAWLER_CLEAR", "LEAVE_ENTRY")
+                "SHOVE_CLEAR", "CRAWLER_CLEAR", "LEAVE_ENTRY", "RETREAT_REGAIN", "SPENT_LEAVE", "DRAG_DEFER",
+                "RUN_HOLD")
 # Plan 34 (the column; F19, `f_goals_19-20261109-060929`; the spec's § 3), all on `threat.Threat`: LEAVE_CARE, the care
 # barred under a column of GROUP_LEAVE_N standing within GROUP_ENTRY_R but the ride (`care_yield.CareYield._care_commit`,
 # `_care_yields`); DOOR_INSIDE, the shelter plan's enter read inside and its close sent from inside; LEAVE_DOOR_RACE,
@@ -552,7 +563,10 @@ T19_SWITCHES = ("LEAVE_CARE", "DOOR_INSIDE", "LEAVE_DOOR_RACE", "RETREAT_GAP", "
 # shove and stomp waiting for the reaction's end; CRAWLER_CLEAR (ruling P34-A fix B, the smoke trial's crawler pile),
 # the backpedal from a fallen or crawling zombie within CRAWLER_AVOID_R with a standing one within DANGER_R. Task 1
 # declares the seven and lands LEAVE_CARE; Tasks 2 to 4 the rest; Task 3 adds CRAWLER_CLEAR; Task 3b (ruling P34-G)
-# LEAVE_ENTRY, the leave's entry with no cover exemption and with the group already on the character
+# LEAVE_ENTRY, the leave's entry with no cover exemption and with the group already on the character; Task 3c (ruling
+# P34-I) RETREAT_REGAIN, the point-blank press then the back leg held to FIGHT_REACH or RETREAT_REGAIN_S, SPENT_LEAVE,
+# the `run` at GROUP_LEAVE_N with the meet spent, and DRAG_DEFER, no guard's run after its shove under the retreat;
+# amendment 1 RUN_HOLD, a leave whose leg read `run` keeps the run until it ends
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -725,6 +739,8 @@ class Survive(SneakGait, Threat):
         self.drag_fight = None    # this tick: DRAG_GUARD_FIGHT's {target, dist, why} shove or {spent, why} run, else None
         self.side_clear = None    # this tick: {turn, near[, least_bad]} when SIDE_CLEAR turned a run, else None
         self.drag_episode = None  # DRAG_GUARD_FIGHT's stuck episode {at, shoves} (fix 2), ended at STUCK_FREE_R from `at`
+        self.drag_press = False   # this tick: DRAG_DEFER handed the episode's shove to the Fight as its regain's press
+                                  # (Plan 34 Task 3c, `group.ThreatGroup._drag_defers`)
         self._still_n0 = None     # the World's frame_n of the first tick reading the character unmoving under a running
                                   # steer or walk (Plan 33 Task 3: STUCK_FRAMES from it), else None
         self._group_prev = {}     # standing zombie id -> tiles on the last tick, within DISENGAGE_R (the closing read)

@@ -553,8 +553,10 @@ def test_f18_s_first_leave_is_the_retreat_at_line_358():
     (13652, 13649, 13651), is withheld `cover` (a wall at the back, {"kind": "wall", "at": [10752, 10642, "N"]}). No
     leave line sends a steer or a run. Pinned with Plan 34's STRUNG_HOLD off (a named change: the rule holds line 362's
     leave, two standing, for STRUNG_LINES lines), and with LEAVE_ENTRY off (a named change, Task 3b, ruling P34-G:
-    the rule enters line 174's leave against the wall and the leave with three already on the character)."""
-    rows = f18(**only("GROUP_LEAVE"), STRUNG_HOLD=False, LEAVE_ENTRY=False)
+    the rule enters line 174's leave against the wall and the leave with three already on the character), and with
+    SPENT_LEAVE off (a named change, Task 3c, ruling P34-I: the meet reads spent at line 358, so the rule's leg there
+    is the run)."""
+    rows = f18(**only("GROUP_LEAVE"), STRUNG_HOLD=False, LEAVE_ENTRY=False, SPENT_LEAVE=False)
     gl = {k: threat(r)["group_leave"] for k, r in enumerate(rows, 1) if "group_leave" in threat(r)}
     assert sorted(gl) == [174, 358, 359, 360, 361, 362]
     assert gl[174]["withheld"] == "cover" and gl[174]["closing"] == [13652, 13649, 13651]
@@ -572,8 +574,9 @@ def test_f18_with_the_three_on_by_default_its_guard_shoves_once_then_runs_the_le
     first, so no run reaches SIDE_CLEAR), line 403 sends the run through SIDE_CLEAR (turned or least bad), no guard line
     after 402 sends a shove, and the leaves fire as GROUP_LEAVE's alone (the retreat, 358). Named change, Plan 34 fix
     C (ruling P34-A): pinned with `SHOVE_CLEAR` off (the replayed shove has no recorded end); Task 3b (ruling
-    P34-G): pinned with `LEAVE_ENTRY` off (the rule enters line 174's leave against the wall)."""
-    rows = f18(**{k: True for k in T17}, SHOVE_CLEAR=False, LEAVE_ENTRY=False)
+    P34-G): pinned with `LEAVE_ENTRY` off (the rule enters line 174's leave against the wall); Task 3c (ruling
+    P34-I): pinned with `SPENT_LEAVE` off (the meet reads spent at line 358, the rule's leg there the run)."""
+    rows = f18(**{k: True for k in T17}, SHOVE_CLEAR=False, LEAVE_ENTRY=False, SPENT_LEAVE=False)
     assert rows[401]["action"] == {"type": "shove", "args": {"targetId": 13653}}
     assert action(rows[402]) == "steer" and "side_clear" in threat(rows[402])
     assert all(action(rows[k - 1]) != "shove" for k in GUARD[1:])
@@ -827,8 +830,9 @@ def test_five_closing_take_the_many_run_and_four_the_retreat(tmp_path):
 def test_the_retreat_resumes_when_the_count_falls_to_retreat_max_n_and_ends_strung_under_three(tmp_path):
     """Fix 4 (c): the run's leave held while five stand; the line reading four within GROUP_ENTRY_R resumes the retreat
     (the Fight, `group_leave` {n 4, leg "retreat"}); the line reading two ends it `strung`. Pinned with Plan 34's
-    STRUNG_HOLD off (a named change: the rule holds the leave STRUNG_LINES lines)."""
-    r, sv = band(tmp_path, 5, off=("STRUNG_HOLD",))
+    STRUNG_HOLD off (a named change: the rule holds the leave STRUNG_LINES lines), and with RUN_HOLD off (a named
+    change, Plan 34 Task 3c amendment 1: the rule keeps the run at four)."""
+    r, sv = band(tmp_path, 5, off=("STRUNG_HOLD", "RUN_HOLD"))
     assert threat_why(tmp_path)["group_leave"]["leg"] == "run"
     r.advance(0.5)
     four = FIVE_NEAR[:2] + ((100.5, 207.5),) + FIVE_NEAR[3:]   # 3 beyond GROUP_ENTRY_R

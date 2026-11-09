@@ -206,9 +206,12 @@ NORTH = (0.0, -1.0)
 
 def melee_at(tmp_path, other, step, rule=True):
     """F19's lines 1535 to 1537: the strike melee sent at 1 at 0.84 tiles east under the retreat (2 standing 1.9 tiles
-    west), accepted, its progress at `step`; then 2 at `other` tiles west. The Fight, observed."""
+    west), accepted, its progress at `step`; then 2 at `other` tiles west. The Fight, observed. Named change, Plan 34
+    Task 3c (ruling P34-I): pinned with `retreat_regain` off (1 within POINT_BLANK_R and 2 within FIGHT_REACH make the
+    rule's press the shove form, the melee in mode `shove`, which RETREAT_MELEE's strike break never reads)."""
     r, f = fight4(tmp_path, [zm(1, ME[0] + 0.84, ME[1]), zm(2, ME[0] - 1.9, ME[1])], retreat=NORTH, target=1,
                   caps=MELEE_CAPS)
+    f.rules = f.rules - {"retreat_regain"}
     if not rule:
         f.rules = f.rules - {"retreat_melee"}
     a = f.step()

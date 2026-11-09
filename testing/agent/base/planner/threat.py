@@ -307,6 +307,15 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                              # beside it) and with GROUP_LEAVE_N standing within GROUP_ENTRY_R, the nearest within
                              # KEEP_R, closing or not (`group.ThreatGroup._leave_entry`); off, the cover withholds and
                              # the closing read alone enters
+    RETREAT_REGAIN = True    # Task 3c (ruling P34-I): under the retreat a point-blank press, then the back leg held until
+                             # the nearest standing is beyond FIGHT_REACH or RETREAT_REGAIN_S passed (the Fight's
+                             # `retreat_regain` rule, `fight.Fight._regain_back`); off, the band's melee every line
+    SPENT_LEAVE = True       # Task 3c: with the meet spent the retreat's bound is GROUP_LEAVE_N - 1, so GROUP_LEAVE_N
+                             # standing take the `run` (`group.ThreatGroup._leave_leg`); off, RETREAT_MAX_N whatever
+    DRAG_DEFER = True        # Task 3c: under the leave's retreat the drag guard's row sends no run after its one shove,
+                             # the line falling through to the retreat (`group.ThreatGroup._drag_defers`); off, the run
+    RUN_HOLD = True          # Task 3c amendment 1: a leave whose leg read `run` keeps the run until it ends, the retreat
+                             # never resumed inside it (`group.ThreatGroup._leave_leg`); off, the leg by the count
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -840,6 +849,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
           P25-U, the guard's own count, `_stand_drag_n`).
         - The drag-down guard (ruling P24-A (h), `_drag`): `flee` with the group steer (`group` "drag"), ahead of
           every other row but the doorway's; the Flee steers at a run, or inside walks the exit (P24-A (f), P24-O).
+          Plan 34 Task 3c (DRAG_DEFER, `group.ThreatGroup._drag_defers`): while the leave holds with its leg the
+          retreat, the guard's row after its one shove sends no run: the leave's plan (the Fight's retreat), the
+          guard's shove handed to the Fight as its regain's press (`drag_press`).
         - `door`: sheltered (a chosen shelter's plan done, the character inside) with a reachable held threat in its
           doorway or inside it: the door fight (I3). It goes first, before the corner and before the inside hold
           (a decision-order change from 21e3716b, which held first; ruled at fix round 1, the review's M1: a threat
@@ -880,6 +892,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if self._drag(held, inside):   # P24-A (h): first, whatever the fight or the corner
             self.cornered, self._corner_fight, self.group_steer, self.door = None, None, "drag", None
             self._drag_fight()   # Plan 33 Task 3 (DRAG_GUARD_FIGHT): the shove in the run's place, answered in `_decide`
+            if self._drag_defers(inside):   # Plan 34 Task 3c (DRAG_DEFER): after its shove the leave's retreat owns it
+                self.cornered, self._corner_fight, self.group_steer = None, None, None
+                return LEAVE_PLAN[self.leave_leg]
             return "flee", self._flee_reason(held, len(self._danger_near())) or "many"
         self.door = self._door_targets() if self.sheltered else None
         if self.door:
@@ -1206,6 +1221,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.ride = self.care.riding()   # P24-U: the stance legs held off while a bandage rides
             policy.threats = held
             policy.retreat = self.retreat   # Plan 33 Task 3 fix 3: GROUP_LEAVE's fighting retreat heading, else None
+            policy.outside_press = self.drag_press   # Plan 34 Task 3c (DRAG_DEFER): the guard's shove, the regain's press
             policy.edge_ticks = EDGE_HOLD_TICKS if self.EDGE else 0   # P24-AU, read at the policy's observe
             policy.rules = self._fight_rules()   # P25-A, P25-B, P25-D, P25-F
             policy.edge_marks = self.edge_marks   # P25-X: the refusals across a blocked edge, shared as `unreachable`
@@ -1382,7 +1398,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("pair_nearest", self.PAIR_NEAREST),
                                                ("retreat_gap", self.RETREAT_GAP),
                                                ("retreat_melee", self.RETREAT_MELEE),
-                                               ("crawler_clear", self.CRAWLER_CLEAR))
+                                               ("crawler_clear", self.CRAWLER_CLEAR),
+                                               ("retreat_regain", self.RETREAT_REGAIN))
                          if on)
 
     def _flee_rules(self):

@@ -25,9 +25,11 @@ CARE_SENDS = ("stop", "rip", "unwear", "bandage")
 
 def test_the_t19_switches():
     """`survive.T19_SWITCHES`, each a `threat.Threat` attribute on by default (Tasks 2 to 4 fill the six after
-    LEAVE_CARE; Task 3 appends CRAWLER_CLEAR, ruling P34-A fix B; Task 3b LEAVE_ENTRY, ruling P34-G)."""
+    LEAVE_CARE; Task 3 appends CRAWLER_CLEAR, ruling P34-A fix B; Task 3b LEAVE_ENTRY, ruling P34-G; Task 3c
+    RETREAT_REGAIN, SPENT_LEAVE and DRAG_DEFER, ruling P34-I, and RUN_HOLD, its amendment 1)."""
     assert T19 == ("LEAVE_CARE", "DOOR_INSIDE", "LEAVE_DOOR_RACE", "RETREAT_GAP", "RETREAT_MELEE", "STRUNG_HOLD",
-                   "SHOVE_CLEAR", "CRAWLER_CLEAR", "LEAVE_ENTRY")
+                   "SHOVE_CLEAR", "CRAWLER_CLEAR", "LEAVE_ENTRY", "RETREAT_REGAIN", "SPENT_LEAVE", "DRAG_DEFER",
+                   "RUN_HOLD")
     assert all(getattr(T.Threat, k) is True for k in T19) and all(getattr(S.Survive, k) is True for k in T19)
     assert "T19_SWITCHES" in S.__all__
     assert (P.GROUP_LEAVE_N, P.GROUP_ENTRY_R) == (3, 6.0)

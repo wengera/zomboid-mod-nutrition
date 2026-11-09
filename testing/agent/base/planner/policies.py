@@ -1130,3 +1130,9 @@ STRUNG_LINES = 3       # consecutive lines the leave's count reads under GROUP_L
 # tiles while the melee pressed the standing 9128; the crawler's bite reach, #4727-#4730)
 CRAWLER_AVOID_R = 1.2  # tiles: a fallen or crawling zombie this near, other than the finish target (or two whatever the
                        # target), with a standing one within DANGER_R, is backpedalled from (CRAWLER_CLEAR)
+# Plan 34 Task 3c (ruling P34-I; the trial `x_trial-ladder-20261109-132439`, P31-T, not evidence: decision lines 399 to
+# 459, three standing on the character at 0.5 tiles under the retreat, the band's melee sent ten times in mode `shove`,
+# each superseded by the drag guard's `many` run on the next line, and a back leg almost never went; nine bites from
+# line 432, the drag-down at game minute 622)
+RETREAT_REGAIN_S = 1.5   # wall seconds the retreat's back leg after a point-blank press is held while the nearest
+                         # standing zombie stays within FIGHT_REACH (RETREAT_REGAIN), then the next press

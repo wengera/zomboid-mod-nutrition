@@ -31,8 +31,11 @@ WALL = [square(101, 200, blockW=True)]   # the W edge of square (101, 200): 0.5 
 
 
 def test_the_switch():
-    """LEAVE_ENTRY on `threat.Threat`, on by default, in `survive.T19_SWITCHES` after CRAWLER_CLEAR."""
-    assert S.T19_SWITCHES[-1] == "LEAVE_ENTRY" and T.Threat.LEAVE_ENTRY is True and S.Survive.LEAVE_ENTRY is True
+    """LEAVE_ENTRY on `threat.Threat`, on by default, in `survive.T19_SWITCHES` after CRAWLER_CLEAR (Task 3c's three
+    switches appended after it)."""
+    t19 = S.T19_SWITCHES
+    assert t19[t19.index("CRAWLER_CLEAR") + 1] == "LEAVE_ENTRY"
+    assert T.Threat.LEAVE_ENTRY is True and S.Survive.LEAVE_ENTRY is True
 
 
 # ================================================================ (a) no cover exemption

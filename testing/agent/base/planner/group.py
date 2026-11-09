@@ -73,6 +73,23 @@ before it closes, never by running into it.
   {spent, why} on the runs after it. Plan 34 fix C (ruling P34-A, `SHOVE_CLEAR`): the Lua's shove waits for the
   reaction's end, so a shove still running on a spent line is held, logged `drag_fight` {spent, holding, why
   "shove_wait"}, and the run goes once it has ended (done, or `failed busy` at the wait's cap).
+  Plan 34 Task 3c `DRAG_DEFER` (ruling P34-I; the trial `x_trial-ladder-20261109-132439`, P31-T, not evidence:
+  decision lines 408 to 446, the guard's `many` run sent six times under the leave's retreat, each superseding the
+  band's melee, the character moving nowhere until the drag-down): one owner under the retreat. While the leave
+  holds with its leg the retreat, the guard's row sends its one shove as before (and holds it while it runs, fix C),
+  then sends no run: the line takes the leave's plan, the Fight's retreat, whose regain (`fight.py`'s
+  RETREAT_REGAIN) takes the guard's shove as its press and sends the back leg (`_drag_defers`), logged `drag_fight`
+  {.., deferred "retreat"}. Under the leave's `run` (above the bound, or the spent meet's) the guard's run as before.
+- `SPENT_LEAVE` (Plan 34 Task 3c, the same trial: every band melee in mode `shove` after 11 kills, the arms spent):
+  with the meet spent (`_spent_meet`: the melee would go in mode `shove`) the retreat's upper bound is one under
+  GROUP_LEAVE_N, so GROUP_LEAVE_N standing within GROUP_ENTRY_R take the `run` (`_leave_leg`), logged `group_leave`
+  {leg "run", n, spent true}; unspent, RETREAT_MAX_N as before.
+- `RUN_HOLD` (Plan 34 Task 3c amendment 1; the trial `x_trial-ladder-20261109-134527`, P31-T, not evidence: decision
+  lines 412 to 449, the leg flicked between {leg "run", n 5} and {leg "retreat", n 4} as the count crossed
+  RETREAT_MAX_N, so the character never ran clear; the drag-down at game minute 621): once a leave's leg has read
+  `run` (above RETREAT_MAX_N, or SPENT_LEAVE's bound) it stays `run` while that leave holds, whatever the count reads,
+  until the leave ends (`strung`, the doorway, the floor), logged `group_leave` {leg "run", n, held true} on the lines
+  the count alone would read the retreat (`_leave_leg`, the leave's record `run`); off, the leg by the count each line.
 - `SIDE_CLEAR` (`_side_clear`): no run steer the threat branch answers passes within SIDE_R of a standing zombie over
   its first SIDE_LOOK tiles (`side_hits`: ahead of the player, within SIDE_R of the leg's segment); the heading is turned
   by 30-degree steps both ways, nearest first, to the first heading clear of them and of the map (then clear of them
@@ -209,6 +226,7 @@ class ThreatGroup:
         stale `group_retreat`. Plan 34: `group_n`, the standing zombies within GROUP_ENTRY_R (LEAVE_CARE's count, read
         every tick)."""
         self.group_leave, self.drag_fight, self.side_clear = None, None, None
+        self.drag_press = False   # Plan 34 Task 3c (DRAG_DEFER): this tick's hand-off of the guard's shove
         self._clear_leave()
         ep = self.drag_episode
         if ep is not None and math.hypot(*(a - b for a, b in zip(me_xy(self.world), ep["at"]))) >= STUCK_FREE_R:
@@ -436,7 +454,10 @@ class ThreatGroup:
           `near`, the tiles) and this line's leg re-read; no new door is picked against the race or a building with
           one way out (`_leave_door`, logged `door_refused`);
         - `run` with more than RETREAT_MAX_N standing within GROUP_ENTRY_R (fix 4: a backpedal does not outpace eight),
-          the threat plan's `many` flee, logged `group_leave` {leg "run", n};
+          the threat plan's `many` flee, logged `group_leave` {leg "run", n}; Plan 34 Task 3c (SPENT_LEAVE): with the
+          meet spent (`_spent_meet`) at GROUP_LEAVE_N or more, logged {leg "run", n, spent true}; amendment 1
+          (RUN_HOLD): once a leave's leg read `run` it stays `run` while that leave holds, whatever the count reads,
+          logged {leg "run", n, held true} on the lines the count alone would read the retreat;
         - else `retreat`, the Fight's stance on the nearest standing zombie with its back heading away from the
           centroid of the standing zombies within GROUP_ENTRY_R, re-read every line (`retreat`, logged `group_retreat`
           {leg, closing, centroid_away})."""
@@ -468,14 +489,61 @@ class ThreatGroup:
             self.group_leave = dict(self.group_leave or {}, leg="door", door=list(door))
             self.group_retreat = {"leg": "door", "closing": ids, "centroid_away": [away[0], away[1]]}
             return
-        if len(group) > RETREAT_MAX_N:   # fix 4: the `many` run as Plan 32's composition ran
+        spent = self.SPENT_LEAVE and self._spent_meet()   # Plan 34 Task 3c: a spent meet leaves three by the run
+        if len(group) > (GROUP_LEAVE_N - 1 if spent else RETREAT_MAX_N):   # fix 4: the `many` run as Plan 32's ran
             self.leave_leg = "run"
             self.group_leave = dict(self.group_leave or {}, leg="run", n=len(group))
+            if spent:
+                self.group_leave["spent"] = True
+            self.leave["run"] = True   # Plan 34 Task 3c amendment 1 (RUN_HOLD): the run holds for this leave
+            return
+        if self.RUN_HOLD and self.leave.get("run"):   # RUN_HOLD: no retreat resumes inside a leave that ran
+            self.leave_leg = "run"
+            self.group_leave = dict(self.group_leave or {}, leg="run", n=len(group), held=True)
             return
         self.leave_leg = "retreat"
         self.retreat = away
         self.group_leave = dict(self.group_leave or {}, leg="retreat")
         self.group_retreat = {"leg": "retreat", "closing": ids, "centroid_away": [away[0], away[1]]}
+
+    def _spent_meet(self):
+        """Plan 34 Task 3c (SPENT_LEAVE): the meet is spent this tick: the melee the Fight's dispatch would send goes in
+        mode `shove` (`dispatch.FightDispatch._melee_mode_at`, `fight.Fight._hold_bars`): a hold the Fight reads
+        (`_fight_spent`, R2) or a shove-and-stomp Fight (`_shove_only` of the open-ground Fight, the retreat's). Read off
+        this tick's holds, not the Fight's last ones (the `run` drops the Fight, so a read off it would flap); the low
+        fight's full swing (P27-E) needs a lone zombie and never stands beside a group."""
+        return bool(self._fight_spent()) or self._shove_only("fight") is not None
+
+    def _drag_defers(self, inside):
+        """DRAG_DEFER (Plan 34 Task 3c, ruling P34-I; the trial `x_trial-ladder-20261109-132439`, lines 408 to 446: the
+        drag guard at `me.attackers` 2 sent its `many` run six times under the leave's retreat, each superseding the
+        band's melee, which the next line sent again, and the character moved nowhere) on a drag guard line, after
+        `_drag_fight`: True when the leave holds (`leave`) and its leg this line is the retreat, so the guard's row
+        sends no run of its own and the line takes the leave's plan; `drag_fight` then carries {deferred "retreat"}
+        (beside its {spent, why}, or alone with no shove read), and the episode's one shove, the first line it defers,
+        is handed to the Fight as its regain's press (`drag_press`: `fight.Fight._regain_back`). False, the guard's
+        row as before, with the switch off, no leave, the guard's shove going this line (`drag_fight` {target}), the
+        Flee's shove still running (held under SHOVE_CLEAR, fix C, or dropped for the run), the leave's own first shove
+        due (a standing zombie within STAND_MIN_R before it shoved: the guard's run, the leave's shove kept for its
+        own line), or the leave's leg this line anything but the retreat (the run above the bound, the door; the leave
+        read, so its why is logged), or the leave ended on it."""
+        if not self.DRAG_DEFER or self.leave is None:
+            return False
+        df, flee = self.drag_fight, self.flee
+        if df is not None and "spent" not in df:
+            return False
+        if flee is not None and flee.last is not None and flee.last.type == "shove" and flee.busy():
+            return False
+        held_door = flee is not None and flee.plan is not None
+        if not held_door and not self.leave.get("shoved") and self._group_standing(STAND_MIN_R):
+            return False
+        if not self._group_leave(inside) or self.leave_leg != "retreat":
+            return False
+        self.drag_fight = dict(df or {}, deferred="retreat")
+        ep = self.drag_episode
+        if ep is not None and ep["shoves"] and not ep.get("handed"):
+            ep["handed"] = self.drag_press = True
+        return True
 
     def _leave_door(self, flee, ts):
         """`(door, refused)`: the door the leave walks to, the Flee's running plan's, else the nearest door a Flee reads

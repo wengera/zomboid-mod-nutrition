@@ -235,11 +235,12 @@ class FightDispatch:
 
     def _melee_mode_at(self, z):
         """The melee's mode at pin `z`: finish at a fallen pin, else shove under a hold or in a shove-and-stomp Fight
-        (`_hold_bars`), else strike (P28-H 3: the arms' pain alone strikes; the Lua's own spent read takes the shove
-        and the stomp once the arms or the moodles are spent)."""
+        (`_hold_bars`) or for RETREAT_REGAIN's shove-form press (Plan 34 Task 3c, `fight.Fight._regain_shove`: two or
+        more standing within FIGHT_REACH, the knockback opening room), else strike (P28-H 3: the arms' pain alone
+        strikes; the Lua's own spent read takes the shove and the stomp once the arms or the moodles are spent)."""
         if on_floor(z):
             return "finish"
-        return "shove" if self._hold_bars() else "strike"
+        return "shove" if self._hold_bars() or self._regain_shove() else "strike"
 
     def _melee_inputs(self, mode, z):
         """The send's `MeleeInputs` at pin `z` (the module docstring), read afresh."""
