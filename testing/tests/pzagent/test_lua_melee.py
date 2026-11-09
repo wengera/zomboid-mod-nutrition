@@ -28,7 +28,8 @@ ARGS = {"targetId": 7, "mode": "strike", "reach": 1.25, "shoveR": P.SHOVE_SEND_R
         "pressAngle": P.PRESS_ANGLE, "pressLo": P.PRESS_LO, "floorR": P.FLOOR_R, "handbackR": P.HANDBACK_R,
         "stall": P.STALL_SWINGS}
 PRESSES = ("swing", "shove", "stomp", "floor")
-LEAF = {"d_press", "d_collide_pred", "d_min", "look_off", "hp0", "hp1", "knock", "cut_by"}   # fix 1: d_min
+LEAF = {"d_press", "d_collide_pred", "d_min", "look_off", "hp0", "hp1", "knock", "cut_by", "body_off",
+        "facing"}   # fix 1: d_min; Plan 32 Task 4: body_off and facing
 COUNTS = {"swings", "shoves", "stomps", "floors", "knockdowns", "hits"}
 R2 = 1 / math.sqrt(2)
 SCHEMA = os.path.join(ROOT, "testing", "agent", "base", "schema", "pza1.json")
@@ -154,8 +155,8 @@ def test_an_unknown_or_dead_target_is_no_target_a_far_one_too_far_and_a_strike_w
                                      ("s", "accepted", ""), ("s", "failed", "superseded"), ("t", "accepted", "")]
 
 
-@pytest.mark.parametrize("missing", ["setForceAim", "nullifyAiming", "faceThisObject", "DoAttack", "setDoShove",
-                                     "setAutoWalk", "setAutoWalkDirection"])
+@pytest.mark.parametrize("missing", ["setForceAim", "nullifyAiming", "setTargetAndCurrentDirection", "DoAttack",
+                                     "setDoShove", "setAutoWalk", "setAutoWalkDirection"])
 def test_the_melee_needs_its_members_on_its_first_tick_or_fails_not_loaded(lua, fs, missing):
     p, z, w = world(lua)
     setattr(p, missing, None)
@@ -175,7 +176,7 @@ def test_the_melee_without_vector2_fails_not_loaded(lua, fs):
 # ---- the ends: kill, handback, lost; never time ----------------------------------------------------------------------
 
 def test_a_target_that_dies_ends_the_melee_done_kill_with_its_counts(lua, fs):
-    p, z, w = world(lua, zx=11.0, look=math.pi, turn=0.0)            # 1 tile, the look away: no press
+    p, z, w = world(lua, zx=11.0, look=math.pi, turn=0.0, snap=False)   # 1 tile, the look held away: no press
     go(lua, p)
     run(lua, p, w, 5)
     assert not ended(lua)                                             # the falsifier: alive, it runs on
@@ -204,7 +205,7 @@ def test_a_dead_player_fails_the_melee_dead_and_releases_the_stance(lua, fs):
 def test_no_time_end_a_standoff_runs_on(lua, fs):
     """PZA/1.10: the melee ends kill, handback or lost, never on time: 60 s of a target faced with the look held off
     (no press, so no stall) is still running."""
-    p, z, w = world(lua, zx=11.0, look=math.pi / 2, turn=0.0)
+    p, z, w = world(lua, zx=11.0, look=math.pi / 2, turn=0.0, snap=False)
     go(lua, p)
     run(lua, p, w, int(60000 / TICK_MS))
     assert not ended(lua) and w["presses"] == [] and cur_step(lua) == "face"
@@ -300,7 +301,7 @@ def test_a_nearer_second_standing_zombie_is_re_pinned_and_pressed(lua, fs):
     the reflex re-pins to 8 (step repin, then every line names `target` 8 and `repins` 1) and its first press reads
     8's distance; the zombie 7 is no longer the one faced."""
     p, z, w = world(lua, zx=12.0, attack_ticks=6)
-    o8, _ = live_zombie(8, 10.5, 20.0)
+    o8, _ = live_zombie(8, 10.0, 20.5)
     frame_last(lua, [(8, 0.5), (7, 2.0)], objs={7: z, 8: o8})
     go(lua, p)
     run(lua, p, w, 30, stop=lambda: leaves(lua, fs))
@@ -308,7 +309,7 @@ def test_a_nearer_second_standing_zombie_is_re_pinned_and_pressed(lua, fs):
     pr = progress(lua, fs)
     assert pr[0]["result"]["target"] == 8 and pr[0]["result"]["repins"] == 1
     assert all(a["result"]["target"] == 8 for a in pr)
-    assert leaves(lua, fs)[0]["d_press"] == pytest.approx(0.5) and p.faced[-1] is o8
+    assert leaves(lua, fs)[0]["d_press"] == pytest.approx(0.5) and snaps(p)[-1] == pytest.approx((0.0, 1.0))
 
 
 def test_the_re_pinned_target_s_death_ends_done_kill_naming_it(lua, fs):
@@ -406,16 +407,16 @@ def test_a_target_dying_in_a_hit_reaction_ends_done_kill(lua, fs):
 
 def test_the_stance_is_released_and_the_target_faced_every_tick_from_face_r(lua, fs):
     """Beyond faceR (3.0) a closing chaser is met in the stance (aimed, `stand`); from faceR on the stance is
-    released and faceThisObject written every tick (`face`), never the mouse (#4589, #4590)."""
+    released and the snap written every tick (`face`; Plan 32 Task 4: faceThisObject lost to the mouse, #4589)."""
     p, z, w = world(lua, zx=13.2, zspeed=1.0)
     go(lua, p, releaseR=4.0)
     run(lua, p, w, 3)
     assert cur_step(lua) == "stand" and p.aim["force"] is True and zdist(w) > P.FACE_R
     run(lua, p, w, 30, stop=lambda: zdist(w) <= P.FACE_R)
-    n0 = len(p.faced)
+    n0 = len(snaps(p))
     run(lua, p, w, 5)
-    assert cur_step(lua) == "face" and p.aim["force"] is False and calls(p)[-1] == "nullifyAiming"
-    assert len(p.faced) == n0 + 5 and all(o is z for o in p.faced[n0:])
+    assert cur_step(lua) == "face" and p.aim["force"] is False and "nullifyAiming" in calls(p)
+    assert len(snaps(p)) == n0 + 5 and snaps(p)[-1] == pytest.approx(bearing_of(w)) and p.faced == []
     assert w["presses"] == [] and w["walk"] is None                  # a chaser: faced, not walked to
 
 
@@ -431,7 +432,7 @@ def test_no_press_while_the_look_is_off_and_the_press_once_it_comes_within_press
     """The target faced at 1.0 tiles with the look 90 degrees off and the body not turning: no press; the body turning
     at 206 degrees a second, the press goes on the first tick the look reads within pressAngle, its leaf's look_off
     the angle read then."""
-    p, z, w = world(lua, zx=11.0, look=math.pi / 2, turn=0.0)
+    p, z, w = world(lua, zx=11.0, look=math.pi / 2, turn=0.0, snap=False)
     go(lua, p)
     run(lua, p, w, 30)
     assert w["presses"] == [] and cur_step(lua) == "face"
@@ -593,7 +594,7 @@ def test_no_swing_whose_swing_state_entry_falls_inside_min_range(lua, fs):
     so a chaser at 0.622 closing at 1 tile a second (0.605 one update on, its predicted collision at 0.355 inside the
     band) is not swung at; the next tick, inside MinRange, it is shoved. A tick earlier (0.639, 0.622 one update on)
     it would have been swung at."""
-    p, z, w = world(lua, zx=11.2, zspeed=1.0, look=math.pi, turn=0.0)
+    p, z, w = world(lua, zx=11.2, zspeed=1.0, look=math.pi, turn=0.0, snap=False)
     go(lua, p)
     run(lua, p, w, 60, stop=lambda: zdist(w) < 0.64)
     assert w["presses"] == [] and zdist(w) - 1.0 * UPDATE_S > BAT_MIN_R
@@ -615,7 +616,7 @@ def test_the_finish_faces_the_head_and_takes_the_floor_swing_within_floor_r(lua,
     w["floor"] = True
     go(lua, p, mode="finish", floorSwing=True, headAim=True)
     run(lua, p, w)
-    assert p.faced[-1] == pytest.approx((10.5, 20.0)) and p.aim["force"] is False
+    assert snaps(p)[-1] == pytest.approx((1.0, 0.0)) and p.aim["force"] is False   # the head (10.5, 20), due +x
     assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is False and cur_step(lua) == "floor"
 
 
@@ -627,7 +628,7 @@ def test_a_head_beyond_floor_r_is_walked_to_and_floor_swung_at_from_floor_r(lua,
     w["floor"] = True
     go(lua, p, mode="finish", floorSwing=True, headAim=True)
     run(lua, p, w)
-    assert w["presses"] == [] and cur_step(lua) == "stomp_walk" and p.faced[-1] == pytest.approx((11.5, 20.0))
+    assert w["presses"] == [] and cur_step(lua) == "stomp_walk" and snaps(p)[-1] == pytest.approx((1.0, 0.0))
     run(lua, p, w, 60, stop=lambda: w["presses"])
     assert len(w["presses"]) == 1 and math.hypot(11.5 - w["px"], 20.0 - w["py"]) <= P.FLOOR_R
 
@@ -950,7 +951,7 @@ def test_an_aim_superseded_by_a_melee_keeps_the_stance(lua, fs):
     go(lua, p, releaseR=4.0)
     run(lua, p, w, 2)
     assert ("m1", "accepted", "") in states(acts(lua, fs)) and cur_step(lua) == "stand"
-    assert calls(p) == ["setForceAim"] and p.aim["force"] is True
+    assert [c for c in calls(p) if c != "setTargetAndCurrentDirection"] == ["setForceAim"] and p.aim["force"] is True
 
 
 # ---- the act lines: progress with a result, the frame's step --------------------------------------------------------
@@ -967,7 +968,7 @@ def test_a_progress_line_on_every_step_change_carries_the_step_distance_health_c
 
 
 def test_the_heartbeat_of_a_long_step_carries_the_counts_too(lua, fs):
-    p, z, w = world(lua, zx=11.0, look=math.pi, turn=0.0)
+    p, z, w = world(lua, zx=11.0, look=math.pi, turn=0.0, snap=False)
     go(lua, p)
     run(lua, p, w, 70)                                                # 1.19 s of face
     pr = progress(lua, fs)
@@ -1106,8 +1107,8 @@ def counted(lua, p, z, w, ticks_before, setup=None):
 
 
 FACE_TICK = [("p", "getBodyDamage"), ("bd", "getOverallBodyHealth"), ("z", "isDead"), ("p", "getX"), ("p", "getY"),
-             ("z", "getX"), ("z", "getY"), ("p", "hasHitReaction"), ("z", "isOnFloor"), ("p", "faceThisObject"),
-             ("p", "getLookAngleRadians")]
+             ("z", "getX"), ("z", "getY"), ("p", "hasHitReaction"), ("z", "isOnFloor"),
+             ("p", "setTargetAndCurrentDirection"), ("p", "getLookAngleRadians")]
 
 
 @pytest.mark.parametrize("case", ["face", "face_on", "stand", "swing_running", "knock_wait", "hit"])
@@ -1119,7 +1120,7 @@ def test_the_reflex_s_no_press_tick_costs(lua, fs, case):
     isKnockedDown is read only within the reach or shoveR); a press in flight 10 (isAttackStarted and, fix 1, F2, the
     facing); the knock wait 11 (isKnockedDown); a hit reaction 10 (the facing, and its step change's progress line
     reads the target's health)."""
-    kw = {"face": {"zx": 12.3, "zspeed": 0.3, "look": math.pi, "turn": 0.0},
+    kw = {"face": {"zx": 12.3, "zspeed": 0.3, "look": math.pi, "turn": 0.0, "snap": False},
           "face_on": {"zx": 12.3, "zspeed": 0.3},
           "stand": {"zx": 13.4, "zspeed": 0.3},
           "swing_running": {"zx": 11.0, "attack_ticks": 30},
@@ -1174,9 +1175,10 @@ def test_the_spent_read_runs_once_a_frame(lua, fs):
 
 PCALL_COUNTER = ("pcallFails = 0; local raw = pcall; pcall = function(...) local r = { raw(...) };"
                  " if not r[1] then pcallFails = pcallFails + 1 end; return unpack(r) end")
-P_MEMBERS = ("getBodyDamage", "DistToProper", "hasHitReaction", "isAttackStarted", "faceThisObject", "setForceAim",
-             "nullifyAiming", "DoAttack", "setDoShove", "setAutoWalk", "setAutoWalkDirection", "setForceRun",
-             "setForceSprint", "getPrimaryHandItem", "getX", "getY", "getLookAngleRadians", "getCombatSpeed")
+P_MEMBERS = ("getBodyDamage", "DistToProper", "hasHitReaction", "isAttackStarted", "setTargetAndCurrentDirection",
+             "setForceAim", "nullifyAiming", "DoAttack", "setDoShove", "setAutoWalk", "setAutoWalkDirection",
+             "setForceRun", "setForceSprint", "getPrimaryHandItem", "getX", "getY", "getLookAngleRadians",
+             "getCombatSpeed", "getAnimAngleRadians")   # Plan 32 Task 4: the snap and the body read
 Z_MEMBERS = ("isDead", "getX", "getY", "isOnFloor", "isKnockedDown", "getTarget", "getHealth")
 OUT_TICK = 200   # the fault scenario's zombie leaves releaseR here should nothing have ended it
 
@@ -1223,7 +1225,7 @@ def test_the_fault_scenario_runs_its_whole_course_clean(lua, fs):
 # reader is the check's no weapon; the player's position not loaded; every other member is read index-first and
 # skipped, so the run ends done (the stall, or out of range)
 ABSENT_P = {"setForceAim": ("failed", "not loaded"), "nullifyAiming": ("failed", "not loaded"),
-            "faceThisObject": ("failed", "not loaded"), "DoAttack": ("failed", "not loaded"),
+            "setTargetAndCurrentDirection": ("failed", "not loaded"), "DoAttack": ("failed", "not loaded"),
             "setDoShove": ("failed", "not loaded"), "setAutoWalk": ("failed", "not loaded"),
             "setAutoWalkDirection": ("failed", "not loaded"), "getPrimaryHandItem": ("rejected", "no weapon"),
             "getX": ("failed", "not loaded"), "getY": ("failed", "not loaded")}
@@ -1303,16 +1305,17 @@ def test_the_facing_is_written_every_tick_of_a_swing_in_flight_and_of_the_hit_st
     go(lua, p)
     run(lua, p, w)
     assert cur_step(lua) == "swing"
-    n0 = len(p.faced)
+    n0 = len(snaps(p))
     for k in range(20):
         w["zy"] += 0.02
         run(lua, p, w)
-        assert cur_step(lua) == "swing" and len(p.faced) == n0 + k + 1 and p.faced[-1] is z, k
+        assert cur_step(lua) == "swing" and len(snaps(p)) == n0 + k + 1, k
+        assert snaps(p)[-1] == pytest.approx(bearing_of(w)), k
     assert w["face_to"] == pytest.approx(math.atan2(w["zy"] - 20.0, 1.0), abs=0.05)
     p.combat["hitReaction"] = "Bite"
-    n1 = len(p.faced)
+    n1 = len(snaps(p))
     run(lua, p, w, 3)
-    assert cur_step(lua) == "hit" and len(p.faced) == n1 + 3
+    assert cur_step(lua) == "hit" and len(snaps(p)) == n1 + 3
 
 
 def test_a_refused_press_is_read_on_the_next_tick_and_pressed_again(lua, fs):
@@ -1359,11 +1362,11 @@ def test_after_refuse_max_refusals_the_press_waits_facing_then_retries(lua, fs):
     assert (lua.eval("PZA.skills.REFUSE_MAX"), lua.eval("PZA.skills.REFUSE_WAIT_MS"),
             lua.eval("PZA.skills.REFUSE_END")) == (5, lua.eval("PZA.skills.SWING_MS") / 2, 15)
     run(lua, p, w, 5)
-    n0 = len(p.faced)
+    n0 = len(snaps(p))
     wait_ticks = int(lua.eval("PZA.skills.REFUSE_WAIT_MS") / TICK_MS)
     for k in range(wait_ticks - 1):
         run(lua, p, w)
-        assert len(w["presses"]) == 5 and cur_step(lua) == "refused" and len(p.faced) == n0 + k + 1, k
+        assert len(w["presses"]) == 5 and cur_step(lua) == "refused" and len(snaps(p)) == n0 + k + 1, k
     run(lua, p, w, 3, stop=lambda: len(w["presses"]) > 5)
     assert len(w["presses"]) == 6 and w["presses"][5]["tick"] - w["presses"][4]["tick"] >= wait_ticks
 
@@ -1396,9 +1399,9 @@ def test_the_finish_aims_at_the_head_only_with_head_aim(lua, fs, head_aim):
     go(lua, p, mode="finish", floorSwing=True, headAim=head_aim)
     run(lua, p, w)
     if head_aim:
-        assert p.faced[-1] == pytest.approx((10.7, 20.0)) and len(w["presses"]) == 1
+        assert snaps(p)[-1] == pytest.approx((1.0, 0.0)) and len(w["presses"]) == 1   # the head (10.7, 20)
     else:
-        assert p.faced[-1] is z and w["presses"] == [] and cur_step(lua) == "stomp_walk"
+        assert snaps(p)[-1] == pytest.approx((1.0, 0.0)) and w["presses"] == [] and cur_step(lua) == "stomp_walk"
         run(lua, p, w, 30, stop=lambda: w["presses"])
         assert w["presses"] and w["presses"][0]["d"] <= P.FLOOR_R
 
@@ -1432,3 +1435,220 @@ def test_a_flickering_closing_read_cannot_run_the_melee_forever(lua, fs):
     r = last(lua, fs)["result"]
     assert (r["end"], r["why"]) == ("lost", "out of reach")
     assert {"close", "face"} <= set(step_seq(lua, fs))
+
+
+# ---- the facing: the snap and the press modes (Plan 32 Task 4, the facing trials' ruling) ---------------------------
+
+def snaps(p):
+    """The snaps written (setTargetAndCurrentDirection's (x, y)), in order."""
+    return [v for n, v in p.aim["calls"] if n == "setTargetAndCurrentDirection"]
+
+
+def bearing_of(w):
+    b = math.atan2(w["zy"] - w["py"], w["zx"] - w["px"])
+    return math.cos(b), math.sin(b)
+
+
+def record_attack(p):
+    """DoAttack also recorded into p.aim["calls"], so the press's order among the stance's writes reads off one list."""
+    da = p.DoAttack
+
+    def f(s, v):
+        p.aim["calls"].append(("DoAttack", v))
+        return da(s, v)
+    p.DoAttack = f
+
+
+def no_snap_engine(p):
+    """An engine whose snap writes nothing (the call recorded only): the body stays where the test put it."""
+    p.setTargetAndCurrentDirection = lambda s, fx, fy: p.aim["calls"].append(("setTargetAndCurrentDirection",
+                                                                              (fx, fy)))
+
+
+def facing_call(lua, name, *args):
+    return lua.eval("PZA.skills.FACING." + name)(*args)
+
+
+def test_the_stance_beyond_face_r_snaps_onto_the_target_every_tick_and_keeps_the_aim(lua, fs):
+    """FACING.hold: beyond faceR the stance (aimed, `stand`) writes the snap onto the bearing every tick, never
+    faceThisObject (the aimed player's facing is the mouse's, #4589: the probe's `read` 75 to 88 degrees off)."""
+    p, z, w = world(lua, zx=13.2, zspeed=1.0)
+    go(lua, p, releaseR=4.0)
+    run(lua, p, w, 3)
+    n0 = len(snaps(p))
+    run(lua, p, w, 4)
+    assert cur_step(lua) == "stand" and p.aim["force"] is True and lua.eval("PZA.motor.wantAim") is True
+    got = snaps(p)[n0:]
+    assert len(got) == 4 and got[-1] == pytest.approx(bearing_of(w))
+    assert all(abs(math.hypot(*v) - 1) < 1e-9 for v in got) and p.faced == []
+
+
+def test_inside_face_r_the_target_is_snapped_onto_unaimed_every_tick(lua, fs):
+    """The unaimed face (inside faceR) is the snap too: a body 90 degrees off that never turns by itself reads on the
+    target after one tick (the probe's unaimed_face converged at the turn rate only)."""
+    p, z, w = world(lua, zx=12.5, look=math.pi / 2, turn=0.0)
+    go(lua, p)
+    run(lua, p, w, 3)
+    assert cur_step(lua) in ("face", "close") and p.aim["force"] is False
+    assert snaps(p)[-3:] == [pytest.approx((1.0, 0.0))] * 3 and w["look"] == pytest.approx(0.0) and p.faced == []
+
+
+def test_the_finish_snaps_onto_the_head(lua, fs):
+    """faceAt: the finish's facing at the head estimate is the snap onto its bearing (faceLocationF no more)."""
+    p, z, w = world(lua, zx=11.0, attack_ticks=6, zangle=math.pi / 2)
+    with_head(lua, z)
+    w["floor"] = True
+    go(lua, p, mode="finish", floorSwing=True, headAim=True)
+    run(lua, p, w, 1)
+    hx, hy = lua.eval("PZA.sense.headOf")(z)
+    b = math.atan2(hy - w["py"], hx - w["px"])
+    assert snaps(p)[-1] == pytest.approx((math.cos(b), math.sin(b))) and p.faced == []
+
+
+def test_a_press_releases_the_aim_snaps_and_presses_and_its_leaf_names_the_mode_and_the_body(lua, fs):
+    """unaimed_snap (K.PRESS_FACING's default): before DoAttack the force-aim written false and the snap onto the
+    bearing; the press made unaimed; the leaf carries facing and body_off (0 after the snap)."""
+    p, z, w = world(lua, zx=11.0, attack_ticks=8)
+    record_attack(p)
+    go(lua, p)
+    run(lua, p, w, 30, stop=lambda: leaves(lua, fs))
+    c = p.aim["calls"]
+    i = next(k for k, x in enumerate(c) if x[0] == "DoAttack")
+    assert c[i - 2] == ("setForceAim", False) and c[i - 1] == ("setTargetAndCurrentDirection", pytest.approx((1, 0)))
+    assert w["presses"][0]["aiming"] is False
+    leaf = leaves(lua, fs)[0]
+    assert leaf["facing"] == "unaimed_snap" and leaf["body_off"] == pytest.approx(0.0, abs=1e-9)
+
+
+def test_body_off_reads_the_body_off_the_bearing_at_the_press(lua, fs):
+    """body_off: an engine whose snap moves nothing, the body 10 degrees off the target and never turning: the press
+    goes (the look within pressAngle) and its leaf reads body_off 10 beside look_off 10."""
+    p, z, w = world(lua, zx=11.0, look=math.radians(10), turn=0.0, attack_ticks=8)
+    no_snap_engine(p)
+    go(lua, p)
+    run(lua, p, w, 30, stop=lambda: leaves(lua, fs))
+    leaf = leaves(lua, fs)[0]
+    assert leaf["body_off"] == pytest.approx(10.0) and leaf["look_off"] == pytest.approx(10.0)
+
+
+def test_a_target_on_the_player_s_square_holds_the_last_bearing_and_never_writes_a_zero_vector(lua, fs):
+    """Within K.FACING_MIN_D the bearing is unread: the snap repeats the last one (never a zero or NaN vector)."""
+    p, z, w = world(lua, zx=10.5, zy=20.5)
+    go(lua, p)
+    run(lua, p, w, 1)
+    first = snaps(p)[-1]
+    assert first == pytest.approx((R2, R2))
+    w["zx"], w["zy"] = w["px"] + 0.005, w["py"]
+    run(lua, p, w, 2)
+    assert all(v == pytest.approx(first) for v in snaps(p)[1:])
+
+
+def test_a_target_on_the_player_s_square_from_the_first_tick_writes_no_snap(lua, fs):
+    p, z, w = world(lua, zx=10.0, zy=20.0)
+    go(lua, p)
+    run(lua, p, w, 2)
+    assert snaps(p) == []
+
+
+def test_unaimed_snap_releases_a_held_stance_for_the_press_and_re_asserts_it_once_at_the_exit(lua, fs):
+    """FACING.press_enter on a held stance: held and wantAim dropped, setForceAim(false), the snap; press_exit
+    restores held, wantAim and setForceAim(true), once (a second exit writes nothing)."""
+    load(lua)
+    p = make_mover()[0]
+    lua.execute("PZA.skills.stance.held = true; PZA.motor.wantAim = true; _fst = {}")
+    st = lua.eval("_fst")
+    assert facing_call(lua, "press_enter", p, st, 0.5) == "unaimed_snap"
+    assert lua.eval("PZA.motor.wantAim") is False and lua.eval("PZA.skills.stance.held") is False
+    assert p.aim["calls"] == [("setForceAim", False), ("setTargetAndCurrentDirection",
+                                                       pytest.approx((math.cos(0.5), math.sin(0.5))))]
+    facing_call(lua, "press_exit", p, st)
+    assert lua.eval("PZA.motor.wantAim") is True and lua.eval("PZA.skills.stance.held") is True
+    assert p.aim["calls"][-1] == ("setForceAim", True)
+    facing_call(lua, "press_exit", p, st)
+    assert [c for c in p.aim["calls"] if c == ("setForceAim", True)] == [("setForceAim", True)]
+
+
+def test_unaimed_snap_s_exit_writes_nothing_when_no_stance_was_wanted(lua, fs):
+    load(lua)
+    p = make_mover()[0]
+    lua.execute("PZA.skills.stance.held = false; PZA.motor.wantAim = false; _fst = {}")
+    st = lua.eval("_fst")
+    facing_call(lua, "press_enter", p, st, 0.0)
+    n = len(p.aim["calls"])
+    facing_call(lua, "press_exit", p, st)
+    assert len(p.aim["calls"]) == n and lua.eval("PZA.motor.wantAim") is False
+
+
+def test_block_aim_sets_its_posture_for_the_press_and_releases_it_with_a_held_stance_re_asserted(lua, fs):
+    load(lua)
+    p = make_mover()[0]
+    lua.execute('PZA.skills.PRESS_FACING = "block_aim"; PZA.skills.stance.held = true; PZA.motor.wantAim = true; '
+                '_fst = {}')
+    st = lua.eval("_fst")
+    assert facing_call(lua, "press_enter", p, st, 0.0) == "block_aim"
+    assert [c[0] for c in p.aim["calls"]] == ["setForceAim", "setBlockMovement", "setIsAiming",
+                                               "setTargetAndCurrentDirection"]
+    assert p.aim["calls"][1][1] is True and p.aim["calls"][2][1] is True
+    facing_call(lua, "press_exit", p, st)
+    assert p.aim["calls"][4:] == [("setBlockMovement", False), ("nullifyAiming", None), ("setForceAim", True)]
+    assert lua.eval("PZA.motor.wantAim") is True
+
+
+def _block_world(lua, attack_ticks=30):
+    p, z, w = world(lua, zx=11.0, attack_ticks=attack_ticks)
+    record_attack(p)
+    lua.execute('PZA.skills.PRESS_FACING = "block_aim"')
+    go(lua, p)
+    run(lua, p, w, 30, stop=lambda: w["presses"])
+    c = [x[0] for x in p.aim["calls"]]
+    i = c.index("DoAttack")
+    assert c[i - 3:i] == ["setBlockMovement", "setIsAiming", "setTargetAndCurrentDirection"]
+    assert "nullifyAiming" not in c[i:]
+    return p, z, w
+
+
+def _released(p):
+    c = p.aim["calls"]
+    at = [k for k, x in enumerate(c) if x[0] == "DoAttack"]
+    rest = c[at[0] + 1:at[1] if len(at) > 1 else len(c)]   # between the first press and the next
+    return ("setBlockMovement", False) in rest and ("nullifyAiming", None) in rest
+
+
+def test_block_aim_s_posture_is_released_at_the_press_s_result(lua, fs):
+    p, z, w = _block_world(lua, attack_ticks=8)
+    run(lua, p, w, 30, stop=lambda: leaves(lua, fs))
+    assert _released(p) and leaves(lua, fs)[0]["facing"] == "block_aim"
+
+
+def test_block_aim_s_posture_is_released_on_a_kill_mid_press(lua, fs):
+    p, z, w = _block_world(lua)
+    w["zdead"], w["zhp"] = True, 0.0
+    run(lua, p, w)
+    assert last(lua, fs)["result"]["end"] == "kill" and _released(p)
+
+
+def test_block_aim_s_posture_is_released_on_a_supersede_mid_press(lua, fs):
+    p, z, w = _block_world(lua)
+    start(lua, p, "steer", aid="s", vx=1, vy=0, seconds=1)
+    assert _released(p)
+
+
+def test_block_aim_s_posture_is_released_on_a_raise_mid_press(lua, fs):
+    p, z, w = _block_world(lua)
+
+    def boom(s):
+        raise RuntimeError("isAttackStarted raised")
+    p.isAttackStarted = boom
+    run(lua, p, w)
+    a = [x for x in acts(lua, fs) if x["aid"] == "m1"][-1]
+    assert (a["state"], a["reason"]) == ("failed", "interrupted") and _released(p)
+
+
+def test_the_press_mode_s_members_are_index_checked(lua, fs):
+    """block_aim's members (setBlockMovement, setIsAiming) checked on the first tick: absent, not loaded."""
+    p, z, w = world(lua, zx=11.0)
+    p.setBlockMovement = None
+    lua.execute('PZA.skills.PRESS_FACING = "block_aim"')
+    go(lua, p)
+    run(lua, p, w, 1)
+    assert states(acts(lua, fs))[-1] == ("m1", "failed", "not loaded")

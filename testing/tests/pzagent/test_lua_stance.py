@@ -17,7 +17,9 @@ def ended(lua):
 
 
 def calls(p):
-    return [c[0] for c in p.aim["calls"]]
+    """The stance's calls in order (setForceAim, nullifyAiming, ...), the facing's snaps left out (Plan 32 Task 4:
+    the aim's facing is the snap, read by `snaps`)."""
+    return [c[0] for c in p.aim["calls"] if c[0] != "setTargetAndCurrentDirection"]
 
 
 def aim_world(lua, zx=12.0, zy=20.0, zid=7):
@@ -65,9 +67,9 @@ def test_aim_holds_the_stance_faces_the_target_each_tick_and_backpedals_at_a_wal
     assert ("setAutoWalk", True) in p.sets
     vec = [v for n, v in p.sets if n == "setAutoWalkDirection"][-1]
     assert (vec.x, vec.y) == pytest.approx((-R2, -R2))                 # world (-1, 0) in input space
-    assert g._queue.cleared >= 1 and p.faced == [z]
+    assert g._queue.cleared >= 1 and snaps(p) == [pytest.approx((1.0, 0.0))] and p.faced == []
     tick(lua, p, 3)
-    assert p.faced == [z] * 4                                         # the facing every tick
+    assert snaps(p) == [pytest.approx((1.0, 0.0))] * 4               # the facing every tick (the snap)
     assert [n for n, _ in p.sets].count("setAutoWalkDirection") == 1   # the vector set once
     assert not ended(lua)
     g._clock["ms"] += 2000
@@ -84,8 +86,8 @@ def test_aim_at_a_bearing_faces_it_and_a_zero_vector_stands(lua, fs):
     p = make_player()
     start(lua, p, "aim", vx=0, vy=0, seconds=1, bearing=90)
     tick(lua, p, 2)
-    assert p.aim["faced"] == [pytest.approx((0.0, 1.0))] * 2           # 90 degrees: world +y, south
-    assert ("setAutoWalk", True) not in p.sets and p.faced == []
+    assert snaps(p) == [pytest.approx((0.0, 1.0))] * 2               # 90 degrees: world +y, south
+    assert ("setAutoWalk", True) not in p.sets and p.faced == [] and p.aim["faced"] == []
 
 
 def test_aim_without_a_target_or_a_bearing_keeps_the_facing(lua, fs):
@@ -93,7 +95,7 @@ def test_aim_without_a_target_or_a_bearing_keeps_the_facing(lua, fs):
     p = make_player()
     start(lua, p, "aim", vx=0, vy=1, seconds=1)
     tick(lua, p, 2)
-    assert p.aim["faced"] == [] and p.faced == [] and p.aim["force"] is True
+    assert p.aim["faced"] == [] and p.faced == [] and snaps(p) == [] and p.aim["force"] is True
 
 
 def test_aim_whose_target_dies_is_done_at_once_and_released(lua, fs):
@@ -182,10 +184,10 @@ class Rec:
         return v
 
 
-def test_the_aim_per_tick_reads_five_java_calls_with_a_target_and_allocates_nothing(lua, fs):
+def test_the_aim_per_tick_reads_nine_java_calls_with_a_target_and_allocates_nothing(lua, fs):
     """The cost the file's header claims: after the first tick, one aim tick calls getBodyDamage and
-    getOverallBodyHealth (the dead check), the target's isDead, faceThisObject and isAiming (heldFrames, PZA/1.5.4),
-    and makes no Vector2."""
+    getOverallBodyHealth (the dead check), the target's isDead, the two positions (Plan 32 Task 4: the snap's
+    bearing), setTargetAndCurrentDirection and isAiming (heldFrames, PZA/1.5.4), and makes no Vector2."""
     load(lua)
     g = lua.globals()
     log = []
@@ -202,7 +204,8 @@ def test_the_aim_per_tick_reads_five_java_calls_with_a_target_and_allocates_noth
     log.clear()
     tick(lua, Rec(p, log, "p"))
     assert sorted(log) == sorted([("p", "getBodyDamage"), ("bd", "getOverallBodyHealth"), ("z", "isDead"),
-                                  ("p", "faceThisObject"), ("p", "isAiming")])
+                                  ("p", "getX"), ("p", "getY"), ("z", "getX"), ("z", "getY"),
+                                  ("p", "setTargetAndCurrentDirection"), ("p", "isAiming")])
     assert made == [] and not ended(lua)
 
 
@@ -657,7 +660,7 @@ def test_a_leg_under_the_auto_walk_keeps_the_stance_at_a_walk_every_frame(lua, f
         engine_frame(lua, p)
         assert p.isAiming(p) is True
     assert ("setForceRun", True) not in p.sets[n:] and ("setForceSprint", True) not in p.sets[n:]
-    assert p.faced == [z] * 5
+    assert len(snaps(p)) == 5 and p.faced == []
     lua.globals()._clock["ms"] += 1000
     engine_frame(lua, p)
     r = acts(lua, fs)[-1]["result"]
@@ -725,3 +728,54 @@ def test_a_target_dying_reports_held_frames_too(lua, fs):
     engine_frame(lua, p)
     r = acts(lua, fs)[-1]["result"]
     assert r["targetDead"] is True and r["heldFrames"] == 1 and r["ticks"] == 1
+
+
+# ---- aim: the facing is the snap (Plan 32 Task 4, the facing trials' ruling) ---------------------------------------
+
+def snaps(p):
+    return [v for n, v in p.aim["calls"] if n == "setTargetAndCurrentDirection"]
+
+
+def test_aim_snaps_onto_the_target_every_tick_and_keeps_the_stance(lua, fs):
+    """faceOf calls K.FACING.hold: the snap onto the bearing from the player to the target every tick (never
+    faceThisObject, which the aimed player's mouse facing overwrote, #4589), the stance held."""
+    load(lua)
+    aim_world(lua, zx=12.0, zy=22.0)
+    p = make_player()
+    start(lua, p, "aim", vx=0, vy=0, seconds=5, targetId=7)
+    tick(lua, p, 3)
+    assert snaps(p) == [pytest.approx((R2, R2))] * 3 and p.faced == [] and p.aim["force"] is True
+
+
+def test_aim_at_a_bearing_snaps_onto_it(lua, fs):
+    load(lua)
+    p = make_player()
+    start(lua, p, "aim", vx=0, vy=0, seconds=1, bearing=90)
+    tick(lua, p, 2)
+    assert snaps(p) == [pytest.approx((0.0, 1.0))] * 2 and p.aim["faced"] == []
+
+
+def test_aim_at_a_target_on_the_player_holds_the_last_bearing(lua, fs):
+    """The target within K.FACING_MIN_D: no zero vector, the last bearing held (none before the first)."""
+    load(lua)
+    pos = {"x": 10.0, "y": 20.0}
+    z = J(getOnlineID=lambda s: 7, getX=lambda s: pos["x"], getY=lambda s: pos["y"], isDead=lambda s: False,
+          getTarget=lambda s: None, isCrawling=lambda s: False, getHealth=lambda s: 1.0)
+    sense(lua, [z])
+    p = make_player()
+    pos["x"] = 11.0
+    start(lua, p, "aim", vx=0, vy=0, seconds=5, targetId=7)
+    tick(lua, p, 2)
+    pos["x"] = 10.005
+    tick(lua, p, 2)
+    assert snaps(p) == [pytest.approx((1.0, 0.0))] * 4
+
+
+def test_aim_without_the_snap_member_fails_not_loaded(lua, fs):
+    load(lua)
+    aim_world(lua)
+    p = make_player()
+    p.setTargetAndCurrentDirection = None
+    start(lua, p, "aim", vx=0, vy=0, seconds=1, targetId=7)
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "not loaded")

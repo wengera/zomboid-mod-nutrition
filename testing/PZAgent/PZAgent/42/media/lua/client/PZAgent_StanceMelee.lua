@@ -32,8 +32,9 @@
 --   above 0 and at most 180, stall 1 or more, floorSwing and headAim absent or booleans); the target live and readable (no
 --   target), within releaseR (too far); in strike mode a weapon held (no weapon).
 -- tick: the player dead fails dead; the target dead ends done kill (a press in flight read first, its leaf on the done
---   line). The first tick checks the members every step may call (setForceAim, nullifyAiming, faceThisObject, DoAttack,
---   setDoShove, setAutoWalk, setAutoWalkDirection, Vector2.new: not loaded). Then the two positions (unreadable: not
+--   line). The first tick checks the members every step may call (setForceAim, nullifyAiming,
+--   setTargetAndCurrentDirection, DoAttack, setDoShove, setAutoWalk, setAutoWalkDirection, the press mode's,
+--   Vector2.new: not loaded). Then the two positions (unreadable: not
 --   loaded), d the planar distance, the target's position kept for its closing speed, and the first reflex that matches:
 --    1. a hit reaction (hasHitReaction): step hit, no press (no swing starts in one, #4292), the walk stopped, the
 --       facing still written (fix 1, F2); a press in flight is marked cut_by hit (the reaction leaves the swing's
@@ -126,6 +127,19 @@
 --   K.cur.st.step (K.status).
 -- The stance across re-sends: a melee superseded by a melee of the same target or by an aim keeps it (the stop hook
 --   reads K.starting and K.startingCmd, PZAgent_Stance.lua's K.start wrapper); every other end releases it.
+-- The facing (Plan 32 Task 4, the facing trials' ruling, testing/trials/facing.md; the jar read's claims 7, 13, 14, 17,
+--   19): every facing write above is the snap, K.FACING at the end of this file. The aimed player's forward direction
+--   is the mouse's after OnPlayerUpdate (#4589), so faceThisObject lost to the cursor under the stance (75 to 88
+--   degrees off in every probe boot) and converged unaimed at the turn rate only; setTargetAndCurrentDirection(cos b,
+--   sin b) sets the body angle itself and held it within 3 degrees under the stance, 0 unaimed. The stance's write
+--   (stand, the close) is FACING.hold (the snap, the aim posture kept); the unaimed writes inside faceR and on the
+--   floor (face, the head) are the snap too; each press runs inside FACING.press_enter and FACING.press_exit (the
+--   press mode K.PRESS_FACING: unaimed_snap releases the force-aim for the press's ticks and snaps body and look, the
+--   aim re-asserted at the press's result when it was wanted before; block_aim the switchable alternative), the exit
+--   made on every path (the result, done, the stop hook on a failure, a supersede or a raise). b is the bearing from
+--   the player to the target (its head on the floor), held at the last one while the target sits within
+--   K.FACING_MIN_D (a zero vector is never written). The press leaf adds body_off, the body angle
+--   (getAnimAngleRadians) off b at the press in degrees, and facing, the press mode.
 -- The cost a tick with no press (counted in test_lua_melee.py): the dead check (2), the target's isDead (1), the two
 --   positions (4), the hit read (1), isOnFloor (1), isKnockedDown within the reach or shoveR (1), the facing (1, a press
 --   in flight and the hit step included); inside faceR the look (1) and, with the look on, getCombatSpeed (1); the
@@ -172,8 +186,8 @@ K.KNOCK_STRENGTH = 2         -- ... plus this per Strength level, out of Rand.Ne
 local NUMS = { "reach", "shoveR", "releaseR", "faceR", "pressAngle", "pressLo", "floorR", "handbackR", "stall" }
 local NONNEG = { "reach", "shoveR", "faceR", "pressLo", "floorR", "handbackR" }
 local BOOLS = { "floorSwing", "headAim" }
-local MEMBERS = { "setForceAim", "nullifyAiming", "faceThisObject", "DoAttack", "setDoShove", "setAutoWalk",
-                  "setAutoWalkDirection" }
+local MEMBERS = { "setForceAim", "nullifyAiming", "setTargetAndCurrentDirection", "DoAttack", "setDoShove",
+                  "setAutoWalk", "setAutoWalkDirection" }
 local COUNT = { swing = "swings", shove = "shoves", stomp = "stomps", floor = "floors" }
 local DEG = 180 / math.pi
 
@@ -258,6 +272,10 @@ local function meleeLoaded(p)
     for i = 1, #MEMBERS do
         if not PZA.field(p, MEMBERS[i]) then return false end
     end
+    local pm = K.FACING.MODES[K.PRESS_FACING] or {}   -- Plan 32 Task 4: the press mode's members
+    for i = 1, #pm do
+        if not PZA.field(p, pm[i]) then return false end
+    end
     return true
 end
 
@@ -279,14 +297,15 @@ local function lookOn(st, off)
     return st.faced > K.FACE_TICKS
 end
 
+-- the facing snapped onto the target (Plan 32 Task 4: K.FACING.snap toward the tick's positions, st.px .. st.zy)
 local function face(p, st)
-    PZA.call(p, "faceThisObject", st.z)
+    K.FACING.snap(p, st, K.FACING.bearing(st.px, st.py, st.zx, st.zy))
     st.faced = st.faced + 1
 end
 
--- the facing pointed at (x, y), the fallen target's head: faceLocationF, else the target itself
+-- the facing snapped onto (x, y), the fallen target's head
 local function faceAt(p, st, x, y)
-    if not PZA.call(p, "faceLocationF", x, y) then PZA.call(p, "faceThisObject", st.z) end
+    K.FACING.snap(p, st, K.FACING.bearing(st.px, st.py, x, y))
     st.faced = st.faced + 1
 end
 
@@ -312,7 +331,7 @@ local function holdStance(p, st)
         MO.wantAim = true
     end
     st.loose = false
-    PZA.call(p, "faceThisObject", st.z)
+    K.FACING.hold(p, st, K.FACING.bearing(st.px, st.py, st.zx, st.zy))
 end
 
 -- the stance released and the run latches off once, inside faceR and on the floor (the facing is the Lua's)
@@ -472,9 +491,14 @@ local function press(p, st, kind, d, pred, off, waitStep, dmin, ax, ay)
     local kp = nil
     if kind == "shove" then kp = knockP(p) end   -- Task 15a: the roll's chance, read before the press rolls it
     if kind == "shove" or kind == "stomp" then pcall(PZA.call, p, "setDoShove", true) end
-    pcall(PZA.call, p, "DoAttack", 0)
+    local F = K.FACING
+    local b = F.bearing(st.px, st.py, ax or st.zx, ay or st.zy)
+    local bodyOff = F.body_off(p, b or st.faceB)   -- Plan 32 Task 4: the body at the press, before the press's snap
     st.strike = { kind = kind, at = PZA.now(), started = false, ended = false, refused = false, ticks = 0, hp0 = hp,
-                  dPress = d, dPred = pred, dMin = dmin or d, off = off, cut = "", ax = ax, ay = ay, knockP = kp }
+                  dPress = d, dPred = pred, dMin = dmin or d, off = off, cut = "", ax = ax, ay = ay, knockP = kp,
+                  bodyOff = bodyOff, facing = K.PRESS_FACING }
+    F.press_enter(p, st, b)
+    pcall(PZA.call, p, "DoAttack", 0)
     st[COUNT[kind]] = st[COUNT[kind]] + 1
     st.walkBest, st.walkMs = nil, 0   -- a press restarts the walk's bound (fix 1, F6)
     return kind
@@ -507,7 +531,8 @@ end
 local function leafOf(st, s, cut)
     local knocked = K.knockedDown(st.z)
     return { d_press = s.dPress, d_collide_pred = s.dPred, d_min = s.dMin, look_off = s.off, hp0 = s.hp0,
-             hp1 = healthOf(st.z), knock = knocked, cut_by = cut, knock_p = s.knockP }, knocked
+             hp1 = healthOf(st.z), knock = knocked, cut_by = cut, knock_p = s.knockP, body_off = s.bodyOff,
+             facing = s.facing }, knocked
 end
 
 -- the ended press's result: its leaf, a swing's or a shove's knock-down (counted, the knock wait armed), the shove flag
@@ -516,6 +541,7 @@ end
 local function strikeResult(p, st)
     local s = st.strike
     st.strike = nil
+    K.FACING.press_exit(p, st)
     if s.kind == "shove" or s.kind == "stomp" then K.releaseShove(p) end
     local leaf, knocked = leafOf(st, s, s.cut)
     if s.refused then   -- the residual: one leaf a run (its first), the wait after each K.REFUSE_MAX
@@ -638,6 +664,7 @@ local function repin(p, st, c)
     st.z, st.id, st.repins = c.o, c.id, st.repins + 1
     st.hist, st.nothing, st.knocked, st.shoveFailed = {}, 0, false, false
     st.walkBest, st.walkMs, st.dMin, st.hp0 = nil, 0, c.d, healthOf(c.o)
+    st.zx, st.zy = posOf(c.o)
     face(p, st)
     return "repin"
 end
@@ -737,6 +764,7 @@ end
 
 -- the done result; the stance released first, then the shove flag
 local function doneResult(p, st, how, extra)
+    K.FACING.press_exit(p, st)
     if ST.held then release(p) end
     K.releaseShove(p)
     extra = extra or {}
@@ -793,7 +821,8 @@ K.types.melee = {
                            nothing = 0, steps = {}, strike = nil, leaf = nil, knocked = false, inHit = false,
                            walk = nil, wx = nil, wy = nil, walkBest = nil, walkMs = 0, weaponReach = nil, minR = nil,
                            rawReach = nil, refusals = 0, refuseRun = nil, refuseUntil = nil,
-                           spent = false, spentFrame = nil, spentAt = nil }
+                           spent = false, spentFrame = nil, spentAt = nil, px = nil, py = nil, zx = nil, zy = nil,
+                           faceB = nil, pf = nil }
     end,
     tick = function(p, st)
         if isDead(p) then return "failed", "dead" end
@@ -816,6 +845,7 @@ K.types.melee = {
         if st.lastNow ~= nil and now > st.lastNow then st.dtS = (now - st.lastNow) / 1000 end
         st.lastNow = now
         sample(st, now, zx, zy)
+        st.px, st.py, st.zx, st.zy = px, py, zx, zy   -- the facing's bearing (K.FACING) reads this tick's positions
         if st.dMin == nil or d < st.dMin then st.dMin = d end
         local step, why, res = reflex(p, st, d, px, py, zx, zy, now)
         if step == "failed" then return "failed", why, res end
@@ -830,6 +860,7 @@ K.types.melee = {
     -- every end but done: the stance released unless a melee of the same target or an aim supersedes it, then the shove
     -- flag; the failed line's result the counts, with a press in flight read as its leaf cut by the end's reason
     stop = function(p, st, reason)
+        K.FACING.press_exit(p, st)
         if ST.held and not keptOnResend(st, reason) then release(p) end
         K.releaseShove(p)
         local leaf = st.leaf
@@ -838,3 +869,107 @@ K.types.melee = {
         return counts(st, { refusals = refusalsOf(st, true), press = leaf })
     end,
 }
+
+-- ---- the facing (Plan 32 Task 4) ---------------------------------------------------------------------------------
+-- The ruled mechanism (the facing trials' Task 3 ruling over three probe boots, PZAgent_FacingProbe.lua's modes; the
+-- jar read facing-jar-research.md claims 7, 13, 14, 17, 19): the aimed player's forward direction is written toward
+-- the mouse on every update after OnPlayerUpdate, so no Lua facing call survives the stance but the one that sets the
+-- body angle itself, setTargetAndCurrentDirection (claim 14: snap_aimed held the body within 3 degrees standing and
+-- back-pedalling, the look 18 to 47 degrees toward the mouse; unaimed_snap held body and look at 0.0 standing and 6.8
+-- back-pedalling; block_aim, setForceAim(false) with setBlockMovement(true) and setIsAiming(true), body and look 0.0
+-- with isAiming true, movement blocked). So the held stance snaps the body every tick and keeps the aim (hold); a press
+-- releases the force-aim for its ticks, snaps body and look and re-asserts the aim at its result (press_enter,
+-- press_exit, the mode K.PRESS_FACING); block_aim is the switch's other mode. Called from the melee's facing sites
+-- above and from PZAgent_Stance.lua's faceOf (the aim leg), each at the tick it writes, through K.FACING (resolved at
+-- the call: this table is made when the file loads, before any tick). Every flag a press mode sets is restored by
+-- press_exit, and every setter either makes (the snap aside, the facing's every-tick write) is under its own pcall (a
+-- raise counted in K.errors, the next call still made: MO.off's form), once; press_exit does nothing without a
+-- press_enter before it.
+K.PRESS_FACING = "unaimed_snap"   -- the press mode: unaimed_snap (the ruling), or block_aim (its switchable alternative)
+K.FACING_MIN_D = 0.01             -- tiles: a target nearer holds the last bearing (a zero vector raises, claim 16)
+
+local FACING = {}
+K.FACING = FACING
+FACING.MODES = { unaimed_snap = { "setForceAim", "setTargetAndCurrentDirection" },
+                 block_aim = { "setForceAim", "setBlockMovement", "setIsAiming", "nullifyAiming",
+                               "setTargetAndCurrentDirection" } }
+
+-- one setter call under its own pcall, a raise counted (S-15), as the press's own DoAttack and setDoShove
+local function guarded(fn, ...)
+    local ok, err = pcall(fn, ...)
+    if not ok then
+        K.errors = (K.errors or 0) + 1
+        K.lastError = tostring(err)
+    end
+end
+
+-- the bearing in radians from (px, py) to (tx, ty) (atan2(y, x), Vector2.getDirection's convention), nil when a
+-- position is unread or the target sits within K.FACING_MIN_D
+function FACING.bearing(px, py, tx, ty)
+    if px == nil or py == nil or tx == nil or ty == nil then return nil end
+    local ex, ey = tx - px, ty - py
+    if ex * ex + ey * ey < K.FACING_MIN_D * K.FACING_MIN_D then return nil end
+    return math.atan2(ey, ex)
+end
+
+-- the snap: body and facing set onto b at once (b nil: the last bearing st.faceB, none written without one); whether
+-- it wrote
+function FACING.snap(p, st, b)
+    if b == nil then b = st.faceB end
+    if b == nil then return false end
+    st.faceB = b
+    PZA.call(p, "setTargetAndCurrentDirection", math.cos(b), math.sin(b))
+    return true
+end
+
+-- the held stance's write: the snap, the aim posture kept (no flag touched)
+function FACING.hold(p, st, b)
+    return FACING.snap(p, st, b)
+end
+
+-- the press's facing on: the stance's wants recorded (st.pf), the force-aim released for the press's ticks (unaimed:
+-- K.stance.held and PZA.motor.wantAim false, setForceAim(false) once), block_aim's posture set, and the snap onto b;
+-- the mode
+function FACING.press_enter(p, st, b)
+    FACING.press_exit(p, st)
+    local mode = K.PRESS_FACING
+    st.pf = { mode = mode, held = K.stance.held, wantAim = PZA.motor.wantAim }
+    K.stance.held = false
+    PZA.motor.wantAim = false
+    guarded(PZA.call, p, "setForceAim", false)
+    if mode == "block_aim" then
+        guarded(PZA.call, p, "setBlockMovement", true)
+        guarded(PZA.call, p, "setIsAiming", true)
+    end
+    FACING.snap(p, st, b)
+    return mode
+end
+
+-- the press's facing off, once: block_aim's posture released (setBlockMovement(false), nullifyAiming), and the stance
+-- re-asserted when it was wanted at the press (K.stance.held as it was, PZA.motor.wantAim true, setForceAim(true): the
+-- Motor re-asserts it every frame from here)
+function FACING.press_exit(p, st)
+    local s = st.pf
+    if s == nil then return end
+    st.pf = nil
+    if s.mode == "block_aim" then
+        guarded(PZA.call, p, "setBlockMovement", false)
+        guarded(PZA.call, p, "nullifyAiming")
+    end
+    if s.wantAim then
+        K.stance.held = s.held
+        PZA.motor.wantAim = true
+        guarded(PZA.call, p, "setForceAim", true)
+    end
+end
+
+-- the body angle (getAnimAngleRadians) off the bearing b, in degrees in [0, 180]; nil when either is unread
+function FACING.body_off(p, b)
+    if b == nil then return nil end
+    local ok, a = PZA.call(p, "getAnimAngleRadians")
+    if not ok or type(a) ~= "number" then return nil end
+    local off = a - b
+    while off > math.pi do off = off - 2 * math.pi end
+    while off < -math.pi do off = off + 2 * math.pi end
+    return math.abs(off) * DEG
+end

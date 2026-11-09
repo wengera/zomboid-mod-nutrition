@@ -27,7 +27,8 @@ before each `step`; a decider variant may start one wherever it fights.
   (`superseded`, `not loaded`, `no weapon`, `interrupted`, `dead`, a rejection's `too far`, `no target`, `bad args`),
   or its state (`timeout`).
 - `press`: the last press leaf a line carried (`{d_press, d_collide_pred, d_min, look_off, hp0, hp1, knock, cut_by,
-  knock_p}`, a shove's knock_p its knock-down chance, Task 15a), kept
+  knock_p, body_off, facing}`, a shove's knock_p its knock-down chance, Task 15a; body_off the body off the bearing at
+  the press and facing the press mode, Plan 32 Task 4, each where the leaf carries it), kept
   for its owner's log.
 - `why` (logged by the Fight as `maneuver`): target, mode, sends, and the last progress line's step and distance, with
   its counts and `spent` once one carries them, and the last press leaf.
@@ -46,9 +47,11 @@ COUNT_KEYS = ("swings", "shoves", "stomps", "floors", "knockdowns", "hits", "spe
                                        # progress line's, logged (Task 15a: a re-pin's target and repins)
 STRIKE_STEPS = ("swing", "shove", "stomp", "floor")   # the Lua's presses in flight (PZAgent_StanceMelee.lua's header:
                                                       # each from its press to its result), in which no re-send goes
-PRESS_KEYS = ("d_press", "d_collide_pred", "d_min", "look_off", "hp0", "hp1", "knock", "cut_by", "knock_p")   # the
-                                       # leaf's keys (Task 15a: a shove's knock_p)
-PRESS_OPTIONAL = ("knock_p",)   # ... kept only where the leaf carries it (a shove's)
+PRESS_KEYS = ("d_press", "d_collide_pred", "d_min", "look_off", "hp0", "hp1", "knock", "cut_by", "knock_p",
+              "body_off", "facing")   # the leaf's keys (Task 15a: a shove's knock_p; Plan 32 Task 4: the body off
+                                      # the bearing at the press and the press mode, PZAgent_StanceMelee.lua's FACING)
+PRESS_OPTIONAL = ("knock_p", "body_off", "facing")   # ... kept only where the leaf carries them (a shove's knock_p;
+                                                     # body_off and facing from Plan 32 Task 4's Lua on)
 
 
 @dataclasses.dataclass(frozen=True)

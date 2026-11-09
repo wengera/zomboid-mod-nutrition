@@ -555,7 +555,7 @@ def zdist(w):
 
 def make_mover(px=10.0, py=20.0, zx=12.0, zy=20.0, zid=7, zspeed=0.0, chasing=True, weapon="bat", attack_ticks=20,
                windup_ticks=None, hit_ticks=30, bite_r=0.9, dist_member=True, look=None, turn=TURN_RATE,
-               combat_speed=1.0, zangle=0.0, front=False):
+               combat_speed=1.0, zangle=0.0, front=False, snap=True):
     """A player and one zombie whose positions and states live in the dict w, moved by step_world once a client tick
     (before the OnTick that runs the runner, as the engine's update precedes OnTick): the zombie closes on the player at
     w["zspeed"] tiles a second while w["chasing"] (its getTarget answers the player then, None otherwise) and it neither
@@ -574,13 +574,16 @@ def make_mover(px=10.0, py=20.0, zx=12.0, zy=20.0, zid=7, zspeed=0.0, chasing=Tr
     w["turn"] radians a second (#4689's 206 degrees walking by default; 0 never turns), so the face written on a tick
     is read by getLookAngleRadians (and getAnimAngleRadians) on the next, as the engine's update follows OnTick
     (#4590); w["look"] starts on the zombie unless look is given. getCombatSpeed answers w["cs"]; the bat answers
-    getMinRange BAT_MIN_R; the zombie's getAnimAngleRadians and isFallOnFront answer w["zangle"] and w["front"]."""
+    getMinRange BAT_MIN_R; the zombie's getAnimAngleRadians and isFallOnFront answer w["zangle"] and w["front"].
+    PZA/1.11 (Plan 32 Task 4): setTargetAndCurrentDirection(x, y), the snap, sets the look and the written facing at
+    once; with snap False (w["snap"]) it writes the facing only and the look turns toward it at w["turn"] as after a
+    faceThisObject (an engine whose snap the test holds back: the look held off with turn 0)."""
     w = {"px": px, "py": py, "zx": zx, "zy": zy, "zspeed": zspeed, "chasing": chasing, "zdead": False, "zhp": 1.0,
          "knocked": False, "floor": False, "attack": 0, "attack_ticks": attack_ticks, "windup": windup_ticks,
          "wound": 0, "hit": 0, "hit_ticks": hit_ticks, "bite_r": bite_r, "bites": 0, "on_attack": None,
          "presses": [], "tick": 0, "shove": False, "walk": None,
          "look": math.atan2(zy - py, zx - px) if look is None else look, "face_to": None, "turn": turn,
-         "cs": combat_speed, "zangle": zangle, "front": front}
+         "cs": combat_speed, "zangle": zangle, "front": front, "snap": snap}
     p = make_player(weapon=make_weapon(min_range=BAT_MIN_R) if weapon == "bat" else weapon)
     p.getX, p.getY = (lambda s: w["px"]), (lambda s: w["py"])
     if dist_member:
@@ -620,10 +623,12 @@ def make_mover(px=10.0, py=20.0, zx=12.0, zy=20.0, zid=7, zspeed=0.0, chasing=Tr
     # (setTargetAndCurrentDirection) sets the look and the written facing at once
     p.getDirectionAngleRadians = lambda s: w["face_to"] if w["face_to"] is not None else w["look"]
 
-    def snap(s, fx, fy):
+    def snap_to(s, fx, fy):
         p.aim["calls"].append(("setTargetAndCurrentDirection", (fx, fy)))
-        w["look"] = w["face_to"] = math.atan2(fy, fx)
-    p.setTargetAndCurrentDirection = snap
+        w["face_to"] = math.atan2(fy, fx)
+        if w["snap"]:
+            w["look"] = w["face_to"]
+    p.setTargetAndCurrentDirection = snap_to
     p.getCombatSpeed = lambda s: w["cs"]
     z = J(getOnlineID=lambda s: zid, getX=lambda s: w["zx"], getY=lambda s: w["zy"], isDead=lambda s: w["zdead"],
           getTarget=lambda s: p if w["chasing"] else None, isCrawling=lambda s: False, getHealth=lambda s: w["zhp"],

@@ -67,19 +67,30 @@ end
 -- vector Vector2 and the auto-walk members too (not loaded); the vanilla queue cleared, the run latches wanted off
 -- (MO.want walk) and written false (the latches only keep the gait a walk), setForceAim(true), the facing, and with a non-zero
 -- vector the steer skill's own auto-walk along it in input space (K.inputVector), at the stance's walk. Every tick:
--- the facing again (faceThisObject(z), or setForwardDirection(cos b, sin b)); a target that reads dead ends it done at
+-- the facing again (the snap, K.FACING.hold, onto the target or the bearing); a target that reads dead ends it done at
 -- once. Done at seconds with {d (tiles from its start), held (stanceHeld at the end), targetDead, heldFrames, ticks};
 -- the stance released. heldFrames counts the ticks after the first whose isAiming() read true, ticks those ticks (a
 -- target read dead ends the leg before its tick is counted): a live leg proves its own stance (PZA/1.5.4, P24-T).
--- The cost a tick: the dead check (getBodyDamage, getOverallBodyHealth), the target's isDead, one facing call and the
--- isAiming read: five Java calls with a target, four with a bearing, three keeping the facing; no allocation (the
--- Vector2 is made once). The per-frame setForceAim is the Motor's, one call a frame while the stance is held.
+-- The cost a tick: the dead check (getBodyDamage, getOverallBodyHealth), the target's isDead, the two positions (four
+-- reads, with a target), one facing call and the isAiming read: nine Java calls with a target, four with a bearing,
+-- three keeping the facing; no allocation (the Vector2 is made once). The per-frame setForceAim is the Motor's, one call a frame while the stance is held.
+-- Plan 32 Task 4 (the facing trials' ruling): the facing is K.FACING.hold (PZAgent_StanceMelee.lua's end), the snap
+-- setTargetAndCurrentDirection(cos b, sin b) onto the bearing b to the target (its two positions read live; within
+-- K.FACING_MIN_D the last b held) or onto the bearing argument, the stance kept: the aimed player's facing is the
+-- mouse's after OnPlayerUpdate (#4589), which overwrote faceThisObject (75 to 88 degrees off in every probe boot),
+-- while the snap sets the body angle itself (within 3 degrees standing and back-pedalling).
 local function faceOf(p, st)
+    local b = nil
     if st.z ~= nil then
-        PZA.call(p, "faceThisObject", st.z)
+        local px, py = posOf(p)
+        local zx, zy = posOf(st.z)
+        b = K.FACING.bearing(px, py, zx, zy)
     elseif st.fx ~= nil then
-        PZA.call(p, "setForwardDirection", st.fx, st.fy)
+        b = math.atan2(st.fy, st.fx)
+    else
+        return
     end
+    K.FACING.hold(p, st, b)
 end
 
 local function aimResult(p, st, targetDead)
@@ -97,6 +108,7 @@ end
 -- the first tick's members: nil when present, else not loaded
 local function aimLoaded(p, st)
     if not PZA.field(p, "setForceAim") or not PZA.field(p, "nullifyAiming") then return false end
+    if (st.z ~= nil or st.fx ~= nil) and not PZA.field(p, "setTargetAndCurrentDirection") then return false end
     if st.vx == 0 and st.vy == 0 then return true end
     if Vector2 == nil or Vector2.new == nil then return false end
     return PZA.field(p, "setAutoWalk") and PZA.field(p, "setAutoWalkDirection")

@@ -971,7 +971,7 @@ def test_the_melee_s_pza1_10_args_and_result():
     assert pza1.ACTION_ARGS["melee"]["stall"] == "int"
     assert d["args_melee"]["additionalProperties"] is False
     leaf = {"d_press", "d_collide_pred", "d_min", "look_off", "hp0", "hp1", "knock", "cut_by",
-            "knock_p"}   # Plan 31 Task 15a: a shove's knock_p
+            "knock_p", "body_off", "facing"}   # Plan 31 Task 15a: a shove's knock_p; Plan 32 Task 4: the facing's
     for k in ("result_melee", "result_melee_step"):
         props = d[k]["properties"]
         assert set(props["press"]["properties"]) == leaf and "spent" in props and "held" not in props, k

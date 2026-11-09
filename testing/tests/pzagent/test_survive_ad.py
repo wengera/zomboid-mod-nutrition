@@ -1131,3 +1131,28 @@ def test_lost_no_progress_alone_marks_the_target_for_unreachable_s(tmp_path):
         if marked:
             assert f.unreachable[9] == r.clock() + P.UNREACHABLE_S and f.no_progress == 0
     assert P.HEAD_AIM is False
+
+
+def test_the_press_leaf_s_body_off_and_facing_are_kept_where_the_leaf_carries_them(tmp_path):
+    """Plan 32 Task 4: the melee maneuver keeps the leaf's body_off and facing (the body off the bearing at the press
+    and the press mode) when the line carries them, and adds no key to a leaf without them (a PZA/1.10 log's
+    decision lines unchanged)."""
+    r, sv = make(tmp_path, caps=MELEE_CAPS)
+    fr(r, [z(9, 102.0)])
+    a = tick(r, sv)
+    act(r, a, "accepted")
+    leaf = {"d_press": 1.2, "d_collide_pred": 0.8, "d_min": 1.2, "look_off": 1.5, "hp0": 1.0, "hp1": 0.8,
+            "knock": False, "cut_by": "", "body_off": 2.5, "facing": "unaimed_snap"}
+    act(r, a, "progress", result={"step": "face", "d": 1.5, "hp": 0.8, "swings": 1, "shoves": 0, "stomps": 0,
+                                  "floors": 0, "knockdowns": 0, "hits": 0, "spent": False, "press": leaf})
+    r.advance(0.5)
+    fr(r, [z(9, 101.5)])
+    tick(r, sv)
+    assert threat_why(tmp_path)["maneuver"]["press"] == leaf
+    old = {k: v for k, v in leaf.items() if k not in ("body_off", "facing")}
+    act(r, a, "progress", result={"step": "face", "d": 1.5, "hp": 0.8, "swings": 2, "shoves": 0, "stomps": 0,
+                                  "floors": 0, "knockdowns": 0, "hits": 0, "spent": False, "press": old})
+    r.advance(0.5)
+    fr(r, [z(9, 101.5)])
+    tick(r, sv)
+    assert threat_why(tmp_path)["maneuver"]["press"] == old
