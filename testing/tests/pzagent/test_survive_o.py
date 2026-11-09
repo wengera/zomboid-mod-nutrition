@@ -329,7 +329,10 @@ def test_e9_s_line_342_keeps_the_pull_s_leg(tmp_path, monkeypatch):
     Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
     rule before it (the non-stance Fight's walk to a zombie at a run).
     Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
-    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    replaces the reads this case pins; pinned with `MANY_NEAR` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     got, old = e9_lines(), e9_lines(("STANCE_LISTED", "APPROACH_WALK"))
     assert got[341]["why"]["leg"] == "pull" and got[341]["why"]["target"] == 7479

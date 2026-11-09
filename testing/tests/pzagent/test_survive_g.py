@@ -652,7 +652,10 @@ def test_the_care_branch_yields_to_a_threat_within_danger_r(tmp_path, monkeypatc
     superseded by that send. Since ruling P24-P (Task 12) that holds for a zombie at CARE_R (4.0 tiles) or nearer;
     named change (Task 12 fix 1, the review's major 2): a running bandage is superseded only inside CARE_HOLD_R (3.0
     tiles), so a zombie arriving at 4.0 holds it and one at 3.0 takes the tick.
-    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = bleeding_rig(tmp_path, [(10, "Base.Bandage")])
     tick(r, sv)
@@ -1822,7 +1825,10 @@ def test_a_bleeding_part_is_bandaged_with_a_zombie_held_beyond_care_r_and_not_in
     CARE_STILL_TICKS ticks before the yield's start reads it not closing (it came from 6 tiles before). Named change,
     ruling P26-D (Plan 26 Task 2): beyond FIGHT_REACH the bleed's own rule yields at once; these cases pin P24-P's
     lines with `THREAT_BLEED` off.
-    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     sv.THREAT_BLEED = False   # named change, P26-D (Plan 26 Task 2): the bleed's room yields a fight's tick
@@ -1854,7 +1860,10 @@ def test_the_bandage_runs_under_a_health_flee_and_is_superseded_when_a_zombie_co
     running bandage holds at 3.5 tiles (inside CARE_R,
     beyond CARE_HOLD_R); the supersede line is CARE_HOLD_R (3.0). Named change, ruling P29-E (Plan 29 Task 2): the
     zombie at 7 tiles is beyond DANGER_R, where no `health` flee goes now; pinned with `HEALTH_NEAR` off.
-    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
@@ -1891,7 +1900,10 @@ def test_no_yield_to_the_care_under_a_group_or_with_nothing_to_tend(tmp_path, mo
     part with no bandage, rag or rippable garment held (the threat never stands down for nothing), and a PZA/1.4
     build.
     Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
-    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    replaces the reads this case pins; pinned with `MANY_NEAR` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = make(tmp_path)
     hold(r, 10, "Base.Bandage")
@@ -2055,9 +2067,12 @@ def test_the_care_hold_line_and_the_still_ticks():
     assert (C.CARE_HOLD_R, C.CARE_STILL_TICKS) == (3.0, 2) and P.FIGHT_REACH < C.CARE_HOLD_R < C.CARE_R
 
 
-def test_a_chaser_closing_half_a_tile_a_tick_from_4_6_starts_no_bandage(tmp_path):
+def test_a_chaser_closing_half_a_tile_a_tick_from_4_6_starts_no_bandage(monkeypatch, tmp_path):
     """The review's major 2, its first test: a zombie closing 0.5 tiles a tick (5.6, 5.1, 4.6, 4.1, then 3.6) under
-    a running fight starts no bandage: each read beyond CARE_R is a fall since the read two ticks before."""
+    a running fight starts no bandage: each read beyond CARE_R is a fall since the read two ticks before.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv = make(tmp_path)
     sv.THREAT_BLEED = False   # named change, P26-D (Plan 26 Task 2): the bleed's room yields a fight's tick
     hold(r, 10, "Base.Bandage")
@@ -2073,7 +2088,10 @@ def test_a_still_zombie_at_4_5_is_bandaged_held_at_3_5_and_superseded_at_2_9(tmp
     """The review's major 2, its second test: a zombie standing at 4.5 tiles reads not closing on the third tick and
     the bandage starts; once it runs, the zombie at 3.5 (inside CARE_R) holds it, and at 2.9 (inside CARE_HOLD_R) the
     threat takes the tick back: the stance leg supersedes the bandage.
-    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     sv.THREAT_BLEED = False   # named change, P26-D (Plan 26 Task 2): the bleed's room yields a fight's tick
@@ -2104,7 +2122,10 @@ def test_no_standing_bandage_starts_while_a_flee_leg_runs_from_a_chaser(tmp_path
     closing; against a chaser (`hasTarget`) during a running flee leg the standing bandage waits (it would stop the
     run). Here the leg (a thigh's wound: no ride) runs while the zombie reads 5.5 tiles, then 7 (never closing).
     Named change, ruling P29-E (Plan 29 Task 2): at 7 tiles no `health` flee goes now; pinned with `HEALTH_NEAR` off.
-    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
@@ -2126,7 +2147,10 @@ def test_a_running_bandage_whose_part_stops_bleeding_is_superseded_by_the_threat
     """The review's minor 7 (Task 12's commit 4 removed the `running` clause, read as equivalent; it is not): once no
     part bleeds, `tends_wound` reads false, the yield ends and the threat's send supersedes the running bandage, the
     zombie still at 4.5 tiles. Kept: once nothing bleeds the threat matters more.
-    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     hold(r, 10, "Base.Bandage")
@@ -2192,7 +2216,10 @@ def test_a_torso_wound_rides_the_running_flee_leg_with_the_chaser_at_7(tmp_path,
     runs: `running`), its end re-aims with a new steer that keeps the ride (the Care busy on the ride's own act lines),
     and the ride's done frees the Care. Named change, ruling P29-D (Plan 29 Task 2): with nobody within DANGER_R the
     re-aim now waits on the riding dressing; pinned with `DRESS_FINISH` off.
-    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     torso = [part(6, bleeding=True, bleedingTime=5.0)]
     r, sv = flee_leg_rig(tmp_path, torso, 7.0)
@@ -2225,24 +2252,33 @@ def test_a_torso_wound_rides_the_running_flee_leg_with_the_chaser_at_7(tmp_path,
 
 @pytest.mark.parametrize("x, parts", [(5.0, [part(6, bleeding=True, bleedingTime=5.0)]),
                                       (7.0, [part(11, bleeding=True, bleedingTime=5.0)])])
-def test_no_ride_with_the_chaser_at_5_nor_for_a_thigh(tmp_path, x, parts):
+def test_no_ride_with_the_chaser_at_5_nor_for_a_thigh(monkeypatch, tmp_path, x, parts):
     """The review's second and third ride tests: the chaser at 5 tiles (inside RIDE_R), or a thigh bleeding (part
     11: the Lua refuses a leg part `leg part`): no ride, and no standing bandage either while the flee leg runs from
-    a chaser (item 2); the Flee's leg holds the tick."""
+    a chaser (item 2); the Flee's leg holds the tick.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv = flee_leg_rig(tmp_path, parts, x)
     assert last(tmp_path)["branch"] == "threat" and "care" not in threat_why(tmp_path)
     assert threat_why(tmp_path)["holding"] == r.acts.history[0].aid
     assert not any(a.type == "bandage" for a in r.acts.history)
 
 
-def test_a_flee_leg_with_no_chaser_rides_whatever_the_distance(tmp_path):
-    """No zombie chasing (`hasTarget` false) at 5 tiles: the ride goes beside the running leg."""
+def test_a_flee_leg_with_no_chaser_rides_whatever_the_distance(monkeypatch, tmp_path):
+    """No zombie chasing (`hasTarget` false) at 5 tiles: the ride goes beside the running leg.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv = flee_leg_rig(tmp_path, [part(6, bleeding=True, bleedingTime=5.0)], 5.0, chases=False)
     assert r.cmd() == ("bandage", {"itemId": 10, "part": 6, "keepMoving": True})
 
 
-def test_the_worst_part_above_the_legs_rides_past_a_worse_thigh(tmp_path):
-    """A deep thigh wound and a forearm scratch: the ride takes the forearm (part 3), never the thigh."""
+def test_the_worst_part_above_the_legs_rides_past_a_worse_thigh(monkeypatch, tmp_path):
+    """A deep thigh wound and a forearm scratch: the ride takes the forearm (part 3), never the thigh.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv = flee_leg_rig(tmp_path, [part(11, bleeding=True, bleedingTime=9.0, deep=True),
                                     part(3, bleeding=True, bleedingTime=2.0)], 7.0)
     assert r.cmd() == ("bandage", {"itemId": 10, "part": 3, "keepMoving": True})
@@ -2252,7 +2288,10 @@ def test_no_ride_starts_in_a_stance_fight_and_its_legs_are_held_off_while_one_ru
     """No ride under an aim (the Lua rejects it `aiming`): a fight's yield is the standing bandage. A ride running
     when the flee turns to a fight (the health back over the refight line) holds the Fight's stance leg off (its aim
     would end the ride) until the ride ends; then the stance leg goes.
-    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     torso = [part(6, bleeding=True, bleedingTime=5.0)]
     r, sv = make(tmp_path)
@@ -2279,9 +2318,12 @@ def test_no_ride_starts_in_a_stance_fight_and_its_legs_are_held_off_while_one_ru
     assert r2.cmd()[0] == "aim" and "ride" not in threat_why(tmp_path / "f")
 
 
-def test_a_ride_the_engine_stopped_holds_no_item_out(tmp_path):
+def test_a_ride_the_engine_stopped_holds_no_item_out(monkeypatch, tmp_path):
     """A ride ended `failed stopped` (a run, an aim, a hit stopped it) leaves its item usable; a standing bandage's
-    failure holds it out CARE_RETRY_MIN as before."""
+    failure holds it out CARE_RETRY_MIN as before.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv = flee_leg_rig(tmp_path, [part(6, bleeding=True, bleedingTime=5.0)], 7.0)
     ride = r.acts.history[-1]
     r.fake.act(ride.aid, "failed", "bandage", reason="stopped")
@@ -2290,9 +2332,12 @@ def test_a_ride_the_engine_stopped_holds_no_item_out(tmp_path):
     assert sv.care.held_out == {} and sv.care.riding() is None
 
 
-def test_a_ride_takes_a_walk_only_on_an_open_line(tmp_path):
+def test_a_ride_takes_a_walk_only_on_an_open_line(monkeypatch, tmp_path):
     """PZA/1.5.3's obligation (the ride walks straight, no pathing): a flee walk is ridden only while its straight
-    line to its target reads clear on the map; a steer always."""
+    line to its target reads clear on the map; a steer always.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv = flee_leg_rig(tmp_path, [part(6, bleeding=True, bleedingTime=5.0)], 5.0)
     sqs = [square(x, y) for x in range(95, 112) for y in range(195, 206)]
     r.scan([dict(s, blockW=True) if (s["x"], s["y"]) == (103, 200) else s for s in sqs])
@@ -2351,10 +2396,13 @@ def test_a_corpse_still_listed_alone_is_no_threat(tmp_path):
 
 
 # ================================================================ Task 12 fix 2: the re-review's two majors and minors
-def test_the_chaser_rule_is_keyed_on_the_flee_episode_not_the_leg_running(tmp_path):
+def test_the_chaser_rule_is_keyed_on_the_flee_episode_not_the_leg_running(monkeypatch, tmp_path):
     """The re-review's major 1 (probe A): a `health` flee from a chaser held at a flat 5.5 tiles, a thigh bleeding.
     Each time the steer leg ends (answered `done`) the Flee re-steers on that tick; the gap between two legs is the
-    same flight and starts no standing bandage."""
+    same flight and starts no standing bandage.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     thigh = [part(11, bleeding=True, bleedingTime=5.0)]
     r, sv = flee_leg_rig(tmp_path, thigh, 5.5)
     assert sv.mode == "flee"
@@ -2392,10 +2440,13 @@ def stopped_ride_rig(tmp_path):
     return r, sv, leg, ride, torso
 
 
-def test_a_stopped_ride_hands_the_tick_to_the_flee_not_to_a_drink_nor_a_standing_bandage(tmp_path):
+def test_a_stopped_ride_hands_the_tick_to_the_flee_not_to_a_drink_nor_a_standing_bandage(monkeypatch, tmp_path):
     """The re-review's major 2 (probe B): the ride the engine stopped is no failure to cool (the item stays free) and
     the care rides again only after RIDE_RETRY_S; the tick after it returns to the threat (the leg held), never the
-    need's `consume` (which would supersede the flee leg) nor, the tick after, a standing bandage under the chaser."""
+    need's `consume` (which would supersede the flee leg) nor, the tick after, a standing bandage under the chaser.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv, leg, ride, torso = stopped_ride_rig(tmp_path)
     assert C.RIDE_RETRY_S == 3.0
     for _ in range(2):
@@ -2415,7 +2466,10 @@ def test_a_stopped_ride_hands_the_tick_to_the_flee_not_to_a_drink_nor_a_standing
 
 def test_a_stance_less_fights_approach_walk_is_never_ridden(tmp_path, monkeypatch):
     """The re-review's minor 3 (mutant 3h): with `_stance_ok` false a Fight sends the approach `walkTo` at a run; a
-    bleeding torso gets no keepMoving bandage beside it (a ride toward the zombie), only a flee's leg is ridden."""
+    bleeding torso gets no keepMoving bandage beside it (a ride toward the zombie), only a flee's leg is ridden.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     monkeypatch.setattr(S.Survive, "_stance_ok", lambda self, held, inside: False)
     r, sv = make(tmp_path)
     hold(r, 10, "Base.Bandage")
@@ -2431,11 +2485,14 @@ def test_a_stance_less_fights_approach_walk_is_never_ridden(tmp_path, monkeypatc
 
 
 @pytest.mark.parametrize("chases, x, ride", [(True, 102.5, False), (True, 107.0, True), (False, 107.0, True)])
-def test_a_many_flee_with_a_chaser_held_blocks_the_ride_inside_ride_many_r(tmp_path, chases, x, ride):
+def test_a_many_flee_with_a_chaser_held_blocks_the_ride_inside_ride_many_r(monkeypatch, tmp_path, chases, x, ride):
     """The re-review's minor 4 (ruling on concern 3): `flee_many` with any held chaser blocked the ride (the nearest at
     7 beyond RIDE_R, but several chasers converge); with no chaser the group is not closing and the ride goes. Named
     change, ruling P24-AR (Plan 24 Task 32; renamed from `..._blocks_the_ride`): the chaser at 7 tiles (beyond
-    RIDE_MANY_R) now lets the ride go; at 2.5 it still blocks it (`test_survive_r` reads the long flee's clock)."""
+    RIDE_MANY_R) now lets the ride go; at 2.5 it still blocks it (`test_survive_r` reads the long flee's clock).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     torso = [part(6, bleeding=True, bleedingTime=5.0)]
     r, sv = make(tmp_path)
     sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee

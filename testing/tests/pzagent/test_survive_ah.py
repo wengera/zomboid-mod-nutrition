@@ -371,10 +371,13 @@ def test_the_scratch_s_dress_is_done_on_bandaged_not_on_bleeding_false(tmp_path)
 
 @pytest.mark.parametrize("dx, chasing, closing, yields", [(8.0, True, True, True), (3.0, True, True, False),
                                                           (3.0, False, False, True), (2.0, True, False, False)])
-def test_the_threat_branch_yields_to_the_scratch_s_dress(tmp_path, dx, chasing, closing, yields):
+def test_the_threat_branch_yields_to_the_scratch_s_dress(monkeypatch, tmp_path, dx, chasing, closing, yields):
     """The yield (`_wound_yields`): a chaser 8 tiles off (trial 12's lines 316 to 328), closing: the care's Dress
     takes the tick (`care_yield` {why "scratch"}); one at 3 tiles closing: no yield (beyond KEEP_R, inside CARE_R);
-    an idle one at 3 tiles, still: the yield; one at 2 tiles (inside KEEP_R): none."""
+    an idle one at 3 tiles, still: the yield; one at 2 tiles (inside KEEP_R): none.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv = scratch_rig(tmp_path)
     off = dx + (0.6 if closing else 0.0)
     for k in range(4):
@@ -396,8 +399,11 @@ def test_trial_12_s_scratch_takes_the_care_s_dress_within_a_game_minute_of_the_f
     """Trial 12 replayed: the record has no care line from the scratch (line 305) to the cap; the replay's first care
     line after it is the scratch Dress's stop of part 9 (`wound`), on line 314, 0.43 game minutes after line 311, the
     first line after the scratch whose nearest zombie read beyond KEEP_R (the lines between read a `many` group). With
-    SCRATCH_DRESS off no care line sends anything after the scratch (P28-A's `wound_held` {clean 0})."""
-    rows, rep = replay(T12)
+    SCRATCH_DRESS off no care line sends anything after the scratch (P28-A's `wound_held` {clean 0}).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding), passed to the
+    replay's own switches (its cache is keyed by them)."""
+    rows, rep = replay(T12, CARE_COMMIT=False)
     assert not any(r["branch"] == "care" for r in rows[304:])
     quiet = next(k for k in range(305, len(rows) + 1)
                  if rows[k - 1]["inputs"].get("nearest") is None or rows[k - 1]["inputs"]["nearest"] > P.KEEP_R)
@@ -406,15 +412,18 @@ def test_trial_12_s_scratch_takes_the_care_s_dress_within_a_game_minute_of_the_f
     assert (quiet, first, rep[first - 1]["action"]["type"]) == (311, 314, "stop")
     assert c["dress"]["wound"] is True and c["dress"]["part"] == 9
     assert (rep[first - 1]["inputs"]["hour"] - rows[quiet - 1]["inputs"]["hour"]) * 60 <= 1.0
-    _, off = replay(T12, SCRATCH_DRESS=False)
+    _, off = replay(T12, SCRATCH_DRESS=False, CARE_COMMIT=False)
     assert not any(r["branch"] == "care" and r["action"] for r in off[304:])
 
 
-def test_a_running_scratch_dress_gives_way_to_a_chaser_closing_within_care_hold_r(tmp_path):
+def test_a_running_scratch_dress_gives_way_to_a_chaser_closing_within_care_hold_r(monkeypatch, tmp_path):
     """Fix 1, review-t15a M2: a scratch's Dress started under a chaser 8 tiles off (its stop sent and done) holds the
     threat branch's yield while the chaser closes beyond CARE_HOLD_R (3.0), as a running bleed bandage does, and gives
     way once it closes within it (2.8): the threat branch takes that tick, no `care_yield`; the old hold reached KEEP_R
-    (2.5), the Dress's own end."""
+    (2.5), the Dress's own end.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv = scratch_rig(tmp_path)
     off = 8.6
     for k in range(4):
@@ -451,10 +460,13 @@ def test_a_zombie_read_dead_but_listed_standing_holds_neither_the_scratch_s_star
     assert any(a.type == "stop" for a in r.acts.history) and sv.care.dress is not None and sv.care.dress.wound
 
 
-def test_the_yield_to_the_scratch_leaves_a_zombie_read_dead_out(tmp_path):
+def test_the_yield_to_the_scratch_leaves_a_zombie_read_dead_out(monkeypatch, tmp_path):
     """Fix 1, review-t15a M5, the yield's half: a live chaser 8 tiles off and closing (the threat branch's tick, the
     yield's case) and a zombie listed standing at 2.0 tiles but read dead: the yield to the scratch's Dress goes
-    (`care_yield` {why "scratch"}), the dead one held out of the yield's standing read as out of the start's."""
+    (`care_yield` {why "scratch"}), the dead one held out of the yield's standing read as out of the start's.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv = scratch_rig(tmp_path)
     sv.dead[7] = r.clock() + 60.0
     off = 8.6

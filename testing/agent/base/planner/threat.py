@@ -254,17 +254,17 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # ._bleed_rate`), logged `dress_ride` {part, rate}; off, P29-D's wait with nobody within
                           # DANGER_R alone
     # Plan 32 Task 5 (the coward fix; survive.py's docstring): in `survive.T16_SWITCHES`
-    PAIR_NEAREST = False   # (b): with two or more within KEEP_R and one standing, the nearest standing one is the
+    PAIR_NEAREST = True    # (b): with two or more within KEEP_R and one standing, the nearest standing one is the
                            # Fight's pin, faced and shoved first, switched only PAIR_SWITCH_R nearer (the Fight's
                            # `pair_nearest` rule, `fight.Fight._pair_pin`); off, the finish and the pin as before
-    CARE_COMMIT = False    # (c): a care action wanted with the nearest within CARE_HOLD_R takes one walk away (to
+    CARE_COMMIT = True     # (c): a care action wanted with the nearest within CARE_HOLD_R takes one walk away (to
                            # CARE_HOLD_R + CARE_MARGIN, at most CARE_LEG_S), then the threat branch yields to it until
                            # it ends, unless a standing zombie is within KEEP_R (`care_yield.CareYield._care_commit`);
                            # off, the yields before it
-    STRAIN_BOUND = False   # (d): the `strain` flee only at stats.endurance STRAIN_ENDURANCE or under (the ENDURANCE
+    STRAIN_BOUND = True    # (d): the `strain` flee only at stats.endurance STRAIN_ENDURANCE or under (the ENDURANCE
                            # moodle's second level) and never with exactly one standing within DANGER_R
                            # (`_strain_flees`); off, every hold's `strain` flee as before
-    POINT_BLANK_FIGHT = False  # (a): a standing zombie within KEEP_R is fought whatever flee reason the plan would take
+    POINT_BLANK_FIGHT = True   # (a): a standing zombie within KEEP_R is fought whatever flee reason the plan would take
                                # (`_point_blank`), the health under FLEE_HEALTH_FLOOR and a running retreat to a named
                                # structure excepted; off, the flee reasons as before
     FLEE_HELD_STANCE = True   # ruling P29-H': a flee walk whose observed heading runs at a held zombie is dropped with

@@ -91,9 +91,9 @@ def flee_counts(rows):
 
 
 def test_the_t16_switches():
-    """`survive.T16_SWITCHES`, each off until the coward rules' commit turns them on by default."""
+    """`survive.T16_SWITCHES`, each on by default (`Plan 32 Task 5: the coward rules on by default`)."""
     assert T16 == ("POINT_BLANK_FIGHT", "PAIR_NEAREST", "CARE_COMMIT", "STRAIN_BOUND")
-    assert all(getattr(S.Survive, k) is False for k in T16)
+    assert all(getattr(S.Survive, k) is True for k in T16)
 
 
 def test_with_the_four_off_f17_replays_as_recorded():
@@ -108,10 +108,11 @@ def test_with_the_four_off_f17_replays_as_recorded():
 
 
 def rig(tmp_path, zombies, on=("POINT_BLANK_FIGHT",), **frame):
-    """A Survive on a fresh Rig with the T16 switches in `on` set on (the others their default), one frame."""
+    """A Survive on a fresh Rig with the T16 switches in `on` set on and the others off (each rule read alone), one
+    frame."""
     r, sv = make(tmp_path)
-    for name in on:
-        setattr(sv, name, True)
+    for name in T16:
+        setattr(sv, name, name in on)
     r.frame(zombies=zombies, **frame)
     return r, sv
 
@@ -449,3 +450,16 @@ def test_f17_s_rips_are_no_longer_superseded_by_the_threat_branch_beyond_keep_r(
     assert over == [159, 284, 380, 404, 410, 437, 789]
     assert [k for k in over if on[k - 1]["inputs"]["nearest"] > P.KEEP_R] == [159, 789]
     assert not any((threat(r).get("care_commit") or {}).get("phase") == "leg" for r in on)
+
+
+# ================================================================ the four together, on by default
+def test_f17_with_the_four_on_by_default_flees_on_203_of_its_389_lines():
+    """F17 replayed at the defaults (the four on), open loop: its 389 flee lines fall to 203 (`strain` 158 to none,
+    `many` 29 to 7, `pair` 36 to 26, `health` 14 to 13, `flip` 21 to 26, `held` 80, `unreachable` 46, `held_inside` 4
+    and `broken` 1 as recorded), its flee lines with the nearest listed within KEEP_R 43 to 12, and 3 rips go (lines
+    287, 297 and 407) where the record sent 15."""
+    rows = f17()
+    assert flee_counts(rows) == {"held": 80, "unreachable": 46, "flip": 26, "pair": 26, "health": 13, "many": 7,
+                                 "held_inside": 4, "broken": 1}
+    assert sum(flee_counts(rows).values()) == 203 and len(near_flees(rows)) == 12
+    assert [k for k, _, _ in sends_after(rows)] == [287, 297, 407]

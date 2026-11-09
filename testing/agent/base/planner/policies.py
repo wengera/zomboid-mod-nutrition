@@ -135,9 +135,6 @@ KEEP_R = 2.5          # tiles: a target inside this and beyond FIGHT_REACH is ba
                       # stands facing it and lets it come (ruling P24-N, superseding P24-M's band of FIGHT_REACH + 1)
 KEEP_MARGIN = 0.25    # tiles: a running backpedal holds until its target is this far past KEEP_R, so the back and
                       # stand legs do not flap at the line (Task 12 fix 1, the review's major 1)
-PAIR_SWITCH_R = 0.3   # tiles: with two or more within KEEP_R the Fight's pin moves to another standing zombie only once
-                      # it reads this much nearer than the pin (Plan 32 Task 5 (b), `fight.Fight._pair_pin`; a judgment,
-                      # REPIN_MARGIN's 0.3: F17's pair at seq 7493-7499 read 0.97 and 0.99 tiles and traded the target)
 STUCK_SKIP_DEG = 15.0  # degrees: after a stuck leg, no heading this near its heading is chosen again (fix 3, F4)
 SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded to
 LOOT_MAX_LEVEL = 1    # spec § 9 (1) "stops looting before level 3": a loot is sent only at load level 0-1
@@ -174,10 +171,6 @@ ENDURANCE_T = 0.75    # the frame's stats.endurance at or under which the ENDURA
                       # whose first level halves every swing (#4371): the disengage of P24-AG
 ENDURANCE_RELEASE = 0.80   # ... and above which that hold ends (review-t27: rest gives back 0.003-0.005 a game minute,
                            # a fight takes far more, so the edge alone flickered flee / one swing / flee)
-STRAIN_ENDURANCE = 0.5   # the frame's stats.endurance at or under which the ENDURANCE moodle reads level 2 (#3926:
-                         # level 1 while above 0.5), the real exhaustion the `strain` flee is bounded to (Plan 32 Task 5
-                         # (d), `threat.Threat._strain_flees`): F17's 158 `strain` lines read the endurance hold alone at
-                         # 0.6427835822105408 to 0.7410425543785095, the first level, whose halved swing is the meet's
 TIRED_FIGHT_T = 0.6   # stats.fatigue at or above which no fight is sought or stood (ruling P24-AK; the first TIRED
                       # moodle, night.TIRED_T, halves every swing at its first level too, #4371)
 SHOVE_R = 1.1         # tiles: the engine's shove reach, the bare hands' MaxRange 1.1 to the zombie's position, #4592;
@@ -295,6 +288,14 @@ SPENT_REDRESS_BT = 10.0   # a spent dressing on a part reading `bleeding` false 
                           # bleeding false under its spent dressing at 15.462026596069336 and 13.89616870880127, and its
                           # two re-dressings each took health (82.34173583984375 to 67.09330749511719 and
                           # 62.200069427490234 to 54.371578216552734)
+# Plan 32 Task 5 (the coward rules; Angus watching F17, `f_goals_17-20261108-172833`), set here below the pointed lines
+PAIR_SWITCH_R = 0.3   # tiles: with two or more within KEEP_R the Fight's pin moves to another standing zombie only once
+                      # it reads this much nearer than the pin ((b), `fight.Fight._pair_pin`; a judgment, REPIN_MARGIN's
+                      # 0.3: F17's pair at seq 7493-7499 read 0.97 and 0.99 tiles and traded the target)
+STRAIN_ENDURANCE = 0.5   # the frame's stats.endurance at or under which the ENDURANCE moodle reads level 2 (#3926:
+                         # level 1 while above 0.5), the real exhaustion the `strain` flee is bounded to ((d),
+                         # `threat.Threat._strain_flees`): F17's 158 `strain` lines read the endurance hold alone at
+                         # 0.6427835822105408 to 0.7410425543785095, the first level, whose halved swing is the meet's
 # survival iteration 20 (Plan 27 Task 5, rulings P27-F to P27-L; E19 `e_day_19-20261103-072904`, F10
 # `f_goals_11-20261103-075140`)
 STUCK_MARK_MIN = 30.0     # game minutes a square a goal walk ended `stuck` on unmoved stays marked with its route's

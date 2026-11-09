@@ -104,7 +104,10 @@ def test_unarmed_a_missed_shove_is_shoved_again_never_the_corner_s_swing(tmp_pat
     assert "attack" not in sends(r) and w["corner"]["kind"] == "shove"
 
 
-def test_unarmed_a_second_zombie_within_danger_r_is_fled_unarmed(tmp_path):
+def test_unarmed_a_second_zombie_within_danger_r_is_fled_unarmed(monkeypatch, tmp_path):
+    """Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     r.frame(zombies=[z(1, 100.8), z(2, 100.0, 205.0)], weapon=None)
     a = tick(r, sv)
@@ -113,7 +116,10 @@ def test_unarmed_a_second_zombie_within_danger_r_is_fled_unarmed(tmp_path):
 
 
 @pytest.mark.parametrize("health, fights", [(59.0, False), (60.0, True)])
-def test_unarmed_under_flee_health_pair_the_lone_zombie_is_fled(tmp_path, health, fights):
+def test_unarmed_under_flee_health_pair_the_lone_zombie_is_fled(monkeypatch, tmp_path, health, fights):
+    """Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     lone(r, 100.8, health=health)
     a = tick(r, sv)
@@ -124,8 +130,11 @@ def test_unarmed_under_flee_health_pair_the_lone_zombie_is_fled(tmp_path, health
         assert a.type == "steer" and w["flee"] == "unarmed"
 
 
-def test_unarmed_on_a_build_without_the_shove_the_lone_zombie_is_fled(tmp_path):
-    """The unarmed fight is the shove's: a build that does not announce it flees as before."""
+def test_unarmed_on_a_build_without_the_shove_the_lone_zombie_is_fled(monkeypatch, tmp_path):
+    """The unarmed fight is the shove's: a build that does not announce it flees as before.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     from .test_policies import CAPS_14
     r, sv = make(tmp_path, caps=tuple(c for c in CAPS_14 if c != "shove"))
     lone(r, 100.8)
@@ -133,7 +142,10 @@ def test_unarmed_on_a_build_without_the_shove_the_lone_zombie_is_fled(tmp_path):
     assert a.type == "steer" and threat_why(tmp_path)["flee"] == "unarmed"
 
 
-def test_with_unarmed_fight_off_the_lone_zombie_is_fled_as_before(tmp_path):
+def test_with_unarmed_fight_off_the_lone_zombie_is_fled_as_before(monkeypatch, tmp_path):
+    """Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     sv.UNARMED_FIGHT = False
     lone(r, 100.8)
@@ -151,9 +163,12 @@ def trap(tmp_path, zs, **k):
     return r, sv
 
 
-def test_trapped_on_a_room_square_the_lone_zombie_in_reach_is_shoved_not_the_trapped_hold(tmp_path):
+def test_trapped_on_a_room_square_the_lone_zombie_in_reach_is_shoved_not_the_trapped_hold(monkeypatch, tmp_path):
     """F5's trapped stand (110 s, nothing sent under one zombie's bite runs): one zombie at 0.8 tiles in the closed
-    room: the shove; with the switch off, the trapped hold as before."""
+    room: the shove; with the switch off, the trapped hold as before.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     zs = [z(1, 103.3, 202.5)]
     r, sv = trap(tmp_path, zs)
     a = tick(r, sv)
@@ -190,10 +205,13 @@ def sheltered_open(tmp_path):
     return r, sv, me
 
 
-def test_the_sheltered_trapped_flee_s_lone_zombie_in_the_doorway_takes_the_trapped_fight(tmp_path):
+def test_the_sheltered_trapped_flee_s_lone_zombie_in_the_doorway_takes_the_trapped_fight(monkeypatch, tmp_path):
     """F5's order (`sheltered`, the door open, no way out): unarmed in the shelter, one zombie in the doorway 1.0 tile
     off, nobody else within DANGER_R: the first tick drops the shelter plan and holds `trapped` (the care tried); the
-    next, trapped, `_trapped_fight` makes the Fight, which shoves it (before: the trapped hold on every tick)."""
+    next, trapped, `_trapped_fight` makes the Fight, which shoves it (before: the trapped hold on every tick).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv, me = sheltered_open(tmp_path)
     r.frame(x=me[0], y=me[1], zombies=[z(1, 112.5, 201.5)], weapon=None)
     assert tick(r, sv) is None and threat_why(tmp_path)["trapped"] == 1
@@ -259,7 +277,10 @@ TWO_IN = [z(1, 100.5, 202.5), z(2, 102.5, 200.5)]   # two zombies 2 tiles off in
 def test_trapped_a_bleeding_part_is_bandaged_with_the_held_bandage(tmp_path, monkeypatch):
     """F5: five parts bleeding, a bandage and four rags held, 215 `trapped` lines sending nothing: the trapped hold
     passes the tick to the care, which bandages the bleeding part (no ride); the threat's why keeps `trapped`.
-    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     r.scan(closed_room())
@@ -274,7 +295,10 @@ def test_trapped_a_bleeding_part_is_bandaged_with_the_held_bandage(tmp_path, mon
 
 
 def test_trapped_the_running_bandage_holds_the_care_s_tick(tmp_path, monkeypatch):
-    """Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    """Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = make(tmp_path)
     r.scan(closed_room())
@@ -293,7 +317,10 @@ def test_trapped_the_running_bandage_holds_the_care_s_tick(tmp_path, monkeypatch
 def test_trapped_with_no_dressing_and_a_worn_cotton_garment_the_unwear(tmp_path, monkeypatch):
     """P25-H's unwear on the trapped hold's tick (quiet reads false with the zombies in the room; the trapped tick
     counts as quiet for the unwear, never for the wash): the T-shirt covering the least comes off.
-    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = unwear_rig(tmp_path)
     r.scan(closed_room())
@@ -304,9 +331,12 @@ def test_trapped_with_no_dressing_and_a_worn_cotton_garment_the_unwear(tmp_path,
     assert care_why(tmp_path)["reason"] == "unwear"
 
 
-def test_trapped_with_nothing_to_tend_the_hold_takes_the_tick_and_no_lower_branch_runs(tmp_path):
+def test_trapped_with_nothing_to_tend_the_hold_takes_the_tick_and_no_lower_branch_runs(monkeypatch, tmp_path):
     """Nothing bleeds: the care answers nothing, the hold takes the tick (the threat's line, no command), and the
-    need below never runs (thirst high, water held)."""
+    need below never runs (thirst high, water held).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     r.scan(closed_room())
     r.event("item_added", itemId=701, fullType="Base.WaterBottle", weight=1.0, use="water")
@@ -328,7 +358,10 @@ def test_trapped_with_a_zombie_in_reach_the_fight_goes_first(tmp_path):
     assert a.type == "shove" and last(tmp_path)["branch"] == "threat"
 
 
-def test_with_trapped_care_off_the_trapped_hold_sends_nothing(tmp_path):
+def test_with_trapped_care_off_the_trapped_hold_sends_nothing(monkeypatch, tmp_path):
+    """Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     sv.TRAPPED_CARE = False
     r.scan(closed_room())
@@ -428,7 +461,10 @@ def test_under_flee_health_one_zombie_is_fought_by_the_shove_and_the_stomp_logge
     ([z(1, 100.8)], 15.0, "flee"),                       # under FLEE_HEALTH_FLOOR: the `health` flee
     ([z(1, 100.8)], 20.0, "low"),                        # at the floor: the low fight
     ([z(1, 100.8)], 45.0, "fight")])                     # over FLEE_HEALTH: the ordinary fight, no `low_fight`
-def test_the_low_fight_s_bounds(tmp_path, zs, health, want):
+def test_the_low_fight_s_bounds(monkeypatch, tmp_path, zs, health, want):
+    """Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     r.frame(zombies=zs, health=health)
     a = tick(r, sv)
@@ -455,7 +491,10 @@ def test_a_running_health_flee_turns_to_the_low_fight_when_one_zombie_is_left(tm
     assert sv.mode == "fight" and w["low_fight"] is True and "flee" not in w
 
 
-def test_with_low_fight_off_the_lone_zombie_is_fled_health_as_before(tmp_path):
+def test_with_low_fight_off_the_lone_zombie_is_fled_health_as_before(monkeypatch, tmp_path):
+    """Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     sv.LOW_FIGHT = False
     r.frame(zombies=[z(1, 100.8)], health=35.0)
@@ -463,8 +502,11 @@ def test_with_low_fight_off_the_lone_zombie_is_fled_health_as_before(tmp_path):
     assert a.type == "steer" and threat_why(tmp_path)["flee"] == "health"
 
 
-def test_unarmed_under_flee_health_the_unarmed_flee_stays(tmp_path):
-    """Unarmed, under FLEE_HEALTH_PAIR the unarmed fight is not allowed, whatever the low fight reads: `unarmed`."""
+def test_unarmed_under_flee_health_the_unarmed_flee_stays(monkeypatch, tmp_path):
+    """Unarmed, under FLEE_HEALTH_PAIR the unarmed fight is not allowed, whatever the low fight reads: `unarmed`.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     lone(r, 100.8, health=35.0)
     a = tick(r, sv)

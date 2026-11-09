@@ -568,29 +568,44 @@ def fast_bleed(tmp_path, x, fall, ride_on=True):
     return r, sv, ride, tick(r, sv)
 
 
-def test_e23_s_fast_bleed_rides_through_the_flee_from_a_chaser_at_5_tiles(tmp_path):
+def test_e23_s_fast_bleed_rides_through_the_flee_from_a_chaser_at_5_tiles(monkeypatch, tmp_path):
     """P30-F: the part's health falling 13 a game minute, the leg ended with the chaser 5 tiles off (within DANGER_R,
-    beyond KEEP_R): the flee sends no new leg, logged `dress_ride` {part 6, rate 13}; the dressing runs on."""
+    beyond KEEP_R): the flee sends no new leg, logged `dress_ride` {part 6, rate 13}; the dressing runs on.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv, ride, a = fast_bleed(tmp_path, 5.0, 13.0)
     w = threat_why(tmp_path)
     assert a is None and w["flee"] == "health" and w["dress_ride"]["part"] == 6
     assert w["dress_ride"]["rate"] == pytest.approx(13.0) and r.acts.current is ride
 
 
-def test_a_fast_bleed_with_the_chaser_within_keep_r_is_superseded_by_the_flee(tmp_path):
+def test_a_fast_bleed_with_the_chaser_within_keep_r_is_superseded_by_the_flee(monkeypatch, tmp_path):
+    """Named change, Plan 32 Task 5 (the coward rules on by default): pinned with the four off (`survive.T16_SWITCHES`),
+    the rules before them."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.PAIR_NEAREST", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     from agent.base.planner.policies import KEEP_R
     r, sv, ride, a = fast_bleed(tmp_path, KEEP_R - 0.5, 13.0)
     assert (a.type, a.args["gait"]) == ("steer", "run") and "dress_ride" not in threat_why(tmp_path)
 
 
-def test_a_slow_bleed_is_superseded_as_under_p29_d(tmp_path):
+def test_a_slow_bleed_is_superseded_as_under_p29_d(monkeypatch, tmp_path):
     """P30-F's rate test: the part's health falling 1 a game minute (under BLEED_FAST), the chaser 5 tiles off
-    (within DANGER_R): the flee's steer supersedes the dressing, as P29-D left it."""
+    (within DANGER_R): the flee's steer supersedes the dressing, as P29-D left it.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv, ride, a = fast_bleed(tmp_path, 5.0, 1.0)
     assert (a.type, a.args["gait"]) == ("steer", "run") and "dress_ride" not in threat_why(tmp_path)
 
 
-def test_with_dress_ride_off_the_fast_bleed_is_superseded_as_e23_s_were(tmp_path):
+def test_with_dress_ride_off_the_fast_bleed_is_superseded_as_e23_s_were(monkeypatch, tmp_path):
+    """Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv, ride, a = fast_bleed(tmp_path, 5.0, 13.0, ride_on=False)
     assert (a.type, a.args["gait"]) == ("steer", "run") and "dress_ride" not in threat_why(tmp_path)
 

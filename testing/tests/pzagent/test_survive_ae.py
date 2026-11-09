@@ -436,17 +436,23 @@ def health_flee(tmp_path, on=True, walls=False, parts=None, rag=False, health=No
     return r, sv, tick(r, sv)
 
 
-def test_e22_s_health_flee_from_a_chaser_at_8_2_tiles_holds_the_low_fight_s_stance_at_it(tmp_path):
+def test_e22_s_health_flee_from_a_chaser_at_8_2_tiles_holds_the_low_fight_s_stance_at_it(monkeypatch, tmp_path):
     """P29-E (`HEALTH_NEAR`): E22's line 749, health 30.81458282470703, nobody within DANGER_R and 11515 chasing in view
     8.197687115943333 tiles off: no `health` flee; the low fight's stance, an `aim` at 11515 (its legs walk, never run),
-    logged `health_near` {near 0} beside `low_fight`."""
+    logged `health_near` {near 0} beside `low_fight`.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv, a = health_flee(tmp_path)
     w = threat_why(tmp_path)
     assert (a.type, a.args["targetId"]) == ("aim", 11515) and "gait" not in a.args
     assert w["fight"] is True and "flee" not in w and w["health_near"] == {"near": 0} and w["low_fight"] is True
 
 
-def test_with_health_near_off_line_749_flees_health_at_a_run_as_e22_did(tmp_path):
+def test_with_health_near_off_line_749_flees_health_at_a_run_as_e22_did(monkeypatch, tmp_path):
+    """Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv, a = health_flee(tmp_path, on=False)
     w = threat_why(tmp_path)
     assert (a.type, a.args["gait"]) == ("steer", "run") and w["flee"] == "health" and "health_near" not in w
@@ -456,7 +462,13 @@ def test_with_none_in_view_the_threat_branch_passes_to_the_care_s_dressing(tmp_p
     """P29-E: line 749 with a wall between the character and 11515 (its line read blocked) and a part bleeding with a
     rag held (the test's own): no flee and no stance; the threat episode ends (`mode` None), logged `health_near`
     {near 0}, and the care branch's dressing takes the tick.
-    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with the four off (`survive.T16_SWITCHES`),
+    the rules before them."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.PAIR_NEAREST", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     from .test_survive_g import part
     r, sv, a = health_flee(tmp_path, walls=True, parts=[part(5, bleeding=True, bleedingTime=5.0)], rag=True)
@@ -465,9 +477,12 @@ def test_with_none_in_view_the_threat_branch_passes_to_the_care_s_dressing(tmp_p
     assert row["inputs"]["branches"]["threat"] == {"health_near": {"near": 0}, "held": 1} and sv.mode is None
 
 
-def test_with_a_zombie_within_danger_r_the_health_flee_runs_as_today(tmp_path):
+def test_with_a_zombie_within_danger_r_the_health_flee_runs_as_today(monkeypatch, tmp_path):
     """P29-E's other side: line 743's frame (11515 1.29 and 11516 5.96 tiles off, both within DANGER_R): the `health`
-    flee's steer at a run, no `health_near`, the switch on."""
+    flee's steer at a run, no `health_near`, the switch on.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     me, zs, h = E22_743
     e22_frame(r, me, zs, h, 662.0)
@@ -520,33 +535,45 @@ def ridden_flee(tmp_path, final, dress=True, health_near=False):
     return r, sv, ride, tick(r, sv)
 
 
-def test_e22_s_line_542_dressing_is_waited_on_never_superseded_by_the_flee_s_steer(tmp_path):
+def test_e22_s_line_542_dressing_is_waited_on_never_superseded_by_the_flee_s_steer(monkeypatch, tmp_path):
     """P29-D (`DRESS_FINISH`): line 542, the leg done, the rag still riding, nobody within DANGER_R (11512 9.6 tiles
-    off): the `health` flee sends no steer, logged `dress_finish` {action, near 0}; the dressing runs on."""
+    off): the `health` flee sends no steer, logged `dress_finish` {action, near 0}; the dressing runs on.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv, ride, a = ridden_flee(tmp_path, E22_542)
     w = threat_why(tmp_path)
     assert a is None and w["flee"] == "health" and w["dress_finish"] == {"action": ride.aid, "near": 0}
     assert r.acts.current is ride and sv.care.riding() is ride
 
 
-def test_with_dress_finish_off_line_542_s_steer_supersedes_the_dressing_as_e22_did(tmp_path):
+def test_with_dress_finish_off_line_542_s_steer_supersedes_the_dressing_as_e22_did(monkeypatch, tmp_path):
+    """Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv, ride, a = ridden_flee(tmp_path, E22_542, dress=False)
     assert (a.type, a.args["gait"]) == ("steer", "run") and "dress_finish" not in threat_why(tmp_path)
     assert r.acts.current is a
 
 
-def test_a_zombie_within_danger_r_supersedes_the_dressing_as_before(tmp_path):
+def test_a_zombie_within_danger_r_supersedes_the_dressing_as_before(monkeypatch, tmp_path):
     """P29-D's other side: line 542 with 11512 and 11516 within DANGER_R (5.0 and 5.5 tiles, the test's own): the
-    `health` flee's steer supersedes the dressing, no `dress_finish`."""
+    `health` flee's steer supersedes the dressing, no `dress_finish`.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     me, _, h = E22_542
     final = (me, [(11512, me[0] - 3.0, me[1] + 4.0), (11516, me[0] - 3.3, me[1] + 4.4)], h)
     r, sv, ride, a = ridden_flee(tmp_path, final)
     assert (a.type, a.args["gait"]) == ("steer", "run") and "dress_finish" not in threat_why(tmp_path)
 
 
-def test_with_every_rule_on_line_542_s_dressing_rides_on_under_the_stance(tmp_path):
+def test_with_every_rule_on_line_542_s_dressing_rides_on_under_the_stance(monkeypatch, tmp_path):
     """With HEALTH_NEAR on too (the default), line 542 reads no `health` flee (P29-E): the low fight's stance at 11512,
-    whose legs a riding bandage holds off (P24-U), so nothing supersedes the dressing either."""
+    whose legs a riding bandage holds off (P24-U), so nothing supersedes the dressing either.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv, ride, a = ridden_flee(tmp_path, E22_542, health_near=True)
     w = threat_why(tmp_path)
     assert a is None and w["fight"] is True and w["ride"] == ride.aid and r.acts.current is ride
@@ -694,7 +721,10 @@ def test_e22_s_line_1471_knocked_pin_alone_within_danger_r_keeps_its_melee_over_
     assert r.acts.current is m
 
 
-def test_with_finish_lone_off_line_1471_s_many_steer_supersedes_the_melee_as_e22_did(tmp_path):
+def test_with_finish_lone_off_line_1471_s_many_steer_supersedes_the_melee_as_e22_did(monkeypatch, tmp_path):
+    """Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv, m, a = knocked_melee(tmp_path, lone=False)
     w = threat_why(tmp_path)
     assert (a.type, a.args["gait"]) == ("steer", "run") and w["flee"] == "many" and "finish_lone" not in w
@@ -968,11 +998,14 @@ def test_under_the_floor_a_chaser_in_view_keeps_the_health_flee_never_the_pass(t
     assert w["health_near"] == {"near": 0} and last(tmp_path)["branch"] == "threat"
 
 
-def test_three_chasers_in_view_beyond_danger_r_inside_an_episode_keep_the_flee(tmp_path):
+def test_three_chasers_in_view_beyond_danger_r_inside_an_episode_keep_the_flee(monkeypatch, tmp_path):
     """P29-E fix 1 (review-t2 M1, the reviewer's first probe; the test's own frames on line 749's square, health 30):
     a `many` episode begun at three chasers 2.0 to 3.5 tiles off, then the three at 7.5, 8.06 and 8.56 tiles, every
     line open: more than MAX_FIGHT in the stance count, so no low fight's stance, and in view, so no pass: the flee
-    runs on (a steer at a run), the threat branch's."""
+    runs on (a steer at a run), the threat branch's.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     me = E22_749[0]
     e22_frame(r, me, [(1, me[0] + 2.0, me[1]), (2, me[0], me[1] + 3.0), (3, me[0] - 3.5, me[1])], 30.0, 662.0)

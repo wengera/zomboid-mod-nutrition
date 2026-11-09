@@ -100,7 +100,10 @@ def test_e17_s_counter_window_reads_solid_trans_with_its_counter_and_its_locked_
     the outdoor square west of it walkable; the replay agrees with the record's line 380 (the `inside` end, the
     window way out) with iteration 18 off.
     Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
-    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    replaces the reads this case pins; pinned with `MANY_NEAR` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     w = e17_world(380)
     s = w.map[COUNTER]
@@ -154,7 +157,10 @@ def test_e17_s_inside_end_reads_trapped_with_the_counter_window_left_out(monkeyp
     """E17 replayed to line 380 with P26-I alone on: the stand's `inside` end finds no way out and reads `trapped`
     (`doorway_exit` {end inside, exit trapped}), no walk to the counter.
     Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
-    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    replaces the reads this case pins; pinned with `MANY_NEAR` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     row = e17_replay(380, WINDOW_INNER=True)[379]
     w = threat(row)
@@ -314,7 +320,10 @@ def test_e17_s_window_act_is_dropped_at_its_stall_and_the_window_noted_stalled(m
     iteration 23's (`survive.T13_SWITCHES`) off with them (the Fight's route at the gate (10747, 10642) on line 142
     walks to the step beyond its far square at a walk under ROUTE_CROSS). Named change, ruling P30-E (Plan 30 Task 3):
     iteration 24's (`survive.T14_SWITCHES`) off with them (the still read reaches the same lines).
-    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     kept = {}
 
@@ -473,7 +482,10 @@ def test_e17_replayed_on_iteration_18_ends_its_stand_crowd_at_line_364(monkeypat
     {crowd, close} (iteration 18's first reading ended it `trapped`; the replay is open loop from here: its next lines
     are counterfactual).
     Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
-    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    replaces the reads this case pins; pinned with `MANY_NEAR` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     rows = e17_replay(364, WINDOW_INNER=True, WINDOW_STALL=True, STAND_CROWD=True)
     _, rec, _ = e17()
@@ -585,11 +597,14 @@ def test_f8_s_last_fight_shoved_its_lone_standing_zombie_six_times_and_never_swu
     assert threat(rows[FIRST_BREAK - 1])["corner"] == {"kind": "break", "misses": 3, "n": 1, "shoved": LONE}
 
 
-def test_f8_replayed_with_the_wounded_swing_swings_where_each_lone_break_went():
+def test_f8_replayed_with_the_wounded_swing_swings_where_each_lone_break_went(monkeypatch):
     """F8 replayed with P26-L1 alone on: the first moved line of each fight whose lone target took three missed shoves
     under the `wounded` reason is the record's break, now the swing (`attack`, logged `wounded_swing` 3): 28728 at
     line 571, 28774 at 1023 and, in the last fight, 28762 at 1379 (0.7034084172721121 tiles), every line from 1312 to
-    1378 as the switch off replays it; with the switch off line 1379 is the record's break (a271)."""
+    1378 as the switch off replays it; with the switch off line 1379 is the record's break (a271).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     on, off = f8_replay(FIRST_BREAK, WOUNDED_SWING=True), f8_replay(FIRST_BREAK)
     _, rows, _ = f8()
     moved = [k for k in range(1, FIRST_BREAK + 1) if sent(on[k - 1]) != sent(off[k - 1])]
@@ -714,7 +729,10 @@ def test_f8_s_two_bleed_dressings_were_superseded_each_by_a_zombie_closing_insid
     each with 28762 inside FIGHT_REACH and beyond POINT_BLANK_R, nearer than two ticks before (the `_closing` read:
     3.1445653688463455 at line 1383, 2.285627371974817 at 1410). P26-L2 holds a dressing only from a zombie that is not
     closing, so F8 replayed with BLEED_HOLD alone on sends what the record sent on every line from 1381 to 1420.
-    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     lines, rows, _ = f8()
     aids, _ = R.recorded_aids(lines, rows)
@@ -804,7 +822,10 @@ def test_a_bleed_dressing_is_not_held_with_two_zombies_in_fight_reach(tmp_path, 
 def test_a_zombie_closing_inside_fight_reach_supersedes_the_bleed_dressing(tmp_path, monkeypatch):
     """F8's own case: 2.6 tiles two ticks before, 1.4588033009706454 now (closing inside FIGHT_REACH): the threat
     branch's send supersedes the dressing, as a273 did.
-    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv, dressing, a = bleed_fight(tmp_path, 2.6, 1.4588033009706454)
     assert a is not None and a.type == "aim" and last(tmp_path)["branch"] == "threat"

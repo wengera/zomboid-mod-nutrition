@@ -896,7 +896,10 @@ def test_twenty_ticks_of_a_looting_world_never_send_all(tmp_path):
 @pytest.mark.parametrize("build", BUILDS)
 def test_the_stall_reads_the_pinned_targets_distance_not_the_nearest_zombies(tmp_path, monkeypatch, build):
     """Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
-    rule before it (the non-stance Fight's walk to a zombie at a run)."""
+    rule before it (the non-stance Fight's walk to a zombie at a run).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make_build(tmp_path, monkeypatch, build)
     sv.APPROACH_WALK = False
     r.frame(zombies=[zombie(1, 105.0, 200.0)])
@@ -1215,9 +1218,12 @@ def sheltered(r, sv, weapon=BAT):
 
 
 @pytest.mark.parametrize("far", [False, True])
-def test_a_zombie_in_the_corridor_to_the_door_refuses_it(tmp_path, far):
+def test_a_zombie_in_the_corridor_to_the_door_refuses_it(monkeypatch, tmp_path, far):
     """I1 and M3: a zombie 4 tiles along the line to a door 11.5 tiles away (and one 0.5 behind) passed the nearest-
-    against-nearest test; a known zombie on the line beyond the hold radius refuses it too."""
+    against-nearest test; a known zombie on the line beyond the hold radius refuses it too.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     from .test_night import CLOSED
     r, sv = make(tmp_path)
     sv.UNARMED_FIGHT = False   # named change, P25-P (Plan 25 Task 10): unarmed, one zombie is fought; off, the flee
@@ -1230,7 +1236,10 @@ def test_a_zombie_in_the_corridor_to_the_door_refuses_it(tmp_path, far):
     assert P.CORRIDOR_R == 2.0
 
 
-def test_a_zombie_beside_the_corridor_beyond_corridor_r_does_not_refuse_it(tmp_path):
+def test_a_zombie_beside_the_corridor_beyond_corridor_r_does_not_refuse_it(monkeypatch, tmp_path):
+    """Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     from .test_night import CLOSED
     r, sv = make(tmp_path)
     shelter_world(r, CLOSED)
@@ -1240,8 +1249,11 @@ def test_a_zombie_beside_the_corridor_beyond_corridor_r_does_not_refuse_it(tmp_p
     assert r.cmd() == ("walkTo", {"x": 111.5, "y": 201.5, "gait": "run"})
 
 
-def test_a_known_zombie_inside_the_building_refuses_it(tmp_path):
-    """M4."""
+def test_a_known_zombie_inside_the_building_refuses_it(monkeypatch, tmp_path):
+    """M4.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     from .test_night import CLOSED
     r, sv = make(tmp_path)
     sv.UNARMED_FIGHT = False   # named change, P25-P (Plan 25 Task 10): unarmed, one zombie is fought; off, the flee
@@ -1367,9 +1379,12 @@ def test_a_running_flee_counts_many_within_danger_r_and_holds_the_rest(tmp_path)
 
 
 # ================================================================ survival 1 fix round 2
-def test_a_door_refused_at_the_first_re_aim_is_taken_at_the_next(tmp_path):
+def test_a_door_refused_at_the_first_re_aim_is_taken_at_the_next(monkeypatch, tmp_path):
     """T1: the melee zombie ahead toward the door refuses its corridor at the flee's start; once it is behind, the
-    next re-aim picks the door."""
+    next re-aim picks the door.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     from .test_night import CLOSED
     r, sv = make(tmp_path)
     sv.UNARMED_FIGHT = False   # named change, P25-P (Plan 25 Task 10): unarmed, one zombie is fought; off, the flee
@@ -1421,7 +1436,10 @@ def test_the_sheltered_hold_survives_a_threat_on_an_unmapped_square(tmp_path):
 
 def test_a_door_fight_that_steps_off_the_room_drops_the_stale_flee(tmp_path, monkeypatch):
     """Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
-    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    replaces the reads this case pins; pinned with `MANY_NEAR` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     from .test_night import OPEN
     r, sv = make(tmp_path)
@@ -1452,10 +1470,13 @@ def test_a_door_fight_that_steps_off_the_room_drops_the_stale_flee(tmp_path, mon
 
 
 # ================================================================ survival 1 fix round 3
-def test_inside_a_flee_walks_out_of_the_open_door_away_from_the_group_not_the_nearer_closed_one(tmp_path):
+def test_inside_a_flee_walks_out_of_the_open_door_away_from_the_group_not_the_nearer_closed_one(monkeypatch, tmp_path):
     """F1's map under ruling P23-AJ 3 (survival 2: the adopted re-close is gone): a loot entered by the north door
     left it open; two zombies near the closed west door, a third come in (its line clear, so no hold): the flee
-    walks out of the north door at a run."""
+    walks out of the north door at a run.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     from .test_night import CLOSED, OPEN, house
     r, sv = make(tmp_path)
     north = [square(113, y) for y in range(194, 200)]
@@ -1525,10 +1546,13 @@ def open_yard(x0=90, x1=112, y0=192, y1=212):
 
 
 @pytest.mark.parametrize("n", [2, 3])
-def test_a_stuck_flee_with_the_nearest_within_cornered_r_fights_it_whatever_the_count(tmp_path, n):
+def test_a_stuck_flee_with_the_nearest_within_cornered_r_fights_it_whatever_the_count(monkeypatch, tmp_path, n):
     """Rule 2: a pair (health 50) or three (`many`) fled; the leg moved 0.1 tiles (stuck) and the nearest is at 1.2:
     the Fight takes the nearest, MAX_FIGHT aside; once the nearest is beyond CORNER_FREE_R the flee resumes with a
-    fresh Flee (its first leg not stuck)."""
+    fresh Flee (its first leg not stuck).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     r.scan(open_yard())
     me = (100.5, 201.5)
@@ -1552,11 +1576,14 @@ def test_a_stuck_flee_with_the_nearest_within_cornered_r_fights_it_whatever_the_
 
 
 @pytest.mark.parametrize("nx, cornered", [(99.7, True), (100.1, False)])   # the nearest at 1.2 and 1.6 tiles
-def test_a_flee_leg_that_moved_is_cornered_only_at_melee_range(tmp_path, nx, cornered):
+def test_a_flee_leg_that_moved_is_cornered_only_at_melee_range(monkeypatch, tmp_path, nx, cornered):
     """Survival 2 read a leg that moved as no corner (the nearest at 1.2: the steer); the coordinator's amendment 6
     to ruling P23-AM judges the corner on every threat tick whatever ran, so at 1.2 tiles (one or two within
     CORNERED_R, the line clear, no mark) the corner attacks, a `walk` corner ending beyond CORNERED_R; at 1.6 the
-    steer."""
+    steer.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     r.scan(open_yard())
     me = (100.5, 201.5)
@@ -1727,12 +1754,15 @@ def test_an_exit_walk_that_stops_moving_for_exit_stall_s_is_dropped_and_the_next
 
 
 @pytest.mark.parametrize("held", [3, 4])
-def test_a_running_exit_walk_is_pre_empted_by_the_corner(tmp_path, held):
+def test_a_running_exit_walk_is_pre_empted_by_the_corner(monkeypatch, tmp_path, held):
     """Fix round 1 (G2): mid-walk a zombie comes within CORNERED_R: the attack goes, superseding the walk. Named
     change, ruling P23-AP 2: that holds with three held (zombie 3 died); with four held (GROUP_HOLD_N) they are a
     group: no corner. Named change, ruling P24-A (f): on the room square the group takes the exit, never the steer:
     the exit kept and not refused. Named change, ruling P24-O (Task 12): the running walk, at a run, is kept as it
-    runs (once re-sent at a sprint)."""
+    runs (once re-sent at a sprint).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     from .test_policies import two_door_house
     r, sv = make(tmp_path)
     r.scan([q for q in two_door_house() if q["x"] < 115])     # the group east on unscanned ground: no hold
@@ -1777,10 +1807,13 @@ def test_a_held_threat_within_hold_break_r_breaks_the_sheltered_hold_too(tmp_pat
     assert w["breach"] == "near" and w["flee"] == "many" and w["trapped"] == 1 and sv.flee.plan is None
 
 
-def test_inside_at_melee_range_the_corner_fights_before_any_walk_out_then_walks_once_beyond_cornered_r(tmp_path):
+def test_inside_at_melee_range_the_corner_fights_before_any_walk_out_then_walks_once_beyond_cornered_r(monkeypatch, tmp_path):
     """Fix round 1 (rule 2 before rule 3): at health 30 (`health`), a zombie in the room 1.2 tiles off with the
     north doorway a way out: the Fight first; knocked back to 1.8 tiles the corner ends (CORNERED_R, a way out known)
-    and the flee walks out of the north doorway."""
+    and the flee walks out of the north doorway.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     from .test_policies import two_door_house
     r, sv = make(tmp_path)
     sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
@@ -2187,7 +2220,10 @@ def test_e3_a_group_gathering_on_a_walk_corner_is_steered_from_not_fought_standi
     Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
     replaces the reads this case pins; pinned with `MANY_NEAR` off.
     Named change, ruling P29-H' (Plan 29 Task 2): the flee walk read heading at a held zombie is dropped now;
-    pinned with `FLEE_HELD_STANCE` off."""
+    pinned with `FLEE_HELD_STANCE` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.FLEE_HELD_STANCE", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     sent, out = _e3_sequential()
@@ -2205,9 +2241,12 @@ def test_e3_a_group_gathering_on_a_walk_corner_is_steered_from_not_fought_standi
     assert d["wall"] - out[260][0]["wall"] >= P.WALK_STALL_S and steer.state == "sent"   # R1: stuck while it ran
 
 
-def test_a_walk_corner_on_one_zombie_ends_when_two_more_come_within_cornered_r(tmp_path):
+def test_a_walk_corner_on_one_zombie_ends_when_two_more_come_within_cornered_r(monkeypatch, tmp_path):
     """Fix round 1, G1, the unit case: a goal walk outside, zombie 1 at 1.2 tiles: the `walk` corner attacks it; two
-    more come within CORNERED_R: the corner ends and the flee steers (a sprint), no attack sent."""
+    more come within CORNERED_R: the corner ends and the flee steers (a sprint), no attack sent.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     r.scan(open_yard())
     me = (100.5, 201.5)
@@ -2268,12 +2307,15 @@ def test_e3_the_enter_walk_standing_with_a_threat_within_danger_r_is_dropped_and
 
 
 @pytest.mark.parametrize("line, want", [(260, ("steer", "hold")), (271, ("steer", "hold"))])
-def test_e3_at_melee_range_on_the_shelter_walk_the_corner_answers(tmp_path, line, want):
+def test_e3_at_melee_range_on_the_shelter_walk_the_corner_answers(monkeypatch, tmp_path, line, want):
     """The coordinator's amendment 6 (E3's write-up, concern 4): lines 260-275 passed with a zombie within 1.5 tiles
     and no corner, the character on the plan's enter walk (no steer leg, no room square). Now the corner is judged on
     every threat tick whatever runs: at line 271 (three within CORNERED_R, no stuck leg) rule 4 steers, a sprint.
     Named change, ruling P23-AP 2: at line 260 (14926 at 0.51 tiles, one within CORNERED_R) fix round 1 attacked;
-    five are held there, a group (GROUP_HOLD_N), so the group steer drops the walk there too."""
+    five are held there, a group (GROUP_HOLD_N), so the group steer drops the walk there too.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     def setup(r, sv, w):
         e3_on_the_enter_step(r, sv, w)
         sv.flee.threats = [z for z in w.zombies.values() if z.get("x") is not None]
@@ -2492,11 +2534,14 @@ def group_at_melee(me):
 
 
 @pytest.mark.parametrize("room", [False, True])
-def test_three_within_cornered_r_after_a_leg_that_moved_are_steered_from_not_fought(tmp_path, room):
+def test_three_within_cornered_r_after_a_leg_that_moved_are_steered_from_not_fought(monkeypatch, tmp_path, room):
     """Ruling P23-AM 4: a `many` steer leg moved two tiles and three zombies followed within CORNERED_R: the branch
     steers again (a sprint, away from the group), never stands to swing outside. Named change, survival 4 fix round 1
     (R3): on the closed room's square (no way out, nothing to adopt) no leg can move, so the corner swings at once
-    (iteration 3 steered there, one leg into the walls first)."""
+    (iteration 3 steered there, one leg into the walls first).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     r.scan(closed_room())
     me = (102.5, 205.6)
@@ -2567,11 +2612,14 @@ def test_a_new_flee_episode_after_a_many_one_ended_starts_without_its_many(tmp_p
     assert threat_why(tmp_path)["fight"] is True and sv.mode == "fight" and not sv.flee_many
 
 
-def test_a_group_at_melee_range_never_re_steers_over_its_own_running_leg_while_it_moves(tmp_path):
+def test_a_group_at_melee_range_never_re_steers_over_its_own_running_leg_while_it_moves(monkeypatch, tmp_path):
     """Amendment 6 with rule 4: three come within CORNERED_R while the `many` steer leg runs and moves the player
     0.6 tiles a half second: the leg is kept (no new steer each tick, `give_way` drops only a walk). Fix round 1's
     R1: once the running leg has left the player within STUCK_MOVE for WALK_STALL_S with the group in reach, it reads
-    stuck and the corner attacks before the leg's FLEE_S is out (E3's a40 stood its 3 s, health 93.7 to 68.3)."""
+    stuck and the corner attacks before the leg's FLEE_S is out (E3's a40 stood its 3 s, health 93.7 to 68.3).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     many_yard(r)
     tick(r, sv)
@@ -2729,12 +2777,15 @@ def e4_flee_held(r, sv, w):
     sv.flee_many = False
 
 
-def test_e4_in_the_many_episode_no_walk_corner_is_taken_and_the_stuck_corners_and_retries_follow(tmp_path):
+def test_e4_in_the_many_episode_no_walk_corner_is_taken_and_the_stuck_corners_and_retries_follow(monkeypatch, tmp_path):
     """Ruling P24-A (c) on E4's lines 447-462 through one Survive (the recorded worlds; the `many` flee E4 ran): at 447
     (19032 at 1.35 tiles) the `walk` corner yields to the running `many` episode (`yield` "many") and the flee's sprint
     leg goes. The recorded frames never move the player: at 450 the leg reads stuck (R1) with 19035 at 0.50 tiles, a
     `stuck` corner; its retry at 455 (four held, the nearest beyond POINT_BLANK_R, STUCK_RETRY_S on), the next
-    `stuck` corner at 457 and the next retry at 462 (P23-AP 2)."""
+    `stuck` corner at 457 and the next retry at 462 (P23-AP 2).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv, out = run_replay(E4, tmp_path, 447, 462, setup=e4_flee)
     d, steer = out[447]
     why = d["inputs"]["branches"]["threat"]
@@ -2750,7 +2801,7 @@ def test_e4_in_the_many_episode_no_walk_corner_is_taken_and_the_stuck_corners_an
     assert a.type == "attack" and d["inputs"]["branches"]["threat"]["corner_kind"] == "stuck"
 
 
-def test_e4_the_walk_corner_ends_when_the_held_count_reaches_four_and_the_group_steer_goes(tmp_path):
+def test_e4_the_walk_corner_ends_when_the_held_count_reaches_four_and_the_group_steer_goes(monkeypatch, tmp_path):
     """Ruling P23-AP 2 on E4's lines 447-481 through one Survive (the recorded worlds; the flee E4 ran, read here as
     not `many`: named change, ruling P24-A (c), whose `many` episode takes no `walk` corner). Line
     447: 19032 at 1.35 tiles, 19035 at 2.54, 19030 at 6.69 (three held, two within GROUP_NEAR_R): the `walk` corner
@@ -2758,7 +2809,13 @@ def test_e4_the_walk_corner_ends_when_the_held_count_reaches_four_and_the_group_
     the record's line 454 read the held count 4): four held, a group (GROUP_HOLD_N), so the corner ends and the group
     sprint steer is sent, not the attack (the record held the corner to line 481, the held count rising to six). The
     recorded frames never answer the steer with movement: the leg read stuck (R1) is a `stuck` corner from line 457,
-    and its retry (STUCK_RETRY_S, the nearest beyond POINT_BLANK_R) one more leg at 462."""
+    and its retry (STUCK_RETRY_S, the nearest beyond POINT_BLANK_R) one more leg at 462.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with the four off (`survive.T16_SWITCHES`),
+    the rules before them."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.PAIR_NEAREST", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     def setup(r, sv, w):   # named change, Task 27: the frames read the endurance moodle (P24-AG's disengage)
         e4_flee_held(r, sv, w)
         strain_off(r, sv, w)
@@ -2821,7 +2878,10 @@ def test_e4_lines_438_to_442_the_leg_is_cut_where_19032_is_first_listed(tmp_path
     and line 438 sends a walk, not the leg. Named change, ruling P24-AS (Task 32 amendment 1): read with the
     transparent solid off (`trans_off`): the record's heading at 438 crossed a `solidTrans` square the heading read
     now refuses. Named change, ruling P27-I (Plan 27 Task 5): read with P27-I off (`listing_off`): with it on, the
-    zombies across the fence row leave the episode's listing and the leg is not the one pinned."""
+    zombies across the fence row leave the episode's listing and the leg is not the one pinned.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     from agent.base.world import World
     monkeypatch.setattr(World, "met_window", lambda self, r=None: None)
 
@@ -2840,9 +2900,12 @@ def test_e4_lines_438_to_442_the_leg_is_cut_where_19032_is_first_listed(tmp_path
 
 
 @pytest.mark.parametrize("far, group", [(9.0, "hold"), (None, None)])
-def test_a_walk_corner_ends_once_four_are_held(tmp_path, far, group):
+def test_a_walk_corner_ends_once_four_are_held(monkeypatch, tmp_path, far, group):
     """Ruling P23-AP 2's hold count: a `walk` corner on zombie 1 at 1.2 tiles with two more held 8 tiles east keeps
-    swinging (three held); a fourth held at 9 tiles ends it for the group's sprint steer, no attack sent."""
+    swinging (three held); a fourth held at 9 tiles ends it for the group's sprint steer, no attack sent.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     r.scan(open_yard(80, 115))
     me = (100.5, 201.5)
@@ -2868,9 +2931,12 @@ def test_a_walk_corner_ends_once_four_are_held(tmp_path, far, group):
 
 
 @pytest.mark.parametrize("d3, group", [(2.9, "near"), (3.2, None)])
-def test_a_third_zombie_within_group_near_r_ends_the_walk_corner(tmp_path, d3, group):
+def test_a_third_zombie_within_group_near_r_ends_the_walk_corner(monkeypatch, tmp_path, d3, group):
     """Ruling P23-AP 2's near count: zombie 1 at 1.2 tiles cornered, zombie 2 at 2.5; a third at 2.9 tiles (within
-    GROUP_NEAR_R) ends the corner for the steer, at 3.2 it does not."""
+    GROUP_NEAR_R) ends the corner for the steer, at 3.2 it does not.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     r.scan(open_yard())
     me = (100.5, 201.5)
@@ -2914,13 +2980,16 @@ def back_off(me, d):
 
 @pytest.mark.parametrize("d, wait, retry", [(1.8, 2.0, True), (1.8, 1.5, False), (1.2, 1.0, True),
                                             (0.9, 1.0, True), (1.2, 0.9, False)])
-def test_a_stuck_corner_against_a_group_tries_one_leg_once_the_nearest_is_beyond_point_blank(tmp_path, d, wait,
+def test_a_stuck_corner_against_a_group_tries_one_leg_once_the_nearest_is_beyond_point_blank(monkeypatch, tmp_path, d, wait,
                                                                                              retry):
     """Ruling P23-AP 2: a `stuck` corner keeps swinging against the group, re-tested every tick: with the nearest
     beyond POINT_BLANK_R (1.8 tiles, the three within GROUP_NEAR_R) and the stuck read STUCK_RETRY_S old, the corner
     ends for one sprint steer leg (`group` "retry"); at 1.5 s it keeps swinging. Named change, ruling P24-A fix 1
     (1): with the three within CORNERED_R (1.2 or 0.9 tiles: point blank no bar) the leg goes at STUCK_RETRY_GROUP_S
-    (1.0 s; it kept swinging at 1.5 s and at 0.9 tiles before), not at 0.9 s."""
+    (1.0 s; it kept swinging at 1.5 s and at 0.9 tiles before), not at 0.9 s.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     me = stuck_corner(r, sv)
     attack = r.acts.history[-1]
@@ -2935,10 +3004,13 @@ def test_a_stuck_corner_against_a_group_tries_one_leg_once_the_nearest_is_beyond
     assert sv.cornered is None and sv.mode == "flee" and sv.flee.stuck() is False
 
 
-def test_a_retried_leg_read_stuck_is_a_new_stuck_corner_with_its_own_retry_clock(tmp_path):
+def test_a_retried_leg_read_stuck_is_a_new_stuck_corner_with_its_own_retry_clock(monkeypatch, tmp_path):
     """The retry's leg stands WALK_STALL_S with the group in reach (R1): a new `stuck` corner, its stuck read now, so
     no second retry before its own clock runs. Named change, ruling P24-A fix 1 (1): the three within CORNERED_R,
-    that clock is STUCK_RETRY_GROUP_S (1.0 s), not STUCK_RETRY_S: held at 0.9 s, the next leg at 1.0 s."""
+    that clock is STUCK_RETRY_GROUP_S (1.0 s), not STUCK_RETRY_S: held at 0.9 s, the next leg at 1.0 s.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     me = stuck_corner(r, sv)
     r.advance(2.0)
@@ -2991,9 +3063,12 @@ def test_a_running_leg_is_cut_and_re_aimed_when_a_zombie_comes_into_its_cone(tmp
 
 
 @pytest.mark.parametrize("x4", [103.3, None])
-def test_a_running_leg_is_not_cut_for_a_zombie_within_sprint_r_or_with_none_new_ahead(tmp_path, x4):
+def test_a_running_leg_is_not_cut_for_a_zombie_within_sprint_r_or_with_none_new_ahead(monkeypatch, tmp_path, x4):
     """Rule 3's limits: a zombie 1.8 tiles ahead (within SPRINT_R, which the aim never refuses either) or no new one:
-    the leg runs on."""
+    the leg runs on.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     zs = many_yard(r)
     tick(r, sv)
@@ -3083,11 +3158,14 @@ def ring(me, d=5.0, n=8):
             for k in range(n)]
 
 
-def test_a_leg_aimed_with_a_zombie_ahead_is_not_cut_when_the_frames_relist_it_and_r1_reads_it_stuck(tmp_path):
+def test_a_leg_aimed_with_a_zombie_ahead_is_not_cut_when_the_frames_relist_it_and_r1_reads_it_stuck(monkeypatch, tmp_path):
     """G1 through one Survive: zombie 1 at 1.2 tiles and a ring of eight at 5 tiles (a group): the group steer's leg
     takes the fallback heading with ring zombies ahead (`_aimed` not empty). The next frames list the same zombies as
     new records: no cut (e07a52cb read the last tick's records as id None, cut the leg every tick and R1 never came);
-    the leg held at 0.5 s, and at 1.0 s, unmoved WALK_STALL_S with zombie 1 in reach, R1's `stuck` corner attacks."""
+    the leg held at 0.5 s, and at 1.0 s, unmoved WALK_STALL_S with zombie 1 in reach, R1's `stuck` corner attacks.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     r.scan(open_yard())
     me = (100.5, 201.5)
@@ -3257,10 +3335,13 @@ def test_a_fight_does_not_walk_at_a_zombie_with_another_listed_behind_it(tmp_pat
     assert r3.cmd() == ("attack", {"targetId": 1}) and "behind" not in threat_why(tmp_path / "c")
 
 
-def test_a_walk_corner_yields_to_the_health_flee_and_none_is_taken_under_it(tmp_path):
+def test_a_walk_corner_yields_to_the_health_flee_and_none_is_taken_under_it(monkeypatch, tmp_path):
     """P24-A (c), the close review's I1 (F1's `walk` corner held from health 99.4 to 0.9): a `walk` corner at health
     45 attacks (`corner_kind` "walk" logged, (g)); at 39 it ends for the `health` flee (`yield` "health"), a sprint
-    leg; on the next tick, the zombie still within CORNERED_R and the leg running, no new `walk` corner."""
+    leg; on the next tick, the zombie still within CORNERED_R and the leg running, no new `walk` corner.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     sv.LOW_FIGHT = False   # named change, P25-S (Plan 25 Task 10): under FLEE_HEALTH one zombie is fought; off, the flee
     r.scan(open_yard())
@@ -3298,9 +3379,12 @@ def test_a_stuck_corner_keeps_swinging_under_flee_health(tmp_path):
     assert w["cornered"] == 2 and w["corner_kind"] == "stuck" and "yield" not in w and sv.mode == "fight"
 
 
-def test_no_walk_corner_is_taken_while_a_many_flee_episode_runs(tmp_path):
+def test_no_walk_corner_is_taken_while_a_many_flee_episode_runs(monkeypatch, tmp_path):
     """P24-A (c): a `many` flee's leg runs and has moved; one zombie comes within CORNERED_R (no group): the `walk`
-    corner yields to the running `many` episode (`yield` "many"), the leg held, no attack."""
+    corner yields to the running `many` episode (`yield` "many"), the leg held, no attack.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     r.scan(open_yard())
     me = (100.5, 201.5)
@@ -3338,7 +3422,13 @@ def test_f1_s_last_fight_the_walk_corner_yields_to_health_at_the_first_line_unde
     flee reads `health`, a walk sent there too. Named change, ruling P27-I (Plan 27 Task 5): read with P27-I off
     (`listing_off`): with it on, 607's listing leaves out a zombie across the fence row and the flee reads `health`.
     Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
-    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    replaces the reads this case pins; pinned with `MANY_NEAR` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with the four off (`survive.T16_SWITCHES`),
+    the rules before them."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.PAIR_NEAREST", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     def setup(r, sv, w):
         f1_walk_corner(r, sv, w)
@@ -3372,13 +3462,16 @@ def test_f1_line_599_sends_the_attack_not_the_approach_walk_at_point_blank(tmp_p
 
 
 @pytest.mark.parametrize("south", [False, True])
-def test_on_a_room_square_the_group_is_left_by_the_exit_or_the_trapped_fight_never_the_steer(tmp_path, south):
+def test_on_a_room_square_the_group_is_left_by_the_exit_or_the_trapped_fight_never_the_steer(monkeypatch, tmp_path, south):
     """P24-A (f), the close review's I4: three zombies at melee range north of the player on building 1's room
     square. Named change, ruling P24-A fix 1 (3): EXIT_CLEAR_R reads the exit's own square and the line ahead to it,
     never the player's back, so the south doorway's exit walk goes at once, at a sprint (the flee adopted the
     building and the next tick's trapped corner swung before). With a fourth zombie in the south exit's tube (and so
     no exit), the group's flee adopts the building (its open doors: the re-close is guarded, the plan drops) and holds,
-    no steer; the next tick the room square is trapped, so the corner swings."""
+    no steer; the next tick the room square is trapped, so the corner swings.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     from .test_policies import two_door_house
     r, sv = make(tmp_path)
     r.scan(two_door_house())
@@ -3479,7 +3572,10 @@ def test_a_cornered_fight_sends_no_attack_in_a_hit_reaction(tmp_path):
 
 def test_the_flee_is_observed_once_a_tick_over_this_tick_s_held_records(tmp_path, monkeypatch):
     """P24-A (g), the close review's M1: one `observe` per policy a tick (the Flee's was run twice, its first over the
-    last tick's held records); the breach read once on a re-planned tick (fix round 2's N1 case below)."""
+    last tick's held records); the breach read once on a re-planned tick (fix round 2's N1 case below).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     r.scan(open_yard())
     seen = []
@@ -3622,11 +3718,14 @@ def one_zombie_stuck_corner(r, sv, health):
     return me, (leg.args["vx"], leg.args["vy"])
 
 
-def test_a_stuck_corner_under_flee_health_tries_a_leg_each_second_off_the_stuck_heading(tmp_path):
+def test_a_stuck_corner_under_flee_health_tries_a_leg_each_second_off_the_stuck_heading(monkeypatch, tmp_path):
     """P24-A fix 2, G3 (ruling P24-E: a stuck read is a blocked heading, not a pinned player) and G2: a `stuck` corner
     on one zombie at health 35 holds at 0.9 s and tries a leg at STUCK_RETRY_GROUP_S (1.0 s; `group` "retry",
     `yield` "health"); that leg's turn skips the stuck leg's heading (F4's STUCK_SKIP_DEG), carried into the new
-    Flee (`skip`)."""
+    Flee (`skip`).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     me, stuck = one_zombie_stuck_corner(r, sv, 35.0)
     attack = r.acts.history[-1]
@@ -3643,9 +3742,12 @@ def test_a_stuck_corner_under_flee_health_tries_a_leg_each_second_off_the_stuck_
     assert cos < math.cos(math.radians(P.STUCK_SKIP_DEG))
 
 
-def test_a_stuck_corner_under_flee_health_pair_with_two_held_retries_and_with_one_does_not(tmp_path):
+def test_a_stuck_corner_under_flee_health_pair_with_two_held_retries_and_with_one_does_not(monkeypatch, tmp_path):
     """G3's pair half: health 50 (under FLEE_HEALTH_PAIR, over FLEE_HEALTH) with two held retries at 1.0 s; with
-    one held it swings on (`test_a_stuck_corner_on_one_zombie_never_retries`)."""
+    one held it swings on (`test_a_stuck_corner_on_one_zombie_never_retries`).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     me, _ = one_zombie_stuck_corner(r, sv, 50.0)
     r.advance(1.0)

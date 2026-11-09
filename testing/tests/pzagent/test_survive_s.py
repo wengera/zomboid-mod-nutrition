@@ -42,10 +42,13 @@ def test_the_stiffness_constants():
 
 
 @pytest.mark.parametrize("arm", [None, 5.0])
-def test_the_arms_hold_sets_on_the_stiffness_of_either_arm_and_releases_under_stiff_soft(tmp_path, arm):
+def test_the_arms_hold_sets_on_the_stiffness_of_either_arm_and_releases_under_stiff_soft(monkeypatch, tmp_path, arm):
     """The right arm's stiffness at STIFF_HARD sets the hold (a zombie at 4 tiles, beyond KEEP_R: the `strain` flee, why
     `strain` kind `arms` with both values); at 6 it holds, under STIFF_SOFT it releases and the fight goes (its leg
-    ended, so no `flip` keeps the flee)."""
+    ended, so no `flip` keeps the flee).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = make(tmp_path)
     fr(r, [z(1, 104.0)], arm, stiff(0.0, 20.0))
     tick(r, sv)

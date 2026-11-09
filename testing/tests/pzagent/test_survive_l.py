@@ -36,11 +36,14 @@ def test_the_strain_constants():
     assert P.TIRED_FIGHT_T == N.TIRED_T and S.Survive.STRAIN is True
 
 
-def test_a_stiffness_of_20_disengages_the_fight_and_the_hold_lasts_until_under_5(tmp_path):
+def test_a_stiffness_of_20_disengages_the_fight_and_the_hold_lasts_until_under_5(monkeypatch, tmp_path):
     """P24-AG as ruling P24-AT reads it (named change, Plan 24 Task 36: the hold reads the arms' stiffness, STIFF_HARD
     and STIFF_SOFT, no longer the pain): the running fight at a stiffness of 20 turns to the flee (reason `strain`,
     the why naming it, a steer at a run: the flee's legs as today); at 15 the hold keeps the flee; at 4.99 the hold
-    ends and the flee turns to fight the one held zombie again (its leg ended)."""
+    ends and the flee turns to fight the one held zombie again (its leg ended).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = fight_on(tmp_path, stiff=19.99)
     fr(r, None, [zombie(1, 104.0, 200.0)], stiff=20.0)
     a = tick(r, sv)
@@ -67,10 +70,13 @@ def test_arm_pain_between_the_lines_never_starts_the_hold(tmp_path):
     assert sv.mode == "fight" and not sv.strain_hold
 
 
-def test_no_new_engage_while_the_strain_hold_runs(tmp_path):
+def test_no_new_engage_while_the_strain_hold_runs(monkeypatch, tmp_path):
     """P24-AG: no new fight while the hold runs: a chasing zombie at 7 tiles (within ENGAGE_R, beyond DANGER_R) is
     not engaged and the goal runs; one at 4 tiles is fled `strain`. Once the stiffness reads under 5 the same 7-tile
-    zombie is engaged (P24-X). Named change, Task 36 (P24-AT): the hold set and held by the stiffness."""
+    zombie is engaged (P24-X). Named change, Task 36 (P24-AT): the hold set and held by the stiffness.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = make(tmp_path)
     fr(r, None, stiff=25.0)
     tick(r, sv)
@@ -89,11 +95,14 @@ def test_no_new_engage_while_the_strain_hold_runs(tmp_path):
 
 
 @pytest.mark.parametrize("endurance,spent", [(0.75, True), (0.7, True), (0.76, False)])
-def test_the_endurance_moodle_starts_no_fight_and_disengages(tmp_path, endurance, spent):
+def test_the_endurance_moodle_starts_no_fight_and_disengages(monkeypatch, tmp_path, endurance, spent):
     """P24-AG (#4371: the first ENDURANCE level halves every swing): at endurance 0.75 or under a zombie at 4 tiles is
     fled `strain` (kind `endurance`), none at 7 engaged; over it, fought. Named change, ruling P27-C (Plan 27 Task 1):
     the lone zombie at 4 tiles is the endurance hold's lone fight (`test_survive_aa`); pinned with `HOLD_LONE` off, the
-    rule before it."""
+    rule before it.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = make(tmp_path)
     sv.HOLD_LONE = False
     fr(r, None, [zombie(1, 104.0, 200.0)], endurance=endurance)
@@ -110,9 +119,12 @@ def test_the_endurance_moodle_starts_no_fight_and_disengages(tmp_path, endurance
     assert (sv2.mode is None) is spent
 
 
-def test_a_running_fight_disengages_at_the_endurance_moodle(tmp_path):
+def test_a_running_fight_disengages_at_the_endurance_moodle(monkeypatch, tmp_path):
     """Named change, ruling P27-C (Plan 27 Task 1): the lone zombie at 4 tiles is the endurance hold's lone fight
-    (`test_survive_aa`); pinned with `HOLD_LONE` off, the rule before it."""
+    (`test_survive_aa`); pinned with `HOLD_LONE` off, the rule before it.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = fight_on(tmp_path)
     sv.HOLD_LONE = False
     fr(r, None, [zombie(1, 104.0, 200.0)], endurance=0.74)
@@ -121,9 +133,12 @@ def test_a_running_fight_disengages_at_the_endurance_moodle(tmp_path):
 
 
 @pytest.mark.parametrize("fatigue,spent", [(0.6, True), (0.8, True), (0.59, False)])
-def test_the_tired_gate(tmp_path, fatigue, spent):
+def test_the_tired_gate(monkeypatch, tmp_path, fatigue, spent):
     """Ruling P24-AK (the guides' tired gate; #4371: the first TIRED level halves every swing): no sought or standing
-    fight at fatigue 0.6 or above: a zombie at 4 tiles is fled `strain` (kind `tired`), one at 7 not engaged."""
+    fight at fatigue 0.6 or above: a zombie at 4 tiles is fled `strain` (kind `tired`), one at 7 not engaged.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = make(tmp_path)
     fr(r, None, [zombie(1, 104.0, 200.0)], fatigue=fatigue)
     tick(r, sv)
@@ -160,11 +175,14 @@ def test_the_endurance_hold_is_released_only_above_0_80(tmp_path):
         assert held is False or sv.spent["kind"] == "endurance"
 
 
-def test_the_f1_sequence_holds_the_flee_through_gm_637(tmp_path):
+def test_the_f1_sequence_holds_the_flee_through_gm_637(monkeypatch, tmp_path):
     """The F1 record's three readings through the machine: a fight at 0.76, 0.747 flees `strain`, 0.753 keeps fleeing
     (no turn back for a swing), 0.740 still flees; 0.81 turns to fight again. Named change, ruling P27-C (Plan 27
     Task 1): the lone zombie at 4 tiles is the endurance hold's lone fight (`test_survive_aa`); pinned with
-    `HOLD_LONE` off, the rule before it."""
+    `HOLD_LONE` off, the rule before it.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = fight_on(tmp_path, endurance=0.76)
     sv.HOLD_LONE = False
     for e, mode in ((0.747, "flee"), (0.753, "flee"), (0.740, "flee"), (0.81, "fight")):
@@ -187,9 +205,12 @@ def test_an_older_frame_with_no_stiffness_ends_the_hold(tmp_path):
     assert not sv.strain_hold and sv.spent is None
 
 
-def test_a_walk_corner_yields_to_the_strain_after_health_and_a_many_episode(tmp_path):
+def test_a_walk_corner_yields_to_the_strain_after_health_and_a_many_episode(monkeypatch, tmp_path):
     """P24-AG: a spent character's `walk` corner yields (`strain`), as under the health flee; `health` and a running
-    `many` episode read first."""
+    `many` episode read first.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = make(tmp_path)
     fr(r, None, endurance=0.7)
     sv._read_spent()

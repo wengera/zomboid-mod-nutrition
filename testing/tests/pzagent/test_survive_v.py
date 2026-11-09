@@ -83,8 +83,11 @@ def test_a_standing_zombie_inside_keep_r_is_fought_first_and_the_downed_waits(tm
     assert "downed" not in w and "finish_first" not in w
 
 
-def test_a_standing_zombie_at_point_blank_is_shoved_first_as_before(tmp_path):
-    """P24-AL as before: a downed zombie within FIGHT_REACH and a standing one at point blank: the shove first."""
+def test_a_standing_zombie_at_point_blank_is_shoved_first_as_before(monkeypatch, tmp_path):
+    """P24-AL as before: a downed zombie within FIGHT_REACH and a standing one at point blank: the shove first.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `PAIR_NEAREST` off, the rule before it
+    ((b), with two within KEEP_R the nearer standing one the Fight's pin)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.PAIR_NEAREST", False)
     r, sv = make(tmp_path)
     r.frame(zombies=[z(1, 101.5, floor=True), z(2, 99.2)])
     a = tick(r, sv)
@@ -149,8 +152,11 @@ def test_the_pair_flee_yields_to_the_stomp_of_a_downed_zombie_within_finish_r(tm
     assert threat_why(tmp_path / "off")["flee"] == "pair" and a2.type != "stomp"
 
 
-def test_the_pair_flee_stands_with_a_standing_zombie_within_keep_r(tmp_path):
-    """No yield when a standing zombie is within KEEP_R (2.2 tiles): the `pair` flee as before."""
+def test_the_pair_flee_stands_with_a_standing_zombie_within_keep_r(monkeypatch, tmp_path):
+    """No yield when a standing zombie is within KEEP_R (2.2 tiles): the `pair` flee as before.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     r.frame(zombies=[z(1, 102.5, floor=True), z(2, 97.8)], health=50.0)
     tick(r, sv)
@@ -186,8 +192,11 @@ def test_the_a86_order_the_pair_flee_waits_out_the_knock_window_and_the_fallen_z
     all_sends_valid(r)
 
 
-def test_with_finish_far_off_the_a86_order_flees_pair_as_before(tmp_path):
-    """The switch off (`pre_t4`): the same order's tick in the knock window flees `pair`, as E12 did."""
+def test_with_finish_far_off_the_a86_order_flees_pair_as_before(monkeypatch, tmp_path):
+    """The switch off (`pre_t4`): the same order's tick in the knock window flees `pair`, as E12 did.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = shoved(tmp_path, [z(1, 100.49), A86], end=DOWN)
     sv.FINISH_FAR = False
     fr(r, [z(1, 101.8), A86], WOUND, NO_STIFF, health=50.0)
@@ -261,9 +270,12 @@ def test_a_stomp_the_fight_had_refused_lets_the_pair_flee_run(tmp_path):
     assert w["flee"] == "pair" and "pair_yield" not in w
 
 
-def test_pair_yield_is_never_logged_on_a_strain_line(tmp_path):
+def test_pair_yield_is_never_logged_on_a_strain_line(monkeypatch, tmp_path):
     """The review's minor 1: the yield's conditions (a fallen zombie 3 tiles off, a second at 5, health 50) under the
-    arms' hold with no zombie within KEEP_R: the `strain` flee answers, and `pair_yield` is not on its line."""
+    arms' hold with no zombie within KEEP_R: the `strain` flee answers, and `pair_yield` is not on its line.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = make(tmp_path)
     fr(r, [z(1, 103.0, floor=True), A86], 25.0, STIFF, health=50.0)
     tick(r, sv)

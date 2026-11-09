@@ -243,7 +243,10 @@ def test_a_stand_ended_drag_at_the_door_with_the_way_out_taken_holds_trapped_nev
 def test_with_no_way_out_the_trapped_hold_passes_the_tick_to_the_care(tmp_path, monkeypatch):
     """P25-Q's care on the end's trapped tick: a zombie outside nearer the door's outside square than the player
     refuses the way out; the wound end's tick holds trapped and the care bandages the new bleeding part.
-    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     from .test_survive_g import hold
     from .test_survive import last
@@ -545,12 +548,15 @@ def test_a_lone_refusal_still_logs_its_own_blocked_edge(tmp_path):
     assert w["blocked_edge"]["action"] == "refuse" and w["marked"] == 1
 
 
-def test_a_stand_s_way_out_that_ended_is_no_longer_the_stand_s_for_a_later_exit_of_the_same_flee(tmp_path):
+def test_a_stand_s_way_out_that_ended_is_no_longer_the_stand_s_for_a_later_exit_of_the_same_flee(monkeypatch, tmp_path):
     """Minor 3 (`Flee.walking_out`): the `inside` end walks out (the walk to the square beyond the approach square);
     once the player stands outside the exit ends and `walking_out` clears; a later exit the same Flee takes (the exit
     record of the first, standing in for the next room's) is not `stand_exit_running`, so the threat plan reads its rows
     (here the `many` flee's hold, the group episode kept), never the stale row (`("flee", "doorway")` ahead of the
-    corner and the drag guard)."""
+    corner and the drag guard).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     zs = [dz(4, 113.5, 200.5)] + EAST
     r, sv = stood(tmp_path)
     r.frame(x=POST[0], y=POST[1], zombies=zs)

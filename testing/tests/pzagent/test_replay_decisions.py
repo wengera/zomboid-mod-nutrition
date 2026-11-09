@@ -249,8 +249,20 @@ def pre_t14(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 30 Task 3 (survival iteration 24): its switches off
     (`survive.T14_SWITCHES`: SWING_CLOSE, ruling P30-A; GOAL_CONTINUE, P30-B; DOOR_HELD, P30-C; SNEAK, P30-D; STILL,
     P30-E; DRESS_RIDE, P30-F), but those named in `keep`; every seam onto an earlier rule reads them off
-    (`pre_t13`)."""
+    (`pre_t13`). Plan 32 Task 5: the coward rules' switches (`pre_t16`) off with them, so every seam onto an earlier
+    rule reads them off. (Plan 31 Task 15a's `T15_SWITCHES` and the Dress default move no golden,
+    `test_survive_ah.test_this_task_moves_no_golden`, so they have no seam here.)"""
     for name in S.T14_SWITCHES:
+        if name not in keep:
+            setattr(sv, name, False)
+    pre_t16(sv)
+
+
+def pre_t16(sv, keep=()):
+    """The replay's mutate seam onto the rules before Plan 32 Task 5 (the coward rules): its switches off
+    (`survive.T16_SWITCHES`: POINT_BLANK_FIGHT, (a); PAIR_NEAREST, (b); CARE_COMMIT, (c); STRAIN_BOUND, (d)), but those
+    named in `keep`; every seam onto an earlier rule reads them off (`pre_t14`)."""
+    for name in S.T16_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
 
@@ -379,10 +391,12 @@ def test_without_the_trailing_read_rule_f1_moves_at_line_498(monkeypatch):
     back to the sprint). Named change, ruling P29-G (Plan 29 Task 2): its `many` count over the standing within
     DANGER_R moves F1 from line 484, so the falsifier is read with `MANY_NEAR` off (the rule before it). Named change,
     ruling P30-C (Plan 30 Task 3): its `leave` at the gate moves F1's decisions from line 468, so `DOOR_HELD` is off
-    too."""
+    too. Named change, Plan 32 Task 5: the coward rules (`survive.T16_SWITCHES`) move F1 from line 519, so they are off
+    too (`pre_t16`)."""
     def off(sv):
         sv.MANY_NEAR = False
         sv.DOOR_HELD = False
+        pre_t16(sv)
     base = {d["line"]: d for d in R.run(run_dir("f1"), mutate=off)}
     monkeypatch.setattr(R._Acts, "ends_current", lambda self, got: False)
     moved = {d["line"]: d for d in R.run(run_dir("f1"), mutate=off)}
@@ -667,9 +681,10 @@ def no_group_retry(monkeypatch):
 def test_e5_line_241_the_point_blank_attack_goes_where_the_record_walked(monkeypatch):
     """P24-A (e) on E5's line 241: the cornered Fight's approach was due (two swings not started) with 19249 at 0.50
     tiles: the record walked to its square's centre; the attack goes, its swing running to the record's end (243).
-    Fix 1 (1) leaves that corner at 236 for its leg on the golden, so the line is read with it off."""
+    Fix 1 (1) leaves that corner at 236 for its leg on the golden, so the line is read with it off. Named change,
+    Plan 32 Task 5: read with the coward rules off (`pre_t16`; (a) moves E5 from line 222)."""
     no_group_retry(monkeypatch)
-    g = {d["line"]: d for d in R.run(run_dir("e5"))}
+    g = {d["line"]: d for d in R.run(run_dir("e5"), mutate=pre_t16)}
     assert g[241]["action"] == {"type": "attack", "args": {"targetId": 19249}} and g[241]["why"]["approach"] is False
     assert g[242]["why"]["holding"] == g[243]["why"]["holding"]
 
@@ -709,13 +724,14 @@ def test_e5_line_242_with_the_approach_walk_the_pin_within_point_blank_holds(mon
     """P24-A (d) on E5, where the golden cannot show it ((e)'s attack at 241 still swings at 242 and the record ends
     at 243): with (e) off the approach walk goes at 241 as recorded, and at 242 19248 stands at 0.51 tiles, nearer
     than the pin 19249 at 0.54, itself within POINT_BLANK_R: the pin holds; with (d) off too, the re-pin to 19248.
-    Fix 1 (2): 0.03 nearer, under REPIN_MARGIN, it holds as well. Read with fix 1 (1) off (`no_group_retry`)."""
+    Fix 1 (2): 0.03 nearer, under REPIN_MARGIN, it holds as well. Read with fix 1 (1) off (`no_group_retry`). Named
+    change, Plan 32 Task 5: read with the coward rules off (`pre_t16`; (a) moves E5 from line 222, (b) from 233)."""
     no_group_retry(monkeypatch)
     point_blank_walk(monkeypatch)
-    held = {d["line"]: d for d in R.run(run_dir("e5"))}
+    held = {d["line"]: d for d in R.run(run_dir("e5"), mutate=pre_t16)}
     assert held[241]["action"]["type"] == "walkTo" and held[242]["why"]["target"] == 19249
     repin_any(monkeypatch)
-    moved = {d["line"]: d for d in R.run(run_dir("e5"))}
+    moved = {d["line"]: d for d in R.run(run_dir("e5"), mutate=pre_t16)}
     diff = [k for k in sorted(set(held) | set(moved)) if held.get(k) != moved.get(k)]
     assert diff[0] == 242 and moved[242]["why"]["target"] == 19248
 
@@ -2270,8 +2286,9 @@ def test_iteration_24_moves_the_goldens_at_the_door_held_read(key):
       flee waits on one. STILL
       (P30-E) moves none: its read is only of a held zombie beyond the swing's reach (F1's and the sixth's line 481
       read 15910 steady at 1.060106611108762 tiles, inside it, while the Fight walked at 15885).
-    A golden no switch moves is its file before iteration 24 byte for byte."""
-    base, got = pre_t14_gold(key), gold(key)
+    A golden no switch moves is its file before iteration 24 byte for byte. Named change, Plan 32 Task 5: read against
+    the goldens with the coward rules off (`pre_t16_gold`), which re-recorded the six."""
+    base, got = pre_t14_gold(key), pre_t16_gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
     assert diff[0] == min(FIRST_T14[key].values())
     for switch in S.T14_SWITCHES:
@@ -2284,3 +2301,84 @@ def test_iteration_24_moves_the_goldens_at_the_door_held_read(key):
     acted = [k for k in diff if base[k]["action"] != got[k]["action"] or base[k]["branch"] != got[k]["branch"]]
     assert acted == ACTED_T14[key]
     assert all("door_held" not in base[k]["why"] for k in diff)
+
+
+# ================================================================ Plan 32 Task 5: the coward rules on the goldens
+@functools.lru_cache(maxsize=6)
+def _pre_t16_replayed(key):
+    return json.dumps(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key), mutate=pre_t16), sort_keys=True)
+
+
+def pre_t16_gold(key):
+    """{line: decision} of the replay with the coward rules off: the golden before its re-record."""
+    return {d["line"]: d for d in R.decisions(json.loads(_pre_t16_replayed(key)))}
+
+
+# the goldens as they stood before the coward rules re-recorded them (Plan 32 Task 5, head 8b632ee5, the files of
+# `9587540f`): sha256, base, recorded
+PRE_T16 = {"e2": ("f4e37bc0632dd4504aad26daf2e3675fddc29137ab1dc5a7c70ffc882c355173", "f299f985", "2026-11-05"),
+           "e3": ("2949482e8ac5f1c1b8ea971f81e6596b08de0919f2ac44e2dfb4182085b5bfaf", "f299f985", "2026-11-05"),
+           "e4": ("3d22242618dfd3da864ada19cb74a1cf3793c0e273fe3ac0b7c552d144ad5843", "f299f985", "2026-11-05"),
+           "e5": ("85a1cce564454073c504c2c373f5b1decef0937598f94fb195ad411fd071967b", "f299f985", "2026-11-05"),
+           "f1": ("a2d2fc5a6a2fbb2171f3de6b4aa0e821464f6e0861dde4a8c7a5523726437856", "f299f985", "2026-11-05"),
+           SIXTH: ("dcaf7a2389409efcf4ddbcf312da40a37ee283080cea0a209159a3942b5249ec", "f299f985", "2026-11-05")}
+# the first line each coward rule moves, alone on, on each golden it moves (CARE_COMMIT moves none: no golden's frames
+# carry a part the care dresses under a held threat)
+FIRST_T16 = {"e2": {"POINT_BLANK_FIGHT": 181, "PAIR_NEAREST": 193},
+             "e3": {"POINT_BLANK_FIGHT": 257, "PAIR_NEAREST": 260},
+             "e4": {"POINT_BLANK_FIGHT": 446, "PAIR_NEAREST": 450, "STRAIN_BOUND": 423},
+             "e5": {"POINT_BLANK_FIGHT": 222, "PAIR_NEAREST": 233},
+             "f1": {"POINT_BLANK_FIGHT": 519, "PAIR_NEAREST": 568, "STRAIN_BOUND": 557},
+             SIXTH: {"POINT_BLANK_FIGHT": 520, "PAIR_NEAREST": 568, "STRAIN_BOUND": 557}}
+# the why each rule logs on the first line it moves alone
+WHY_T16 = {"POINT_BLANK_FIGHT": "point_blank_fight", "PAIR_NEAREST": "pair_nearest", "STRAIN_BOUND": "strain_bound"}
+# every line on each golden whose decision (branch or action) the four rules move together
+ACTED_T16 = {"e2": [206, 210, 211],
+             "e3": [257, 260, 263, 265, 268, 271, 272, 273, 276, 278, 281, 284],
+             "e4": [424, 431, 438, 442, 447, 450, 452, 454, 457, 460, 462, 465, 468, 471, 474, 477, 480, 483, 485, 486,
+                    489, 491, 492, 494, 498, 499, 504, 506, 511, 513, 518, 519, 525, 526, 531, 533, 538, 539, 545, 546,
+                    552, 558, 565, 571],
+             "e5": [222, 224, 225, 226, 229, 231, 236, 239, 242],
+             "f1": [519, 520, 521, 525, 528, 532, 535, 536, 537, 541, 542, 543, 557, 559, 607, 610, 612, 614],
+             SIXTH: [520, 525, 526, 527, 557, 558, 568, 569, 572, 573, 575, 576, 589, 590, 591, 592, 593, 594, 596, 597,
+                     599, 600, 603, 604, 607, 609, 610, 612, 614]}
+
+
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_with_the_coward_rules_off_the_goldens_are_plan_31_s(key):
+    """The coward rules' golden movers are `survive.T16_SWITCHES`: with them off (`pre_t16`) each golden is the file as
+    it stood before their re-record byte for byte (its sha256 pinned, `PRE_T16`)."""
+    sha, base, recorded = PRE_T16[key]
+    text = R.golden_text(R.decisions(json.loads(_pre_t16_replayed(key))), base, R.RUNS[key], recorded,
+                         R.SPANS.get(key), R.HELLO_CAPS.get(key))
+    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == sha
+
+
+@pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
+def test_the_coward_rules_move_the_goldens_at_their_lines(key):
+    """Named change `Plan 32 Task 5: the coward rules on by default`, each switch alone on against the goldens before it
+    (`pre_t16_gold`):
+    - POINT_BLANK_FIGHT ((a): a standing zombie within KEEP_R fought whatever the flee reason) moves all six, each first
+      at its first flee read with one standing within KEEP_R: E2 line 181, E3 257, E4 446, E5 222, F1 519, the sixth
+      520, each logging `point_blank_fight`.
+    - PAIR_NEAREST ((b): two within KEEP_R, the nearer standing one the pin) moves all six: E2 193, E3 260, E4 450, E5
+      233, F1 and the sixth 568, each logging `pair_nearest`.
+    - STRAIN_BOUND ((d): the `strain` flee only at the moodle's second level) moves E4 from 423 and F1 and the sixth from
+      557 (their endurance holds at the moodle's first level), each logging `strain_bound`; E2, E3 and E5 read no hold.
+    - CARE_COMMIT ((c)) moves none: no golden's frames carry a part the care dresses under a held threat (E2 to E5's
+      hellos announce no `bandage`, F1's parts decode no `bleeding` or `wound`).
+    The four together move each golden first at the least of those lines, every later moved line downstream (open
+    loop); the acted lines (branch or action moved) are `ACTED_T16`."""
+    base, got = pre_t16_gold(key), gold(key)
+    diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
+    assert diff[0] == min(FIRST_T16[key].values())
+    for switch in S.T16_SWITCHES:
+        alone = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
+                                                             mutate=lambda sv: pre_t16(sv, keep=(switch,))))}
+        moved = [k for k in sorted(set(base) | set(alone)) if base.get(k) != alone.get(k)]
+        first = moved[0] if moved else None
+        assert first == FIRST_T16[key].get(switch), switch
+        if first is not None:
+            assert WHY_T16[switch] in alone[first]["why"] and WHY_T16[switch] not in base[first]["why"], switch
+    acted = [k for k in diff if base[k]["action"] != got[k]["action"] or base[k]["branch"] != got[k]["branch"]]
+    assert acted == ACTED_T16[key]

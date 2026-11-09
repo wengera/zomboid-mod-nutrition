@@ -58,10 +58,13 @@ def e18_1649(standing_at=(100.0, 204.5)):
     return [z(30744, 100.0 + FALLEN_D, floor=True), z(30738, *standing_at), z(30735, 91.0)]
 
 
-def test_e18_s_30744_knocked_down_under_the_strain_flee_is_stomped(tmp_path):
+def test_e18_s_30744_knocked_down_under_the_strain_flee_is_stomped(monkeypatch, tmp_path):
     """E18's line 1649 (the `strain` flee ran from 30744, fallen 2.5339841792960844 tiles off, no stomp sent): the
     flee's first answer is the stomp, the Flee's own action, logged `finish` and `flee_finish` {reason strain, struck
-    False (no swing of this planner's struck it), clear 4.5}; the steer follows on the next tick."""
+    False (no swing of this planner's struck it), clear 4.5}; the steer follows on the next tick.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = make(tmp_path)
     fr(r, e18_1649(), endurance=HOLD_E)
     a = tick(r, sv)
@@ -75,9 +78,12 @@ def test_e18_s_30744_knocked_down_under_the_strain_flee_is_stomped(tmp_path):
 
 
 @pytest.mark.parametrize("dist, want", [(2.9, "steer"), (3.1, "stomp")])
-def test_a_standing_zombie_within_finish_clear_r_of_the_character_refuses_the_finish(tmp_path, dist, want):
+def test_a_standing_zombie_within_finish_clear_r_of_the_character_refuses_the_finish(monkeypatch, tmp_path, dist, want):
     """The same geometry with the standing zombie 2.9 tiles north (within FINISH_CLEAR_R): the flee runs, no finish;
-    at 3.1 the stomp goes."""
+    at 3.1 the stomp goes.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = make(tmp_path)
     fr(r, e18_1649((100.0, 200.0 + dist)), endurance=HOLD_E)
     a = tick(r, sv)
@@ -86,9 +92,12 @@ def test_a_standing_zombie_within_finish_clear_r_of_the_character_refuses_the_fi
     assert ("finish" in w) is (want == "stomp")
 
 
-def test_a_chaser_within_finish_clear_r_of_the_fallen_one_refuses_the_finish(tmp_path):
+def test_a_chaser_within_finish_clear_r_of_the_fallen_one_refuses_the_finish(monkeypatch, tmp_path):
     """A chaser standing 2.9 tiles east of the fallen one (5.43 from the character): `finish_block` {target, chaser},
-    the flee as today."""
+    the flee as today.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = make(tmp_path)
     zs = [z(30744, 100.0 + FALLEN_D, floor=True), z(30738, 100.0 + FALLEN_D + 2.9), z(30735, 91.0)]
     fr(r, zs, endurance=HOLD_E)
@@ -167,7 +176,10 @@ def test_the_flee_finish_logs_the_tick_s_own_flee_reason(tmp_path, monkeypatch):
     `strain` tick logs `flee_finish` reason "strain"; a tick of a `many` episode that now reads `unarmed` (the weapon
     gone) logs "unarmed", not "many".
     Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
-    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    replaces the reads this case pins; pinned with `MANY_NEAR` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     r, sv = make(tmp_path)
     fr(r, e18_1649(), endurance=HOLD_E)
@@ -185,9 +197,12 @@ def test_the_flee_finish_logs_the_tick_s_own_flee_reason(tmp_path, monkeypatch):
     assert w["flee"] == "unarmed" and w["flee_finish"]["reason"] == "unarmed"
 
 
-def test_the_pair_flee_s_finish_is_the_flee_finish_logged_pair(tmp_path):
+def test_the_pair_flee_s_finish_is_the_flee_finish_logged_pair(monkeypatch, tmp_path):
     """A running `pair` flee (health 55, two within DANGER_R) whose nearer zombie falls 2.5 tiles off with the other 4.5
-    off: the stomp, logged `flee_finish` {reason pair} with `pair_yield`."""
+    off: the stomp, logged `flee_finish` {reason pair} with `pair_yield`.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     fr(r, [z(1, 102.5), z(2, 100.0, 204.5)], health=55.0)
     assert tick(r, sv).type == "steer" and threat_why(tmp_path)["flee"] == "pair"
@@ -209,7 +224,10 @@ def test_the_old_sessions_replays_stomp_the_fallen_their_flees_left(monkeypatch)
     Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
     replaces the reads this case pins; pinned with `MANY_NEAR` off.
     Named change, ruling P29-F (Plan 29 Task 2): the running Fight's finish of its lone fallen pin is kept over
-    the flee this case reads; pinned with `FINISH_LONE` off."""
+    the flee this case reads; pinned with `FINISH_LONE` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.FINISH_LONE", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     from .test_survive_o import e9_lines
@@ -312,9 +330,12 @@ def test_e18_s_hold_with_one_zombie_at_4_tiles_is_the_hold_fight(tmp_path):
 
 
 @pytest.mark.parametrize("second", [z(2, 91.0), z(2, 100.0, 205.0, has_target=False)])
-def test_a_second_chaser_listed_or_a_second_within_danger_r_flees_strain(tmp_path, second):
+def test_a_second_chaser_listed_or_a_second_within_danger_r_flees_strain(monkeypatch, tmp_path, second):
     """A second chaser 9 tiles off (listed within LISTED_R), or a second zombie standing within DANGER_R: the `strain`
-    flee as before."""
+    flee as before.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = make(tmp_path)
     fr(r, [z(1, 104.0), second], endurance=HOLD_E)
     a = tick(r, sv)
@@ -322,9 +343,12 @@ def test_a_second_chaser_listed_or_a_second_within_danger_r_flees_strain(tmp_pat
     assert a.type == "steer" and w["flee"] == "strain" and "hold_fight" not in w
 
 
-def test_the_arms_hold_and_the_endurance_hold_under_flee_health_pair_flee_strain(tmp_path):
+def test_the_arms_hold_and_the_endurance_hold_under_flee_health_pair_flee_strain(monkeypatch, tmp_path):
     """The arms' hold (a stiffness of 25) with the same lone zombie: `strain`; the endurance hold at health 55 (under
-    FLEE_HEALTH_PAIR): `strain`."""
+    FLEE_HEALTH_PAIR): `strain`.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = make(tmp_path)
     fr(r, [z(1, 104.0)], 25.0, STIFF)
     assert tick(r, sv).type == "steer" and threat_why(tmp_path)["flee"] == "strain"
@@ -334,9 +358,12 @@ def test_the_arms_hold_and_the_endurance_hold_under_flee_health_pair_flee_strain
     assert tick(r2, sv2).type == "steer" and threat_why(tmp_path / "low")["flee"] == "strain"
 
 
-def test_with_hold_lone_off_the_lone_zombie_is_fled_strain(tmp_path):
+def test_with_hold_lone_off_the_lone_zombie_is_fled_strain(monkeypatch, tmp_path):
     """`test_e18_s_hold_with_one_zombie_at_4_tiles_is_the_hold_fight`'s geometry (one zombie 4 tiles off, the endurance
-    hold) with `HOLD_LONE` off: the `strain` flee as before."""
+    hold) with `HOLD_LONE` off: the `strain` flee as before.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = make(tmp_path)
     sv.HOLD_LONE = False
     fr(r, [z(1, 104.0)], endurance=HOLD_E)
@@ -359,10 +386,13 @@ def strain_run(tmp_path):
     return r, sv
 
 
-def test_the_hold_with_no_chaser_listed_rests(tmp_path):
+def test_the_hold_with_no_chaser_listed_rests(monkeypatch, tmp_path):
     """E18's hold walked on 158 of its 271 `strain` lines, `inputs.threats` 0 on 213: with the two listed 8 and 9
     tiles off and idle (`hasTarget` false) the flee sends nothing, logged `rest` {endurance, since_min 0.0}; a game
-    minute on it rests on (`since_min` 1.0)."""
+    minute on it rests on (`since_min` 1.0).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = strain_run(tmp_path)
     n = len(r.acts.history)
     fr(r, [z(1, 108.0, has_target=False), IDLE2], endurance=HOLD_E)
@@ -375,8 +405,11 @@ def test_the_hold_with_no_chaser_listed_rests(tmp_path):
     assert tick(r, sv) is None and threat_why(tmp_path)["rest"]["since_min"] == pytest.approx(1.0)
 
 
-def test_a_chaser_listed_10_tiles_off_restores_the_walk(tmp_path):
-    """One chaser 10 tiles off (within LISTED_R): P25-C's walk, logged `hold_walk`, no `rest`."""
+def test_a_chaser_listed_10_tiles_off_restores_the_walk(monkeypatch, tmp_path):
+    """One chaser 10 tiles off (within LISTED_R): P25-C's walk, logged `hold_walk`, no `rest`.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = strain_run(tmp_path)
     fr(r, [z(1, 110.0), IDLE2], endurance=HOLD_E)
     a = tick(r, sv)
@@ -384,8 +417,11 @@ def test_a_chaser_listed_10_tiles_off_restores_the_walk(tmp_path):
     assert a.type == "steer" and a.args["gait"] == "walk" and w["hold_walk"] is True and "rest" not in w
 
 
-def test_a_zombie_within_danger_r_runs(tmp_path):
-    """Two within DANGER_R again: the run (the running leg ended), no `rest`."""
+def test_a_zombie_within_danger_r_runs(monkeypatch, tmp_path):
+    """Two within DANGER_R again: the run (the running leg ended), no `rest`.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = strain_run(tmp_path)
     fr(r, [z(1, 105.0), z(2, 100.0, 205.0)], endurance=HOLD_E)
     a = tick(r, sv)
@@ -393,9 +429,12 @@ def test_a_zombie_within_danger_r_runs(tmp_path):
     assert a.type == "steer" and a.args["gait"] == "run" and "rest" not in w and w["flee"] == "strain"
 
 
-def test_with_hold_rest_off_the_hold_walks(tmp_path):
+def test_with_hold_rest_off_the_hold_walks(monkeypatch, tmp_path):
     """`strain_run`'s hold with the two idle zombies listed 8 and 9 tiles off (the rest test's geometry) and `HOLD_REST`
-    off: P25-C's walk, no `rest`."""
+    off: P25-C's walk, no `rest`.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = strain_run(tmp_path)
     sv.HOLD_REST = False
     fr(r, [z(1, 108.0, has_target=False), IDLE2], endurance=HOLD_E)
@@ -416,7 +455,10 @@ def rest_tick(r, sv, minute):
 def test_a_rest_run_broken_by_a_hold_or_doorway_decision_restarts_since_min(tmp_path, monkeypatch, kind):
     """Review minor 4 (the rest of `test_the_hold_with_no_chaser_listed_rests`): a rest tick, a tick the threat plan
     answers `hold` (held inside) or `doorway` (the stand) is not the rest, so `rest_from` is reset and the next rest
-    tick, a game minute later, reads `since_min` 0.0 (not 1.0)."""
+    tick, a game minute later, reads `since_min` 0.0 (not 1.0).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = strain_run(tmp_path)
     assert rest_tick(r, sv, 480.0) == 0.0 and sv.rest_from is not None
     plan = sv._threat_plan
@@ -432,8 +474,13 @@ def test_a_rest_run_broken_by_a_hold_or_doorway_decision_restarts_since_min(tmp_
 
 def test_a_care_yield_between_two_rest_ticks_keeps_the_rest_counting(tmp_path, monkeypatch):
     """Review minor 4, ruling P27-2b: a tick yielded to the care (a bandage sent standing still) continues the rest:
-    `rest_from` is kept and the next rest tick, a game minute after the first, reads `since_min` 1.0."""
+    `rest_from` is kept and the next rest tick, a game minute after the first, reads `since_min` 1.0.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level), on the class for `strain_run` and on the
+    Survive after it (the case's own `monkeypatch.undo()` lifts the class's)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = strain_run(tmp_path)
+    sv.STRAIN_BOUND = False
     assert rest_tick(r, sv, 480.0) == 0.0
     monkeypatch.setattr(sv, "_care_yields", lambda held: 9.0)
     r.advance(0.5)

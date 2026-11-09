@@ -291,10 +291,13 @@ def test_a_superseded_climb_is_sent_again(tmp_path):
     assert [a.type for a in r.acts.history] == ["window", "window"]
 
 
-def test_e16_s_trapped_group_walks_out_by_the_window_and_with_the_switch_off_holds_trapped(tmp_path):
+def test_e16_s_trapped_group_walks_out_by_the_window_and_with_the_switch_off_holds_trapped(monkeypatch, tmp_path):
     """Survive on line 469's frame (no stand running): the group within the hold (`group` hold) on a room square;
     with a way out known (the window) the room is no trap, so the flee walks to the window; off (`WINDOW_EXIT`), the
-    trapped hold E16 read."""
+    trapped hold E16 read.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     for on in (True, False):
         d = tmp_path / str(on)
         d.mkdir()
@@ -493,10 +496,13 @@ def test_attackers_count_toward_the_crowd_and_no_other_corner_reads_one(tmp_path
     assert sv._inside_crowd() is None
 
 
-def test_a_fallen_one_in_reach_is_stomped_first(tmp_path):
+def test_a_fallen_one_in_reach_is_stomped_first(monkeypatch, tmp_path):
     """Both of a109's zombies on the floor: the finish names the nearest, so the stomp goes before any shove, logged
     `corner` {kind inside, send stomp, near_n 2}. With a standing one at point blank beside the fallen, the finish's own
-    order shoves the standing one first (P24-AL's `shove` "first"), the send logged a shove."""
+    order shoves the standing one first (P24-AL's `shove` "first"), the send logged a shove.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `PAIR_NEAREST` off, the rule before it
+    ((b), with two within KEEP_R the nearer standing one the Fight's pin)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.PAIR_NEAREST", False)
     r, sv, w = corner_tick(tmp_path, E16_478, floor=(24160, 24134))
     assert r.cmd() == ("stomp", {"targetId": 24160})
     assert w["corner"] == {"kind": "inside", "send": "stomp", "near_n": 2}
@@ -552,11 +558,17 @@ def bleed_flee(tmp_path, bleed=True, kind="pair", at_1660=True):
 
 
 @pytest.mark.parametrize("kind", ["pair", "held"])
-def test_f7_s_line_1660_rides_the_bandage_on_the_pair_and_held_flee_s_leg(tmp_path, kind):
+def test_f7_s_line_1660_rides_the_bandage_on_the_pair_and_held_flee_s_leg(monkeypatch, tmp_path, kind):
     """F7 line 1660's geometry with a dressing held: the chaser at 5.218586445147157 tiles (under RIDE_R, so P24-U's
     ride was refused) is beyond RIDE_MANY_R, so a `pair` flee's leg (F7's line 1656 to 1658) or a `held` one (its line
     1659 to 1661, the decision line 1660 names) rides the bleed as a `many` leg would: the care sends the rag on part
-    2 with keepMoving, logged `care_yield` {why bleed, near}. A bleed leg of `("pair",)` alone fails the `held` case."""
+    2 with keepMoving, logged `care_yield` {why bleed, near}. A bleed leg of `("pair",)` alone fails the `held` case.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with the four off (`survive.T16_SWITCHES`),
+    the rules before them."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.PAIR_NEAREST", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = bleed_flee(tmp_path, kind=kind)
     w = threat_why(tmp_path)
     assert last(tmp_path)["branch"] == "care" and r.cmd() == ("bandage", {"itemId": 10, "part": 2, "keepMoving": True})
@@ -565,10 +577,13 @@ def test_f7_s_line_1660_rides_the_bandage_on_the_pair_and_held_flee_s_leg(tmp_pa
     assert w["care_yield"]["near"] == pytest.approx(5.218586445147157)
 
 
-def test_the_bleed_leg_reads_the_distance_rule_alone_never_the_many_episode_s_clock(tmp_path):
+def test_the_bleed_leg_reads_the_distance_rule_alone_never_the_many_episode_s_clock(monkeypatch, tmp_path):
     """Ruling P26-7e: a `held` leg with `many_since` set long ago (past FLEE_CARE_S) and two parts bleeding
     (FLEE_CARE_N) does not ride with the nearest within RIDE_MANY_R: `_rides_many`'s clock clause is the `many`
-    episode's. At 2.5 tiles from the nearest (F7's line 1658 geometry) the threat branch answers, no bandage."""
+    episode's. At 2.5 tiles from the nearest (F7's line 1658 geometry) the threat branch answers, no bandage.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = bleed_flee(tmp_path, kind="held", at_1660=False)
     sv.many_since = r.clock() - 10 * FLEE_CARE_S
     me = F7_1655
@@ -579,7 +594,13 @@ def test_the_bleed_leg_reads_the_distance_rule_alone_never_the_many_episode_s_cl
     assert not any(a.type == "bandage" for a in r.acts.history)
 
 
-def test_with_the_switch_off_line_1660_holds_the_threat_branch_as_f7_did(tmp_path):
+def test_with_the_switch_off_line_1660_holds_the_threat_branch_as_f7_did(monkeypatch, tmp_path):
+    """Named change, Plan 32 Task 5 (the coward rules on by default): pinned with the four off (`survive.T16_SWITCHES`),
+    the rules before them."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.PAIR_NEAREST", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = bleed_flee(tmp_path, bleed=False)
     assert last(tmp_path)["branch"] == "threat" and not any(a.type == "bandage" for a in r.acts.history)
 
@@ -613,7 +634,10 @@ def test_a_closing_chaser_beyond_fight_reach_leaves_room_for_the_bandage(tmp_pat
     """One chaser closing from 4.5 tiles (P24-P's closing read refuses it): on the Fight's second tick nothing within
     FIGHT_REACH, the nearest beyond POINT_BLANK_R, a dressing held: the bandage (standing), logged `care_yield`; with
     the switch off the threat branch as before.
-    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     r, sv = fight_ticks(tmp_path, 4.5)
     assert last(tmp_path)["branch"] == "care" and r.cmd() == ("bandage", {"itemId": 10, "part": 2})
@@ -624,11 +648,14 @@ def test_a_closing_chaser_beyond_fight_reach_leaves_room_for_the_bandage(tmp_pat
     assert last(d)["branch"] == "threat" and not any(a.type == "bandage" for a in r.acts.history)
 
 
-def test_the_bleed_s_room_takes_a_dressing_never_a_rip(tmp_path):
+def test_the_bleed_s_room_takes_a_dressing_never_a_rip(monkeypatch, tmp_path):
     """F7's own state: no clean dressing held (its rags dirty under DIRTY_RAG_MIN), a cotton garment to rip: the
     bleeding step's send would be the rip (`tends_wound`), which the bleed's yield never takes on a tick P24-P
     refuses. Named change, ruling P27-K1 (Plan 27 Task 5): pinned with `STOCK_EARLY` off (on, the yield takes the
-    wound's rip as a dressing: `test_survive_ab`)."""
+    wound's rip as a dressing: `test_survive_ab`).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv = fight_ticks(tmp_path, 4.5, items=(("Base.Tshirt_WhiteTINT", 11),), stock_early=False)
     assert sv.care.tends_wound() and not sv.care.dresses_wound()
     assert last(tmp_path)["branch"] == "threat" and not any(a.type in ("bandage", "rip") for a in r.acts.history)

@@ -289,9 +289,12 @@ def strain_flee(tmp_path, endurance=0.7267035841941833):
     return r, sv
 
 
-def test_under_the_endurance_hold_the_strain_flee_walks_with_no_zombie_within_danger_r(tmp_path):
+def test_under_the_endurance_hold_the_strain_flee_walks_with_no_zombie_within_danger_r(monkeypatch, tmp_path):
     """F3's strain lines with the nearest 7.04 to 8.16 tiles off (lines 699-702, #4415): the flee's next leg goes at a
-    walk, logged `hold_walk`; a zombie back within DANGER_R (line 703: 4.21 tiles) drops the walking leg and runs."""
+    walk, logged `hold_walk`; a zombie back within DANGER_R (line 703: 4.21 tiles) drops the walking leg and runs.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = strain_flee(tmp_path)
     r.frame(zombies=[z(1, 108.0)], endurance=0.7256643176078796)
     a = tick(r, sv)
@@ -304,7 +307,10 @@ def test_under_the_endurance_hold_the_strain_flee_walks_with_no_zombie_within_da
     assert a is not None and a.type == "steer" and a.args["gait"] == "run" and "hold_walk" not in threat_why(tmp_path)
 
 
-def test_with_hold_run_off_the_strain_flee_runs(tmp_path):
+def test_with_hold_run_off_the_strain_flee_runs(monkeypatch, tmp_path):
+    """Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = strain_flee(tmp_path)
     sv.HOLD_RUN = False
     r.frame(zombies=[z(1, 108.0)], endurance=0.7256643176078796)
@@ -376,19 +382,25 @@ def test_after_a_timed_release_the_hold_sets_again_only_under_the_released_readi
         assert sv.endurance_hold is held, e
 
 
-def test_the_release_above_endurance_release_stands_as_before(tmp_path):
+def test_the_release_above_endurance_release_stands_as_before(monkeypatch, tmp_path):
+    """Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = strain_flee(tmp_path)
     r.frame(zombies=[z(1, 108.0)], endurance=0.81)
     tick(r, sv)
     assert not sv.endurance_hold and sv.spent is None
 
 
-def test_a_shelter_step_sent_at_a_walk_runs_once_a_zombie_comes_within_danger_r(tmp_path):
+def test_a_shelter_step_sent_at_a_walk_runs_once_a_zombie_comes_within_danger_r(monkeypatch, tmp_path):
     """Review-t3 finding 3 (every flee reason may take a shelter, and `gait` is the gait of every leg and walk): under the
     endurance hold with the nearest 6.5 tiles off the strain flee's shelter step (the enter) goes at a walk; with the
     zombie at 4.5 the running walk is dropped and sent again at a run (not only the steer leg). Named change, ruling
     P27-C (Plan 27 Task 1): the lone zombie within DANGER_R is the endurance hold's lone fight (`test_survive_aa`);
-    pinned with `HOLD_LONE` off, the rule before it."""
+    pinned with `HOLD_LONE` off, the rule before it.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     from .test_night import CLOSED, OPEN
     from .test_survive import shelter_world
 

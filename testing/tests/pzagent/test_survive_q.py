@@ -123,7 +123,10 @@ def test_a_corner_at_strain_hard_backpedals_and_without_the_stance_holds(tmp_pat
             assert a is None and f.why["hold"] is True
 
 
-def test_beyond_keep_r_the_arms_hold_still_flees_strain(tmp_path):
+def test_beyond_keep_r_the_arms_hold_still_flees_strain(monkeypatch, tmp_path):
+    """Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = make(tmp_path)
     fr(r, [z(1, 104.0)], 25.0, STIFF)   # named change, Task 36 (P24-AT): the hold on the stiffness
     tick(r, sv)
@@ -132,7 +135,7 @@ def test_beyond_keep_r_the_arms_hold_still_flees_strain(tmp_path):
 
 @pytest.mark.parametrize("arm", [25.0, None])
 @pytest.mark.parametrize("k", [{"endurance": 0.7}, {"fatigue": 0.7}])
-def test_the_endurance_or_tired_hold_fights_within_keep_r_shove_then_stomp_never_the_swing(tmp_path, k, arm):
+def test_the_endurance_or_tired_hold_fights_within_keep_r_shove_then_stomp_never_the_swing(monkeypatch, tmp_path, k, arm):
     """Ruling R2 (named change, Task 32 fix 1; the review's major 4: E9's endurance hold from game minute 617 put the
     `strain` flee back on with a zombie at 0.5 tiles): the endurance or the tired hold, with the arms' or alone,
     fights a zombie within KEEP_R as the arms' hold does: the backpedal at 2.0 tiles (never the swing), the shove at
@@ -143,7 +146,13 @@ def test_the_endurance_or_tired_hold_fights_within_keep_r_shove_then_stomp_never
     ruling P27-C (Plan 27 Task 1): the endurance hold's lone zombie is the hold fight (`shove` "hold",
     `test_survive_aa`); pinned with `HOLD_LONE` off, the rule before it.
     Named change, ruling P28-B2 (Plan 28 Task 3): pinned with `SHOVE_BACK` off, the rule before it (the shove again
-    after a missed shove, where the back leg goes now: `test_survive_ac`)."""
+    after a missed shove, where the back leg goes now: `test_survive_ac`).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with the four off (`survive.T16_SWITCHES`),
+    the rules before them."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.PAIR_NEAREST", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = make(tmp_path)
     sv.HOLD_LONE = False
     sv.SHOVE_BACK = False
@@ -179,10 +188,13 @@ def test_the_endurance_or_tired_hold_fights_within_keep_r_shove_then_stomp_never
 
 
 @pytest.mark.parametrize("k", [{"endurance": 0.7}, {"fatigue": 0.7}])
-def test_beyond_keep_r_the_endurance_or_tired_hold_still_flees_strain(tmp_path, k):
+def test_beyond_keep_r_the_endurance_or_tired_hold_still_flees_strain(monkeypatch, tmp_path, k):
     """R2's exemption is within KEEP_R only: at 4 tiles the hold flees `strain` as before (the release lines govern the
     seeking, never a zombie at point blank). Named change, ruling P27-C (Plan 27 Task 1): the endurance hold's lone
-    zombie is the hold fight (`test_survive_aa`); pinned with `HOLD_LONE` off, the rule before it."""
+    zombie is the hold fight (`test_survive_aa`); pinned with `HOLD_LONE` off, the rule before it.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = make(tmp_path)
     sv.HOLD_LONE = False
     fr(r, [z(1, 104.0)], None, **k)
@@ -190,9 +202,12 @@ def test_beyond_keep_r_the_endurance_or_tired_hold_still_flees_strain(tmp_path, 
     assert sv.mode == "flee" and threat_why(tmp_path)["flee"] == "strain"
 
 
-def test_the_hold_s_why_carries_the_stiffness_beside_the_pain(tmp_path):
+def test_the_hold_s_why_carries_the_stiffness_beside_the_pain(monkeypatch, tmp_path):
     """`body.strain` (#4369) is logged beside the pain in the hold's why when the frame carries it (named change, Task
-    36: P24-AT's hold is set by it, here the right arm's 21.5)."""
+    36: P24-AT's hold is set by it, here the right arm's 21.5).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = make(tmp_path)
     fr(r, [z(1, 104.0)], 25.0, strain={"l": 0.0, "r": 21.5})
     tick(r, sv)
@@ -201,9 +216,12 @@ def test_the_hold_s_why_carries_the_stiffness_beside_the_pain(tmp_path):
                            "strain": {"l": 0.0, "r": 21.5}}
 
 
-def test_the_walk_corner_no_longer_yields_to_a_hold_within_keep_r(tmp_path):
+def test_the_walk_corner_no_longer_yields_to_a_hold_within_keep_r(monkeypatch, tmp_path):
     """P24-AP for the arms; R2 (named change, Task 32 fix 1) for the endurance hold beside it: no `strain` yield with
-    the zombie within KEEP_R; with HOLD_WIDE off the endurance hold yields as Task 32 landed it."""
+    the zombie within KEEP_R; with HOLD_WIDE off the endurance hold yields as Task 32 landed it.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = make(tmp_path)
     fr(r, [z(1, 101.2)], 25.0)
     sv._read_spent()
@@ -381,7 +399,10 @@ def test_e9_s_7474_at_line_334_is_refused_for_7479_by_it(monkeypatch):
     fallen zombie, so E9's HEAD replay stomps 7479 at line 274 and 7481 at line 363, neither struck
     (`test_survive_aa`); pinned with `FLEE_FINISH` off, the rule before it.
     Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
-    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    replaces the reads this case pins; pinned with `MANY_NEAR` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     from .test_survive_o import e9_lines
     got = e9_lines(("FLEE_FINISH",))
@@ -405,10 +426,13 @@ def test_under_the_endurance_hold_a_refused_stomp_takes_no_floor_strike(tmp_path
     assert tick(r, sv).type == "steer"
 
 
-def test_a_stuck_corner_under_the_endurance_hold_shoves_at_point_blank_never_swings(tmp_path):
+def test_a_stuck_corner_under_the_endurance_hold_shoves_at_point_blank_never_swings(monkeypatch, tmp_path):
     """Ruling R2 read literally (Task 32 fix 2, minor 4 of review-t32-fix1): `policy.spent` is set on every Fight, so
     the stuck corner (a leg that moved 0.1 tiles, the nearest at 1.2) that swung before the endurance hold shoves at
-    point blank and sends no `attack`."""
+    point blank and sends no `attack`.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     r, sv = make(tmp_path)
     r.scan(open_yard())
     me = (100.5, 201.5)

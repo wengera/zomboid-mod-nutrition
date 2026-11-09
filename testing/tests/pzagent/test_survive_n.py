@@ -163,8 +163,11 @@ def test_the_rip_takes_the_unworn_garment_before_any_other(tmp_path, monkeypatch
     assert r.cmd() == ("rip", {"itemId": 20})
 
 
-def test_never_under_a_threat_held(tmp_path):
-    """P24-AJ: a zombie at 4 tiles: the threat answers; one idle at 9.5 tiles is no quiet tick: no unwear."""
+def test_never_under_a_threat_held(monkeypatch, tmp_path):
+    """P24-AJ: a zombie at 4 tiles: the threat answers; one idle at 9.5 tiles is no quiet tick: no unwear.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv = unwear_rig(tmp_path)
     bleed(r, zombies=[zombie(1, 104.0, 200.0)])
     tick(r, sv)

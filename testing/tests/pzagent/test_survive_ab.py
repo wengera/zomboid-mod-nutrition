@@ -503,7 +503,10 @@ def test_the_held_count_leaves_the_fallen_out_during_a_fight(tmp_path, monkeypat
     """A running fight (mode fight, the hold radius DISENGAGE_R): its standing target 2.4 tiles off and two fallen
     chasers 7 and 8 off: the held count reads one, not three over MAX_FIGHT: no `many`; with the switch off, `many`.
     Named change, ruling P29-G (Plan 29 Task 2): the `many` count over the standing zombies within DANGER_R
-    replaces the reads this case pins; pinned with `MANY_NEAR` off."""
+    replaces the reads this case pins; pinned with `MANY_NEAR` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
     for on in (True, False):
         d = tmp_path / str(on)
@@ -536,10 +539,13 @@ def held_off(r, sv, x=103.3, ticks=1, **k):
     return a
 
 
-def test_f10_s_hold_rests_at_an_idle_zombie_within_danger_r(tmp_path):
+def test_f10_s_hold_rests_at_an_idle_zombie_within_danger_r(monkeypatch, tmp_path):
     """F10's fifth reading (P27-C stood 12.509 s facing 27031 reading no target of its own, `hasTarget` false, 2.8 to
     3.4 tiles off): under the endurance hold the lone idle zombie 3.3 tiles off takes no hold fight; the hold's rest
-    runs, nothing sent, logged `rest` {endurance, since_min, idle 1}; with `SHOVE_CLOSE` off, P27-C's hold fight."""
+    runs, nothing sent, logged `rest` {endurance, since_min, idle 1}; with `SHOVE_CLOSE` off, P27-C's hold fight.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     r, sv = make(tmp_path)
     assert held_off(r, sv, hasTarget=False) is None
     w = threat_why(tmp_path)
@@ -582,7 +588,10 @@ def test_a_chaser_behind_a_wall_is_left_and_the_hold_rests(tmp_path, monkeypatch
     the target is left (`shove_close` {left True}, marked unreachable) and on the next tick the hold rests (no leg,
     `rest`) though it stands chasing within DANGER_R.
     Named change, ruling P29-C (Plan 29 Task 2): P27-J's walk to close goes at an idle zombie only now; pinned with
-    `CLOSE_IDLE` off."""
+    `CLOSE_IDLE` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `STRAIN_BOUND` off, the rule before it
+    ((d), the `strain` flee only at the endurance moodle's second level)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.CLOSE_IDLE", False)
     r, sv = make(tmp_path)
     r.scan([square(x, 200, room="hall" if x == 102 else None, blockW=x == 102) for x in range(99, 106)])
@@ -742,11 +751,17 @@ def bleeding_shirt(tmp_path, zs, **k):
     return r, sv
 
 
-def test_f10_s_wound_rip_under_the_flee_is_held_while_the_nearest_stays_beyond_care_hold_r(tmp_path):
+def test_f10_s_wound_rip_under_the_flee_is_held_while_the_nearest_stays_beyond_care_hold_r(monkeypatch, tmp_path):
     """F10's lines 817, 832 and 847 (the wound's rip superseded each time by the threat branch's flee legs, a167, a169,
     a171): the endurance hold's `strain` flee from a chaser 5 tiles off (a second chaser listed 9 tiles west refusing
     the hold's lone fight), the care's rip of the T-shirt running: the yield holds it (nothing sent, the rip still
-    current) as it holds a running bandage; with `STOCK_EARLY` off the flee's leg supersedes it."""
+    current) as it holds a running bandage; with `STOCK_EARLY` off the flee's leg supersedes it.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with the four off (`survive.T16_SWITCHES`),
+    the rules before them."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.PAIR_NEAREST", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
     two = [z(1, 105.0), z(2, 91.0)]
     for on in (True, False):
         d = tmp_path / str(on)
@@ -771,7 +786,10 @@ def test_the_bleed_s_yield_under_a_fight_takes_the_wound_s_rip(tmp_path, monkeyp
     """P26-D's yield (a Fight's tick with no zombie within FIGHT_REACH, the nearest within CARE_R) with nothing to
     dress part 7 but the T-shirt: the rip goes (the threat why's `care_yield` {why bleed}, the care line's
     `stock_early` {branch yield}); with `STOCK_EARLY` off the yield takes a dressing only and the Fight answers.
-    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
     one = [z(1, 103.0)]
     for on in (True, False):
@@ -802,12 +820,15 @@ PAINED = {"arm": 25.0, "strain": {"l": 0.0, "r": 0.0}}   # the arms' pain at STR
 # low fight's full swing barred (F10's hall: the arms' summed pain 113 to 241.3, #T82.7)
 
 
-def test_f10_s_low_fight_leaves_its_lone_target_after_shove_fail_n_missed_shoves(tmp_path):
+def test_f10_s_low_fight_leaves_its_lone_target_after_shove_fail_n_missed_shoves(monkeypatch, tmp_path):
     """F10's hall (building 3, lines 1389-1456: eight shoves knocked nothing down, the swings divided, eight bites took
     the health from 36.35115051269531 to 5.18145751953125): the low fight (health 35) at its lone zombie at point blank
     with the arms' pain barring the swing: after SHOVE_FAIL_N missed shoves the Fight sends nothing, logged `low_exit`
     {target, missed 3}; the next tick the `health` flee's leg goes; with `LOW_EXIT` off the shove or a break follows,
-    never the flee."""
+    never the flee.
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     for on in (True, False):
         d = tmp_path / str(on)
         d.mkdir()
@@ -1284,9 +1305,12 @@ def test_the_health_ride_keeps_the_drag_down_guard(tmp_path):
     assert ridden(r) == []
 
 
-def test_beyond_ride_r_the_health_flee_rides_as_before(tmp_path):
+def test_beyond_ride_r_the_health_flee_rides_as_before(monkeypatch, tmp_path):
     """P24-U's own clause, unchanged: the chaser 7 tiles behind (beyond RIDE_R), the flee just begun: the ride goes,
-    logged `ride` True (P27-O's clock did not admit it)."""
+    logged `ride` True (P27-O's clock did not admit it).
+    Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     r, sv = health_flee(tmp_path, 107.0)
     assert len(ridden(r)) == 1 and threat_why(tmp_path)["ride"] is True
 
