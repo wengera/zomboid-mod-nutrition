@@ -272,10 +272,12 @@ def test_a_provisional_tag_on_a_key_fact_line_passes_only_under_allow_provisiona
 
 def test_a_42_21_stamp_passes_and_any_other_build_fails(tmp_path):
     new = GOOD.replace(STAMP, "Verified against 42.21.0 (4a0e9546ec) · 2026-10-08 · scope: a test page")
+    newer = GOOD.replace(STAMP, "Verified against 42.22.2 (3d39148846) · 2026-11-09 · scope: a test page")
     other = GOOD.replace(STAMP, "Verified against 42.22.0 (0000000000) · 2026-10-08 · scope: a test page")
     wire = GOOD.replace("<a id=\"formula\"></a>", "<a id=\"staircase\"></a>")
-    root = _tree(tmp_path, {"spoilage.md": new, "other.md": other, "wire.md": wire})
+    root = _tree(tmp_path, {"spoilage.md": new, "newer.md": newer, "other.md": other, "wire.md": wire})
     assert "stamp" not in _rules(_lint(root, "spoilage.md")[0])
+    assert "stamp" not in _rules(_lint(root, "newer.md")[0])
     assert "stamp" in _rules(_lint(root, "other.md")[0])
 
 

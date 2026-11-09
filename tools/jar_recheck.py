@@ -214,8 +214,12 @@ def resolve(short, idx):
 
 
 def dump_text(internal, meth, jar=JAR, pzdis=PZDIS):
+    # The child prints through its own stdout encoding: on Windows that is the console code page unless told
+    # otherwise, and a method holding a string constant outside it (StringUtils.containsDoubleDot) raised mid-dump,
+    # truncating the listing into a false offsets-missing (Plan 34 Task R). UTF-8 matches the decode below.
+    env = dict(os.environ, PYTHONIOENCODING="utf-8")
     res = subprocess.run([sys.executable, pzdis, jar, "dump", internal, meth], capture_output=True, text=True,
-                         encoding="utf-8", errors="replace")
+                         encoding="utf-8", errors="replace", env=env)
     return res.stdout
 
 

@@ -5,7 +5,7 @@ Its first consumer is a realism nutrition mod: nutrients tracked mod-side beyond
 Every claim on a page carries a tag naming its row in the claims register, and every row carries its grade and the pointer to its evidence.
 The pages state what the game does and what a mod can and cannot change; the mod's design is not in this tree.
 
-**Build:** `42.21` · jar `4a0e9546ec` (rows read on 42.20.4, jar `b0bbce05d5`, say so in their bounds) · dedicated-server multiplayer · single-player never claimed.
+**Build:** `42.22.2` · jar `3d39148846` (rows re-read on 42.21, jar `4a0e9546ec`, or on 42.22.2 say so in their bounds; the rest were read on 42.20.4, jar `b0bbce05d5`) · dedicated-server multiplayer · single-player never claimed.
 
 ## Reading order
 
