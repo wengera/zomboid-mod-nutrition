@@ -1799,3 +1799,98 @@ def test_the_head_stall_keys_are_in_the_schema(lua, fs):
         defs = json.load(fh)["$defs"]
     for d in ("result_melee", "result_melee_step"):
         assert "head_ticks" in defs[d]["properties"]["press"]["properties"]
+
+
+# ---- the hand-backs under a hit reaction (Plan 34 Task 4b, ruling P34-A fix A) -------------------------------------
+# The smoke trial x_trial-ladder-20261109-105452: a25 knocked its target down and stood on it in step `hit` 8.8 s under
+# chained reactions (a crawler's CrawlerBite, then a standing zombie walking in to 0.48 tiles), with no hand-back: the
+# reflex returned `hit` before the crowd (rule 3) and the finish's `standing` (rule 4) were read. Under a reaction with
+# no press in flight both are now read before the hit step.
+
+def tick_one(lua, p, w):
+    step_world(w, p)
+    lua.globals()._clock["ms"] += TICK_MS
+    tick(lua, p)
+
+
+def test_the_smoke_chain_a_finish_under_chained_reactions_hands_back_standing(lua, fs):
+    """(a) The smoke chain: a finish on a fallen target at 0.69 tiles, the hit reaction read from tick n on, and
+    another standing zombie, 8, placed 1.75 tiles off on tick n + 2 (inside handbackR 2.0): the hit step on ticks n and
+    n + 1, and on tick n + 2 done handback, why standing, 8's id and d, one hit counted (the old reflex returned `hit`
+    on every tick)."""
+    p, z, w = world(lua, zx=10.69)
+    w["floor"] = True
+    frame_last(lua, [(7, 0.69)], objs={7: z})
+    go(lua, p, mode="finish")
+    run(lua, p, w, 2)
+    assert not ended(lua)
+    p.combat["hitReaction"] = "CrawlerBite"
+    run(lua, p, w, 2)
+    assert not ended(lua) and cur_step(lua) == "hit"
+    o8 = make_zombie(8, w["px"], w["py"] + 1.75)
+    frame_last(lua, [(7, zdist(w)), (8, 1.75)], objs={7: z, 8: o8})
+    run(lua, p, w)
+    a = last(lua, fs)
+    r = a["result"]
+    assert (a["state"], r["end"], r["why"], r["id"], r["hits"]) == ("done", "handback", "standing", 8, 1)
+    assert r["d"] == pytest.approx(1.75)
+
+
+def test_three_standing_under_a_hit_reaction_hand_back_crowd(lua, fs):
+    """(b) The crowd under a reaction: the target standing at 0.5 and two more within K.MELEE_CROWD_R, the reaction
+    read from the first tick: done handback, why crowd, n 3, ds nearest first, one hit, no press and no re-pin."""
+    p, z, w = three_world(lua)
+    p.combat["hitReaction"] = "Bite"
+    go(lua, p)
+    run(lua, p, w)
+    a = last(lua, fs)
+    r = a["result"]
+    assert (a["state"], r["end"], r["why"], r["id"], r["n"], r["hits"]) == ("done", "handback", "crowd", 8, 3, 1)
+    assert r["ds"] == pytest.approx([0.5, 0.5, 0.55]) and w["presses"] == [] and "target" not in r
+
+
+def test_a_press_in_flight_holds_the_hit_step_and_the_hand_back_comes_the_tick_after_its_end(lua, fs):
+    """(c) Rule 2 kept: a floor swing in flight when the reaction starts and a standing zombie, 8, at 1.5 tiles: the
+    hit step (the strike cut `hit`) on every tick the press runs and on the tick its end is read; the tick after, done
+    handback, why standing, the press's leaf (cut_by hit) on the done line, one hit."""
+    p, z, w = world(lua, zx=10.5, attack_ticks=8)
+    w["floor"] = True
+    frame_last(lua, [(7, 0.5)], objs={7: z})
+    go(lua, p, mode="finish", floorSwing=True)
+    run(lua, p, w)
+    assert len(w["presses"]) == 1 and cur_step(lua) == "floor"
+    p.combat["hitReaction"] = "Bite"
+    o8 = make_zombie(8, w["px"], w["py"] + 1.5)
+    frame_last(lua, [(7, zdist(w)), (8, 1.5)], objs={7: z, 8: o8})
+    seen = []
+    for _ in range(40):
+        tick_one(lua, p, w)
+        seen.append((w["attack"], ended(lua)))
+        if ended(lua):
+            break
+    i_end = [e for _, e in seen].index(True)
+    i_zero = [a for a, _ in seen].index(0)
+    assert i_end == i_zero + 1 and step_seq(lua, fs)[-1] == "hit"
+    assert lua.eval("PZA.skills.cur") is None
+    a = last(lua, fs)
+    r = a["result"]
+    assert (a["state"], r["end"], r["why"], r["id"], r["hits"]) == ("done", "handback", "standing", 8, 1)
+    assert r["d"] == pytest.approx(1.5) and r["press"]["cut_by"] == "hit"
+
+
+@pytest.mark.parametrize("fallen, other_d", [(False, None), (True, None), (True, 2.5), (False, 1.5)])
+def test_a_reaction_with_nobody_near_enough_is_the_hit_step_as_before(lua, fs, fallen, other_d):
+    """(d) Pinned as before Plan 34 Task 4b: a reaction with no other standing zombie (or one beyond handbackR under a
+    finish, or a standing target with one other within handbackR: two standing, no crowd, and the finish's `standing`
+    only for a fallen target) is the hit step, no press and no end."""
+    p, z, w = world(lua, zx=10.69)
+    w["floor"] = fallen
+    zs, objs = [(7, 0.69)], {7: z}
+    if other_d is not None:
+        objs[8] = make_zombie(8, 10.0, 20.0 + other_d)
+        zs.append((8, other_d))
+    frame_last(lua, zs, objs=objs)
+    p.combat["hitReaction"] = "Bite"
+    go(lua, p, mode="finish" if fallen else "strike")
+    run(lua, p, w, 12)
+    assert not ended(lua) and cur_step(lua) == "hit" and w["presses"] == []

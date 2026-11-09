@@ -39,7 +39,7 @@
 --    1. a hit reaction (hasHitReaction): step hit, no press (no swing starts in one, #4292), the walk stopped, the
 --       facing still written (fix 1, F2); a press in flight is marked cut_by hit (the reaction leaves the swing's
 --       state, #4664, and before its collision event the swing does no damage, #4665) and its end still tracked; a new
---       run of it counts one hit.
+--       run of it counts one hit. Plan 34 Task 4b: no press in flight, rule 3's crowd and rule 4's standing read first.
 --    2. a press in flight: its step held, the facing written every tick (fix 1, F2: the collision's dot, #4681, and
 --       the bite's facing skip, #4688, read the look, which turns toward the last facing written, #4689), until its
 --       end (isAttackStarted read true then false, or K.SWING_MS) and one tick more, then its result: the press leaf
@@ -592,8 +592,8 @@ end
 
 -- 4: the finish at a fallen target's head
 local function finish(p, st, d, px, py, now)
-    local near = standingNear(p, st, st.handbackR)
-    if near ~= nil then return "done", "handback", { why = "standing", id = near[1].id, d = near[1].d } end
+    local hb, how, res = K.meleeStanding(p, st)   -- Plan 34 Task 4b: the read shared with the hit step (the end)
+    if hb ~= nil then return hb, how, res end
     local S = PZA.sense
     local hx, hy = nil, nil
     if st.headAim and S ~= nil and S.headOf ~= nil then hx, hy = S.headOf(st.z) end
@@ -717,13 +717,18 @@ local function reflex(p, st, d, px, py, zx, zy, now)
     if hitReaction(p) then
         if not st.inHit then st.hits = st.hits + 1 end
         st.inHit = true
+        local flying = false
         if st.strike ~= nil then
             if not st.strike.ended and st.strike.cut == "" then st.strike.cut = "hit" end
-            strikeOver(p, st)
+            flying = not strikeOver(p, st)
         end
         stopWalk(p, st)
         faceOn(p, st)
-        return "hit"
+        if flying then return "hit" end   -- rule 2 kept: a hand-back never cuts a press in flight
+        local hb, how, res = K.meleeHitHandback(p, st, d)   -- Plan 34 Task 4b (the block at the end of this file)
+        if hb == nil then return "hit" end
+        if st.strike ~= nil then strikeResult(p, st) end   -- the ended press: its leaf on the done line, flags restored
+        return hb, how, res
     end
     st.inHit = false
     if st.strike ~= nil then
@@ -1061,4 +1066,44 @@ function FACING.idle(p)
     local b = FACING.bearing(px, py, bx, by)
     if b == nil then return false end
     return FACING.snap(p, IDLE, b)
+end
+
+
+-- ---- the hand-backs under a hit reaction (Plan 34 Task 4b, ruling P34-A fix A) -------------------------------------
+-- The smoke trial x_trial-ladder-20261109-105452: the melee a25 knocked its target down and held step `hit` 8.8 s under
+-- chained reactions (a crawler's CrawlerBite at 0.85 tiles, then a standing zombie walking in to 0.48 and biting), the
+-- character unmoving, with no hand-back: reflex returned `hit` before rule 3's crowd and rule 4's `standing` were read,
+-- so the planner, holding a running melee, never got the tick. Under a reaction with no press in flight (rule 2 kept: a
+-- hand-back never cuts a press, which holds through the tick its end is read), after the hit's bookkeeping (the count,
+-- the strike's cut, the walk stopped, the facing), reflex reads the hand-backs that press nothing: the crowd
+-- (K.MELEE_CROWD_N standing within K.MELEE_CROWD_R, the target counted while it stands: crowdOf's done handback crowd,
+-- never its re-pin, a press decision), then, the target fallen, the finish's `standing` (another standing zombie
+-- within handbackR: done handback standing {id, d}, meleeStanding, the read finish shares). A press ended but not yet
+-- read takes its result first (strikeResult: its leaf on the done line, the press mode's flags restored).
+-- Cost a hit tick: the two radius reads take the last frame's Lua records; isOnFloor is read only when one finds a
+-- standing zombie, so a reaction with nobody near costs what it did.
+
+-- rule 4's standing hand-back: another standing zombie within handbackR, done handback standing {id, d}; else nil
+local function standingHandback(p, st)
+    local near = standingNear(p, st, st.handbackR)
+    if near == nil then return nil end
+    return "done", "handback", { why = "standing", id = near[1].id, d = near[1].d }
+end
+K.meleeStanding = standingHandback
+
+-- the hand-backs under a hit reaction, d the target's distance: crowd, then (the target fallen) standing; else nil
+function K.meleeHitHandback(p, st, d)
+    local fallen = nil
+    local crowd = standingNear(p, st, K.MELEE_CROWD_R)
+    if crowd ~= nil then
+        fallen = K.onFloor(st.z)
+        local n = #crowd
+        if not fallen then n = n + 1 end
+        if n >= K.MELEE_CROWD_N then return crowdOf(p, st, crowd, d, fallen) end
+    end
+    local hb, how, res = standingHandback(p, st)
+    if hb == nil then return nil end
+    if fallen == nil then fallen = K.onFloor(st.z) end
+    if not fallen then return nil end
+    return hb, how, res
 end
