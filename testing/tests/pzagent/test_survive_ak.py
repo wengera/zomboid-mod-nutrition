@@ -36,7 +36,7 @@ from agent.base.planner import policies as P
 from agent.base.planner import survive as S
 
 from .test_night import CLOSED, two_door_house
-from .test_policies import Rig, square, zombie
+from .test_policies import CAPS_14, Rig, square, zombie
 from .test_survive import make, threat_why, tick
 
 F18 = os.path.join(R.ARTIFACTS, "f_goals_18-20261108-235005")
@@ -576,10 +576,10 @@ def zm(zid, x, y, **k):
     return z(zid, x, y, me=ME, **k)
 
 
-def fight4(tmp_path, zs, retreat=WEST_V, stance=True, target=None, scan=None, **frame):
-    """A Fight on a fresh Rig (the player at ME) over one frame of `zs`, its rules the defaults (Plan 33 Task 2's
-    `crawler_first` off), `retreat` and `stance` set as Survive sets them, pinned on `target`."""
-    r = Rig(tmp_path)
+def fight4(tmp_path, zs, retreat=WEST_V, stance=True, target=None, scan=None, caps=None, **frame):
+    """A Fight on a fresh Rig (the player at ME, `caps` the hello's) over one frame of `zs`, its rules the defaults
+    (Plan 33 Task 2's `crawler_first` off), `retreat` and `stance` set as Survive sets them, pinned on `target`."""
+    r = Rig(tmp_path, caps=caps)
     if scan:
         r.scan(scan)
     r.frame(x=ME[0], y=ME[1], zombies=zs, **frame)
@@ -692,6 +692,21 @@ def test_a_running_walk_gives_way_under_the_retreat(tmp_path):
     assert f.last.type == "walkTo" and f.busy() is True
     f.retreat = WEST_V
     assert f.busy() is False
+
+
+def test_a_build_without_aim_keeps_its_walk_under_the_retreat(tmp_path):
+    """Fix 4 (b) only where the back leg can go: on a PZA/1.4 build (no `aim`: E4's golden) the running walk holds
+    under the retreat and the ladder's walk goes as it is (no walk re-sent every line)."""
+    zs = [zm(1, 104.5, 200.5, hasTarget=False)]
+    r, f = fight4(tmp_path, zs, retreat=None, stance=False, target=1, caps=CAPS_14)
+    f.step()
+    r.fake.answer({"walkTo": ["accepted"]})
+    r.pump()
+    f.retreat = WEST_V
+    assert f.last.type == "walkTo" and f.busy() is True
+    (tmp_path / "b").mkdir()
+    r2, f2 = fight4(tmp_path / "b", zs, stance=False, target=1, caps=CAPS_14)
+    assert f2.choose().TYPE == "walkTo" and "retreat_leg" not in f2.why
 
 
 @pytest.mark.parametrize("turn, held", [(20.0, True), (45.0, False)])

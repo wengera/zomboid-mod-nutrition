@@ -601,7 +601,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             return False
         if self.last.type == "melee":
             return self._melee_holds()   # survival iteration 22: the running melee (`dispatch.FightDispatch`)
-        if self.retreat is not None and self.last.type == "walkTo":
+        if self.last.type == "walkTo" and self._retreat_legs():
             return False   # Plan 33 Task 3 fix 4 (b): no walk holds under the retreat, the back leg goes
         if self.last.type in ("attack", "walkTo") and self._finish_gives_way():
             return False   # P25-B: a fallen zombie within FINISH_R is stomped before the attack's walk goes on
@@ -1067,6 +1067,11 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         ladder, self._m_ladder = self._m_ladder, False
         return cmd if ladder else self._melee_dispatch(cmd)
 
+    def _retreat_legs(self):
+        """Plan 33 Task 3 fix 4 (b): the retreat's back leg can go: the retreat set, the build announcing `aim`, no
+        stand-off fallback (an aim failed) and no riding bandage (P24-U: an aim would end it)."""
+        return (self.retreat is not None and self.world.can("aim") and not self.standoff and self.ride is None)
+
     def _retreat_leg(self, cmd):
         """Plan 33 Task 3 fix 4 (b) (round three, trial 3, `x_trial-ladder-20261109-042558`: retreat lines sent
         nothing under a hit reaction, 102 to 104 and 120 to 122, while the group closed; trial 1,
@@ -1077,9 +1082,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         a riding bandage (P24-U: an aim would end it) or the low fight's exit (P27-K2: the flee next). The stance flag
         is not read: a Fight out of the stance (more than MAX_FIGHT held) sent its approach walk on the retreat's
         lines. (A pin is never beyond AIM_R, 12 tiles: `_pinned` drops it past DISENGAGE_R, 10.)"""
-        if self.retreat is None or (cmd is not None and cmd.TYPE != "walkTo"):
-            return cmd
-        if (not self.world.can("aim") or self.standoff or self.ride is not None or "low_exit" in self.why):
+        if not self._retreat_legs() or (cmd is not None and cmd.TYPE != "walkTo") or "low_exit" in self.why:
             return cmd
         t = self._target(pin=False)
         if t is None:
