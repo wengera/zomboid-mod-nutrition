@@ -1009,3 +1009,56 @@ end
 -- waited before it (0 for a press with no wait).
 K.HEAD_LOOK_FLOOR = 0.15   -- tiles: a head nearer is pressed with no look gate (the target under the feet)
 K.HEAD_MAX_TICKS = 20      -- head ticks with no press before the head_stall handback (the spec's 20, a judgment)
+
+-- ---- the idle snap (Plan 33 Task 1) ------------------------------------------------------------------------------
+-- F18's visual pass (shots 31, 33, 35, 36) saw the body turned away from the nearest zombie between presses while
+-- every press read it squared: the snap ran only inside a melee's steps and the aim leg. FACING.idle(p), called once a
+-- frame from the Motor's per-frame hold (PZAgent_Motor.lua) under K.IDLE_SNAP: while no skill runs (K.cur nil: a
+-- melee, the aim leg, a steer, a walk or any other leg owns the body) and no run latch is wanted, the body is snapped
+-- (setTargetAndCurrentDirection(cos b, sin b), FACING.snap) onto the nearest standing zombie within K.IDLE_SNAP_R, the
+-- aim posture as it is (no setForceAim here: the Motor asserts the stance's). The candidates are the last frame's
+-- records (Sense's S.last, its S.zobj) within K.IDLE_SNAP_R + K.MELEE_CROWD_SLACK by the frame's distance, each read
+-- live: its position, and isDead and isOnFloor only for one nearer than the best so far. No frame, no candidate, a
+-- zombie on the player's square (FACING.bearing nil): nothing; the snap member absent (index-checked on the first idle
+-- frame): nothing and no read, ever.
+-- Cost a frame idle near a standing zombie: the player's position (2), each candidate's (2) with isDead and isOnFloor
+-- (2), and the snap (1); none with no candidate in the frame's records.
+K.IDLE_SNAP = true         -- the switch
+K.IDLE_SNAP_R = 2.5        -- tiles: the planner's KEEP_R (policies.py), a Lua constant of its own
+local IDLE = { faceB = nil, ok = nil }   -- the snap's scratch state and the snap member's index check, made once
+
+function FACING.idle(p)
+    if K.cur ~= nil or MO.wantRun or MO.wantSprint then return false end
+    if IDLE.ok == nil then IDLE.ok = PZA.field(p, "setTargetAndCurrentDirection") == true end
+    if not IDLE.ok then return false end
+    local S = PZA.sense
+    local f = S ~= nil and S.last or nil
+    local objs = S ~= nil and S.zobj or nil
+    local recs = f ~= nil and f.zombies or nil
+    if recs == nil or objs == nil then return false end
+    local r = K.IDLE_SNAP_R
+    local px, py, best, bx, by = nil, nil, nil, nil, nil
+    local r2 = r * r
+    for i = 1, #recs do
+        local rec = recs[i]
+        local o = type(rec.dist) == "number" and rec.dist < r + K.MELEE_CROWD_SLACK and objs[rec.id] or nil
+        if o ~= nil then
+            if px == nil then
+                px, py = posOf(p)
+                if px == nil or py == nil then return false end
+            end
+            local zx, zy = posOf(o)
+            if zx ~= nil and zy ~= nil then
+                local ex, ey = zx - px, zy - py
+                local d2 = ex * ex + ey * ey
+                if d2 < r2 and (best == nil or d2 < best) then
+                    if not K.zombieDead(o) and not K.onFloor(o) then best, bx, by = d2, zx, zy end
+                end
+            end
+        end
+    end
+    if best == nil then return false end
+    local b = FACING.bearing(px, py, bx, by)
+    if b == nil then return false end
+    return FACING.snap(p, IDLE, b)
+end

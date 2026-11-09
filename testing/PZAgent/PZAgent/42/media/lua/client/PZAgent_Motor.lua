@@ -31,7 +31,10 @@
 -- Under the flag the walk plays the crouched sneak walk and the run latch the sneak run (#4656). The frame's
 -- me.sneaking is Sense's own isSneaking() read (the stored field reads the same in either tick: observed, never the
 -- want echoed).
-PZA.motor = PZA.motor or { wantRun = false, wantSprint = false, wantAim = false, wantSneak = false, upd = 0,
+-- The idle snap (Plan 33 Task 1): after the latches, each frame calls PZA.skills.FACING.idle (PZAgent_StanceMelee.lua's
+-- end) under PZA.skills.IDLE_SNAP, resolved at the call and under its own pcall (a raise counted in updErrors, the
+-- reads still made), so between legs the body is snapped onto the nearest standing zombie, the aim posture as it is.
+PZA.motor =PZA.motor or { wantRun = false, wantSprint = false, wantAim = false, wantSneak = false, upd = 0,
                            updErrors = 0, updRunning = nil, updForceRun = nil, updSprinting = nil, hooked = false }
 local MO = PZA.motor
 if MO.wantAim == nil then MO.wantAim = false end
@@ -113,6 +116,10 @@ local function update(pl)
     else
         if MO.wantRun then PZA.call(pl, "setForceRun", true) end
         if MO.wantSprint then PZA.call(pl, "setForceSprint", true) end
+    end
+    local K = PZA.skills   -- Plan 33 Task 1: the idle snap (FACING.idle, PZAgent_StanceMelee.lua's end), its own pcall
+    if K ~= nil and K.IDLE_SNAP and K.FACING ~= nil and K.FACING.idle ~= nil then
+        if not pcall(K.FACING.idle, pl) then MO.updErrors = MO.updErrors + 1 end
     end
     MO.updRunning = read(pl, "IsRunning")
     MO.updForceRun = read(pl, "isForceRun")

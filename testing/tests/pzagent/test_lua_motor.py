@@ -1,5 +1,9 @@
 """PZAgent_Motor.lua (Plan 22 probe X1, Task 3): the OnPlayerUpdate handler re-asserts the run latches a skill's gait
 wants (MO.want), every call, on the player it is given, reads back what the frame ended with, and MO.off clears them."""
+import math
+
+import pytest
+
 from .conftest import lua_file, make_player, J
 
 
@@ -295,3 +299,140 @@ def test_a_write_that_runs_resets_the_raise_count(lua):
     boom["on"] = False
     fire(lua, p)
     assert p.sneak["on"] is True and lua.eval("PZA.motor.sneakRaises") == 0 and lua.eval("PZA.motor.wantSneak") is True
+
+
+# ---- the idle snap (Plan 33 Task 1: F18's visual pass, the body turned away from the nearest zombie between presses) --
+
+def idle_world(lua, zx=11.5, zy=20.0, **kw):
+    """Every client file loaded (the melee's FACING.idle beside the Motor), a mover with zombie 7 at (zx, zy) and the
+    last frame listing it at its distance."""
+    from .test_lua_melee import frame_last, world
+    p, z, w = world(lua, zx=zx, zy=zy, **kw)
+    frame_last(lua, [(7, ((zx - 10.0) ** 2 + (zy - 20.0) ** 2) ** 0.5)], objs={7: z})
+    return p, z, w
+
+
+def frame(lua, p, n=1):
+    for _ in range(n):
+        lua.eval("PZA.motor.onPlayerUpdate")(p)
+
+
+def idle_snaps(p):
+    return [v for k, v in p.aim["calls"] if k == "setTargetAndCurrentDirection"]
+
+
+def test_the_idle_snap_turns_the_body_onto_a_standing_zombie_within_the_radius_every_frame(lua):
+    """No skill running and a standing zombie at 1.5 tiles: each frame snaps body and facing onto its bearing (the
+    aim posture untouched: no setForceAim written with no stance wanted)."""
+    p, z, w = idle_world(lua, zx=11.5, zy=21.5)
+    frame(lua, p, 3)
+    b = (1 / 2 ** 0.5, 1 / 2 ** 0.5)
+    assert idle_snaps(p) == [pytest.approx(b)] * 3 and w["look"] == pytest.approx(math.pi / 4)
+    assert [c for c in p.aim["calls"] if c[0] == "setForceAim"] == []
+    assert lua.eval("PZA.motor.updErrors") == 0
+
+
+def test_the_idle_snap_keeps_a_held_stance_s_aim(lua):
+    """With the stance wanted (MO.wantAim) the Motor asserts the force-aim as before and the snap rides beside it."""
+    p, z, w = idle_world(lua)
+    lua.execute("PZA.motor.wantAim = true")
+    frame(lua, p, 2)
+    assert [c[0] for c in p.aim["calls"]] == ["setForceAim", "setTargetAndCurrentDirection"] * 2
+    assert p.aim["force"] is True
+
+
+def test_a_zombie_beyond_the_radius_is_never_snapped_onto(lua):
+    p, z, w = idle_world(lua, zx=13.0)
+    frame(lua, p, 3)
+    assert idle_snaps(p) == []
+
+
+def test_the_nearest_standing_zombie_is_the_one_snapped_onto(lua):
+    """Two standing (7 at 2.0 tiles due +x, 8 at 1.0 due +y) and a fallen one (9 at 0.5 due -x): the snap goes to 8."""
+    from .conftest import make_zombie
+    from .test_lua_melee import frame_last
+    p, z, w = idle_world(lua, zx=12.0)
+    o8, o9 = make_zombie(8, 10.0, 21.0), make_zombie(9, 9.5, 20.0)
+    o9.isOnFloor = lambda s: True
+    frame_last(lua, [(9, 0.5), (8, 1.0), (7, 2.0)], objs={7: z, 8: o8, 9: o9})
+    frame(lua, p)
+    assert idle_snaps(p) == [pytest.approx((0.0, 1.0))]
+
+
+def test_a_dead_or_fallen_zombie_alone_is_never_snapped_onto(lua):
+    p, z, w = idle_world(lua)
+    w["floor"] = True
+    frame(lua, p)
+    w["floor"], w["zdead"] = False, True
+    frame(lua, p)
+    assert idle_snaps(p) == []
+
+
+def test_a_running_steer_or_walk_owns_the_facing_and_the_idle_snap_writes_nothing(lua):
+    from .test_lua_skills import start
+    p, z, w = idle_world(lua)
+    start(lua, p, "steer", aid="s", vx=-1, vy=0, seconds=5)
+    frame(lua, p, 3)
+    assert idle_snaps(p) == []
+
+
+def test_a_run_latch_wanted_with_no_skill_writes_no_idle_snap(lua):
+    p, z, w = idle_world(lua)
+    lua.execute("PZA.motor.want('run')")
+    frame(lua, p, 2)
+    assert idle_snaps(p) == []
+
+
+def test_a_running_melee_leaves_the_snap_to_the_melee(lua):
+    """A melee running: the Motor's frame writes no snap (the melee's own tick snaps, at its press and through its
+    stance)."""
+    from .test_lua_melee import go
+    p, z, w = idle_world(lua)
+    go(lua, p)
+    frame(lua, p, 3)
+    assert idle_snaps(p) == []
+
+
+def test_the_idle_snap_is_off_with_its_switch_and_silent_with_no_frame(lua):
+    p, z, w = idle_world(lua)
+    lua.execute("PZA.skills.IDLE_SNAP = false")
+    frame(lua, p, 2)
+    assert idle_snaps(p) == []
+    lua.execute("PZA.skills.IDLE_SNAP = true; PZA.sense.last = nil")
+    frame(lua, p, 2)
+    assert idle_snaps(p) == [] and lua.eval("PZA.motor.updErrors") == 0
+
+
+def test_a_player_without_the_snap_member_is_never_snapped_reads_nothing_and_nothing_raises(lua):
+    """The index check: the snap member absent on the first idle frame, no position is read on any frame."""
+    from .test_lua_stance import Rec
+    p, z, w = idle_world(lua)
+    p.setTargetAndCurrentDirection = None
+    log = []
+    frame(lua, Rec(p, log, "p"), 2)
+    assert lua.eval("PZA.motor.updErrors") == 0 and p.aim["calls"] == []
+    assert ("p", "getX") not in log
+
+
+def test_the_idle_snap_s_frame_cost(lua):
+    """The bench (Java calls a frame through Rec): the Motor's frame alone reads its five members; idle near a standing
+    zombie it adds the two player positions, the zombie's two positions, isDead, isOnFloor and the snap (7); the snap
+    member is index-checked on the first frame only, and a record the frame lists beyond the radius and its slack
+    (zombie 8 at 5 tiles) is never read."""
+    from .conftest import make_zombie
+    from .test_lua_melee import frame_last
+    from .test_lua_stance import Rec
+    p, z, w = idle_world(lua)
+    frame(lua, p)                                                     # the index check, once
+    log = []
+    o8 = Rec(make_zombie(8, 15.0, 20.0), log, "z8")
+    frame_last(lua, [(7, 1.5), (8, 5.0)], objs={7: Rec(z, log, "z"), 8: o8})
+    frame(lua, Rec(p, log, "p"))
+    idle = [("p", "getX"), ("p", "getY"), ("z", "getX"), ("z", "getY"), ("z", "isDead"), ("z", "isOnFloor"),
+            ("p", "setTargetAndCurrentDirection")]
+    base = [("p", "IsRunning"), ("p", "isForceRun"), ("p", "isSprinting"), ("p", "isForceSprint"), ("p", "isSneaking")]
+    assert sorted(log) == sorted(base + idle), log
+    del log[:]
+    lua.execute("PZA.skills.IDLE_SNAP = false")
+    frame(lua, Rec(p, log, "p"))
+    assert sorted(log) == sorted(base)
