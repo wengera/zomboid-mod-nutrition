@@ -1109,3 +1109,7 @@ RETREAT_MAX_N = 4     # standing zombies within GROUP_ENTRY_R the fighting retre
                       # leg is the `many` run (GROUP_LEAVE), the retreat resumed when the count falls back to it
 RETREAT_RESEND_DEG = 30.0   # degrees: a running retreat leg is re-sent once its heading differs from the retreat's by
                             # more (the group moving round the character), else held (`Fight.busy`)
+# Plan 34 Task 5 (spec section 3.5; F19, `f_goals_19-20261109-060929`: the melee at the first wound was sent off a frame
+# 0.970 s old, the line 1.435 s after the one before, the session's median lag 0.057 s, its GUIDE.md section 2)
+FRAME_STALE_S = 0.5  # seconds: a decision line whose frame is older than this (its `wall` less the frame's `wallMs`)
+                     # carries `frame_age`, so the write-up reads what held the loop; no rule reads it

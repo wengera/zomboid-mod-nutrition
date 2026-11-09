@@ -452,6 +452,7 @@ from agent.base.planner.policies import (CLOSING_TICKS, CORNER_FREE_R, CORNERED_
                                          FLIP_MIN_S, GROUP_HOLD_N, GROUP_NEAR_R, GROUP_R_N, HOLD_BREAK_R, LISTED_R,
                                          MANY_LISTED_N, MAX_FIGHT, PREEMPTED, REFIGHT_MARGIN, STUCK_REASONS,
                                          STUCK_RETRY_GROUP_S, STUCK_RETRY_S, blocked, chasing, item_id_ok, spare, zdist)
+from agent.base.planner.policies import FRAME_STALE_S
 from agent.base.planner.sneak import SneakGait
 from agent.base.planner.threat import Threat
 from agent.base.planner.view import NEED_MEMORY_S, view
@@ -1389,6 +1390,11 @@ class Survive(SneakGait, Threat):
                 "sent": action is not None, "goal": self.goals.line()}
         if self.no_effect is not None:
             line["marks"] = {"itemId": self.no_effect["itemId"], "reason": "no_effect"}
+        fw = self.world.frame_wall_ms
+        if isinstance(fw, (int, float)) and not isinstance(fw, bool):   # Plan 34 Task 5: a stale frame's age
+            age = line["wall"] - fw / 1000.0
+            if age > FRAME_STALE_S:
+                line["frame_age"] = round(age, 3)
         with open(self.log_path, "a", encoding="utf-8", newline="\n") as f:
             f.write(json.dumps(line, sort_keys=True) + "\n")
         return action
