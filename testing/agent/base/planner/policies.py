@@ -1097,3 +1097,10 @@ GROUP_ENTRY_R = 6.0   # tiles: GROUP_LEAVE counts the closing standing zombies t
 DRAG_SHOVES_PER_EPISODE = 1   # shoves DRAG_GUARD_FIGHT sends a stuck episode (one to break the grab), the run after them
 STUCK_FREE_R = 1.0    # tiles the character moves from a stuck episode's start that end it (DRAG_GUARD_FIGHT: a new
                       # episode may shove again)
+# Plan 33 Task 3 fix 3 (round two, trial 1: the leave at two closing zombies left the pairs Plan 32's composition fought
+# and killed under PAIR_NEAREST, 3 kills against 7 to 11; the controller's ruling 2026-11-09 03:11)
+GROUP_LEAVE_N = 3     # standing zombies closing within GROUP_ENTRY_R that GROUP_LEAVE leaves (DRAG_DOWN_N's count: a pair
+                      # is fought, a trio is left before it closes)
+# Plan 33 Task 3 fix 3 addenda (round two, trial 2 and Angus's fighting retreat, memory `fighting-retreat`): the leave is a
+# fighting retreat, never a run; a known door is walked to only when this near (a long walk turns the back on the group)
+LEAVE_DOOR_R = 6.0    # tiles: GROUP_LEAVE walks to a known door whose approach square is this near, else the retreat

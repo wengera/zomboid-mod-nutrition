@@ -252,6 +252,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         self._counted = None                # the last attack whose result was counted
         self.stance = False                 # Survive sets it each tick: the standing fight applies (P24-G 1)
         self.threats = None                 # Survive sets it: the held threats the backpedal steps away from
+        self.retreat = None                 # Survive sets it (Plan 33 Task 3 fix 3, GROUP_LEAVE's fighting retreat): the
+                                            # unit heading away from the closing group's centroid, every stance leg a backpedal on it
         self.standoff = False               # the stand went STAND_MAX_S without progress: approach and swing
         self.standoff_why = None            # why it fell back: "<state> <reason>" of a stance leg that failed
         self.advance = False                # the stand went STAND_MAX_S without progress: close in the stance (P24-N)
@@ -1168,6 +1170,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         `kind` names the leg instead of the target's distance (P24-AP's wounded backpedal within reach)."""
         t, named = (zid, z, d), kind is not None
         v, kind = None, kind or stance_leg_kind(d, self.advance, self.seeking(t), self.pulling(t))
+        if self.retreat is not None and kind in ("stand", "back", "toward", "seek", "pull"):
+            kind = "back"   # Plan 33 Task 3 fix 3: the fighting retreat backpedals whatever the target's distance
         if kind in ("toward", "seek"):
             mx, my = me_xy(self.world)
             u = ((z["x"] - mx) / d, (z["y"] - my) / d)
@@ -1202,6 +1206,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         """The `back` leg's heading from target `z` (`_stance_leg`): `away_vector` of the held threats (else `z`),
         turned by CIRCLE_TURN from a lone standing zombie within KEEP_R (P28-E, `_circle_turn`), else by STEER_TURNS
         (`_clear_turn`); None when no heading is clear (the leg then stands)."""
+        if self.retreat is not None:   # Plan 33 Task 3 fix 3: away from the closing group's centroid, GROUP_LEAVE's
+            return self._clear_turn(self.retreat)
         ts = [q for q in (self.threats or [z]) if q.get("x") is not None and q.get("y") is not None]
         away = away_vector(self.world, [(q["x"], q["y"]) for q in ts])
         lone = "circle" in self.rules and away is not None and len(self._standing(KEEP_R)) == 1

@@ -689,6 +689,9 @@ class Survive(SneakGait, Threat):
         self.strain_bound = None  # this tick: {endurance, standing} when a `strain` flee was withheld (Plan 32 Task 5
                                   # (d), `Threat._strain_flees`), else None
         self.leave = None         # the running leave {since, closing} (Plan 33 Task 3, GROUP_LEAVE), else None
+        self.retreat = None       # this tick: GROUP_LEAVE's retreat heading (unit away from the group), else None
+        self.group_retreat = None   # this tick: GROUP_LEAVE's retreat why {leg, closing, centroid_away}, else None
+        self.leave_leg = None     # this tick: the leave's leg, shove | door | retreat
         self.group_leave = None   # this tick: GROUP_LEAVE's why (a leave taken, held, ended or withheld), else None
         self.drag_fight = None    # this tick: DRAG_GUARD_FIGHT's {target, dist, why} shove or {spent, why} run, else None
         self.side_clear = None    # this tick: {turn, near[, least_bad]} when SIDE_CLEAR turned a run, else None

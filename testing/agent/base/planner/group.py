@@ -10,22 +10,24 @@ before it closes, never by running into it.
 `Threat`'s mixin, its state `Survive`'s own (`Survive.__init__`), its constants `policies.py`'s, its switches
 `Threat`'s (`survive.T18_SWITCHES`); `_group_read` is the tick's bookkeeping, read at `Threat._threat_read`'s start:
 
-- `GROUP_LEAVE` (`_group_leave`, `_leave_answer`): two or more standing zombies within GROUP_ENTRY_R, each nearer than on
-  the decision line before (closing), with nothing at the character's back within WALL_R (`back_cover`: a known wall
-  or fence edge, a door record, a solid square) and the character out in the open (not on a room square, not
-  sheltered): the threat plan's `flee` row with reason `leave`, the leave leg. Its leg is the Flee's walk to the nearest
-  known building door whose approach square is within LEAVE_R and whose verdict reads `ok` (`Flee.door_verdicts`), the
-  doorway stand resumed there (the Flee's `stand_ok`, P24-AO); with none, a run away from the closing group's centroid
-  for LEAVE_S, turned by 30-degree steps to the first heading the map reads clear over STEER_PROBE. Never with a
-  standing zombie within FIGHT_REACH (POINT_BLANK_FIGHT and the meet then stand; one between FIGHT_REACH and
-  GROUP_ENTRY_R is outrun) nor under FLEE_HEALTH_FLOOR (the health flee's),
-  logged `group_leave` {withheld: keep_r | cover} when two close then. The leave holds while two or more stand within
-  GROUP_ENTRY_R (the run's leg) or, on the door's walk, within DANGER_R; it ends at the doorway (the stand's row,
-  `Threat._doorway`, answers first), at a standing zombie within FIGHT_REACH, or under the floor. Fix 1 (the
-  coordinator's ruling on F18: within GROUP_NEAR_R and outside KEEP_R the entry window was half a tile, and every
-  two-closing line of F18 and the goldens read a zombie within KEEP_R): the entry radius GROUP_ENTRY_R, the exception
-  at FIGHT_REACH.
-  Logged `group_leave` {leg door | steer, closing | n, door}.
+- `GROUP_LEAVE` (`_group_leave`, `_leave_leg`, `_leave_door`, `_leave_answer`): GROUP_LEAVE_N (3, fix 3: a pair is
+  fought under PAIR_NEAREST) standing zombies within GROUP_ENTRY_R, each nearer than on the decision line before
+  (closing), with nothing at the character's back within WALL_R (`back_cover`: a known wall or fence edge, a door
+  record, a solid square) and the character out in the open (not on a room square, not sheltered), whatever stands in
+  reach (the FIGHT_REACH exception is dropped: round two, trial 2, a group of four closed on a character fighting one at
+  0.4 to 0.7 tiles and the exception withheld every line) but under FLEE_HEALTH_FLOOR (the health flee's). Its legs,
+  logged `group_leave` {closing | n, leg} and `group_retreat` {leg, closing, centroid_away}:
+  `shove` once, on the first line, at the nearest standing zombie within STAND_MIN_R (the engine's shove distance; the
+  Flee's shove), then
+  `door`: the Flee's walk (reason `leave`) to the nearest known building door whose approach square is within
+  LEAVE_DOOR_R (6.0: a long walk turns the back on the group) and whose verdict reads `ok` (`Flee.door_verdicts`), the
+  doorway stand resumed there (the Flee's `stand_ok`, P24-AO); with none,
+  `retreat` (Angus's fighting retreat, memory `fighting-retreat`): the Fight, never a run, keeps its stance on the
+  nearest standing zombie, every stance leg a backpedal (`Fight.retreat`) whose heading is away from the centroid of the
+  standing zombies within GROUP_ENTRY_R, re-read every line, the meet pressing whoever enters reach as it does.
+  The leave holds while GROUP_LEAVE_N stand within GROUP_ENTRY_R (the retreat) or, on the door's walk, within DANGER_R;
+  it ends at the doorway (the stand's row, `Threat._doorway`, answers first), when fewer stand (`group_leave` {end
+  "strung"}) or under the floor. Withheld, logged `group_leave` {withheld: cover}, when a wall is at the back.
 - `DRAG_GUARD_FIGHT` (`_drag_fight`, `_drag_shove`): the drag-down guard's flee, when the frame reads a hit reaction
   (`me.hitReaction` non-empty) or STUCK_FRAMES frames of `me.moving` false while a steer or a walk is the running
   action (`_drag_stuck`), shoves the nearest standing zombie within SHOVE_R in front of the character (within 90 degrees
@@ -51,7 +53,8 @@ before it closes, never by running into it.
 import math
 
 from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, DRAG_SHOVES_PER_EPISODE, FIGHT_REACH, FLEE_GAIT,
-                                         FLEE_HEALTH_FLOOR, GROUP_ENTRY_R, LEAVE_R, LEAVE_S, SHOVE_R, SIDE_LOOK, SIDE_R,
+                                         FLEE_HEALTH_FLOOR, GROUP_ENTRY_R, GROUP_LEAVE_N,
+                                         LEAVE_DOOR_R, SHOVE_R, STAND_MIN_R, SIDE_LOOK, SIDE_R,
                                          STEER_PROBE, STUCK_FRAMES, STUCK_FREE_R, WALL_R, _rotate, blocked,
                                          clear_heading, hit_reaction, on_floor, target_id_ok, zdist)
 from agent.base.pza1 import Shove, Steer
@@ -297,27 +300,26 @@ class ThreatGroup:
     # ------------------------------------------------------------------------------------------------ GROUP_LEAVE
     def _group_leave(self, inside):
         """GROUP_LEAVE's row (the module docstring): True when the tick takes the leave (a new one, or the running one
-        held), else False, `leave` cleared when its end is read; `group_leave` the why either way."""
+        held), else False, `leave` cleared when its end is read; `group_leave` the why either way, `leave_leg` the leg
+        (shove | door | retreat) and, on the retreat, `retreat` the unit heading away from the standing group's centroid."""
+        self.retreat, self.group_retreat, self.leave_leg = None, None, None
         if not self.GROUP_LEAVE or inside or self.sheltered or self._health() < FLEE_HEALTH_FLOOR:
             self.leave = None
             return False
-        keep = self._group_standing(FIGHT_REACH)   # fix 1: FIGHT_REACH, KEEP_R before
         if self.leave is not None:
             door_leg = self.flee is not None and self.flee.plan is not None
             n = len(self._group_standing(DANGER_R if door_leg else GROUP_ENTRY_R))
-            if keep or n < 2:
+            if n < GROUP_LEAVE_N:
                 self.leave = None
-                self.group_leave = {"end": "fight_reach" if keep else "strung", "n": n}
+                self.group_leave = {"end": "strung", "n": n}
                 return False
             self.group_leave = {"n": n}
+            self._leave_leg()
             return True
         closing = self._group_closing
-        if len(closing) < 2:
+        if len(closing) < GROUP_LEAVE_N:
             return False
         ids = [zid for zid, _, _ in closing]
-        if keep:
-            self.group_leave = {"withheld": "fight_reach", "closing": ids, "near": keep[0][2]}
-            return False
         mx, my = me_xy(self.world)
         cx = sum(z["x"] for _, z, _ in closing) / len(closing)
         cy = sum(z["y"] for _, z, _ in closing) / len(closing)
@@ -327,38 +329,60 @@ class ThreatGroup:
             return False
         self.leave = {"since": self.clock(), "closing": ids}
         self.group_leave = {"closing": ids}
+        self._leave_leg()
         return True
 
-    def _leave_door(self, flee, held):
-        """The door the leave walks to: the Flee's running plan's, else the nearest door `Flee.door_verdicts` reads `ok`
-        whose approach square is within LEAVE_R while the Flee has not picked yet (a Flee that picked and dropped its
-        plan runs the leave's own run); else None."""
-        if flee.plan is not None:
-            return flee.door()
-        if flee.picked:
-            return None
-        ok = [rank for rank, _, _, verdict in flee.door_verdicts(held) if verdict == "ok" and rank[0] <= LEAVE_R]
-        return min(ok)[2] if ok else None
-
-    def _leave_answer(self, flee, held):
-        """The Flee's answer on a leave tick: its running leg held (None: `Survive._answer` holds it); the door's walk
-        (None: the Flee's choose picks that door, its stand ready); else the run from the group's centroid for LEAVE_S,
-        turned by SIDE_TURNS to the first heading the map reads clear over STEER_PROBE."""
-        door = self._leave_door(flee, held)
-        if door is not None:
-            self.group_leave = dict(self.group_leave or {}, leg="door", door=list(door))
-            return None
-        if flee.busy():
-            self.group_leave = dict(self.group_leave or {}, leg="steer")
-            return None
+    def _leave_leg(self):
+        """The leave's leg this tick: `shove` once, on the leave's first line, at the nearest standing zombie within
+        STAND_MIN_R (round two, trial 2: the engine's own shove distance); `door` while a known door within LEAVE_DOOR_R
+        is held or reads `ok` (Angus's fighting retreat: a long walk turns the back on the group); else `retreat`, the
+        Fight's stance on the nearest standing zombie with its back heading away from the centroid of the standing
+        zombies within GROUP_ENTRY_R, re-read every line (`retreat`, logged `group_retreat` {leg, closing,
+        centroid_away})."""
+        flee = self.flee
+        held_door = flee is not None and flee.plan is not None
+        near = self._group_standing(STAND_MIN_R)
+        if near and not self.leave.get("shoved") and not held_door:
+            self.leave["shoved"] = True
+            self.leave_leg = "shove"
+            self.group_leave = dict(self.group_leave or {}, leg="shove", target=near[0][0])
+            return
         group = self._group_standing(GROUP_ENTRY_R)
+        door = self._leave_door(flee, [z for _, z, _ in group])
         mx, my = me_xy(self.world)
         cx = sum(z["x"] for _, z, _ in group) / len(group)
         cy = sum(z["y"] for _, z, _ in group) / len(group)
-        v = _unit(mx - cx, my - cy)
-        turn = next((t for t in (0,) + SIDE_TURNS if clear_heading(self.world, _rotate(v, t), STEER_PROBE,
-                                                                   self.TRANS)), 0)
-        h = _rotate(v, turn)
-        self.group_leave = dict(self.group_leave or {}, leg="steer", centroid=[cx, cy], turn=turn)
-        self.why = {"leave": True}
-        return flee, Steer(h[0], h[1], LEAVE_S, FLEE_GAIT)
+        away = _unit(mx - cx, my - cy)
+        ids = [zid for zid, _, _ in group]
+        if door is not None:
+            self.leave_leg = "door"
+            self.group_leave = dict(self.group_leave or {}, leg="door", door=list(door))
+            self.group_retreat = {"leg": "door", "closing": ids, "centroid_away": [away[0], away[1]]}
+            return
+        self.leave_leg = "retreat"
+        self.retreat = away
+        self.group_leave = dict(self.group_leave or {}, leg="retreat")
+        self.group_retreat = {"leg": "retreat", "closing": ids, "centroid_away": [away[0], away[1]]}
+
+    def _leave_door(self, flee, ts):
+        """The door the leave walks to: the Flee's running plan's, else the nearest door a Flee reads `ok` whose approach
+        square is within LEAVE_DOOR_R while the Flee has not picked yet (the running Flee, else a fresh one for the
+        read, `ts` the group's zombies); else None."""
+        if flee is not None and flee.plan is not None:
+            return flee.door()
+        if flee is not None and flee.picked:
+            return None
+        if flee is None:
+            from agent.base.planner.flee import Flee   # at call: threat.py imports this module
+            flee = Flee(self.world, self.actions, self.clock, shunned=self.night.shunned)
+        ok = [rank for rank, _, _, verdict in flee.door_verdicts(ts) if verdict == "ok" and rank[0] <= LEAVE_DOOR_R]
+        return min(ok)[2] if ok else None
+
+    def _leave_answer(self, flee, held):
+        """The Flee's answer on a leave tick that is not the retreat: the one shove at a standing zombie within
+        STAND_MIN_R on the leave's first line, else None (a running door walk held by `Survive._answer`, the door's walk
+        picked by the Flee's choose, its stand ready)."""
+        if self.leave_leg == "shove":
+            self.why = {"shove": "leave", "target": self.group_leave["target"]}
+            return flee, Shove(self.group_leave["target"])
+        return None

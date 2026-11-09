@@ -862,7 +862,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             return "door", None
         if self._group_leave(inside):   # Plan 33 Task 3 (GROUP_LEAVE): a closing pair left in the open
             self.cornered, self._corner_fight = None, None
-            return "flee", "leave"
+            return ("fight", None) if self.leave_leg == "retreat" else ("flee", "leave")   # fix 3: the retreat is the Fight's
         if self._cornered(held, inside) is not None:
             return "cornered", None
         if self.group_steer:
@@ -1175,6 +1175,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.avoid = self.avoid                 # ... nor at a zombie no engage reaches (major 2)
             policy.ride = self.care.riding()   # P24-U: the stance legs held off while a bandage rides
             policy.threats = held
+            policy.retreat = self.retreat   # Plan 33 Task 3 fix 3: GROUP_LEAVE's fighting retreat heading, else None
             policy.edge_ticks = EDGE_HOLD_TICKS if self.EDGE else 0   # P24-AU, read at the policy's observe
             policy.rules = self._fight_rules()   # P25-A, P25-B, P25-D, P25-F
             policy.edge_marks = self.edge_marks   # P25-X: the refusals across a blocked edge, shared as `unreachable`
@@ -1245,7 +1246,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                        ("health_near", self.health_near), ("many_near", self.many_near),
                        ("finish_lone", self.finish_lone), ("flee_held_stance", self.held_cut),
                        ("point_blank_fight", self.point_blank_fight), ("strain_bound", self.strain_bound),
-                       ("group_leave", self.group_leave), ("drag_fight", self.drag_fight),
+                       ("group_leave", self.group_leave), ("group_retreat", self.group_retreat), ("drag_fight", self.drag_fight),
                        ("side_clear", self.side_clear)):
             if v is not None:
                 self.why[key] = v

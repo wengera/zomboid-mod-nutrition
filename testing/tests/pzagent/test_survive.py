@@ -29,9 +29,12 @@ def make(tmp_path, caps=None):
     """A Survive on a fresh Rig. `caps=CAPS_14` (ruling P24-G 1, a named change: on a PZA/1.5 build the standing
     fight replaces the approach walk beyond FIGHT_REACH) pins a case on a PZA/1.4 build, where the approach and
     swing is the fight from its start. On a PZA/1.5 build the same rules run only after a stand-off
-    (`Fight.standoff`): `make_build(..., "standoff")` pins that path (Task 10 fix 1, the review's minor 10)."""
+    (`Fight.standoff`): `make_build(..., "standoff")` pins that path (Task 10 fix 1, the review's minor 10).
+    Named change, Plan 33 Task 3 fix 3 (a unit test of an earlier rule whose trio fixture the leave now reaches, pinned
+    with the new rule's switch off): `GROUP_LEAVE` off here; `test_survive_ak.py` sets its own switches."""
     r = Rig(tmp_path, caps=caps)
     sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
+    sv.GROUP_LEAVE = False
     return r, sv
 
 

@@ -4,11 +4,12 @@ minute 617 under a group of three walked in while the finish stalled): `survive.
 `state.log`, open loop: `replay_decisions.replay` checks the decisions at the situations the run recorded, never an
 outcome) and its unit tests on the fake mod.
 
-- GROUP_LEAVE (`group.ThreatGroup._group_leave`): two standing zombies closing within GROUP_ENTRY_R (fix 1) in the
-  open with nothing at the back within WALL_R: the `leave` flee to the nearest known door within LEAVE_R (the doorway
-  stand there), else a run from their centroid for LEAVE_S; never with a standing zombie within FIGHT_REACH (fix 1)
-  nor under FLEE_HEALTH_FLOOR. On F18 it fires first at line 201 (13652, 13649) and, on the group of three's approach,
-  at line 342 (13651, 13648), then 349, 352 and 362 (13648, 13653).
+- GROUP_LEAVE (`group.ThreatGroup._group_leave`): GROUP_LEAVE_N (3, fix 3) standing zombies closing within
+  GROUP_ENTRY_R in the open with nothing at the back within WALL_R, whatever stands in reach (the FIGHT_REACH exception
+  dropped), not under FLEE_HEALTH_FLOOR: one shove at a zombie within STAND_MIN_R on the first line, then the Flee's walk
+  to a known door within LEAVE_DOOR_R (the doorway stand there), else the fighting retreat (the Fight's backpedal away
+  from the group's centroid, no run). On F18 it first fires at line 358 (13651, 13648, 13653), the retreat; line 174 is
+  withheld by a wall at the back.
 - DRAG_GUARD_FIGHT (`group.ThreatGroup._drag_fight`): the drag-down guard's flee under a hit reaction or STUCK_FRAMES
   unmoving frames shoves the standing zombie in front, at most DRAG_SHOVES_PER_EPISODE times a stuck episode (fix 2),
   the run sent after it until the character has moved STUCK_FREE_R from the episode's start; F18's guard line 402
@@ -366,16 +367,17 @@ def test_f18_s_line_402_has_no_clear_heading_and_runs_the_least_bad():
 
 
 # ================================================================ GROUP_LEAVE
-WEST = ((96.9, 200.6), (97.0, 199.9))   # the pair's first line: 3.6 and 3.55 tiles west of (100.5, 200.5)
-NEAR = ((97.6, 200.7), (97.65, 199.95))   # the next: 2.91 and 2.90, both closing within GROUP_ENTRY_R
+WEST = ((96.9, 200.6), (97.0, 199.9), (100.5, 210.4))   # the trio's first line: 3.6 and 3.55 tiles west and 9.9 south of (100.5, 200.5) (the third beyond ENGAGE_R inside DISENGAGE_R and not behind the pair, so the pair is fought and no flee runs before the leave)
+NEAR = ((97.6, 200.7), (97.65, 199.95), (100.5, 206.3))   # the next: 2.91, 2.90 and 5.8, all closing within GROUP_ENTRY_R
 
 
 def pair(at, **k):
-    return [z(1, at[0][0], at[0][1], **k), z(2, at[1][0], at[1][1], **k)]
+    """The zombies of a line, ids 1, 2, 3 (a pair when `at` holds two: Plan 33 Task 3 fix 3, GROUP_LEAVE_N 3)."""
+    return [z(i, x, y, **k) for i, (x, y) in enumerate(at, 1)]
 
 
 def closing(tmp_path, on=("GROUP_LEAVE",), second=NEAR, scan=None, x=100.5, y=200.5, **frame):
-    """Two ticks: the pair at WEST, then at `second`; `scan` squares scanned first."""
+    """Two ticks: the trio at WEST, then at `second`; `scan` squares scanned first."""
     r, sv = make(tmp_path)
     for name in T17:
         setattr(sv, name, name in on)
@@ -389,67 +391,103 @@ def closing(tmp_path, on=("GROUP_LEAVE",), second=NEAR, scan=None, x=100.5, y=20
     return r, sv
 
 
-def test_a_closing_pair_in_the_open_with_no_door_known_is_left_by_a_run_from_its_centroid(tmp_path):
-    """GROUP_LEAVE, no door known: the second line's two closing within GROUP_ENTRY_R send the `leave` flee's run, away
-    from their centroid (east here) for LEAVE_S at a run, logged `group_leave` {closing [1, 2], leg "steer"}."""
+def test_a_closing_trio_in_the_open_is_left_by_a_fighting_retreat_from_its_centroid(tmp_path):
+    """GROUP_LEAVE, no door known (the fighting retreat, Angus 2026-11-09, memory `fighting-retreat`): the second line's
+    three closing within GROUP_ENTRY_R keep the Fight on the nearest standing zombie, its stance leg `aim` (no steer,
+    no run) with `targetId` that zombie and the back vector away from the three's centroid, logged `group_leave`
+    {closing [1, 2, 3], leg "retreat"} and `group_retreat` {leg, closing, centroid_away}."""
     r, sv = closing(tmp_path)
     why = threat_why(tmp_path)
-    assert why["flee"] == "leave" and sorted(why["group_leave"]["closing"]) == [1, 2]
-    assert why["group_leave"]["leg"] == "steer" and why["group_leave"]["turn"] == 0
-    cmd = r.cmd()
-    assert cmd[0] == "steer" and cmd[1]["seconds"] == P.LEAVE_S and cmd[1]["gait"] == "run"
-    cx, cy = (NEAR[0][0] + NEAR[1][0]) / 2, (NEAR[0][1] + NEAR[1][1]) / 2
+    assert why["fight"] is True and "flee" not in why and sv.mode == "fight"
+    assert sorted(why["group_leave"]["closing"]) == [1, 2, 3] and why["group_leave"]["leg"] == "retreat"
+    cx, cy = sum(p[0] for p in NEAR) / 3, sum(p[1] for p in NEAR) / 3
     d = math.hypot(100.5 - cx, 200.5 - cy)
-    assert (cmd[1]["vx"], cmd[1]["vy"]) == pytest.approx(((100.5 - cx) / d, (200.5 - cy) / d))
+    away = ((100.5 - cx) / d, (200.5 - cy) / d)
+    assert why["group_retreat"]["leg"] == "retreat" and why["group_retreat"]["centroid_away"] == pytest.approx(away)
+    cmd = r.cmd()
+    assert cmd[0] == "aim" and cmd[1]["targetId"] == 2 and cmd[1]["seconds"] == P.AIM_LEG_S   # 2 is the nearest
+    assert (cmd[1]["vx"], cmd[1]["vy"]) == pytest.approx(away) and why["leg"] == "back"
 
 
-def test_with_group_leave_off_the_pair_is_fought(tmp_path):
-    """The falsifier: the same two lines with the rule off make no leave (the pair within DANGER_R is the fight)."""
+def test_with_group_leave_off_the_trio_is_fought(tmp_path):
+    """The falsifier: the same two lines with the rule off make no leave (the trio within DANGER_R is the fight)."""
     closing(tmp_path, on=())
     why = threat_why(tmp_path)
     assert why.get("flee") != "leave" and "group_leave" not in why
 
 
-def test_a_known_door_within_leave_r_is_the_leave_s_target_and_its_stand(tmp_path):
-    """GROUP_LEAVE with a known door: house 1's west door at (110, 201), its approach square's centre 9.5 tiles east
-    (within LEAVE_R), a second exterior door on its floor: the leave is the Flee's walk to that approach square at a
-    run, its plan a doorway stand (P24-AO), logged `group_leave` {leg "door", door [110, 201, 0]}."""
-    r, sv = closing(tmp_path, scan=two_door_house(exterior2=CLOSED))
+def test_a_closing_pair_is_not_left_but_fought(tmp_path):
+    """Plan 33 Task 3 fix 3 (trial 1 of round two: the leave at two closing left the pairs Plan 32 fought and killed
+    under PAIR_NEAREST): the trio's first two zombies alone, both closing within GROUP_ENTRY_R and none within
+    FIGHT_REACH, are no leave (GROUP_LEAVE_N 3): no `group_leave` why, the other rules take the pair."""
+    assert P.GROUP_LEAVE_N == 3
+    r, sv = make(tmp_path)
+    for name in T17:
+        setattr(sv, name, name == "GROUP_LEAVE")
+    r.frame(x=100.5, y=200.5, zombies=pair(WEST[:2]))
+    tick(r, sv)
+    r.advance(0.5)
+    r.frame(x=100.5, y=200.5, zombies=pair(NEAR[:2]))
+    tick(r, sv)
+    why = threat_why(tmp_path)
+    assert sv.leave is None and why.get("flee") != "leave" and "group_leave" not in why
+
+
+def shifted_house(dx):
+    sqs = two_door_house(exterior2=CLOSED)
+    for q in sqs:
+        q["x"] += dx
+    return sqs
+
+
+def test_a_known_door_within_leave_door_r_is_the_leave_s_target_and_its_stand(tmp_path):
+    """GROUP_LEAVE with a known door within LEAVE_DOOR_R (6.0): house 1 moved 4 tiles west, its west door at (106, 201),
+    the approach square's centre 5.0 tiles east, a second exterior door on its floor: the leave is the Flee's walk to
+    that approach square at a run, its plan a doorway stand (P24-AO), logged `group_leave` {leg "door", door
+    [106, 201, 0]} (the Flee, not the Fight)."""
+    r, sv = closing(tmp_path, scan=shifted_house(-4))
     why = threat_why(tmp_path)
     assert why["flee"] == "leave" and why["group_leave"]["leg"] == "door"
-    assert why["group_leave"]["door"] == [110, 201, 0]
-    assert r.cmd() == ("walkTo", {"x": 109.5, "y": 201.5, "gait": "run"})
+    assert why["group_leave"]["door"] == [106, 201, 0] and why["group_retreat"]["leg"] == "door"
+    assert r.cmd() == ("walkTo", {"x": 105.5, "y": 201.5, "gait": "run"})
     assert sv.flee.plan["building"] == 1 and sv.flee.plan.get("stand") is True
 
 
-def test_a_door_beyond_leave_r_is_not_walked_to(tmp_path):
-    """The house at x0 125 (its approach square 24 tiles off, within the shelter flee's SHELTER_FLEE_R but beyond
-    LEAVE_R): the leave runs from the centroid instead."""
-    sqs = two_door_house(exterior2=CLOSED)
-    for s in sqs:
-        s["x"] += 15
-    r, sv = closing(tmp_path, scan=sqs)
+def test_a_door_beyond_leave_door_r_is_not_walked_to(tmp_path):
+    """House 1 as built (its approach square 9.0 tiles off, beyond LEAVE_DOOR_R; LEAVE_R 20 is no longer the walk's
+    radius): the leave is the retreat, the Fight's backpedal away from the group, never a walk."""
+    r, sv = closing(tmp_path, scan=shifted_house(0))
     why = threat_why(tmp_path)
-    assert why["flee"] == "leave" and why["group_leave"]["leg"] == "steer" and r.cmd()[0] == "steer"
+    assert why["fight"] is True and why["group_leave"]["leg"] == "retreat" and r.cmd()[0] == "aim"
 
 
-def test_a_standing_zombie_within_fight_reach_withholds_the_leave(tmp_path):
-    """The FIGHT_REACH exception (fix 1): the second line's 1 at 1.9 tiles (within FIGHT_REACH) withholds the leave
-    (logged `group_leave` {withheld "fight_reach"}): POINT_BLANK_FIGHT and the meet stand; one at 2.4 (within KEEP_R,
-    beyond FIGHT_REACH) is outrun, the leave taken."""
-    closing(tmp_path, second=((98.6, 200.6), (97.65, 199.95)))
+def test_a_standing_zombie_within_fight_reach_no_longer_withholds_the_leave(tmp_path):
+    """The FIGHT_REACH exception is dropped (round two, trial 2: it defeated the leave exactly when it was needed): the
+    second line's 1 at 1.9 tiles (within FIGHT_REACH, beyond STAND_MIN_R) with three closing is a retreat leg."""
+    r, sv = closing(tmp_path, second=((98.6, 200.6), (97.65, 199.95), (100.5, 206.3)))
     why = threat_why(tmp_path)
-    assert why.get("flee") != "leave" and why["group_leave"]["withheld"] == "fight_reach"
-    (tmp_path / "keep").mkdir()
-    closing(tmp_path / "keep", second=((98.1, 200.6), (97.65, 199.95)))
-    assert threat_why(tmp_path / "keep")["flee"] == "leave"
+    assert "withheld" not in why["group_leave"] and why["group_leave"]["leg"] == "retreat"
+
+
+def test_a_standing_zombie_within_stand_min_r_is_shoved_on_the_first_line_then_the_retreat_follows(tmp_path):
+    """The leave's first line with a standing zombie within STAND_MIN_R (0.61, the engine's shove distance): one shove
+    at it (the Flee's, `leave_leg` "shove"), the retreat from the next line; it shoves once only."""
+    r, sv = closing(tmp_path, second=((100.0, 200.7), (97.65, 199.95), (100.5, 206.3)))
+    why = threat_why(tmp_path)
+    assert why["flee"] == "leave" and why["group_leave"]["leg"] == "shove" and why["group_leave"]["target"] == 1
+    assert r.cmd() == ("shove", {"targetId": 1})
+    r.advance(0.5)
+    r.frame(x=100.5, y=200.5, zombies=pair(((100.0, 200.7), (97.65, 199.95), (100.5, 205.9))))
+    tick(r, sv)
+    why = threat_why(tmp_path)
+    assert why["group_leave"]["leg"] == "retreat" and why.get("shove") is None and sv.mode == "fight"
 
 
 def test_under_the_health_floor_the_leave_is_not_taken(tmp_path):
     """The FLEE_HEALTH_FLOOR exception: under it the health flee stands, no leave read."""
     closing(tmp_path, health=P.FLEE_HEALTH_FLOOR - 1.0)
     why = threat_why(tmp_path)
-    assert why.get("flee") == "health" and "group_leave" not in why
+    assert why.get("flee") != "leave" and "group_leave" not in why   # the trio within DANGER_R is `many` under the floor
 
 
 def test_a_wall_at_the_back_withholds_the_leave(tmp_path):
@@ -460,13 +498,13 @@ def test_a_wall_at_the_back_withholds_the_leave(tmp_path):
     closing(tmp_path, scan=wall)
     why = threat_why(tmp_path)
     assert why.get("flee") != "leave"
-    assert why["group_leave"] == {"withheld": "cover", "closing": [2, 1], "cover": {"kind": "wall", "at": [101, 200, "W"]}}
+    assert why["group_leave"] == {"withheld": "cover", "closing": [2, 1, 3], "cover": {"kind": "wall", "at": [101, 200, "W"]}}
     assert G.back_cover(type("W", (), {"me": {"x": 100.5, "y": 200.5, "z": 0}, "map": {(101, 200, 0): wall[0]}})(),
                         (-1.0, 0.0)) is None
 
 
-def test_a_pair_not_closing_is_not_left(tmp_path):
-    """Two within GROUP_ENTRY_R standing off (the same distances on both lines) are no closing pair."""
+def test_a_trio_not_closing_is_not_left(tmp_path):
+    """Three within GROUP_ENTRY_R standing off (the same distances on both lines) are no closing trio."""
     r, sv = make(tmp_path)
     sv.GROUP_LEAVE = True
     for _ in range(2):
@@ -477,44 +515,48 @@ def test_a_pair_not_closing_is_not_left(tmp_path):
     assert "group_leave" not in why and why.get("flee") != "leave"
 
 
-def test_the_leave_ends_when_the_pair_strings_out(tmp_path):
+def test_the_leave_ends_when_the_trio_strings_out(tmp_path):
     """The running leave (the run) ends on the line reading fewer than two standing within GROUP_ENTRY_R (logged
     `group_leave` {end "strung"}); the tick then decides by the other rules."""
     r, sv = closing(tmp_path)
     assert sv.leave is not None
     r.advance(0.5)
-    r.frame(x=100.5, y=200.5, zombies=pair(((94.0, 200.6), (97.65, 199.95))))
+    r.frame(x=100.5, y=200.5, zombies=pair(((94.0, 200.6), (97.65, 199.95), (100.5, 214.0))))
     tick(r, sv)
     why = threat_why(tmp_path)
     assert sv.leave is None and why["group_leave"] == {"end": "strung", "n": 1} and why.get("flee") != "leave"
 
 
-def test_f18_s_leave_fires_on_the_group_s_approach():
-    """F18, open loop, GROUP_LEAVE alone (fix 1: GROUP_ENTRY_R 6.0, the exception at FIGHT_REACH): the leave fires first
-    at line 201 (13652 and 13649 closing within 6 tiles, none standing within FIGHT_REACH: a run from their centroid for
-    LEAVE_S) and, as the group of three came in, at line 342 (13651 at 2.25 tiles and 13648 at 5.83 both nearer than on
-    line 341, the crawler 13649 under the feet fallen), then 349, 352 and 362 (13648 and 13653), each a run (no door
-    known within LEAVE_R) ending on the line a standing zombie read within FIGHT_REACH; no leave line reads a standing
-    zombie within FIGHT_REACH."""
+def test_f18_s_first_leave_is_the_retreat_at_line_358():
+    """F18, open loop, GROUP_LEAVE alone (fix 3 and its addenda: GROUP_LEAVE_N 3, the FIGHT_REACH exception dropped, the
+    leave a fighting retreat): the three closing standing zombies within GROUP_ENTRY_R first read without a wall at the
+    back at line 358 (13651, 13648, 13653; 1.05 tiles to the nearest, none within STAND_MIN_R, so no shove): the leave is
+    the retreat (`group_leave` {leg "retreat"}, `group_retreat` away from the centroid), held on 359 to 361 while three
+    stand within GROUP_ENTRY_R and ended `strung` on 362 (two). Line 174, the group's earlier three closing
+    (13652, 13649, 13651), is withheld `cover` (a wall at the back, {"kind": "wall", "at": [10752, 10642, "N"]}). No
+    leave line sends a steer or a run."""
     rows = f18(**only("GROUP_LEAVE"))
-    fresh = [k for k, r in enumerate(rows, 1)
-             if threat(r).get("flee") == "leave" and "closing" in threat(r).get("group_leave", {})]
-    assert fresh == [201, 342, 349, 352, 362]
-    g = threat(rows[341])["group_leave"]
-    assert g["closing"] == [13651, 13648] and g["leg"] == "steer" and action(rows[341]) == "steer"
-    assert rows[341]["action"]["args"]["seconds"] == P.LEAVE_S and rows[341]["action"]["args"]["gait"] == "run"
-    assert threat(rows[342])["group_leave"]["end"] == "fight_reach"
-    assert all(g.get("withheld") in (None, "fight_reach", "cover") for g in
-               (threat(r).get("group_leave", {}) for r in rows))
+    gl = {k: threat(r)["group_leave"] for k, r in enumerate(rows, 1) if "group_leave" in threat(r)}
+    assert sorted(gl) == [174, 358, 359, 360, 361, 362]
+    assert gl[174]["withheld"] == "cover" and gl[174]["closing"] == [13652, 13649, 13651]
+    assert gl[358] == {"closing": [13651, 13648, 13653], "leg": "retreat"}
+    assert all(gl[k]["leg"] == "retreat" and gl[k]["n"] == 3 for k in (359, 360, 361))
+    assert gl[362] == {"end": "strung", "n": 2}
+    away = threat(rows[357])["group_retreat"]["centroid_away"]
+    assert math.hypot(*away) == pytest.approx(1.0) and threat(rows[357])["group_retreat"]["leg"] == "retreat"
+    assert all(action(r) != "steer" for k, r in enumerate(rows, 1) if 358 <= k <= 361)
+    assert all(threat(r).get("flee") != "leave" for r in rows)
 
 
 def test_f18_with_the_three_on_by_default_its_guard_shoves_once_then_runs_the_least_bad():
     """F18, open loop, the three on (the defaults; fix 2): the guard's line 402 shoves 13653 (DRAG_GUARD_FIGHT reads
     first, so no run reaches SIDE_CLEAR), line 403 sends the run through SIDE_CLEAR (turned or least bad), no guard line
-    after 402 sends a shove, and the leaves fire as GROUP_LEAVE's alone (201, 342, 349, 352, 362)."""
+    after 402 sends a shove, and the leaves fire as GROUP_LEAVE's alone (the retreat, 358)."""
     rows = f18(**{k: True for k in T17})
     assert rows[401]["action"] == {"type": "shove", "args": {"targetId": 13653}}
     assert action(rows[402]) == "steer" and "side_clear" in threat(rows[402])
     assert all(action(rows[k - 1]) != "shove" for k in GUARD[1:])
-    assert [k for k, r in enumerate(rows, 1) if threat(r).get("flee") == "leave"
-            and "closing" in threat(r).get("group_leave", {})] == [201, 342, 349, 352, 362]
+    assert [k for k, r in enumerate(rows, 1) if threat(r).get("group_leave", {}).get("leg") == "retreat"
+            and "closing" in threat(r)["group_leave"]] == [358]
+
+
