@@ -181,6 +181,35 @@ def _frame_line(seq, wall_ms, zombies=()):
             "zombies": [{"id": z, "x": x, "y": y} for z, x, y in zombies]}
 
 
+def test_retreat_gap_reads_the_nearest_through_the_fighting_retreats_lines_to_the_next_line():
+    """The rule (Plan 33 Task 3 fix 3's fighting retreat): a line whose threat why carries `group_retreat` with leg
+    `retreat` counts, standing to the next line; its `inputs.nearest` feeds the min, the median and the count under
+    GAP_CLOSE; a `door` leg, a `group_leave` without the retreat and a fight line count nothing; a retreat line with no
+    `nearest` counts its minute and no distance; no retreat line reads `read` False and the detail says so."""
+    m = 1.0 / 60.0
+    ret = lambda d: {"group_retreat": {"leg": "retreat", "closing": [1, 2, 3], "centroid_away": [1.0, 0.0]},
+                     "group_leave": {"leg": "retreat", "n": 3}}
+    rows = [_line(10.0, threat={"group_leave": {"closing": [1, 2, 3], "leg": "shove"}, "shove": "leave"}),
+            _line(10.0 + 1 * m, threat=ret(1.2)), _line(10.0 + 2 * m, threat=ret(0.5)),
+            _line(10.0 + 4 * m, threat=ret(0.9)), _line(10.0 + 5 * m, threat=ret(None)),
+            _line(10.0 + 6 * m, threat={"group_retreat": {"leg": "door", "closing": [1, 2, 3]}}),
+            _line(10.0 + 7 * m, threat={"fight": True, "leg": "back"})]
+    for r, d in zip(rows[1:5], (1.2, 0.5, 0.9, None)):
+        r["inputs"]["nearest"] = d
+    g = TS.retreat_gap(rows)
+    assert g["read"] and g["lines"] == 4 and g["closed"] == 1
+    assert abs(g["minutes"] - 5.0) < 1e-9       # 1->2, 2->4, 4->5, 5->6 game minutes
+    assert g["min"] == 0.5 and g["median"] == 0.9
+    assert TS.gap_line(g) == ("retreat gap (group_retreat lines): 4 lines, 5.00 game minutes; the nearest zombie min 0.50 "
+                              "median 0.90 tiles, 1 lines under 0.6")
+    none = TS.retreat_gap(rows[:1] + rows[5:])
+    assert none["read"] is False and none["lines"] == 0 and none["min"] is None
+    assert TS.gap_line(none) == "retreat gap (group_retreat lines): no fighting retreat line"
+    assert TS.gap_line(TS.retreat_gap([_line(10.0, threat=ret(0.7)), _line(10.0 + m, threat=ret(0.8))])) == (
+        "retreat gap (group_retreat lines): 2 lines, 1.00 game minutes; the nearest zombie min - median - tiles, 0 lines "
+        "under 0.6")   # no `nearest` on the lines: the minutes count, no distance
+
+
 def test_toward_counts_a_line_whose_distance_to_its_named_target_fell_past_the_drift():
     """The rule: a goal-branch line with its goal's args square, a continued walk's target or a play's target (a
     square, or a zombie id on the frame at the line) counts the minutes since the line before when the position fell

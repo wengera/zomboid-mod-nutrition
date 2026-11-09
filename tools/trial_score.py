@@ -76,6 +76,12 @@ clipped state lines: Plan 33 Task 1's leaf), `-` when no melee line or no leaf c
 the detail's `head ticks` line adds the values read and the handbacks. A log written before it is widened the same way
 (`widen` takes a row of either earlier width: the body cells and this one, or this one alone, as `-`).
 
+The retreat gap (Plan 33 Task 3 fix 3, Angus's fighting retreat, memory `fighting-retreat`; a detail line, never a
+cell): over the decision lines whose threat why carries `group_retreat` with `leg` "retreat" (GROUP_LEAVE's fighting
+retreat: the Fight backpedalling from the closing group's centroid), the line's `inputs.nearest` (the nearest zombie's
+distance in tiles): the lines, their game minutes to the next line, the nearest's min and median and how many lines read
+it under GAP_CLOSE (the gap the retreat failed to hold); `retreat_gap`.
+
 The clocks: a decision line's game minute is its `inputs.hour` x 60 (a float; the line's `gameMin` is whole minutes,
 too coarse for a 2 Hz line), a frame's its `me.hour` x 60, each unwrapped past midnight; a line stands from its own
 wall to the next line's (the log's last line stands for nothing). Stdlib plus the agent base; read-only over the run.
@@ -123,6 +129,8 @@ REFUGE_WORDS = ("filter", "door", "window", "shelter", "refuge")   # a label or 
 LEGS = ("pull", "back")                         # the ladder's fight legs walking off a zombie, printed in the detail
 MOVE_EPS = 0.05        # tiles: a fall in the distance to the target this small is drift, not movement (a 2 Hz line
                        # of the slowest walk, the sneak's, covers several times it)
+GAP_CLOSE = 0.6        # tiles: a retreat line whose nearest zombie reads this near has lost the gap (the engine's
+                       # shove and bite distance; STAND_MIN_R's order)
 DRESS_MIN = 1.0        # game minutes: a bleed stopped this soon after its first bleeding frame is dressed in time
 PRESS_STEPS = G21.PRESS_STEPS                   # ("swing", "shove", "stomp", "floor"): the melee's presses
 DEATH_REACTION = "EndDeath"                     # the reaction a dying character reads to its death: one landed attack
@@ -345,6 +353,33 @@ def leg_minutes(rows):
         out[leg]["lines"] += 1
         if i + 1 < len(rows):
             out[leg]["minutes"] += _gap(gm[i], gm[i + 1])
+    return out
+
+
+def retreat_gap(rows):
+    """{lines, minutes, min, median, closed, read} over the decision lines whose threat why carries `group_retreat` with
+    `leg` "retreat": `nearest` their `inputs.nearest` readings (None skipped), `min` and `median` of them, `closed` the
+    lines reading under GAP_CLOSE, `minutes` their game minutes to the next line (`flee_minutes`'s way); `read` False
+    with no such line."""
+    gm = line_minutes(rows)
+    out = {"lines": 0, "minutes": 0.0, "min": None, "median": None, "closed": 0, "read": False}
+    ds = []
+    for i, r in enumerate(rows):
+        gr = E._d(E._bw(r, "threat").get("group_retreat"))
+        if gr.get("leg") != "retreat":
+            continue
+        out["lines"] += 1
+        if i + 1 < len(rows):
+            out["minutes"] += _gap(gm[i], gm[i + 1])
+        d = E._n(E._d(r.get("inputs")).get("nearest"))
+        if d is not None:
+            ds.append(d)
+            if d < GAP_CLOSE:
+                out["closed"] += 1
+    if ds:
+        ds.sort()
+        out.update(min=ds[0], median=ds[len(ds) // 2] if len(ds) % 2 else (ds[len(ds) // 2 - 1] + ds[len(ds) // 2]) / 2.0)
+    out["read"] = out["lines"] > 0
     return out
 
 
@@ -696,7 +731,7 @@ def score(run, clipped=True):
     return {"run_id": r["run_id"], "trial": r["trial"], "minutes": g1 - g0 if g0 is not None and g1 is not None
             else None, "kills_events": events, "kills_matched": km.get("planner"), "hits": hu,
             "facing": GX2.e_facing_body(out, rows, lines, frames), "head_ticks": GX3.e_head_ticks(out, lines),
-            "flee": flee_minutes(rows), "away": away_minutes(L), "legs": leg_minutes(rows),
+            "flee": flee_minutes(rows), "away": away_minutes(L), "legs": leg_minutes(rows), "gap": retreat_gap(rows),
             "labels": label_histogram(rows), "toward": toward_minutes(L), "dressed": dressed(frames),
             "melees": melees_superseded(out, lines), "goal_wait": G21.e_goal_wait(L if rows else None),
             "standing": G21.e_standing(L if rows else None), "end": end_cell(out), "health": health,
@@ -805,6 +840,7 @@ def detail(s):
         "standing: %s stretches, %s s (e21.e_standing)" % (sd.get("stretches"), sd.get("seconds")),
         facing_line(s.get("facing")),
         head_line(s.get("head_ticks")),
+        gap_line(s.get("gap")),
     ] + ([clock_line(s["clock"])] if s.get("clock") else [])
 
 
@@ -820,6 +856,16 @@ def facing_line(fb):
             "p90 %s hold30 %s; %s breaks over 45 degrees (%s frames)" % (
                 p.get("n", 0), _num(p.get("median")), _num(p.get("p90")), st.get("n", 0), _num(st.get("median")),
                 _num(st.get("p90")), _num(st.get("hold30"), "%.2f"), br.get("n"), br.get("frames")))
+
+
+def gap_line(g):
+    """The detail's retreat-gap note (`retreat_gap`): the fighting retreat's lines and the nearest zombie through them."""
+    g = E._d(g)
+    if not g.get("read"):
+        return "retreat gap (group_retreat lines): no fighting retreat line"
+    return ("retreat gap (group_retreat lines): %s lines, %.2f game minutes; the nearest zombie min %s median %s tiles, "
+            "%s lines under %.1f" % (g.get("lines"), g.get("minutes"), _num(g.get("min"), "%.2f"),
+                                     _num(g.get("median"), "%.2f"), g.get("closed"), GAP_CLOSE))
 
 
 def head_line(h):
