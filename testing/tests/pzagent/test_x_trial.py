@@ -895,7 +895,67 @@ def test_a_dirty_tree_saves_its_diff_beside_trial_json(tmp_path, monkeypatch, ag
         assert fh.read() == prov["diff"]
 
 
+def _waves_on_the_loops_pass(monkeypatch):
+    """The wave thread's real-time poll replaced by the loop's own pass on the fake clock: `start` only begins the plan
+    (a thread-less stand-in joined at once) and every planner tick steps the waves, so no count here depends on how
+    many 0.5 s real-time polls the host fits into the fake loop."""
+    class Done:
+        def is_alive(self):
+            return False
+
+        def join(self, timeout=None):
+            pass
+
+    def start(self):
+        self.begin(self.clock())
+        self._thread = Done()
+    monkeypatch.setattr(TR.Waves, "start", start)
+    tick = TR.TrialChain.planner_tick
+
+    def planner_tick(self):
+        self.waves.step(self.clock())
+        tick(self)
+    monkeypatch.setattr(TR.TrialChain, "planner_tick", planner_tick)
+
+
+def test_two_steps_at_once_re_send_a_short_spawn_once():
+    """Two callers of `step` both read one due confirmation before either consumed it: the second raised on the
+    removal or re-sent the spawn again. The second caller runs inside the first's `listed` read, after the first
+    computed its due list."""
+    import threading
+    sent, errors = [], []
+    state = {"w": None, "other": None, "n": 0}
+
+    def rcon(cmd, tag):
+        sent.append(tag)
+        return {"ok": True}
+
+    def listed():
+        state["n"] += 1
+        if state["n"] == 2 and state["other"] is None:           # the first confirmation read: a second caller steps
+            def other():
+                try:
+                    state["w"].step(TR.WAVE_CONFIRM_S + 1.0)
+                except Exception as e:                           # noqa: BLE001
+                    errors.append(e)
+            state["other"] = threading.Thread(target=other)
+            state["other"].start()
+            state["other"].join(1.0)                             # a bound only: a serialized step is still blocked
+        return {}
+    w = state["w"] = TR.Waves("lone", rcon, lambda: (100.5, 200.5, 0), clock=lambda: 0.0, listed=listed)
+    w.begin(0.0)
+    w.step(0.0)
+    assert sent == ["wave_0_0"]
+    try:
+        w.step(TR.WAVE_CONFIRM_S + 1.0)                          # past the confirmation, before wave 1 at 60 s
+    finally:
+        state["other"].join(5.0)
+    assert errors == [] and sent == ["wave_0_0", "wave_0_0_resend"]
+    assert w.by_wave[0]["resent"] == 1 and len(w.confirms) == 1
+
+
 def test_the_lone_wave_spawns_at_the_square_off_the_last_frame(tmp_path, monkeypatch, agent_fixture):
+    _waves_on_the_loops_pass(monkeypatch)
     r = boot_trial(tmp_path, monkeypatch, ["--variant", "ladder", "--fixture", "agent", "--minutes", "0.2",
                                            "--no-llm", "--waves", "lone"])
     rcon = [c for c in r.calls if c[0] == "rcon"]
@@ -923,6 +983,7 @@ def test_the_servers_spawn_count_reaches_the_record_and_the_persisted_artifact(t
     log = ("LOG  : Lua          f:400 st:1> PZTK: cmd #1 ping -> pong\n" +
            "WARN : General      f:421 st:2 at CreateHorde2Command.Command         > Spawning new Male Zed, Dressed in "
            "No Outfit\n" * 2)
+    _waves_on_the_loops_pass(monkeypatch)
     r = boot_trial(tmp_path, monkeypatch, ["--variant", "ladder", "--fixture", "agent", "--minutes", "0.2",
                                            "--no-llm", "--waves", "lone"], server_log=log)
     w = r.out["loop"]["trial"]["waves"]

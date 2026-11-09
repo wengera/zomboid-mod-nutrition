@@ -536,6 +536,7 @@ class Waves:
         self.joined = None
         self._stop = threading.Event()
         self._thread = None
+        self._lock = threading.Lock()        # one `step` at a time: confirm reads `pending`, calls `listed` and RCON between its reads and removes
 
     def begin(self, now):
         self.t0, self.started = now, True
@@ -545,12 +546,13 @@ class Waves:
         `now`, if any; the rows added."""
         if self.t0 is None or not self.spawns or self.period_s is None:
             return []
-        added = self.confirm(now)
-        k = int((now - self.t0) // self.period_s)        # the latest wave boundary at or before now
-        if k < self.next_i:
-            return added
-        missed, self.next_i = k - self.next_i, k + 1
-        return added + self.fire(k, now, now - (self.t0 + k * self.period_s), missed)
+        with self._lock:                                  # two callers would each re-send the one due confirmation
+            added = self.confirm(now)
+            k = int((now - self.t0) // self.period_s)        # the latest wave boundary at or before now
+            if k < self.next_i:
+                return added
+            missed, self.next_i = k - self.next_i, k + 1
+            return added + self.fire(k, now, now - (self.t0 + k * self.period_s), missed)
 
     def _near(self, seen, p):
         """The ids of `seen` first listed after the send `p` (not in its `before`) within `confirm_r` tiles of its
