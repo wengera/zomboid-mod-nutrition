@@ -1652,3 +1652,36 @@ def test_the_press_mode_s_members_are_index_checked(lua, fs):
     go(lua, p)
     run(lua, p, w, 1)
     assert states(acts(lua, fs))[-1] == ("m1", "failed", "not loaded")
+
+
+def test_block_aim_s_posture_is_released_at_a_result_no_press_follows(lua, fs):
+    """The mutation pass: the press's result itself releases block_aim's posture (not the next press's enter): a swing
+    that knocks the target down is followed by the knock wait, no press, and the posture is already released."""
+    p, z, w = world(lua, zx=11.0, attack_ticks=8)
+    record_attack(p)
+    w["on_attack"] = lambda wd, shove: wd.__setitem__("knocked", True)
+    lua.execute('PZA.skills.PRESS_FACING = "block_aim"')
+    go(lua, p)
+    run(lua, p, w, 30, stop=lambda: leaves(lua, fs))
+    assert cur_step(lua) == "knock_wait" and len(w["presses"]) == 1 and not ended(lua) and _released(p)
+
+
+def test_body_off_is_wrapped_across_the_west(lua, fs):
+    """The mutation pass: the body at 170 degrees and the target's bearing at -170 lie 20 degrees apart, not 340."""
+    b = math.radians(-170)
+    p, z, w = world(lua, zx=10.0 + math.cos(b), zy=20.0 + math.sin(b), look=math.radians(170), turn=0.0,
+                    attack_ticks=8)
+    no_snap_engine(p)
+    go(lua, p)
+    run(lua, p, w, 30, stop=lambda: leaves(lua, fs))
+    assert leaves(lua, fs)[0]["body_off"] == pytest.approx(20.0)
+
+
+def test_the_re_pin_snaps_onto_the_new_target_on_its_own_tick(lua, fs):
+    """The mutation pass: the re-pin's facing reads the new target's position on the re-pin tick, not the old one's."""
+    p, z, w = world(lua, zx=12.0, attack_ticks=6)
+    o8, _ = live_zombie(8, 10.0, 20.5)
+    frame_last(lua, [(8, 0.5), (7, 2.0)], objs={7: z, 8: o8})
+    go(lua, p)
+    run(lua, p, w, 1)
+    assert step_seq(lua, fs) == ["repin"] and snaps(p)[-1] == pytest.approx((0.0, 1.0))

@@ -136,7 +136,8 @@
 --   floor (face, the head) are the snap too; each press runs inside FACING.press_enter and FACING.press_exit (the
 --   press mode K.PRESS_FACING: unaimed_snap releases the force-aim for the press's ticks and snaps body and look, the
 --   aim re-asserted at the press's result when it was wanted before; block_aim the switchable alternative), the exit
---   made on every path (the result, done, the stop hook on a failure, a supersede or a raise). b is the bearing from
+--   made on every path (the press's result, which a kill's done reads first, and the stop hook on a failure, a
+--   supersede or a raise; every other done follows a result). b is the bearing from
 --   the player to the target (its head on the floor), held at the last one while the target sits within
 --   K.FACING_MIN_D (a zero vector is never written). The press leaf adds body_off, the body angle
 --   (getAnimAngleRadians) off b at the press in degrees, and facing, the press mode.
@@ -764,7 +765,6 @@ end
 
 -- the done result; the stance released first, then the shove flag
 local function doneResult(p, st, how, extra)
-    K.FACING.press_exit(p, st)
     if ST.held then release(p) end
     K.releaseShove(p)
     extra = extra or {}
