@@ -29,7 +29,7 @@ ARGS = {"targetId": 7, "mode": "strike", "reach": 1.25, "shoveR": P.SHOVE_SEND_R
         "stall": P.STALL_SWINGS}
 PRESSES = ("swing", "shove", "stomp", "floor")
 LEAF = {"d_press", "d_collide_pred", "d_min", "look_off", "hp0", "hp1", "knock", "cut_by", "body_off",
-        "facing"}   # fix 1: d_min; Plan 32 Task 4: body_off and facing
+        "facing", "head_ticks"}   # fix 1: d_min; Plan 32 Task 4: body_off and facing; Plan 33 Task 1: head_ticks
 COUNTS = {"swings", "shoves", "stomps", "floors", "knockdowns", "hits"}
 R2 = 1 / math.sqrt(2)
 SCHEMA = os.path.join(ROOT, "testing", "agent", "base", "schema", "pza1.json")
@@ -1685,3 +1685,117 @@ def test_the_re_pin_snaps_onto_the_new_target_on_its_own_tick(lua, fs):
     go(lua, p)
     run(lua, p, w, 1)
     assert step_seq(lua, fs) == ["repin"] and snaps(p)[-1] == pytest.approx((0.0, 1.0))
+
+
+# ---- the finish's head step: the look floor and the cap (Plan 33 Task 1, F18's 14.5 s head stall) -------------------
+
+def stall_world(lua, zx):
+    """A fallen target due +x at zx - 10 tiles and a look that never settles on it (90 degrees off, an engine whose
+    snap writes the facing only and a body that never turns: F18's `a71`, whose bearing to a target under the feet
+    never read on)."""
+    p, z, w = world(lua, zx=zx, look=math.pi / 2, turn=0.0, snap=False, attack_ticks=6)
+    w["floor"] = True
+    return p, z, w
+
+
+def test_a_target_under_the_feet_is_stomped_at_once_past_the_look_floor(lua, fs):
+    """K.HEAD_LOOK_FLOOR: the head at 0.005 tiles (F18's d 0.0053) is stomped on the first tick, the look 90 degrees
+    off; the press's leaf carries head_ticks 0 (no wait)."""
+    p, z, w = stall_world(lua, 10.005)
+    go(lua, p, mode="finish")
+    run(lua, p, w)
+    assert len(w["presses"]) == 1 and w["presses"][0]["shove"] is True and cur_step(lua) == "stomp"
+    run(lua, p, w, 20, stop=lambda: leaves(lua, fs))
+    assert leaves(lua, fs)[0]["head_ticks"] == 0
+
+
+def test_the_old_gate_held_the_head_step_on_a_target_under_the_feet(lua, fs):
+    """The stall reproduced: with the floor off (K.HEAD_LOOK_FLOOR 0, the old gate) and the cap out of reach, the head
+    at 0.005 tiles holds `head` with no press for 300 ticks (F18: fifteen act lines, 14.553 s)."""
+    p, z, w = stall_world(lua, 10.005)
+    lua.execute("PZA.skills.HEAD_LOOK_FLOOR = 0; PZA.skills.HEAD_MAX_TICKS = 100000")
+    go(lua, p, mode="finish")
+    run(lua, p, w, 300)
+    assert w["presses"] == [] and cur_step(lua) == "head" and not ended(lua)
+
+
+def test_a_head_step_held_head_max_ticks_hands_back_head_stall(lua, fs):
+    """K.HEAD_MAX_TICKS: the floor off and the look never on at 0.2 tiles, 20 ticks of `head` with no press, and the
+    21st ends done handback, why head_stall, with head_ticks 20 and the standing count within K.MELEE_CROWD_R."""
+    p, z, w = stall_world(lua, 10.2)
+    lua.execute("PZA.skills.HEAD_LOOK_FLOOR = 0")
+    go(lua, p, mode="finish")
+    run(lua, p, w, 20)
+    assert w["presses"] == [] and cur_step(lua) == "head" and not ended(lua)
+    run(lua, p, w)
+    r = last(lua, fs)["result"]
+    assert (r["end"], r["why"], r["head_ticks"], r["n"]) == ("handback", "head_stall", 20, 0)
+    assert "ds" not in r and "id" not in r and ended(lua) and w["presses"] == []
+
+
+def test_the_head_stall_counts_the_standing_zombies_within_the_crowd_radius(lua, fs):
+    """The handback's count and distances (the crowd handback's form): a standing zombie at 0.8 tiles under a finish
+    whose handbackR (0.5) let it stand by is counted, its id and d the nearest's."""
+    p, z, w = stall_world(lua, 10.2)
+    o8, _ = live_zombie(8, 10.0, 20.8)
+    frame_last(lua, [(7, 0.2), (8, 0.8)], objs={7: z, 8: o8})
+    lua.execute("PZA.skills.HEAD_LOOK_FLOOR = 0")
+    go(lua, p, mode="finish", handbackR=0.5)
+    run(lua, p, w, 21)
+    r = last(lua, fs)["result"]
+    assert (r["why"], r["n"], r["id"], r["head_ticks"]) == ("head_stall", 1, 8, 20)
+    assert r["d"] == pytest.approx(0.8) and r["ds"] == [pytest.approx(0.8)]
+
+
+def test_a_press_resets_the_head_count(lua, fs):
+    """The counter resets on a press: 15 ticks of `head`, the look brought on (a press, its leaf head_ticks 15), the
+    look off again, and 20 more ticks of `head` run before the handback (never 5)."""
+    p, z, w = stall_world(lua, 10.2)
+    lua.execute("PZA.skills.HEAD_LOOK_FLOOR = 0")
+    go(lua, p, mode="finish")
+    run(lua, p, w, 15)
+    assert w["presses"] == [] and cur_step(lua) == "head"
+    w["look"] = 0.0
+    run(lua, p, w)
+    assert len(w["presses"]) == 1
+    w["look"] = math.pi / 2
+    run(lua, p, w, 20, stop=lambda: leaves(lua, fs))
+    assert leaves(lua, fs)[0]["head_ticks"] == 15
+    run(lua, p, w, 15)
+    assert not ended(lua) and cur_step(lua) == "head"
+    run(lua, p, w, 60, stop=lambda: ended(lua))
+    r = last(lua, fs)["result"]
+    assert r["why"] == "head_stall" and r["head_ticks"] == 20 and len(w["presses"]) == 1
+
+
+def test_a_head_step_waiting_on_a_running_attack_counts_toward_the_cap(lua, fs):
+    """The look on but an attack already running (isAttackStarted true: the engine drops a press then, #4292): the
+    press waits in `head` with no press, each tick counted, and the 21st hands back head_stall."""
+    p, z, w = world(lua, zx=10.2, attack_ticks=6)
+    w["floor"] = True
+    p.isAttackStarted = lambda s: True
+    go(lua, p, mode="finish")
+    run(lua, p, w, 20)
+    assert w["presses"] == [] and cur_step(lua) == "head" and not ended(lua)
+    run(lua, p, w)
+    r = last(lua, fs)["result"]
+    assert (r["why"], r["head_ticks"]) == ("head_stall", 20)
+
+
+def test_a_meet_press_leaf_carries_head_ticks_0(lua, fs):
+    p, z, w = world(lua, zx=11.0, attack_ticks=8)
+    go(lua, p)
+    run(lua, p, w, 30, stop=lambda: leaves(lua, fs))
+    assert leaves(lua, fs)[0]["head_ticks"] == 0
+
+
+def test_the_head_stall_keys_are_in_the_schema(lua, fs):
+    p, z, w = stall_world(lua, 10.2)
+    lua.execute("PZA.skills.HEAD_LOOK_FLOOR = 0")
+    go(lua, p, mode="finish")
+    run(lua, p, w, 21)
+    assert "head_ticks" in _schema_keys(lua, fs)
+    with open(SCHEMA, encoding="utf-8") as fh:
+        defs = json.load(fh)["$defs"]
+    for d in ("result_melee", "result_melee_step"):
+        assert "head_ticks" in defs[d]["properties"]["press"]["properties"]

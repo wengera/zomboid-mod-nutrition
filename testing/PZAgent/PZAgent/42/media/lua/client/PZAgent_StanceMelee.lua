@@ -71,6 +71,8 @@
 --       and the target within the reach: the floor swing (a weapon's floor attack, #4374); else with the aim point within
 --       K.MELEE_STOMP_R: the stomp (the shove pair at the floor, #4372, its line 0.3, #4679); each pressed once the look
 --       is within pressAngle of the aim point (step head while it turns); else the walk to it, unaimed (stomp_walk).
+--       Plan 33 Task 1 (the head step's floor and cap, the block at the end of this file): no look gate under
+--       K.HEAD_LOOK_FLOOR, and K.HEAD_MAX_TICKS head ticks with no press end done handback, why head_stall.
 --    5. knocked down and not yet on the floor (isKnockedDown, read after the skill's own knock-down and on every tick
 --       the target is within the reach or shoveR): knock_wait, facing it, no press.
 --    6. the meet, the target standing. Beyond faceR (the latch released only past faceR + MELEE_FACE_SLACK): the stance
@@ -497,7 +499,8 @@ local function press(p, st, kind, d, pred, off, waitStep, dmin, ax, ay)
     local bodyOff = F.body_off(p, b or st.faceB)   -- Plan 32 Task 4: the body at the press, before the press's snap
     st.strike = { kind = kind, at = PZA.now(), started = false, ended = false, refused = false, ticks = 0, hp0 = hp,
                   dPress = d, dPred = pred, dMin = dmin or d, off = off, cut = "", ax = ax, ay = ay, knockP = kp,
-                  bodyOff = bodyOff, facing = K.PRESS_FACING }
+                  bodyOff = bodyOff, facing = K.PRESS_FACING, headTicks = st.headTicks }
+    st.headTicks = 0   -- Plan 33 Task 1: a press restarts the head step's count
     F.press_enter(p, st, b)
     pcall(PZA.call, p, "DoAttack", 0)
     st[COUNT[kind]] = st[COUNT[kind]] + 1
@@ -533,7 +536,7 @@ local function leafOf(st, s, cut)
     local knocked = K.knockedDown(st.z)
     return { d_press = s.dPress, d_collide_pred = s.dPred, d_min = s.dMin, look_off = s.off, hp0 = s.hp0,
              hp1 = healthOf(st.z), knock = knocked, cut_by = cut, knock_p = s.knockP, body_off = s.bodyOff,
-             facing = s.facing }, knocked
+             facing = s.facing, head_ticks = s.headTicks }, knocked
 end
 
 -- the ended press's result: its leaf, a swing's or a shove's knock-down (counted, the knock wait armed), the shove flag
@@ -568,6 +571,25 @@ local function strikeResult(p, st)
     end
 end
 
+-- the head step held with no press (Plan 33 Task 1, F18's a71: 14.553 s of `head` on a target under the feet): counted
+-- in st.headTicks (reset by every press); at K.HEAD_MAX_TICKS done handback, why head_stall, with head_ticks and the
+-- standing zombies within K.MELEE_CROWD_R (the crowd handback's form: n, and with one or more the nearest's id and d
+-- and the distances ds), so the decider decides
+local function headWait(p, st)
+    if st.headTicks >= K.HEAD_MAX_TICKS then
+        local near = standingNear(p, st, K.MELEE_CROWD_R)
+        local out = { why = "head_stall", head_ticks = st.headTicks, n = 0 }
+        if near ~= nil then
+            local ds = {}
+            for i = 1, #near do ds[i] = near[i].d end
+            out.id, out.d, out.n, out.ds = near[1].id, near[1].d, #near, ds
+        end
+        return "done", "handback", out
+    end
+    st.headTicks = st.headTicks + 1
+    return "head"
+end
+
 -- 4: the finish at a fallen target's head
 local function finish(p, st, d, px, py, now)
     local near = standingNear(p, st, st.handbackR)
@@ -589,9 +611,10 @@ local function finish(p, st, d, px, py, now)
     if floor or dh <= K.MELEE_STOMP_R then
         stopWalk(p, st)
         local off = lookOff(p, px, py, hx, hy)
-        if not lookOn(st, off) then return "head" end
-        if floor then return press(p, st, "floor", dh, dh, off, "head", dmin, ax, ay) end
-        return press(p, st, "stomp", dh, dh, off, "head", dmin, ax, ay)
+        if dh >= K.HEAD_LOOK_FLOOR and not lookOn(st, off) then return headWait(p, st) end   -- Plan 33: the floor
+        local step, why = press(p, st, floor and "floor" or "stomp", dh, dh, off, "head", dmin, ax, ay)
+        if step == "head" then return headWait(p, st) end   -- an attack still running: a head tick with no press
+        return step, why
     end
     return walkToward(p, st, "stomp_walk", px, py, hx, hy, dh, now)
 end
@@ -769,7 +792,7 @@ local function doneResult(p, st, how, extra)
     K.releaseShove(p)
     extra = extra or {}
     local out = counts(st, { ["end"] = how, kill = how == "kill", why = extra.why, id = extra.id, d = extra.d,
-                             n = extra.n, ds = extra.ds, hp0 = st.hp0, hp1 = healthOf(st.z), dMin = st.dMin,
+                             n = extra.n, ds = extra.ds, head_ticks = extra.head_ticks, hp0 = st.hp0, hp1 = healthOf(st.z), dMin = st.dMin,
                              steps = st.steps, refusals = refusalsOf(st, true), press = st.leaf })
     st.leaf = nil
     return out
@@ -822,7 +845,7 @@ K.types.melee = {
                            walk = nil, wx = nil, wy = nil, walkBest = nil, walkMs = 0, weaponReach = nil, minR = nil,
                            rawReach = nil, refusals = 0, refuseRun = nil, refuseUntil = nil,
                            spent = false, spentFrame = nil, spentAt = nil, px = nil, py = nil, zx = nil, zy = nil,
-                           faceB = nil, pf = nil }
+                           faceB = nil, pf = nil, headTicks = 0 }
     end,
     tick = function(p, st)
         if isDead(p) then return "failed", "dead" end
@@ -973,3 +996,16 @@ function FACING.body_off(p, b)
     while off < -math.pi do off = off + 2 * math.pi end
     return math.abs(off) * DEG
 end
+
+-- ---- the finish's head step (Plan 33 Task 1) ----------------------------------------------------------------------
+-- F18 (f_goals_18-20261108-235005, #4704): the finish a71 stomped its fallen target once and then held its head step
+-- 14.553 s with no press, the character standing on it (d 0.0053): the bearing from the player to a target under the
+-- feet is numerically unstable and the look gate (lookOn) never read on, while a group of three walked in. Two rules in
+-- finish (the header's reflex 4): the head nearer than K.HEAD_LOOK_FLOOR is pressed with no look gate (the stomp lands
+-- on the square under the character, the earlier stomp at 0.27 landed; the engine's attack never reads the aim, the
+-- facing jar read's claim 19); and a head step held K.HEAD_MAX_TICKS ticks with no press (headWait, st.headTicks,
+-- restarted by every press) ends done handback, why head_stall, {head_ticks, n[, id, d, ds]}: the standing zombies within
+-- K.MELEE_CROWD_R, the crowd handback's form, so the decider decides. Every press leaf adds head_ticks, the head ticks
+-- waited before it (0 for a press with no wait).
+K.HEAD_LOOK_FLOOR = 0.15   -- tiles: a head nearer is pressed with no look gate (the target under the feet)
+K.HEAD_MAX_TICKS = 20      -- head ticks with no press before the head_stall handback (the spec's 20, a judgment)
