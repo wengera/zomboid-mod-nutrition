@@ -779,3 +779,103 @@ def test_aim_without_the_snap_member_fails_not_loaded(lua, fs):
     start(lua, p, "aim", vx=0, vy=0, seconds=1, targetId=7)
     tick(lua, p)
     assert states(acts(lua, fs))[-1] == ("a1", "failed", "not loaded")
+
+
+# ---- SHOVE_CLEAR (Plan 34 Task 4, PZA/1.12): the shove and stomp wait for the reaction's end -------------------------
+# F19's GUIDE section 3: four of the five shoves the leave's rules sent were refused busy under a hit reaction or a
+# running swing; no swing starts while either is set (#4292), so the press waits for the first tick after both clear.
+
+def _sc_host(lua, floor=False):
+    """A player at (10, 20) and zombie 7 within shove reach (standing at 11.0) or stomp reach (fallen at 10.3)."""
+    from .test_lua_pza17 import fz, shove_host
+    from .test_lua_skills import mover
+    z = fz(7, 10.3 if floor else 11.0, 20.0, floor=floor, health=0.8)
+    p = shove_host(lua, [z], weapon=make_weapon())
+    mover(p, 10.0, 20.0)
+    return z, p
+
+
+def _sc_swing(lua, p):
+    from .test_lua_pza17 import swing
+    swing(lua, p)
+    tick(lua, p, 2)                                                          # the swing ended: one frame more
+
+
+@pytest.mark.parametrize("typ", ["shove", "stomp"])
+def test_shove_clear_a_press_under_a_hit_reaction_waits_for_its_end_and_reports_waited(lua, fs, typ):
+    _, p = _sc_host(lua, floor=(typ == "stomp"))
+    p.combat["hitReaction"] = "HitReactionFront"
+    start(lua, p, typ, targetId=7)
+    assert ("a1", "accepted", "") in states(acts(lua, fs))                   # the old check refused busy
+    for _ in range(7):
+        tick(lua, p)
+        assert p.shoves == [] and list(p.attacks) == []                      # ticks 1-7 press nothing
+    p.combat["hitReaction"] = ""
+    tick(lua, p)                                                             # tick 8: the press
+    assert p.shoves == [True] and list(p.attacks) == [0]
+    _sc_swing(lua, p)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("a1", "done", "")
+    assert a[-1]["result"]["waited"] == 7 and a[-1]["result"]["attackStarted"] is True
+    assert p.shoves == [True, False]
+
+
+def test_shove_clear_a_press_under_a_running_attack_waits_for_it(lua, fs):
+    _, p = _sc_host(lua)
+    p.attack["started"] = True
+    start(lua, p, "shove", targetId=7)
+    tick(lua, p, 3)
+    assert p.shoves == [] and list(p.attacks) == []
+    p.attack["started"] = False
+    tick(lua, p)
+    assert p.shoves == [True] and list(p.attacks) == [0]
+    _sc_swing(lua, p)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("a1", "done", "") and a[-1]["result"]["waited"] == 3
+    assert a[-1]["result"]["attackStarted"] is True
+
+
+@pytest.mark.parametrize("typ", ["shove", "stomp"])
+def test_shove_clear_a_reaction_that_never_clears_fails_busy_at_the_wait_cap_with_no_press(lua, fs, typ):
+    _, p = _sc_host(lua, floor=(typ == "stomp"))
+    assert lua.eval("PZA.skills.SHOVE_WAIT_TICKS") == 45
+    p.combat["hitReaction"] = "HitReactionFront"
+    start(lua, p, typ, targetId=7)
+    tick(lua, p, 44)
+    assert states(acts(lua, fs))[-1] == ("a1", "accepted", "")
+    tick(lua, p)                                                             # tick 45
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "busy")
+    assert p.shoves == [] and list(p.attacks) == [] and ended(lua)
+
+
+def test_shove_clear_no_reaction_presses_on_the_first_tick_and_reports_waited_zero(lua, fs):
+    _, p = _sc_host(lua)
+    start(lua, p, "shove", targetId=7)
+    tick(lua, p)
+    assert p.shoves == [True] and list(p.attacks) == [0]
+    _sc_swing(lua, p)
+    assert acts(lua, fs)[-1]["result"] == {"knockdown": False, "attackStarted": True, "targetDead": False,
+                                           "waited": 0}
+
+
+def test_shove_clear_leaves_the_attack_check_refusing_busy_under_a_reaction(lua, fs):
+    """Pinned: SHOVE_CLEAR changes the shove and stomp checks only; the attack's busy refusal (PZAgent_SkillsWorld.lua's
+    wrapper, ruling P24-C) stands, the swing being the melee's."""
+    _, p = _sc_host(lua)
+    p.combat["hitReaction"] = "HitReactionFront"
+    start(lua, p, "attack", targetId=7)
+    tick(lua, p, 2)
+    assert states(acts(lua, fs)) == [("a1", "rejected", "busy")] and list(p.attacks) == []
+
+
+def test_shove_clear_the_schema_appends_waited_to_the_shove_and_stomp_results_under_pza_1_12():
+    import json
+    import os
+    from .conftest import ROOT
+    with open(os.path.join(ROOT, "testing", "agent", "base", "schema", "pza1.json"), encoding="utf-8") as fh:
+        schema = json.load(fh)
+    assert "PZA/1.12" in schema["description"] and "SHOVE_CLEAR" in schema["description"]
+    for name in ("result_shove", "result_stomp"):
+        props = schema["$defs"][name]["properties"]
+        assert list(props)[-1] == "waited" and props["waited"]["type"] == "integer", name
+        assert "SHOVE_CLEAR" in props["waited"]["description"], name

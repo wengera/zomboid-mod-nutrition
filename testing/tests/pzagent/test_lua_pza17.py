@@ -409,7 +409,7 @@ def test_shove_faces_the_target_sets_the_flag_presses_the_attack_and_reports_the
     tick(lua, p)
     a = acts(lua, fs)
     assert states(a)[-1] == ("a1", "done", "")
-    assert a[-1]["result"] == {"knockdown": True, "attackStarted": True, "targetDead": False}
+    assert a[-1]["result"] == {"knockdown": True, "attackStarted": True, "targetDead": False, "waited": 0}
     assert p.shoves == [True, False] and list(p.attacks) == [0]
 
 
@@ -420,7 +420,8 @@ def test_a_shove_that_staggers_reports_no_knockdown(lua, fs):
     tick(lua, p)
     swing(lua, p, 2)
     tick(lua, p, 2)
-    assert acts(lua, fs)[-1]["result"] == {"knockdown": False, "attackStarted": True, "targetDead": False}
+    assert acts(lua, fs)[-1]["result"] == {"knockdown": False, "attackStarted": True, "targetDead": False,
+                                           "waited": 0}
 
 
 def test_a_shove_the_engine_dropped_is_done_after_the_swing_budget_and_clears_the_flag(lua, fs):
@@ -442,14 +443,10 @@ def test_shove_refusals(lua, fs):
     start(lua, p, "shove", aid="de", targetId=9)
     start(lua, p, "shove", aid="ba", targetId="7")
     start(lua, p, "shove", aid="tf", targetId=8)
-    p.combat["hitReaction"] = "HitReactionFront"
-    start(lua, p, "shove", aid="bu", targetId=7)
-    p.combat["hitReaction"] = ""
-    p.attack["started"] = True
-    start(lua, p, "shove", aid="sw", targetId=7)
+    # a hit reaction or a running swing is no longer refused busy: SHOVE_CLEAR (Plan 34 Task 4) waits for its end, pinned
+    # in test_lua_stance.py's test_shove_clear_* tests
     assert states(acts(lua, fs)) == [("nt", "rejected", "no target"), ("de", "rejected", "no target"),
-                                     ("ba", "rejected", "bad args"), ("tf", "rejected", "too far"),
-                                     ("bu", "rejected", "busy"), ("sw", "rejected", "busy")]
+                                     ("ba", "rejected", "bad args"), ("tf", "rejected", "too far")]
     assert p.shoves == [] and list(p.attacks) == []
 
 
@@ -516,7 +513,7 @@ def test_stomp_walks_to_under_half_a_tile_then_presses_the_shove_pair_and_report
     tick(lua, p, 2)
     a = acts(lua, fs)
     assert states(a)[-1] == ("a1", "done", "")
-    assert a[-1]["result"] == {"hit": True, "attackStarted": True, "targetDead": False}
+    assert a[-1]["result"] == {"hit": True, "attackStarted": True, "targetDead": False, "waited": 0}
     assert p.shoves == [True, False]
 
 
@@ -535,7 +532,8 @@ def test_a_stomp_that_did_no_damage_reports_no_hit_and_a_kill_reports_it(lua, fs
     swing(lua, p)
     z2.st["dead"] = True
     tick(lua, p, 2)
-    assert acts(lua, fs)[-1]["result"] == {"hit": True, "attackStarted": True, "targetDead": True}
+    assert acts(lua, fs)[-1]["result"] == {"hit": True, "attackStarted": True, "targetDead": True,
+                                           "waited": 0}
 
 
 def test_stomp_refusals(lua, fs):
@@ -544,10 +542,9 @@ def test_stomp_refusals(lua, fs):
     start(lua, p, "stomp", aid="nt", targetId=99)
     start(lua, p, "stomp", aid="ba", targetId="7")
     start(lua, p, "stomp", aid="up", targetId=8)                             # the target stands: not valid
-    p.combat["hitReaction"] = "HitReactionFront"
-    start(lua, p, "stomp", aid="bu", targetId=7)
+    # busy is waited for since SHOVE_CLEAR (Plan 34 Task 4): test_lua_stance.py's test_shove_clear_* tests
     assert states(acts(lua, fs)) == [("nt", "rejected", "no target"), ("ba", "rejected", "bad args"),
-                                     ("up", "rejected", "not valid"), ("bu", "rejected", "busy")]
+                                     ("up", "rejected", "not valid")]
 
 
 def test_stomp_is_refused_standing_while_a_standing_zombie_is_within_the_weapons_min_range(lua, fs):

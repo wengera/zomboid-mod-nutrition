@@ -635,7 +635,7 @@ K.types.window = {
 -- level - 1.3 per panic level in 100); the flag lives until SwipeStatePlayer.exit sets setDoShove(false) (L488).
 -- shove: check: targetId a number (bad args), a live zombie of the last frame's list (K.zombieById: no target), within
 -- SHOVE_R tiles (too far: the shove's own reach, calcHitListShove, is not read, so 1.5 is a bound), the player not in a hit
--- reaction or a swing (K.attackBusy: busy). The first tick: the run latches off, faceThisObject(z), setDoShove(true), DoAttack(0)
+-- reaction or a swing (K.attackBusy: waited for, SHOVE_CLEAR at the end of this file). The first tick: the run latches off, faceThisObject(z), setDoShove(true), DoAttack(0)
 -- (index-checked first: not loaded; a raise inside either is the swing not made). Then, as attack does, isAttackStarted read
 -- until it has read true and then false, or SWING_MS after the swing; one frame later done {knockdown (the target's isKnockedDown()
 -- then: set at the hit, where isOnFloor waits for the fall animation), attackStarted, targetDead}. A target that moved beyond SHOVE_R before the first tick fails too far; one dead before it
@@ -715,7 +715,7 @@ local function knockedDown(z)
 end
 
 local function shoveResult(st)
-    return { knockdown = knockedDown(st.z), attackStarted = st.started, targetDead = K.zombieDead(st.z) }
+    return { knockdown = knockedDown(st.z), attackStarted = st.started, targetDead = K.zombieDead(st.z), waited = st.waited or 0 }
 end
 
 K.types.shove = {
@@ -723,11 +723,12 @@ K.types.shove = {
         local st, why, d = swingCheck(args, p)
         if st == nil then return false, why end
         if d > K.SHOVE_R then return false, "too far" end
-        if K.attackBusy ~= nil and K.attackBusy(p) then return false, "busy" end
+        if K.attackBusy ~= nil and K.attackBusy(p) then st.wait = 0 end
         return true, "", st
     end,
     tick = function(p, st)
         if isDead(p) then return "failed", "dead" end
+        if K.shoveHeld(p, st) then return K.shoveHeldEnd(st) end
         if st.swungAt == nil then
             if not shoveLoaded(p) then return "failed", "not loaded" end
             if K.zombieDead(st.z) then return "done", shoveResult(st) end
@@ -793,7 +794,7 @@ local function stompResult(st)
     local dead = K.zombieDead(st.z)
     local _, h = PZA.call(st.z, "getHealth")
     local hit = dead or (type(h) == "number" and type(st.health0) == "number" and h < st.health0)
-    return { hit = hit, attackStarted = st.started, targetDead = dead }
+    return { hit = hit, attackStarted = st.started, targetDead = dead, waited = st.waited or 0 }
 end
 
 K.types.stomp = {
@@ -802,12 +803,13 @@ K.types.stomp = {
         if st == nil then return false, why end
         if not onFloor(st.z) then return false, "not valid" end
         if standingNear(p, st, standRadius(p)) ~= nil then return false, "standing" end
-        if K.attackBusy ~= nil and K.attackBusy(p) then return false, "busy" end
+        if K.attackBusy ~= nil and K.attackBusy(p) then st.wait = 0 end
         st.walkAt = nil
         return true, "", st
     end,
     tick = function(p, st)
         if isDead(p) then return "failed", "dead" end
+        if K.shoveHeld(p, st) then return K.shoveHeldEnd(st) end
         if st.swungAt == nil then
             if not shoveLoaded(p) then return "failed", "not loaded" end
             if K.zombieDead(st.z) then return "done", stompResult(st) end
@@ -841,3 +843,32 @@ K.types.stomp = {
 -- PZAgent_StanceMelee.lua loads after this file (client files load by name, case-insensitively, #0850: "pzagent_stance."
 -- before "pzagent_stancemelee") and reaches these locals through K; appended here (CLAUDE.md section 5).
 K.onFloor, K.knockedDown, K.releaseShove = onFloor, knockedDown, releaseShove
+
+-- ---- SHOVE_CLEAR (PZA/1.12, Plan 34 Task 4) ---------------------------------------------------------------------------
+-- F19 (its GUIDE section 3): four of the five shoves GROUP_LEAVE and DRAG_GUARD_FIGHT sent were refused busy, each under a
+-- hit reaction or a running swing, and the drag guard sends its shove under the reaction by design (#4372: the shove is
+-- the one press the engine takes at the reaction's end). No swing starts while the reaction or an attack is set (#4292),
+-- so the shove's and the stomp's checks accept a busy player with st.wait = 0 and their ticks hold the press: each tick
+-- K.attackBusy reads true counts one more, SHOVE_WAIT_TICKS of them fail busy, and the first tick it reads false records
+-- st.waited and presses as before (the stomp's walk follows the wait). Nothing is set during the wait, so no flag needs
+-- restoring on its exits; the results carry waited (0 with none). The attack's own busy refusal stands (the swing is the
+-- melee's: PZAgent_SkillsWorld.lua's wrapper). Appended here (CLAUDE.md section 5: the repo: pointers keep their lines).
+K.SHOVE_WAIT_TICKS = 45       -- client ticks: three quarters of a second at 60 Hz, longer than a hit reaction
+
+-- true while the press is held for the reaction or the attack to clear (the tick returns K.shoveHeldEnd's answer)
+function K.shoveHeld(p, st)
+    if st.wait == nil then return false end
+    if K.attackBusy ~= nil and K.attackBusy(p) then
+        st.wait = st.wait + 1
+        return true
+    end
+    st.waited = st.wait
+    st.wait = nil
+    return false
+end
+
+-- the held tick's answer: nil while it runs on, failed busy once SHOVE_WAIT_TICKS were spent
+function K.shoveHeldEnd(st)
+    if st.wait >= K.SHOVE_WAIT_TICKS then return "failed", "busy" end
+    return nil
+end
