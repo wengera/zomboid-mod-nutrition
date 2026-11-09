@@ -167,10 +167,17 @@ read once (`_read_dead`) and a span of strikes with no health fall counts in the
 the dispatch point is unchanged, and the corner Fight (`point_blank`), the door fight (`only`), the doorway stand and
 the flee's finish keep the ladder in cut 1; nothing of the ladder is deleted (cut 2 deletes once cut 1 reads no
 worse).
+Plan 33 Task 2 (the crawler first; F18, `f_goals_18-20261108-235005`: the crawler 13649 lay within 0.4 tiles from
+game minute 608 to the death at 617, the target of no line after 356, while the pair rule pinned the standing ones):
+with the `crawler_first` rule on (Survive's CRAWLER_FIRST), a zombie reading `crawler` or `onFloor` within CRAWLER_R
+while a standing zombie stands within DANGER_R beyond STAND_MIN_R is pinned and stomped (the melee's `finish`) before
+the standing one is met, the pin returning to the nearest standing one when the crawler reads dead, beyond CRAWLER_R, or
+after CRAWLER_TRIES finishes at it ended without a kill (`crawler.FightCrawler`, its module docstring the rule).
 """
 import math
 import time
 
+from agent.base.planner.crawler import CRAWLER_TRIES, FightCrawler
 from agent.base.planner.dispatch import FightDispatch
 from agent.base.planner.door_held import FightDoorHeld
 from agent.base.planner.edges import FightEdge
@@ -193,7 +200,7 @@ from agent.base.planner.shove import FightShove
 from agent.base.pza1 import Aim, Attack, WalkTo
 from agent.base.world import me_floor, me_xy
 
-__all__ = ["Fight", "FIGHT_RULES"]
+__all__ = ["Fight", "FIGHT_RULES", "CRAWLER_TRIES"]
 
 FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finish_far", "shove_break",
                "shove_break_run", "blocked_edge", "wounded_swing", "low_swing",
@@ -201,17 +208,18 @@ FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finis
                "point_blank_pin", "busy_retry", "floor_pain", "shove_back",
                "drift_stand", "circle", "approach_walk", "melee",
                "route_cross", "close_idle", "swing_close", "chaser_stance",
-               "pair_nearest")   # survival iterations 13 to 24's
+               "pair_nearest", "crawler_first")   # survival iterations 13 to 24's
                      # Fight rules and Plan 31's (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E;
                      # P27-G, P27-H, P27-J, P27-K2; fix 2's P27-M and P27-N; P28-D, P28-C, P28-B2, P28-B3, P28-E, the
                      # approach walk; the melee, cut 1 of the maneuver layer; P29-A's route, P29-C's close; P30-A's
-                     # swing close; Plan 31 Task 15a's chaser stance; Plan 32 Task 5 (b)'s pair),
+                     # swing close; Plan 31 Task 15a's chaser stance; Plan 32 Task 5 (b)'s pair; Plan 33 Task 2's
+                     # crawler first),
                      # each on in `rules`
                      # unless Survive's switch for it is off
 
 
 class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach, FightDispatch, FightDoorHeld,
-            Policy):
+            FightCrawler, Policy):
     """The Fight (the module docstring), with its rules in mixins, the state the Fight's own:
     - `FightPull` (`pull.py`): the pull of a lone chaser and the listing's edge hold (P24-AN, P24-AU);
     - `FightFinish` (`finish.py`): the finish of the fallen and the stomp (P24-AL, P24-AV, P25-B, P25-J, P27-G, P27-H);
@@ -221,7 +229,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
     - `FightPin` (`pin.py`): the point-blank pin, a zombie at point blank or attacking never dropped (P27-N, fix 3);
     - `FightReach` (`reach.py`): the attack within the weapon's reach and the walk to it (P27-M);
     - `FightDispatch` (`dispatch.py`): the melee maneuver in the ladder's in-reach sends' place (survival iteration
-      22, cut 1 of the maneuver layer)."""
+      22, cut 1 of the maneuver layer);
+    - `FightCrawler` (`crawler.py`): the crawler first, a crawler within CRAWLER_R stomped while one stands within
+      DANGER_R (Plan 33 Task 2)."""
 
     def __init__(self, world, actions, clock=time.time, unreachable=None, target=None, dead=None):
         super().__init__(world, actions, clock)
@@ -306,6 +316,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         self._back_left = False             # that leg's target was read beyond POINT_BLANK_R since it was sent
         self._init_dispatch()   # survival iteration 22: the running maneuver, `m` (`dispatch.FightDispatch`)
         self.pair = None                    # this choose's `pair_nearest` read (Plan 32 Task 5 (b)), else None
+        self._init_crawler()   # Plan 33 Task 2: the crawler first's pin, finishes and tries (`crawler.FightCrawler`)
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -575,6 +586,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         walk (the approach and swing's, a reposition) holds until it ends."""
         if not super().busy():
             return False
+        crawl = self._crawler_busy()   # Plan 33 Task 2: a running send at another than the crawler gives way
+        if crawl is not None:
+            return crawl
         pair = self._pair_read()   # Plan 32 Task 5 (b): a send at another than the pair's target gives way
         if pair is not None and self.last.args.get("targetId") not in (None, pair[0]):
             return False
@@ -657,6 +671,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         self._observe_edge_route()
         self._observe_kill()
         self._observe_maneuver()   # survival iteration 22: the melee's ends, a kill among them (`dispatch.py`)
+        self._observe_crawler()    # Plan 33 Task 2: the crawler finishes' ends, the tries
         self._take_pin_read()   # once a tick: `blocked` and the pin read it on every call (fix 3, minor 4)
         self._observe_leg()
         t = self._target(pin=False)
@@ -903,6 +918,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             self.why["route_end"], self._route_end = self._route_end, None
         if self.pair is not None:   # Plan 32 Task 5 (b): the pair's pin, logged
             self.why["pair_nearest"] = self.pair
+        if self._crawler_note is not None:   # Plan 33 Task 2: the pin returned from the crawler, logged
+            self.why.setdefault("crawler_first", self._crawler_note)
+            self._crawler_note = None
         return cmd
 
     def _pair_read(self):
@@ -998,6 +1016,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             self.target, self.repositioned = switch[0], False
         self._pin_first()   # P27-N: a zombie at point blank or read attacking takes the pin
         pair = self._pair_pin()   # Plan 32 Task 5 (b): with two within KEEP_R the nearer standing one is the pin
+        crawl = self._crawler_first()   # Plan 33 Task 2: a crawler within CRAWLER_R stomped before the standing one
+        if crawl is not None:
+            return crawl
         t = self._target(pin=True)
         if t is None:
             self.why = {"target": None, "pinned": False}
@@ -1215,6 +1236,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             self.m.sent(cmd, action)   # survival iteration 22: the maneuver's own send
         else:
             self._retire_maneuver()   # the ladder's command in its place: the Lua supersedes the melee
+        self._crawler_sent(cmd, action)   # Plan 33 Task 2: a finish at the crawler, its end read for the tries
         if cmd.TYPE == "aim":
             self._leg = self.why.get("leg")
             if "shove_back" in self.why:   # P28-B2 (fix 1, M1): the one leg for this miss, held by `busy`

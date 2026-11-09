@@ -58,7 +58,9 @@ def _f17(switches):
 
 
 def f17(**switches):
-    """F17's replayed decision lines (list index line - 1) with `switches` set."""
+    """F17's replayed decision lines (list index line - 1) with `switches` set. Pinned with Plan 33 Task 2's
+    CRAWLER_FIRST off (`T17_SWITCHES`, a named change: it moves F17's lines), unless a case sets it."""
+    switches.setdefault("CRAWLER_FIRST", False)
     return json.loads(_f17(tuple(sorted(switches.items()))))
 
 
@@ -203,11 +205,14 @@ def test_a_running_retreat_to_a_named_structure_is_kept_at_point_blank(tmp_path)
 
 # ================================================================ (b) the pair: the nearer standing faced and shoved first
 def fight_rig(tmp_path, zs, rule=True):
-    """A Fight on a fresh Rig over one frame of `zs`, its rules the defaults with `pair_nearest` on or off."""
+    """A Fight on a fresh Rig over one frame of `zs`, its rules the defaults with `pair_nearest` on or off; pinned
+    with Plan 33 Task 2's `crawler_first` off (a named change: a fallen zombie within CRAWLER_R beside a standing one
+    is that rule's)."""
     r = Rig(tmp_path)
     r.frame(zombies=zs)
     f = F.Fight(r.world, r.acts, r.clock)
     f.rules = (f.rules | {"pair_nearest"}) if rule else (f.rules - {"pair_nearest"})
+    f.rules = f.rules - {"crawler_first"}
     return r, f
 
 

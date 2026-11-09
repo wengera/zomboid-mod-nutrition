@@ -350,6 +350,12 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     both on a walk); (d) the `strain` flee only at stats.endurance STRAIN_ENDURANCE or
     under (the ENDURANCE moodle's second level) and never with exactly one standing within DANGER_R
     (`threat.Threat._strain_flees`); `T16_SWITCHES`.
+    Plan 33 Task 2 (the crawler first; F18, `f_goals_18-20261108-235005`: the crawler 13649 under the character's feet
+    from game minute 608 to the death, the target of no line after 356): a zombie reading `crawler` or `onFloor`
+    within CRAWLER_R while a standing one stands within DANGER_R beyond STAND_MIN_R is the Fight's pin and stomped
+    first, the pin returning to the standing one when it reads dead, beyond CRAWLER_R or after CRAWLER_TRIES finishes
+    without a kill (`crawler.FightCrawler`, the Fight's `crawler_first` rule; the tries shared across the Fights,
+    `crawler_tries`); `T17_SWITCHES` (CRAWLER_FIRST).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -505,6 +511,9 @@ T16_SWITCHES = ("POINT_BLANK_FIGHT", "PAIR_NEAREST", "CARE_COMMIT", "STRAIN_BOUN
 # PAIR_NEAREST, the Fight's `pair_nearest` rule (`fight.Fight._pair_pin`); (c) CARE_COMMIT, one distance leg, then the
 # care action finished with the threat branch yielding (`care_yield.CareYield._care_commit`); (d) STRAIN_BOUND, the
 # `strain` flee only under a real exhaustion (`hold.Hold._strain_flees`)
+T17_SWITCHES = ("CRAWLER_FIRST",)
+# Plan 33 Task 2 (the crawler first, F18's death) on `Survive`: CRAWLER_FIRST, the Fight's `crawler_first` rule
+# (`crawler.FightCrawler`), added to the Fight's rules by `Survive._fight_rules`
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -527,7 +536,7 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T3_SWITCHES",
            "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES", "T7_SWITCHES", "T8_SWITCHES", "T9_SWITCHES", "T10_SWITCHES",
            "T11_SWITCHES", "T12_SWITCHES", "T13_SWITCHES", "T14_SWITCHES", "T15_SWITCHES",
-           "T16_SWITCHES"]
+           "T16_SWITCHES", "T17_SWITCHES"]
 
 
 @dataclass
@@ -560,6 +569,10 @@ class Survive(SneakGait, Threat):
                             # stands within KEEP_R (`care.Care.scratch_wanted`), and the threat branch yields to it
                             # (`care_yield.CareYield._wound_yields`); off, P28-A's wound step as before. Set on the
                             # Care each tick (`_read`)
+    CRAWLER_FIRST = True    # Plan 33 Task 2 (in T17_SWITCHES): a crawler or a fallen zombie within CRAWLER_R is the
+                            # Fight's pin and stomped first while a standing one stands within DANGER_R beyond
+                            # STAND_MIN_R (the Fight's `crawler_first` rule, `crawler.FightCrawler`; `_fight_rules`);
+                            # off, the finish and the pin as before
     UNWEAR_WOUND = True   # ruling P25-H (Plan 25 Task 7): the care branch's bleeding step unwears a garment to rip on
                           # any quiet care tick (`care.Care._wound`); off, only the idle stock does (P24-AJ). In
                           # T4_SWITCHES, the replay tests' seam onto the goldens before Task 7 (`pre_t4`)
@@ -681,6 +694,8 @@ class Survive(SneakGait, Threat):
         self.dead = {}            # zombie id -> wall until it is skipped, read dead (policies.Fight, Task 12 fix 1)
         self.edge_marks = {}      # zombie id -> the blocked edge a Fight refused it across (P25-X, `planner/edges.py`)
         self.close_left = {}      # zombie id -> wall until a shove-only close left it for a blocked line (P27-J)
+        self.crawler_tries = {}   # zombie id -> crawler-first finishes at it ended without a kill (Plan 33 Task 2),
+                                  # kept across Fights
         self.low_left = set()     # the ids the low fight left this threat episode (P27-K2: `FightShove._low_exit`)
         self.corner_exit = None   # this tick: {yield "health"} when the inside corner yielded to the way out (P27-K2)
         self.strain_hold = False  # the arms' strain hold (P24-AG, P24-AT): set at a stiffness of STIFF_HARD, cleared
@@ -887,7 +902,15 @@ class Survive(SneakGait, Threat):
         if not any(p is policy for p in self._observed):
             self._observed.append(policy)
             policy.trans = self.TRANS   # P24-AS: the policy's heading reads, before its observe, busy and choose
+            if hasattr(policy, "crawler_tries"):
+                policy.crawler_tries = self.crawler_tries   # Plan 33 Task 2: the tries kept across Fights
             policy.observe()
+
+    def _fight_rules(self):
+        """The Fight's rules (`threat.Threat._fight_rules`), with Plan 33 Task 2's `crawler_first` while CRAWLER_FIRST
+        is on (read off `self` as Threat's own switches are, so a switch table stands in for a Survive)."""
+        rules = Threat._fight_rules(self)
+        return rules | {"crawler_first"} if self.CRAWLER_FIRST else rules
 
     def _answer(self, policy):
         self._observe(policy)

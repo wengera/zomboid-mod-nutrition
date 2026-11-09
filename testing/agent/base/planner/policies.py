@@ -133,6 +133,7 @@ STAND_MAX_S = 20.0    # wall seconds a standing fight may go without its target'
                       # stand-off, and no run)
 KEEP_R = 2.5          # tiles: a target inside this and beyond FIGHT_REACH is backpedalled from; farther, the stance
                       # stands facing it and lets it come (ruling P24-N, superseding P24-M's band of FIGHT_REACH + 1)
+CRAWLER_R = 1.0       # tiles: a crawler or a fallen zombie this near is stomped first while one stands within DANGER_R
 KEEP_MARGIN = 0.25    # tiles: a running backpedal holds until its target is this far past KEEP_R, so the back and
                       # stand legs do not flap at the line (Task 12 fix 1, the review's major 1)
 STUCK_SKIP_DEG = 15.0  # degrees: after a stuck leg, no heading this near its heading is chosen again (fix 3, F4)
