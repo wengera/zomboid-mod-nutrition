@@ -111,14 +111,16 @@ def test_f15_one_of_26_melees_was_superseded_before_any_press_and_19_superseded_
 
 
 def test_f15_the_row_reads_every_cell_in_the_logs_column_order(f15):
-    """The row against the committed log's header: 18 cells, the trial cells `-` with no trial.json, the body cells
-    `-` (F15's PZA/1.9 frames read no me.bodyAngle) and the head_ticks cell `-` (its leaves predate Plan 33 Task 1)."""
+    """The row against the committed log's header: 19 cells, the trial cells `-` with no trial.json, the body cells
+    `-` (F15's PZA/1.9 frames read no me.bodyAngle), the head_ticks cell `-` (its leaves predate Plan 33 Task 1) and
+    the care@3+ cell 0 (Plan 34 Task 5: by hand, F15's twelve care sends of a stop, rip, unwear or bandage, lines 187
+    to 970, read none to one standing zombie within 6 tiles on the frame at or before each)."""
     head, _ = TS.read_log(TRIALS)
     header = TS.parse_row(head[-2])
     assert tuple(header) == TS.COLUMNS
     cs = TS.cells(f15, "seen one / two")
     assert len(cs) == len(TS.COLUMNS)
-    assert cs == ["f_goals_16-20261105-164332", "-", "-", "-", "142", "0", "6 / 8", "-", "-", "-", "-",
+    assert cs == ["f_goals_16-20261105-164332", "-", "-", "-", "142", "0", "6 / 8", "-", "-", "-", "-", "0",
                   "39.3 / 138.5 (away 41.1)",
                   "17.3 / 138.5", "0 / 6", "1 / 26 (19 superseded)", "death@702", "0", "seen one / two"]
 
@@ -456,7 +458,8 @@ def test_a_run_folder_scores_from_its_client_tree_and_its_trial_json(tmp_path):
     run = _write_run(str(tmp_path / "x_trial-20261106-101010"), kill=True)
     cs = TS.cells(TS.score(run))
     assert cs == ["x_trial-20261106-101010", "ladder", "abcdef01", "arena-east", "5", "1 (matched 0)", "0 / 0",
-                  "0.00", "-", "-", "-", "3.0 / 3.0 (away 0.0)", "0.0 / 3.0", "0 / 0", "0 / 0 (0 superseded)", "cap", "90", ""]
+                  "0.00", "-", "-", "-", "0", "3.0 / 3.0 (away 0.0)", "0.0 / 3.0", "0 / 0", "0 / 0 (0 superseded)", "cap",
+                  "90", ""]
 
 
 def test_dry_writes_nothing_and_a_run_appends_then_replaces_its_own_row_keeping_seen(tmp_path, log, capsys):
@@ -494,7 +497,8 @@ def test_rescore_all_rebuilds_each_row_keeping_seen_keeps_a_gone_folders_row_and
     _, rows = TS.read_log(log)
     cells = [TS.parse_row(r) for r in rows]
     assert [c[0] for c in cells] == ["x_trial-20261106-101010", "x_trial-20261101-000000"]
-    assert (cells[0][16], cells[0][17]) == ("40", "kept text")
+    h = TS.COLUMNS.index("health")                                # Plan 34 Task 5: read by name, the row widened
+    assert (cells[0][h], cells[0][h + 1]) == ("40", "kept text")
     assert rows[1] == gone
     assert os.path.isdir(os.path.join(runs, "x_trial-20261107-000000"))   # the folder with no row: not added
 
@@ -714,15 +718,16 @@ def test_rescore_all_keeps_a_trailing_section_and_a_folder_with_no_row_is_left_o
     h, rows, t = TS.read_log_parts(p)
     assert t == tail and h == head
     assert [TS.parse_row(r)[0] for r in rows] == ["x_trial-a-20261106-000001", "x_trial-b-20261106-000002"]
-    assert TS.parse_row(rows[0])[16] == "40" and TS.parse_row(rows[0])[-1] == "kept"
+    assert TS.parse_row(rows[0])[TS.COLUMNS.index("health")] == "40" and TS.parse_row(rows[0])[-1] == "kept"
     assert TS.parse_row(rows[1])[1:] == ["-"] * (len(TS.COLUMNS) - 2) + [""]          # no folder: kept as it stands
     assert a and os.path.isdir(a)
 
 
 # ================================================================ Plan 32 Task 4: the body columns
 def test_the_body_columns_follow_hits_per_kill():
+    """Named change, Plan 34 Task 5: the row is 19 cells with the care@3+ cell (18 before it)."""
     i = TS.COLUMNS.index("hits per kill")
-    assert TS.COLUMNS[i + 1:i + 3] == ("body med", "body p90") and len(TS.COLUMNS) == 18
+    assert TS.COLUMNS[i + 1:i + 3] == ("body med", "body p90") and len(TS.COLUMNS) == 19
 
 
 def test_the_body_columns_read_grade_x2_s_presses(tmp_path):
@@ -745,7 +750,7 @@ def test_a_run_with_no_body_angle_reads_dashes_in_the_body_columns(tmp_path):
 def test_rescore_all_widens_the_header_and_a_gone_folders_row_by_the_two_body_cells(tmp_path):
     """The named change (Plan 32 Task 4): a log whose header and rows predate the body columns is rewritten with the
     header's two new names and, in a row whose folder is gone, two `-` cells after `hits per kill` (and Plan 33 Task
-    4's head_ticks cell after them); nothing else in the row moves."""
+    4's head_ticks cell and Plan 34 Task 5's care@3+ cell after them); nothing else in the row moves."""
     old_cols = list(TS.OLD_COLUMNS)
     head = ["# Trials", "", TS.format_row(old_cols), "|" + "---|" * len(old_cols)]
     gone = ["x_trial-20261101-000000", "ladder", "abc", "lone", "5", "2", "1 / 1", "0.50", "1.0 / 5.0 (away 0.0)",
@@ -758,7 +763,7 @@ def test_rescore_all_widens_the_header_and_a_gone_folders_row_by_the_two_body_ce
     h, rows, t = TS.read_log_parts(p)
     assert TS.parse_row(h[-2]) == list(TS.COLUMNS) and h[-1] == "|" + "---|" * len(TS.COLUMNS)
     assert h[:-2] == head[:-2] and t == ["", "## After", ""]
-    assert TS.parse_row(rows[0]) == gone[:8] + ["-", "-", "-"] + gone[8:]
+    assert TS.parse_row(rows[0]) == gone[:8] + ["-", "-", "-", "-"] + gone[8:]
 
 
 def test_a_scored_run_widens_an_old_log_s_header_and_keeps_its_old_rows_seen(tmp_path):
@@ -796,7 +801,8 @@ def test_the_head_ticks_column_reads_grade_x3_s_max(tmp_path):
 
 def test_rescore_all_widens_a_body_era_log_by_the_head_ticks_cell(tmp_path):
     """The named change (Plan 33 Task 4): a log whose header and rows carry the body columns but not head_ticks is
-    rewritten with the header's new name and, in a row whose folder is gone, one `-` cell after `body p90`."""
+    rewritten with the header's new name and, in a row whose folder is gone, one `-` cell after `body p90` (and Plan 34
+    Task 5's care@3+ cell after it)."""
     cols = list(TS.BODY_ERA_COLUMNS)
     head = ["# Trials", "", TS.format_row(cols), "|" + "---|" * len(cols)]
     gone = ["x_trial-20261101-000000", "ladder", "abc", "lone", "5", "2", "1 / 1", "0.50", "0.3", "22.1",
@@ -809,4 +815,76 @@ def test_rescore_all_widens_a_body_era_log_by_the_head_ticks_cell(tmp_path):
     h, rows, t = TS.read_log_parts(p)
     assert TS.parse_row(h[-2]) == list(TS.COLUMNS) and h[-1] == "|" + "---|" * len(TS.COLUMNS)
     assert h[:-2] == head[:-2] and t == ["", "## After", ""]
-    assert TS.parse_row(rows[0]) == gone[:10] + ["-"] + gone[10:]
+    assert TS.parse_row(rows[0]) == gone[:10] + ["-", "-"] + gone[10:]
+
+
+# ================================================================ Plan 34 Task 5: the care@3+ column
+def test_the_care_column_follows_head_ticks_max():
+    i = TS.COLUMNS.index("head_ticks max")
+    assert TS.COLUMNS[i + 1] == "care@3+" and TS.CARE_COLUMNS == ("care@3+",)
+    assert (len(TS.OLD_COLUMNS), len(TS.BODY_ERA_COLUMNS), len(TS.HEAD_ERA_COLUMNS)) == (15, 17, 18)
+
+
+def _care_run(root, n_standing, branch="care"):
+    """`_write_run`'s run with its decision log replaced: a threat line, then a line on `branch` sending a `rip` after
+    the second frame's wall, the frames listing `n_standing` standing zombies 1 to 3 tiles east."""
+    run = _write_run(root)
+    with open(os.path.join(run, "decision.log"), "w", encoding="utf-8") as fh:
+        for h, b, typ, wall in ((10.0, "threat", None, 36000.0005), (10.0005, branch, "rip", 36000.0025)):
+            ln = _line(h, branch=b, threat={"flee": "many"})
+            ln["wall"] = wall
+            ln["action"], ln["sent"] = ({"type": typ, "args": {"itemId": 5}}, True) if typ else (None, False)
+            fh.write(json.dumps(ln) + "\n")
+    sd = os.path.join(run, "clients", "admin", "Lua", "pzagent", "admin")
+    with open(os.path.join(sd, "state.log"), "w", encoding="utf-8") as fh:
+        for seq in (1, 2):
+            f = {"seq": seq, "tick": seq, "wallMs": 36000000 + seq, "gameMin": 600, "worldAge": 1.0,
+                 "me": {"x": 1.5, "y": 2.5, "z": 0, "hour": 10.0, "hitReaction": ""},
+                 "body": {"health": 90.0, "parts": []},
+                 "zombies": [{"id": 10 + k, "x": 2.5 + k, "y": 2.5, "dist": 1.0 + k} for k in range(n_standing)]}
+            fh.write(pza1.encode("frame", f) + "\n")
+    return run
+
+
+def test_the_care_column_reads_grade_x4_s_care_at_group(tmp_path):
+    """A care `rip` sent with three standing zombies within 6 tiles: the cell reads 1 and the detail names the line;
+    with two standing, or sent on the threat branch, it reads 0; a run with no decision log reads `-`."""
+    i = TS.COLUMNS.index("care@3+")
+    s = TS.score(_care_run(str(tmp_path / "x_trial-20261109-111111"), 3))
+    assert TS.cells(s)[i] == "1"
+    assert "care at group (grade_x4.care_at_group): 1 care sends with 3 or more standing within 6.0 tiles " \
+           "[(1, 'rip', 3)]" in TS.detail(s)
+    assert TS.cells(TS.score(_care_run(str(tmp_path / "x_trial-20261109-111112"), 2)))[i] == "0"
+    assert TS.cells(TS.score(_care_run(str(tmp_path / "x_trial-20261109-111113"), 3, branch="threat")))[i] == "0"
+    run = _write_run(str(tmp_path / "x_trial-20261109-111114"))
+    os.remove(os.path.join(run, "decision.log"))
+    s = TS.score(run)
+    assert TS.cells(s)[i] == "-" and "care at group (grade_x4.care_at_group): no decision log" in TS.detail(s)
+
+
+def test_rescore_all_widens_a_head_era_log_by_the_care_cell(tmp_path):
+    """The named change (Plan 34 Task 5): a log whose header and rows carry the head_ticks column but not care@3+ is
+    rewritten with the header's new name and, in a row whose folder is gone, one `-` cell after `head_ticks max`."""
+    cols = list(TS.HEAD_ERA_COLUMNS)
+    head = ["# Trials", "", TS.format_row(cols), "|" + "---|" * len(cols)]
+    gone = ["x_trial-20261101-000000", "ladder", "abc", "lone", "5", "2", "1 / 1", "0.50", "0.3", "22.1", "0",
+            "1.0 / 5.0 (away 0.0)", "0.0 / 5.0", "0 / 0", "0 / 2 (0 superseded)", "cap", "90", "old seen"]
+    p = str(tmp_path / "trials.md")
+    TS.write_log(p, head, [TS.format_row(gone)], ["", "## After", ""])
+    runs = str(tmp_path / "runs")
+    os.makedirs(runs)
+    assert TS.main(["--rescore-all", "--log", p, "--runs", runs]) == 0
+    h, rows, t = TS.read_log_parts(p)
+    assert TS.parse_row(h[-2]) == list(TS.COLUMNS) and h[-1] == "|" + "---|" * len(TS.COLUMNS)
+    assert h[:-2] == head[:-2] and t == ["", "## After", ""]
+    assert TS.parse_row(rows[0]) == gone[:11] + ["-"] + gone[11:]
+
+
+def test_widen_takes_a_row_of_each_earlier_width_to_the_full_row():
+    """A row of each earlier era's width gets its missing cells as `-` where each change put them; a full row and a
+    row of any other width stand as they are."""
+    full = ["c%d" % k for k in range(len(TS.COLUMNS))]
+    for era in TS.ERA_COLUMNS:
+        row = [c for c, name in zip(full, TS.COLUMNS) if name in era]
+        assert TS.widen(row) == [c if name in era else "-" for c, name in zip(full, TS.COLUMNS)], len(era)
+    assert TS.widen(full) == full and TS.widen(full[:5]) == full[:5]

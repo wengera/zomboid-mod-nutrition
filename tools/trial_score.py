@@ -76,6 +76,14 @@ clipped state lines: Plan 33 Task 1's leaf), `-` when no melee line or no leaf c
 the detail's `head ticks` line adds the values read and the handbacks. A log written before it is widened the same way
 (`widen` takes a row of either earlier width: the body cells and this one, or this one alone, as `-`).
 
+The care under a column (Plan 34 Task 5, a named change of the row: one cell after `head_ticks max`): `care@3+`, the
+decision lines of the care branch that sent a `stop`, `rip` or `unwear`, or a `bandage` without `keepMoving`, on a frame
+reading three or more standing zombies within 6 tiles (`grades.x4.e_care_at_group`, imported live, over the clipped
+sources: the spec's criterion 1, 0 in every trial when LEAVE_CARE holds), `-` without a decision log; the detail's
+`care at group` line adds each line's index, send and standing count. A log written before it is widened the same way
+(`widen` takes a row of any earlier width: the body cells, the head_ticks cell and this one, as `-`, each where its
+change put it).
+
 The retreat gap (Plan 33 Task 3 fix 3, Angus's fighting retreat, memory `fighting-retreat`; a detail line, never a
 cell): over the decision lines whose threat why carries `group_retreat` with `leg` "retreat" (GROUP_LEAVE's fighting
 retreat: the Fight backpedalling from the closing group's centroid), the line's `inputs.nearest` (the nearest zombie's
@@ -104,6 +112,7 @@ from agent.base.grades import e19 as G19  # noqa: E402
 from agent.base.grades import e21 as G21  # noqa: E402
 from agent.base.grades import x2 as GX2  # noqa: E402
 from agent.base.grades import x3 as GX3  # noqa: E402
+from agent.base.grades import x4 as GX4  # noqa: E402
 
 LOG = os.path.join(REPO, "testing", "trials", "trials.md")
 RUNS = os.environ.get("PZT_RUNS") or os.path.join(REPO, "testing", "runs")
@@ -111,12 +120,14 @@ RUN_GLOB = "x_trial-*"
 TRIAL_JSON = "trial.json"
 DECISION_LOG = "decision.log"
 COLUMNS = ("trial", "variant", "commit", "fixture", "min", "kills", "hits (runs / union)", "hits per kill",
-           "body med", "body p90", "head_ticks max", "min fleeing", "min toward target", "dressed <1 min", "melees superseded", "end",
+           "body med", "body p90", "head_ticks max", "care@3+", "min fleeing", "min toward target", "dressed <1 min", "melees superseded", "end",
            "health", "seen")
 BODY_COLUMNS = ("body med", "body p90")   # Plan 32 Task 4's named change: the two cells a row before it lacks
 HEAD_COLUMNS = ("head_ticks max",)        # Plan 33 Task 4's named change: the cell a row before it lacks
-OLD_COLUMNS = tuple(c for c in COLUMNS if c not in BODY_COLUMNS + HEAD_COLUMNS)   # a row before Plan 32 Task 4
-BODY_ERA_COLUMNS = tuple(c for c in COLUMNS if c not in HEAD_COLUMNS)              # a row of Plan 32 Task 4 on
+CARE_COLUMNS = ("care@3+",)               # Plan 34 Task 5's named change: the cell a row before it lacks
+OLD_COLUMNS = tuple(c for c in COLUMNS if c not in BODY_COLUMNS + HEAD_COLUMNS + CARE_COLUMNS)   # before Plan 32 Task 4
+BODY_ERA_COLUMNS = tuple(c for c in COLUMNS if c not in HEAD_COLUMNS + CARE_COLUMNS)    # a row of Plan 32 Task 4 on
+HEAD_ERA_COLUMNS = tuple(c for c in COLUMNS if c not in CARE_COLUMNS)                  # a row of Plan 33 Task 4 on
 DASH = "-"
 SEEN_JOIN = " / "
 # The readings' own numbers.
@@ -731,6 +742,7 @@ def score(run, clipped=True):
     return {"run_id": r["run_id"], "trial": r["trial"], "minutes": g1 - g0 if g0 is not None and g1 is not None
             else None, "kills_events": events, "kills_matched": km.get("planner"), "hits": hu,
             "facing": GX2.e_facing_body(out, rows, lines, frames), "head_ticks": GX3.e_head_ticks(out, lines),
+            "care_at_group": GX4.e_care_at_group(rows if rows else None, lines),
             "flee": flee_minutes(rows), "away": away_minutes(L), "legs": leg_minutes(rows), "gap": retreat_gap(rows),
             "labels": label_histogram(rows), "toward": toward_minutes(L), "dressed": dressed(frames),
             "melees": melees_superseded(out, lines), "goal_wait": G21.e_goal_wait(L if rows else None),
@@ -785,8 +797,10 @@ def cells(s, seen=""):
     away = "%.1f" % s["away"]["minutes"] if s["frames"] else DASH
     body = E._d(E._d(s.get("facing")).get("presses")).get("body") or {}
     head = E._d(s.get("head_ticks"))
+    care = E._d(s.get("care_at_group"))
     return [s["run_id"], _variant(s["trial"]), _commit(s["trial"]), _fixture(s["trial"]), _num(s["minutes"]), kills,
             hits, per, _num(body.get("median")), _num(body.get("p90")), _num(head.get("max")),
+            _num(care.get("lines") if care.get("read") else None),
             "%.1f / %.1f (away %s)" % (fl["minutes"], fl["total_minutes"], away) if rows else DASH,
             "%.1f / %.1f" % (tw["minutes"], tw["total_minutes"]) if rows else DASH,
             "%s / %s" % (dr["dressed"], dr["wounds"]) if s["frames"] else DASH, sup, s["end"],
@@ -840,6 +854,7 @@ def detail(s):
         "standing: %s stretches, %s s (e21.e_standing)" % (sd.get("stretches"), sd.get("seconds")),
         facing_line(s.get("facing")),
         head_line(s.get("head_ticks")),
+        care_line(s.get("care_at_group")),
         gap_line(s.get("gap")),
     ] + ([clock_line(s["clock"])] if s.get("clock") else [])
 
@@ -875,6 +890,17 @@ def head_line(h):
         return "head ticks (grade_x3.head_ticks): no melee line"
     return "head ticks (grade_x3.head_ticks): %s values read, max %s, %s head_stall handbacks, by melee %s" % (
         h.get("leaves"), _num(h.get("max")), h.get("over_cap"), h.get("by_melee"))
+
+
+def care_line(c):
+    """The detail's care-under-a-column note (grade_x4.care_at_group): the care sends on a frame with three or more
+    standing within 6 tiles."""
+    c = E._d(c)
+    if not c.get("read"):
+        return "care at group (grade_x4.care_at_group): no decision log"
+    return "care at group (grade_x4.care_at_group): %s care sends with %s or more standing within %s tiles %s" % (
+        c.get("lines"), GX4.GROUP_LEAVE_N, GX4.GROUP_ENTRY_R,
+        [(r["i"], r["type"], r["standing"]) for r in E._l(c.get("rows"))])
 
 
 # ---------------------------------------------------------------- the log
@@ -928,30 +954,37 @@ def write_log(path, head, rows, tail=None):
         fh.write("\n".join(head + rows + tail) if tail is not None else "\n".join(head + rows) + "\n")
 
 
+ERA_COLUMNS = (OLD_COLUMNS, BODY_ERA_COLUMNS, HEAD_ERA_COLUMNS)   # the earlier rows' columns, oldest first
+
+
 def widen(cells):
     """A row's cells in COLUMNS order: a row written before Plan 32 Task 4 (OLD_COLUMNS' count) gets the two body
-    cells as `-` after `hits per kill`, and it or a row written before Plan 33 Task 4 (BODY_ERA_COLUMNS' count) the
-    head_ticks cell as `-` after `body p90`; any other row as it stands."""
+    cells as `-` after `hits per kill`, it or a row written before Plan 33 Task 4 (BODY_ERA_COLUMNS' count) the
+    head_ticks cell as `-` after `body p90`, and any of them or a row written before Plan 34 Task 5 (HEAD_ERA_COLUMNS'
+    count) the care@3+ cell as `-` after `head_ticks max`; any other row as it stands."""
     if len(cells) == len(OLD_COLUMNS):
         i = COLUMNS.index(BODY_COLUMNS[0])
         cells = cells[:i] + [DASH] * len(BODY_COLUMNS) + cells[i:]
     if len(cells) == len(BODY_ERA_COLUMNS):
         i = COLUMNS.index(HEAD_COLUMNS[0])
         cells = cells[:i] + [DASH] * len(HEAD_COLUMNS) + cells[i:]
+    if len(cells) == len(HEAD_ERA_COLUMNS):
+        i = COLUMNS.index(CARE_COLUMNS[0])
+        cells = cells[:i] + [DASH] * len(CARE_COLUMNS) + cells[i:]
     return cells
 
 
 def widen_head(head):
-    """The log's head with a header row of OLD_COLUMNS or BODY_ERA_COLUMNS (and its separator) rewritten to COLUMNS;
-    else as it stands."""
-    if len(head) >= 2 and parse_row(head[-2]) in (list(OLD_COLUMNS), list(BODY_ERA_COLUMNS)):
+    """The log's head with a header row of an earlier era's columns (ERA_COLUMNS, and its separator) rewritten to
+    COLUMNS; else as it stands."""
+    if len(head) >= 2 and parse_row(head[-2]) in [list(c) for c in ERA_COLUMNS]:
         return head[:-2] + [format_row(COLUMNS), "|" + "---|" * len(COLUMNS)]
     return head
 
 
 def _widen_row(line):
     p = parse_row(line)
-    return format_row(widen(p)) if p is not None and len(p) in (len(OLD_COLUMNS), len(BODY_ERA_COLUMNS)) else line
+    return format_row(widen(p)) if p is not None and len(p) in [len(c) for c in ERA_COLUMNS] else line
 
 
 def _row_id(line):
@@ -983,7 +1016,7 @@ def rescore_all(log, runs, dry=False):
     their two `-` cells, and the header by their names: `widen`, `widen_head`), a folder with no row left out (a trial
     enters the log by its own scoring call, never by a rescore); the rows."""
     head, rows, tail = read_log_parts(log)
-    head, rows = widen_head(head), [_widen_row(ln) for ln in rows]   # Plan 32 and 33 Task 4: the new columns
+    head, rows = widen_head(head), [_widen_row(ln) for ln in rows]   # Plan 32 and 33 Task 4, Plan 34 Task 5: new columns
     seen = {}
     for ln in rows:
         p = parse_row(ln)
