@@ -89,7 +89,7 @@ item <N | variable[<min>:<max>]> [<Type;Type>] | tags[<t;t>] | mapper:<name> | [
 
 A bracketed list splits on semicolons and an entry may carry a per-alternative count, a leading minus marks a fluid sub-line that the loader attaches to the input above it rather than adding to the input list, and an output `mapper:<name>` resolves to every key of that mapper except the literal `default`.
 Above the IO lines a block may set the keys a mod is most likely to reach for: `time`, `Tags` and `category`, the `timedAction` it runs under, `xpAward` and `SkillRequired`, the learn gates `NeedToBeLearn`, `AutoLearnAll` and `AutoLearnAny`, the script-hook keys `OnCreate` and `OnTest`, plus `AllowBatchCraft`, `MetaRecipe`, `Tooltip`, `overlayStyle`, `recipeGroup` and `Icon` — a selection of the top-level keys rather than a census of them.
-A block may ship no `outputs` at all, or an empty one, and mutate an input through `OnCreate` instead of yielding an item, which is what the recipes that yield nothing do [#0686/C/snapshot].
+A block may ship no `outputs` at all, or an empty one, and mutate an input through `OnCreate` instead of yielding an item, which is what 36 of the 38 recipes that yield nothing do [#4740/C/snapshot].
 An item mapper collapses a four-input, four-output family into one recipe block, and the engine's possible-result-items lookup resolved the mapped output slot to all four cured meats [#1438/M/n=1].
 No legacy `recipe` block ships on this build while the loader is intact: the script type still registers the token and `Recipe.Load` still exists, and the live all-recipes list came back at size 0 [#0678/M/n=1].
 What an input costs a food and what an output carries away is [the recipe economics](../facts/cooking-and-recipes.md#uses).

@@ -96,14 +96,14 @@ The recipe scanner imports the food scanner's parser and never walks the script 
 The shared parser accepts identifier keys only, so the 1 599 dotted mapper lines of the `42.20.4` recipes land in a block's `lines` rather than its `props` — deliberately, because dotted keys in `props` would collapse the 56 mappers that name one result twice down to their last source — and the dataset keeps them lossless in `itemMapperPairs` [#0768/C/snapshot].
 A craft's nutrition delta is computed only where every consumed input and every output resolves to a row of the food dataset, and a delta term is taken only from a per-item row; everything else is left empty with its reason named, never zero ([#0717], [#1904/C/arith.], [datasets.md#columns](datasets.md#columns)).
 An input amount is a count of uses unless its line carries `flags[ItemCount]` ([#1901], [cooking-and-recipes.md#uses](../facts/cooking-and-recipes.md#uses)).
-The entity build recipes that sit inside a `component CraftRecipe` are censused and not scanned ([#0681/C/snapshot], [datasets.md#counts](datasets.md#counts)).
+The entity build recipes that sit inside a `component CraftRecipe` are censused and not scanned ([#4743/C/snapshot], [datasets.md#counts](datasets.md#counts)).
 Whether an output mapper that writes only a `default` should resolve to that default is the scanner's open question, under [Open](#open).
 
 <a id="recipe-conservation"></a>
 ## `recipe_conservation.py` — the recipe conservation report
 
 `python tools/recipe_conservation.py` costs every craft line by `tools/recipe_scan.py`'s own accounting over the recipe dataset and the item pass's re-based macros, classes each recipe it can weigh as `inherits` for a split, else `creates` above 1.1 times its inputs' calories, `destroys` under 0.9 times and `conserves` between, counts a recipe recipe_scan refuses in `skipped` under its first blocker's reason, and prints the creators and destroyers; `--write` writes `data/recipe-conservation.json` and `--check` exits 1 when that file is out of date, and it is a report, never a fix, writing no mod file [#3816/C/C-only].
-On the 42.21.0 data it reads 13 conserving, 1 creating, 7 destroying and 8 inheriting recipes, which [the item pass](../areas/item-pass.md#pipeline) reads [#3570/C/arith.].
+On the 42.22.2 data it reads 13 conserving, 1 creating, 7 destroying and 8 inheriting recipes, which [the item pass](../areas/item-pass.md#pipeline) reads [#4736/C/arith.].
 A recipe whose `OnCreate` is a Java craft function that writes food values onto its output is weighed at what that function leaves, and the rules the costing applies are [cooking-and-recipes.md](../facts/cooking-and-recipes.md#uses)'s.
 
 <a id="food-nutrients"></a>

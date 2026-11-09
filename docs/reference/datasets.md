@@ -80,11 +80,11 @@ An output `mapper:<name>` resolves to every key of that mapper except the litera
 A bracketed type list splits on semicolons and an entry may carry a per-alternative count, as `2:Base.BurlapPiece` does in `SewFootwrap`: 86 such prefixes over 68 distinct pairs in the 2026-09-10 scan, with the count kept readable in the line's `raw` [#0693/C/snapshot].
 `variable[<min>:<max>]` amounts appear on 66 lines over 33 recipes in the 2026-09-10 scan, all of them drying racks and on both sides of each recipe, and the dataset writes the amount as `null` with a `variable` range and refuses the delta [#0691/C/snapshot].
 
-The top-level key census of the 969 `craftRecipe` blocks runs to 19 keys, 13 of them declared columns from `time` at 969 down to `Tooltip` at 38 and 6 landing untyped in the record's `props`, from `overlayStyle` at 34 down to `ResearchAny` at 1, in the 2026-09-10 scan [#0684/C/snapshot]:
+The top-level key census of the 965 `craftRecipe` blocks runs to 19 keys, 13 of them declared columns from `time` at 965 down to `Tooltip` at 38 and 6 landing untyped in the record's `props`, from `overlayStyle` at 34 down to `ResearchAny` at 1, in the 2026-11-09 scan of `42.22.2` [#4744/C/snapshot]:
 
 | Fact | Value |
 |---|---|
-| top-level keys, by how many of the 969 blocks write them | `time` 969, `Tags` 969, `category` 935, `timedAction` 889, `xpAward` 560, `SkillRequired` 458, `NeedToBeLearn` 385, `AutoLearnAll` 160, `OnCreate` 146, `AutoLearnAny` 126, `AllowBatchCraft` 112, `MetaRecipe` 72, `Tooltip` 38 — each a declared column — then `overlayStyle` 34, `OnTest` 20, `recipeGroup` 9, `Icon` 4, `ResearchSkillLevel` 2, `ResearchAny` 1, which land untyped in the record's `props` |
+| top-level keys, by how many of the 965 blocks write them | `time` 965, `Tags` 965, `category` 930, `timedAction` 885, `xpAward` 560, `SkillRequired` 458, `NeedToBeLearn` 385, `AutoLearnAll` 160, `OnCreate` 147, `AutoLearnAny` 126, `AllowBatchCraft` 112, `MetaRecipe` 72, `Tooltip` 38 — each a declared column — then `overlayStyle` 34, `OnTest` 20, `recipeGroup` 9, `Icon` 4, `ResearchSkillLevel` 2, `ResearchAny` 1, which land untyped in the record's `props` |
 
 ### Evolved recipes
 
@@ -150,15 +150,15 @@ The generated mod files carry 522 item blocks, 522 item entries with 47 fluid en
 
 ### Recipes
 
-The 2026-09-10 scan found 969 `craftRecipe` blocks in 74 files, 63 `evolvedrecipe` blocks and 0 legacy `recipe` blocks [#0677/C/snapshot].
-The 969 `craftRecipe` blocks live in 74 files — 42 under `generated/recipes/` and 32 under `generated/entities/*/{craftRecipes,cratRecipes,workstations}/`, including the shipped typo `cratRecipes` — in the 2026-09-10 scan [#0682/C/snapshot].
-202 further `inputs` blocks in the script tree belong to a `component CraftRecipe`, an entity's own build recipe, and are censused as `meta.counts.componentCraftRecipes` outside the 969 scanned blocks, which is why a raw grep of the scripts counts 138 more `mode:` lines than this dataset does, in the 2026-09-10 scan [#0681/C/snapshot].
-Sub-blocks over the 969 recipes are `inputs` 969, `outputs` 958, `itemMapper` 225 and `overlayMapper` 3, in the 2026-09-10 scan [#0685/C/snapshot].
-37 recipes yield no item — 11 ship no `outputs` block at all and 26 ship an empty one — and all 37 mutate an input through `OnCreate` instead, reading `deltaReason: no-outputs`, in the 2026-09-10 scan; the 11 is the 969 blocks less the 958 `outputs` blocks [#0686/C/snapshot].
-IO lines over the 969 recipes are 3 355 `inputs/item` plus 55 `inputs/-fluid`, making 3 410 input lines, and 988 `outputs/item` lines, with no vanilla line a bare `fluid` or an `energy`, in the 2026-09-10 scan [#0687/C/snapshot].
-Scoped to the 969 `craftRecipe` blocks, the `mode:` values are `keep` 1 366, `destroy` 242 and `mixture` 26 on fluid lines only, and the flags are `MayDegradeLight` 975, `Prop2` 384, `Prop1` 320, `IsNotDull` 214, `ItemCount` 182, `InheritFoodAge` 46 and `InheritFood` 17, in the 2026-09-10 scan [#0688/C/snapshot].
-A raw grep of every script file counts the 202 `component CraftRecipe` blocks as well and reports `keep` 1 502, `destroy` 244, `MayDegradeLight` 1 016, `Prop1` 440, `IsNotDull` 219 and `ItemCount` 185, in the 2026-09-10 scan [#0688/C/snapshot].
-`itemMapper` blocks hold 1 599 `Result = Source` pairs over 225 mappers, 134 of which also write the literal key `default`, which is not a result type, and 56 of which name one result twice; the 3 `overlayMapper` blocks each carry a `default` and 5 pairs, with 3 input lines ending in a bare `overlayMapper` token, in the 2026-09-10 scan [#0690/C/snapshot].
+The 2026-11-09 scan of `42.22.2` found 965 `craftRecipe` blocks in 74 files, 63 `evolvedrecipe` blocks and 0 legacy `recipe` blocks [#4737/C/snapshot].
+The 965 `craftRecipe` blocks live in 74 files — 42 under `generated/recipes/` and 32 under `generated/entities/*/{craftRecipes,cratRecipes,workstations}/`, including the shipped typo `cratRecipes` — in the 2026-11-09 scan [#4738/C/snapshot].
+202 further `inputs` blocks in the script tree belong to a `component CraftRecipe`, an entity's own build recipe, and are censused as `meta.counts.componentCraftRecipes` outside the 965 scanned blocks, which is why a raw grep of the scripts counts 138 more `mode:` lines than this dataset does, in the 2026-11-09 scan [#4743/C/snapshot].
+Sub-blocks over the 965 recipes are `inputs` 965, `outputs` 954, `itemMapper` 227 and `overlayMapper` 3, in the 2026-11-09 scan [#4739/C/snapshot].
+38 recipes yield no item — 11 ship no `outputs` block at all and 27 ship an empty one — and all 38 read `deltaReason: no-outputs`, 36 of them mutating an input through `OnCreate` instead, in the 2026-11-09 scan; the 11 is the 965 blocks less the 954 `outputs` blocks [#4740/C/snapshot].
+IO lines over the 965 recipes are 3 348 `inputs/item` plus 56 `inputs/-fluid`, making 3 404 input lines, and 984 `outputs/item` lines, with no vanilla line a bare `fluid` or an `energy`, in the 2026-11-09 scan [#4745/C/snapshot].
+Scoped to the 965 `craftRecipe` blocks, the `mode:` values are `keep` 1 363, `destroy` 242 and `mixture` 26 on fluid lines only, and the flags are `MayDegradeLight` 973, `Prop2` 380, `Prop1` 315, `IsNotDull` 214, `ItemCount` 183, `InheritFoodAge` 46 and `InheritFood` 17, in the 2026-11-09 scan [#4746/C/snapshot].
+A raw grep of every script file counts the 202 `component CraftRecipe` blocks as well and reports `keep` 1 499, `destroy` 244, `MayDegradeLight` 1 014, `Prop1` 435, `IsNotDull` 219 and `ItemCount` 186, in the 2026-11-09 scan [#4746/C/snapshot].
+`itemMapper` blocks hold 1 608 `Result = Source` pairs over 227 mappers, 136 of which also write the literal key `default`, which is not a result type, and 56 of which name one result twice; the 3 `overlayMapper` blocks each carry a `default` and hold 5, 4 and 11 pairs, and 3 input lines end in a bare `overlayMapper` token, in the 2026-11-09 scan [#4747/C/snapshot].
 One mapper resolves to nothing: `ExtractIronFromIronOre`'s `SmeltMapper` writes only a `default`, so under the stated rule its output carries an empty type list, and the case is recorded in `meta.outputMapperIssues` rather than special-cased, in the 2026-09-10 scan [#0769/C/snapshot].
 Exactly one vanilla row rounds a `mode:destroy` charge up, `UnpackCigarettes`, and its `destroyWaste` is `null` because the drainable it destroys writes no macro key at all, so `meta.counts.recipesWithDestroyWaste` is 0 and the round-up lives in the row's `delta.notes`, in the 2026-09-10 scan [#0705/C/snapshot].
 375 recipes touch a food item, measured as any item line on either side naming a `food` or `drainable` row; the nearest alternative definitions give 305 single-type lines only, 182 outputs only, 150 of kind food and 141 both sides, and `recipesWithFoodOutput` is 182 while `recipesTouchingDatasetRow` is 413, in the 2026-09-10 scan [#0770/C/snapshot].
@@ -463,9 +463,9 @@ All four `ReplaceOn*` keys — `ReplaceOnCooked`, `ReplaceOnRotten`, `ReplaceOnU
 
 ### Recipes
 
-`data/recipes.csv` is 969 rows and 37 columns with IO lines joined into `inputsRaw` and `outputsRaw`, and `data/recipes.json` is a `meta` block with 969 recipes and 163 replacements, indented by one and sorted by name at 3.4 MB, in the 2026-09-10 scan [#0735/C/snapshot].
+`data/recipes.csv` is 965 rows and 37 columns with IO lines joined into `inputsRaw` and `outputsRaw`, and `data/recipes.json` is a `meta` block with 965 recipes and 163 replacements, indented by one and sorted by name at 3.5 MB, in the 2026-11-09 scan [#4741/C/snapshot].
 An absent key is the empty string in the CSV, never `0`, exactly as in the food dataset; booleans print `true` or `false`, and list columns join their parts with `;`.
-The recipe dataset is one row per craft-recipe block, 969 of them over 74 files, with 37 flat columns; every value read off a script line names its own source file and line, and the delta block is arithmetic on those lines and on the food dataset, in the 2026-09-10 scan of `42.20.4` [#1903/C/snapshot]:
+The recipe dataset is one row per craft-recipe block, 965 of them over 74 files, with 37 flat columns; every value read off a script line names its own source file and line, and the delta block is arithmetic on those lines and on the food dataset, in the 2026-11-09 scan of `42.22.2` [#4742/C/snapshot]:
 
 | # | Column | Type | From |
 |---|---|---|---|
@@ -516,15 +516,15 @@ An item-mapper contract dictionary (`itemMappers`) keeps only the last source of
 Both recipe JSONs are byte-stable within one UTC day — two scanner runs produce identical files, asserted by two install-gated tests — and the only field that can differ between runs is `meta.generated`, which is today's UTC date [#0737].
 The recipe JSON is byte-stable across runs within one UTC day because the generation stamp is today's UTC date and is the one line a rebuild after midnight changes, as generated 2026-09-10 on `42.20.4` [#1905/C/snapshot].
 `meta.sources` records the scripts root, the files each record was read from and `data/food-items.json` with its own build, jar and generated stamps, so a rebuild of one half against a stale other half is visible in the file [#0738].
-The `meta` keys of `data/recipes.json`, the `counts` cell being the 2026-09-10 scan's census [#0735/C/snapshot, #0738]:
+The `meta` keys of `data/recipes.json`, the `counts` cell being the 2026-11-09 scan's census [#4741/C/snapshot, #0738]:
 
 | Key | Meaning |
 |---|---|
-| `build` / `generated` / `tool` | `42.20.4 (b0bbce05d5)`, the UTC date of the run, `tools/recipe_scan.py` |
+| `build` / `generated` / `tool` | `42.22.2 (3d39148846)`, the UTC date of the run, `tools/recipe_scan.py` |
 | `sources` | `scripts` (the root walked), `files` (the 74 a recipe was read from) and `food_items` — the joined dataset's own `path` / `build` / `jar_hash` / `generated`, so a rebuild of one half against a stale other half is visible in the file |
-| `counts` | `craftRecipes` 969, `files` 74, `scriptFiles` 1004, `legacyRecipeBlocks` 0, `componentCraftRecipes` 202 (an entity's own build recipes — counted because a raw grep of the scripts sees their `inputs` blocks too, **not** rows of this dataset), `itemMappers` 225, `overlayMappers` 3, `recipesWithoutOutputs` 11, `recipesWithEmptyOutputs` 26, `fluidRecipes` 53, `outputItemTypes` 1693, `outputItemTypesInDataset` 295, `outputItemTypesInFoodDataset` 262, `recipesTouchingDatasetRow` 413, `recipesTouchingFood` 375, `recipesWithFoodOutput` 182, `foodJoinMisses` 0, `recipesWithDelta` 31, `recipesWithNonZeroCalorieDelta` 15, `recipesWithCaloriesAbsentOnEverySide` 3, `splitRecipes` 17, `splitRecipesWithDelta` 8, `recipesWithDestroyWaste` **0** (rows publishing a non-null `destroyWaste`; the one `mode:destroy` round-up, `UnpackCigarettes`, wastes a drainable that carries no macros), `inputSubLines` 55 |
-| `outputMapperIssues` | `{recipe, mapper, why}` for a mapper an output names that resolves to no type — one row in 42.20.4 (`ExtractIronFromIronOre` / `SmeltMapper`, which writes only a `default`) |
-| `foodJoinMisses` | every output type that `items/food.txt` really defines and `data/food-items.json` has no row for — empty in 42.20.4, and the file says so rather than leaving it implied |
+| `counts` | `craftRecipes` 965, `files` 74, `scriptFiles` 1004, `legacyRecipeBlocks` 0, `componentCraftRecipes` 202 (an entity's own build recipes — counted because a raw grep of the scripts sees their `inputs` blocks too, **not** rows of this dataset), `itemMappers` 227, `overlayMappers` 3, `recipesWithoutOutputs` 11, `recipesWithEmptyOutputs` 27, `fluidRecipes` 54, `outputItemTypes` 1693, `outputItemTypesInDataset` 295, `outputItemTypesInFoodDataset` 262, `recipesTouchingDatasetRow` 413, `recipesTouchingFood` 375, `recipesWithFoodOutput` 182, `foodJoinMisses` 0, `recipesWithDelta` 31, `recipesWithNonZeroCalorieDelta` 15, `recipesWithCaloriesAbsentOnEverySide` 3, `splitRecipes` 17, `splitRecipesWithDelta` 8, `recipesWithDestroyWaste` **0** (rows publishing a non-null `destroyWaste`; the one `mode:destroy` round-up, `UnpackCigarettes`, wastes a drainable that carries no macros), `inputSubLines` 56 |
+| `outputMapperIssues` | `{recipe, mapper, why}` for a mapper an output names that resolves to no type — one row in 42.22.2 (`ExtractIronFromIronOre` / `SmeltMapper`, which writes only a `default`) |
+| `foodJoinMisses` | every output type that `items/food.txt` really defines and `data/food-items.json` has no row for — empty in 42.22.2, and the file says so rather than leaving it implied |
 
 ### Evolved recipes
 

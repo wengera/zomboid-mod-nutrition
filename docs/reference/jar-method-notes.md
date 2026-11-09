@@ -71,11 +71,11 @@ are per-class absences, not the jar-wide `grep` absence of the Tool note. The Ba
 `./pz.sh methods <class>` names into one file (a large class such as `IsoGameCharacter` takes a few minutes).
 
 **The swing sets no facing.** No step of a player's melee swing turns it toward its target: `IsoPlayer.DoAttack` hands to
-`CombatManager.pressedAttack` (`jar:IsoPlayer.DoAttack(F,String) @0–@19 L6187–L6193`), none of `CombatManager`'s 120 methods
+`CombatManager.pressedAttack` (`jar:IsoPlayer.DoAttack(F,String) @0–@19 L6190–L6196`), none of `CombatManager`'s 139 methods
 or `SwipeStatePlayer`'s 35 invokes a facing setter (`setForwardDirection`, `setDirectionAngle`, `setForwardIsoDirection`,
 `faceLocation`, `faceThisObject`, `DirectionFromVector`), `SwipeStatePlayer.execute` only stops the action queue
-(`jar:SwipeStatePlayer.execute @0–@21 L264–L269`), and the swing animation's `BlockTurn` event sets the player's
-ignore-movement flag (`jar:SwipeStatePlayer.OnAnimEvent_BlockTurn @0–@5 L287`) [#4588/C].
+(`jar:SwipeStatePlayer.execute @0–@21 L262–L267`), and the swing animation's `BlockTurn` event sets the player's
+ignore-movement flag (`jar:SwipeStatePlayer.OnAnimEvent_BlockTurn @0–@5 L285`) [#4733/C/C-only].
 
 **The aimed player faces the mouse.** While a local player reads aiming, its update faces the mouse cursor: after firing
 `OnPlayerUpdate` (`jar:IsoPlayer.updateInternal2 @1141–@1145 L2446`) the update sets the aiming flag from the input state,
@@ -85,7 +85,7 @@ aiming and not an NPC, fishing or farming, sets the forward direction to `getAim
 the aiming reticle (`jar:IsoPlayer.updateInternal2 @2946–@2999 L2802–L2805`; `jar:IsoPlayer.getAimVector @0–@19 L1743–L1747`;
 `jar:IsoPlayer.calculateAimVector @0–@66 L1751–L1757`), which for a player not on a gamepad is the mouse cursor's position
 (`jar:AimingReticle.getXA @0–@22 L32–L34`), and an update that returns early, on the ignore-movement flag or sleep among
-others, skips it (`jar:IsoPlayer.updateInternal2 @1295–@1314 L2494–L2496`) [#4589/C].
+others, skips it (`jar:IsoPlayer.updateInternal2 @1295–@1314 L2494–L2496`) [#4589/C/C-only].
 
 **The order in a tick.** A client tick runs every player's update and then its post-update, which hands the forward direction
 to the animation player as its target, fires the animation events, turns the animation and copies the forward direction
@@ -95,7 +95,7 @@ into the view cone's angle, before `OnTick` fires (`jar:IngameState.updateIntern
 `@291–@292 L10967`), and `faceThisObject` on a character sets the forward direction and only the animation's target, not its
 angle (`jar:IsoGameCharacter.faceThisObjectAlt @63–@99 L10642–L10648`; `jar:AnimationPlayer.setTargetDirection @24–@86 L894–L898`),
 so while the player aims, a facing written from `OnTick` or `OnPlayerUpdate` is overwritten by the next update's aim facing
-before the animation reads it [#4590/C].
+before the animation reads it [#4590/C/C-only].
 
 **`getDir()` and the hit test.** `getDir()` returns the stored `dir` field (`jar:IsoObject.getDir @0–@4 L1935`;
 `jar:IsoObject.getForwardIsoDirection @0–@4 L1952`), which `setForwardDirection` writes as the eight-point direction of the
@@ -106,7 +106,7 @@ a melee target counts only with that dot from the weapon's `MinAngle` (÷ 1.5 fo
 construction) and inside its range (`jar:CombatManager.getNearestMeleeTargetPosAndDot @0–@104 L1626–L1641`), and the list is
 built at the press, where an empty list makes the attack of a weapon type that can miss a `MISS`
 (`jar:CombatManager.pressedAttack @573–@575 L3279`; `@615–@719 L3286–L3301`), and again at the swing's collision event
-(`jar:CombatManager.attackCollisionCheck @256–@258 L715`) [#4591/C].
+(`jar:CombatManager.attackCollisionCheck @256–@258 L715`) [#4591/C/C-only].
 
 **The shove's reach.** A shove's targets come from `CombatManager.calcHitListShove` with the bare hands as its weapon
 (`Base.BareHands`: `MaxRange = 1.1`, `MinAngle = 0.5`, category unarmed so `getRangeMod` answers 1.0): a standing character
@@ -115,14 +115,14 @@ tiles of the shover in the horizontal plane (1.1 + 0.20000000298023224 against a
 tiles) with the look's dot at least 0.5, and a prone one only when the shove aims at the floor, which `SwipeStatePlayer.enter`
 plays as the stomp when the floor target is under 0.6000000238418579 tiles (`jar:CombatManager.calcHitListShove @130–@159 L1882–L1887`;
 `@295–@315 L1908–L1910`; `jar:IsoGameCharacter.isMeleeAttackRange @38–@156 L6361–L6369`; `jar:HandWeapon.getRangeMod @0–@96 L491–L511`;
-`jar:SwipeStatePlayer.enter @445–@497 L234–L236`) [#4592/C].
+`jar:SwipeStatePlayer.enter @445–@497 L234–L236`) [#4592/C/C-only].
 
 **The listing and the facing.** `IsoCell.getZombieList` returns the cell's `zombieList` field with no facing term
 (`jar:IsoCell.getZombieList @0–@4 L3204`), no class contains `getZombiesSeen` or `getSeenZombies`, and the facing reaches only
 the player's spotting: `IsoPlayer.updateLOS` adds a zombie to the spotted list and sets the objects' alpha from the squares'
 sight (`jar:IsoPlayer.updateLOS @501–@557 L6287–L6292`; `@886–@892 L6342`), which `IsoGridSquare.CalcVisibility` refuses
 outside the view cone around the light-info angle (`jar:IsoGridSquare.CalcVisibility @239–@270 L9100–L9104`; `@377–@396 L9121`)
-that `updateLightInfo` copies from the forward direction in the post-update (`jar:IsoGameCharacter.updateLightInfo @153–@172 L10853–L10854`) [#4593/C].
+that `updateLightInfo` copies from the forward direction in the post-update (`jar:IsoGameCharacter.updateLightInfo @153–@172 L10853–L10854`) [#4593/C/C-only].
 
 **What this means for the harness (inference from the readings above and the harness code at `597b826a`, not rows).**
 - The frames' `me.dir` (`PZAgent_Sense.lua` L103) is the `dir` field, and the skills tick before the frame is read in one
