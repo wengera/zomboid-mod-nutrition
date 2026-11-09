@@ -111,14 +111,14 @@ def test_f15_one_of_26_melees_was_superseded_before_any_press_and_19_superseded_
 
 
 def test_f15_the_row_reads_every_cell_in_the_logs_column_order(f15):
-    """The row against the committed log's header: 17 cells, the trial cells `-` with no trial.json, the body cells
-    `-` (F15's PZA/1.9 frames read no me.bodyAngle)."""
+    """The row against the committed log's header: 18 cells, the trial cells `-` with no trial.json, the body cells
+    `-` (F15's PZA/1.9 frames read no me.bodyAngle) and the head_ticks cell `-` (its leaves predate Plan 33 Task 1)."""
     head, _ = TS.read_log(TRIALS)
     header = TS.parse_row(head[-2])
     assert tuple(header) == TS.COLUMNS
     cs = TS.cells(f15, "seen one / two")
     assert len(cs) == len(TS.COLUMNS)
-    assert cs == ["f_goals_16-20261105-164332", "-", "-", "-", "142", "0", "6 / 8", "-", "-", "-",
+    assert cs == ["f_goals_16-20261105-164332", "-", "-", "-", "142", "0", "6 / 8", "-", "-", "-", "-",
                   "39.3 / 138.5 (away 41.1)",
                   "17.3 / 138.5", "0 / 6", "1 / 26 (19 superseded)", "death@702", "0", "seen one / two"]
 
@@ -368,11 +368,12 @@ def test_the_trial_cells_read_trial_json():
 
 
 # ================================================================ the log
-def _write_run(root, health=90.0, trial=True, kill=False, body=None):
+def _write_run(root, health=90.0, trial=True, kill=False, body=None, head=None):
     """A run folder: trial.json, the record, a two-line decision log and a client state log with two frames (and a
     zombie_dead event when `kill`). With `body` (radians, Plan 32 Task 4) the frames read me.bodyAngle `body`, zombie
     7 due east and the melee m1's act, and the state log a melee m1 at zombie 7 pressing a swing at the second frame's
-    wall (the record's loop.actions naming its target)."""
+    wall (the record's loop.actions naming its target); with `head` too (Plan 33 Task 4) that press's line carries a
+    press leaf reading head_ticks `head`."""
     os.makedirs(root)
     rid = os.path.basename(root)
     if trial:
@@ -404,7 +405,9 @@ def _write_run(root, health=90.0, trial=True, kill=False, body=None):
             fh.write(pza1.encode("frame", f) + "\n")
         if body is not None:
             fh.write(pza1.encode("act", {"seq": 3, "tick": 3, "wallMs": 36000002, "aid": "m1", "type": "melee",
-                                         "state": "progress", "reason": "", "result": {"step": "swing"}}) + "\n")
+                                         "state": "progress", "reason": "",
+                                         "result": dict({"step": "swing"}, **({"press": {"head_ticks": head}}
+                                                                              if head is not None else {}))}) + "\n")
         if kill:
             fh.write(pza1.encode("event", {"seq": 3, "tick": 3, "wallMs": 36000003, "event": "zombie_dead",
                                            "id": 7}) + "\n")
@@ -424,7 +427,7 @@ def test_a_run_folder_scores_from_its_client_tree_and_its_trial_json(tmp_path):
     run = _write_run(str(tmp_path / "x_trial-20261106-101010"), kill=True)
     cs = TS.cells(TS.score(run))
     assert cs == ["x_trial-20261106-101010", "ladder", "abcdef01", "arena-east", "5", "1 (matched 0)", "0 / 0",
-                  "0.00", "-", "-", "3.0 / 3.0 (away 0.0)", "0.0 / 3.0", "0 / 0", "0 / 0 (0 superseded)", "cap", "90", ""]
+                  "0.00", "-", "-", "-", "3.0 / 3.0 (away 0.0)", "0.0 / 3.0", "0 / 0", "0 / 0 (0 superseded)", "cap", "90", ""]
 
 
 def test_dry_writes_nothing_and_a_run_appends_then_replaces_its_own_row_keeping_seen(tmp_path, log, capsys):
@@ -450,7 +453,7 @@ def test_rescore_all_rebuilds_each_row_keeping_seen_keeps_a_gone_folders_row_and
     TS.main([a, "--log", log, "--seen", "kept text"])
     shutil.rmtree(a)
     _write_run(a, health=40.0)                                     # the scorer changed its reading: a new health
-    gone = TS.format_row(["x_trial-20261101-000000"] + ["-"] * 15 + ["old seen"])
+    gone = TS.format_row(["x_trial-20261101-000000"] + ["-"] * (len(TS.COLUMNS) - 2) + ["old seen"])
     with open(log, "a", encoding="utf-8", newline="\n") as fh:
         fh.write(gone + "\n")
     _write_run(os.path.join(runs, "x_trial-20261107-000000"))
@@ -462,7 +465,7 @@ def test_rescore_all_rebuilds_each_row_keeping_seen_keeps_a_gone_folders_row_and
     _, rows = TS.read_log(log)
     cells = [TS.parse_row(r) for r in rows]
     assert [c[0] for c in cells] == ["x_trial-20261106-101010", "x_trial-20261101-000000"]
-    assert (cells[0][15], cells[0][16]) == ("40", "kept text")
+    assert (cells[0][16], cells[0][17]) == ("40", "kept text")
     assert rows[1] == gone
     assert os.path.isdir(os.path.join(runs, "x_trial-20261107-000000"))   # the folder with no row: not added
 
@@ -639,7 +642,7 @@ def test_one_reaction_run_with_one_step_lagging_its_first_frame_is_still_one_hit
 def _section_log(path):
     """A log with two rows, a blank line, a `## Round two ranking` section with blank lines inside it and a table row
     in it, ending in a newline."""
-    row = lambda tid, seen="": TS.format_row([tid] + ["-"] * 15 + [seen])
+    row = lambda tid, seen="": TS.format_row([tid] + ["-"] * (len(TS.COLUMNS) - 2) + [seen])
     head = TS.read_log(TRIALS)[0]
     tail = ["", "## Round two ranking (2026-11-06)", "", "| arm | kills |", "|---|---|", "| ladder | 17 |", "",
             "Best by kills: the ladder.", ""]
@@ -660,7 +663,7 @@ def test_the_row_block_ends_at_the_first_line_that_is_not_a_row_and_a_write_keep
     assert TS.read_log(p) == (head, rows)
     TS.write_log(p, h, rows, t)
     assert open(p, "rb").read() == before                          # a write with nothing changed is the file
-    new = TS.format_row(["x_trial-c-20261106-000003"] + ["-"] * 15 + [""])
+    new = TS.format_row(["x_trial-c-20261106-000003"] + ["-"] * (len(TS.COLUMNS) - 2) + [""])
     cs = TS.parse_row(new)
     TS.put_row(p, cs[:-1] + ["new"])                               # appended, in the block
     TS.put_row(p, TS.parse_row(rows[0])[:5] + ["9"] + TS.parse_row(rows[0])[6:-1] + [""])   # replaced, seen kept
@@ -682,15 +685,15 @@ def test_rescore_all_keeps_a_trailing_section_and_a_folder_with_no_row_is_left_o
     h, rows, t = TS.read_log_parts(p)
     assert t == tail and h == head
     assert [TS.parse_row(r)[0] for r in rows] == ["x_trial-a-20261106-000001", "x_trial-b-20261106-000002"]
-    assert TS.parse_row(rows[0])[15] == "40" and TS.parse_row(rows[0])[-1] == "kept"
-    assert TS.parse_row(rows[1])[1:] == ["-"] * 15 + [""]          # no folder: kept as it stands
+    assert TS.parse_row(rows[0])[16] == "40" and TS.parse_row(rows[0])[-1] == "kept"
+    assert TS.parse_row(rows[1])[1:] == ["-"] * (len(TS.COLUMNS) - 2) + [""]          # no folder: kept as it stands
     assert a and os.path.isdir(a)
 
 
 # ================================================================ Plan 32 Task 4: the body columns
 def test_the_body_columns_follow_hits_per_kill():
     i = TS.COLUMNS.index("hits per kill")
-    assert TS.COLUMNS[i + 1:i + 3] == ("body med", "body p90") and len(TS.COLUMNS) == 17
+    assert TS.COLUMNS[i + 1:i + 3] == ("body med", "body p90") and len(TS.COLUMNS) == 18
 
 
 def test_the_body_columns_read_grade_x2_s_presses(tmp_path):
@@ -712,9 +715,9 @@ def test_a_run_with_no_body_angle_reads_dashes_in_the_body_columns(tmp_path):
 
 def test_rescore_all_widens_the_header_and_a_gone_folders_row_by_the_two_body_cells(tmp_path):
     """The named change (Plan 32 Task 4): a log whose header and rows predate the body columns is rewritten with the
-    header's two new names and, in a row whose folder is gone, two `-` cells after `hits per kill`; nothing else in
-    the row moves."""
-    old_cols = [c for c in TS.COLUMNS if c not in ("body med", "body p90")]
+    header's two new names and, in a row whose folder is gone, two `-` cells after `hits per kill` (and Plan 33 Task
+    4's head_ticks cell after them); nothing else in the row moves."""
+    old_cols = list(TS.OLD_COLUMNS)
     head = ["# Trials", "", TS.format_row(old_cols), "|" + "---|" * len(old_cols)]
     gone = ["x_trial-20261101-000000", "ladder", "abc", "lone", "5", "2", "1 / 1", "0.50", "1.0 / 5.0 (away 0.0)",
             "0.0 / 5.0", "0 / 0", "0 / 2 (0 superseded)", "cap", "90", "old seen"]
@@ -726,11 +729,11 @@ def test_rescore_all_widens_the_header_and_a_gone_folders_row_by_the_two_body_ce
     h, rows, t = TS.read_log_parts(p)
     assert TS.parse_row(h[-2]) == list(TS.COLUMNS) and h[-1] == "|" + "---|" * len(TS.COLUMNS)
     assert h[:-2] == head[:-2] and t == ["", "## After", ""]
-    assert TS.parse_row(rows[0]) == gone[:8] + ["-", "-"] + gone[8:]
+    assert TS.parse_row(rows[0]) == gone[:8] + ["-", "-", "-"] + gone[8:]
 
 
 def test_a_scored_run_widens_an_old_log_s_header_and_keeps_its_old_rows_seen(tmp_path):
-    old_cols = [c for c in TS.COLUMNS if c not in ("body med", "body p90")]
+    old_cols = list(TS.OLD_COLUMNS)
     head = ["# Trials", "", TS.format_row(old_cols), "|" + "---|" * len(old_cols)]
     run = _write_run(str(tmp_path / "x_trial-20261106-101010"))
     old = ["x_trial-20261106-101010"] + ["-"] * 13 + ["kept seen"]
@@ -740,3 +743,41 @@ def test_a_scored_run_widens_an_old_log_s_header_and_keeps_its_old_rows_seen(tmp
     h, rows = TS.read_log(p)
     assert TS.parse_row(h[-2]) == list(TS.COLUMNS) and len(rows) == 1
     assert TS.parse_row(rows[0])[-1] == "kept seen" and len(TS.parse_row(rows[0])) == len(TS.COLUMNS)
+
+
+# ================================================================ Plan 33 Task 4: the head_ticks column
+def test_the_head_ticks_column_follows_body_p90():
+    i = TS.COLUMNS.index("body p90")
+    assert TS.COLUMNS[i + 1] == "head_ticks max" and TS.HEAD_COLUMNS == ("head_ticks max",)
+    assert len(TS.OLD_COLUMNS) == 15 and len(TS.BODY_ERA_COLUMNS) == 17
+
+
+def test_the_head_ticks_column_reads_grade_x3_s_max(tmp_path):
+    """A run whose press leaf reads head_ticks 7: the cell reads 7 and the detail names the reading; a run with no
+    leaf carrying it reads `-`."""
+    run = _write_run(str(tmp_path / "x_trial-20261109-101010"), body=math.radians(10), head=7)
+    s = TS.score(run)
+    i = TS.COLUMNS.index("head_ticks max")
+    assert TS.cells(s)[i] == "7"
+    assert "head ticks (grade_x3.head_ticks): 1 values read, max 7, 0 head_stall handbacks, by melee [['m1', 7]]" in \
+        TS.detail(s)
+    assert TS.cells(TS.score(_write_run(str(tmp_path / "x_trial-20261109-101011"), body=0.0)))[i] == "-"
+    assert TS.cells(TS.score(_write_run(str(tmp_path / "x_trial-20261109-101012"))))[i] == "-"
+
+
+def test_rescore_all_widens_a_body_era_log_by_the_head_ticks_cell(tmp_path):
+    """The named change (Plan 33 Task 4): a log whose header and rows carry the body columns but not head_ticks is
+    rewritten with the header's new name and, in a row whose folder is gone, one `-` cell after `body p90`."""
+    cols = list(TS.BODY_ERA_COLUMNS)
+    head = ["# Trials", "", TS.format_row(cols), "|" + "---|" * len(cols)]
+    gone = ["x_trial-20261101-000000", "ladder", "abc", "lone", "5", "2", "1 / 1", "0.50", "0.3", "22.1",
+            "1.0 / 5.0 (away 0.0)", "0.0 / 5.0", "0 / 0", "0 / 2 (0 superseded)", "cap", "90", "old seen"]
+    p = str(tmp_path / "trials.md")
+    TS.write_log(p, head, [TS.format_row(gone)], ["", "## After", ""])
+    runs = str(tmp_path / "runs")
+    os.makedirs(runs)
+    assert TS.main(["--rescore-all", "--log", p, "--runs", runs]) == 0
+    h, rows, t = TS.read_log_parts(p)
+    assert TS.parse_row(h[-2]) == list(TS.COLUMNS) and h[-1] == "|" + "---|" * len(TS.COLUMNS)
+    assert h[:-2] == head[:-2] and t == ["", "## After", ""]
+    assert TS.parse_row(rows[0]) == gone[:10] + ["-"] + gone[10:]
