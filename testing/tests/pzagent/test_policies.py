@@ -787,9 +787,12 @@ def test_an_attack_failed_otherwise_does_not_mark_the_target(tmp_path):
 # to it off the map's blocked edges, repositions once to a clear neighbour, and marks the target unreachable on a
 # second blocked read.
 def test_fight_keeps_its_pinned_target_when_a_nearer_zombie_appears(tmp_path):
+    """Named change, Plan 32 Task 5 (b): pinned with the Fight's `pair_nearest` rule off (with two within KEEP_R the pin
+    moves to one PAIR_SWITCH_R nearer: `test_survive_ai`)."""
     r = Rig(tmp_path)
     r.frame(zombies=[zombie(7, 101.5, 200.0)])
     f = Fight(r.world, r.acts, r.clock)
+    f.rules = f.rules - {"pair_nearest"}
     f.step()
     assert r.cmd() == ("attack", {"targetId": 7}) and f.target == 7 and f.why["pinned"] is True
     r.answer({"state": "done", "result": swing(True)})

@@ -29,7 +29,7 @@ from agent.base.planner import policies as P
 from agent.base.planner import survive as S
 from agent.base.planner import threat as T
 
-from .test_policies import zombie
+from .test_policies import Rig, zombie
 from .test_survive import last, make, threat_why, tick
 
 F17 = os.path.join(R.ARTIFACTS, "f_goals_17-20261108-172833")
@@ -89,7 +89,7 @@ def flee_counts(rows):
 
 def test_the_t16_switches():
     """`survive.T16_SWITCHES`, each off until the coward rules' commit turns them on by default."""
-    assert T16 == ("POINT_BLANK_FIGHT",)
+    assert T16 == ("POINT_BLANK_FIGHT", "PAIR_NEAREST")
     assert all(getattr(S.Survive, k) is False for k in T16)
 
 
@@ -195,3 +195,67 @@ def test_a_running_retreat_to_a_named_structure_is_kept_at_point_blank(tmp_path)
     assert got == {"target": 1, "dist": 1.5, "over": "held"}
     sv.POINT_BLANK_FIGHT = False
     assert sv._point_blank("held") is None
+
+
+# ================================================================ (b) the pair: the nearer standing faced and shoved first
+def fight_rig(tmp_path, zs, rule=True):
+    """A Fight on a fresh Rig over one frame of `zs`, its rules the defaults with `pair_nearest` on or off."""
+    r = Rig(tmp_path)
+    r.frame(zombies=zs)
+    f = F.Fight(r.world, r.acts, r.clock)
+    f.rules = (f.rules | {"pair_nearest"}) if rule else (f.rules - {"pair_nearest"})
+    return r, f
+
+
+def at(zid, x, floor=False):
+    return dict(zombie(zid, x, 200.0), onFloor=floor)
+
+
+def test_pair_nearest_is_a_fight_rule():
+    assert "pair_nearest" in F.FIGHT_RULES and P.PAIR_SWITCH_R == 0.3
+
+
+def test_a_standing_zombie_within_keep_r_beside_a_fallen_one_is_the_target_not_the_floor_swing(tmp_path):
+    """(b), F17's seq 7432-7495 on the fake mod: 16230 lay fallen at 0.3 tiles and 16232 stood at 1.17; the Fight's
+    finish (P24-AL, P27-G's floor swing) attacked the fallen one while the standing one bit. With the rule on the
+    standing one is the target (logged `pair_nearest` {target, n 2, standing 1}) and nothing goes at the fallen one;
+    off, the floor swing at it as before."""
+    zs = [at(1, 101.3), at(2, 100.3, floor=True)]
+    r, f = fight_rig(tmp_path, zs)
+    cmd = f.choose()
+    assert f.target == 1 and f.why["pair_nearest"] == {"target": 1, "n": 2, "standing": 1}
+    assert getattr(cmd, "targetId", 1) == 1
+    (tmp_path / "off").mkdir()
+    r2, f2 = fight_rig(tmp_path / "off", zs, rule=False)
+    cmd2 = f2.choose()
+    assert (cmd2.TYPE, cmd2.targetId) == ("attack", 2) and "pair_nearest" not in f2.why
+
+
+@pytest.mark.parametrize("x2, want", [(101.6, 2), (101.85, 1)])
+def test_the_pin_switches_only_when_the_other_is_nearer_by_pair_switch_r(tmp_path, x2, want):
+    """(b)'s hysteresis: two standing within KEEP_R, the pin on 1 at 2.0 tiles; 2 at 1.6 tiles (0.4 nearer, past
+    PAIR_SWITCH_R) takes the pin, 2 at 1.85 (0.15 nearer) leaves it on 1."""
+    r, f = fight_rig(tmp_path, [at(1, 102.0), at(2, x2)])
+    f.target = 1
+    f.choose()
+    assert f.target == want and f.why["pair_nearest"]["target"] == want
+
+
+def test_with_one_within_keep_r_the_pair_rule_reads_nothing(tmp_path):
+    """One standing within KEEP_R and the other at 3.0: no pair read (the Fight's own target rules)."""
+    r, f = fight_rig(tmp_path, [at(1, 101.5), at(2, 103.0)])
+    f.choose()
+    assert "pair_nearest" not in f.why
+
+
+def test_f17_s_pair_holds_16232_where_the_record_traded_targets():
+    """(b) on F17's lines 752 to 766 (seq 7423-7512): the record's targets traded between 16230 (fallen from line 751,
+    attacked on lines 752, 758, 762 and 766) and 16232 (standing, shoved on 760 and 764) while 16232 bit. With
+    PAIR_NEAREST alone on, every threat line from 753 to 766 whose frame lists both within KEEP_R and 16232 standing
+    pins 16232 (`pair_nearest` {target 16232}), and no attack goes at 16230 on them; off, the record's trade."""
+    on, off = f17(**only("PAIR_NEAREST")), f17(**only())
+    lines = [k for k in range(753, 767) if threat(on[k - 1]).get("pair_nearest")]
+    assert lines and all(threat(on[k - 1])["pair_nearest"]["target"] == 16232 for k in lines)
+    assert not any(action(on[k - 1]) == "attack" and on[k - 1]["action"]["args"]["targetId"] == 16230 for k in lines)
+    assert [k for k in range(752, 767) if action(off[k - 1]) == "attack"
+            and off[k - 1]["action"]["args"]["targetId"] == 16230] == [752, 758, 762, 766]

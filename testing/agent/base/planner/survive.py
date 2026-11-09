@@ -341,7 +341,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     (CHASER_STANCE, SCRATCH_DRESS).
     Plan 32 Task 5 (the coward fix; Angus watching F17, `f_goals_17-20261108-172833`: 389 flee lines over 51.8 of 222
     game minutes): (a) a standing zombie within KEEP_R is fought whatever the flee reason, but under FLEE_HEALTH_FLOOR
-    and on a running retreat to a named structure (`threat.Threat._point_blank`); `T16_SWITCHES`.
+    and on a running retreat to a named structure (`threat.Threat._point_blank`); (b) with two or more within KEEP_R
+    and one standing, the nearest standing one is the Fight's pin, faced and shoved before any finish, switched only
+    PAIR_SWITCH_R nearer (`fight.Fight._pair_pin`); `T16_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -491,7 +493,7 @@ T15_SWITCHES = ("CHASER_STANCE", "SCRATCH_DRESS")
 # Plan 31 Task 15a (Harden, the ladder's two street defects): (a) on `threat.Threat` (CHASER_STANCE, the Fight's
 # `chaser_stance` rule); (b) on `Survive` (SCRATCH_DRESS: the wound Dress and the threat branch's yield to it, copied to
 # the Care and read by `care_yield.CareYield._wound_yields`)
-T16_SWITCHES = ("POINT_BLANK_FIGHT",)
+T16_SWITCHES = ("POINT_BLANK_FIGHT", "PAIR_NEAREST")
 # Plan 32 Task 5 (the coward fix, Angus's direction of 2026-11-08 watching F17), all on `threat.Threat`: (a)
 # POINT_BLANK_FIGHT, a standing zombie within KEEP_R fought whatever the flee reason (`Threat._point_blank`); (b)
 # PAIR_NEAREST, the Fight's `pair_nearest` rule (`fight.Fight._pair_pin`); (c) CARE_COMMIT, one distance leg, then the

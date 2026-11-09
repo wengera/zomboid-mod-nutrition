@@ -33,12 +33,13 @@ def fight(tmp_path, zs, arm=None, caps=None, stance=False, pin=None, floor_finis
     fallen zombie within FIGHT_REACH takes the floor swing ahead of the stomp: `test_survive_ab`), so this module's
     P24-AL finish (the stomp first) is pinned with the rule before it. Named change, ruling P28-B2 (Plan 28 Task 3):
     the `shove_back` rule off, the rule before it (the shove again after a miss, where the back leg goes now:
-    `test_survive_ac`)."""
+    `test_survive_ac`). Named change, Plan 32 Task 5 (b): the `pair_nearest` rule off, the rule before it (P24-AL's
+    finish of a downed zombie ahead of the standing one beside it, which (b) puts after it: `test_survive_ai`)."""
     r = Rig(tmp_path, caps=caps)
     fr(r, zs, arm)
     f = Fight(r.world, r.acts, r.clock, target=pin)
     f.stance = stance
-    f.rules = f.rules - {"shove_back"}
+    f.rules = f.rules - {"shove_back", "pair_nearest"}
     if not floor_finish:
         f.rules = f.rules - {"floor_finish"}
     return r, f

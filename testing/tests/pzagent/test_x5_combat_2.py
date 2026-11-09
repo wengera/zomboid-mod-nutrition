@@ -755,7 +755,10 @@ def test_the_old_driver_would_fight_the_nearer_zombie(tmp_path, monkeypatch):
 
 def test_a_spawn_no_frame_lists_is_recorded_and_its_encounter_skipped(tmp_path, monkeypatch):
     """S-22: the server spawned it and no frame lists it; the encounter is void with its listing frames recorded, and
-    no Fight runs against the zombie that is listed."""
+    no Fight runs against the zombie that is listed. Named change, Plan 32 Task 5 (b): the frozen driver's Fights are
+    pinned with the `pair_nearest` rule off (`fight.FIGHT_RULES` less it, the rules the driver ran with): with the
+    ambient zombie at 1.5 tiles and the encounter's within KEEP_R the pair would pin the nearer standing one."""
+    monkeypatch.setattr(F, "FIGHT_RULES", tuple(r for r in F.FIGHT_RULES if r != "pair_nearest"))
     monkeypatch.setattr(D, "ENCOUNTERS", 3)
     monkeypatch.setattr(D, "SPAWN_LIST_TIMEOUT_S", 3.0)
     built = []

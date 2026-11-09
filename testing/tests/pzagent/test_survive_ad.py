@@ -508,13 +508,15 @@ def test_no_melee_while_another_standing_zombie_is_within_stand_min_r(tmp_path, 
     P24-AH rules own that tick, the Lua's press would take that zombie); a fallen one there, or one beyond it, does
     not.
     Named change, Plan 31 Task 15a fix 1 (review-t15a I1): the crowd gate counts the Lua's crowd since; pinned with the
-    gate before it, another standing zombie within STAND_MIN_R (`OLD_GATE`)."""
+    gate before it, another standing zombie within STAND_MIN_R (`OLD_GATE`). Named change, Plan 32 Task 5 (b): pinned
+    with the Fight's `pair_nearest` rule off (two within KEEP_R pin the nearer standing one there)."""
     monkeypatch.setattr(*OLD_GATE)
     for i, (other, melee) in enumerate(((z(8, 100.0, 200.55), False), (z(8, 100.0, 200.55, floor=True), True),
                                         (z(8, 100.0, 200.7), True))):
         r = rig(tmp_path, str(i))
         fr(r, [z(9, 101.0), other])
         f = fight(r, target=9)
+        f.rules = f.rules - {"pair_nearest"}
         a = f.step()
         assert (a.type == "melee") is melee, other
 
@@ -719,10 +721,12 @@ def test_a_kill_on_the_melee_a_re_send_superseded_is_read_too(tmp_path):
 
 def test_a_kill_on_a_melee_the_ladder_s_send_replaced_is_read_too(tmp_path):
     """The Fight's own next command that is no melee (the finish of another fallen zombie) retires the maneuver, whose
-    melee's late `done` {kill} is still read (`_spent_m`)."""
+    melee's late `done` {kill} is still read (`_spent_m`). Named change, Plan 32 Task 5 (b): pinned with the Fight's
+    `pair_nearest` rule off (two within KEEP_R pin the standing one ahead of the fallen one's finish)."""
     r = Rig(tmp_path, caps=MELEE_CAPS)
     fr(r, [z(9, 102.0)])
     f = fight(r)
+    f.rules = f.rules - {"pair_nearest"}
     a = f.step()
     act(r, a, "accepted")
     r.advance(0.5)
@@ -913,10 +917,12 @@ def test_a_choose_after_another_sender_s_command_starts_a_new_melee(tmp_path):
 def test_a_melee_is_the_swing_after_a_shove(tmp_path):
     """P24-AH's once a swing (`_shoved`, the last swing-like send a shove): a melee clears it as the ladder's attack
     does, so the finish's shove of a standing zombie at point blank beside the fallen pin goes first (the ladder's,
-    at a zombie that is not the pin)."""
+    at a zombie that is not the pin). Named change, Plan 32 Task 5 (b): pinned with the Fight's `pair_nearest` rule off
+    (two within KEEP_R pin the standing one, whose shove is then the pin's)."""
     r = Rig(tmp_path, caps=MELEE_CAPS)
     fr(r, [z(9, 102.0)])
     f = fight(r)
+    f.rules = f.rules - {"pair_nearest"}
     f._shoved = True
     a = f.step()
     act(r, a, "accepted")

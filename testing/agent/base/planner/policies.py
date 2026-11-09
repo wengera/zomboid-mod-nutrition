@@ -135,6 +135,9 @@ KEEP_R = 2.5          # tiles: a target inside this and beyond FIGHT_REACH is ba
                       # stands facing it and lets it come (ruling P24-N, superseding P24-M's band of FIGHT_REACH + 1)
 KEEP_MARGIN = 0.25    # tiles: a running backpedal holds until its target is this far past KEEP_R, so the back and
                       # stand legs do not flap at the line (Task 12 fix 1, the review's major 1)
+PAIR_SWITCH_R = 0.3   # tiles: with two or more within KEEP_R the Fight's pin moves to another standing zombie only once
+                      # it reads this much nearer than the pin (Plan 32 Task 5 (b), `fight.Fight._pair_pin`; a judgment,
+                      # REPIN_MARGIN's 0.3: F17's pair at seq 7493-7499 read 0.97 and 0.99 tiles and traded the target)
 STUCK_SKIP_DEG = 15.0  # degrees: after a stuck leg, no heading this near its heading is chosen again (fix 3, F4)
 SCAN_R = 10           # tiles: the scan radius, and the grid a place is rounded to
 LOOT_MAX_LEVEL = 1    # spec § 9 (1) "stops looting before level 3": a loot is sent only at load level 0-1

@@ -178,7 +178,7 @@ from agent.base.planner.finish import FightFinish
 from agent.base.planner.policies import (AIM_LEG_S, AIM_R, CIRCLE_TURN, CORNERED_R, DANGER_R,
                                          DISENGAGE_R, DRAG_DOWN_N, EDGE_HOLD_TICKS, FENCE_BACK_R, FIGHT_MAX_S,
                                          FIGHT_REACH, FINISH_R, KEEP_MARGIN, KEEP_R, KNOCK_READ_S, MISSES_TO_APPROACH,
-                                         NO_TARGET, POINT_BLANK_R, PREEMPTED, PULL_R, Policy, REPIN_MARGIN,
+                                         NO_TARGET, PAIR_SWITCH_R, POINT_BLANK_R, PREEMPTED, PULL_R, Policy, REPIN_MARGIN,
                                          REPOSITION_MIN, REPOSITION_R, SEEK_SKIP_S, SEEK_SWITCH_R,
                                          STALL_SWINGS, STAND_MAX_S, STEER_PROBE, STEER_TURNS,
                                          STOOD_STOMPS, STUCK_REASONS,
@@ -200,11 +200,12 @@ FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finis
                "floor_finish", "fallen_seek", "shove_close", "low_exit", "attack_reach",
                "point_blank_pin", "busy_retry", "floor_pain", "shove_back",
                "drift_stand", "circle", "approach_walk", "melee",
-               "route_cross", "close_idle", "swing_close", "chaser_stance")   # survival iterations 13 to 24's
+               "route_cross", "close_idle", "swing_close", "chaser_stance",
+               "pair_nearest")   # survival iterations 13 to 24's
                      # Fight rules and Plan 31's (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E;
                      # P27-G, P27-H, P27-J, P27-K2; fix 2's P27-M and P27-N; P28-D, P28-C, P28-B2, P28-B3, P28-E, the
                      # approach walk; the melee, cut 1 of the maneuver layer; P29-A's route, P29-C's close; P30-A's
-                     # swing close; Plan 31 Task 15a's chaser stance),
+                     # swing close; Plan 31 Task 15a's chaser stance; Plan 32 Task 5 (b)'s pair),
                      # each on in `rules`
                      # unless Survive's switch for it is off
 
@@ -304,6 +305,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         self._back_leg = None               # (aim action, zombie id) of the last `shove_back` leg (P28-B2), else None
         self._back_left = False             # that leg's target was read beyond POINT_BLANK_R since it was sent
         self._init_dispatch()   # survival iteration 22: the running maneuver, `m` (`dispatch.FightDispatch`)
+        self.pair = None                    # this choose's `pair_nearest` read (Plan 32 Task 5 (b)), else None
 
     def marked(self):
         """The unreachable ids skipped now: the marked ones, less, for a cornered Fight (`mark_free_r`, fix round 1
@@ -572,6 +574,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         or the advance's) gives way as a leg does (`_walk_gives_way`, Task 18 fix 1, the review's blocker); any other
         walk (the approach and swing's, a reposition) holds until it ends."""
         if not super().busy():
+            return False
+        pair = self._pair_read()   # Plan 32 Task 5 (b): a send at another than the pair's target gives way
+        if pair is not None and self.last.args.get("targetId") not in (None, pair[0]):
             return False
         if self.last.type == "melee":
             return self._melee_holds()   # survival iteration 22: the running melee (`dispatch.FightDispatch`)
@@ -896,7 +901,47 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             self.why["melee_end"], self._m_end = self._m_end, None
         if self._route_end is not None:   # P29-A: the route walk's end read since the last choose
             self.why["route_end"], self._route_end = self._route_end, None
+        if self.pair is not None:   # Plan 32 Task 5 (b): the pair's pin, logged
+            self.why["pair_nearest"] = self.pair
         return cmd
+
+    def _pair_read(self):
+        """Plan 32 Task 5 (b) (the Fight's `pair_nearest` rule, Survive's PAIR_NEAREST; Angus watching F17,
+        `f_goals_17-20261108-172833`: from seq 7423 to 7512, decision lines 752 to 766, the Fight's target traded
+        between 16230, fallen from line 751 and floor-swung at on lines 752, 758, 762 and 766, and 16232, standing and
+        shoved on lines 760 and 764, while 16232 bit): `(id, {target, n, standing})` when two or more zombies the Fight
+        may target (its skips, `only`, a position) stand within KEEP_R on a line not read blocked and one of them
+        stands (not `onFloor`): the target is the nearest standing one, kept on the pin while the pin stands within
+        KEEP_R and no other standing one reads PAIR_SWITCH_R nearer than it (`n` the zombies within KEEP_R, `standing`
+        the standing ones). Else None (the rule off, one or none within KEEP_R, none standing). Read without side
+        effects (`busy` reads it)."""
+        if "pair_nearest" not in self.rules:
+            return None
+        skip = self.blocked()
+        near = []
+        for zid, z in self.world.zombies.items():
+            if (not target_id_ok(zid) or zid in skip or z.get("x") is None or z.get("y") is None
+                    or (self.only is not None and zid not in self.only)):
+                continue
+            d = zdist(self.world, z)
+            if d <= KEEP_R and line_to(self.world, z) is not False:
+                near.append((d, repr(zid), zid, on_floor(z)))
+        stand = sorted((d, k, zid) for d, k, zid, floor in near if not floor)
+        if len(near) < 2 or not stand:
+            return None
+        pick = stand[0]
+        cur = next((s for s in stand if s[2] == self.target), None)
+        if cur is not None and cur[0] - pick[0] <= PAIR_SWITCH_R:
+            pick = cur
+        return pick[2], {"target": pick[2], "n": len(near), "standing": len(stand)}
+
+    def _pair_pin(self):
+        """Plan 32 Task 5 (b): `_pair_read`'s target pinned (`pair` its why), else `pair` None."""
+        read = self._pair_read()
+        self.pair = None if read is None else read[1]
+        if read is not None and self.target != read[0]:
+            self.target, self.repositioned = read[0], False
+        return self.pair
 
     def _repin_point_blank(self):
         """Survival 4 fix round 1, R4 (E4: the corner's pin stayed on 19032 while 19035 at 0.48 tiles dealt the first
@@ -952,13 +997,16 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         if switch is not None:   # Task 18 fix 1, the blocker: the seek closes on the nearest
             self.target, self.repositioned = switch[0], False
         self._pin_first()   # P27-N: a zombie at point blank or read attacking takes the pin
+        pair = self._pair_pin()   # Plan 32 Task 5 (b): with two within KEEP_R the nearer standing one is the pin
         t = self._target(pin=True)
         if t is None:
             self.why = {"target": None, "pinned": False}
             return None
         zid, z, d = t
         if self.point_blank and d > CORNERED_R:   # P24-A fix 2, I2a: a cornered Fight never walks to a drifted pin
-            fin = self._drifted_finish()   # P25-J (3), 8 fix 1: the finish of the fallen first
+            fin = None if pair is not None else self._drifted_finish()   # P25-J (3), 8 fix 1: the finish of the
+                                                                          # fallen first (Plan 32 Task 5 (b): the
+                                                                          # pair's standing one before it)
             if fin is not None:
                 return fin[0]
             self.why = {"target": zid, "pinned": True, "dist": d, "out_of_reach": True}
@@ -969,11 +1017,11 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         if self._ride_waits():   # P25-D: the riding bandage lands before a held Fight's next send
             self.why = {"target": zid, "pinned": True, "dist": d, "ride_wait": self.ride.aid}
             return None
-        fin = self._finish()   # P24-AL: a downed zombie within reach first
-        if fin is not None:
+        fin = None if pair is not None else self._finish()   # P24-AL: a downed zombie within reach first (Plan 32
+        if fin is not None:                                     # Task 5 (b): the pair's standing one before it)
             return fin[0]
-        first = self._finish_first(d)   # P25-B: one within FINISH_R before any walk toward a standing one
-        if first is not None:
+        first = None if pair is not None else self._finish_first(d)   # P25-B: one within FINISH_R before any walk
+        if first is not None:                                          # toward a standing one
             return first
         pin = self._pin_send(zid, z, d)   # P27-N: the pinned zombie at point blank or attacking, shoved then swung at
         if pin is not None:

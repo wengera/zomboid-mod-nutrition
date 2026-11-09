@@ -254,6 +254,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # ._bleed_rate`), logged `dress_ride` {part, rate}; off, P29-D's wait with nobody within
                           # DANGER_R alone
     # Plan 32 Task 5 (the coward fix; survive.py's docstring): in `survive.T16_SWITCHES`
+    PAIR_NEAREST = False   # (b): with two or more within KEEP_R and one standing, the nearest standing one is the
+                           # Fight's pin, faced and shoved first, switched only PAIR_SWITCH_R nearer (the Fight's
+                           # `pair_nearest` rule, `fight.Fight._pair_pin`); off, the finish and the pin as before
     POINT_BLANK_FIGHT = False  # (a): a standing zombie within KEEP_R is fought whatever flee reason the plan would take
                                # (`_point_blank`), the health under FLEE_HEALTH_FLOOR and a running retreat to a named
                                # structure excepted; off, the flee reasons as before
@@ -1283,7 +1286,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("melee", self.MELEE), ("route_cross", self.ROUTE_CROSS),
                                                ("close_idle", self.CLOSE_IDLE),
                                                ("swing_close", self.SWING_CLOSE),
-                                               ("chaser_stance", self.CHASER_STANCE))
+                                               ("chaser_stance", self.CHASER_STANCE),
+                                               ("pair_nearest", self.PAIR_NEAREST))
                          if on)
 
     def _flee_rules(self):
