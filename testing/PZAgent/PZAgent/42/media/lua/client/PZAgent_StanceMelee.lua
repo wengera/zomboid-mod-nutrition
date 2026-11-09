@@ -1008,7 +1008,7 @@ end
 -- K.MELEE_CROWD_R, the crowd handback's form, so the decider decides. Every press leaf adds head_ticks, the head ticks
 -- waited before it (0 for a press with no wait).
 K.HEAD_LOOK_FLOOR = 0.15   -- tiles: a head nearer is pressed with no look gate (the target under the feet)
-K.HEAD_MAX_TICKS = 20      -- head ticks with no press before the head_stall handback (the spec's 20, a judgment)
+K.HEAD_MAX_TICKS = 60      -- head ticks with no press before the head_stall handback: about one second at the reflex's rate (the spec's one second; its 20 ticks read 0.33 s, the controller's residual after Task 1)
 
 -- ---- the idle snap (Plan 33 Task 1) ------------------------------------------------------------------------------
 -- F18's visual pass (shots 31, 33, 35, 36) saw the body turned away from the nearest zombie between presses while

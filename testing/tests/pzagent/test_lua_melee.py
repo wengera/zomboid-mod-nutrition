@@ -1720,16 +1720,16 @@ def test_the_old_gate_held_the_head_step_on_a_target_under_the_feet(lua, fs):
 
 
 def test_a_head_step_held_head_max_ticks_hands_back_head_stall(lua, fs):
-    """K.HEAD_MAX_TICKS: the floor off and the look never on at 0.2 tiles, 20 ticks of `head` with no press, and the
-    21st ends done handback, why head_stall, with head_ticks 20 and the standing count within K.MELEE_CROWD_R."""
+    """K.HEAD_MAX_TICKS: the floor off and the look never on at 0.2 tiles, 60 ticks of `head` with no press, and the
+    61st ends done handback, why head_stall, with head_ticks 60 and the standing count within K.MELEE_CROWD_R."""
     p, z, w = stall_world(lua, 10.2)
     lua.execute("PZA.skills.HEAD_LOOK_FLOOR = 0")
     go(lua, p, mode="finish")
-    run(lua, p, w, 20)
+    run(lua, p, w, 60)
     assert w["presses"] == [] and cur_step(lua) == "head" and not ended(lua)
     run(lua, p, w)
     r = last(lua, fs)["result"]
-    assert (r["end"], r["why"], r["head_ticks"], r["n"]) == ("handback", "head_stall", 20, 0)
+    assert (r["end"], r["why"], r["head_ticks"], r["n"]) == ("handback", "head_stall", 60, 0)
     assert "ds" not in r and "id" not in r and ended(lua) and w["presses"] == []
 
 
@@ -1741,15 +1741,15 @@ def test_the_head_stall_counts_the_standing_zombies_within_the_crowd_radius(lua,
     frame_last(lua, [(7, 0.2), (8, 0.8)], objs={7: z, 8: o8})
     lua.execute("PZA.skills.HEAD_LOOK_FLOOR = 0")
     go(lua, p, mode="finish", handbackR=0.5)
-    run(lua, p, w, 21)
+    run(lua, p, w, 61)
     r = last(lua, fs)["result"]
-    assert (r["why"], r["n"], r["id"], r["head_ticks"]) == ("head_stall", 1, 8, 20)
+    assert (r["why"], r["n"], r["id"], r["head_ticks"]) == ("head_stall", 1, 8, 60)
     assert r["d"] == pytest.approx(0.8) and r["ds"] == [pytest.approx(0.8)]
 
 
 def test_a_press_resets_the_head_count(lua, fs):
     """The counter resets on a press: 15 ticks of `head`, the look brought on (a press, its leaf head_ticks 15), the
-    look off again, and 20 more ticks of `head` run before the handback (never 5)."""
+    look off again, and 60 more ticks of `head` run before the handback (never 5)."""
     p, z, w = stall_world(lua, 10.2)
     lua.execute("PZA.skills.HEAD_LOOK_FLOOR = 0")
     go(lua, p, mode="finish")
@@ -1759,27 +1759,27 @@ def test_a_press_resets_the_head_count(lua, fs):
     run(lua, p, w)
     assert len(w["presses"]) == 1
     w["look"] = math.pi / 2
-    run(lua, p, w, 20, stop=lambda: leaves(lua, fs))
+    run(lua, p, w, 60, stop=lambda: leaves(lua, fs))
     assert leaves(lua, fs)[0]["head_ticks"] == 15
     run(lua, p, w, 15)
     assert not ended(lua) and cur_step(lua) == "head"
     run(lua, p, w, 60, stop=lambda: ended(lua))
     r = last(lua, fs)["result"]
-    assert r["why"] == "head_stall" and r["head_ticks"] == 20 and len(w["presses"]) == 1
+    assert r["why"] == "head_stall" and r["head_ticks"] == 60 and len(w["presses"]) == 1
 
 
 def test_a_head_step_waiting_on_a_running_attack_counts_toward_the_cap(lua, fs):
     """The look on but an attack already running (isAttackStarted true: the engine drops a press then, #4292): the
-    press waits in `head` with no press, each tick counted, and the 21st hands back head_stall."""
+    press waits in `head` with no press, each tick counted, and the 61st hands back head_stall."""
     p, z, w = world(lua, zx=10.2, attack_ticks=6)
     w["floor"] = True
     p.isAttackStarted = lambda s: True
     go(lua, p, mode="finish")
-    run(lua, p, w, 20)
+    run(lua, p, w, 60)
     assert w["presses"] == [] and cur_step(lua) == "head" and not ended(lua)
     run(lua, p, w)
     r = last(lua, fs)["result"]
-    assert (r["why"], r["head_ticks"]) == ("head_stall", 20)
+    assert (r["why"], r["head_ticks"]) == ("head_stall", 60)
 
 
 def test_a_meet_press_leaf_carries_head_ticks_0(lua, fs):
@@ -1793,7 +1793,7 @@ def test_the_head_stall_keys_are_in_the_schema(lua, fs):
     p, z, w = stall_world(lua, 10.2)
     lua.execute("PZA.skills.HEAD_LOOK_FLOOR = 0")
     go(lua, p, mode="finish")
-    run(lua, p, w, 21)
+    run(lua, p, w, 61)
     assert "head_ticks" in _schema_keys(lua, fs)
     with open(SCHEMA, encoding="utf-8") as fh:
         defs = json.load(fh)["$defs"]
