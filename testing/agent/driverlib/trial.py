@@ -881,7 +881,7 @@ def make_fixture(out, args, run_dir, end=None, run=subprocess.run):
 # ---------------------------------------------------------------- the boot
 def boot_and_run(args, preboot_fn, *, key, driver, artifact, profile, argv, user=USER, repo=DS.REPO,
                  wall=time.time, run_session_fn=None, boot=None, teardown=None, kill=None, run=subprocess.run,
-                 provenance_fn=provenance):
+                 provenance_fn=provenance, run_prefix=None):
     """A trial's boot (the module docstring): day.boot_and_run without copy_run, next_steps or a grade, with
     trial.json, the --minutes limits and the --make-fixture snapshot. `run_session_fn(xs, transport, pre,
     note_planner)` (default run_session over args); `boot`, `teardown`, `kill` and `run` are _dlib.boot,
@@ -917,7 +917,7 @@ def boot_and_run(args, preboot_fn, *, key, driver, artifact, profile, argv, user
     # the memory gate before the run folder (a refusal leaves no folder that never booted), one read and no wait: the
     # pre-boot read the floor already, and a wait would run outside the wall bound
     DS.memory_gate(xs, MIN_FREE_GB, wait=lambda g: DL.wait_memory(g, max_wait_s=0.0))
-    run_id, run_dir = new_run_dir("%s-%s" % (key, args["variant"]))
+    run_id, run_dir = new_run_dir(run_prefix or "%s-%s" % (key, args["variant"]))     # run_prefix: x_facing's x_facing-<stamp>
     prov = provenance_fn(repo)
     trial = trial_record(args, prov, argv, datetime.datetime.now().isoformat(timespec="seconds"))
     if prov.get("diff") is not None:
