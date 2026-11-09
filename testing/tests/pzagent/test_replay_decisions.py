@@ -2425,22 +2425,22 @@ FIRST_T17 = {"e2": {},
              SIXTH: {"GROUP_LEAVE": 444, "SIDE_CLEAR": 610}}
 # the why each rule logs on the first line it moves alone
 WHY_T17 = {"GROUP_LEAVE": "group_leave", "DRAG_GUARD_FIGHT": "drag_fight", "SIDE_CLEAR": "side_clear"}
-# every line on each golden whose decision (branch or action) the three rules move together
+# every line on each golden whose decision (branch or action) the three rules move together; E4's re-read at Task 3
+# fix 2 (SIDE_CLEAR's least-bad run in its shove's place: line 489 now the wanted heading's run, as the record's)
 ACTED_T17 = {"e2": [],
              "e3": [],
-             "e4": [388, 389, 390, 395, 397, 425, 433, 485, 489, 492, 499, 506, 513, 519, 526, 533, 539, 546, 550, 552,
-                    558, 565, 571, 578, 585, 590, 591, 597, 603, 610, 611, 616, 618, 623, 625, 629,
-                    632, 636, 638, 643, 645, 650, 652, 780, 781, 787, 788, 793, 795, 800, 801, 806,
-                    808, 813, 815, 819, 821, 826, 828, 833, 835, 840, 841, 847, 848, 854, 861, 868,
-                    869, 875, 950, 956, 963, 966, 973, 979, 986, 993, 1000, 1001, 1007, 1014, 1017,
-                    1018, 1019, 1023, 1026, 1029, 1033, 1036, 1061, 1068, 1075, 1082, 1089, 1096,
-                    1102, 1109, 1116, 1121, 1123, 1124, 1126, 1132, 1139, 1274, 1281, 1288, 1295,
-                    1302, 1308, 1315, 1322, 1329, 1334, 1336, 1341, 1343, 1348, 1350, 1354, 1356,
-                    1361, 1363, 1367, 1369, 1374, 1376, 1381, 1383, 1388, 1389, 1394, 1396, 1401,
-                    1403, 1408, 1410, 1415, 1417, 1421, 1423, 1428, 1430, 1435, 1437, 1442, 1444,
-                    1448, 1451, 1455, 1458, 1462, 1465, 1468, 1471, 1474, 1478, 1481, 1484, 1487,
-                    1491, 1494, 1497, 1501, 1504, 1506, 1508, 1513, 1519, 1526, 1533, 1540, 1547,
-                    1554, 1560, 1567, 1569, 1574, 1576, 1581, 1583, 1588, 1590, 1594, 1596, 1601,
+             "e4": [388, 389, 390, 395, 397, 425, 433, 485, 492, 494, 495, 499, 501, 502, 503, 506, 509, 513, 516, 519,
+                    522, 526, 529, 533, 536, 539, 543, 546, 550, 552, 556, 558, 563, 565, 566, 567, 568, 569, 570, 571,
+                    572, 573, 574, 575, 576, 577, 578, 582, 583, 584, 585, 586, 587, 780, 781, 787, 788, 793, 795, 800,
+                    801, 806, 808, 813, 815, 819, 821, 826, 828, 833, 835, 840, 841, 847, 848, 854, 861, 868, 869, 875,
+                    950, 963, 964, 966, 967, 968, 969, 973, 975, 976, 979, 983, 986, 989, 993, 996, 1000, 1061, 1068,
+                    1075, 1082, 1089, 1096, 1102, 1109, 1116, 1121, 1123, 1124, 1126, 1132, 1139, 1274, 1280, 1281,
+                    1286, 1288, 1293, 1295, 1300, 1302, 1307, 1308, 1314, 1315, 1320, 1322, 1327, 1329, 1334, 1336,
+                    1341, 1343, 1348, 1350, 1354, 1356, 1361, 1363, 1367, 1369, 1374, 1376, 1381, 1383, 1388, 1389,
+                    1394, 1396, 1401, 1403, 1408, 1410, 1415, 1417, 1421, 1423, 1428, 1430, 1435, 1437, 1442, 1444,
+                    1448, 1451, 1455, 1458, 1462, 1465, 1468, 1471, 1474, 1478, 1481, 1484, 1487, 1491, 1494, 1497,
+                    1501, 1504, 1506, 1508, 1509, 1513, 1516, 1519, 1522, 1526, 1528, 1533, 1535, 1540, 1542, 1547,
+                    1549, 1554, 1555, 1560, 1562, 1567, 1569, 1574, 1576, 1581, 1583, 1588, 1590, 1594, 1596, 1601,
                     1603, 1608, 1610, 1614, 1616, 1621, 1622],
              "e5": [224, 225],
              "f1": [491, 498, 499, 610, 614],
@@ -2467,7 +2467,8 @@ def test_the_group_rules_move_the_goldens_at_their_lines(key):
       moved line downstream (open loop).
     - SIDE_CLEAR moves E4 from line 489 (its long tail, a dead character's frames replayed to the day cap, every later
       moved line downstream) and F1 and the sixth from 610: a run steer passing a standing zombie turned to a clear
-      heading or replaced by the shove (`side_clear`).
+      heading, else (Task 3 fix 2, re-recorded under `Plan 33 Task 3 fix 2: ...`) to the least-bad heading where it
+      sent the shove before (E4 489, F1 and the sixth 614; `side_clear` {least_bad}).
     - DRAG_GUARD_FIGHT moves none (no golden's guard line reads a hit reaction or the unmoving count). E2 moves under
       none, its file unchanged.
     The three together move each golden first at the least of those lines; the acted lines are `ACTED_T17`."""
