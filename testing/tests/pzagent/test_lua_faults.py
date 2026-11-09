@@ -28,10 +28,12 @@ from .conftest import FakeFS, J, lua_file, make_cell, make_lua, make_player, mak
 
 LIVE = "pzagent/admin/state.log"
 CMD = "pzagent/admin/cmd.txt"
-SKILL_FILES = ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZAgent_Motor.lua",
+SKILL_FILES = ("shared/PZAgent_World.lua", "client/PZAgent_FacingProbe.lua", "client/PZAgent_Link.lua",
+               "client/PZAgent_Motor.lua",
                "client/PZAgent_Sense.lua", "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua",
                "client/PZAgent_Stance.lua", "client/PZAgent_StanceMelee.lua", "client/PZAgent_Tend.lua")
-MAIN_FILES = ("shared/PZAgent_World.lua", "client/PZAgent_Link.lua", "client/PZAgent_Main.lua",
+MAIN_FILES = ("shared/PZAgent_World.lua", "client/PZAgent_FacingProbe.lua", "client/PZAgent_Link.lua",
+              "client/PZAgent_Main.lua",
               "client/PZAgent_Map.lua", "client/PZAgent_Motor.lua", "client/PZAgent_Sense.lua",
               "client/PZAgent_Skills.lua", "client/PZAgent_SkillsWorld.lua",
               "client/PZAgent_Stance.lua", "client/PZAgent_StanceMelee.lua", "client/PZAgent_Tend.lua")
@@ -41,8 +43,7 @@ VANILLA = ("ISTimedActionQueue", "ISWalkToTimedAction", "ISOpenCloseDoor", "ISOp
            "ISApplyBandage", "ISWashClothing", "ISInventoryPaneContextMenu", "ISTakeWaterAction", "ISWearClothing",
            "ISClimbThroughWindow", "ISSmashWindow", "ISUnequipAction")
 MAIN_TYPES = ("scan", "rate")          # answered by Main, never the runner (ruling P22-5)
-PENDING_TYPES = ("probe",)             # sleep, in the schema since PZA/1.2 (Plan 23 Task 4), got its skill in Task 8;
-                                       # probe, in the schema since PZA/1.11 (Plan 32 Task 1), gets its skill in the next commit
+PENDING_TYPES = ()                     # sleep, in the schema since PZA/1.2 (Plan 23 Task 4), got its skill in Task 8
 
 # valid args for every action type of the schema; a case name maps to its type (interact and consume take two)
 VALID = {
@@ -72,6 +73,7 @@ VALID = {
                         "faceR": 3.0, "pressAngle": 41.4, "pressLo": 0.0, "floorR": 1.0, "handbackR": 2.0,
                         "stall": 3}),
     "sneak": ("sneak", {"on": True}),                   # PZA/1.9 (Plan 30 Task 1): answered on its tick, no skill
+    "probe": ("probe", {"mode": "read", "x": 12.0, "y": 20.0, "ticks": 3}),   # PZA/1.11 (Plan 32 Task 1)
     "scan": ("scan", {"r": 3}),
     "rate": ("rate", {"hz": 5}),
 }
@@ -223,7 +225,8 @@ BARE = {"walkTo": ("failed", "stuck"), "steer": ("failed", "not loaded"), "attac
         "climb": ("failed", "interrupted"), "bandage": ("rejected", "none held"), "rip": ("rejected", "none held"),
         "wash": ("rejected", "none held"), "fill": ("rejected", "none held"), "wear": ("rejected", "none held"),
         "window": ("failed", "interrupted"), "unwear": ("rejected", "none held"), "shove": ("failed", "not loaded"),
-        "stomp": ("rejected", "not valid"), "melee": ("rejected", "no weapon"), "sneak": ("rejected", "not loaded")}
+        "stomp": ("rejected", "not valid"), "melee": ("rejected", "no weapon"), "sneak": ("rejected", "not loaded"),
+        "probe": ("failed", "not loaded")}   # PZA/1.11: no ring getter (getDirectionAngleRadians) on the first tick
 
 
 def test_the_bare_table_covers_every_skill_case():
@@ -307,7 +310,8 @@ ABSENT = {"walkTo": ("failed", "no path"), "steer": ("failed", "not loaded"), "o
           "bandage": ("failed", "not loaded"), "rip": ("failed", "not loaded"), "wash": ("failed", "not loaded"),
           "fill": ("failed", "not loaded"), "wear": ("failed", "not loaded"), "window": ("failed", "not loaded"),
           "unwear": ("rejected", "not worn"), "shove": ("failed", "not loaded"), "stomp": ("rejected", "not valid"),
-          "melee": ("failed", "not loaded"), "sneak": ("done", "")}
+          "melee": ("failed", "not loaded"), "sneak": ("done", ""),
+          "probe": ("failed", "not loaded")}   # PZA/1.11: Vector2 absent (the aim vector's), named in missing
 
 
 @pytest.mark.parametrize("case", SKILL_CASES)
