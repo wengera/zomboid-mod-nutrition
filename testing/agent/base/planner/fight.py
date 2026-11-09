@@ -949,7 +949,10 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         the standing ones). Plan 33 Task 3 fix 4 (a) (round three, trial 3, `x_trial-ladder-20261109-042558`, decision
         lines 98 to 100: the pin 99 held at 4.40 tiles while 117 closed 2.38, 1.56, 0.96, the rule reading one within
         KEEP_R): with a standing zombie within KEEP_R, the pin is counted too when it stands beyond KEEP_R (its
-        distance) or has no position (counted, never picked), so the nearer standing one takes it past PAIR_SWITCH_R.
+        distance) or has no position (counted, never picked), so the nearer standing one takes it past PAIR_SWITCH_R;
+        fix 5 (round four, trial 2, `x_trial-ladder-20261109-052334`, lines 249 to 253: the pin 28874 fallen at 3.3
+        tiles held on a stand leg while 28872 lunged 1.76 to 0.43 and bit) counts a fallen pin beyond KEEP_R the same
+        way (counted, never picked: the standing one within KEEP_R takes it).
         Else None (the rule off, one or none within KEEP_R, none standing). Read without side effects (`busy` reads
         it). Under the retreat the pin is `_retreat_read`'s."""
         if "pair_nearest" not in self.rules:
@@ -966,8 +969,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             d = zdist(self.world, z)
             if d <= KEEP_R and line_to(self.world, z) is not False:
                 near.append((d, repr(zid), zid, on_floor(z)))
-            elif zid == self.target and d > KEEP_R and not on_floor(z):
-                far_pin = (d, repr(zid), zid, False)   # fix 4 (a): the standing pin beyond KEEP_R
+            elif zid == self.target and d > KEEP_R:
+                far_pin = (d, repr(zid), zid, on_floor(z))   # fix 4 (a): the pin beyond KEEP_R, standing or (fix 5) fallen
         if far_pin is not None and any(not floor for _, _, _, floor in near):
             near.append(far_pin)
         stand = sorted((d, k, zid) for d, k, zid, floor in near if not floor)

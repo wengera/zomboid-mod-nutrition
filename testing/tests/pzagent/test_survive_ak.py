@@ -615,6 +615,22 @@ def test_a_far_pin_alone_or_beside_a_fallen_one_is_no_pair(tmp_path):
     assert f2._pair_read() is None
 
 
+def test_a_fallen_pin_beyond_keep_r_gives_way_to_a_standing_zombie_within_it(tmp_path):
+    """Fix 5 (round four, trial 2's lines 249 to 253: the pin fallen at 3.3 tiles held on a stand leg while a standing
+    one lunged to 0.43 and bit): the pin 1 on the floor 3.3 tiles east and 2 standing at 1.2 within KEEP_R: the pair
+    rule counts the fallen pin (never picks it), so 2 takes the pin (`pair_nearest` {target 2, n 2, standing 1}); with
+    the rule off the pin holds on 1."""
+    zs = [zm(1, 103.8, 200.5, onFloor=True), zm(2, 101.7, 200.5)]
+    r, f = fight4(tmp_path, zs, retreat=None, target=1)
+    f.choose()
+    assert f.target == 2 and f.why["pair_nearest"] == {"target": 2, "n": 2, "standing": 1}
+    (tmp_path / "off").mkdir()
+    r2, f2 = fight4(tmp_path / "off", zs, retreat=None, target=1)
+    f2.rules = f2.rules - {"pair_nearest"}
+    f2.choose()
+    assert f2.target == 1 and "pair_nearest" not in f2.why
+
+
 def test_under_the_retreat_the_pin_moves_to_the_nearest_standing_zombie_of_the_group(tmp_path):
     """Fix 4 (a): under the retreat a trio east at 2.5, 3.5 and 4.5 tiles with the pin on the farthest (3): the pin
     moves to the nearest standing one (1), logged `retreat_pin` {target 1, from 3} and `retreat` true; a fallen one
