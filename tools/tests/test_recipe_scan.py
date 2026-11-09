@@ -788,7 +788,7 @@ def test_json_is_sorted_and_byte_stable():
         assert raw == open(second, encoding="utf-8", newline="").read()
         assert "\r" not in raw and raw.endswith("\n")
         payload = json.loads(raw)
-    assert payload["meta"]["build"] == "42.21.0 (4a0e9546ec)"  # 42.21.0 (2026-10-08 scan); 42.20.4 read "42.20.4 (b0bbce05d5)"
+    assert payload["meta"]["build"] == "42.22.2 (3d39148846)"  # 42.22.2 (2026-11-09 scan); 42.21.0 read "42.21.0 (4a0e9546ec)", 42.20.4 "42.20.4 (b0bbce05d5)"
     assert [r["name"] for r in payload["recipes"]] == ["MakeToast", "MillCornflour"]
 
 
@@ -1358,17 +1358,17 @@ def test_real_install_counts():
     """The plan's Task 2 Step 3 figures, with two re-derived (see the report's deviations)."""
     meta, recipes = _real_dataset()
     counts = meta["counts"]
-    assert counts["craftRecipes"] == 969 and len(recipes) == 969
+    assert counts["craftRecipes"] == 965 and len(recipes) == 965  # 42.22.2 (2026-11-09 scan); 42.21.0 read 969
     assert counts["files"] == 74 and counts["scriptFiles"] == 1004
     assert counts["legacyRecipeBlocks"] == 0
-    assert counts["itemMappers"] == 225 and counts["overlayMappers"] == 3
+    assert counts["itemMappers"] == 227 and counts["overlayMappers"] == 3  # 42.22.2 (2026-11-09 scan); 42.21.0 read 225
     # 202 `component CraftRecipe` blocks are an entity's own build recipe, not a craftRecipe --
     # they are why a raw grep of the scripts counts more `mode:` and `flags[…]` than this dataset
     assert counts["componentCraftRecipes"] == 202
     # 37 recipes yield no item at all -- they mutate an input through `OnCreate` (opening a can,
     # sharpening a blade, dyeing clothes). The plan expected "10 blocks with no outputs": 11 ship
     # no `outputs` block and 26 more ship an empty one (`recipes_fixing.txt:18`).
-    assert counts["recipesWithoutOutputs"] == 11 and counts["recipesWithEmptyOutputs"] == 26
+    assert counts["recipesWithoutOutputs"] == 11 and counts["recipesWithEmptyOutputs"] == 27  # 42.22.2 (2026-11-09 scan); 42.21.0 read 26
     assert counts["outputItemTypes"] == 1693
     assert counts["outputItemTypesInFoodDataset"] == 262   # `food` + `drainable` rows
     assert counts["outputItemTypesInDataset"] == 295       # … plus the 33 fluid containers
@@ -1393,16 +1393,16 @@ def test_real_install_counts():
     assert len(splits) == 8 and all(r["delta"][f] == 0.0 for r in splits
                                     for _k, f in recipe_scan.MACROS)
     # the 55 `-fluid` lines are sub-lines of the input above them, not inputs of their own
-    assert counts["inputSubLines"] == 55
+    assert counts["inputSubLines"] == 56  # 42.22.2 (2026-11-09 scan); 42.21.0 read 55
     # 0 rows PUBLISH a waste block. One row rounds up (`UnpackCigarettes`) but the item it
     # destroys is the drainable `Base.CigarettePack`, which writes no macro key at all, so its
     # six macros would all be 0 and an all-zero block would read as a measured "0.0 kcal
     # destroyed". The round-up is in that row's `delta.notes` instead.
     assert counts["recipesWithDestroyWaste"] == 0
     assert [r["name"] for r in recipes] == sorted(r["name"] for r in recipes)
-    assert len({r["name"] for r in recipes}) == 969        # every craftRecipe name is unique
-    assert meta["build"] == "42.21.0 (4a0e9546ec)"  # 42.21.0 (2026-10-08 scan); 42.20.4 read "42.20.4 (b0bbce05d5)"
-    assert meta["sources"]["food_items"]["build"] == "42.21.0"  # 42.21.0 (2026-10-08 scan); 42.20.4 read "42.20.4"
+    assert len({r["name"] for r in recipes}) == 965        # every craftRecipe name is unique; 42.22.2 (2026-11-09 scan); 42.21.0 read 969
+    assert meta["build"] == "42.22.2 (3d39148846)"  # 42.22.2 (2026-11-09 scan); 42.21.0 read "42.21.0 (4a0e9546ec)", 42.20.4 "42.20.4 (b0bbce05d5)"
+    assert meta["sources"]["food_items"]["build"] == "42.22.2"  # 42.22.2 (2026-11-09 scan); 42.21.0 read "42.21.0", 42.20.4 "42.20.4"
     # acceptance 3: every output type `items/food.txt` defines has a `data/food-items.json` row
     assert meta["foodJoinMisses"] == [] and counts["foodJoinMisses"] == 0
     # one output mapper resolves to no type at all: `SmeltMapper` writes only a `default`, so
@@ -1498,7 +1498,7 @@ def test_real_install_writers_are_deterministic():
         assert open(paths[0], "rb").read() == open(paths[1], "rb").read()
         assert open(paths[2], "rb").read() == open(paths[3], "rb").read()
         rows = list(csv.reader(open(paths[2], encoding="utf-8", newline="").read().splitlines()))
-    assert len(rows) == 970 and rows[0] == recipe_scan.CSV_HEADER
+    assert len(rows) == 966 and rows[0] == recipe_scan.CSV_HEADER  # 42.22.2 (2026-11-09 scan); 42.21.0 read 970
 
 
 # --------------------------------------------------------------------------------------------
@@ -1548,8 +1548,8 @@ def test_real_install_evolved_counts():
     assert len(cinnamon) == 1 and cinnamon[0]["key"] == "ConeIceCream:1"
     assert cinnamon[0]["resolvedVia"] == "template" and cinnamon[0]["spice"] is True
     assert [r["name"] for r in recipes] == sorted(r["name"] for r in recipes)
-    assert meta["build"] == "42.21.0 (4a0e9546ec)"  # 42.21.0 (2026-10-08 scan); 42.20.4 read "42.20.4 (b0bbce05d5)"
-    assert meta["sources"]["food_items"]["build"] == "42.21.0"  # 42.21.0 (2026-10-08 scan); 42.20.4 read "42.20.4"
+    assert meta["build"] == "42.22.2 (3d39148846)"  # 42.22.2 (2026-11-09 scan); 42.21.0 read "42.21.0 (4a0e9546ec)", 42.20.4 "42.20.4 (b0bbce05d5)"
+    assert meta["sources"]["food_items"]["build"] == "42.22.2"  # 42.22.2 (2026-11-09 scan); 42.21.0 read "42.21.0", 42.20.4 "42.20.4"
     assert counts["duplicateRecipeNames"] == 0 and counts["hungerClampRows"] == 59
 
 

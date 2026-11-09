@@ -1,8 +1,8 @@
 {
  "meta": {
-  "build": "42.21.0",
-  "jar_hash": "4a0e9546ec",
-  "generated": "2026-10-08",
+  "build": "42.22.2",
+  "jar_hash": "3d39148846",
+  "generated": "2026-11-09",
   "tool": "tools/food_scan.py",
   "sources": [
    "fluids.txt",
@@ -82,6 +82,7 @@
    "SoundParameter",
    "SplatBloodOnNoDeath",
    "SplatNumber",
+   "StaticModelOn",
    "SubCategory",
    "SwingAmountBeforeImpact",
    "SwingAnim",
@@ -446,7 +447,7 @@
    "weight": 0.3,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1506,
+   "source_line": 1518,
    "props_raw": {
     "AlcoholPower": "4.0",
     "ConsolidateOption": "ContextMenu_Merge",
@@ -522,7 +523,7 @@
    "weight": 0.1,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1491,
+   "source_line": 1503,
    "props_raw": {
     "AlcoholPower": "4.0",
     "ConsolidateOption": "ContextMenu_Merge",
@@ -3909,7 +3910,7 @@
    "weight": 0.3,
    "replace_on_deplete": "Base.BathTowelWet",
    "source_file": "items/drainable.txt",
-   "source_line": 2187,
+   "source_line": 2200,
    "props_raw": {
     "DisplayCategory": "Household",
     "Icon": "Bathtowel",
@@ -6183,7 +6184,9 @@
    "display_category": "Tool",
    "food_type": null,
    "item_type": "base:drainable",
-   "tags": null,
+   "tags": [
+    "base:blowtorch"
+   ],
    "nutrition_source": null,
    "nutrition_basis": null,
    "calories": null,
@@ -6235,7 +6238,7 @@
    "weight": 1.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1562,
+   "source_line": 1574,
    "props_raw": {
     "DisplayCategory": "Tool",
     "Icon": "BlowTorch",
@@ -6243,6 +6246,7 @@
     "KeepOnDeplete": "true",
     "MetalValue": "20.0",
     "StaticModel": "BlowTorch",
+    "Tags": "base:blowtorch",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
     "Weight": "1.0",
@@ -7249,7 +7253,8 @@
     "base:bucket",
     "base:cookable",
     "base:hasmetal",
-    "base:metalbucket"
+    "base:metalbucket",
+    "base:helditemblocksshove"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -7302,7 +7307,7 @@
    "weight": 1.0,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 13888,
+   "source_line": 13889,
    "props_raw": {
     "DisplayCategory": "WaterContainer",
     "EatType": "Bucket",
@@ -7316,7 +7321,7 @@
     "PourType": "Bucket",
     "Researchablerecipes": "MakeBucketMaul;Forge_Bucket;CarveBucket",
     "StaticModel": "Bucket_Ground_Fluid",
-    "Tags": "base:bucket;base:cookable;base:hasmetal;base:metalbucket",
+    "Tags": "base:bucket;base:cookable;base:hasmetal;base:metalbucket;base:helditemblocksshove",
     "Weight": "1.0",
     "WorldStaticModel": "Bucket_Ground"
    }
@@ -7333,7 +7338,8 @@
    "tags": [
     "base:bucket",
     "base:isfirefuel",
-    "base:cookablemicrowave"
+    "base:cookablemicrowave",
+    "base:helditemblocksshove"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -7386,7 +7392,7 @@
    "weight": 2.0,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 13939,
+   "source_line": 13940,
    "props_raw": {
     "DisplayCategory": "WaterContainer",
     "EatType": "Bucket",
@@ -7400,7 +7406,7 @@
     "PourType": "Bucket",
     "Researchablerecipes": "Forge_Bucket;CarveGoblets;CarveBucket",
     "StaticModel": "BucketCarved_Hand",
-    "Tags": "base:bucket;base:isfirefuel;base:cookablemicrowave",
+    "Tags": "base:bucket;base:isfirefuel;base:cookablemicrowave;base:helditemblocksshove",
     "Weight": "2.0",
     "WorldStaticModel": "BucketCarved"
    }
@@ -7415,7 +7421,9 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": [
-    "base:concrete"
+    "base:concrete",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -7477,7 +7485,7 @@
     "ReplaceOnDeplete": "Base.BucketCarved",
     "Researchablerecipes": "MakeBucketMaul;MakeKettleMaul",
     "StaticModel": "BucketCarvedConcrete_Hand",
-    "Tags": "base:concrete",
+    "Tags": "base:concrete;base:helditemblocksshove;base:helditemmaskbucket",
     "UseDelta": "0.25",
     "UseWhileEquipped": "false",
     "Weight": "10.0",
@@ -7494,7 +7502,9 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": [
-    "base:concrete"
+    "base:concrete",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -7556,7 +7566,7 @@
     "ReplaceOnDeplete": "Base.BucketCarved",
     "Researchablerecipes": "MakeBucketMaul;MakeKettleMaul",
     "StaticModel": "BucketCarvedConcrete_Hand",
-    "Tags": "base:concrete",
+    "Tags": "base:concrete;base:helditemblocksshove;base:helditemmaskbucket",
     "UseDelta": "0.25",
     "UseWhileEquipped": "false",
     "Weight": "10.0",
@@ -7574,7 +7584,9 @@
    "item_type": "base:drainable",
    "tags": [
     "base:wallpaperpaste",
-    "base:plasterbucket"
+    "base:plasterbucket",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -7635,7 +7647,7 @@
     "PourType": "Bucket",
     "ReplaceOnDeplete": "Base.BucketCarved",
     "StaticModel": "BucketCarvedPlaster_Hand",
-    "Tags": "base:wallpaperpaste;base:plasterbucket",
+    "Tags": "base:wallpaperpaste;base:plasterbucket;base:helditemblocksshove;base:helditemmaskbucket",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
     "Weight": "10.0",
@@ -7652,7 +7664,9 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": [
-    "base:wallpaperpaste"
+    "base:wallpaperpaste",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -7713,7 +7727,7 @@
     "PourType": "Bucket",
     "ReplaceOnDeplete": "Base.BucketCarved",
     "StaticModel": "BucketCarvedPlaster_Hand",
-    "Tags": "base:wallpaperpaste",
+    "Tags": "base:wallpaperpaste;base:helditemblocksshove;base:helditemmaskbucket",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
     "Weight": "10.0",
@@ -7731,7 +7745,9 @@
    "item_type": "base:drainable",
    "tags": [
     "base:hasmetal",
-    "base:concrete"
+    "base:concrete",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -7793,7 +7809,7 @@
     "ReplaceOnDeplete": "Base.Bucket",
     "Researchablerecipes": "MakeBucketMaul;MakeKettleMaul",
     "StaticModel": "BucketFullConcrete_Ground",
-    "Tags": "base:hasmetal;base:concrete",
+    "Tags": "base:hasmetal;base:concrete;base:helditemblocksshove;base:helditemmaskbucket",
     "UseDelta": "0.25",
     "UseWhileEquipped": "false",
     "Weight": "10.0",
@@ -7811,7 +7827,9 @@
    "item_type": "base:drainable",
    "tags": [
     "base:hasmetal",
-    "base:concrete"
+    "base:concrete",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -7873,7 +7891,7 @@
     "ReplaceOnDeplete": "Base.Bucket",
     "Researchablerecipes": "MakeBucketMaul;MakeKettleMaul",
     "StaticModel": "BucketFullConcrete_Ground",
-    "Tags": "base:hasmetal;base:concrete",
+    "Tags": "base:hasmetal;base:concrete;base:helditemblocksshove;base:helditemmaskbucket",
     "UseDelta": "0.25",
     "UseWhileEquipped": "false",
     "Weight": "10.0",
@@ -7893,7 +7911,8 @@
     "base:bucket",
     "base:cookable",
     "base:hasmetal",
-    "base:metalbucket"
+    "base:metalbucket",
+    "base:helditemblocksshove"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -7946,7 +7965,7 @@
    "weight": 1.0,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 13248,
+   "source_line": 13249,
    "props_raw": {
     "DisplayCategory": "WaterContainer",
     "EatType": "Bucket",
@@ -7959,7 +7978,7 @@
     "Researchablerecipes": "Forge_Bucket",
     "StaticModel": "Bucket",
     "SurvivalGear": "true",
-    "Tags": "base:bucket;base:cookable;base:hasmetal;base:metalbucket",
+    "Tags": "base:bucket;base:cookable;base:hasmetal;base:metalbucket;base:helditemblocksshove",
     "Tooltip": "Tooltip_item_RainFromGround",
     "Weight": "1.0",
     "WorldStaticModel": "Bucket_Ground"
@@ -7978,7 +7997,8 @@
     "base:bucket",
     "base:hasmetal",
     "base:metalbucket",
-    "base:cookable"
+    "base:cookable",
+    "base:helditemblocksshove"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -8031,7 +8051,7 @@
    "weight": 1.0,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 13965,
+   "source_line": 13966,
    "props_raw": {
     "DisplayCategory": "WaterContainer",
     "EatType": "Bucket",
@@ -8045,7 +8065,7 @@
     "PourType": "Bucket",
     "Researchablerecipes": "MakeBucketMaul;CarveBucket",
     "StaticModel": "BucketForged_Fluid",
-    "Tags": "base:bucket;base:hasmetal;base:metalbucket;base:cookable",
+    "Tags": "base:bucket;base:hasmetal;base:metalbucket;base:cookable;base:helditemblocksshove",
     "Weight": "1.0",
     "WorldStaticModel": "BucketForged"
    }
@@ -8061,7 +8081,8 @@
    "item_type": "base:normal",
    "tags": [
     "base:bucket",
-    "base:hasmetal"
+    "base:hasmetal",
+    "base:helditemblocksshove"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -8123,7 +8144,7 @@
     "PourType": "Bucket",
     "Researchablerecipes": "Forge_Bucket;CarveBucket",
     "StaticModel": "BucketLargeWood_Hand",
-    "Tags": "base:bucket;base:hasmetal",
+    "Tags": "base:bucket;base:hasmetal;base:helditemblocksshove",
     "Weight": "10.0",
     "WorldStaticModel": "BucketLargeWood"
    }
@@ -8321,7 +8342,9 @@
    "item_type": "base:drainable",
    "tags": [
     "base:hasmetal",
-    "base:plasterbucket"
+    "base:plasterbucket",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -8382,7 +8405,7 @@
     "PourType": "Bucket",
     "ReplaceOnDeplete": "Base.Bucket",
     "StaticModel": "BucketFullPlaster_Ground",
-    "Tags": "base:hasmetal;base:plasterbucket",
+    "Tags": "base:hasmetal;base:plasterbucket;base:helditemblocksshove;base:helditemmaskbucket",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
     "Weight": "10.0",
@@ -8400,7 +8423,9 @@
    "item_type": "base:drainable",
    "tags": [
     "base:wallpaperpaste",
-    "base:hasmetal"
+    "base:hasmetal",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -8460,7 +8485,7 @@
     "ItemType": "base:drainable",
     "ReplaceOnDeplete": "Base.Bucket",
     "StaticModel": "Bucket",
-    "Tags": "base:wallpaperpaste;base:hasmetal",
+    "Tags": "base:wallpaperpaste;base:hasmetal;base:helditemblocksshove;base:helditemmaskbucket",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
     "Weight": "10.0",
@@ -8480,7 +8505,8 @@
     "base:bucket",
     "base:cookable",
     "base:metalbucket",
-    "base:hasmetal"
+    "base:hasmetal",
+    "base:helditemblocksshove"
    ],
    "nutrition_source": "fluid:Water",
    "nutrition_basis": "per_litre",
@@ -8535,7 +8561,7 @@
    "weight": 1.0,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 13319,
+   "source_line": 13320,
    "props_raw": {
     "DisplayCategory": "WaterContainer",
     "EatType": "Bucket",
@@ -8545,7 +8571,7 @@
     "PourType": "Bucket",
     "Researchablerecipes": "MakeBucketMaul",
     "StaticModel": "Bucket",
-    "Tags": "base:bucket;base:cookable;base:metalbucket;base:hasmetal",
+    "Tags": "base:bucket;base:cookable;base:metalbucket;base:hasmetal;base:helditemblocksshove",
     "Weight": "1.0",
     "WorldStaticModel": "Bucket_Ground"
    }
@@ -8561,7 +8587,8 @@
    "item_type": "base:normal",
    "tags": [
     "base:bucket",
-    "base:hasmetal"
+    "base:hasmetal",
+    "base:helditemblocksshove"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -8614,7 +8641,7 @@
    "weight": 1.0,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 13914,
+   "source_line": 13915,
    "props_raw": {
     "DisplayCategory": "WaterContainer",
     "EatType": "Bucket",
@@ -8627,7 +8654,7 @@
     "PourType": "Bucket",
     "Researchablerecipes": "Forge_Bucket;CarveBucket",
     "StaticModel": "BucketWood",
-    "Tags": "base:bucket;base:hasmetal",
+    "Tags": "base:bucket;base:hasmetal;base:helditemblocksshove",
     "Weight": "1.0",
     "WorldStaticModel": "BucketWood"
    }
@@ -8923,7 +8950,7 @@
    "weight": 2.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2322,
+   "source_line": 2335,
    "props_raw": {
     "DisplayCategory": "Tool",
     "EquipSound": "MegaphoneEquip",
@@ -11041,7 +11068,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2153,
+   "source_line": 2166,
    "props_raw": {
     "DisplayCategory": "LightSource",
     "DoubleClickRecipe": "LightCandle",
@@ -11118,7 +11145,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2167,
+   "source_line": 2180,
    "props_raw": {
     "ActivatedItem": "false",
     "DisplayCategory": "LightSource",
@@ -16472,7 +16499,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14041,
+   "source_line": 14042,
    "props_raw": {
     "AttachmentType": "Walkie",
     "CanStoreWater": "true",
@@ -16553,7 +16580,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14070,
+   "source_line": 14071,
    "props_raw": {
     "AttachmentType": "Walkie",
     "CanStoreWater": "true",
@@ -16717,7 +16744,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 13991,
+   "source_line": 13992,
    "props_raw": {
     "AttachmentType": "Walkie",
     "CookingSound": "BoilingFood",
@@ -16801,7 +16828,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14014,
+   "source_line": 14015,
    "props_raw": {
     "AttachmentType": "Walkie",
     "CookingSound": "BoilingFood",
@@ -16967,7 +16994,7 @@
    "weight": 5.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2336,
+   "source_line": 2349,
    "props_raw": {
     "ChanceToSpawnDamaged": "30",
     "ConditionMax": "100",
@@ -17049,7 +17076,7 @@
    "weight": 5.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2355,
+   "source_line": 2368,
    "props_raw": {
     "ChanceToSpawnDamaged": "30",
     "ConditionMax": "100",
@@ -17131,7 +17158,7 @@
    "weight": 5.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2374,
+   "source_line": 2387,
    "props_raw": {
     "ChanceToSpawnDamaged": "30",
     "ConditionMax": "100",
@@ -21844,7 +21871,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2087,
+   "source_line": 2100,
    "props_raw": {
     "CustomContextMenu": "Smoke",
     "CustomEatSound": "",
@@ -22020,7 +22047,7 @@
    "weight": 0.1,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2111,
+   "source_line": 2124,
    "props_raw": {
     "DisplayCategory": "Junk",
     "Icon": "CigaretteRollingPapers",
@@ -25287,7 +25314,7 @@
    "weight": 0.5,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14430,
+   "source_line": 14431,
    "props_raw": {
     "DisplayCategory": "Cooking",
     "Icon": "Mug_Copper",
@@ -26053,7 +26080,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1739,
+   "source_line": 1752,
    "props_raw": {
     "CustomContextMenu": "Sniff",
     "DisplayCategory": "Household",
@@ -29250,7 +29277,7 @@
    "weight": 0.1,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2408,
+   "source_line": 2421,
    "props_raw": {
     "ConsolidateOption": "ContextMenu_Merge",
     "DisplayCategory": "Material",
@@ -29764,7 +29791,7 @@
    "weight": 0.3,
    "replace_on_deplete": "Base.DishClothWet",
    "source_file": "items/drainable.txt",
-   "source_line": 2203,
+   "source_line": 2216,
    "props_raw": {
     "DisplayCategory": "Household",
     "Icon": "Dishtowel",
@@ -31239,7 +31266,7 @@
    "weight": 0.3,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14092,
+   "source_line": 14093,
    "props_raw": {
     "DisplayCategory": "WaterContainer",
     "EatType": "Popcan",
@@ -33012,7 +33039,7 @@
    "weight": 2.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1595,
+   "source_line": 1608,
    "props_raw": {
     "DisplayCategory": "Household",
     "Icon": "Extinguisher",
@@ -33088,7 +33115,7 @@
    "weight": 10.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2219,
+   "source_line": 2232,
    "props_raw": {
     "DisplayCategory": "Material",
     "Icon": "FabricRoll_Cotton_White",
@@ -33161,7 +33188,7 @@
    "weight": 10.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2231,
+   "source_line": 2244,
    "props_raw": {
     "DisplayCategory": "Material",
     "Icon": "FabricRoll_Denim_Black",
@@ -33233,7 +33260,7 @@
    "weight": 10.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2242,
+   "source_line": 2255,
    "props_raw": {
     "DisplayCategory": "Material",
     "Icon": "FabricRoll_Denim_Blue",
@@ -33305,7 +33332,7 @@
    "weight": 10.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2253,
+   "source_line": 2266,
    "props_raw": {
     "DisplayCategory": "Material",
     "Icon": "FabricRoll_Denim_DarkBlue",
@@ -33380,7 +33407,7 @@
    "weight": 0.1,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 13225,
+   "source_line": 13226,
    "props_raw": {
     "DisplayCategory": "WaterContainer",
     "EatType": "Bottle",
@@ -34235,7 +34262,7 @@
    "weight": 0.5,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1005,
+   "source_line": 1006,
    "props_raw": {
     "ActivatedItem": "true",
     "AttachmentType": "Webbing",
@@ -34252,6 +34279,7 @@
      "Deactivate FlashlightOff"
     ],
     "StaticModel": "FlashLight_AngleHead",
+    "StaticModelOn": "FlashLight_AngleHeadOn",
     "Tags": "base:flashlight;base:flashlightpillar",
     "TorchCone": "true",
     "TorchDot": "0.5",
@@ -34327,7 +34355,7 @@
    "weight": 0.5,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1031,
+   "source_line": 1033,
    "props_raw": {
     "ActivatedItem": "true",
     "AttachmentType": "Webbing",
@@ -34345,6 +34373,7 @@
      "Deactivate FlashlightOff"
     ],
     "StaticModel": "FlashLight_AngleHead_Army",
+    "StaticModelOn": "FlashLight_AngleHead_ArmyOn",
     "Tags": "base:flashlight;base:flashlightpillar",
     "TorchCone": "true",
     "TorchDot": "0.53",
@@ -34421,7 +34450,7 @@
    "weight": 1.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1389,
+   "source_line": 1400,
    "props_raw": {
     "ActivatedItem": "true",
     "DisappearOnUse": "false",
@@ -34437,6 +34466,7 @@
      "Deactivate FlashlightOff"
     ],
     "StaticModel": "FlashLight_Improvised",
+    "StaticModelOn": "FlashLight_ImprovisedOn",
     "Tags": "base:flashlight;base:hasmetal;base:ignorezombiedensity",
     "TorchCone": "true",
     "TorchDot": "0.66",
@@ -34520,7 +34550,7 @@
    "weight": 0.1,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14320,
+   "source_line": 14321,
    "props_raw": {
     "DisplayCategory": "Memento",
     "EatType": "Bourbon",
@@ -35091,7 +35121,7 @@
    "weight": 0.3,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14115,
+   "source_line": 14116,
    "props_raw": {
     "DisplayCategory": "WaterContainer",
     "EatType": "Popcan",
@@ -36824,7 +36854,7 @@
    "weight": 0.3,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1610,
+   "source_line": 1623,
    "props_raw": {
     "DisplayCategory": "Accessory",
     "Icon": "GasmaskFilter",
@@ -36903,7 +36933,7 @@
    "weight": 0.3,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1639,
+   "source_line": 1652,
    "props_raw": {
     "DisplayCategory": "Accessory",
     "Icon": "GasmaskFilterHomemade",
@@ -37741,7 +37771,7 @@
    "weight": 0.5,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14144,
+   "source_line": 14145,
    "props_raw": {
     "DisplayCategory": "Memento",
     "EatType": "Popcan",
@@ -37823,7 +37853,7 @@
    "weight": 0.5,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14165,
+   "source_line": 14166,
    "props_raw": {
     "ColorBlue": "59",
     "ColorGreen": "181",
@@ -37908,7 +37938,7 @@
    "weight": 0.5,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14189,
+   "source_line": 14190,
    "props_raw": {
     "DisplayCategory": "Memento",
     "EatType": "Popcan",
@@ -37988,7 +38018,7 @@
    "weight": 0.5,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14210,
+   "source_line": 14211,
    "props_raw": {
     "DisplayCategory": "Memento",
     "EatType": "Popcan",
@@ -38068,7 +38098,7 @@
    "weight": 0.5,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14451,
+   "source_line": 14452,
    "props_raw": {
     "DisplayCategory": "Cooking",
     "Icon": "Mug_Gold",
@@ -39925,7 +39955,7 @@
    "weight": 0.5,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1654,
+   "source_line": 1667,
    "props_raw": {
     "DisplayCategory": "Material",
     "Icon": "GunpowderJar",
@@ -40702,6 +40732,7 @@
      "Deactivate FlashlightOff"
     ],
     "StaticModel": "HandTorch",
+    "StaticModelOn": "HandTorchOn",
     "Tags": "base:flashlight;base:flashlightpillar",
     "TorchCone": "true",
     "TorchDot": "0.5",
@@ -42563,7 +42594,7 @@
    "weight": 0.4,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14231,
+   "source_line": 14232,
    "props_raw": {
     "CookingSound": "BoilingFood",
     "DisplayCategory": "WaterContainer",
@@ -43962,7 +43993,8 @@
    "tags": [
     "base:petrol",
     "base:cookable",
-    "base:hasmetal"
+    "base:hasmetal",
+    "base:helditemblocksshove"
    ],
    "nutrition_source": "fluid:Petrol",
    "nutrition_basis": "per_litre",
@@ -44017,7 +44049,7 @@
    "weight": 4.0,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14249,
+   "source_line": 14250,
    "props_raw": {
     "DisplayCategory": "VehicleMaintenance",
     "Icon": "JerrycanMilitary",
@@ -44026,7 +44058,7 @@
     "ReplaceInSecondHand": "Bag_JerryCan_LHand holdingbagleft",
     "StaticModel": "JerryCan",
     "SurvivalGear": "true",
-    "Tags": "base:petrol;base:cookable;base:hasmetal",
+    "Tags": "base:petrol;base:cookable;base:hasmetal;base:helditemblocksshove",
     "Weight": "4.0",
     "WorldStaticModel": "JerryCan"
    }
@@ -45576,7 +45608,7 @@
    "weight": 2.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1365,
+   "source_line": 1375,
    "props_raw": {
     "ActivatedItem": "true",
     "DisappearOnUse": "false",
@@ -45592,6 +45624,7 @@
      "Deactivate FlashlightOff"
     ],
     "StaticModel": "Lantern_Improvised",
+    "StaticModelOn": "Lantern_ImprovisedOn",
     "Tags": "base:flashlight;base:hasmetal;base:ignorezombiedensity",
     "TorchCone": "false",
     "UseDelta": "0.007",
@@ -45666,7 +45699,7 @@
    "weight": 2.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1147,
+   "source_line": 1152,
    "props_raw": {
     "DisappearOnUse": "false",
     "DisplayCategory": "LightSource",
@@ -45749,7 +45782,7 @@
    "weight": 2.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1123,
+   "source_line": 1128,
    "props_raw": {
     "ActivatedItem": "false",
     "DisappearOnUse": "false",
@@ -45762,7 +45795,7 @@
     "MetalValue": "40.0",
     "ReplaceOnExtinguish": "Base.Lantern_Hurricane",
     "Researchablerecipes": "Forge_Lantern;MakeLanternGlass",
-    "StaticModel": "Lantern_Hurricane_HandleUp",
+    "StaticModel": "Lantern_Hurricane_HandleUpOn",
     "Tags": "base:litlantern",
     "TorchCone": "false",
     "UseDelta": "0.007",
@@ -45837,7 +45870,7 @@
    "weight": 2.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1191,
+   "source_line": 1197,
    "props_raw": {
     "DisappearOnUse": "false",
     "DisplayCategory": "LightSource",
@@ -45920,7 +45953,7 @@
    "weight": 2.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1167,
+   "source_line": 1172,
    "props_raw": {
     "ActivatedItem": "false",
     "DisappearOnUse": "false",
@@ -45934,6 +45967,7 @@
     "ReplaceOnExtinguish": "Base.Lantern_Hurricane_Copper",
     "Researchablerecipes": "Forge_Lantern;MakeLanternGlass",
     "StaticModel": "Lantern_Hurricane_Copper_HandleUp",
+    "StaticModelOn": "Lantern_Hurricane_Copper_HandleUpOn",
     "Tags": "base:litlantern",
     "TorchCone": "false",
     "UseDelta": "0.007",
@@ -46008,7 +46042,7 @@
    "weight": 2.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1235,
+   "source_line": 1242,
    "props_raw": {
     "DisappearOnUse": "false",
     "DisplayCategory": "LightSource",
@@ -46091,7 +46125,7 @@
    "weight": 2.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1211,
+   "source_line": 1217,
    "props_raw": {
     "ActivatedItem": "false",
     "DisappearOnUse": "false",
@@ -46105,6 +46139,7 @@
     "ReplaceOnExtinguish": "Base.Lantern_Hurricane_Forged",
     "Researchablerecipes": "Forge_Lantern;MakeLanternGlass",
     "StaticModel": "Lantern_Hurricane_Forged_HandleUp",
+    "StaticModelOn": "Lantern_Hurricane_Forged_HandleUpOn",
     "Tags": "base:litlantern",
     "TorchCone": "false",
     "UseDelta": "0.007",
@@ -46179,7 +46214,7 @@
    "weight": 2.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1279,
+   "source_line": 1287,
    "props_raw": {
     "DisappearOnUse": "false",
     "DisplayCategory": "LightSource",
@@ -46262,7 +46297,7 @@
    "weight": 2.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1255,
+   "source_line": 1262,
    "props_raw": {
     "ActivatedItem": "false",
     "DisappearOnUse": "false",
@@ -46276,6 +46311,7 @@
     "ReplaceOnExtinguish": "Base.Lantern_Hurricane_Gold",
     "Researchablerecipes": "Forge_Lantern;MakeLanternGlass",
     "StaticModel": "Lantern_Hurricane_Gold_HandleUp",
+    "StaticModelOn": "Lantern_Hurricane_Gold_HandleUpOn",
     "Tags": "base:litlantern",
     "TorchCone": "false",
     "UseDelta": "0.007",
@@ -46350,7 +46386,7 @@
    "weight": 2.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1323,
+   "source_line": 1332,
    "props_raw": {
     "DisappearOnUse": "false",
     "DisplayCategory": "LightSource",
@@ -46433,7 +46469,7 @@
    "weight": 2.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1299,
+   "source_line": 1307,
    "props_raw": {
     "ActivatedItem": "false",
     "DisappearOnUse": "false",
@@ -46447,6 +46483,7 @@
     "ReplaceOnExtinguish": "Base.Lantern_Hurricane_Silver",
     "Researchablerecipes": "Forge_Lantern;MakeLanternGlass",
     "StaticModel": "Lantern_Hurricane_Silver_HandleUp",
+    "StaticModelOn": "Lantern_Hurricane_Silver_HandleUpOn",
     "Tags": "base:litlantern",
     "TorchCone": "false",
     "UseDelta": "0.007",
@@ -46518,7 +46555,7 @@
    "weight": 2.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1343,
+   "source_line": 1352,
    "props_raw": {
     "ActivatedItem": "true",
     "DisappearOnUse": "false",
@@ -46531,6 +46568,7 @@
     "Researchablerecipes": "Forge_Lantern;MakeLanternGlass",
     "SoundMap": "EquippedAndActivated PropaneLanternRunning",
     "StaticModel": "Lantern_Propane_HandleUp",
+    "StaticModelOn": "Lantern_Propane_HandleUpOn",
     "TorchCone": "false",
     "UseDelta": "0.007",
     "Weight": "2.0",
@@ -47763,7 +47801,7 @@
    "weight": 0.3,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1755,
+   "source_line": 1768,
    "props_raw": {
     "ActivatedItem": "true",
     "DisplayCategory": "FireSource",
@@ -48014,7 +48052,7 @@
    "weight": 0.1,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2393,
+   "source_line": 2406,
    "props_raw": {
     "DisplayCategory": "FireSource",
     "Icon": "Lighter_Crafted",
@@ -49723,7 +49761,7 @@
    "weight": 0.1,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2073,
+   "source_line": 2086,
    "props_raw": {
     "ConsolidateOption": "ContextMenu_Merge",
     "DisplayCategory": "FireSource",
@@ -50235,7 +50273,7 @@
    "weight": 0.5,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14409,
+   "source_line": 14410,
    "props_raw": {
     "DisplayCategory": "Cooking",
     "Icon": "Mug_Forged",
@@ -50389,7 +50427,7 @@
    "weight": 0.1,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14297,
+   "source_line": 14298,
    "props_raw": {
     "CustomContextMenu": "Drink",
     "DisplayCategory": "Food",
@@ -50465,7 +50503,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14534,
+   "source_line": 14535,
    "props_raw": {
     "CustomContextMenu": "Drink",
     "CustomEatSound": "DrinkingFromCarton",
@@ -50540,7 +50578,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14512,
+   "source_line": 14513,
    "props_raw": {
     "CustomContextMenu": "Drink",
     "CustomEatSound": "DrinkingFromCarton",
@@ -54583,7 +54621,7 @@
    "weight": 5.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1666,
+   "source_line": 1679,
    "props_raw": {
     "DisplayCategory": "Accessory",
     "Icon": "OxygenTank",
@@ -54971,7 +55009,9 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": [
-    "base:paint"
+    "base:paint",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -55024,7 +55064,7 @@
    "weight": 5.0,
    "replace_on_deplete": "Base.PaintbucketEmpty",
    "source_file": "items/drainable.txt",
-   "source_line": 1803,
+   "source_line": 1816,
    "props_raw": {
     "DisplayCategory": "Paint",
     "Icon": "Paint_Black",
@@ -55033,7 +55073,7 @@
     "ReplaceOnDeplete": "Base.PaintbucketEmpty",
     "SoundMap": "DumpContents EmptyPaintCan",
     "StaticModel": "PaintTinBlack_Ground",
-    "Tags": "base:paint",
+    "Tags": "base:paint;base:helditemblocksshove;base:helditemmaskbucket",
     "Tooltip": "Tooltip_Paint",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
@@ -55051,7 +55091,9 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": [
-    "base:paint"
+    "base:paint",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -55104,7 +55146,7 @@
    "weight": 5.0,
    "replace_on_deplete": "Base.PaintbucketEmpty",
    "source_file": "items/drainable.txt",
-   "source_line": 1820,
+   "source_line": 1833,
    "props_raw": {
     "DisplayCategory": "Paint",
     "Icon": "Paint_Blue",
@@ -55113,7 +55155,7 @@
     "ReplaceOnDeplete": "Base.PaintbucketEmpty",
     "SoundMap": "DumpContents EmptyPaintCan",
     "StaticModel": "PaintTinBlue_Ground",
-    "Tags": "base:paint",
+    "Tags": "base:paint;base:helditemblocksshove;base:helditemmaskbucket",
     "Tooltip": "Tooltip_Paint",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
@@ -55131,7 +55173,9 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": [
-    "base:paint"
+    "base:paint",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -55184,7 +55228,7 @@
    "weight": 5.0,
    "replace_on_deplete": "Base.PaintbucketEmpty",
    "source_file": "items/drainable.txt",
-   "source_line": 1837,
+   "source_line": 1850,
    "props_raw": {
     "DisplayCategory": "Paint",
     "Icon": "Paint_Brown",
@@ -55193,7 +55237,7 @@
     "ReplaceOnDeplete": "Base.PaintbucketEmpty",
     "SoundMap": "DumpContents EmptyPaintCan",
     "StaticModel": "PaintTinBrown_Ground",
-    "Tags": "base:paint",
+    "Tags": "base:paint;base:helditemblocksshove;base:helditemmaskbucket",
     "Tooltip": "Tooltip_Paint",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
@@ -55211,7 +55255,9 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": [
-    "base:paint"
+    "base:paint",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -55264,7 +55310,7 @@
    "weight": 5.0,
    "replace_on_deplete": "Base.PaintbucketEmpty",
    "source_file": "items/drainable.txt",
-   "source_line": 1854,
+   "source_line": 1867,
    "props_raw": {
     "DisplayCategory": "Paint",
     "Icon": "Paint_Cyan",
@@ -55273,7 +55319,7 @@
     "ReplaceOnDeplete": "Base.PaintbucketEmpty",
     "SoundMap": "DumpContents EmptyPaintCan",
     "StaticModel": "PaintTinCyan_Ground",
-    "Tags": "base:paint",
+    "Tags": "base:paint;base:helditemblocksshove;base:helditemmaskbucket",
     "Tooltip": "Tooltip_Paint",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
@@ -55291,7 +55337,9 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": [
-    "base:paint"
+    "base:paint",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -55344,7 +55392,7 @@
    "weight": 5.0,
    "replace_on_deplete": "Base.PaintbucketEmpty",
    "source_file": "items/drainable.txt",
-   "source_line": 1871,
+   "source_line": 1884,
    "props_raw": {
     "DisplayCategory": "Paint",
     "Icon": "Paint_Green",
@@ -55353,7 +55401,7 @@
     "ReplaceOnDeplete": "Base.PaintbucketEmpty",
     "SoundMap": "DumpContents EmptyPaintCan",
     "StaticModel": "PaintTinGreen_Ground",
-    "Tags": "base:paint",
+    "Tags": "base:paint;base:helditemblocksshove;base:helditemmaskbucket",
     "Tooltip": "Tooltip_Paint",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
@@ -55371,7 +55419,9 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": [
-    "base:paint"
+    "base:paint",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -55424,7 +55474,7 @@
    "weight": 5.0,
    "replace_on_deplete": "Base.PaintbucketEmpty",
    "source_file": "items/drainable.txt",
-   "source_line": 1888,
+   "source_line": 1901,
    "props_raw": {
     "DisplayCategory": "Paint",
     "Icon": "Paint_Grey",
@@ -55433,7 +55483,7 @@
     "ReplaceOnDeplete": "Base.PaintbucketEmpty",
     "SoundMap": "DumpContents EmptyPaintCan",
     "StaticModel": "PaintTinGrey_Ground",
-    "Tags": "base:paint",
+    "Tags": "base:paint;base:helditemblocksshove;base:helditemmaskbucket",
     "Tooltip": "Tooltip_Paint",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
@@ -55451,7 +55501,9 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": [
-    "base:paint"
+    "base:paint",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -55504,7 +55556,7 @@
    "weight": 5.0,
    "replace_on_deplete": "Base.PaintbucketEmpty",
    "source_file": "items/drainable.txt",
-   "source_line": 1905,
+   "source_line": 1918,
    "props_raw": {
     "DisplayCategory": "Paint",
     "Icon": "Paint_LightBlue",
@@ -55513,7 +55565,7 @@
     "ReplaceOnDeplete": "Base.PaintbucketEmpty",
     "SoundMap": "DumpContents EmptyPaintCan",
     "StaticModel": "PaintTinLightBlue_Ground",
-    "Tags": "base:paint",
+    "Tags": "base:paint;base:helditemblocksshove;base:helditemmaskbucket",
     "Tooltip": "Tooltip_Paint",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
@@ -55531,7 +55583,9 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": [
-    "base:paint"
+    "base:paint",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -55584,7 +55638,7 @@
    "weight": 5.0,
    "replace_on_deplete": "Base.PaintbucketEmpty",
    "source_file": "items/drainable.txt",
-   "source_line": 1922,
+   "source_line": 1935,
    "props_raw": {
     "DisplayCategory": "Paint",
     "Icon": "Paint_LightBrown",
@@ -55593,7 +55647,7 @@
     "ReplaceOnDeplete": "Base.PaintbucketEmpty",
     "SoundMap": "DumpContents EmptyPaintCan",
     "StaticModel": "PaintTinLightBrown_Ground",
-    "Tags": "base:paint",
+    "Tags": "base:paint;base:helditemblocksshove;base:helditemmaskbucket",
     "Tooltip": "Tooltip_Paint",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
@@ -55611,7 +55665,9 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": [
-    "base:paint"
+    "base:paint",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -55664,7 +55720,7 @@
    "weight": 5.0,
    "replace_on_deplete": "Base.PaintbucketEmpty",
    "source_file": "items/drainable.txt",
-   "source_line": 1939,
+   "source_line": 1952,
    "props_raw": {
     "DisplayCategory": "Paint",
     "Icon": "Paint_Orange",
@@ -55673,7 +55729,7 @@
     "ReplaceOnDeplete": "Base.PaintbucketEmpty",
     "SoundMap": "DumpContents EmptyPaintCan",
     "StaticModel": "PaintTinOrange_Ground",
-    "Tags": "base:paint",
+    "Tags": "base:paint;base:helditemblocksshove;base:helditemmaskbucket",
     "Tooltip": "Tooltip_Paint",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
@@ -55691,7 +55747,9 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": [
-    "base:paint"
+    "base:paint",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -55744,7 +55802,7 @@
    "weight": 5.0,
    "replace_on_deplete": "Base.PaintbucketEmpty",
    "source_file": "items/drainable.txt",
-   "source_line": 1956,
+   "source_line": 1969,
    "props_raw": {
     "DisplayCategory": "Paint",
     "Icon": "Paint_Pink",
@@ -55753,7 +55811,7 @@
     "ReplaceOnDeplete": "Base.PaintbucketEmpty",
     "SoundMap": "DumpContents EmptyPaintCan",
     "StaticModel": "PaintTinPink_Ground",
-    "Tags": "base:paint",
+    "Tags": "base:paint;base:helditemblocksshove;base:helditemmaskbucket",
     "Tooltip": "Tooltip_Paint",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
@@ -55771,7 +55829,9 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": [
-    "base:paint"
+    "base:paint",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -55824,7 +55884,7 @@
    "weight": 5.0,
    "replace_on_deplete": "Base.PaintbucketEmpty",
    "source_file": "items/drainable.txt",
-   "source_line": 1973,
+   "source_line": 1986,
    "props_raw": {
     "DisplayCategory": "Paint",
     "Icon": "Paint_Purple",
@@ -55833,7 +55893,7 @@
     "ReplaceOnDeplete": "Base.PaintbucketEmpty",
     "SoundMap": "DumpContents EmptyPaintCan",
     "StaticModel": "PaintTinPurple_Ground",
-    "Tags": "base:paint",
+    "Tags": "base:paint;base:helditemblocksshove;base:helditemmaskbucket",
     "Tooltip": "Tooltip_Paint",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
@@ -55851,7 +55911,9 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": [
-    "base:paint"
+    "base:paint",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -55904,7 +55966,7 @@
    "weight": 5.0,
    "replace_on_deplete": "Base.PaintbucketEmpty",
    "source_file": "items/drainable.txt",
-   "source_line": 1990,
+   "source_line": 2003,
    "props_raw": {
     "DisplayCategory": "Paint",
     "Icon": "Paint_Red",
@@ -55913,7 +55975,7 @@
     "ReplaceOnDeplete": "Base.PaintbucketEmpty",
     "SoundMap": "DumpContents EmptyPaintCan",
     "StaticModel": "PaintTinRed_Ground",
-    "Tags": "base:paint",
+    "Tags": "base:paint;base:helditemblocksshove;base:helditemmaskbucket",
     "Tooltip": "Tooltip_Paint",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
@@ -55931,7 +55993,9 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": [
-    "base:paint"
+    "base:paint",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -55984,7 +56048,7 @@
    "weight": 5.0,
    "replace_on_deplete": "Base.PaintbucketEmpty",
    "source_file": "items/drainable.txt",
-   "source_line": 2007,
+   "source_line": 2020,
    "props_raw": {
     "DisplayCategory": "Paint",
     "Icon": "Paint_Turquoise",
@@ -55993,7 +56057,7 @@
     "ReplaceOnDeplete": "Base.PaintbucketEmpty",
     "SoundMap": "DumpContents EmptyPaintCan",
     "StaticModel": "PaintTinTurquoise_Ground",
-    "Tags": "base:paint",
+    "Tags": "base:paint;base:helditemblocksshove;base:helditemmaskbucket",
     "Tooltip": "Tooltip_Paint",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
@@ -56011,7 +56075,9 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": [
-    "base:paint"
+    "base:paint",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -56064,7 +56130,7 @@
    "weight": 5.0,
    "replace_on_deplete": "Base.PaintbucketEmpty",
    "source_file": "items/drainable.txt",
-   "source_line": 2024,
+   "source_line": 2037,
    "props_raw": {
     "DisplayCategory": "Paint",
     "Icon": "Paint_White",
@@ -56073,7 +56139,7 @@
     "ReplaceOnDeplete": "Base.PaintbucketEmpty",
     "SoundMap": "DumpContents EmptyPaintCan",
     "StaticModel": "PaintTinWhite_Ground",
-    "Tags": "base:paint",
+    "Tags": "base:paint;base:helditemblocksshove;base:helditemmaskbucket",
     "Tooltip": "Tooltip_Paint",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
@@ -56091,7 +56157,9 @@
    "food_type": null,
    "item_type": "base:drainable",
    "tags": [
-    "base:paint"
+    "base:paint",
+    "base:helditemblocksshove",
+    "base:helditemmaskbucket"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -56144,7 +56212,7 @@
    "weight": 5.0,
    "replace_on_deplete": "Base.PaintbucketEmpty",
    "source_file": "items/drainable.txt",
-   "source_line": 2041,
+   "source_line": 2054,
    "props_raw": {
     "DisplayCategory": "Paint",
     "Icon": "Paint_Yellow",
@@ -56153,7 +56221,7 @@
     "ReplaceOnDeplete": "Base.PaintbucketEmpty",
     "SoundMap": "DumpContents EmptyPaintCan",
     "StaticModel": "PaintTinYellow_Ground",
-    "Tags": "base:paint",
+    "Tags": "base:paint;base:helditemblocksshove;base:helditemmaskbucket",
     "Tooltip": "Tooltip_Paint",
     "UseDelta": "0.1",
     "UseWhileEquipped": "false",
@@ -56173,7 +56241,8 @@
    "tags": [
     "base:bucket",
     "base:cookable",
-    "base:hasmetal"
+    "base:hasmetal",
+    "base:helditemblocksshove"
    ],
    "nutrition_source": null,
    "nutrition_basis": null,
@@ -56226,7 +56295,7 @@
    "weight": 1.0,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 13274,
+   "source_line": 13275,
    "props_raw": {
     "DisplayCategory": "WaterContainer",
     "EatType": "Bucket",
@@ -56237,7 +56306,7 @@
     "PourType": "Bucket",
     "RainFactor": "1.0",
     "StaticModel": "PaintTinEmpty_Ground",
-    "Tags": "base:bucket;base:cookable;base:hasmetal",
+    "Tags": "base:bucket;base:cookable;base:hasmetal;base:helditemblocksshove",
     "Tooltip": "Tooltip_item_RainFromGround",
     "Weight": "1.0",
     "WorldStaticModel": "PaintTinEmpty_Ground"
@@ -58256,7 +58325,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1084,
+   "source_line": 1088,
    "props_raw": {
     "ActivatedItem": "true",
     "DisappearOnUse": "false",
@@ -58273,6 +58342,7 @@
      "Deactivate FlashlightPenOff"
     ],
     "StaticModel": "PenLight_Hand",
+    "StaticModelOn": "PenLight_HandOn",
     "Tags": "base:flashlight",
     "TorchCone": "true",
     "TorchDot": "0.75",
@@ -59101,7 +59171,8 @@
    "item_type": "base:normal",
    "tags": [
     "base:petrol",
-    "base:cookablemicrowave"
+    "base:cookablemicrowave",
+    "base:helditemblocksshove"
    ],
    "nutrition_source": "fluid:Petrol",
    "nutrition_basis": "per_litre",
@@ -59164,7 +59235,7 @@
     "ReplaceInPrimaryHand": "Bag_GasCan_RHand holdingbagright",
     "ReplaceInSecondHand": "Bag_GasCan_LHand holdingbagleft",
     "StaticModel": "GasCan",
-    "Tags": "base:petrol;base:cookablemicrowave",
+    "Tags": "base:petrol;base:cookablemicrowave;base:helditemblocksshove",
     "Weight": "1.6",
     "WorldStaticModel": "GasCan_Ground"
    }
@@ -60603,7 +60674,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1414,
+   "source_line": 1426,
    "props_raw": {
     "DisplayCategory": "FirstAid",
     "Icon": "PillsPainkiller",
@@ -60681,7 +60752,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1429,
+   "source_line": 1441,
    "props_raw": {
     "DisplayCategory": "FirstAid",
     "Icon": "PillsAntidepressant",
@@ -60759,7 +60830,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1444,
+   "source_line": 1456,
    "props_raw": {
     "DisplayCategory": "FirstAid",
     "Icon": "PillsBetablocker",
@@ -60837,7 +60908,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1459,
+   "source_line": 1471,
    "props_raw": {
     "DisplayCategory": "FirstAid",
     "Icon": "PillsSleeping",
@@ -60915,7 +60986,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1474,
+   "source_line": 1486,
    "props_raw": {
     "DisplayCategory": "FirstAid",
     "Icon": "PillsCaffeine",
@@ -64495,7 +64566,7 @@
    "weight": 10.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1578,
+   "source_line": 1591,
    "props_raw": {
     "DisplayCategory": "Material",
     "Icon": "PropaneTank",
@@ -64573,7 +64644,7 @@
    "weight": 1.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1110,
+   "source_line": 1115,
    "props_raw": {
     "DisplayCategory": "LightSource",
     "Icon": "Propane_Refill",
@@ -65869,7 +65940,7 @@
    "weight": 0.1,
    "replace_on_deplete": "Base.RippedSheetsDirty",
    "source_file": "items/drainable.txt",
-   "source_line": 1625,
+   "source_line": 1638,
    "props_raw": {
     "DisplayCategory": "Accessory",
     "Icon": "Rag",
@@ -66219,7 +66290,7 @@
    "weight": 1.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1681,
+   "source_line": 1694,
    "props_raw": {
     "CustomContextMenu": "Eat",
     "DisplayCategory": "Household",
@@ -66738,7 +66809,7 @@
    "weight": 0.3,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1697,
+   "source_line": 1710,
    "props_raw": {
     "DisplayCategory": "Accessory",
     "Icon": "AirFilters",
@@ -66815,7 +66886,7 @@
    "weight": 0.3,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1711,
+   "source_line": 1724,
    "props_raw": {
     "DisplayCategory": "Accessory",
     "Icon": "AirFilters_Tape",
@@ -69429,7 +69500,7 @@
    "weight": 0.7,
    "replace_on_deplete": null,
    "source_file": "items/weapon.txt",
-   "source_line": 4471,
+   "source_line": 4687,
    "props_raw": {
     "AttachmentType": "Saucepan",
     "BaseSpeed": "1.0",
@@ -69445,6 +69516,7 @@
     "DoorHitSound": "SaucepanHit",
     "DropSound": "SaucepanDrop",
     "EatType": "Saucepan",
+    "EquipSound": "SaucepanEquip",
     "HitFloorSound": "SaucepanHit",
     "HitSound": "SaucepanHit",
     "Icon": "SaucepanEmpty",
@@ -69474,6 +69546,7 @@
     "Tags": "base:cookable;base:hasmetal;base:nomaintenancexp;base:smeltablesteelsmall",
     "Tooltip": "Tooltip_item_RainFromGround",
     "TreeDamage": "0",
+    "UnequipSound": "SaucepanUnEquip",
     "WeaponLength": "0.2",
     "WeaponSprite": "SaucePan",
     "Weight": "0.7",
@@ -69546,7 +69619,7 @@
    "weight": 0.7,
    "replace_on_deplete": null,
    "source_file": "items/weapon.txt",
-   "source_line": 4529,
+   "source_line": 4747,
    "props_raw": {
     "AttachmentType": "Saucepan",
     "BaseSpeed": "1.0",
@@ -69562,6 +69635,7 @@
     "DoorHitSound": "SaucepanHit",
     "DropSound": "SaucepanDrop",
     "EatType": "Saucepan",
+    "EquipSound": "SaucepanEquip",
     "HitFloorSound": "SaucepanHit",
     "HitSound": "SaucepanHit",
     "Icon": "CopperPot",
@@ -69590,6 +69664,7 @@
     "Tags": "base:cookable;base:hasmetal;base:nomaintenancexp;base:scraplargecopper",
     "Tooltip": "Tooltip_item_RainFromGround",
     "TreeDamage": "0",
+    "UnequipSound": "SaucepanUnEquip",
     "WeaponLength": "0.2",
     "WeaponSprite": "SaucePanCopper",
     "Weight": "0.7",
@@ -72372,7 +72447,7 @@
    "weight": 0.5,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14472,
+   "source_line": 14473,
    "props_raw": {
     "DisplayCategory": "Cooking",
     "Icon": "Mug_Metal",
@@ -72451,7 +72526,7 @@
    "weight": 0.1,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14272,
+   "source_line": 14273,
    "props_raw": {
     "CustomContextMenu": "Drink",
     "DisplayCategory": "Food",
@@ -74221,7 +74296,7 @@
    "weight": 0.1,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14353,
+   "source_line": 14354,
    "props_raw": {
     "DisplayCategory": "WaterContainer",
     "EatType": "Bourbon",
@@ -74392,7 +74467,7 @@
    "weight": 1.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2058,
+   "source_line": 2071,
    "props_raw": {
     "DisplayCategory": "Paint",
     "Icon": "SprayPaint",
@@ -74832,7 +74907,7 @@
    "weight": 0.1,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1777,
+   "source_line": 1790,
    "props_raw": {
     "DisplayCategory": "Junk",
     "Icon": "Staples",
@@ -75008,7 +75083,7 @@
    "weight": 0.3,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2308,
+   "source_line": 2321,
    "props_raw": {
     "DisplayCategory": "Tool",
     "FireFuelRatio": "0.25",
@@ -77915,7 +77990,7 @@
    "weight": 0.1,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2264,
+   "source_line": 2277,
    "props_raw": {
     "ConsolidateOption": "ContextMenu_Merge",
     "DisplayCategory": "Material",
@@ -77995,7 +78070,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2280,
+   "source_line": 2293,
    "props_raw": {
     "ConsolidateOption": "ContextMenu_Merge",
     "DisplayCategory": "Material",
@@ -78073,7 +78148,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2294,
+   "source_line": 2307,
    "props_raw": {
     "ConsolidateOption": "ContextMenu_Merge",
     "DisplayCategory": "Material",
@@ -78688,7 +78763,7 @@
    "weight": 0.1,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1521,
+   "source_line": 1533,
    "props_raw": {
     "DisplayCategory": "FirstAid",
     "FireFuelRatio": "0.25",
@@ -78765,7 +78840,7 @@
    "weight": 1.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1535,
+   "source_line": 1547,
    "props_raw": {
     "DisplayCategory": "FirstAid",
     "FireFuelRatio": "0.25",
@@ -79005,7 +79080,7 @@
    "weight": 0.3,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2135,
+   "source_line": 2148,
    "props_raw": {
     "CustomContextMenu": "Chew",
     "DisplayCategory": "Junk",
@@ -79088,7 +79163,7 @@
    "weight": 0.3,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 2123,
+   "source_line": 2136,
    "props_raw": {
     "DisplayCategory": "Junk",
     "Icon": "TobaccoLoose",
@@ -79357,7 +79432,7 @@
    "weight": 0.5,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1725,
+   "source_line": 1738,
    "props_raw": {
     "ConsolidateOption": "ContextMenu_Merge",
     "DisplayCategory": "Junk",
@@ -79637,7 +79712,7 @@
    "weight": 1.0,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1058,
+   "source_line": 1061,
    "props_raw": {
     "ActivatedItem": "true",
     "DisappearOnUse": "false",
@@ -79654,6 +79729,7 @@
      "Deactivate FlashlightOff"
     ],
     "StaticModel": "FlashLight",
+    "StaticModelOn": "FlashLightOn",
     "Tags": "base:flashlight;base:flashlightpillar",
     "TorchCone": "true",
     "TorchDot": "0.66",
@@ -81271,7 +81347,7 @@
    "weight": 0.5,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1789,
+   "source_line": 1802,
    "props_raw": {
     "ConsolidateOption": "ContextMenu_Merge",
     "DisplayCategory": "Material",
@@ -82780,7 +82856,7 @@
    "weight": 0.1,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 13345,
+   "source_line": 13346,
    "props_raw": {
     "CookingSound": "BoilingFood",
     "CustomEatSound": "DrinkingFromBottlePlastic",
@@ -82888,7 +82964,8 @@
    "food_type": null,
    "item_type": "base:normal",
    "tags": [
-    "base:cookablemicrowave"
+    "base:cookablemicrowave",
+    "base:helditemblocksshove"
    ],
    "nutrition_source": "fluid:Water",
    "nutrition_basis": "per_litre",
@@ -82943,7 +83020,7 @@
    "weight": 2.0,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14381,
+   "source_line": 14382,
    "props_raw": {
     "DisplayCategory": "WaterContainer",
     "EatType": "Bucket",
@@ -82956,7 +83033,7 @@
     "ItemType": "base:normal",
     "PourType": "Bucket",
     "StaticModel": "WaterTank",
-    "Tags": "base:cookablemicrowave",
+    "Tags": "base:cookablemicrowave;base:helditemblocksshove",
     "Weight": "2.0",
     "WorldStaticModel": "WaterTank"
    }
@@ -84040,7 +84117,7 @@
    "weight": 2.0,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 13298,
+   "source_line": 13299,
    "props_raw": {
     "DisplayCategory": "WaterContainer",
     "Icon": "TZ_WateringCan",
@@ -84375,7 +84452,7 @@
    "weight": 1.5,
    "replace_on_deplete": null,
    "source_file": "items/drainable.txt",
-   "source_line": 1548,
+   "source_line": 1560,
    "props_raw": {
     "ConsolidateOption": "ContextMenu_Merge",
     "DisplayCategory": "Material",
@@ -85591,7 +85668,7 @@
    "weight": 0.2,
    "replace_on_deplete": null,
    "source_file": "items/normal.txt",
-   "source_line": 14556,
+   "source_line": 14557,
    "props_raw": {
     "CustomEatSound": "DrinkingFromCarton",
     "DisplayCategory": "Food",

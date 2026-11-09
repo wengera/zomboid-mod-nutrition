@@ -1,7 +1,7 @@
 {
  "meta": {
-  "build": "42.21.0 (4a0e9546ec)",
-  "generated": "2026-10-08",
+  "build": "42.22.2 (3d39148846)",
+  "generated": "2026-11-09",
   "tool": "tools/recipe_scan.py",
   "sources": {
    "scripts": "media/scripts",
@@ -83,22 +83,22 @@
    ],
    "food_items": {
     "path": "data/food-items.json",
-    "build": "42.21.0",
-    "jar_hash": "4a0e9546ec",
-    "generated": "2026-10-08"
+    "build": "42.22.2",
+    "jar_hash": "3d39148846",
+    "generated": "2026-11-09"
    }
   },
   "counts": {
-   "craftRecipes": 969,
+   "craftRecipes": 965,
    "files": 74,
    "scriptFiles": 1004,
    "legacyRecipeBlocks": 0,
    "componentCraftRecipes": 202,
-   "itemMappers": 225,
+   "itemMappers": 227,
    "overlayMappers": 3,
    "recipesWithoutOutputs": 11,
-   "recipesWithEmptyOutputs": 26,
-   "fluidRecipes": 53,
+   "recipesWithEmptyOutputs": 27,
+   "fluidRecipes": 54,
    "outputItemTypes": 1693,
    "outputItemTypesInDataset": 295,
    "outputItemTypesInFoodDataset": 262,
@@ -112,7 +112,7 @@
    "splitRecipes": 17,
    "splitRecipesWithDelta": 8,
    "recipesWithDestroyWaste": 0,
-   "inputSubLines": 55
+   "inputSubLines": 56
   },
   "outputMapperIssues": [
    {
@@ -134,7 +134,8 @@
    "category": "Miscellaneous",
    "tags": [
     "InHandCraft",
-    "CanBeDoneInDark"
+    "CanBeDoneInDark",
+    "CanBeDoneWhileWalking"
    ],
    "skillRequired": null,
    "xpAward": null,
@@ -12753,14 +12754,15 @@
    "name": "CloseUmbrella",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 164,
+   "sourceLine": 182,
    "time": 20,
    "timedAction": "Making",
    "category": null,
    "tags": [
     "InHandCraft",
     "CanBeDoneInDark",
-    "RightClickOnly"
+    "RightClickOnly",
+    "CanBeDoneWhileWalking"
    ],
    "skillRequired": null,
    "xpAward": null,
@@ -13398,7 +13400,7 @@
    "name": "CopyBuildingKey",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 429,
+   "sourceLine": 447,
    "time": 230,
    "timedAction": "Making",
    "category": null,
@@ -14426,7 +14428,7 @@
    "name": "CraftSheetRope",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 187,
+   "sourceLine": 205,
    "time": 50,
    "timedAction": "Making",
    "category": null,
@@ -14773,7 +14775,7 @@
    "name": "CutBar",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 432,
+   "sourceLine": 399,
    "time": 50,
    "timedAction": "Welding",
    "category": "Metalworking",
@@ -14943,7 +14945,7 @@
    "name": "CutBlockIntoChunks",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 406,
+   "sourceLine": 373,
    "time": 100,
    "timedAction": "Welding",
    "category": "Metalworking",
@@ -15635,7 +15637,7 @@
    "name": "CutIngotIntoBlocks",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 380,
+   "sourceLine": 347,
    "time": 100,
    "timedAction": "Welding",
    "category": "Metalworking",
@@ -16345,7 +16347,7 @@
    "name": "CutTarp",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 266,
+   "sourceLine": 284,
    "time": 80,
    "timedAction": "CutClothing",
    "category": null,
@@ -16630,7 +16632,7 @@
    "name": "CutUpBelt",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 449,
+   "sourceLine": 467,
    "time": 200,
    "timedAction": "CutClothing",
    "category": null,
@@ -17157,7 +17159,7 @@
    "name": "CutUpTire",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 410,
+   "sourceLine": 428,
    "time": 300,
    "timedAction": "Making",
    "category": null,
@@ -25031,7 +25033,8 @@
    "category": "Miscellaneous",
    "tags": [
     "InHandCraft",
-    "CanBeDoneInDark"
+    "CanBeDoneInDark",
+    "CanBeDoneWhileWalking"
    ],
    "skillRequired": null,
    "xpAward": null,
@@ -25123,7 +25126,8 @@
    "category": "Miscellaneous",
    "tags": [
     "InHandCraft",
-    "CanBeDoneInDark"
+    "CanBeDoneInDark",
+    "CanBeDoneWhileWalking"
    ],
    "skillRequired": null,
    "xpAward": null,
@@ -32033,7 +32037,7 @@
    "name": "ForgeBarIntoHalves",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 460,
+   "sourceLine": 427,
    "time": 100,
    "timedAction": "HammerMetalStanding",
    "category": "Blacksmithing",
@@ -32245,7 +32249,7 @@
    "name": "ForgeBarIntoRod",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 489,
+   "sourceLine": 456,
    "time": 500,
    "timedAction": "HammerMetalStanding",
    "category": "Blacksmithing",
@@ -32485,7 +32489,7 @@
    "name": "ForgeCircularSawbladeIntoHalves",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 599,
+   "sourceLine": 566,
    "time": 200,
    "timedAction": "HammerMetalStanding",
    "category": "Blacksmithing",
@@ -32858,7 +32862,7 @@
    "name": "ForgeIronBand",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 578,
+   "sourceLine": 545,
    "time": 500,
    "timedAction": "HammerMetalStanding",
    "category": "Blacksmithing",
@@ -33011,7 +33015,7 @@
    "name": "ForgeIronBandIntoQuarters",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 619,
+   "sourceLine": 586,
    "time": 300,
    "timedAction": "HammerMetalStanding",
    "category": "Blacksmithing",
@@ -33540,7 +33544,7 @@
    "name": "ForgeRodIntoBar",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 524,
+   "sourceLine": 491,
    "time": 400,
    "timedAction": "HammerMetalStanding",
    "category": "Blacksmithing",
@@ -33752,7 +33756,7 @@
    "name": "ForgeScrapIntoBarQuarter",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 639,
+   "sourceLine": 606,
    "time": 300,
    "timedAction": "HammerMetalStanding",
    "category": "Blacksmithing",
@@ -33925,7 +33929,7 @@
    "name": "ForgeScrapIntoChunk",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 665,
+   "sourceLine": 632,
    "time": 300,
    "timedAction": "HammerMetalStanding",
    "category": "Blacksmithing",
@@ -34098,7 +34102,7 @@
    "name": "ForgeSmallIronBand",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 557,
+   "sourceLine": 524,
    "time": 200,
    "timedAction": "HammerMetalStanding",
    "category": "Blacksmithing",
@@ -37921,7 +37925,7 @@
    "name": "Forge_Coins",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 672,
+   "sourceLine": 655,
    "time": 100,
    "timedAction": "HammerMetalStanding",
    "category": "Blacksmithing",
@@ -44453,7 +44457,7 @@
    "name": "Forge_KeyRing",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 645,
+   "sourceLine": 628,
    "time": 100,
    "timedAction": "HammerMetalStanding",
    "category": "Blacksmithing",
@@ -48354,7 +48358,7 @@
    "name": "Forge_Precious_Metal_Butter_Knives",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 357,
+   "sourceLine": 340,
    "time": 100,
    "timedAction": "HammerMetalStanding",
    "category": "Cookware",
@@ -48531,7 +48535,7 @@
    "name": "Forge_Precious_Metal_Forks",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 387,
+   "sourceLine": 370,
    "time": 100,
    "timedAction": "HammerMetalStanding",
    "category": "Cookware",
@@ -48729,7 +48733,7 @@
    "name": "Forge_Precious_Metal_Spoons",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 327,
+   "sourceLine": 310,
    "time": 100,
    "timedAction": "HammerMetalStanding",
    "category": "Cookware",
@@ -55370,7 +55374,8 @@
    "category": "Electrical",
    "tags": [
     "InHandCraft",
-    "CanBeDoneInDark"
+    "CanBeDoneInDark",
+    "CanBeDoneWhileWalking"
    ],
    "skillRequired": null,
    "xpAward": null,
@@ -55460,7 +55465,8 @@
    "category": "Miscellaneous",
    "tags": [
     "InHandCraft",
-    "CanBeDoneInDark"
+    "CanBeDoneInDark",
+    "CanBeDoneWhileWalking"
    ],
    "skillRequired": null,
    "xpAward": null,
@@ -58169,7 +58175,8 @@
      "variable": null,
      "types": [
       "Base.Rabbit_KittenSkull",
-      "Base.Rabbit_Skull"
+      "Base.Rabbit_Skull",
+      "Base.Raccoon_Skull"
      ],
      "tags": [],
      "categories": [],
@@ -58185,7 +58192,7 @@
      "amountIsItemCount": false,
      "amountUses": 1.0,
      "subLines": [],
-     "raw": "item 1 [Base.Rabbit_KittenSkull;Base.Rabbit_Skull] flags[Prop2]"
+     "raw": "item 1 [Base.Rabbit_KittenSkull;Base.Rabbit_Skull;Base.Raccoon_Skull] flags[Prop2]"
     },
     {
      "kind": "item",
@@ -58252,7 +58259,7 @@
     "Base.Twine"
    ],
    "delta": null,
-   "deltaReason": "multi-type: item 1 [Base.Rabbit_KittenSkull;Base.Rabbit_Skull] flags[Prop2] ; multi-type: item 1 [Base.Twine;Base.Thread_Sinew] flags[Prop1] ; not-in-dataset: item 1 Base.Necklace_SkullMammal"
+   "deltaReason": "multi-type: item 1 [Base.Rabbit_KittenSkull;Base.Rabbit_Skull;Base.Raccoon_Skull] flags[Prop2] ; multi-type: item 1 [Base.Twine;Base.Thread_Sinew] flags[Prop1] ; not-in-dataset: item 1 Base.Necklace_SkullMammal"
   },
   {
    "name": "MakeAnimalSkullsNecklace",
@@ -58285,7 +58292,8 @@
      "variable": null,
      "types": [
       "Base.Rabbit_KittenSkull",
-      "Base.Rabbit_Skull"
+      "Base.Rabbit_Skull",
+      "Base.Raccoon_Skull"
      ],
      "tags": [],
      "categories": [],
@@ -58301,7 +58309,7 @@
      "amountIsItemCount": false,
      "amountUses": 3.0,
      "subLines": [],
-     "raw": "item 3 [Base.Rabbit_KittenSkull;Base.Rabbit_Skull] flags[Prop2]"
+     "raw": "item 3 [Base.Rabbit_KittenSkull;Base.Rabbit_Skull;1:Base.Raccoon_Skull] flags[Prop2]"
     },
     {
      "kind": "item",
@@ -58368,7 +58376,7 @@
     "Base.Twine"
    ],
    "delta": null,
-   "deltaReason": "multi-type: item 3 [Base.Rabbit_KittenSkull;Base.Rabbit_Skull] flags[Prop2] ; multi-type: item 1 [Base.Twine;Base.Thread_Sinew] flags[Prop1] ; not-in-dataset: item 1 Base.Necklace_SkullMammal_Multi"
+   "deltaReason": "multi-type: item 3 [Base.Rabbit_KittenSkull;Base.Rabbit_Skull;1:Base.Raccoon_Skull] flags[Prop2] ; multi-type: item 1 [Base.Twine;Base.Thread_Sinew] flags[Prop1] ; not-in-dataset: item 1 Base.Necklace_SkullMammal_Multi"
   },
   {
    "name": "MakeAphidsCure",
@@ -59542,7 +59550,7 @@
    "name": "MakeBlankID",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 483,
+   "sourceLine": 501,
    "time": 500,
    "timedAction": "Making",
    "category": null,
@@ -74218,7 +74226,7 @@
    "name": "MakeHollowBook",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 344,
+   "sourceLine": 362,
    "time": 250,
    "timedAction": "Making",
    "category": null,
@@ -77761,7 +77769,8 @@
      "variable": null,
      "types": [
       "Base.Rabbit_KittenSkull",
-      "Base.Rabbit_Skull"
+      "Base.Rabbit_Skull",
+      "Base.Raccoon_Skull"
      ],
      "tags": [],
      "categories": [],
@@ -77777,7 +77786,7 @@
      "amountIsItemCount": false,
      "amountUses": 1.0,
      "subLines": [],
-     "raw": "item 1 [Base.Rabbit_KittenSkull;Base.Rabbit_Skull] flags[Prop2]"
+     "raw": "item 1 [Base.Rabbit_KittenSkull;Base.Rabbit_Skull;Base.Raccoon_Skull] flags[Prop2]"
     },
     {
      "kind": "item",
@@ -77844,7 +77853,7 @@
     "Base.Twine"
    ],
    "delta": null,
-   "deltaReason": "multi-type: item 1 [Base.Rabbit_KittenSkull;Base.Rabbit_Skull] flags[Prop2] ; multi-type: item 1 [Base.Twine;Base.Thread_Sinew] flags[Prop1] ; not-in-dataset: item 1 Base.NecklaceLong_SkullMammal"
+   "deltaReason": "multi-type: item 1 [Base.Rabbit_KittenSkull;Base.Rabbit_Skull;Base.Raccoon_Skull] flags[Prop2] ; multi-type: item 1 [Base.Twine;Base.Thread_Sinew] flags[Prop1] ; not-in-dataset: item 1 Base.NecklaceLong_SkullMammal"
   },
   {
    "name": "MakeLongAnimalSkullsNecklace",
@@ -77877,7 +77886,8 @@
      "variable": null,
      "types": [
       "Base.Rabbit_KittenSkull",
-      "Base.Rabbit_Skull"
+      "Base.Rabbit_Skull",
+      "Base.Raccoon_Skull"
      ],
      "tags": [],
      "categories": [],
@@ -77893,7 +77903,7 @@
      "amountIsItemCount": false,
      "amountUses": 3.0,
      "subLines": [],
-     "raw": "item 3 [Base.Rabbit_KittenSkull;Base.Rabbit_Skull] flags[Prop2]"
+     "raw": "item 3 [Base.Rabbit_KittenSkull;Base.Rabbit_Skull;1:Base.Raccoon_Skull] flags[Prop2]"
     },
     {
      "kind": "item",
@@ -77960,7 +77970,7 @@
     "Base.Twine"
    ],
    "delta": null,
-   "deltaReason": "multi-type: item 3 [Base.Rabbit_KittenSkull;Base.Rabbit_Skull] flags[Prop2] ; multi-type: item 1 [Base.Twine;Base.Thread_Sinew] flags[Prop1] ; not-in-dataset: item 1 Base.NecklaceLong_SkullMammal_Multi"
+   "deltaReason": "multi-type: item 3 [Base.Rabbit_KittenSkull;Base.Rabbit_Skull;1:Base.Raccoon_Skull] flags[Prop2] ; multi-type: item 1 [Base.Twine;Base.Thread_Sinew] flags[Prop1] ; not-in-dataset: item 1 Base.NecklaceLong_SkullMammal_Multi"
   },
   {
    "name": "MakeLongBirdSkullNecklace",
@@ -79604,7 +79614,7 @@
    "sourceFile": "recipes/recipes_traps.txt",
    "sourceLine": 317,
    "time": 80,
-   "timedAction": "MakingElectrical",
+   "timedAction": "Making",
    "category": "Electrical",
    "tags": [
     "InHandCraft"
@@ -79731,7 +79741,7 @@
    "name": "MakeNewspaperHat",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 297,
+   "sourceLine": 315,
    "time": 20,
    "timedAction": "Making",
    "category": "Tailoring",
@@ -97829,7 +97839,7 @@
    "name": "MakeTinFoilHat",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 313,
+   "sourceLine": 331,
    "time": 20,
    "timedAction": "Making",
    "category": "Tailoring",
@@ -100740,7 +100750,7 @@
    "name": "MakeTwigBroom",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 466,
+   "sourceLine": 484,
    "time": 50,
    "timedAction": "CraftWeapon2H",
    "category": null,
@@ -107452,7 +107462,8 @@
    "category": "Packing",
    "tags": [
     "InHandCraft",
-    "CanBeDoneInDark"
+    "CanBeDoneInDark",
+    "CanBeDoneWhileWalking"
    ],
    "skillRequired": null,
    "xpAward": null,
@@ -107574,7 +107585,8 @@
    "category": "Packing",
    "tags": [
     "InHandCraft",
-    "CanBeDoneInDark"
+    "CanBeDoneInDark",
+    "CanBeDoneWhileWalking"
    ],
    "skillRequired": null,
    "xpAward": null,
@@ -108280,7 +108292,8 @@
    "category": "Packing",
    "tags": [
     "InHandCraft",
-    "CanBeDoneInDark"
+    "CanBeDoneInDark",
+    "CanBeDoneWhileWalking"
    ],
    "skillRequired": null,
    "xpAward": null,
@@ -111175,14 +111188,15 @@
    "name": "OpenUmbrella",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 141,
+   "sourceLine": 159,
    "time": 20,
    "timedAction": "Making",
    "category": null,
    "tags": [
     "InHandCraft",
     "CanBeDoneInDark",
-    "RightClickOnly"
+    "RightClickOnly",
+    "CanBeDoneWhileWalking"
    ],
    "skillRequired": null,
    "xpAward": null,
@@ -118786,6 +118800,130 @@
    "deltaReason": "no-outputs"
   },
   {
+   "name": "RefillLighterWithGasoline",
+   "module": "Base",
+   "sourceFile": "recipes/recipes.txt",
+   "sourceLine": 69,
+   "time": 30,
+   "timedAction": "Making",
+   "category": null,
+   "tags": [
+    "AnySurfaceCraft"
+   ],
+   "skillRequired": null,
+   "xpAward": null,
+   "needToBeLearn": null,
+   "autoLearnAll": null,
+   "autoLearnAny": null,
+   "allowBatchCraft": null,
+   "metaRecipe": null,
+   "onCreate": "RecipeCodeOnCreate.refillLighterGasoline",
+   "tooltip": null,
+   "inputs": [
+    {
+     "kind": "item",
+     "amount": 1.0,
+     "variable": null,
+     "types": [],
+     "tags": [
+      "base:refillablelighter"
+     ],
+     "categories": [],
+     "mode": "keep",
+     "flags": [
+      "NotFull",
+      "ItemCount"
+     ],
+     "mappers": [],
+     "mapper": null,
+     "overlayMapper": false,
+     "extras": [],
+     "consumed": false,
+     "amountIsItemCount": true,
+     "amountUses": null,
+     "subLines": [],
+     "raw": "item 1 tags[base:refillablelighter] mode:keep flags[NotFull;ItemCount]"
+    },
+    {
+     "kind": "item",
+     "amount": 1.0,
+     "variable": null,
+     "types": [],
+     "tags": [
+      "base:funnel"
+     ],
+     "categories": [],
+     "mode": "keep",
+     "flags": [],
+     "mappers": [],
+     "mapper": null,
+     "overlayMapper": false,
+     "extras": [],
+     "consumed": false,
+     "amountIsItemCount": false,
+     "amountUses": 1.0,
+     "subLines": [],
+     "raw": "item 1 tags[base:funnel] mode:keep"
+    },
+    {
+     "kind": "item",
+     "amount": 1.0,
+     "variable": null,
+     "types": [
+      "*"
+     ],
+     "tags": [],
+     "categories": [],
+     "mode": null,
+     "flags": [],
+     "mappers": [],
+     "mapper": null,
+     "overlayMapper": false,
+     "extras": [],
+     "consumed": true,
+     "amountIsItemCount": false,
+     "amountUses": 1.0,
+     "subLines": [
+      {
+       "kind": "fluid",
+       "amount": 0.01,
+       "variable": null,
+       "types": [
+        "Petrol"
+       ],
+       "tags": [],
+       "categories": [],
+       "mode": null,
+       "flags": [],
+       "mappers": [],
+       "mapper": null,
+       "overlayMapper": false,
+       "extras": [],
+       "consumed": true,
+       "amountIsItemCount": false,
+       "amountUses": 0.01,
+       "subLines": [],
+       "raw": "-fluid 0.01 [Petrol]"
+      }
+     ],
+     "raw": "item 1 [*]"
+    }
+   ],
+   "inputCount": 3,
+   "outputs": [],
+   "itemMappers": {},
+   "itemMapperPairs": {},
+   "itemMapperDefaults": {},
+   "overlayMapper": null,
+   "props": {},
+   "fluidIO": true,
+   "split": false,
+   "datasetTypes": [],
+   "foodItemTypes": [],
+   "delta": null,
+   "deltaReason": "no-outputs"
+  },
+  {
    "name": "RemakeLongStoneBlade",
    "module": "Base",
    "sourceFile": "recipes/recipes_knapping.txt",
@@ -118907,7 +119045,8 @@
    "category": "Electrical",
    "tags": [
     "InHandCraft",
-    "CanBeDoneInDark"
+    "CanBeDoneInDark",
+    "CanBeDoneWhileWalking"
    ],
    "skillRequired": null,
    "xpAward": null,
@@ -119451,7 +119590,8 @@
    "category": "Miscellaneous",
    "tags": [
     "InHandCraft",
-    "CanBeDoneInDark"
+    "CanBeDoneInDark",
+    "CanBeDoneWhileWalking"
    ],
    "skillRequired": null,
    "xpAward": null,
@@ -119663,7 +119803,7 @@
    "name": "ReplaceHacksawBlade",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 503,
+   "sourceLine": 521,
    "time": 100,
    "timedAction": "Making",
    "category": "Repair",
@@ -119767,7 +119907,7 @@
    "name": "ReplaceSmallSawBlade",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 521,
+   "sourceLine": 539,
    "time": 100,
    "timedAction": "Making",
    "category": "Repair",
@@ -119871,14 +120011,15 @@
    "name": "RipClothing",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 217,
+   "sourceLine": 235,
    "time": 40,
    "timedAction": "RipClothing",
    "category": null,
    "tags": [
     "InHandCraft",
     "CanBeDoneInDark",
-    "RemoveResultItems"
+    "RemoveResultItems",
+    "CanBeDoneWhileWalking"
    ],
    "skillRequired": null,
    "xpAward": null,
@@ -119956,7 +120097,7 @@
    "name": "RipDenimClothing",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 234,
+   "sourceLine": 252,
    "time": 80,
    "timedAction": "CutClothing",
    "category": null,
@@ -120121,13 +120262,14 @@
    "name": "RipSheets",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 282,
+   "sourceLine": 300,
    "time": 40,
    "timedAction": "RipClothing",
    "category": null,
    "tags": [
     "InHandCraft",
-    "CanBeDoneInDark"
+    "CanBeDoneInDark",
+    "CanBeDoneWhileWalking"
    ],
    "skillRequired": null,
    "xpAward": null,
@@ -120466,10 +120608,10 @@
    "deltaReason": "no-outputs"
   },
   {
-   "name": "SawBarHalfIntoQuarters",
+   "name": "SawBlockIntoChunks",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 248,
+   "sourceLine": 300,
    "time": 230,
    "timedAction": "SawSmallItemMetal",
    "category": "Metalworking",
@@ -120491,18 +120633,17 @@
      "amount": 1.0,
      "variable": null,
      "types": [
-      "Base.SteelBarHalf",
-      "Base.SteelRodHalf"
+      "Base.SteelBlock",
+      "Base.IronBlock"
      ],
      "tags": [],
      "categories": [],
      "mode": null,
      "flags": [
-      "Prop2",
-      "AllowDestroyedItem"
+      "Prop2"
      ],
      "mappers": [
-      "barMap"
+      "metalType"
      ],
      "mapper": null,
      "overlayMapper": false,
@@ -120511,261 +120652,7 @@
      "amountIsItemCount": false,
      "amountUses": 1.0,
      "subLines": [],
-     "raw": "item 1 [Base.SteelBarHalf;Base.SteelRodHalf] flags[Prop2;AllowDestroyedItem] mappers[barMap]"
-    },
-    {
-     "kind": "item",
-     "amount": 1.0,
-     "variable": null,
-     "types": [],
-     "tags": [
-      "base:metalsaw",
-      "base:smallsaw"
-     ],
-     "categories": [],
-     "mode": "keep",
-     "flags": [
-      "Prop1",
-      "MayDegradeLight"
-     ],
-     "mappers": [],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": false,
-     "amountIsItemCount": false,
-     "amountUses": 1.0,
-     "subLines": [],
-     "raw": "item 1 tags[base:metalsaw;base:smallsaw] mode:keep flags[Prop1;MayDegradeLight]"
-    }
-   ],
-   "inputCount": 2,
-   "outputs": [
-    {
-     "kind": "item",
-     "amount": 2.0,
-     "variable": null,
-     "types": [
-      "Base.SteelBarQuarter",
-      "Base.SteelRodQuarter"
-     ],
-     "tags": [],
-     "categories": [],
-     "mode": null,
-     "flags": [],
-     "mappers": [],
-     "mapper": "barMap",
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": true,
-     "amountIsItemCount": false,
-     "amountUses": 2.0,
-     "subLines": [],
-     "raw": "item 2 mapper:barMap"
-    }
-   ],
-   "itemMappers": {
-    "barMap": {
-     "Base.SteelBarQuarter": "Base.SteelBarHalf",
-     "Base.SteelRodQuarter": "Base.SteelRodHalf"
-    }
-   },
-   "itemMapperPairs": {
-    "barMap": [
-     [
-      "Base.SteelBarQuarter",
-      "Base.SteelBarHalf"
-     ],
-     [
-      "Base.SteelRodQuarter",
-      "Base.SteelRodHalf"
-     ]
-    ]
-   },
-   "itemMapperDefaults": {
-    "barMap": "Base.SteelBarQuarter"
-   },
-   "overlayMapper": null,
-   "props": {},
-   "fluidIO": false,
-   "split": false,
-   "datasetTypes": [],
-   "foodItemTypes": [],
-   "delta": null,
-   "deltaReason": "multi-type: item 1 [Base.SteelBarHalf;Base.SteelRodHalf] flags[Prop2;AllowDestroyedItem] mappers[barMap] ; multi-type: item 2 mapper:barMap"
-  },
-  {
-   "name": "SawBarIntoHalves",
-   "module": "Base",
-   "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 225,
-   "time": 230,
-   "timedAction": "SawSmallItemMetal",
-   "category": "Metalworking",
-   "tags": [
-    "AnySurfaceCraft"
-   ],
-   "skillRequired": null,
-   "xpAward": null,
-   "needToBeLearn": null,
-   "autoLearnAll": null,
-   "autoLearnAny": null,
-   "allowBatchCraft": null,
-   "metaRecipe": null,
-   "onCreate": null,
-   "tooltip": null,
-   "inputs": [
-    {
-     "kind": "item",
-     "amount": 1.0,
-     "variable": null,
-     "types": [
-      "Base.SteelBar",
-      "Base.MetalBar"
-     ],
-     "tags": [],
-     "categories": [],
-     "mode": null,
-     "flags": [
-      "Prop2",
-      "AllowDestroyedItem"
-     ],
-     "mappers": [
-      "barMap"
-     ],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": true,
-     "amountIsItemCount": false,
-     "amountUses": 1.0,
-     "subLines": [],
-     "raw": "item 1 [Base.SteelBar;Base.MetalBar] flags[Prop2;AllowDestroyedItem] mappers[barMap]"
-    },
-    {
-     "kind": "item",
-     "amount": 1.0,
-     "variable": null,
-     "types": [],
-     "tags": [
-      "base:metalsaw",
-      "base:smallsaw"
-     ],
-     "categories": [],
-     "mode": "keep",
-     "flags": [
-      "Prop1",
-      "MayDegradeLight"
-     ],
-     "mappers": [],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": false,
-     "amountIsItemCount": false,
-     "amountUses": 1.0,
-     "subLines": [],
-     "raw": "item 1 tags[base:metalsaw;base:smallsaw] mode:keep flags[Prop1;MayDegradeLight]"
-    }
-   ],
-   "inputCount": 2,
-   "outputs": [
-    {
-     "kind": "item",
-     "amount": 2.0,
-     "variable": null,
-     "types": [
-      "Base.SteelBarHalf",
-      "Base.SteelRodHalf"
-     ],
-     "tags": [],
-     "categories": [],
-     "mode": null,
-     "flags": [],
-     "mappers": [],
-     "mapper": "barMap",
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": true,
-     "amountIsItemCount": false,
-     "amountUses": 2.0,
-     "subLines": [],
-     "raw": "item 2 mapper:barMap"
-    }
-   ],
-   "itemMappers": {
-    "barMap": {
-     "Base.SteelBarHalf": "Base.SteelBar",
-     "Base.SteelRodHalf": "Base.MetalBar"
-    }
-   },
-   "itemMapperPairs": {
-    "barMap": [
-     [
-      "Base.SteelBarHalf",
-      "Base.SteelBar"
-     ],
-     [
-      "Base.SteelRodHalf",
-      "Base.MetalBar"
-     ]
-    ]
-   },
-   "itemMapperDefaults": {
-    "barMap": "Base.SteelBarHalf"
-   },
-   "overlayMapper": null,
-   "props": {},
-   "fluidIO": false,
-   "split": false,
-   "datasetTypes": [],
-   "foodItemTypes": [],
-   "delta": null,
-   "deltaReason": "multi-type: item 1 [Base.SteelBar;Base.MetalBar] flags[Prop2;AllowDestroyedItem] mappers[barMap] ; multi-type: item 2 mapper:barMap"
-  },
-  {
-   "name": "SawCircularSawblade",
-   "module": "Base",
-   "sourceFile": "recipes/recipes_metalWelding.txt",
-   "sourceLine": 164,
-   "time": 230,
-   "timedAction": "SawSmallItemMetal",
-   "category": "Metalworking",
-   "tags": [
-    "AnySurfaceCraft"
-   ],
-   "skillRequired": null,
-   "xpAward": null,
-   "needToBeLearn": null,
-   "autoLearnAll": null,
-   "autoLearnAny": null,
-   "allowBatchCraft": null,
-   "metaRecipe": null,
-   "onCreate": null,
-   "tooltip": null,
-   "inputs": [
-    {
-     "kind": "item",
-     "amount": 1.0,
-     "variable": null,
-     "types": [
-      "Base.CircularSawblade"
-     ],
-     "tags": [],
-     "categories": [],
-     "mode": null,
-     "flags": [
-      "AllowDestroyedItem"
-     ],
-     "mappers": [],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": true,
-     "amountIsItemCount": false,
-     "amountUses": 1.0,
-     "subLines": [],
-     "raw": "item 1 [Base.CircularSawblade] flags[AllowDestroyedItem]"
+     "raw": "item 1 [Base.SteelBlock;Base.IronBlock] flags[Prop2] mappers[metalType]"
     },
     {
      "kind": "item",
@@ -120796,134 +120683,48 @@
    "outputs": [
     {
      "kind": "item",
-     "amount": 2.0,
-     "variable": null,
-     "types": [
-      "Base.CircularSawblade_Half"
-     ],
-     "tags": [],
-     "categories": [],
-     "mode": null,
-     "flags": [],
-     "mappers": [],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": true,
-     "amountIsItemCount": false,
-     "amountUses": 2.0,
-     "subLines": [],
-     "raw": "item 2 Base.CircularSawblade_Half"
-    }
-   ],
-   "itemMappers": {},
-   "itemMapperPairs": {},
-   "itemMapperDefaults": {},
-   "overlayMapper": null,
-   "props": {},
-   "fluidIO": false,
-   "split": false,
-   "datasetTypes": [],
-   "foodItemTypes": [],
-   "delta": null,
-   "deltaReason": "not-in-dataset: item 1 [Base.CircularSawblade] flags[AllowDestroyedItem] ; not-in-dataset: item 2 Base.CircularSawblade_Half"
-  },
-  {
-   "name": "SawCopperSheetIntoSmallSheets",
-   "module": "Base",
-   "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 310,
-   "time": 100,
-   "timedAction": "SawSmallItemMetal",
-   "category": "Metalworking",
-   "tags": [
-    "AnySurfaceCraft"
-   ],
-   "skillRequired": null,
-   "xpAward": null,
-   "needToBeLearn": null,
-   "autoLearnAll": null,
-   "autoLearnAny": null,
-   "allowBatchCraft": null,
-   "metaRecipe": null,
-   "onCreate": null,
-   "tooltip": null,
-   "inputs": [
-    {
-     "kind": "item",
-     "amount": 1.0,
-     "variable": null,
-     "types": [
-      "Base.CopperSheet"
-     ],
-     "tags": [],
-     "categories": [],
-     "mode": null,
-     "flags": [
-      "Prop2"
-     ],
-     "mappers": [],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": true,
-     "amountIsItemCount": false,
-     "amountUses": 1.0,
-     "subLines": [],
-     "raw": "item 1 [Base.CopperSheet] flags[Prop2]"
-    },
-    {
-     "kind": "item",
-     "amount": 1.0,
-     "variable": null,
-     "types": [],
-     "tags": [
-      "base:metalsaw"
-     ],
-     "categories": [],
-     "mode": "keep",
-     "flags": [
-      "Prop1",
-      "MayDegradeLight"
-     ],
-     "mappers": [],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": false,
-     "amountIsItemCount": false,
-     "amountUses": 1.0,
-     "subLines": [],
-     "raw": "item 1 tags[base:metalsaw] mode:keep flags[Prop1;MayDegradeLight]"
-    }
-   ],
-   "inputCount": 2,
-   "outputs": [
-    {
-     "kind": "item",
      "amount": 4.0,
      "variable": null,
      "types": [
-      "Base.SmallCopperSheet"
+      "Base.SteelChunk",
+      "Base.IronChunk"
      ],
      "tags": [],
      "categories": [],
      "mode": null,
      "flags": [],
      "mappers": [],
-     "mapper": null,
+     "mapper": "metalType",
      "overlayMapper": false,
      "extras": [],
      "consumed": true,
      "amountIsItemCount": false,
      "amountUses": 4.0,
      "subLines": [],
-     "raw": "item 4 Base.SmallCopperSheet"
+     "raw": "item 4 mapper:metalType"
     }
    ],
-   "itemMappers": {},
-   "itemMapperPairs": {},
-   "itemMapperDefaults": {},
+   "itemMappers": {
+    "metalType": {
+     "Base.SteelChunk": "Base.SteelBlock",
+     "Base.IronChunk": "Base.IronBlock"
+    }
+   },
+   "itemMapperPairs": {
+    "metalType": [
+     [
+      "Base.SteelChunk",
+      "Base.SteelBlock"
+     ],
+     [
+      "Base.IronChunk",
+      "Base.IronBlock"
+     ]
+    ]
+   },
+   "itemMapperDefaults": {
+    "metalType": "Base.SteelChunk"
+   },
    "overlayMapper": null,
    "props": {},
    "fluidIO": false,
@@ -120931,7 +120732,7 @@
    "datasetTypes": [],
    "foodItemTypes": [],
    "delta": null,
-   "deltaReason": "not-in-dataset: item 1 [Base.CopperSheet] flags[Prop2] ; not-in-dataset: item 4 Base.SmallCopperSheet"
+   "deltaReason": "multi-type: item 1 [Base.SteelBlock;Base.IronBlock] flags[Prop2] mappers[metalType] ; multi-type: item 4 mapper:metalType"
   },
   {
    "name": "SawDownBaseballBat",
@@ -121046,10 +120847,300 @@
    "deltaReason": "multi-type: item 1 [Base.BaseballBat;Base.BaseballBat_Crafted;Base.BaseballBat_Nails] flags[Prop2] ; not-in-dataset: item 1 Base.ShortBat"
   },
   {
+   "name": "SawIngotIntoBlocks",
+   "module": "Base",
+   "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
+   "sourceLine": 277,
+   "time": 230,
+   "timedAction": "SawSmallItemMetal",
+   "category": "Metalworking",
+   "tags": [
+    "AnySurfaceCraft"
+   ],
+   "skillRequired": null,
+   "xpAward": null,
+   "needToBeLearn": null,
+   "autoLearnAll": null,
+   "autoLearnAny": null,
+   "allowBatchCraft": null,
+   "metaRecipe": null,
+   "onCreate": null,
+   "tooltip": null,
+   "inputs": [
+    {
+     "kind": "item",
+     "amount": 1.0,
+     "variable": null,
+     "types": [
+      "Base.SteelIngot"
+     ],
+     "tags": [],
+     "categories": [],
+     "mode": null,
+     "flags": [
+      "Prop2"
+     ],
+     "mappers": [
+      "metalType"
+     ],
+     "mapper": null,
+     "overlayMapper": false,
+     "extras": [],
+     "consumed": true,
+     "amountIsItemCount": false,
+     "amountUses": 1.0,
+     "subLines": [],
+     "raw": "item 1 [Base.SteelIngot] flags[Prop2] mappers[metalType]"
+    },
+    {
+     "kind": "item",
+     "amount": 1.0,
+     "variable": null,
+     "types": [],
+     "tags": [
+      "base:metalsaw"
+     ],
+     "categories": [],
+     "mode": "keep",
+     "flags": [
+      "Prop1",
+      "MayDegradeHeavy"
+     ],
+     "mappers": [],
+     "mapper": null,
+     "overlayMapper": false,
+     "extras": [],
+     "consumed": false,
+     "amountIsItemCount": false,
+     "amountUses": 1.0,
+     "subLines": [],
+     "raw": "item 1 tags[base:metalsaw] mode:keep flags[Prop1;MayDegradeHeavy]"
+    }
+   ],
+   "inputCount": 2,
+   "outputs": [
+    {
+     "kind": "item",
+     "amount": 3.0,
+     "variable": null,
+     "types": [
+      "Base.SteelBlock",
+      "Base.IronBlock"
+     ],
+     "tags": [],
+     "categories": [],
+     "mode": null,
+     "flags": [],
+     "mappers": [],
+     "mapper": "metalType",
+     "overlayMapper": false,
+     "extras": [],
+     "consumed": true,
+     "amountIsItemCount": false,
+     "amountUses": 3.0,
+     "subLines": [],
+     "raw": "item 3 mapper:metalType"
+    }
+   ],
+   "itemMappers": {
+    "metalType": {
+     "Base.SteelBlock": "Base.SteelIngot",
+     "Base.IronBlock": "Base.IronIngot"
+    }
+   },
+   "itemMapperPairs": {
+    "metalType": [
+     [
+      "Base.SteelBlock",
+      "Base.SteelIngot"
+     ],
+     [
+      "Base.IronBlock",
+      "Base.IronIngot"
+     ]
+    ]
+   },
+   "itemMapperDefaults": {
+    "metalType": "Base.SteelBlock"
+   },
+   "overlayMapper": null,
+   "props": {},
+   "fluidIO": false,
+   "split": false,
+   "datasetTypes": [],
+   "foodItemTypes": [],
+   "delta": null,
+   "deltaReason": "not-in-dataset: item 1 [Base.SteelIngot] flags[Prop2] mappers[metalType] ; multi-type: item 3 mapper:metalType"
+  },
+  {
+   "name": "SawIntoHalves",
+   "module": "Base",
+   "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
+   "sourceLine": 225,
+   "time": 230,
+   "timedAction": "SawSmallItemMetal",
+   "category": "Metalworking",
+   "tags": [
+    "AnySurfaceCraft"
+   ],
+   "skillRequired": null,
+   "xpAward": null,
+   "needToBeLearn": null,
+   "autoLearnAll": null,
+   "autoLearnAny": null,
+   "allowBatchCraft": null,
+   "metaRecipe": null,
+   "onCreate": null,
+   "tooltip": null,
+   "inputs": [
+    {
+     "kind": "item",
+     "amount": 1.0,
+     "variable": null,
+     "types": [
+      "Base.SteelBar",
+      "Base.MetalBar",
+      "Base.IronBar",
+      "Base.SteelBarHalf",
+      "Base.SteelRodHalf",
+      "Base.IronBarHalf",
+      "Base.CircularSawblade"
+     ],
+     "tags": [],
+     "categories": [],
+     "mode": null,
+     "flags": [
+      "Prop2",
+      "AllowDestroyedItem"
+     ],
+     "mappers": [
+      "barMap"
+     ],
+     "mapper": null,
+     "overlayMapper": false,
+     "extras": [],
+     "consumed": true,
+     "amountIsItemCount": false,
+     "amountUses": 1.0,
+     "subLines": [],
+     "raw": "item 1 [Base.SteelBar;Base.MetalBar;Base.IronBar;Base.SteelBarHalf;Base.SteelRodHalf;Base.IronBarHalf;Base.CircularSawblade] flags[Prop2;AllowDestroyedItem] mappers[barMap]"
+    },
+    {
+     "kind": "item",
+     "amount": 1.0,
+     "variable": null,
+     "types": [],
+     "tags": [
+      "base:metalsaw",
+      "base:smallsaw"
+     ],
+     "categories": [],
+     "mode": "keep",
+     "flags": [
+      "Prop1",
+      "MayDegradeLight"
+     ],
+     "mappers": [],
+     "mapper": null,
+     "overlayMapper": false,
+     "extras": [],
+     "consumed": false,
+     "amountIsItemCount": false,
+     "amountUses": 1.0,
+     "subLines": [],
+     "raw": "item 1 tags[base:metalsaw;base:smallsaw] mode:keep flags[Prop1;MayDegradeLight]"
+    }
+   ],
+   "inputCount": 2,
+   "outputs": [
+    {
+     "kind": "item",
+     "amount": 2.0,
+     "variable": null,
+     "types": [
+      "Base.SteelBarHalf",
+      "Base.SteelRodHalf",
+      "Base.IronBarHalf",
+      "Base.SteelBarQuarter",
+      "Base.SteelRodQuarter",
+      "Base.IronBarQuarter",
+      "Base.CircularSawblade_Half"
+     ],
+     "tags": [],
+     "categories": [],
+     "mode": null,
+     "flags": [],
+     "mappers": [],
+     "mapper": "barMap",
+     "overlayMapper": false,
+     "extras": [],
+     "consumed": true,
+     "amountIsItemCount": false,
+     "amountUses": 2.0,
+     "subLines": [],
+     "raw": "item 2 mapper:barMap"
+    }
+   ],
+   "itemMappers": {
+    "barMap": {
+     "Base.SteelBarHalf": "Base.SteelBar",
+     "Base.SteelRodHalf": "Base.MetalBar",
+     "Base.IronBarHalf": "Base.IronBar",
+     "Base.SteelBarQuarter": "Base.SteelBarHalf",
+     "Base.SteelRodQuarter": "Base.SteelRodHalf",
+     "Base.IronBarQuarter": "Base.IronBarHalf",
+     "Base.CircularSawblade_Half": "Base.CircularSawblade"
+    }
+   },
+   "itemMapperPairs": {
+    "barMap": [
+     [
+      "Base.SteelBarHalf",
+      "Base.SteelBar"
+     ],
+     [
+      "Base.SteelRodHalf",
+      "Base.MetalBar"
+     ],
+     [
+      "Base.IronBarHalf",
+      "Base.IronBar"
+     ],
+     [
+      "Base.SteelBarQuarter",
+      "Base.SteelBarHalf"
+     ],
+     [
+      "Base.SteelRodQuarter",
+      "Base.SteelRodHalf"
+     ],
+     [
+      "Base.IronBarQuarter",
+      "Base.IronBarHalf"
+     ],
+     [
+      "Base.CircularSawblade_Half",
+      "Base.CircularSawblade"
+     ]
+    ]
+   },
+   "itemMapperDefaults": {
+    "barMap": "Base.SteelBarHalf"
+   },
+   "overlayMapper": null,
+   "props": {},
+   "fluidIO": false,
+   "split": false,
+   "datasetTypes": [],
+   "foodItemTypes": [],
+   "delta": null,
+   "deltaReason": "multi-type: item 1 [Base.SteelBar;Base.MetalBar;Base.IronBar;Base.SteelBarHalf;Base.SteelRodHalf;Base.IronBarHalf;Base.CircularSawblade] flags[Prop2;AllowDestroyedItem] mappers[barMap] ; multi-type: item 2 mapper:barMap"
+  },
+  {
    "name": "SawIntoPieces",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 271,
+   "sourceLine": 253,
    "time": 230,
    "timedAction": "SawSmallItemMetal",
    "category": "Metalworking",
@@ -121183,7 +121274,7 @@
    "name": "SawIronBand",
    "module": "Base",
    "sourceFile": "recipes/recipes_metalWelding.txt",
-   "sourceLine": 181,
+   "sourceLine": 164,
    "time": 230,
    "timedAction": "SawSmallItemMetal",
    "category": "Metalworking",
@@ -121283,216 +121374,6 @@
    "foodItemTypes": [],
    "delta": null,
    "deltaReason": "not-in-dataset: item 1 [Base.IronBand] flags[AllowDestroyedItem] ; not-in-dataset: item 4 Base.IronBandSmall"
-  },
-  {
-   "name": "SawIronBlockIntoChunks",
-   "module": "Base",
-   "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 346,
-   "time": 230,
-   "timedAction": "SawSmallItemMetal",
-   "category": "Metalworking",
-   "tags": [
-    "AnySurfaceCraft"
-   ],
-   "skillRequired": null,
-   "xpAward": null,
-   "needToBeLearn": null,
-   "autoLearnAll": null,
-   "autoLearnAny": null,
-   "allowBatchCraft": null,
-   "metaRecipe": null,
-   "onCreate": null,
-   "tooltip": null,
-   "inputs": [
-    {
-     "kind": "item",
-     "amount": 1.0,
-     "variable": null,
-     "types": [
-      "Base.IronBlock"
-     ],
-     "tags": [],
-     "categories": [],
-     "mode": null,
-     "flags": [
-      "Prop2"
-     ],
-     "mappers": [],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": true,
-     "amountIsItemCount": false,
-     "amountUses": 1.0,
-     "subLines": [],
-     "raw": "item 1 [Base.IronBlock] flags[Prop2]"
-    },
-    {
-     "kind": "item",
-     "amount": 1.0,
-     "variable": null,
-     "types": [],
-     "tags": [
-      "base:metalsaw"
-     ],
-     "categories": [],
-     "mode": "keep",
-     "flags": [
-      "Prop1",
-      "MayDegrade"
-     ],
-     "mappers": [],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": false,
-     "amountIsItemCount": false,
-     "amountUses": 1.0,
-     "subLines": [],
-     "raw": "item 1 tags[base:metalsaw] mode:keep flags[Prop1;MayDegrade]"
-    }
-   ],
-   "inputCount": 2,
-   "outputs": [
-    {
-     "kind": "item",
-     "amount": 4.0,
-     "variable": null,
-     "types": [
-      "Base.IronChunk"
-     ],
-     "tags": [],
-     "categories": [],
-     "mode": null,
-     "flags": [],
-     "mappers": [],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": true,
-     "amountIsItemCount": false,
-     "amountUses": 4.0,
-     "subLines": [],
-     "raw": "item 4 Base.IronChunk"
-    }
-   ],
-   "itemMappers": {},
-   "itemMapperPairs": {},
-   "itemMapperDefaults": {},
-   "overlayMapper": null,
-   "props": {},
-   "fluidIO": false,
-   "split": false,
-   "datasetTypes": [],
-   "foodItemTypes": [],
-   "delta": null,
-   "deltaReason": "not-in-dataset: item 1 [Base.IronBlock] flags[Prop2] ; not-in-dataset: item 4 Base.IronChunk"
-  },
-  {
-   "name": "SawIronIngotIntoBlocks",
-   "module": "Base",
-   "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 329,
-   "time": 230,
-   "timedAction": "SawSmallItemMetal",
-   "category": "Metalworking",
-   "tags": [
-    "AnySurfaceCraft"
-   ],
-   "skillRequired": null,
-   "xpAward": null,
-   "needToBeLearn": null,
-   "autoLearnAll": null,
-   "autoLearnAny": null,
-   "allowBatchCraft": null,
-   "metaRecipe": null,
-   "onCreate": null,
-   "tooltip": null,
-   "inputs": [
-    {
-     "kind": "item",
-     "amount": 1.0,
-     "variable": null,
-     "types": [
-      "Base.IronIngot"
-     ],
-     "tags": [],
-     "categories": [],
-     "mode": null,
-     "flags": [
-      "Prop2"
-     ],
-     "mappers": [],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": true,
-     "amountIsItemCount": false,
-     "amountUses": 1.0,
-     "subLines": [],
-     "raw": "item 1 [Base.IronIngot] flags[Prop2]"
-    },
-    {
-     "kind": "item",
-     "amount": 1.0,
-     "variable": null,
-     "types": [],
-     "tags": [
-      "base:metalsaw"
-     ],
-     "categories": [],
-     "mode": "keep",
-     "flags": [
-      "Prop1",
-      "MayDegradeHeavy"
-     ],
-     "mappers": [],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": false,
-     "amountIsItemCount": false,
-     "amountUses": 1.0,
-     "subLines": [],
-     "raw": "item 1 tags[base:metalsaw] mode:keep flags[Prop1;MayDegradeHeavy]"
-    }
-   ],
-   "inputCount": 2,
-   "outputs": [
-    {
-     "kind": "item",
-     "amount": 3.0,
-     "variable": null,
-     "types": [
-      "Base.IronBlock"
-     ],
-     "tags": [],
-     "categories": [],
-     "mode": null,
-     "flags": [],
-     "mappers": [],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": true,
-     "amountIsItemCount": false,
-     "amountUses": 3.0,
-     "subLines": [],
-     "raw": "item 3 Base.IronBlock"
-    }
-   ],
-   "itemMappers": {},
-   "itemMapperPairs": {},
-   "itemMapperDefaults": {},
-   "overlayMapper": null,
-   "props": {},
-   "fluidIO": false,
-   "split": false,
-   "datasetTypes": [],
-   "foodItemTypes": [],
-   "delta": null,
-   "deltaReason": "not-in-dataset: item 1 [Base.IronIngot] flags[Prop2] ; not-in-dataset: item 3 Base.IronBlock"
   },
   {
    "name": "SawLargeBranch",
@@ -121848,7 +121729,7 @@
    "name": "SawOffShotgun",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 117,
+   "sourceLine": 135,
    "time": 200,
    "timedAction": "SawOffShotgun",
    "category": "Weaponry",
@@ -121975,10 +121856,10 @@
    "deltaReason": "multi-type: item 1 [Base.Shotgun;Base.DoubleBarrelShotgun] flags[Prop2;InheritCondition;InheritAmmunition] mappers[shotgunType] ; multi-type: item 1 mapper:shotgunType"
   },
   {
-   "name": "SawSteelBlockIntoChunks",
+   "name": "SawSheet",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 312,
+   "sourceLine": 323,
    "time": 230,
    "timedAction": "SawSmallItemMetal",
    "category": "Metalworking",
@@ -122000,7 +121881,8 @@
      "amount": 1.0,
      "variable": null,
      "types": [
-      "Base.SteelBlock"
+      "Base.SheetMetal",
+      "Base.CopperSheet"
      ],
      "tags": [],
      "categories": [],
@@ -122008,7 +121890,9 @@
      "flags": [
       "Prop2"
      ],
-     "mappers": [],
+     "mappers": [
+      "metalType"
+     ],
      "mapper": null,
      "overlayMapper": false,
      "extras": [],
@@ -122016,217 +121900,7 @@
      "amountIsItemCount": false,
      "amountUses": 1.0,
      "subLines": [],
-     "raw": "item 1 [Base.SteelBlock] flags[Prop2]"
-    },
-    {
-     "kind": "item",
-     "amount": 1.0,
-     "variable": null,
-     "types": [],
-     "tags": [
-      "base:metalsaw"
-     ],
-     "categories": [],
-     "mode": "keep",
-     "flags": [
-      "Prop1",
-      "MayDegrade"
-     ],
-     "mappers": [],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": false,
-     "amountIsItemCount": false,
-     "amountUses": 1.0,
-     "subLines": [],
-     "raw": "item 1 tags[base:metalsaw] mode:keep flags[Prop1;MayDegrade]"
-    }
-   ],
-   "inputCount": 2,
-   "outputs": [
-    {
-     "kind": "item",
-     "amount": 4.0,
-     "variable": null,
-     "types": [
-      "Base.SteelChunk"
-     ],
-     "tags": [],
-     "categories": [],
-     "mode": null,
-     "flags": [],
-     "mappers": [],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": true,
-     "amountIsItemCount": false,
-     "amountUses": 4.0,
-     "subLines": [],
-     "raw": "item 4 Base.SteelChunk"
-    }
-   ],
-   "itemMappers": {},
-   "itemMapperPairs": {},
-   "itemMapperDefaults": {},
-   "overlayMapper": null,
-   "props": {},
-   "fluidIO": false,
-   "split": false,
-   "datasetTypes": [],
-   "foodItemTypes": [],
-   "delta": null,
-   "deltaReason": "not-in-dataset: item 1 [Base.SteelBlock] flags[Prop2] ; not-in-dataset: item 4 Base.SteelChunk"
-  },
-  {
-   "name": "SawSteelIngotIntoBlocks",
-   "module": "Base",
-   "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 295,
-   "time": 230,
-   "timedAction": "SawSmallItemMetal",
-   "category": "Metalworking",
-   "tags": [
-    "AnySurfaceCraft"
-   ],
-   "skillRequired": null,
-   "xpAward": null,
-   "needToBeLearn": null,
-   "autoLearnAll": null,
-   "autoLearnAny": null,
-   "allowBatchCraft": null,
-   "metaRecipe": null,
-   "onCreate": null,
-   "tooltip": null,
-   "inputs": [
-    {
-     "kind": "item",
-     "amount": 1.0,
-     "variable": null,
-     "types": [
-      "Base.SteelIngot"
-     ],
-     "tags": [],
-     "categories": [],
-     "mode": null,
-     "flags": [
-      "Prop2"
-     ],
-     "mappers": [],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": true,
-     "amountIsItemCount": false,
-     "amountUses": 1.0,
-     "subLines": [],
-     "raw": "item 1 [Base.SteelIngot] flags[Prop2]"
-    },
-    {
-     "kind": "item",
-     "amount": 1.0,
-     "variable": null,
-     "types": [],
-     "tags": [
-      "base:metalsaw"
-     ],
-     "categories": [],
-     "mode": "keep",
-     "flags": [
-      "Prop1",
-      "MayDegradeHeavy"
-     ],
-     "mappers": [],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": false,
-     "amountIsItemCount": false,
-     "amountUses": 1.0,
-     "subLines": [],
-     "raw": "item 1 tags[base:metalsaw] mode:keep flags[Prop1;MayDegradeHeavy]"
-    }
-   ],
-   "inputCount": 2,
-   "outputs": [
-    {
-     "kind": "item",
-     "amount": 3.0,
-     "variable": null,
-     "types": [
-      "Base.SteelBlock"
-     ],
-     "tags": [],
-     "categories": [],
-     "mode": null,
-     "flags": [],
-     "mappers": [],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": true,
-     "amountIsItemCount": false,
-     "amountUses": 3.0,
-     "subLines": [],
-     "raw": "item 3 Base.SteelBlock"
-    }
-   ],
-   "itemMappers": {},
-   "itemMapperPairs": {},
-   "itemMapperDefaults": {},
-   "overlayMapper": null,
-   "props": {},
-   "fluidIO": false,
-   "split": false,
-   "datasetTypes": [],
-   "foodItemTypes": [],
-   "delta": null,
-   "deltaReason": "not-in-dataset: item 1 [Base.SteelIngot] flags[Prop2] ; not-in-dataset: item 3 Base.SteelBlock"
-  },
-  {
-   "name": "SawSteelSheetIntoSmallSheets",
-   "module": "Base",
-   "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_bar.txt",
-   "sourceLine": 363,
-   "time": 230,
-   "timedAction": "SawSmallItemMetal",
-   "category": "Metalworking",
-   "tags": [
-    "AnySurfaceCraft"
-   ],
-   "skillRequired": null,
-   "xpAward": null,
-   "needToBeLearn": null,
-   "autoLearnAll": null,
-   "autoLearnAny": null,
-   "allowBatchCraft": null,
-   "metaRecipe": null,
-   "onCreate": null,
-   "tooltip": null,
-   "inputs": [
-    {
-     "kind": "item",
-     "amount": 1.0,
-     "variable": null,
-     "types": [
-      "Base.SheetMetal"
-     ],
-     "tags": [],
-     "categories": [],
-     "mode": null,
-     "flags": [
-      "Prop2"
-     ],
-     "mappers": [],
-     "mapper": null,
-     "overlayMapper": false,
-     "extras": [],
-     "consumed": true,
-     "amountIsItemCount": false,
-     "amountUses": 1.0,
-     "subLines": [],
-     "raw": "item 1 [Base.SheetMetal] flags[Prop2]"
+     "raw": "item 1 [Base.SheetMetal;Base.CopperSheet] flags[Prop2] mappers[metalType]"
     },
     {
      "kind": "item",
@@ -122275,11 +121949,51 @@
      "amountUses": 4.0,
      "subLines": [],
      "raw": "item 4 Base.SmallSheetMetal"
+    },
+    {
+     "kind": "item",
+     "amount": 4.0,
+     "variable": null,
+     "types": [
+      "Base.SmallSheetMetal",
+      "Base.SmallCopperSheet"
+     ],
+     "tags": [],
+     "categories": [],
+     "mode": null,
+     "flags": [],
+     "mappers": [],
+     "mapper": "metalType",
+     "overlayMapper": false,
+     "extras": [],
+     "consumed": true,
+     "amountIsItemCount": false,
+     "amountUses": 4.0,
+     "subLines": [],
+     "raw": "item 4 mapper:metalType"
     }
    ],
-   "itemMappers": {},
-   "itemMapperPairs": {},
-   "itemMapperDefaults": {},
+   "itemMappers": {
+    "metalType": {
+     "Base.SmallSheetMetal": "Base.SheetMetal",
+     "Base.SmallCopperSheet": "Base.CopperSheet"
+    }
+   },
+   "itemMapperPairs": {
+    "metalType": [
+     [
+      "Base.SmallSheetMetal",
+      "Base.SheetMetal"
+     ],
+     [
+      "Base.SmallCopperSheet",
+      "Base.CopperSheet"
+     ]
+    ]
+   },
+   "itemMapperDefaults": {
+    "metalType": "Base.SmallSheetMetal"
+   },
    "overlayMapper": null,
    "props": {},
    "fluidIO": false,
@@ -122287,7 +122001,7 @@
    "datasetTypes": [],
    "foodItemTypes": [],
    "delta": null,
-   "deltaReason": "not-in-dataset: item 1 [Base.SheetMetal] flags[Prop2] ; not-in-dataset: item 4 Base.SmallSheetMetal"
+   "deltaReason": "multi-type: item 1 [Base.SheetMetal;Base.CopperSheet] flags[Prop2] mappers[metalType] ; not-in-dataset: item 4 Base.SmallSheetMetal ; multi-type: item 4 mapper:metalType"
   },
   {
    "name": "SawWoodenRod",
@@ -122821,7 +122535,7 @@
    "name": "ScrapAluminumLarge",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 604,
+   "sourceLine": 587,
    "time": 200,
    "timedAction": "SawSmallItemMetal",
    "category": "Metalworking",
@@ -122929,7 +122643,7 @@
    "name": "ScrapMetal",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 621,
+   "sourceLine": 604,
    "time": 200,
    "timedAction": "SawSmallItemMetal",
    "category": "Metalworking",
@@ -123274,7 +122988,7 @@
    "name": "Scrap_Gold_Jewellery",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 432,
+   "sourceLine": 415,
    "time": 200,
    "timedAction": "SawSmallItemMetal",
    "category": "Metalworking",
@@ -123383,7 +123097,7 @@
    "name": "Scrap_Gold_Object",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 468,
+   "sourceLine": 451,
    "time": 100,
    "timedAction": "SawSmallItemMetal",
    "category": "Metalworking",
@@ -123603,7 +123317,7 @@
    "name": "Scrap_Silver_Jewellery",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 450,
+   "sourceLine": 433,
    "time": 200,
    "timedAction": "SawSmallItemMetal",
    "category": "Metalworking",
@@ -123712,7 +123426,7 @@
    "name": "Scrap_Silver_Object",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 536,
+   "sourceLine": 519,
    "time": 100,
    "timedAction": "SawSmallItemMetal",
    "category": "Metalworking",
@@ -123932,7 +123646,7 @@
    "name": "Scrap_Small_Gold_Object",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 485,
+   "sourceLine": 468,
    "time": 100,
    "timedAction": "SawSmallItemMetal",
    "category": "Metalworking",
@@ -124042,7 +123756,7 @@
    "name": "Scrap_Small_Silver_Object",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 553,
+   "sourceLine": 536,
    "time": 100,
    "timedAction": "SawSmallItemMetal",
    "category": "Metalworking",
@@ -124152,7 +123866,7 @@
    "name": "Scrap_Smaller_Gold_Object",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 502,
+   "sourceLine": 485,
    "time": 100,
    "timedAction": "SawSmallItemMetal",
    "category": "Metalworking",
@@ -124262,7 +123976,7 @@
    "name": "Scrap_Smaller_Silver_Object",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 570,
+   "sourceLine": 553,
    "time": 100,
    "timedAction": "SawSmallItemMetal",
    "category": "Metalworking",
@@ -124372,7 +124086,7 @@
    "name": "Scrap_Smallest_Gold_Object",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 519,
+   "sourceLine": 502,
    "time": 100,
    "timedAction": "SawSmallItemMetal",
    "category": "Metalworking",
@@ -124482,7 +124196,7 @@
    "name": "Scrap_Smallest_Silver_Object",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 587,
+   "sourceLine": 570,
    "time": 100,
    "timedAction": "SawSmallItemMetal",
    "category": "Metalworking",
@@ -124592,7 +124306,7 @@
    "name": "ScratchTicket",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 100,
+   "sourceLine": 118,
    "time": 50,
    "timedAction": "Making",
    "category": null,
@@ -124830,7 +124544,7 @@
    "name": "SetCoffinFlat",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 395,
+   "sourceLine": 413,
    "time": 20,
    "timedAction": "Making",
    "category": null,
@@ -124911,7 +124625,7 @@
    "name": "SetCoffinUpright",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 380,
+   "sourceLine": 398,
    "time": 20,
    "timedAction": "Making",
    "category": null,
@@ -142659,7 +142373,7 @@
    "name": "SmashBottle",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 69,
+   "sourceLine": 87,
    "time": 30,
    "timedAction": "SmashBottle",
    "category": "Weaponry",
@@ -147472,7 +147186,8 @@
    "category": "Miscellaneous",
    "tags": [
     "InHandCraft",
-    "CanBeDoneInDark"
+    "CanBeDoneInDark",
+    "CanBeDoneWhileWalking"
    ],
    "skillRequired": null,
    "xpAward": null,
@@ -147579,7 +147294,7 @@
    "name": "TakeAGarbageBag",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 329,
+   "sourceLine": 347,
    "time": 15,
    "timedAction": "Making",
    "category": null,
@@ -147663,7 +147378,7 @@
    "name": "TakeATissue",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 85,
+   "sourceLine": 103,
    "time": 15,
    "timedAction": "Making",
    "category": null,
@@ -151331,7 +151046,7 @@
    "name": "UntieSheetRope",
    "module": "Base",
    "sourceFile": "recipes/recipes.txt",
-   "sourceLine": 202,
+   "sourceLine": 220,
    "time": 50,
    "timedAction": "Making",
    "category": null,
@@ -152901,7 +152616,7 @@
    "name": "scrap_jewellery",
    "module": "Base",
    "sourceFile": "entities/blacksmith/craftRecipes/recipes_blacksmith_other_metals.txt",
-   "sourceLine": 418,
+   "sourceLine": 401,
    "time": 200,
    "timedAction": "SawSmallItemMetal",
    "category": "Metalworking",
@@ -154599,7 +154314,7 @@
    "to": "Base.BathTowelWet",
    "trigger": "deplete",
    "sourceFile": "items/drainable.txt",
-   "sourceLine": 2187,
+   "sourceLine": 2200,
    "delta": null,
    "deltaReason": "not-in-dataset"
   },
@@ -154752,7 +154467,7 @@
    "to": "Base.DishClothWet",
    "trigger": "deplete",
    "sourceFile": "items/drainable.txt",
-   "sourceLine": 2203,
+   "sourceLine": 2216,
    "delta": null,
    "deltaReason": "not-in-dataset"
   },
@@ -154806,7 +154521,7 @@
    "to": "Base.PaintbucketEmpty",
    "trigger": "deplete",
    "sourceFile": "items/drainable.txt",
-   "sourceLine": 1803,
+   "sourceLine": 1816,
    "delta": null,
    "deltaReason": "no-nutrition"
   },
@@ -154815,7 +154530,7 @@
    "to": "Base.PaintbucketEmpty",
    "trigger": "deplete",
    "sourceFile": "items/drainable.txt",
-   "sourceLine": 1820,
+   "sourceLine": 1833,
    "delta": null,
    "deltaReason": "no-nutrition"
   },
@@ -154824,7 +154539,7 @@
    "to": "Base.PaintbucketEmpty",
    "trigger": "deplete",
    "sourceFile": "items/drainable.txt",
-   "sourceLine": 1837,
+   "sourceLine": 1850,
    "delta": null,
    "deltaReason": "no-nutrition"
   },
@@ -154833,7 +154548,7 @@
    "to": "Base.PaintbucketEmpty",
    "trigger": "deplete",
    "sourceFile": "items/drainable.txt",
-   "sourceLine": 1854,
+   "sourceLine": 1867,
    "delta": null,
    "deltaReason": "no-nutrition"
   },
@@ -154842,7 +154557,7 @@
    "to": "Base.PaintbucketEmpty",
    "trigger": "deplete",
    "sourceFile": "items/drainable.txt",
-   "sourceLine": 1871,
+   "sourceLine": 1884,
    "delta": null,
    "deltaReason": "no-nutrition"
   },
@@ -154851,7 +154566,7 @@
    "to": "Base.PaintbucketEmpty",
    "trigger": "deplete",
    "sourceFile": "items/drainable.txt",
-   "sourceLine": 1888,
+   "sourceLine": 1901,
    "delta": null,
    "deltaReason": "no-nutrition"
   },
@@ -154860,7 +154575,7 @@
    "to": "Base.PaintbucketEmpty",
    "trigger": "deplete",
    "sourceFile": "items/drainable.txt",
-   "sourceLine": 1905,
+   "sourceLine": 1918,
    "delta": null,
    "deltaReason": "no-nutrition"
   },
@@ -154869,7 +154584,7 @@
    "to": "Base.PaintbucketEmpty",
    "trigger": "deplete",
    "sourceFile": "items/drainable.txt",
-   "sourceLine": 1922,
+   "sourceLine": 1935,
    "delta": null,
    "deltaReason": "no-nutrition"
   },
@@ -154878,7 +154593,7 @@
    "to": "Base.PaintbucketEmpty",
    "trigger": "deplete",
    "sourceFile": "items/drainable.txt",
-   "sourceLine": 1939,
+   "sourceLine": 1952,
    "delta": null,
    "deltaReason": "no-nutrition"
   },
@@ -154887,7 +154602,7 @@
    "to": "Base.PaintbucketEmpty",
    "trigger": "deplete",
    "sourceFile": "items/drainable.txt",
-   "sourceLine": 1956,
+   "sourceLine": 1969,
    "delta": null,
    "deltaReason": "no-nutrition"
   },
@@ -154896,7 +154611,7 @@
    "to": "Base.PaintbucketEmpty",
    "trigger": "deplete",
    "sourceFile": "items/drainable.txt",
-   "sourceLine": 1973,
+   "sourceLine": 1986,
    "delta": null,
    "deltaReason": "no-nutrition"
   },
@@ -154905,7 +154620,7 @@
    "to": "Base.PaintbucketEmpty",
    "trigger": "deplete",
    "sourceFile": "items/drainable.txt",
-   "sourceLine": 1990,
+   "sourceLine": 2003,
    "delta": null,
    "deltaReason": "no-nutrition"
   },
@@ -154914,7 +154629,7 @@
    "to": "Base.PaintbucketEmpty",
    "trigger": "deplete",
    "sourceFile": "items/drainable.txt",
-   "sourceLine": 2007,
+   "sourceLine": 2020,
    "delta": null,
    "deltaReason": "no-nutrition"
   },
@@ -154923,7 +154638,7 @@
    "to": "Base.PaintbucketEmpty",
    "trigger": "deplete",
    "sourceFile": "items/drainable.txt",
-   "sourceLine": 2024,
+   "sourceLine": 2037,
    "delta": null,
    "deltaReason": "no-nutrition"
   },
@@ -154932,7 +154647,7 @@
    "to": "Base.PaintbucketEmpty",
    "trigger": "deplete",
    "sourceFile": "items/drainable.txt",
-   "sourceLine": 2041,
+   "sourceLine": 2054,
    "delta": null,
    "deltaReason": "no-nutrition"
   },
@@ -154941,7 +154656,7 @@
    "to": "Base.RippedSheetsDirty",
    "trigger": "deplete",
    "sourceFile": "items/drainable.txt",
-   "sourceLine": 1625,
+   "sourceLine": 1638,
    "delta": null,
    "deltaReason": "not-in-dataset"
   },

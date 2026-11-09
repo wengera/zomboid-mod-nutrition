@@ -11,10 +11,10 @@
   "skipped": {
    "drainable": 2,
    "fluid-sourced": 1,
-   "multi-type": 231,
+   "multi-type": 232,
    "no-nutrition": 54,
-   "no-outputs": 37,
-   "not-in-dataset": 296,
+   "no-outputs": 38,
+   "not-in-dataset": 290,
    "tags-only": 285,
    "variable-amount": 33,
    "wildcard": 1

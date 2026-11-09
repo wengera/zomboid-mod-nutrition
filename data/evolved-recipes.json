@@ -1,7 +1,7 @@
 {
  "meta": {
-  "build": "42.21.0 (4a0e9546ec)",
-  "generated": "2026-10-22",
+  "build": "42.22.2 (3d39148846)",
+  "generated": "2026-11-09",
   "tool": "tools/recipe_scan.py",
   "sources": {
    "scripts": "media/scripts",
@@ -11,9 +11,9 @@
    ],
    "food_items": {
     "path": "data/food-items.json",
-    "build": "42.21.0",
-    "jar_hash": "4a0e9546ec",
-    "generated": "2026-10-08"
+    "build": "42.22.2",
+    "jar_hash": "3d39148846",
+    "generated": "2026-11-09"
    }
   },
   "counts": {

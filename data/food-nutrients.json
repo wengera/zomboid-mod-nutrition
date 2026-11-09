@@ -94648,7 +94648,7 @@
   }
  ],
  "meta": {
-  "build": "42.21.0",
+  "build": "42.22.2",
   "counts": {
    "atwater_checked": 566,
    "atwater_outlier_ids": [
@@ -94832,11 +94832,11 @@
    "retention_over_100": 0,
    "unmapped": []
   },
-  "generated": "2026-10-17",
+  "generated": "2026-11-09",
   "inputs": {
    "dataset": {
-    "build": "42.21.0",
-    "generated": "2026-10-08",
+    "build": "42.22.2",
+    "generated": "2026-11-09",
     "path": "data/food-items.json"
    },
    "extract": {
@@ -94912,7 +94912,7 @@
     }
    }
   },
-  "jar_hash": "4a0e9546ec",
+  "jar_hash": "3d39148846",
   "sources": [
    {
     "bytes": 6074592,

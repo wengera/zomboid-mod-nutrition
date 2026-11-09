@@ -528,7 +528,7 @@ def test_real_install_has_no_anonymous_blocks():
                     multi_word += 1
                 elif block["kind"] == "block" and not block["name"].isidentifier():
                     numbered += 1
-    assert total == 34691                    # == the 34691 `{` lines these files contain; 42.21.0 (2026-10-08 scan); 42.20.4 read 34683
+    assert total == 35833                    # == the 35833 `{` lines these files contain; 42.22.2 (2026-11-09 scan); 42.21.0 read 34691, 42.20.4 34683
     assert multi_word == 114                 # 87 vehicles, 19 `fixing Fix …`, 6 evolved, 2 traits
     assert numbered == 42                    # vehicle templates' `items { 1 { … } }` step indices
     assert multi_word + numbered == 156       # the whole set the old header regex made anonymous
@@ -1125,7 +1125,7 @@ def test_real_dataset_counts():
     assert [r["id"] for r in items] == sorted(r["id"] for r in items)     # stable ordering
     assert [r["id"] for r in fluids] == sorted(r["id"] for r in fluids)
     assert len(meta["sources"]) == 18                     # 15 items/*.txt + 3 fluid files
-    assert meta["build"] == "42.21.0" and meta["jar_hash"] == "4a0e9546ec"  # 42.21.0 (2026-10-08 scan); 42.20.4 read 42.20.4, b0bbce05d5
+    assert meta["build"] == "42.22.2" and meta["jar_hash"] == "3d39148846"  # 42.22.2 (2026-11-09 scan); 42.21.0 read 42.21.0, 4a0e9546ec; 42.20.4 read 42.20.4, b0bbce05d5
 
 
 @unittest.skipUnless(HAVE_INSTALL, "game install not present at %s" % SCRIPTS_ROOT)
