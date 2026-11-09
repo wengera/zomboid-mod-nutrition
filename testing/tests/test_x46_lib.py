@@ -881,7 +881,7 @@ def test_hardkill_grades(tmp_path):
 
 def test_players_db_read_and_the_fixture_is_fresh(tmp_path):
     fr = L.fixture_fresh()
-    assert fr["fresh"] is True and fr["length"] == 4086
+    assert fr["fresh"] is True and fr["length"] == 3922   # the default fixture re-provisioned on 42.22.2 (Plan 34 Task R; 4086 on the 42.21 fixture)
     p = str(tmp_path / "players.db")
     c = sqlite3.connect(p)
     c.execute("create table networkPlayers (id INTEGER PRIMARY KEY, username TEXT, data BLOB)")
