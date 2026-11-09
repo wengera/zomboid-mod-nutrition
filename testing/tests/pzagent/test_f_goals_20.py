@@ -36,7 +36,7 @@ from .test_driverlib import Clock, DayMod, FakeBus, FakeServer, InlinePolls
 REPO = S.REPO
 X = S.X
 RUN_ID = "f_goals_20-20261110-120000"
-BASE_COMMIT = "24a35f2b"   # the planner's head at the copy, re-based before the boot (one replacement)
+BASE_COMMIT = "80a2fff5"   # the planner's head at the copy, re-based before the boot (one replacement)
 PRE = "# ================================================================ pre-boot"
 SESSION = "# ================================================================ the session"
 BOOT = "# ================================================================ the boot"
