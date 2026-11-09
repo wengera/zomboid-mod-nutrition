@@ -32,7 +32,8 @@ before it closes, never by running into it.
   The Fight's side of the retreat (its pin on the nearest standing zombie, the back leg always sent) is `fight.py`'s.
   The leave holds while GROUP_LEAVE_N stand within GROUP_ENTRY_R (the retreat, the run) or, on the door's walk, within
   DANGER_R; it ends at the doorway (the stand's row, `Threat._doorway`, answers first), when fewer stand (`group_leave`
-  {end "strung"}) or under the floor. Withheld, logged `group_leave` {withheld: cover}, when a wall is at the back.
+  {end "strung"}) or under the floor. Withheld, logged `group_leave` {withheld: cover}, when a wall is at the back
+  (with LEAVE_ENTRY off: Task 3b below).
   Plan 34 Task 2 (`LEAVE_DOOR_RACE`; F19, `f_goals_19-20261109-060929`, its GUIDE § 3: the leg turned `door` on line
   1595 with the nearest standing at 0.37 tiles, the door of a one-room building with one door, and the close shut it
   from outside three seconds later, 12431 at 0.60 tiles): `_leave_door` picks no new door with the nearest standing
@@ -48,6 +49,14 @@ before it closes, never by running into it.
   (`strung_n` counting them, `_strung_holds`; reset on a line at or above the count, at the leave's start and its end);
   the lines before it hold the leave and its leg, logged `group_leave` {n, strung_n} (the key on those lines alone); a
   line reading none standing ends it at once. With the switch off, the end on the first such line.
+  Plan 34 Task 3b LEAVE_ENTRY (ruling P34-G; the trial `x_trial-ladder-20261109-123231`, the fix arm on the `agent`
+  fixture, P31-T, not evidence: at decision line 12 a closing trio, 8932, 8933 and 8927, was withheld `cover`, a wall
+  edge at the back, and fought there; from line 25 to 60 three standing at 0.4 to 0.9 tiles, jittering rather than
+  closing, made no leave line; the drag-down at game minute 578), `_leave_entry`: no cover exemption, the back read
+  logged beside the entry (`group_leave` {closing, cover}), since a wall at the back stops no drag-down (#4290) and the
+  retreat's heading turns off it (`fight.Fight._retreat_heading`); and the leave entered, besides the closing read,
+  with GROUP_LEAVE_N or more standing within GROUP_ENTRY_R and the nearest within KEEP_R, closing or not (`group_leave`
+  {on: [ids], near}). With the switch off, the cover withholds and the closing read alone enters.
   The Fight's side of the retreat at the stance's band (Plan 34 RETREAT_GAP and RETREAT_MELEE) is `fight.py`'s.
 - `DRAG_GUARD_FIGHT` (`_drag_fight`, `_drag_shove`): the drag-down guard's flee, when the frame reads a hit reaction
   (`me.hitReaction` non-empty) or STUCK_FRAMES frames of `me.moving` false while a steer or a walk is the running
@@ -82,7 +91,7 @@ import math
 
 from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, DOOR_ABORT_R, DOOR_RACE_R, DRAG_SHOVES_PER_EPISODE,
                                          FLEE_GAIT,
-                                         FLEE_HEALTH_FLOOR, GROUP_ENTRY_R, GROUP_LEAVE_N,
+                                         FLEE_HEALTH_FLOOR, GROUP_ENTRY_R, GROUP_LEAVE_N, KEEP_R,
                                          LEAVE_DOOR_R, RETREAT_MAX_N, SHOVE_R, STAND_MIN_R, SIDE_LOOK, SIDE_R,
                                          STEER_PROBE, STRUNG_LINES, STUCK_FRAMES, STUCK_FREE_R, WALL_R, _rotate,
                                          blocked, clear_heading, hit_reaction, on_floor, target_id_ok, zdist)
@@ -370,21 +379,42 @@ class ThreatGroup:
                 return False
             self._leave_leg()
             return True
-        closing = self._group_closing
-        if len(closing) < GROUP_LEAVE_N:
+        entry = self._leave_entry()
+        if entry is None:
             return False
-        ids = [zid for zid, _, _ in closing]
-        mx, my = me_xy(self.world)
-        cx = sum(z["x"] for _, z, _ in closing) / len(closing)
-        cy = sum(z["y"] for _, z, _ in closing) / len(closing)
-        cover = back_cover(self.world, _unit(mx - cx, my - cy))
-        if cover is not None:
-            self.group_leave = {"withheld": "cover", "closing": ids, "cover": cover}
-            return False
-        self.leave, self.strung_n = {"since": self.clock(), "closing": ids}, 0
-        self.group_leave = {"closing": ids}
+        self.leave, self.strung_n = dict(entry, since=self.clock()), 0
+        self.group_leave = entry
         self._leave_leg()
         return True
+
+    def _leave_entry(self):
+        """A new leave's entry read: its why (`group_leave`'s first keys, kept in the leave's record) when the tick
+        enters, else None (`group_leave` {withheld "cover", closing, cover} logged when a wall at the back withholds it):
+        - closing: GROUP_LEAVE_N or more standing zombies within GROUP_ENTRY_R each nearer than on the line before
+          (`_group_closing`), `{closing: [ids]}`; the back read (`back_cover`, away from the closing ones' centroid)
+          withholds it, except under LEAVE_ENTRY, where it is logged beside the entry (`{closing, cover}`) and the
+          leave enters;
+        - on (LEAVE_ENTRY): GROUP_LEAVE_N or more standing within GROUP_ENTRY_R with the nearest within KEEP_R, closing
+          or not (already on the character, they jitter rather than close), `{on: [ids], near: tiles}`."""
+        closing = self._group_closing
+        if len(closing) >= GROUP_LEAVE_N:
+            ids = [zid for zid, _, _ in closing]
+            mx, my = me_xy(self.world)
+            cx = sum(z["x"] for _, z, _ in closing) / len(closing)
+            cy = sum(z["y"] for _, z, _ in closing) / len(closing)
+            cover = back_cover(self.world, _unit(mx - cx, my - cy))
+            if cover is None:
+                return {"closing": ids}
+            if self.LEAVE_ENTRY:   # Plan 34 Task 3b: a wall at the back stops no drag-down, the retreat turns off it
+                return {"closing": ids, "cover": cover}
+            self.group_leave = {"withheld": "cover", "closing": ids, "cover": cover}
+            return None
+        if not self.LEAVE_ENTRY:
+            return None
+        group = self._group_standing(GROUP_ENTRY_R)
+        if len(group) < GROUP_LEAVE_N or group[0][2] > KEEP_R:
+            return None
+        return {"on": [zid for zid, _, _ in group], "near": group[0][2]}
 
     def _strung_holds(self, n):
         """STRUNG_HOLD (Plan 34; the module docstring): a running leave's line reading `n` (fewer than GROUP_LEAVE_N,

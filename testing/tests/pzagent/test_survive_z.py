@@ -322,9 +322,12 @@ def test_e17_s_window_act_is_dropped_at_its_stall_and_the_window_noted_stalled(m
     iteration 24's (`survive.T14_SWITCHES`) off with them (the still read reaches the same lines).
     Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
     Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
-    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason).
+    Named change, Plan 34 Task 3b (ruling P34-G, LEAVE_ENTRY): line 326's closing trio (2408, 2403, 2400), withheld
+    `cover` before (a solid square at the back), enters the leave, its leg the door; pinned with `LEAVE_ENTRY` off."""
     monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
+    monkeypatch.setattr("agent.base.planner.threat.Threat.LEAVE_ENTRY", False)
     kept = {}
 
     def mutate(sv):

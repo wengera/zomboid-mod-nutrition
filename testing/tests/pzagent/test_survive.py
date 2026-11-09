@@ -2225,7 +2225,10 @@ def test_e3_a_group_gathering_on_a_walk_corner_is_steered_from_not_fought_standi
     Named change, ruling P29-H' (Plan 29 Task 2): the flee walk read heading at a held zombie is dropped now;
     pinned with `FLEE_HELD_STANCE` off.
     Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
-    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason).
+    Named change, Plan 34 Task 3b (ruling P34-G, LEAVE_ENTRY): the leave entered with a wall at the back reaches these
+    lines (E3's 260 closing trio, withheld `cover` before); pinned with `LEAVE_ENTRY` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.LEAVE_ENTRY", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.FLEE_HELD_STANCE", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.MANY_NEAR", False)
@@ -2317,7 +2320,10 @@ def test_e3_at_melee_range_on_the_shelter_walk_the_corner_answers(monkeypatch, t
     Named change, ruling P23-AP 2: at line 260 (14926 at 0.51 tiles, one within CORNERED_R) fix round 1 attacked;
     five are held there, a group (GROUP_HOLD_N), so the group steer drops the walk there too.
     Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `POINT_BLANK_FIGHT` off, the rule before
-    it ((a), a standing zombie within KEEP_R fought whatever the flee reason)."""
+    it ((a), a standing zombie within KEEP_R fought whatever the flee reason).
+    Named change, Plan 34 Task 3b (ruling P34-G, LEAVE_ENTRY): the leave entered with a wall at the back reaches these
+    lines (E3's 260 closing trio, withheld `cover` before); pinned with `LEAVE_ENTRY` off."""
+    monkeypatch.setattr("agent.base.planner.threat.Threat.LEAVE_ENTRY", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     def setup(r, sv, w):
         e3_on_the_enter_step(r, sv, w)

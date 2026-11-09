@@ -303,6 +303,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                              # finish target (or two whatever the target), with a standing one within DANGER_R, is
                              # backpedalled from, no melee nor stomp meanwhile (the Fight's `crawler_clear` rule,
                              # `crawler.FightCrawler._crawler_clear`); off, the melee and CRAWLER_FIRST as before
+    LEAVE_ENTRY = True       # Task 3b (ruling P34-G): the leave's entry with no cover exemption (the back read logged
+                             # beside it) and with GROUP_LEAVE_N standing within GROUP_ENTRY_R, the nearest within
+                             # KEEP_R, closing or not (`group.ThreatGroup._leave_entry`); off, the cover withholds and
+                             # the closing read alone enters
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the

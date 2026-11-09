@@ -2528,11 +2528,14 @@ PRE_T19 = {"e2": ("b521d04739ecfafb186f857a8646f3898d31e12cde7665daca2af70c56cf8
            "f1": ("28afd0642b5d89ec9c46295a91c6a9b83b73f2983fa1a3ab84aedaf0b44c78e7", "9110c961", "2026-11-09"),
            SIXTH: ("4fb2a7960b9d2fde3a47e71cb8740ecce90d7f5d51394397a69cc7ebd4375730", "9110c961", "2026-11-09")}
 # the first line each column rule moves, alone on, on each golden it moves
-FIRST_T19 = {"e2": {}, "e3": {}, "e4": {"STRUNG_HOLD": 390}, "e5": {}, "f1": {}, SIXTH: {"LEAVE_CARE": 490}}
+FIRST_T19 = {"e2": {}, "e3": {"LEAVE_ENTRY": 260}, "e4": {"STRUNG_HOLD": 390, "LEAVE_ENTRY": 467}, "e5": {}, "f1": {},
+             SIXTH: {"LEAVE_CARE": 490}}
 # the why each rule logs on the first line it moves alone
-WHY_T19 = {"LEAVE_CARE": "care_withheld", "STRUNG_HOLD": "group_retreat"}
+WHY_T19 = {"LEAVE_CARE": "care_withheld", "STRUNG_HOLD": "group_retreat",
+           "LEAVE_ENTRY": "flee"}   # the leave's first leg on both goldens, its one shove (the Flee's `leave`)
 # every line on each golden whose decision (branch or action) the column's rules move together
-ACTED_T19 = {"e2": [], "e3": [], "e4": [], "e5": [], "f1": [], SIXTH: []}
+ACTED_T19 = {"e2": [], "e3": [260, 261, 263, 266, 270, 277, 284], "e4": [467, 468, 469, 470], "e5": [], "f1": [],
+             SIXTH: []}
 
 
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
@@ -2564,6 +2567,16 @@ def test_the_column_rules_move_the_goldens_at_their_lines(key):
       line reading none standing ends it (`group_leave` {end "strung", n 0}). RETREAT_GAP, RETREAT_MELEE and
       CRAWLER_CLEAR move none (E2 to E5 and F1 announce no `aim`; the sixth's lines meet no retreat and no fallen zombie
       within CRAWLER_AVOID_R beside a standing one).
+    - Named change `Plan 34 Task 3b: LEAVE_ENTRY on by default` (ruling P34-G), re-recording E3 and E4:
+      on E3 line 260's closing trio (14926, 14918, 14930), withheld `cover` before (a wall edge [10722, 10627, "N"]),
+      enters the leave with the cover logged beside it: its one shove at 14926 on 260, the retreat on 261 to 269 (an
+      attack at 14926 on 261 and at 14918 on 263, a walk on 266; STRUNG_HOLD holds 265 and 266 at two
+      standing) and from 270 to 284 the `many` run above RETREAT_MAX_N (five, then six, standing: run steers on 270,
+      277 and 284), where the golden held the Fight's walk a30 under `point_blank_fight` and the withholdings; E4's
+      line 467, three standing with the nearest 19035 at 0.48 tiles none closing on all three, enters it `on`
+      ({on [19035, 19032, 19042], near}): the shove at 19035 on 467 (where the golden held the walk), the retreat from
+      468 (an attack at 19032 there), so 469's closing entry and its shove no longer come (the held leave's retreat,
+      no send) and 470's attack is not sent. Alone on, E3's acted lines are 260, 261, 263, 266 and 269.
     The rules together move each golden first at the least of those lines; the acted lines are `ACTED_T19`."""
     base, got = pre_t19_gold(key), gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]

@@ -508,9 +508,10 @@ def test_under_the_health_floor_the_leave_is_not_taken(tmp_path):
 def test_a_wall_at_the_back_withholds_the_leave(tmp_path):
     """`back_cover`: a known blocked edge 0.5 tiles east of the player (the W edge of square (101, 200)), on its back
     side away from the pair, withholds the leave (`withheld` "cover"); the same edge west of a pair coming from the east
-    (in front of the player) does not."""
+    (in front of the player) does not. Pinned with Plan 34's LEAVE_ENTRY off (a named change, Task 3b, ruling P34-G:
+    the rule logs the back read beside the entry and the leave enters; `test_survive_ao.py` reads it on)."""
     wall = [square(101, 200, blockW=True)]
-    closing(tmp_path, scan=wall)
+    closing(tmp_path, scan=wall, off=("LEAVE_ENTRY",))
     why = threat_why(tmp_path)
     assert why.get("flee") != "leave"
     assert why["group_leave"] == {"withheld": "cover", "closing": [2, 1, 3], "cover": {"kind": "wall", "at": [101, 200, "W"]}}
@@ -551,8 +552,9 @@ def test_f18_s_first_leave_is_the_retreat_at_line_358():
     stand within GROUP_ENTRY_R and ended `strung` on 362 (two). Line 174, the group's earlier three closing
     (13652, 13649, 13651), is withheld `cover` (a wall at the back, {"kind": "wall", "at": [10752, 10642, "N"]}). No
     leave line sends a steer or a run. Pinned with Plan 34's STRUNG_HOLD off (a named change: the rule holds line 362's
-    leave, two standing, for STRUNG_LINES lines)."""
-    rows = f18(**only("GROUP_LEAVE"), STRUNG_HOLD=False)
+    leave, two standing, for STRUNG_LINES lines), and with LEAVE_ENTRY off (a named change, Task 3b, ruling P34-G:
+    the rule enters line 174's leave against the wall and the leave with three already on the character)."""
+    rows = f18(**only("GROUP_LEAVE"), STRUNG_HOLD=False, LEAVE_ENTRY=False)
     gl = {k: threat(r)["group_leave"] for k, r in enumerate(rows, 1) if "group_leave" in threat(r)}
     assert sorted(gl) == [174, 358, 359, 360, 361, 362]
     assert gl[174]["withheld"] == "cover" and gl[174]["closing"] == [13652, 13649, 13651]
@@ -569,8 +571,9 @@ def test_f18_with_the_three_on_by_default_its_guard_shoves_once_then_runs_the_le
     """F18, open loop, the three on (the defaults; fix 2): the guard's line 402 shoves 13653 (DRAG_GUARD_FIGHT reads
     first, so no run reaches SIDE_CLEAR), line 403 sends the run through SIDE_CLEAR (turned or least bad), no guard line
     after 402 sends a shove, and the leaves fire as GROUP_LEAVE's alone (the retreat, 358). Named change, Plan 34 fix
-    C (ruling P34-A): pinned with `SHOVE_CLEAR` off (the replayed shove has no recorded end)."""
-    rows = f18(**{k: True for k in T17}, SHOVE_CLEAR=False)
+    C (ruling P34-A): pinned with `SHOVE_CLEAR` off (the replayed shove has no recorded end); Task 3b (ruling
+    P34-G): pinned with `LEAVE_ENTRY` off (the rule enters line 174's leave against the wall)."""
+    rows = f18(**{k: True for k in T17}, SHOVE_CLEAR=False, LEAVE_ENTRY=False)
     assert rows[401]["action"] == {"type": "shove", "args": {"targetId": 13653}}
     assert action(rows[402]) == "steer" and "side_clear" in threat(rows[402])
     assert all(action(rows[k - 1]) != "shove" for k in GUARD[1:])
