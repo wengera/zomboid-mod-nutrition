@@ -89,7 +89,7 @@ def flee_counts(rows):
 
 def test_the_t16_switches():
     """`survive.T16_SWITCHES`, each off until the coward rules' commit turns them on by default."""
-    assert T16 == ("POINT_BLANK_FIGHT", "PAIR_NEAREST")
+    assert T16 == ("POINT_BLANK_FIGHT", "PAIR_NEAREST", "STRAIN_BOUND")
     assert all(getattr(S.Survive, k) is False for k in T16)
 
 
@@ -259,3 +259,55 @@ def test_f17_s_pair_holds_16232_where_the_record_traded_targets():
     assert not any(action(on[k - 1]) == "attack" and on[k - 1]["action"]["args"]["targetId"] == 16230 for k in lines)
     assert [k for k in range(752, 767) if action(off[k - 1]) == "attack"
             and off[k - 1]["action"]["args"]["targetId"] == 16230] == [752, 758, 762, 766]
+
+
+# ================================================================ (d) the strain flee bounded to a real exhaustion
+def test_strain_endurance_is_the_endurance_moodle_s_second_level():
+    """(d)'s line: STRAIN_ENDURANCE 0.5, the ENDURANCE moodle's level 2 edge (#3926: level 1 while above 0.5, level 2 at
+    0.5 or under), under ENDURANCE_T (0.75, level 1, the hold's start)."""
+    assert P.STRAIN_ENDURANCE == 0.5 < P.ENDURANCE_T
+
+
+def strain_rig(tmp_path, endurance, zombies, on=("STRAIN_BOUND",)):
+    return rig(tmp_path, zombies, on=on, endurance=endurance)
+
+
+@pytest.mark.parametrize("endurance, flee", [(0.7, None), (0.45, "strain")])
+def test_two_standing_within_danger_r_flee_strain_only_under_a_real_exhaustion(tmp_path, endurance, flee):
+    """(d): two standing within DANGER_R under the endurance hold: at 0.7 (level 1, F17's 158 lines read 0.643 to
+    0.741) no `strain` flee (logged `strain_bound` {endurance, standing 2}), the fight; at 0.45 (level 2) the flee."""
+    r, sv = strain_rig(tmp_path, endurance, [zombie(1, 104.0, 200.0), zombie(2, 100.0, 204.0)])
+    tick(r, sv)
+    why = threat_why(tmp_path)
+    assert why.get("flee") == flee
+    if flee is None:
+        assert why["strain_bound"] == {"endurance": endurance, "standing": 2} and why.get("fight") is True
+
+
+def test_exactly_one_standing_within_danger_r_is_never_fled_strain(tmp_path):
+    """(d): at 0.45 (a real exhaustion) with exactly one standing within DANGER_R and a second chaser listed at 9 tiles
+    (so P27-C's hold fight does not take it), no `strain` flee (`strain_bound` {standing 1}); with the rule off, the
+    flee as before."""
+    zs = [zombie(1, 104.0, 200.0), zombie(2, 109.0, 200.0)]
+    r, sv = strain_rig(tmp_path, 0.45, zs)
+    tick(r, sv)
+    why = threat_why(tmp_path)
+    assert why.get("flee") != "strain" and why["strain_bound"] == {"endurance": 0.45, "standing": 1}
+    (tmp_path / "off").mkdir()
+    r2, sv2 = strain_rig(tmp_path / "off", 0.45, zs, on=())
+    tick(r2, sv2)
+    assert threat_why(tmp_path / "off").get("flee") == "strain"
+
+
+def test_f17_s_158_strain_lines_fall_to_none():
+    """(d) on F17: every one of its 158 `strain` lines (from line 1173) read the endurance hold alone at endurance
+    0.6427835822105408 to 0.7410425543785095, the moodle's first level; with STRAIN_BOUND alone on none flees `strain`,
+    each of them logging `strain_bound`; off, the 158."""
+    on, off = f17(**only("STRAIN_BOUND")), f17(**only())
+    lines = [k for k, r in enumerate(off, 1) if threat(r).get("flee") == "strain"]
+    assert len(lines) == 158 and lines[0] == 1173
+    ends = [threat(off[k - 1])["strain"]["endurance"] for k in lines]
+    assert min(ends) == 0.6427835822105408 and max(ends) == 0.7410425543785095
+    assert {threat(off[k - 1])["strain"]["kind"] for k in lines} == {"endurance"}
+    assert flee_counts(on).get("strain") is None
+    assert all("strain_bound" in threat(on[k - 1]) for k in lines if on[k - 1]["branch"] == "threat")

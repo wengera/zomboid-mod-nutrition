@@ -25,7 +25,7 @@ from agent.base.planner.policies import (AIM_R, BLEED_FAST, CLOSING_TICKS, CORNE
                                          LISTED_R, MANY_LISTED_N, MANY_TAIL_TICKS, MAX_FIGHT, POINT_BLANK_R,
                                          REFIGHT_MARGIN, STUCK_RETRY_GROUP_S, STUCK_RETRY_S, adoptable, blocked,
                                          chasing, exit_plan, in_building, in_reach, line_to, on_floor, others_behind,
-                                         seek_allowed, spare, target_id_ok, zdist)
+                                         seek_allowed, spare, target_id_ok, zdist, STRAIN_ENDURANCE)
 from agent.base.planner.pull import ThreatPull
 from agent.base.planner.still import ThreatStill
 from agent.base.pza1 import Drop
@@ -257,6 +257,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     PAIR_NEAREST = False   # (b): with two or more within KEEP_R and one standing, the nearest standing one is the
                            # Fight's pin, faced and shoved first, switched only PAIR_SWITCH_R nearer (the Fight's
                            # `pair_nearest` rule, `fight.Fight._pair_pin`); off, the finish and the pin as before
+    STRAIN_BOUND = False   # (d): the `strain` flee only at stats.endurance STRAIN_ENDURANCE or under (the ENDURANCE
+                           # moodle's second level) and never with exactly one standing within DANGER_R
+                           # (`_strain_flees`); off, every hold's `strain` flee as before
     POINT_BLANK_FIGHT = False  # (a): a standing zombie within KEEP_R is fought whatever flee reason the plan would take
                                # (`_point_blank`), the health under FLEE_HEALTH_FLOOR and a running retreat to a named
                                # structure excepted; off, the flee reasons as before
@@ -581,8 +584,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     def _unpaired(self, held, health, n):
         """The hysteresis past the `pair` rule (`_hysteresis`; `n` the DANGER_R count): `strain`, `unreachable`,
         `stalled`, `held`, else None."""
-        if self.spent is not None and not self._wounded_fight() and not self._hold_lone():   # P24-AG, P24-AK: the
-            return "strain"   # arms, the endurance or the tiredness halve every swing; P24-AP within KEEP_R; P27-C
+        if (self.spent is not None and not self._wounded_fight() and not self._hold_lone()   # P24-AG, P24-AK: the
+                and self._strain_flees()):   # arms, the endurance or the tiredness halve every swing; P24-AP within
+            return "strain"                  # KEEP_R; P27-C; Plan 32 Task 5 (d): only under a real exhaustion
         if not self._reachable_held():
             return "unreachable"
         near = min(zdist(self.world, z) for z in held)
@@ -601,6 +605,26 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if self.mode == "fight" and self.fight.stalled and (self.fight.target_dist() or 0.0) > FIGHT_REACH:
             return "stalled"   # the pinned target's distance: the one the stall clock follows (M3)
         return None
+
+    def _strain_flees(self):
+        """Plan 32 Task 5 (d) (`STRAIN_BOUND`; Angus watching F17, `f_goals_17-20261108-172833`: the `strain` flee took
+        158 of its 389 flee lines from line 1173 to the end, every one the endurance hold alone at stats.endurance
+        0.6427835822105408 to 0.7410425543785095, the ENDURANCE moodle's first level, 51 of them with one zombie within
+        DANGER_R): the spent character's `strain` flee may go: always with the rule off; else only under a real
+        exhaustion, the frame's stats.endurance at or under STRAIN_ENDURANCE (the moodle's second level, #3926), and
+        never while exactly one standing zombie (not `onFloor`) is within DANGER_R (it is fought, the Fight's no-swing
+        rules under the hold, R2, or met). A withheld flee is logged `strain_bound` {endurance, standing} and the plan
+        goes on past it (`_unpaired`); the pain-divided and the moodle-halved swing are the meet's business (the Lua's
+        spent meet at the moodle's second level). The hold itself, its seek bar (`_sought`) and its rest are unchanged.
+        Cost if wrong: a fight at endurance level 1, every swing halved (#4371)."""
+        if not self.STRAIN_BOUND:
+            return True
+        e = (self.world.stats or {}).get("endurance")
+        stand = sum(1 for z in self._danger_near() if not on_floor(z))
+        if isinstance(e, (int, float)) and not isinstance(e, bool) and e <= STRAIN_ENDURANCE and stand != 1:
+            return True
+        self.strain_bound = {"endurance": e, "standing": stand}
+        return False
 
     def _breach(self, held):
         """Why a hold breaks this tick (ruling P23-AJ 1), else None: `near` with a held threat within HOLD_BREAK_R
@@ -743,8 +767,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             return "health"
         if self.mode == "flee" and self.flee_many:
             return "many"
-        if self.spent is None or self._wounded_fight():   # P24-AP, R2: a hold fights within KEEP_R
-            return None
+        if self.spent is None or self._wounded_fight() or not self._strain_flees():   # P24-AP, R2: a hold fights
+            return None                                                              # within KEEP_R; Plan 32 Task 5 (d)
         return "strain"   # P24-AG: spent, it disengages as the health flee does
 
     def _drag(self, held, inside):
@@ -807,6 +831,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.health_near, self.health_pass, self.many_near = None, False, None   # P29-E, P29-G: this tick's
         self.finish_lone = None   # P29-F: this tick's
         self.point_blank_fight = None   # Plan 32 Task 5 (a): this tick's
+        self.strain_bound = None   # Plan 32 Task 5 (d): this tick's
         door = self._doorway()
         if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
             return door
@@ -1185,7 +1210,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                        ("pair_yield", self.pair_yield), ("listing", self.listing), ("corner", self.corner_exit),
                        ("health_near", self.health_near), ("many_near", self.many_near),
                        ("finish_lone", self.finish_lone), ("flee_held_stance", self.held_cut),
-                       ("point_blank_fight", self.point_blank_fight)):
+                       ("point_blank_fight", self.point_blank_fight), ("strain_bound", self.strain_bound)):
             if v is not None:
                 self.why[key] = v
         if self.broken is not None:

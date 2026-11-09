@@ -174,6 +174,10 @@ ENDURANCE_T = 0.75    # the frame's stats.endurance at or under which the ENDURA
                       # whose first level halves every swing (#4371): the disengage of P24-AG
 ENDURANCE_RELEASE = 0.80   # ... and above which that hold ends (review-t27: rest gives back 0.003-0.005 a game minute,
                            # a fight takes far more, so the edge alone flickered flee / one swing / flee)
+STRAIN_ENDURANCE = 0.5   # the frame's stats.endurance at or under which the ENDURANCE moodle reads level 2 (#3926:
+                         # level 1 while above 0.5), the real exhaustion the `strain` flee is bounded to (Plan 32 Task 5
+                         # (d), `threat.Threat._strain_flees`): F17's 158 `strain` lines read the endurance hold alone at
+                         # 0.6427835822105408 to 0.7410425543785095, the first level, whose halved swing is the meet's
 TIRED_FIGHT_T = 0.6   # stats.fatigue at or above which no fight is sought or stood (ruling P24-AK; the first TIRED
                       # moodle, night.TIRED_T, halves every swing at its first level too, #4371)
 SHOVE_R = 1.1         # tiles: the engine's shove reach, the bare hands' MaxRange 1.1 to the zombie's position, #4592;
