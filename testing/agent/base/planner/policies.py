@@ -1113,3 +1113,9 @@ RETREAT_RESEND_DEG = 30.0   # degrees: a running retreat leg is re-sent once its
 # 0.970 s old, the line 1.435 s after the one before, the session's median lag 0.057 s, its GUIDE.md section 2)
 FRAME_STALE_S = 0.5  # seconds: a decision line whose frame is older than this (its `wall` less the frame's `wallMs`)
                      # carries `frame_age`, so the write-up reads what held the loop; no rule reads it
+# Plan 34 Task 2 (LEAVE_DOOR_RACE; F19, `f_goals_19-20261109-060929`, GUIDE.md section 3 "The door": the leave's leg
+# turned `door` on decision line 1595 with the nearest standing zombie at 0.37 tiles; the approach, the open, the enter
+# and the close took about three seconds, and the close shut the door from outside with 12431 at 0.60 tiles)
+DOOR_RACE_R = 3.0     # tiles: the leave picks no new door with the nearest standing zombie within DANGER_R this near
+                      # (the walk to the door, the open, the enter and the close take about three seconds)
+DOOR_ABORT_R = 1.0    # tiles: a running leave door plan before its close is dropped with a standing zombie this near

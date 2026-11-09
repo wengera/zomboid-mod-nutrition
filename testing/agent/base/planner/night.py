@@ -258,6 +258,7 @@ def _next_door(plan):
     plan["door_i"] += 1
     plan["inside"] = _inside_for(plan["rooms"], _door(plan))
     plan["step"] = "approach"
+    plan.pop("enter_to", None)   # Plan 34 Task 2 (DOOR_INSIDE): the last door's retry target
     return True
 
 
@@ -282,8 +283,9 @@ def shelter_step(world, plan):
                 plan["step"] = "enter"
                 continue
             return Interact(door[0], door[1], "open"), step
-        if step == "enter":   # a doorway stand's enter walks past its post (`policies.stand_post`, P24-AO fix 1)
-            c = _centre(plan.get("post") or plan["inside"])
+        if step == "enter":   # a doorway stand's enter walks past its post (`policies.stand_post`, P24-AO fix 1);
+            # a retry after an enter that ended outside, to `enter_to` (the Flee's DOOR_INSIDE, Plan 34 Task 2)
+            c = _centre(plan.get("enter_to") or plan.get("post") or plan["inside"])
             return WalkTo(c[0], c[1], "walk"), step
         return Interact(door[0], door[1], "close"), step
     return None, "done"

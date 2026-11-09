@@ -33,6 +33,14 @@ before it closes, never by running into it.
   The leave holds while GROUP_LEAVE_N stand within GROUP_ENTRY_R (the retreat, the run) or, on the door's walk, within
   DANGER_R; it ends at the doorway (the stand's row, `Threat._doorway`, answers first), when fewer stand (`group_leave`
   {end "strung"}) or under the floor. Withheld, logged `group_leave` {withheld: cover}, when a wall is at the back.
+  Plan 34 Task 2 (`LEAVE_DOOR_RACE`; F19, `f_goals_19-20261109-060929`, its GUIDE § 3: the leg turned `door` on line
+  1595 with the nearest standing at 0.37 tiles, the door of a one-room building with one door, and the close shut it
+  from outside three seconds later, 12431 at 0.60 tiles): `_leave_door` picks no new door with the nearest standing
+  zombie within DOOR_RACE_R (`group_leave` {door_refused "race", near}) and reads the verdicts with `second_exit` True
+  (a building with no other way out refused, `door_refused` "one_exit"); `_leave_leg` drops a running door plan whose
+  step is not yet the close with a standing zombie within DOOR_ABORT_R (`Flee.abort_door`, `group_leave` {door_dropped
+  "abort", near}) and re-reads the leg on the same line (the retreat or the run). Its partner, `DOOR_INSIDE`, is the
+  Flee's (`flee.py`: the enter read inside, the close sent from inside).
 - `DRAG_GUARD_FIGHT` (`_drag_fight`, `_drag_shove`): the drag-down guard's flee, when the frame reads a hit reaction
   (`me.hitReaction` non-empty) or STUCK_FRAMES frames of `me.moving` false while a steer or a walk is the running
   action (`_drag_stuck`), shoves the nearest standing zombie within SHOVE_R in front of the character (within 90 degrees
@@ -45,7 +53,9 @@ before it closes, never by running into it.
   dropped for it: the engine moves the character the moment the reaction ends, and the run's steer stands meanwhile),
   until the character has moved STUCK_FREE_R from the episode's start (`_group_read`), which ends the episode (the
   threat's end too); a new one may shove once again. Logged `drag_fight` {target, dist, why hit | stuck} on the shove,
-  {spent, why} on the runs after it.
+  {spent, why} on the runs after it. Plan 34 fix C (ruling P34-A, `SHOVE_CLEAR`): the Lua's shove waits for the
+  reaction's end, so a shove still running on a spent line is held, logged `drag_fight` {spent, holding, why
+  "shove_wait"}, and the run goes once it has ended (done, or `failed busy` at the wait's cap).
 - `SIDE_CLEAR` (`_side_clear`): no run steer the threat branch answers passes within SIDE_R of a standing zombie over
   its first SIDE_LOOK tiles (`side_hits`: ahead of the player, within SIDE_R of the leg's segment); the heading is turned
   by 30-degree steps both ways, nearest first, to the first heading clear of them and of the map (then clear of them
@@ -62,7 +72,8 @@ before it closes, never by running into it.
 """
 import math
 
-from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, DRAG_SHOVES_PER_EPISODE, FLEE_GAIT,
+from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, DOOR_ABORT_R, DOOR_RACE_R, DRAG_SHOVES_PER_EPISODE,
+                                         FLEE_GAIT,
                                          FLEE_HEALTH_FLOOR, GROUP_ENTRY_R, GROUP_LEAVE_N,
                                          LEAVE_DOOR_R, RETREAT_MAX_N, SHOVE_R, STAND_MIN_R, SIDE_LOOK, SIDE_R,
                                          STEER_PROBE, STUCK_FRAMES, STUCK_FREE_R, WALL_R, _rotate, blocked,
@@ -248,12 +259,20 @@ class ThreatGroup:
 
     def _drag_shove(self, flee):
         """The Flee's answer under DRAG_GUARD_FIGHT: on a spent episode's line (fix 2) None, the guard's run, a shove
-        of the Flee's still running dropped for it; else its own shove still running held, else the shove at the
+        of the Flee's still running dropped for it, except under SHOVE_CLEAR (Plan 34 fix C, ruling P34-A: the smoke
+        trial `x_trial-ladder-20261109-105452`'s a26, accepted and waiting under the Lua's wait, was superseded one line
+        later by the run, so the wait never pressed), where it is held (`drag_fight` {spent, holding, why
+        "shove_wait"}) and the run goes once it has ended; else its own shove still running held, else the shove at the
         read's target (superseding a running run); None with no read this tick."""
         if self.drag_fight is None:
             return None
         if "spent" in self.drag_fight:
             if flee.busy() and flee.last.type == "shove":
+                if self.SHOVE_CLEAR:   # Plan 34 fix C (ruling P34-A): the Lua's wait presses it at the reaction's end
+                    self.drag_fight = {"spent": self.drag_fight["spent"], "holding": flee.last.aid,
+                                       "why": "shove_wait"}
+                    self.why = {"holding": flee.last.aid}
+                    return flee, None
                 flee._dropped = flee.last   # the run in its place, whatever the reaction reads
             return None
         if flee.busy() and flee.last.type == "shove":
@@ -360,7 +379,10 @@ class ThreatGroup:
         - `shove` once a leave, at the nearest standing zombie within STAND_MIN_R (round two, trial 2: the engine's own
           shove distance), whatever leg follows;
         - `door` while a known door within LEAVE_DOOR_R is held or reads `ok` (Angus's fighting retreat: a long walk
-          turns the back on the group);
+          turns the back on the group); Plan 34 Task 2 (LEAVE_DOOR_RACE): a running door plan before its close is
+          dropped with a standing zombie within DOOR_ABORT_R (`flee.abort_door`, logged `door_dropped` "abort" and
+          `near`, the tiles) and this line's leg re-read; no new door is picked against the race or a building with
+          one way out (`_leave_door`, logged `door_refused`);
         - `run` with more than RETREAT_MAX_N standing within GROUP_ENTRY_R (fix 4: a backpedal does not outpace eight),
           the threat plan's `many` flee, logged `group_leave` {leg "run", n};
         - else `retreat`, the Fight's stance on the nearest standing zombie with its back heading away from the
@@ -368,6 +390,12 @@ class ThreatGroup:
           {leg, closing, centroid_away})."""
         flee = self.flee
         held_door = flee is not None and flee.plan is not None
+        if held_door and self.LEAVE_DOOR_RACE and flee.plan["step"] in ("approach", "open", "enter"):
+            close = self._group_standing(DOOR_ABORT_R)
+            if close:   # Plan 34 Task 2 (LEAVE_DOOR_RACE): the door given up before its close, the leg re-read
+                flee.abort_door()
+                held_door = False
+                self.group_leave = dict(self.group_leave or {}, door_dropped="abort", near=close[0][2])
         near = self._group_standing(STAND_MIN_R)
         if near and not self.leave.get("shoved") and not held_door:
             self.leave["shoved"] = True
@@ -375,7 +403,9 @@ class ThreatGroup:
             self.group_leave = dict(self.group_leave or {}, leg="shove", target=near[0][0])
             return
         group = self._group_standing(GROUP_ENTRY_R)
-        door = self._leave_door(flee, [z for _, z, _ in group])
+        door, refused = self._leave_door(flee, [z for _, z, _ in group])
+        if refused is not None:
+            self.group_leave = dict(self.group_leave or {}, **refused)
         mx, my = me_xy(self.world)
         cx = sum(z["x"] for _, z, _ in group) / len(group)
         cy = sum(z["y"] for _, z, _ in group) / len(group)
@@ -396,18 +426,34 @@ class ThreatGroup:
         self.group_retreat = {"leg": "retreat", "closing": ids, "centroid_away": [away[0], away[1]]}
 
     def _leave_door(self, flee, ts):
-        """The door the leave walks to: the Flee's running plan's, else the nearest door a Flee reads `ok` whose approach
-        square is within LEAVE_DOOR_R while the Flee has not picked yet (the running Flee, else a fresh one for the
-        read, `ts` the group's zombies); else None."""
+        """`(door, refused)`: the door the leave walks to, the Flee's running plan's, else the nearest door a Flee reads
+        `ok` whose approach square is within LEAVE_DOOR_R while the Flee has not picked yet (the running Flee, else a
+        fresh one for the read, `ts` the group's zombies); else None. Plan 34 Task 2 (LEAVE_DOOR_RACE; F19's line 1595
+        took the door with the nearest standing at 0.37 tiles, its building one room with one door): the verdicts
+        read with `second_exit` True (a building with no other way out on the door's floor is `one_exit`), and no new
+        door with the nearest standing zombie within DOOR_RACE_R; `refused` then {door_refused "race", near} when an
+        `ok` door was there to take, else {door_refused "one_exit"} when only that verdict refused one within
+        LEAVE_DOOR_R; None otherwise."""
         if flee is not None and flee.plan is not None:
-            return flee.door()
+            return flee.door(), None
         if flee is not None and flee.picked:
-            return None
+            return None, None
         if flee is None:
             from agent.base.planner.flee import Flee   # at call: threat.py imports this module
             flee = Flee(self.world, self.actions, self.clock, shunned=self.night.shunned)
-        ok = [rank for rank, _, _, verdict in flee.door_verdicts(ts) if verdict == "ok" and rank[0] <= LEAVE_DOOR_R]
-        return min(ok)[2] if ok else None
+        race = self.LEAVE_DOOR_RACE
+        near = [(rank, verdict) for rank, _, _, verdict in flee.door_verdicts(ts, True if race else None)
+                if rank[0] <= LEAVE_DOOR_R]
+        ok = [rank for rank, verdict in near if verdict == "ok"]
+        if ok and race:
+            standing = self._group_standing(DANGER_R)
+            if standing and standing[0][2] <= DOOR_RACE_R:
+                return None, {"door_refused": "race", "near": standing[0][2]}
+        if ok:
+            return min(ok)[2], None
+        if race and any(verdict == "one_exit" for _, verdict in near):
+            return None, {"door_refused": "one_exit"}
+        return None, None
 
     def _leave_answer(self, flee, held):
         """The Flee's answer on a leave tick that is not the retreat: the one shove at a standing zombie within

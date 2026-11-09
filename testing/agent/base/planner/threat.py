@@ -1163,7 +1163,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.threats = held
             policy.hold_ok = breach is None
             policy.steer_now = self.group_steer is not None
-            policy.rules = self._flee_rules()   # P25-E, P26-A, P26-B, P26-I, P26-J
+            policy.rules = self._flee_rules()   # P25-E, P26-A, P26-B, P26-I, P26-J, Plan 34 Task 2 (DOOR_INSIDE)
+            # Plan 34 Task 2 (LEAVE_DOOR_RACE): the leave's pick refuses a one-exit building as its leg read did
+            policy.second_exit = True if reason == "leave" and self.LEAVE_DOOR_RACE else None
             walk = self._hold_walk(reason)   # P25-C: the endurance hold's flee walks with nobody within DANGER_R
             policy.gait = "walk" if walk else FLEE_GAIT
             policy.keep_gait()
@@ -1376,7 +1378,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("stand_second_exit", self.STAND_SECOND_EXIT),
                                                ("window_inner", self.WINDOW_INNER),
                                                ("window_stall", self.WINDOW_STALL),
-                                               ("flee_held_stance", self.FLEE_HELD_STANCE))
+                                               ("flee_held_stance", self.FLEE_HELD_STANCE),
+                                               ("door_inside", self.DOOR_INSIDE))   # Plan 34 Task 2
                          if on)
 
     def _door_targets(self):

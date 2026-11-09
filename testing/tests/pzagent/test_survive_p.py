@@ -316,9 +316,11 @@ def test_e9_s_door_the_enter_walks_past_the_post_so_the_lua_s_done_r_ends_it_ins
 def test_an_enter_read_done_on_the_outdoor_door_square_is_walked_again_never_a_stand(tmp_path):
     """A `done` enter that left the player off the room squares (E9's 0.84-tile end): no stand there (`on_post`), the
     enter walked again (`ended` "outside", a retry); after STEP_RETRIES such ends the stand is given up for the close
-    as today."""
+    as today. Named change, Plan 34 Task 2 (DOOR_INSIDE): that close goes from outside the door's edge, which the rule
+    refuses (`test_survive_am`), so the case is pinned with `DOOR_INSIDE` off."""
     from agent.base.planner import night as N
     r, sv = make(tmp_path)
+    sv.DOOR_INSIDE = False
     e9_to_enter(r, sv)
     for k in range(1, N.STEP_RETRIES):
         r.answer()

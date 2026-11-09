@@ -147,10 +147,12 @@ def test_the_guard_under_a_hit_reaction_shoves_the_zombie_in_front(tmp_path):
 def test_after_the_episode_s_one_shove_the_guard_runs_whatever_the_reaction_reads(tmp_path):
     """Fix 2: the episode's one shove sent, the next guard tick (the reaction still read) sends the guard's run, the
     shove still running dropped for it (logged `drag_fight` {spent 1, why "hit"}); no second shove while the character
-    has not moved STUCK_FREE_R, a rejected shove's end included."""
+    has not moved STUCK_FREE_R, a rejected shove's end included. Named change, Plan 34 fix C (ruling P34-A): pinned with
+    `SHOVE_CLEAR` off (on, the running shove is held: `test_survive_am`)."""
     k = guard(("DRAG_GUARD_FIGHT",))
     zs = k.pop("zombies")
     r, sv = rig(tmp_path, zs, **k)
+    sv.SHOVE_CLEAR = False
     tick(r, sv)
     assert r.cmd() == ("shove", {"targetId": 1})
     r.advance(0.5)
@@ -217,8 +219,10 @@ def test_a_pile_shoves_once_then_runs_the_least_bad_heading_until_moved(tmp_path
     the first tick shoves the one in front; every next tick, the character unmoved, sends the guard's run, which no
     heading passes clear, as SIDE_CLEAR's least-bad heading (`side_clear` {turn, near, least_bad}: the distance along
     the leg to its nearest standing zombie, the largest over the turns); no second shove until the character has moved
-    STUCK_FREE_R; past it, the next read shoves once again."""
+    STUCK_FREE_R; past it, the next read shoves once again. Named change, Plan 34 fix C (ruling P34-A): pinned with
+    `SHOVE_CLEAR` off (the first shove is never answered here, so on it would be held as running)."""
     r, sv = rig(tmp_path, pile(), on=T17, attackers=2, hit_reaction="Bite")
+    sv.SHOVE_CLEAR = False
     tick(r, sv)
     assert r.cmd() == ("shove", {"targetId": 1})
     named = [(e["id"], e) for e in pile()]
@@ -260,8 +264,9 @@ def test_f18_s_guard_lines_send_one_shove_then_the_run():
     at 13653 (0.5086990833343952 tiles, the nearest standing in front) where the record ran; the episode's one shove
     spent, line 403 sends the guard's run (the shove dropped for it) and no guard line after 402 sends a shove, each
     logging `drag_fight` {spent 1, why "hit"} (every guard frame read a hit reaction; the open loop never moves the
-    character, so the episode stands)."""
-    rows = f18(**only("DRAG_GUARD_FIGHT"))
+    character, so the episode stands). Named change, Plan 34 fix C (ruling P34-A): pinned with `SHOVE_CLEAR` off (the
+    replayed shove has no recorded end, F18's run sent a steer there, so on it would be held as running)."""
+    rows = f18(**only("DRAG_GUARD_FIGHT"), SHOVE_CLEAR=False)
     assert rows[401]["action"] == {"type": "shove", "args": {"targetId": 13653}}
     assert threat(rows[401])["drag_fight"] == {"target": 13653, "dist": 0.5086990833343952, "why": "hit"}
     assert action(rows[402]) == "steer" and rows[402]["action"]["args"]["gait"] == "run"
@@ -379,11 +384,14 @@ def pair(at, **k):
     return [z(i, x, y, **k) for i, (x, y) in enumerate(at, 1)]
 
 
-def closing(tmp_path, on=("GROUP_LEAVE",), second=NEAR, scan=None, x=100.5, y=200.5, **frame):
-    """Two ticks: the trio at WEST, then at `second`; `scan` squares scanned first."""
+def closing(tmp_path, on=("GROUP_LEAVE",), second=NEAR, scan=None, x=100.5, y=200.5, off=(), **frame):
+    """Two ticks: the trio at WEST, then at `second`; `scan` squares scanned first; the switches in `off` (Plan 34's
+    T19 switches, on by default) set off."""
     r, sv = make(tmp_path)
     for name in T17:
         setattr(sv, name, name in on)
+    for name in off:
+        setattr(sv, name, False)
     if scan:
         r.scan(scan)
     r.frame(x=x, y=y, zombies=pair(WEST), **frame)
@@ -447,8 +455,10 @@ def test_a_known_door_within_leave_door_r_is_the_leave_s_target_and_its_stand(tm
     """GROUP_LEAVE with a known door within LEAVE_DOOR_R (6.0): house 1 moved 4 tiles west, its west door at (106, 201),
     the approach square's centre 5.0 tiles east, a second exterior door on its floor: the leave is the Flee's walk to
     that approach square at a run, its plan a doorway stand (P24-AO), logged `group_leave` {leg "door", door
-    [106, 201, 0]} (the Flee, not the Fight)."""
-    r, sv = closing(tmp_path, scan=shifted_house(-4))
+    [106, 201, 0]} (the Flee, not the Fight). Named change, Plan 34 Task 2 (LEAVE_DOOR_RACE): the trio's nearest
+    stands 2.90 tiles off, within DOOR_RACE_R, so the case is pinned with `LEAVE_DOOR_RACE` off (on, `door_refused`
+    "race": `test_survive_am`)."""
+    r, sv = closing(tmp_path, scan=shifted_house(-4), off=("LEAVE_DOOR_RACE",))
     why = threat_why(tmp_path)
     assert why["flee"] == "leave" and why["group_leave"]["leg"] == "door"
     assert why["group_leave"]["door"] == [106, 201, 0] and why["group_retreat"]["leg"] == "door"
@@ -554,8 +564,9 @@ def test_f18_s_first_leave_is_the_retreat_at_line_358():
 def test_f18_with_the_three_on_by_default_its_guard_shoves_once_then_runs_the_least_bad():
     """F18, open loop, the three on (the defaults; fix 2): the guard's line 402 shoves 13653 (DRAG_GUARD_FIGHT reads
     first, so no run reaches SIDE_CLEAR), line 403 sends the run through SIDE_CLEAR (turned or least bad), no guard line
-    after 402 sends a shove, and the leaves fire as GROUP_LEAVE's alone (the retreat, 358)."""
-    rows = f18(**{k: True for k in T17})
+    after 402 sends a shove, and the leaves fire as GROUP_LEAVE's alone (the retreat, 358). Named change, Plan 34 fix
+    C (ruling P34-A): pinned with `SHOVE_CLEAR` off (the replayed shove has no recorded end)."""
+    rows = f18(**{k: True for k in T17}, SHOVE_CLEAR=False)
     assert rows[401]["action"] == {"type": "shove", "args": {"targetId": 13653}}
     assert action(rows[402]) == "steer" and "side_clear" in threat(rows[402])
     assert all(action(rows[k - 1]) != "shove" for k in GUARD[1:])
