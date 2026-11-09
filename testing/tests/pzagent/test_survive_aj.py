@@ -260,13 +260,17 @@ def _need_f18():
 
 @functools.lru_cache(maxsize=4)
 def _f18(on):
-    """F18 replayed (every line) with CRAWLER_FIRST `on`, as JSON."""
+    """F18 replayed (every line) with CRAWLER_FIRST `on`, as JSON. Pinned with Plan 33 Task 3's group rules off
+    (`survive.T18_SWITCHES`: GROUP_LEAVE, DRAG_GUARD_FIGHT, SIDE_CLEAR), a named change that moves F18's lines from 342
+    (the controller's pin at the merge of Tasks 2 and 3; CLAUDE.md section 6)."""
     _need_f18()
     orig = R.align
     R.align = align_f18
     try:
         def mutate(sv):
             sv.CRAWLER_FIRST = on
+            for k in S.T18_SWITCHES:
+                setattr(sv, k, False)
         return json.dumps(R.replay(F18, mutate=mutate))
     finally:
         R.align = orig

@@ -356,6 +356,10 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     first, the pin returning to the standing one when it reads dead, beyond CRAWLER_R or after CRAWLER_TRIES finishes
     without a kill (`crawler.FightCrawler`, the Fight's `crawler_first` rule; the tries shared across the Fights,
     `crawler_tries`); `T17_SWITCHES` (CRAWLER_FIRST).
+    Plan 33 Task 3 (the group's entry and the drag guard; F18, `f_goals_18-20261108-235005`: three standing zombies
+    walked in while the finish stalled and the drag-down guard sent five run steers under hit reactions into a zombie at
+    the side, the character unmoving for 116 frames): GROUP_LEAVE, DRAG_GUARD_FIGHT and SIDE_CLEAR
+    (`planner/group.py`'s docstring the record); `T18_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -514,6 +518,12 @@ T16_SWITCHES = ("POINT_BLANK_FIGHT", "PAIR_NEAREST", "CARE_COMMIT", "STRAIN_BOUN
 T17_SWITCHES = ("CRAWLER_FIRST",)
 # Plan 33 Task 2 (the crawler first, F18's death) on `Survive`: CRAWLER_FIRST, the Fight's `crawler_first` rule
 # (`crawler.FightCrawler`), added to the Fight's rules by `Survive._fight_rules`
+T18_SWITCHES = ("GROUP_LEAVE", "DRAG_GUARD_FIGHT", "SIDE_CLEAR")
+# Plan 33 Task 3 (the group's entry and the drag guard; F18, `f_goals_18-20261108-235005`), all on `threat.Threat`
+# (`planner/group.py`): GROUP_LEAVE, a closing pair left in the open for the nearest known door within LEAVE_R, else a
+# run from its centroid (`ThreatGroup._group_leave`); DRAG_GUARD_FIGHT, the drag-down guard's shove in its run's place
+# under a hit reaction or STUCK_FRAMES unmoving frames (`ThreatGroup._drag_fight`); SIDE_CLEAR, no run steer within
+# SIDE_R of a standing zombie (`ThreatGroup._side_clear`)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -536,7 +546,7 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T3_SWITCHES",
            "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES", "T7_SWITCHES", "T8_SWITCHES", "T9_SWITCHES", "T10_SWITCHES",
            "T11_SWITCHES", "T12_SWITCHES", "T13_SWITCHES", "T14_SWITCHES", "T15_SWITCHES",
-           "T16_SWITCHES", "T17_SWITCHES"]
+           "T16_SWITCHES", "T17_SWITCHES", "T18_SWITCHES"]
 
 
 @dataclass
@@ -678,6 +688,15 @@ class Survive(SneakGait, Threat):
                                         # Task 5 (a), `Threat._point_blank`), else None
         self.strain_bound = None  # this tick: {endurance, standing} when a `strain` flee was withheld (Plan 32 Task 5
                                   # (d), `Threat._strain_flees`), else None
+        self.leave = None         # the running leave {since, closing} (Plan 33 Task 3, GROUP_LEAVE), else None
+        self.group_leave = None   # this tick: GROUP_LEAVE's why (a leave taken, held, ended or withheld), else None
+        self.drag_fight = None    # this tick: {target, dist, why} of DRAG_GUARD_FIGHT's shove, else None
+        self.side_clear = None    # this tick: {turn, near, shove} when SIDE_CLEAR turned or replaced a run, else None
+        self.drag_latch = False   # DRAG_GUARD_FIGHT's latch: set by its read, released by a frame reading `moving`
+        self._still_n0 = None     # the World's frame_n of the first tick reading the character unmoving under a running
+                                  # steer or walk (Plan 33 Task 3: STUCK_FRAMES from it), else None
+        self._group_prev = {}     # standing zombie id -> tiles on the last tick, within DISENGAGE_R (the closing read)
+        self._group_closing = []  # this tick: (id, zombie, tiles) of the standing within GROUP_NEAR_R nearer than before
         self.care_leg = None      # the care's one distance leg (Plan 32 Task 5 (c), `care_yield.CareLeg`), else None
         self.care_commit = None   # this tick: the care commitment's why (Plan 32 Task 5 (c)), else None
         self.bleed_held = False   # this tick: that yield was made by the dressing's hold alone (P26-L2)

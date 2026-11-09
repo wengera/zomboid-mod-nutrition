@@ -217,6 +217,9 @@ def align(lines, rows):
     ends, last = [], 0
     for k, row in enumerate(rows, 1):
         hits = [i for i in by_hour.get(row["inputs"]["hour"], []) if i >= last]
+        if len(hits) > 1:   # Plan 33 Task 3: two frames reading one hour (F18's seq 1558 and 1559, the clock still a
+            hits = [i for i in hits if lines[i]["wallMs"] / 1000.0 <= row["wall"]][-1:]   # frame): the last one
+            # written by the line's wall, the one the tick had read (every earlier golden's line matches one frame)
         if len(hits) != 1:
             raise ValueError("decision line %d: %d frames read hour %r" % (k, len(hits), row["inputs"]["hour"]))
         end = hits[0] + 1

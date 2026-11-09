@@ -59,7 +59,9 @@ def _f17(switches):
 
 def f17(**switches):
     """F17's replayed decision lines (list index line - 1) with `switches` set. Pinned with Plan 33 Task 2's
-    CRAWLER_FIRST off (`T17_SWITCHES`, a named change: it moves F17's lines), unless a case sets it."""
+    CRAWLER_FIRST off (`T17_SWITCHES`) and Plan 33 Task 3's group rules off (`T18_SWITCHES`, fix 1: GROUP_LEAVE's
+    entry at GROUP_ENTRY_R reaches F17's lines), named changes that move F17's lines, unless a case sets them."""
+    switches = dict({k: False for k in S.T18_SWITCHES}, **switches)
     switches.setdefault("CRAWLER_FIRST", False)
     return json.loads(_f17(tuple(sorted(switches.items()))))
 

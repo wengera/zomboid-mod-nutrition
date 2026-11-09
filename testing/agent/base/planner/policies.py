@@ -1075,3 +1075,20 @@ def __getattr__(name):
         from agent.base.planner.flee import Flee
         return Flee
     raise AttributeError("module %r has no attribute %r" % (__name__, name))
+
+
+# Plan 33 Task 3 (the group's entry and the drag guard; F18, `f_goals_18-20261108-235005`: three standing zombies
+# walked in while the finish stalled and the drag-down guard sent five run steers under hit reactions into a zombie at
+# the side; `group.ThreatGroup`). At the end of the module so that Task 2's constant after KEEP_R moves none of them.
+WALL_R = 1.5          # tiles: a wall, a fence, a door or a solid square this near the player's back keeps the stand
+                      # against a closing pair (GROUP_LEAVE: the group cannot close round a back to a wall)
+LEAVE_R = 20.0        # tiles: the leave leg walks to a known building's door whose approach square is this near
+                      # (GROUP_LEAVE), the doorway stand resumed there; none, the run from the group's centroid
+LEAVE_S = 4.0         # seconds a leave leg's run from the group's centroid runs before it is re-read (GROUP_LEAVE)
+STUCK_FRAMES = 10     # frames (10 Hz: one second) of `me.moving` false while a steer or a walk runs that read the
+                      # character pinned (DRAG_GUARD_FIGHT: F18's 116 unmoving frames, seq 3512 to 3655)
+SIDE_R = 1.0          # tiles: no run steer passes this near a standing zombie (SIDE_CLEAR: F18's runs into the zombie
+                      # standing at the character's side, the visual pass's shots 37 to 41)
+SIDE_LOOK = 3.0       # tiles of a run steer's leg SIDE_CLEAR reads for a standing zombie (STEER_PROBE's reach)
+GROUP_ENTRY_R = 6.0   # tiles: GROUP_LEAVE counts the closing standing zombies this near (Plan 33 Task 3 fix 1: DANGER_R's
+                      # value, its own constant; GROUP_NEAR_R left a half-tile window outside KEEP_R)
