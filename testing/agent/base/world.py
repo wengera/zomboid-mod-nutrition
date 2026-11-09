@@ -417,6 +417,10 @@ class World:
         if not isinstance(s, dict) or s.get("x") is None or s.get("y") is None:
             return
         x, y, z = s["x"], s["y"], s.get("z") or 0
+        w = s.get("window")
+        if isinstance(w, dict) and w.get("smashed") is None and w.get("glass") is None:
+            w.pop("smashed", None)   # Plan 32 Task 6: PZA/1.11 windowPortal's glass kept only when read, so a record
+            w.pop("glass", None)     # written before 1.11 (decoded with them None) keeps the World it always made
         self.map[(x, y, z)] = s
         self.map_version += 1
         self.door_seen.pop((x, y, z), None)   # P30-C: the map's read of the square is newer than its door event

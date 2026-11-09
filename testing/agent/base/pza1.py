@@ -44,6 +44,7 @@ PRIOR = {
     "wornLoc": 3,
     "part": 2,
     "zombie": 7,
+    "windowPortal": 3,
     "square": 12,
 }
 # the positional records
@@ -53,6 +54,7 @@ RECORDS = {
     "strain": ("l", "r"),
     "zombie": ("id", "x", "y", "dist", "hasTarget", "crawler", "health", "onFloor", "known", "state", "behind", "headX", "headY"),
     "portal": ("open", "locked", "barricaded"),
+    "windowPortal": ("open", "locked", "barricaded", "smashed", "glass"),
     "container": ("type", "n", "items"),
     "water": ("amount", "tainted", "infinite"),
     "square": ("x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN", "hopW", "water"),
@@ -63,10 +65,10 @@ SHAPES = {
     "body": {"parts": ("list", "part"), "strain": ("rec", "strain")},
     "frame": {"me": ("group", "me"), "stats": ("group", "stats"), "body": ("group", "body"), "load": ("group", "load"), "weapon": ("group", "weapon"), "action": ("group", "action"), "act": ("group", "act"), "zombies": ("list", "zombie"), "cost": ("group", "cost")},
     "container": {"items": ("vlist", None)},
-    "square": {"door": ("rec", "portal"), "window": ("rec", "portal"), "containers": ("list", "container"), "floor": ("vlist", None), "water": ("rec", "water")},
+    "square": {"door": ("rec", "portal"), "window": ("rec", "windowPortal"), "containers": ("list", "container"), "floor": ("vlist", None), "water": ("rec", "water")},
     "map": {"squares": ("list", "square"), "missing": ("vlist", None)},
 }
-REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming", "not a window", "moving", "not worn", "held", "too far", "standing", "dropped", "stood", "out of range", "crowd"))
+REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming", "not a window", "moving", "not worn", "held", "too far", "standing", "dropped", "stood", "out of range", "crowd", "glass"))
 ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear", "window", "unwear", "shove", "stomp", "melee", "sneak", "probe")
 # each action type's arguments and their kinds
 ACTION_ARGS = {
@@ -88,7 +90,7 @@ ACTION_ARGS = {
     "wash": {"itemId": "int", "x": "int", "y": "int"},
     "fill": {"itemId": "int", "x": "int", "y": "int"},
     "wear": {"itemId": "int"},
-    "window": {"x": "int", "y": "int", "smash": "bool"},
+    "window": {"x": "int", "y": "int", "smash": "bool", "clear": "bool"},
     "unwear": {"itemId": "int"},
     "shove": {"targetId": "int"},
     "stomp": {"targetId": "int"},
@@ -446,11 +448,12 @@ class Wear(_Cmd):
 
 @dataclasses.dataclass(frozen=True)
 class Window(_Cmd):
-    """Climb through the window on a square (vanilla's ISClimbThroughWindow after a walk to the near side): an open or smashed one at once, a shut one opened first (ISOpenCloseWindow: a locked one opens from inside, struggles from outside and may lock for good, then fails locked) or, with smash true, smashed when it will not open (ISSmashWindow). Rejected not a window, locked (barricaded, or perma-locked without smash) or not valid (open but the far side cannot be stood on); failed fell on a fall, failed when the climb ended on the near side."""
+    """Climb through the window on a square (vanilla's ISClimbThroughWindow after a walk to the near side): an open or smashed one at once, a shut one opened first (ISOpenCloseWindow: a locked one opens from inside, struggles from outside and may lock for good, then fails locked) or, with smash true, smashed when it will not open (ISSmashWindow). Rejected not a window, locked (barricaded, or perma-locked without smash) or not valid (open but the far side cannot be stood on); failed fell on a fall, failed when the climb ended on the near side. PZA/1.11 (Plan 32 Task 6): a window reading smashed with its glass in (the map's windowPortal glass) is rejected glass unless clear is true, and the glass the act's own smash leaves fails it glass unless clear is true."""
     TYPE: ClassVar[str] = "window"
     x: int  # The window square's x (the square whose window record the map reads; the window sits on its north or west edge).
     y: int  # The window square's y.
     smash: bool = False  # True to smash the window when it will not open (perma-locked, or still shut after the open's struggle): noise, and a cut 1 time in 2 climbing through the glass; false fails locked instead.
+    clear: bool = False  # PZA/1.11 (Plan 32 Task 6): true to remove a smashed window's broken glass before the climb (vanilla's ISRemoveBrokenGlass, 100 ticks, no glove or held-item test, T101.3), the glass read at the climb's queue, so a window the act's own smash broke is cleared too; false refuses a window reading glass (rejected glass) and fails one the smash left glazed (failed glass): the climb through it cuts a hand or a forearm 1 time in 2 (#4366, T101.2). Failed not loaded when the removal's class is absent.
 
 
 @dataclasses.dataclass(frozen=True)

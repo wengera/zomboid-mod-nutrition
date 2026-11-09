@@ -780,3 +780,71 @@ K.zombieById, K.zombieDead, K.zombieDist = zombieById, zombieDead, zombieDist
 -- planner compares each one's bite and scratch with me.worn's at its loc after the loot (item_added's clothing record).
 -- Appended here (CLAUDE.md section 5: the repo: pointers into this file keep their lines); FILTERS is this file's local.
 FILTERS.clothing = useIs("clothing")
+
+-- ---- the window's glass (PZA/1.11, Plan 32 Task 6; the jar rows T101.1-T101.3 on docs/platform/agent.md) -------------
+-- A climb through a smashed window whose glass was not removed cuts a hand or a forearm 1 time in 2 (#4366; T101.2: 10
+-- damage, the bandage off, a deep shard wound 1 time in 7, else a scratch), and vanilla's ISRemoveBrokenGlass removes the
+-- glass with no glove, worn-item or held-item test (T101.3: valid while the window reads smashed and not glass-removed,
+-- 100 ticks). PZAgent_Stance.lua's window act (K.types.window) is wrapped here, once, when a window command first starts
+-- (Stance loads after this file, and its K.start wrapper calls this one): its check refuses glass when the window reads
+-- glass (PZA.map.glassOf, PZAgent_Map.lua) and the args do not carry clear true (a smash arg changes nothing: the
+-- window is smashed already), and a clear that is not a boolean bad args; its tick runs with K.glassAct the act's
+-- state, which the climb's queue gate reads. The gate wraps K.queueAction (the act's queueStep calls it through K at the
+-- call): a climb queued for the act's window while the window reads glass queues ISRemoveBrokenGlass first when clear is
+-- true (st.cleared; the done result carries cleared true) and else fails the step glass; the class absent fails it not
+-- loaded. The glass is read at the queue, so a window the act's own smash broke is gated too. A glass read that answers
+-- nil (a getter absent, the map not loaded) gates nothing. Appended here (CLAUDE.md section 5: the repo: pointers into
+-- this file keep their lines).
+K.glassAct = nil   -- the running window act's state while its tick runs, else nil
+
+local function glassOn(win)
+    local MPm = PZA.map
+    if MPm == nil or MPm.glassOf == nil then return nil end
+    local _, glass = MPm.glassOf(win)
+    return glass
+end
+
+local queuePlain = K.queueAction
+K.queueAction = function(cls, bad, vet, p, obj, ...)
+    local st = K.glassAct
+    if st ~= nil and cls ~= nil and cls == ISClimbThroughWindow and obj ~= nil and obj == st.win
+            and glassOn(obj) == true then
+        if not st.clear then return false, "glass" end
+        local ok, why = queuePlain(ISRemoveBrokenGlass, "not valid", nil, p, obj)
+        if not ok then return false, why end
+        st.cleared = true
+    end
+    return queuePlain(cls, bad, vet, p, obj, ...)
+end
+
+-- the window act's check and tick with the glass (the block's header)
+local function glassWindow(def)
+    local check, tick = def.check, def.tick
+    return {
+        glassGated = true,
+        check = function(args, p)
+            if args.clear ~= nil and type(args.clear) ~= "boolean" then return false, "bad args" end
+            local ok, why, st = check(args, p)
+            if not ok then return ok, why, st end
+            st.clear = args.clear == true
+            if not st.clear and glassOn(st.win) == true then return false, "glass" end
+            return true, "", st
+        end,
+        tick = function(p, st)
+            K.glassAct = st
+            local state, out, res = tick(p, st)
+            K.glassAct = nil
+            if state == "done" and type(out) == "table" and st.cleared then out.cleared = true end
+            return state, out, res
+        end,
+    }
+end
+
+local startGlass = K.start
+function K.start(cmd, p)
+    local def = K.types.window
+    if type(cmd) == "table" and cmd.type == "window" and def ~= nil and not def.glassGated then
+        K.types.window = glassWindow(def)
+    end
+    startGlass(cmd, p)
+end

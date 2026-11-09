@@ -82,7 +82,7 @@ def rand_square(rng):
     return {"x": rng.randrange(0, 20000), "y": rng.randrange(0, 20000), "z": rng.randrange(0, 3), "solid": b(),
             "solidTrans": b(), "light": lua_float(rng, 0, 1), "room": maybe(rng, "kitchen", 0.5),
             "building": maybe(rng, rng.randrange(1, 500), 0.5), "door": maybe(rng, portal(), 0.7),
-            "window": maybe(rng, portal(), 0.7),
+            "window": maybe(rng, dict(portal(), smashed=maybe(rng, b()), glass=maybe(rng, b())), 0.7),   # 1.11, Task 6
             "containers": [{"type": rng.choice(["fridge", "counter"]), "n": 2, "items": ["Base.Apple", "Base.Water"]}
                            for _ in range(rng.choice([0, 0, 1, 2]))],
             "floor": rng.choice([[], ["Base.Plank"], ["Base.Axe", "Base.Nails"]]),
@@ -207,7 +207,8 @@ def test_the_constants():
     for k in pza1.KINDS:
         assert pza1.ORDER[k][0] == "kind"
     assert set(pza1.GROUPS) == {"me", "stats", "body", "load", "weapon", "action", "act", "cost"}
-    assert set(pza1.RECORDS) == {"zombie", "part", "square", "container", "portal", "water", "wornLoc", "strain"}   # 1.6, 1.7
+    assert set(pza1.RECORDS) == {"zombie", "part", "square", "container", "portal", "water", "wornLoc", "strain",
+                                 "windowPortal"}   # 1.6, 1.7; windowPortal: 1.11, Plan 32 Task 6
     assert pza1.GAITS == ("walk", "run", "sprint")
     assert pza1.ACTION_TYPES[:11] == ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan",
                                       "rate", "sleep")                    # PZA/1.5 appends its actions after these
@@ -403,7 +404,8 @@ def test_me_and_cost_append_their_new_fields_after_the_prior_prefix():
     assert pza1.GROUPS["me"][11:14] == ("zombiesSeen", "zombiesListed", "hour")
     assert pza1.GROUPS["cost"][8:] == ("pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs",
                                        "maxPollMs", "maxStartMs")
-    assert pza1.PRIOR == {"me": 11, "body": 5, "act": 2, "cost": 8, "zombie": 7, "square": 12, "part": 2, "wornLoc": 3}
+    assert pza1.PRIOR == {"me": 11, "body": 5, "act": 2, "cost": 8, "zombie": 7, "square": 12, "part": 2, "wornLoc": 3,
+                          "windowPortal": 3}   # windowPortal: 1.11, Plan 32 Task 6
 
 
 def test_a_frame_written_before_the_append_decodes_with_the_new_fields_none_and_no_shorter_or_longer_one_does():
@@ -486,7 +488,8 @@ def test_death_is_an_event_kind_with_its_fields_and_round_trips():
 def test_me_and_square_append_the_1_4_fields_after_their_1_3_orders():
     assert pza1.GROUPS["me"][14:17] == ("attackers", "hitReaction", "dragDown")
     assert pza1.RECORDS["square"][16:18] == ("hopN", "hopW")
-    assert pza1.PRIOR == {"me": 11, "body": 5, "act": 2, "cost": 8, "zombie": 7, "square": 12, "part": 2, "wornLoc": 3}       # the oldest arity a writer used is unchanged
+    assert pza1.PRIOR == {"me": 11, "body": 5, "act": 2, "cost": 8, "zombie": 7, "square": 12, "part": 2, "wornLoc": 3,
+                          "windowPortal": 3}       # (windowPortal: 1.11, Task 6) the oldest arity a writer used is unchanged
     assert "busy" in pza1.REASONS
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
     assert [d["me"]["properties"][f]["type"] for f in ("attackers", "hitReaction", "dragDown")] == [
@@ -687,7 +690,7 @@ def test_bandage_takes_keep_moving_a_bool_defaulting_false_and_the_ride_reasons_
         with pytest.raises(TypeError):
             actions.check(pza1.Bandage(50, keepMoving=bad))
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
-    assert d["reason"]["enum"][-13:-10] == ["leg part", "stopped", "aiming"]        # PZA/1.6, 1.7, 1.8 append after
+    assert d["reason"]["enum"][-14:-11] == ["leg part", "stopped", "aiming"]        # PZA/1.6, 1.7, 1.8, 1.11 append after
     assert {"leg part", "stopped", "aiming"} <= pza1.REASONS
     tools = {t["name"]: t for t in json.load(open(os.path.join(ROOT, "testing", "agent", "base", "schema", "tools.json"),
                                                    encoding="utf-8"))}
@@ -844,9 +847,9 @@ def test_the_e7_log_decodes_with_worn_clothing_and_locked_absent(tmp_path):
 def test_window_is_an_action_with_its_args_result_and_reason():
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
     assert pza1.ACTION_TYPES[-8:-6] == ("wear", "window")                     # PZA/1.8 appends melee, PZA/1.9 sneak, 1.11 probe
-    assert d["reason"]["enum"][-10] == "not a window"                           # and the reasons out of range, crowd
-    assert pza1.ACTION_ARGS["window"] == {"x": "int", "y": "int", "smash": "bool"}
-    assert set(d["result_window"]["properties"]) == {"smashed", "opened", "cut", "wounds"}
+    assert d["reason"]["enum"][-11] == "not a window"                           # and the reasons out of range, crowd, glass
+    assert pza1.ACTION_ARGS["window"] == {"x": "int", "y": "int", "smash": "bool", "clear": "bool"}   # clear: 1.11, Task 6
+    assert set(d["result_window"]["properties"]) == {"smashed", "opened", "cut", "wounds", "cleared"}   # cleared: Task 6
     body = {"kind": "act", "seq": 3, "tick": 1, "wallMs": 2, "aid": "a1", "type": "window", "state": "done",
             "reason": "", "result": {"smashed": True, "opened": False, "cut": True, "wounds": 1},
             "snapshot": {"me": {"x": 1.0, "y": 2.0, "z": 0, "health": 100.0}, "nearest": None}}

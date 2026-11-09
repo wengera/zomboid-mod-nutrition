@@ -3,7 +3,7 @@ stuck) on the lupa host: a walk to the window's near side, then vanilla's ISOpen
 ISSmashWindow, then ISClimbThroughWindow; done {smashed, opened, cut, wounds} across the edge. The jar reads are
 docs/superpowers/specs/2026-10-29-plan-24-jar-reads-2.md section 10. The fake vanilla queue never runs an action: a
 test empties it (the action left the queue) and moves the player as the engine would."""
-from .conftest import J, make_cell, make_player
+from .conftest import J, lua_file, make_cell, make_player
 from .test_lua_sense import load
 from .test_lua_skills import acts, start, states, tick
 
@@ -276,7 +276,8 @@ def test_the_climb_class_absent_fails_not_loaded(lua, fs):
 def test_window_is_an_action_of_the_schema_and_a_held_stance_is_released(lua, fs):
     from agent.base import pza1
     p, _, g = host(lua, window(open_=True), y=19.5)
-    assert "window" in pza1.ACTION_TYPES and pza1.ACTION_ARGS["window"] == {"x": "int", "y": "int", "smash": "bool"}
+    assert "window" in pza1.ACTION_TYPES and pza1.ACTION_ARGS["window"] == {"x": "int", "y": "int", "smash": "bool",
+                                                                         "clear": "bool"}   # clear: PZA/1.11, Task 6
     assert pza1.Window(x=1, y=2).args() == {"x": 1, "y": 2} and pza1.Window(x=1, y=2, smash=True).args()["smash"] is True
     assert "not a window" in pza1.REASONS
     lua.execute("PZA.skills.stance.held = true")
@@ -362,3 +363,115 @@ def test_a_hit_read_past_the_hit_window_leaves_the_open_to_its_own_wait(lua, fs)
     g._clock["ms"] += lua.eval("PZA.skills.WINDOW_OPEN_MS")
     tick(lua, p)
     assert states(acts(lua, fs))[-1] == ("a1", "failed", "locked")
+
+
+# ---- PZA/1.11 (Plan 32 Task 6): the window's glass, rows T101.1-T101.3 ---------------------------------------------------
+# A climb through a smashed window whose glass was not removed cuts a hand or a forearm 1 time in 2 (#4366, T101.2):
+# the act refuses `glass` unless its args carry clear true, and with it queues vanilla's ISRemoveBrokenGlass (T101.3:
+# no glove or held-item test in the action) before the climb. The map reads the glass (PZA.map.glassOf), so these hosts
+# load PZAgent_Map.lua beside the skills.
+
+def glassy(smashed=True, removed=False, **kw):
+    """`window()` with isGlassRemoved reading .st["removed"] (T101.1); smashed sets .st["smashed"]."""
+    w = window(smashed=smashed, **kw)
+    w.st["removed"] = removed
+    w.isGlassRemoved = lambda s: w.st["removed"]
+    return w
+
+
+def glass_host(lua, w, x=11.5, y=19.5):
+    """`host` with the map loaded and vanilla's ISRemoveBrokenGlass:new(character, window) recorded into g._glass."""
+    p, pos, g = host(lua, w, x=x, y=y)
+    lua.execute(open(lua_file("client/PZAgent_Map.lua"), encoding="utf-8").read())
+    made = []
+    g._glass = made
+    g.ISRemoveBrokenGlass = J(new=lambda cls, q, win: made.append((q, win)) or J(Type="ISRemoveBrokenGlass",
+                                                                                  window=win))
+    return p, pos, g
+
+
+def test_a_smashed_window_with_its_glass_in_is_refused_glass_without_clear(lua, fs):
+    p, _, g = glass_host(lua, glassy())
+    start(lua, p, "window", x=11, y=20)
+    assert states(acts(lua, fs)) == [("a1", "rejected", "glass")] and g._queue.adds == [] and g._glass == []
+
+
+def test_with_clear_the_glass_is_removed_before_the_climb_and_the_result_says_so(lua, fs):
+    w = glassy()
+    p, pos, g = glass_host(lua, w)
+    start(lua, p, "window", x=11, y=20, clear=True)
+    tick(lua, p)
+    assert types(g) == ["ISRemoveBrokenGlass", "ISClimbThroughWindow"] and g._glass == [(p, w)]
+    tick(lua, p)
+    leave(g)
+    w.st["removed"] = True
+    pos["y"] = 20.5
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert states(a)[-1] == ("a1", "done", "")
+    assert a[-1]["result"] == {"smashed": False, "opened": False, "cut": False, "wounds": 0, "cleared": True}
+
+
+def test_a_smashed_window_whose_glass_was_removed_is_climbed_at_once_without_clear(lua, fs):
+    p, pos, g = glass_host(lua, glassy(removed=True))
+    start(lua, p, "window", x=11, y=20)
+    tick(lua, p)
+    assert types(g) == ["ISClimbThroughWindow"] and g._glass == []
+    pos["y"] = 20.5
+    tick(lua, p)
+    assert acts(lua, fs)[-1]["result"] == {"smashed": False, "opened": False, "cut": False, "wounds": 0}
+
+
+def test_the_acts_own_smash_leaves_the_glass_in_and_without_clear_the_climb_fails_glass(lua, fs):
+    w = glassy(smashed=False, locked=True, perma=True)
+    p, pos, g = glass_host(lua, w)
+    start(lua, p, "window", x=11, y=20, smash=True)
+    tick(lua, p)
+    assert types(g) == ["ISSmashWindow"]
+    leave(g)
+    w.st["smashed"] = True
+    tick(lua, p)
+    assert states(acts(lua, fs))[-1] == ("a1", "failed", "glass") and g._windows[-1][0] == "smash"
+
+
+def test_the_acts_own_smash_with_clear_removes_the_glass_then_climbs(lua, fs):
+    w = glassy(smashed=False, locked=True, perma=True)
+    p, pos, g = glass_host(lua, w)
+    start(lua, p, "window", x=11, y=20, smash=True, clear=True)
+    tick(lua, p)
+    leave(g)
+    w.st["smashed"] = True
+    tick(lua, p)
+    assert types(g)[-2:] == ["ISRemoveBrokenGlass", "ISClimbThroughWindow"] and g._glass == [(p, w)]
+    leave(g)
+    w.st["removed"] = True
+    pos["y"] = 20.5
+    tick(lua, p)
+    a = acts(lua, fs)
+    assert a[-1]["result"] == {"smashed": True, "opened": False, "cut": False, "wounds": 0, "cleared": True}
+
+
+def test_clear_with_the_remove_glass_class_absent_fails_not_loaded_and_a_bad_clear_is_bad_args(lua, fs):
+    p, _, g = glass_host(lua, glassy())
+    start(lua, p, "window", aid="bc", x=11, y=20, clear="yes")
+    g.ISRemoveBrokenGlass = None
+    start(lua, p, "window", aid="nl", x=11, y=20, clear=True)
+    tick(lua, p)
+    assert states(acts(lua, fs)) == [("bc", "rejected", "bad args"), ("nl", "accepted", ""),
+                                     ("nl", "failed", "not loaded")]
+    assert "ISClimbThroughWindow" not in types(g)
+
+
+def test_a_window_without_the_glass_getters_climbs_as_before(lua, fs):
+    """The fake of the earlier tests (no isGlassRemoved): the glass reads nil, so no gate (the map's record reads null)."""
+    p, pos, g = glass_host(lua, window(smashed=True))
+    start(lua, p, "window", x=11, y=20)
+    tick(lua, p)
+    assert types(g) == ["ISClimbThroughWindow"] and g._glass == []
+
+
+def test_the_glass_reason_and_the_clear_arg_are_the_schemas(lua, fs):
+    from agent.base import pza1
+    assert "glass" in pza1.REASONS and pza1.ACTION_ARGS["window"]["clear"] == "bool"
+    assert pza1.Window(x=1, y=2, clear=True).args() == {"x": 1, "y": 2, "clear": True}
+    assert pza1.Window(x=1, y=2).args() == {"x": 1, "y": 2}

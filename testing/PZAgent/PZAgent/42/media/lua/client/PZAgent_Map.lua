@@ -174,7 +174,7 @@ function MP.lockedOf(o, kind, missing)
 end
 
 -- one square as the schema's square record: x, y, z, solid, solidTrans, light, room, building, door and window (a
--- portal { open, locked, barricaded } or nil), containers ({ type, n, items } each, items full types), floor (the
+-- portal { open, locked, barricaded } or nil; the window's also smashed and glass, MP.glassOf, PZA/1.11), containers ({ type, n, items } each, items full types), floor (the
 -- full types of its world items), its four edges blockN, blockW, edgeN, edgeW (edgesTo, read against the north and
 -- west neighbours off cell), its own hop flags hopN, hopW (hopsOf) and water (its first object whose hasWater() holds,
 -- waterOf; nil when none); a member the square lacks leaves its field nil and its name in missing
@@ -199,6 +199,7 @@ function MP.square(sq, missing, cell)
             local _, open = PZA.call(o, "IsOpen")
             local _, barr = PZA.call(o, "isBarricaded")
             q[kind] = { open = open == true, locked = MP.lockedOf(o, kind, missing), barricaded = barr == true }
+            if kind == "window" then q.window.smashed, q.window.glass = MP.glassOf(o) end   -- PZA/1.11 (Plan 32 Task 6)
         end
         if q.water == nil then
             local _, hw = PZA.call(o, "hasWater")
@@ -259,6 +260,10 @@ function MP.fingerprint(sq, cell, x, y, z)
             local _, open = PZA.call(o, "IsOpen")
             local _, barr = PZA.call(o, "isBarricaded")
             out[#out + 1] = kind .. tostring(open == true) .. tostring(MP.lockedOf(o, kind)) .. tostring(barr == true)
+            if kind == "window" then                     -- PZA/1.11 (Plan 32 Task 6): a smash or a removal re-emits it
+                local smashed, glass = MP.glassOf(o)
+                out[#out] = out[#out] .. tostring(smashed) .. tostring(glass)
+            end
         end
         local cs = W.containersOf(o)
         for k = 1, #cs do
@@ -476,4 +481,20 @@ function MP.watchStep(p)
         end
     end
     return queued
+end
+
+-- ---- the window's glass (PZA/1.11, Plan 32 Task 6; the jar rows T101.1-T101.3 on docs/platform/agent.md) -----------------
+-- smashed, glass of a window object: smashed is isSmashed() (the destroyed field canClimbThrough and the climb's cut
+-- read, #4366, T101.1) and glass whether its broken glass is in, smashed and not isGlassRemoved(): a climb through it
+-- cuts a hand or a forearm 1 time in 2 (T101.2) unless ISRemoveBrokenGlass removes it first (T101.3). Index-checked
+-- through PZA.call: smashed nil when isSmashed cannot be read (and glass with it), glass nil when isGlassRemoved
+-- cannot be read on a smashed window; a window not smashed reads glass false without the second read. The window
+-- record (MP.square), its fingerprint (MP.fingerprint) and the window act's glass gate (PZAgent_SkillsWorld.lua) read it.
+function MP.glassOf(o)
+    local okS, smashed = PZA.call(o, "isSmashed")
+    if not okS or type(smashed) ~= "boolean" then return nil, nil end
+    if not smashed then return false, false end
+    local okR, removed = PZA.call(o, "isGlassRemoved")
+    if not okR or type(removed) ~= "boolean" then return true, nil end
+    return true, not removed
 end

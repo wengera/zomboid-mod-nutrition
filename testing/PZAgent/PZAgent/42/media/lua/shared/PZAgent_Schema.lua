@@ -33,11 +33,12 @@ PZA.schema = {
         strain = { "l", "r" },
         zombie = { "id", "x", "y", "dist", "hasTarget", "crawler", "health", "onFloor", "known", "state", "behind", "headX", "headY" },
         portal = { "open", "locked", "barricaded" },
+        windowPortal = { "open", "locked", "barricaded", "smashed", "glass" },
         container = { "type", "n", "items" },
         water = { "amount", "tainted", "infinite" },
         square = { "x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door", "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN", "hopW", "water" },
     },
-    reasons = { ["bad args"] = true, ["unknown type"] = true, dead = true, ["no square"] = true, ["no path"] = true, stuck = true, superseded = true, ["not loaded"] = true, ["no target"] = true, ["no weapon"] = true, ["out of reach"] = true, ["no door"] = true, locked = true, ["not adjacent"] = true, ["no container"] = true, empty = true, ["no match"] = true, ["none held"] = true, ["not valid"] = true, interrupted = true, ["not safe"] = true, ["not allowed"] = true, busy = true, ["not hoppable"] = true, fell = true, failed = true, ["no wound"] = true, worn = true, ["not cotton"] = true, ["needs tool"] = true, ["not dirty"] = true, ["no source"] = true, ["no water"] = true, ["not a container"] = true, full = true, ["in bag"] = true, ["leg part"] = true, stopped = true, aiming = true, ["not a window"] = true, moving = true, ["not worn"] = true, held = true, ["too far"] = true, standing = true, dropped = true, stood = true, ["out of range"] = true, crowd = true },
+    reasons = { ["bad args"] = true, ["unknown type"] = true, dead = true, ["no square"] = true, ["no path"] = true, stuck = true, superseded = true, ["not loaded"] = true, ["no target"] = true, ["no weapon"] = true, ["out of reach"] = true, ["no door"] = true, locked = true, ["not adjacent"] = true, ["no container"] = true, empty = true, ["no match"] = true, ["none held"] = true, ["not valid"] = true, interrupted = true, ["not safe"] = true, ["not allowed"] = true, busy = true, ["not hoppable"] = true, fell = true, failed = true, ["no wound"] = true, worn = true, ["not cotton"] = true, ["needs tool"] = true, ["not dirty"] = true, ["no source"] = true, ["no water"] = true, ["not a container"] = true, full = true, ["in bag"] = true, ["leg part"] = true, stopped = true, aiming = true, ["not a window"] = true, moving = true, ["not worn"] = true, held = true, ["too far"] = true, standing = true, dropped = true, stood = true, ["out of range"] = true, crowd = true, glass = true },
     actions = {
         walkTo = { "x", "y", "gait" },
         steer = { "vx", "vy", "seconds", "gait" },
@@ -57,7 +58,7 @@ PZA.schema = {
         wash = { "itemId", "x", "y" },
         fill = { "itemId", "x", "y" },
         wear = { "itemId" },
-        window = { "x", "y", "smash" },
+        window = { "x", "y", "smash", "clear" },
         unwear = { "itemId" },
         shove = { "targetId" },
         stomp = { "targetId" },
@@ -185,6 +186,18 @@ local function enc_portal(t)
 end
 PZA.enc.portal = enc_portal
 
+-- record windowPortal: A window (PZA/1.11, Plan 32 Task 6): the portal's fields, then its glass read off IsoWindow's getters (T101.1).
+--   open: Whether it is open.
+--   locked: Whether it is locked (PZA/1.6, fail-closed): any of isLocked(), isLockedByKey() or a thumpable's isLockedByPadlock() for a door, isLocked() or isPermaLocked() for a window, reading true, and true when none of them can be read. True means may refuse, never will refuse: a locked door of a building refuses a player outside who holds no key (a door locked but not by key also refuses from one side), a player holding the key opens one locked by key, and a player inside unlocks it; a locked window struggles from outside and may lock for good, a perma-locked one never opens. Before PZA/1.6 isLocked() alone, false when unreadable.
+--   barricaded: Whether it is barricaded.
+--   smashed: isSmashed(): the destroyed field, which canClimbThrough and the climb's cut test (#4366, T101.1); null when the getter cannot be read, and in logs written before PZA/1.11.
+--   glass: Whether its broken glass is in: smashed and not isGlassRemoved() (T101.1), false on a window not smashed; a climb through it cuts a hand or a forearm 1 time in 2 (#4366, T101.2) unless the window action's clear removes it first (T101.3). Null when either getter cannot be read, and in logs written before PZA/1.11.
+local function enc_windowPortal(t)
+    if t == nil then return "null" end
+    return "[" .. v(t.open) .. "," .. v(t.locked) .. "," .. v(t.barricaded) .. "," .. v(t.smashed) .. "," .. v(t.glass) .. "]"
+end
+PZA.enc.windowPortal = enc_windowPortal
+
 -- record container: One container on a square.
 --   type: The container type.
 --   n: The number of items in it.
@@ -215,7 +228,7 @@ PZA.enc.water = enc_water
 --   room: The room name, null outside.
 --   building: The building id, null outside.
 --   door: The square's door, null when none.
---   window: The square's window, null when none.
+--   window: The square's window, null when none (PZA/1.11: a windowPortal, the portal's fields then smashed and glass).
 --   containers: The square's containers.
 --   floor: The full types of the items on the floor.
 --   blockN: Whether a step from this square to its north neighbour is blocked: a collide flag with no window, a closed or barricaded door, an intact closed or barricaded window, or a stair top (isBlockedTo).
@@ -227,7 +240,7 @@ PZA.enc.water = enc_water
 --   water: The square's water source, null when none (PZA/1.5, P24-G): its first object whose hasWater() holds (a sink, a toilet, a bath, a well, a rain collector, a river, a puddle).
 local function enc_square(t)
     if t == nil then return "null" end
-    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.solid) .. "," .. v(t.solidTrans) .. "," .. v(t.light) .. "," .. v(t.room) .. "," .. v(t.building) .. "," .. enc_portal(t.door) .. "," .. enc_portal(t.window) .. "," .. list(t.containers, enc_container) .. "," .. list(t.floor, v) .. "," .. v(t.blockN) .. "," .. v(t.blockW) .. "," .. v(t.edgeN) .. "," .. v(t.edgeW) .. "," .. v(t.hopN) .. "," .. v(t.hopW) .. "," .. enc_water(t.water) .. "]"
+    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.solid) .. "," .. v(t.solidTrans) .. "," .. v(t.light) .. "," .. v(t.room) .. "," .. v(t.building) .. "," .. enc_portal(t.door) .. "," .. enc_windowPortal(t.window) .. "," .. list(t.containers, enc_container) .. "," .. list(t.floor, v) .. "," .. v(t.blockN) .. "," .. v(t.blockW) .. "," .. v(t.edgeN) .. "," .. v(t.edgeW) .. "," .. v(t.hopN) .. "," .. v(t.hopW) .. "," .. enc_water(t.water) .. "]"
 end
 PZA.enc.square = enc_square
 

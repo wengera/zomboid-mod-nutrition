@@ -861,3 +861,74 @@ def test_a_sinks_infinite_reads_off_its_fluid_capacity_never_the_private_is_wate
     bare = J(_cls="IsoObject", hasWater=lambda s: True, getFluidAmount=lambda s: 3.0, isTaintedWater=lambda s: True)
     q3 = lua.eval("PZA.map.square")(_water_sq([bare]), miss, None)
     assert dict(q3.water) == {"amount": 3.0, "tainted": True} and "getFluidCapacity" in set(miss.values())
+
+
+# ---- PZA/1.11 (Plan 32 Task 6): the window's glass, rows T101.1-T101.3 ---------------------------------------------------
+
+def glass_window(st):
+    """An IsoWindow whose isSmashed reads st["smashed"] and isGlassRemoved st["removed"] (T101.1: field reads)."""
+    return J(_cls="IsoWindow", IsOpen=lambda s: False, isLocked=lambda s: False, isBarricaded=lambda s: False,
+             isSmashed=lambda s: st["smashed"], isGlassRemoved=lambda s: st["removed"])
+
+
+def test_a_window_record_carries_smashed_and_glass_off_the_getters(lua):
+    """T101.1: the glass a climb cuts on is in while the window reads smashed and not glass-removed."""
+    load(lua)
+    st = {"smashed": False, "removed": False}
+    base = {"open": False, "locked": False, "barricaded": False}
+    one, _ = _scan_one(lua, [glass_window(st)])
+    assert dict(one["window"]) == dict(base, smashed=False, glass=False)
+    st["smashed"] = True
+    one, _ = _scan_one(lua, [glass_window(st)])
+    assert dict(one["window"]) == dict(base, smashed=True, glass=True)
+    st["removed"] = True
+    one, _ = _scan_one(lua, [glass_window(st)])
+    assert dict(one["window"]) == dict(base, smashed=True, glass=False)
+
+
+def test_a_window_without_the_getters_reads_none_and_a_door_carries_neither(lua):
+    load(lua)
+    bare = J(_cls="IsoWindow", IsOpen=lambda s: False, isLocked=lambda s: False, isBarricaded=lambda s: False)
+    one, _ = _scan_one(lua, [bare])
+    assert one["window"]["smashed"] is None and one["window"]["glass"] is None and one["window"]["open"] is False
+    half = J(_cls="IsoWindow", IsOpen=lambda s: False, isLocked=lambda s: False, isBarricaded=lambda s: False,
+             isSmashed=lambda s: True)
+    one, _ = _scan_one(lua, [half])
+    assert one["window"]["smashed"] is True and one["window"]["glass"] is None
+    door = J(_cls="IsoDoor", IsOpen=lambda s: False, isLocked=lambda s: False, isBarricaded=lambda s: False,
+             isSmashed=lambda s: True, isGlassRemoved=lambda s: False)
+    one, _ = _scan_one(lua, [door])
+    assert sorted(one["door"].keys()) == ["barricaded", "locked", "open"]
+
+
+def test_the_window_record_encodes_and_decodes_with_its_glass_and_a_1_10_window_decodes_with_none(lua, fs):
+    """The schema's windowPortal: open, locked, barricaded, then PZA/1.11's smashed and glass (x-prior 3)."""
+    load(lua, init=True)
+    st = {"smashed": True, "removed": False}
+    lua.globals()._cell = make_cell_of({(11, 20, 0): _sq_with([glass_window(st)])})
+    p = make_player(x=11.0)
+    lua.eval("PZA.map.scanStart(...)", p, 0)
+    step_parts(lua, p)
+    lua.execute("PZA.link.flush()")
+    (m,) = map_lines(fs)
+    assert m["squares"][0]["window"] == {"open": False, "locked": False, "barricaded": False, "smashed": True,
+                                         "glass": True}
+    assert pza1.RECORDS["windowPortal"] == ("open", "locked", "barricaded", "smashed", "glass")
+    assert pza1.PRIOR["windowPortal"] == 3 and pza1.RECORDS["portal"] == ("open", "locked", "barricaded")
+    q = json.loads(lua.eval("PZA.enc.square(...)", lua.eval("PZA.map.square(...)", _sq_with([glass_window(st)]),
+                                                             lua.table(), None)))
+    q[9] = q[9][:3]                                              # a PZA/1.10 window record
+    assert pza1.decode(["map", 1, 1, 1, "delta", 0, 1, 1, [q], []])["squares"][0]["window"] == {
+        "open": False, "locked": False, "barricaded": False, "smashed": None, "glass": None}
+
+
+def test_a_window_smashed_or_cleared_changes_the_fingerprint(lua):
+    load(lua)
+    st = {"smashed": False, "removed": False}
+    sq = _sq_with([glass_window(st)])
+    f0 = lua.eval("PZA.map.fingerprint(...)", sq, None, 11, 20, 0)
+    st["smashed"] = True
+    f1 = lua.eval("PZA.map.fingerprint(...)", sq, None, 11, 20, 0)
+    st["removed"] = True
+    f2 = lua.eval("PZA.map.fingerprint(...)", sq, None, 11, 20, 0)
+    assert len({f0, f1, f2}) == 3
