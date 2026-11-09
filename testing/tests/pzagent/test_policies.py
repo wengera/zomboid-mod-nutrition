@@ -832,11 +832,13 @@ def test_a_pinned_target_beyond_disengage_r_is_dropped(tmp_path):
 def test_the_target_keyword_pins_from_the_start(tmp_path):
     """Named change, the spec's 1 (b) (Plan 28 Task 3, its own switch since fix 1): pinned with `APPROACH_WALK` off, the
     rule before it (the non-stance Fight's walk to a zombie at a run). Named change, Plan 31 Task 15a: the chaser met
-    in the stance; pinned with `chaser_stance` off."""
+    in the stance; pinned with `chaser_stance` off. Named change, Plan 33 Task 3 fix 4 (a): the pair rule counts a
+    standing pin beyond KEEP_R beside a standing zombie within it, so 7 at 1.0 tile would take the pin from 9 at 4.0;
+    pinned with `pair_nearest` off."""
     r = Rig(tmp_path)
     r.frame(zombies=[zombie(7, 101.0, 200.0), zombie(9, 104.0, 200.0)])
     f = Fight(r.world, r.acts, r.clock, target=9)
-    f.rules = f.rules - {"approach_walk", "chaser_stance"}
+    f.rules = f.rules - {"approach_walk", "chaser_stance", "pair_nearest"}
     f.step()
     assert r.cmd() == ("walkTo", {"x": 104.5, "y": 200.5, "gait": "run"}) and f.why["target"] == 9
     assert f.why["pinned"] is True

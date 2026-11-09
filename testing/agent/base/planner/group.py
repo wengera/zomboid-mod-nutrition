@@ -24,10 +24,15 @@ before it closes, never by running into it.
   doorway stand resumed there (the Flee's `stand_ok`, P24-AO); with none,
   `retreat` (Angus's fighting retreat, memory `fighting-retreat`): the Fight, never a run, keeps its stance on the
   nearest standing zombie, every stance leg a backpedal (`Fight.retreat`) whose heading is away from the centroid of the
-  standing zombies within GROUP_ENTRY_R, re-read every line, the meet pressing whoever enters reach as it does.
-  The leave holds while GROUP_LEAVE_N stand within GROUP_ENTRY_R (the retreat) or, on the door's walk, within DANGER_R;
-  it ends at the doorway (the stand's row, `Threat._doorway`, answers first), when fewer stand (`group_leave` {end
-  "strung"}) or under the floor. Withheld, logged `group_leave` {withheld: cover}, when a wall is at the back.
+  standing zombies within GROUP_ENTRY_R, re-read every line, the meet pressing whoever enters reach as it does; fix 4
+  (round three, trial 3, `x_trial-ladder-20261109-042558`: the standing count rose to eight under the retreat and the
+  character died): the retreat for GROUP_LEAVE_N to RETREAT_MAX_N standing within GROUP_ENTRY_R; above it
+  `run`: the threat plan's `many` flee (Plan 32's composition: the drag guard, SIDE_CLEAR's least-bad heading and the
+  run), logged `group_leave` {leg "run", n}, the retreat resumed on the line the count falls back to RETREAT_MAX_N.
+  The Fight's side of the retreat (its pin on the nearest standing zombie, the back leg always sent) is `fight.py`'s.
+  The leave holds while GROUP_LEAVE_N stand within GROUP_ENTRY_R (the retreat, the run) or, on the door's walk, within
+  DANGER_R; it ends at the doorway (the stand's row, `Threat._doorway`, answers first), when fewer stand (`group_leave`
+  {end "strung"}) or under the floor. Withheld, logged `group_leave` {withheld: cover}, when a wall is at the back.
 - `DRAG_GUARD_FIGHT` (`_drag_fight`, `_drag_shove`): the drag-down guard's flee, when the frame reads a hit reaction
   (`me.hitReaction` non-empty) or STUCK_FRAMES frames of `me.moving` false while a steer or a walk is the running
   action (`_drag_stuck`), shoves the nearest standing zombie within SHOVE_R in front of the character (within 90 degrees
@@ -52,18 +57,20 @@ before it closes, never by running into it.
 """
 import math
 
-from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, DRAG_SHOVES_PER_EPISODE, FIGHT_REACH, FLEE_GAIT,
+from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, DRAG_SHOVES_PER_EPISODE, FLEE_GAIT,
                                          FLEE_HEALTH_FLOOR, GROUP_ENTRY_R, GROUP_LEAVE_N,
-                                         LEAVE_DOOR_R, SHOVE_R, STAND_MIN_R, SIDE_LOOK, SIDE_R,
+                                         LEAVE_DOOR_R, RETREAT_MAX_N, SHOVE_R, STAND_MIN_R, SIDE_LOOK, SIDE_R,
                                          STEER_PROBE, STUCK_FRAMES, STUCK_FREE_R, WALL_R, _rotate, blocked,
                                          clear_heading, hit_reaction, on_floor, target_id_ok, zdist)
 from agent.base.pza1 import Shove, Steer
 from agent.base.world import me_floor, me_xy
 
-__all__ = ["ThreatGroup", "SIDE_TURNS", "side_hits", "side_dist", "back_cover"]
+__all__ = ["ThreatGroup", "LEAVE_PLAN", "SIDE_TURNS", "side_hits", "side_dist", "back_cover"]
 
 SIDE_TURNS = (30, -30, 60, -60, 90, -90, 120, -120, 150, -150, 180)   # degrees a heading turns, nearest first
 ROAMING = ("steer", "walkTo")   # the running actions under which an unmoving frame counts toward STUCK_FRAMES
+LEAVE_PLAN = {"shove": ("flee", "leave"), "door": ("flee", "leave"), "retreat": ("fight", None),
+              "run": ("flee", "many")}   # the threat plan of each leave leg (`Threat._threat_plan`)
 
 
 def _side_passes(world, v, zs):
@@ -164,8 +171,11 @@ class ThreatGroup:
         closing read (`_group_closing`: the standing zombies within GROUP_ENTRY_R each nearer than on the line before,
         `_group_prev` their distances within DISENGAGE_R, kept for the next line); the unmoving count's start
         (`_still_n0`: the World's `frame_n` of the first tick reading `me.moving` false while a steer or a walk runs,
-        reset by any other) and the stuck episode's end once the character stands STUCK_FREE_R from its start (fix 2)."""
+        reset by any other) and the stuck episode's end once the character stands STUCK_FREE_R from its start (fix 2).
+        Fix 4: the leave's outputs too (`_clear_leave`), so a line the drag guard answers before the leave's row logs no
+        stale `group_retreat`."""
         self.group_leave, self.drag_fight, self.side_clear = None, None, None
+        self._clear_leave()
         ep = self.drag_episode
         if ep is not None and math.hypot(*(a - b for a, b in zip(me_xy(self.world), ep["at"]))) >= STUCK_FREE_R:
             self.drag_episode = None
@@ -298,11 +308,17 @@ class ThreatGroup:
         return policy, Steer(h[0], h[1], cmd.seconds, cmd.gait)
 
     # ------------------------------------------------------------------------------------------------ GROUP_LEAVE
+    def _clear_leave(self):
+        """The leave's outputs for this tick, cleared: `leave_leg` (shove | door | retreat | run), `retreat` (the unit
+        heading the Fight backpedals on, else None) and the `group_retreat` why."""
+        self.retreat, self.group_retreat, self.leave_leg = None, None, None
+
     def _group_leave(self, inside):
         """GROUP_LEAVE's row (the module docstring): True when the tick takes the leave (a new one, or the running one
         held), else False, `leave` cleared when its end is read; `group_leave` the why either way, `leave_leg` the leg
-        (shove | door | retreat) and, on the retreat, `retreat` the unit heading away from the standing group's centroid."""
-        self.retreat, self.group_retreat, self.leave_leg = None, None, None
+        (shove | door | retreat | run) and, on the retreat, `retreat` the unit heading away from the standing group's
+        centroid."""
+        self._clear_leave()
         if not self.GROUP_LEAVE or inside or self.sheltered or self._health() < FLEE_HEALTH_FLOOR:
             self.leave = None
             return False
@@ -333,12 +349,16 @@ class ThreatGroup:
         return True
 
     def _leave_leg(self):
-        """The leave's leg this tick: `shove` once, on the leave's first line, at the nearest standing zombie within
-        STAND_MIN_R (round two, trial 2: the engine's own shove distance); `door` while a known door within LEAVE_DOOR_R
-        is held or reads `ok` (Angus's fighting retreat: a long walk turns the back on the group); else `retreat`, the
-        Fight's stance on the nearest standing zombie with its back heading away from the centroid of the standing
-        zombies within GROUP_ENTRY_R, re-read every line (`retreat`, logged `group_retreat` {leg, closing,
-        centroid_away})."""
+        """The leave's leg this tick, the first that applies:
+        - `shove` once a leave, at the nearest standing zombie within STAND_MIN_R (round two, trial 2: the engine's own
+          shove distance), whatever leg follows;
+        - `door` while a known door within LEAVE_DOOR_R is held or reads `ok` (Angus's fighting retreat: a long walk
+          turns the back on the group);
+        - `run` with more than RETREAT_MAX_N standing within GROUP_ENTRY_R (fix 4: a backpedal does not outpace eight),
+          the threat plan's `many` flee, logged `group_leave` {leg "run", n};
+        - else `retreat`, the Fight's stance on the nearest standing zombie with its back heading away from the
+          centroid of the standing zombies within GROUP_ENTRY_R, re-read every line (`retreat`, logged `group_retreat`
+          {leg, closing, centroid_away})."""
         flee = self.flee
         held_door = flee is not None and flee.plan is not None
         near = self._group_standing(STAND_MIN_R)
@@ -358,6 +378,10 @@ class ThreatGroup:
             self.leave_leg = "door"
             self.group_leave = dict(self.group_leave or {}, leg="door", door=list(door))
             self.group_retreat = {"leg": "door", "closing": ids, "centroid_away": [away[0], away[1]]}
+            return
+        if len(group) > RETREAT_MAX_N:   # fix 4: the `many` run as Plan 32's composition ran
+            self.leave_leg = "run"
+            self.group_leave = dict(self.group_leave or {}, leg="run", n=len(group))
             return
         self.leave_leg = "retreat"
         self.retreat = away

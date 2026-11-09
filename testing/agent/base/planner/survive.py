@@ -520,8 +520,8 @@ T17_SWITCHES = ("CRAWLER_FIRST",)
 # (`crawler.FightCrawler`), added to the Fight's rules by `Survive._fight_rules`
 T18_SWITCHES = ("GROUP_LEAVE", "DRAG_GUARD_FIGHT", "SIDE_CLEAR")
 # Plan 33 Task 3 (the group's entry and the drag guard; F18, `f_goals_18-20261108-235005`), all on `threat.Threat`
-# (`planner/group.py`): GROUP_LEAVE, a closing pair left in the open for the nearest known door within LEAVE_R, else a
-# run from its centroid (`ThreatGroup._group_leave`); DRAG_GUARD_FIGHT, the drag-down guard's shove in its run's place
+# (`planner/group.py`): GROUP_LEAVE, a closing trio left in the open for a known door within LEAVE_DOOR_R, else the
+# fighting retreat, else above RETREAT_MAX_N the `many` run (`ThreatGroup._group_leave`); DRAG_GUARD_FIGHT, the drag-down guard's shove in its run's place
 # under a hit reaction or STUCK_FRAMES unmoving frames (`ThreatGroup._drag_fight`); SIDE_CLEAR, no run steer within
 # SIDE_R of a standing zombie (`ThreatGroup._side_clear`)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
@@ -691,7 +691,7 @@ class Survive(SneakGait, Threat):
         self.leave = None         # the running leave {since, closing} (Plan 33 Task 3, GROUP_LEAVE), else None
         self.retreat = None       # this tick: GROUP_LEAVE's retreat heading (unit away from the group), else None
         self.group_retreat = None   # this tick: GROUP_LEAVE's retreat why {leg, closing, centroid_away}, else None
-        self.leave_leg = None     # this tick: the leave's leg, shove | door | retreat
+        self.leave_leg = None     # this tick: the leave's leg, shove | door | retreat | run
         self.group_leave = None   # this tick: GROUP_LEAVE's why (a leave taken, held, ended or withheld), else None
         self.drag_fight = None    # this tick: DRAG_GUARD_FIGHT's {target, dist, why} shove or {spent, why} run, else None
         self.side_clear = None    # this tick: {turn, near[, least_bad]} when SIDE_CLEAR turned a run, else None

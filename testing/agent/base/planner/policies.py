@@ -1082,9 +1082,6 @@ def __getattr__(name):
 # the side; `group.ThreatGroup`). At the end of the module so that Task 2's constant after KEEP_R moves none of them.
 WALL_R = 1.5          # tiles: a wall, a fence, a door or a solid square this near the player's back keeps the stand
                       # against a closing pair (GROUP_LEAVE: the group cannot close round a back to a wall)
-LEAVE_R = 20.0        # tiles: the leave leg walks to a known building's door whose approach square is this near
-                      # (GROUP_LEAVE), the doorway stand resumed there; none, the run from the group's centroid
-LEAVE_S = 4.0         # seconds a leave leg's run from the group's centroid runs before it is re-read (GROUP_LEAVE)
 STUCK_FRAMES = 10     # frames (10 Hz: one second) of `me.moving` false while a steer or a walk runs that read the
                       # character pinned (DRAG_GUARD_FIGHT: F18's 116 unmoving frames, seq 3512 to 3655)
 SIDE_R = 1.0          # tiles: no run steer passes this near a standing zombie (SIDE_CLEAR: F18's runs into the zombie
@@ -1104,3 +1101,11 @@ GROUP_LEAVE_N = 3     # standing zombies closing within GROUP_ENTRY_R that GROUP
 # Plan 33 Task 3 fix 3 addenda (round two, trial 2 and Angus's fighting retreat, memory `fighting-retreat`): the leave is a
 # fighting retreat, never a run; a known door is walked to only when this near (a long walk turns the back on the group)
 LEAVE_DOOR_R = 6.0    # tiles: GROUP_LEAVE walks to a known door whose approach square is this near, else the retreat
+# Plan 33 Task 3 fix 4 (round three, trial 3, `x_trial-ladder-20261109-042558`: on street-1 the retreat's standing
+# count within GROUP_ENTRY_R rose to eight and the character died under the drag guard's runs, where Plan 32's `many`
+# run before the group closed read 9 to 11 kills; the controller's ruling 2026-11-09 04:45: a backpedal does not outpace
+# eight, so the retreat is the leg for GROUP_LEAVE_N to RETREAT_MAX_N standing and the `many` run above it)
+RETREAT_MAX_N = 4     # standing zombies within GROUP_ENTRY_R the fighting retreat backpedals from; above it the leave's
+                      # leg is the `many` run (GROUP_LEAVE), the retreat resumed when the count falls back to it
+RETREAT_RESEND_DEG = 30.0   # degrees: a running retreat leg is re-sent once its heading differs from the retreat's by
+                            # more (the group moving round the character), else held (`Fight.busy`)

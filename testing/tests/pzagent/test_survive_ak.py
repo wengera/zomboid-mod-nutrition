@@ -30,12 +30,13 @@ import os
 import pytest
 
 from agent.base import replay_decisions as R
+from agent.base.planner import fight as F
 from agent.base.planner import group as G
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
 
 from .test_night import CLOSED, two_door_house
-from .test_policies import square, zombie
+from .test_policies import Rig, square, zombie
 from .test_survive import make, threat_why, tick
 
 F18 = os.path.join(R.ARTIFACTS, "f_goals_18-20261108-235005")
@@ -85,7 +86,9 @@ def test_the_t17_switches_and_constants():
     default`), and the constants at `policies.py`'s end."""
     assert T17 == ("GROUP_LEAVE", "DRAG_GUARD_FIGHT", "SIDE_CLEAR")
     assert all(getattr(S.Survive, k) is True for k in T17)
-    assert (P.WALL_R, P.LEAVE_R, P.LEAVE_S, P.STUCK_FRAMES, P.SIDE_R, P.SIDE_LOOK) == (1.5, 20.0, 4.0, 10, 1.0, 3.0)
+    assert (P.WALL_R, P.STUCK_FRAMES, P.SIDE_R, P.SIDE_LOOK) == (1.5, 10, 1.0, 3.0)
+    assert not hasattr(P, "LEAVE_R") and not hasattr(P, "LEAVE_S")   # fix 4: unused since fix 3, deleted
+    assert (P.RETREAT_MAX_N, P.RETREAT_RESEND_DEG) == (4, 30.0)   # fix 4
     assert (P.STUCK_FREE_R, P.DRAG_SHOVES_PER_EPISODE) == (1.0, 1)   # fix 2
     assert P.GROUP_ENTRY_R == P.DANGER_R == 6.0   # fix 1: DANGER_R's value, its own constant
 
@@ -560,3 +563,232 @@ def test_f18_with_the_three_on_by_default_its_guard_shoves_once_then_runs_the_le
             and "closing" in threat(r)["group_leave"]] == [358]
 
 
+# ================================================================ fix 4: the retreat retargets, always sends its leg, the run above RETREAT_MAX_N
+# Plan 33 round three (P31-T trials, not evidence): street-1, `x_trial-ladder-20261109-042558`, lines 98 to 100 held the
+# pin 99 at 4.40 tiles while 117 closed to 0.96, its retreat lines sent nothing under hit reactions while the standing
+# count rose to eight and the character died; the agent fixture, `x_trial-ladder-20261109-040825`, lines 209 to 212 held
+# a walk toward a pin 8.93 tiles off while the trio closed to 0.27.
+ME = (100.5, 200.5)
+WEST_V = (-1.0, 0.0)   # a retreat heading: due west
+
+
+def zm(zid, x, y, **k):
+    return z(zid, x, y, me=ME, **k)
+
+
+def fight4(tmp_path, zs, retreat=WEST_V, stance=True, target=None, scan=None, **frame):
+    """A Fight on a fresh Rig (the player at ME) over one frame of `zs`, its rules the defaults (Plan 33 Task 2's
+    `crawler_first` off), `retreat` and `stance` set as Survive sets them, pinned on `target`."""
+    r = Rig(tmp_path)
+    if scan:
+        r.scan(scan)
+    r.frame(x=ME[0], y=ME[1], zombies=zs, **frame)
+    f = F.Fight(r.world, r.acts, r.clock)
+    f.rules = f.rules - {"crawler_first"}
+    f.retreat, f.stance, f.target = retreat, stance, target
+    return r, f
+
+
+# ---- (a) the pin
+def test_a_far_pin_gives_way_to_a_standing_zombie_closing_within_keep_r_under_pair_nearest(tmp_path):
+    """Fix 4 (a), outside the retreat: the pin 1 standing 4.4 tiles east (beyond KEEP_R) and 2 closing to 0.96 within
+    it: the pair rule counts the far pin, so the nearer standing one takes it (`pair_nearest` {target 2, n 2,
+    standing 2}); with the rule off the pin holds on 1 (the trial's lines 98 to 100)."""
+    zs = [zm(1, 104.9, 200.5), zm(2, 99.54, 200.5)]
+    r, f = fight4(tmp_path, zs, retreat=None, target=1)
+    f.choose()
+    assert f.target == 2 and f.why["pair_nearest"] == {"target": 2, "n": 2, "standing": 2}
+    (tmp_path / "off").mkdir()
+    r2, f2 = fight4(tmp_path / "off", zs, retreat=None, target=1)
+    f2.rules = f2.rules - {"pair_nearest"}
+    f2.choose()
+    assert f2.target == 1 and "pair_nearest" not in f2.why
+
+
+def test_a_far_pin_alone_or_beside_a_fallen_one_is_no_pair(tmp_path):
+    """The far pin is counted only beside a standing zombie within KEEP_R: alone it is no pair, and beside a fallen
+    one within KEEP_R the finish keeps its place (no `pair_nearest`)."""
+    r, f = fight4(tmp_path, [zm(1, 104.9, 200.5)], retreat=None, target=1)
+    assert f._pair_read() is None
+    (tmp_path / "b").mkdir()
+    r2, f2 = fight4(tmp_path / "b", [zm(1, 104.9, 200.5), zm(2, 99.54, 200.5, onFloor=True)], retreat=None, target=1)
+    assert f2._pair_read() is None
+
+
+def test_under_the_retreat_the_pin_moves_to_the_nearest_standing_zombie_of_the_group(tmp_path):
+    """Fix 4 (a): under the retreat a trio east at 2.5, 3.5 and 4.5 tiles with the pin on the farthest (3): the pin
+    moves to the nearest standing one (1), logged `retreat_pin` {target 1, from 3} and `retreat` true; a fallen one
+    nearer still is not the pin."""
+    zs = [zm(1, 103.0, 200.5), zm(2, 104.0, 200.5), zm(3, 105.0, 200.5), zm(4, 101.5, 200.5, onFloor=True)]
+    r, f = fight4(tmp_path, zs, target=3)
+    cmd = f.choose()
+    assert f.target == 1 and f.why["retreat_pin"] == {"target": 1, "from": 3} and f.why["retreat"] is True
+    assert cmd.TYPE == "aim" and cmd.targetId == 1 and f.why["leg"] == "back"
+
+
+def test_under_the_retreat_a_nearer_one_by_less_than_pair_switch_r_keeps_the_pin(tmp_path):
+    """The retreat pin's hysteresis (PAIR_SWITCH_R 0.3, the pair rule's): 1 at 2.5 tiles, the pin on 2 at 2.7 (0.2
+    farther): the pin holds on 2, no `retreat_pin` logged; 2 at 2.9 (0.4 farther) gives it to 1."""
+    r, f = fight4(tmp_path, [zm(1, 103.0, 200.5), zm(2, 103.2, 200.5), zm(3, 105.0, 200.5)], target=2)
+    f.choose()
+    assert f.target == 2 and "retreat_pin" not in f.why
+    (tmp_path / "b").mkdir()
+    r2, f2 = fight4(tmp_path / "b", [zm(1, 103.0, 200.5), zm(2, 103.4, 200.5), zm(3, 105.0, 200.5)], target=2)
+    f2.choose()
+    assert f2.target == 1 and f2.why["retreat_pin"] == {"target": 1, "from": 2}
+
+
+def test_under_the_retreat_a_running_leg_at_another_than_the_retreat_pin_gives_way(tmp_path):
+    """`busy` reads the retreat pin as it reads the pair's: a running aim at the far pin gives way once a standing
+    one reads PAIR_SWITCH_R nearer."""
+    r, f = fight4(tmp_path, [zm(1, 104.5, 200.5)], target=1)
+    f.step()
+    r.fake.answer({"aim": ["accepted"]})
+    r.pump()
+    assert f.busy() is True
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, 104.5, 200.5), zm(2, 103.0, 200.5)])
+    f.observe()
+    assert f.busy() is False
+
+
+# ---- (b) the leg always goes
+def test_a_retreat_line_under_a_hit_reaction_sends_the_back_leg(tmp_path):
+    """Fix 4 (b), the trial's lines 102 to 104 (`hitReaction` with nothing sent): a Fight out of the stance (more than
+    MAX_FIGHT held) under the retreat, its pin 1 at 1.5 tiles within FIGHT_REACH, the frame reading a hit reaction:
+    the ladder sends nothing (P24-A (i)), so the back leg goes, `aim` on the retreat heading with `targetId` the pin,
+    logged `retreat_leg` {in_place_of None}, `leg` back, `retreat` true; with no retreat, nothing."""
+    zs = [zm(1, 102.0, 200.5), zm(2, 103.5, 200.5), zm(3, 104.0, 201.5)]
+    r, f = fight4(tmp_path, zs, stance=False, target=1, hit_reaction="Bite")
+    cmd = f.choose()
+    assert (cmd.TYPE, cmd.targetId, cmd.seconds) == ("aim", 1, P.AIM_LEG_S)
+    assert (cmd.vx, cmd.vy) == pytest.approx(WEST_V)
+    assert f.why["retreat_leg"] == {"in_place_of": None} and f.why["leg"] == "back" and f.why["retreat"] is True
+    assert f.why["hitReaction"] == "Bite"
+    (tmp_path / "off").mkdir()
+    r2, f2 = fight4(tmp_path / "off", zs, retreat=None, stance=False, target=1, hit_reaction="Bite")
+    assert f2.choose() is None
+
+
+def test_a_retreat_line_never_sends_a_walk(tmp_path):
+    """Fix 4 (b), the agent fixture's lines 204 to 212 (`leg: walk` held toward a far pin): a Fight out of the stance
+    under the retreat, its pin 4 tiles east and not chasing (a chaser is met in the stance, Plan 31 Task 15a): the
+    approach walk is the back leg instead (`retreat_leg` {in_place_of "walkTo"}); with no retreat the walk."""
+    zs = [zm(1, 104.5, 200.5, hasTarget=False)]
+    r, f = fight4(tmp_path, zs, stance=False, target=1)
+    cmd = f.choose()
+    assert cmd.TYPE == "aim" and cmd.targetId == 1 and (cmd.vx, cmd.vy) == pytest.approx(WEST_V)
+    assert f.why["retreat_leg"] == {"in_place_of": "walkTo"}
+    (tmp_path / "off").mkdir()
+    r2, f2 = fight4(tmp_path / "off", zs, retreat=None, stance=False, target=1)
+    assert f2.choose().TYPE == "walkTo"
+
+
+def test_a_running_walk_gives_way_under_the_retreat(tmp_path):
+    """Fix 4 (b): a running walk (the approach's) holds until it ends outside the retreat; under it, it gives way."""
+    r, f = fight4(tmp_path, [zm(1, 104.5, 200.5, hasTarget=False)], retreat=None, stance=False, target=1)
+    f.step()
+    r.fake.answer({"walkTo": ["accepted"]})
+    r.pump()
+    assert f.last.type == "walkTo" and f.busy() is True
+    f.retreat = WEST_V
+    assert f.busy() is False
+
+
+@pytest.mark.parametrize("turn, held", [(20.0, True), (45.0, False)])
+def test_a_running_back_leg_is_re_sent_once_the_retreat_heading_turns_past_retreat_resend_deg(tmp_path, turn, held):
+    """Fix 4 (b): the back leg sent on the retreat heading (the pin 3 tiles east, beyond FIGHT_REACH) is held while
+    the heading turns 20 degrees (within RETREAT_RESEND_DEG 30) and gives way at 45."""
+    r, f = fight4(tmp_path, [zm(1, 103.5, 200.5)], target=1)
+    f.step()
+    r.fake.answer({"aim": ["accepted"]})
+    r.pump()
+    assert f.last.type == "aim" and f.busy() is True
+    f.retreat = P._rotate(WEST_V, turn)
+    assert f.busy() is held
+
+
+def boxed():
+    """Every square within 4 tiles of the player's square (100, 200) solid but its own: no heading reads clear."""
+    return [square(x, y, solid=(x, y) != (100, 200)) for x in range(96, 105) for y in range(196, 205)]
+
+
+def test_with_no_clear_turn_the_retreat_takes_the_least_bad_heading(tmp_path):
+    """Fix 4 (b): no STEER_TURNS heading off the retreat reads clear (the player boxed in): the leg is not the stand
+    (0, 0) but the least-bad heading as SIDE_CLEAR takes it: zombies 2.2 tiles off (beyond FIGHT_REACH, the `back`
+    leg's distance) at 0 and +-30 degrees of the retreat heading (east here) pass the legs at 0 and +-30, so the first
+    turn passing none, 60, is taken, logged `retreat_least_bad` {turn 60, dist SIDE_LOOK + SIDE_R}."""
+    east = (1.0, 0.0)
+    zs = [zm(i, ME[0] + 2.2 * v[0], ME[1] + 2.2 * v[1]) for i, v in
+          ((1, east), (2, P._rotate(east, 30)), (3, P._rotate(east, -30)))]
+    r, f = fight4(tmp_path, zs, retreat=east, target=1, scan=boxed())
+    assert f._clear_turn(east) is None
+    cmd = f.choose()
+    want = P._rotate(east, 60)
+    assert cmd.TYPE == "aim" and (cmd.vx, cmd.vy) == pytest.approx(want)
+    assert f.why["retreat_least_bad"] == {"turn": 60, "dist": P.SIDE_LOOK + P.SIDE_R}
+
+
+# ---- (c) the band
+FIVE_WEST = WEST + ((96.9, 201.3), (96.95, 199.3))   # two more beside the pair, 3.6 and 3.7 tiles west
+FIVE_NEAR = NEAR + ((97.6, 201.4), (97.7, 199.3))    # ... closing to 3.04 and 3.05
+
+
+def band(tmp_path, n):
+    """Two ticks of the first `n` of FIVE: their first line, then closing within GROUP_ENTRY_R."""
+    r, sv = make(tmp_path)
+    for name in T17:
+        setattr(sv, name, name == "GROUP_LEAVE")
+    r.frame(x=100.5, y=200.5, zombies=pair(FIVE_WEST[:n]))
+    tick(r, sv)
+    r.advance(0.5)
+    r.frame(x=100.5, y=200.5, zombies=pair(FIVE_NEAR[:n]))
+    tick(r, sv)
+    return r, sv
+
+
+def test_five_closing_take_the_many_run_and_four_the_retreat(tmp_path):
+    """Fix 4 (c): five standing closing within GROUP_ENTRY_R (more than RETREAT_MAX_N 4) are left by the `many` run
+    (`group_leave` {closing, leg "run", n 5}, the threat plan's `flee` "many", a run steer); four by the retreat."""
+    assert P.RETREAT_MAX_N == 4
+    r, sv = band(tmp_path, 5)
+    why = threat_why(tmp_path)
+    assert why["group_leave"]["leg"] == "run" and why["group_leave"]["n"] == 5 and len(why["group_leave"]["closing"]) == 5
+    assert why["flee"] == "many" and sv.mode == "flee" and "group_retreat" not in why and sv.retreat is None
+    assert r.cmd()[0] == "steer" and r.cmd()[1]["gait"] == "run"
+    (tmp_path / "four").mkdir()
+    r2, sv2 = band(tmp_path / "four", 4)
+    why = threat_why(tmp_path / "four")
+    assert why["group_leave"]["leg"] == "retreat" and why["fight"] is True and sv2.mode == "fight"
+    assert r2.cmd()[0] == "aim"
+
+
+def test_the_retreat_resumes_when_the_count_falls_to_retreat_max_n_and_ends_strung_under_three(tmp_path):
+    """Fix 4 (c): the run's leave held while five stand; the line reading four within GROUP_ENTRY_R resumes the retreat
+    (the Fight, `group_leave` {n 4, leg "retreat"}); the line reading two ends it `strung`."""
+    r, sv = band(tmp_path, 5)
+    assert threat_why(tmp_path)["group_leave"]["leg"] == "run"
+    r.advance(0.5)
+    four = FIVE_NEAR[:2] + ((100.5, 207.5),) + FIVE_NEAR[3:]   # 3 beyond GROUP_ENTRY_R
+    r.frame(x=100.5, y=200.5, zombies=pair(four))
+    tick(r, sv)
+    why = threat_why(tmp_path)
+    assert why["group_leave"] == {"n": 4, "leg": "retreat"} and why["fight"] is True and sv.mode == "fight"
+    r.advance(0.5)
+    two = FIVE_NEAR[:2] + ((100.5, 207.5), (94.0, 201.4), (94.0, 199.3))
+    r.frame(x=100.5, y=200.5, zombies=pair(two))
+    tick(r, sv)
+    why = threat_why(tmp_path)
+    assert sv.leave is None and why["group_leave"] == {"end": "strung", "n": 2}
+
+
+def test_a_drag_guard_line_logs_no_stale_group_retreat(tmp_path):
+    """Fix 4: the leave's outputs are cleared at the tick's start (`_group_read`), so a line the drag guard answers
+    before the leave's row (the trial's lines 117 to 152 carried the last retreat's `group_retreat`) logs none."""
+    r, sv = band(tmp_path, 4)
+    assert "group_retreat" in threat_why(tmp_path)
+    r.advance(0.5)
+    k = guard(("GROUP_LEAVE",))
+    r.frame(x=100.5, y=200.5, zombies=k["zombies"], attackers=k["attackers"], hit_reaction=k["hit_reaction"])
+    tick(r, sv)
+    why = threat_why(tmp_path)
+    assert why["group"] == "drag" and "group_retreat" not in why and sv.retreat is None

@@ -17,7 +17,7 @@ from agent.base.planner.engage import Engage
 from agent.base.planner.fight import Fight
 from agent.base.planner.finish import ThreatFinish
 from agent.base.planner.flee import Flee
-from agent.base.planner.group import ThreatGroup
+from agent.base.planner.group import LEAVE_PLAN, ThreatGroup
 from agent.base.planner.hold import Hold
 from agent.base.planner.policies import (AIM_R, BLEED_FAST, CLOSING_TICKS, CORNERED_R, CORNER_FREE_R, DANGER_R,
                                          DISENGAGE_R, DRAG_DOWN_N, DROP_AT, EDGE_HOLD_TICKS, ENGAGE_R, FIGHT_REACH,
@@ -270,10 +270,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                # structure excepted; off, the flee reasons as before
     # Plan 33 Task 3 (the group's entry and the drag guard; F18's death, `planner/group.py`'s docstring the record): in
     # `survive.T18_SWITCHES`
-    GROUP_LEAVE = True        # two standing zombies closing within GROUP_NEAR_R in the open with nothing at the back
-                              # within WALL_R: the `leave` flee to the nearest known door within LEAVE_R, the doorway
-                              # stand there, else a run from their centroid for LEAVE_S (`group.ThreatGroup._group_leave`);
-                              # off, no such row
+    GROUP_LEAVE = True        # GROUP_LEAVE_N standing zombies closing within GROUP_ENTRY_R in the open with nothing at
+                              # the back within WALL_R: the `leave` flee to a known door within LEAVE_DOOR_R, the
+                              # doorway stand there, else the Fight's fighting retreat (up to RETREAT_MAX_N standing),
+                              # else the `many` run (`group.ThreatGroup._group_leave`); off, no such row
     DRAG_GUARD_FIGHT = True   # the drag-down guard's flee under a hit reaction or STUCK_FRAMES unmoving frames shoves the
                               # standing zombie in front once a stuck episode (fix 2: DRAG_SHOVES_PER_EPISODE), the run
                               # after it until moved STUCK_FREE_R (`group.ThreatGroup._drag_fight`); off, the guard's run
@@ -860,9 +860,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.door = self._door_targets() if self.sheltered else None
         if self.door:
             return "door", None
-        if self._group_leave(inside):   # Plan 33 Task 3 (GROUP_LEAVE): a closing pair left in the open
+        if self._group_leave(inside):   # Plan 33 Task 3 (GROUP_LEAVE): a closing trio left in the open
             self.cornered, self._corner_fight = None, None
-            return ("fight", None) if self.leave_leg == "retreat" else ("flee", "leave")   # fix 3: the retreat is the Fight's
+            return LEAVE_PLAN[self.leave_leg]   # fix 3: the retreat is the Fight's; fix 4: above RETREAT_MAX_N the run
         if self._cornered(held, inside) is not None:
             return "cornered", None
         if self.group_steer:

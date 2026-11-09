@@ -182,11 +182,13 @@ from agent.base.planner.dispatch import FightDispatch
 from agent.base.planner.door_held import FightDoorHeld
 from agent.base.planner.edges import FightEdge
 from agent.base.planner.finish import FightFinish
+from agent.base.planner.group import SIDE_TURNS, side_dist
 from agent.base.planner.policies import (AIM_LEG_S, AIM_R, CIRCLE_TURN, CORNERED_R, DANGER_R,
                                          DISENGAGE_R, DRAG_DOWN_N, EDGE_HOLD_TICKS, FENCE_BACK_R, FIGHT_MAX_S,
-                                         FIGHT_REACH, FINISH_R, KEEP_MARGIN, KEEP_R, KNOCK_READ_S, MISSES_TO_APPROACH,
-                                         NO_TARGET, PAIR_SWITCH_R, POINT_BLANK_R, PREEMPTED, PULL_R, Policy, REPIN_MARGIN,
-                                         REPOSITION_MIN, REPOSITION_R, SEEK_SKIP_S, SEEK_SWITCH_R,
+                                         FIGHT_REACH, FINISH_R, GROUP_ENTRY_R, KEEP_MARGIN, KEEP_R, KNOCK_READ_S,
+                                         MISSES_TO_APPROACH, NO_TARGET, PAIR_SWITCH_R, POINT_BLANK_R, PREEMPTED, PULL_R,
+                                         Policy, REPIN_MARGIN, REPOSITION_MIN, REPOSITION_R, RETREAT_RESEND_DEG,
+                                         SEEK_SKIP_S, SEEK_SWITCH_R, SIDE_LOOK, SIDE_R,
                                          STALL_SWINGS, STAND_MAX_S, STEER_PROBE, STEER_TURNS,
                                          STOOD_STOMPS, STUCK_REASONS,
                                          SWING_SKIP_S, SWING_TYPES, UNREACHABLE_S, _rotate, arm_pain,
@@ -254,6 +256,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         self.threats = None                 # Survive sets it: the held threats the backpedal steps away from
         self.retreat = None                 # Survive sets it (Plan 33 Task 3 fix 3, GROUP_LEAVE's fighting retreat): the
                                             # unit heading away from the closing group's centroid, every stance leg a backpedal on it
+                                            # (fix 4: the pin on the nearest standing zombie, the back leg always sent)
+        self._retreat_note = None           # this choose's `retreat_pin` {target, from} (fix 4 (a)), else None
         self.standoff = False               # the stand went STAND_MAX_S without progress: approach and swing
         self.standoff_why = None            # why it fell back: "<state> <reason>" of a stance leg that failed
         self.advance = False                # the stand went STAND_MAX_S without progress: close in the stance (P24-N)
@@ -591,11 +595,14 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         crawl = self._crawler_busy()   # Plan 33 Task 2: a running send at another than the crawler gives way
         if crawl is not None:
             return crawl
-        pair = self._pair_read()   # Plan 32 Task 5 (b): a send at another than the pair's target gives way
+        pair = self._near_read()   # Plan 32 Task 5 (b): a send at another than the pair's target gives way (the
+                                   # retreat's pin under it: Plan 33 Task 3 fix 4 (a))
         if pair is not None and self.last.args.get("targetId") not in (None, pair[0]):
             return False
         if self.last.type == "melee":
             return self._melee_holds()   # survival iteration 22: the running melee (`dispatch.FightDispatch`)
+        if self.retreat is not None and self.last.type == "walkTo":
+            return False   # Plan 33 Task 3 fix 4 (b): no walk holds under the retreat, the back leg goes
         if self.last.type in ("attack", "walkTo") and self._finish_gives_way():
             return False   # P25-B: a fallen zombie within FINISH_R is stomped before the attack's walk goes on
         if self.last.type == "walkTo" and self._stance_walk is not None and self._stance_walk[0] is self.last:
@@ -609,6 +616,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             return False
         if self._fallen_due(t) or self._close_due(t):
             return False   # P27-H, P27-J: the stance gives way to the walk to a fallen target or to point blank
+        if self.retreat is not None:
+            return self._retreat_holds(t)   # Plan 33 Task 3 fix 4 (b)
         if self._fence_leg is not None:   # P25-F: the fence wait's leg holds while the wait calls for it
             read = self._fence_read(t)
             return read is not None and read[0] == self._fence_leg
@@ -923,6 +932,10 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         if self._crawler_note is not None:   # Plan 33 Task 2: the pin returned from the crawler, logged
             self.why.setdefault("crawler_first", self._crawler_note)
             self._crawler_note = None
+        if self.retreat is not None:   # Plan 33 Task 3 fix 4: a retreat line, and the pin it moved
+            self.why["retreat"] = True
+            if self._retreat_note is not None:
+                self.why["retreat_pin"], self._retreat_note = self._retreat_note, None
         return cmd
 
     def _pair_read(self):
@@ -933,19 +946,30 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         may target (its skips, `only`, a position) stand within KEEP_R on a line not read blocked and one of them
         stands (not `onFloor`): the target is the nearest standing one, kept on the pin while the pin stands within
         KEEP_R and no other standing one reads PAIR_SWITCH_R nearer than it (`n` the zombies within KEEP_R, `standing`
-        the standing ones). Else None (the rule off, one or none within KEEP_R, none standing). Read without side
-        effects (`busy` reads it)."""
+        the standing ones). Plan 33 Task 3 fix 4 (a) (round three, trial 3, `x_trial-ladder-20261109-042558`, decision
+        lines 98 to 100: the pin 99 held at 4.40 tiles while 117 closed 2.38, 1.56, 0.96, the rule reading one within
+        KEEP_R): with a standing zombie within KEEP_R, the pin is counted too when it stands beyond KEEP_R (its
+        distance) or has no position (counted, never picked), so the nearer standing one takes it past PAIR_SWITCH_R.
+        Else None (the rule off, one or none within KEEP_R, none standing). Read without side effects (`busy` reads
+        it). Under the retreat the pin is `_retreat_read`'s."""
         if "pair_nearest" not in self.rules:
             return None
         skip = self.blocked()
-        near = []
+        near, far_pin = [], None
         for zid, z in self.world.zombies.items():
-            if (not target_id_ok(zid) or zid in skip or z.get("x") is None or z.get("y") is None
-                    or (self.only is not None and zid not in self.only)):
+            if not target_id_ok(zid) or zid in skip or (self.only is not None and zid not in self.only):
+                continue
+            if z.get("x") is None or z.get("y") is None:
+                if zid == self.target:
+                    far_pin = (math.inf, repr(zid), zid, True)   # fix 4 (a): counted, never picked
                 continue
             d = zdist(self.world, z)
             if d <= KEEP_R and line_to(self.world, z) is not False:
                 near.append((d, repr(zid), zid, on_floor(z)))
+            elif zid == self.target and d > KEEP_R and not on_floor(z):
+                far_pin = (d, repr(zid), zid, False)   # fix 4 (a): the standing pin beyond KEEP_R
+        if far_pin is not None and any(not floor for _, _, _, floor in near):
+            near.append(far_pin)
         stand = sorted((d, k, zid) for d, k, zid, floor in near if not floor)
         if len(near) < 2 or not stand:
             return None
@@ -955,8 +979,46 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             pick = cur
         return pick[2], {"target": pick[2], "n": len(near), "standing": len(stand)}
 
+    def _retreat_read(self):
+        """Plan 33 Task 3 fix 4 (a) (round three: under the retreat the pin was never re-read against the group; trial
+        1, `x_trial-ladder-20261109-040825`, lines 209 to 212 walked toward 12610 pinned at 8.93 tiles while the trio
+        closed to 0.27): under the retreat (`retreat` set), `(id, {target, n})` of the nearest standing zombie (not
+        `onFloor`) within GROUP_ENTRY_R the Fight may target (its skips, `only`, a position), kept on the pin while no
+        other standing one reads PAIR_SWITCH_R nearer than it (the pair rule's hysteresis; `n` the standing ones), else
+        None. Read without side effects (`busy` reads it)."""
+        skip = self.blocked()
+        stand = []
+        for zid, z in self.world.zombies.items():
+            if (not target_id_ok(zid) or zid in skip or z.get("x") is None or z.get("y") is None or on_floor(z)
+                    or (self.only is not None and zid not in self.only)):
+                continue
+            d = zdist(self.world, z)
+            if d <= GROUP_ENTRY_R:
+                stand.append((d, repr(zid), zid))
+        if not stand:
+            return None
+        stand.sort()
+        pick = stand[0]
+        cur = next((s for s in stand if s[2] == self.target), None)
+        if cur is not None and cur[0] - pick[0] <= PAIR_SWITCH_R:
+            pick = cur
+        return pick[2], {"target": pick[2], "n": len(stand)}
+
+    def _near_read(self):
+        """The pin the Fight's nearest rules read this tick: `_retreat_read` under the retreat, else `_pair_read`."""
+        return self._retreat_read() if self.retreat is not None else self._pair_read()
+
     def _pair_pin(self):
-        """Plan 32 Task 5 (b): `_pair_read`'s target pinned (`pair` its why), else `pair` None."""
+        """Plan 32 Task 5 (b): `_pair_read`'s target pinned (`pair` its why), else `pair` None; under the retreat
+        (Plan 33 Task 3 fix 4 (a)) `_retreat_read`'s, its move logged `retreat_pin` {target, from}, its read returned
+        (the pair's place: no finish of a fallen one before it)."""
+        if self.retreat is not None:
+            self.pair = None
+            read = self._retreat_read()
+            if read is not None and self.target != read[0]:
+                self._retreat_note = {"target": read[0], "from": self.target}
+                self.target, self.repositioned = read[0], False
+            return None if read is None else read[1]
         read = self._pair_read()
         self.pair = None if read is None else read[1]
         if read is not None and self.target != read[0]:
@@ -1001,9 +1063,32 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         """The decision ladder's command (`_ladder`), or at its in-reach sends at the pin the melee maneuver's in its
         place (`dispatch.FightDispatch._melee_dispatch`, survival iteration 22), but on the choose after an end that
         gives it back to the ladder (`_m_ladder`)."""
-        cmd = self._ladder()
+        cmd = self._retreat_leg(self._ladder())
         ladder, self._m_ladder = self._m_ladder, False
         return cmd if ladder else self._melee_dispatch(cmd)
+
+    def _retreat_leg(self, cmd):
+        """Plan 33 Task 3 fix 4 (b) (round three, trial 3, `x_trial-ladder-20261109-042558`: retreat lines sent
+        nothing under a hit reaction, 102 to 104 and 120 to 122, while the group closed; trial 1,
+        `x_trial-ladder-20261109-040825`, 209 to 212, held a walk toward a far pin): under the retreat a ladder answer
+        of nothing or a walk is the back leg at the pin (`_stance_leg` kind `back`, on `_back_heading`), logged
+        `retreat_leg` {in_place_of: the walk's type or None}; any other command as it is (the melee's sends among
+        them). Not with no pin (or one with no position), no `aim` announced, the stand-off fallback (an aim failed),
+        a riding bandage (P24-U: an aim would end it) or the low fight's exit (P27-K2: the flee next). The stance flag
+        is not read: a Fight out of the stance (more than MAX_FIGHT held) sent its approach walk on the retreat's
+        lines. (A pin is never beyond AIM_R, 12 tiles: `_pinned` drops it past DISENGAGE_R, 10.)"""
+        if self.retreat is None or (cmd is not None and cmd.TYPE != "walkTo"):
+            return cmd
+        if (not self.world.can("aim") or self.standoff or self.ride is not None or "low_exit" in self.why):
+            return cmd
+        t = self._target(pin=False)
+        if t is None:
+            return cmd
+        why = self.why if self.why.get("target") == t[0] else {"target": t[0], "pinned": True, "dist": t[2]}
+        self.why = dict(why)
+        leg = self._stance_leg(*t, kind="back")
+        self.why["retreat_leg"] = {"in_place_of": None if cmd is None else cmd.TYPE}
+        return leg
 
     def _ladder(self):
         self._seek_send, self._walk_kind, self._edge_send = False, None, None
@@ -1205,13 +1290,49 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
     def _back_heading(self, z):
         """The `back` leg's heading from target `z` (`_stance_leg`): `away_vector` of the held threats (else `z`),
         turned by CIRCLE_TURN from a lone standing zombie within KEEP_R (P28-E, `_circle_turn`), else by STEER_TURNS
-        (`_clear_turn`); None when no heading is clear (the leg then stands)."""
+        (`_clear_turn`); None when no heading is clear (the leg then stands). Under the retreat `_retreat_heading`,
+        never None, its least-bad turn logged `retreat_least_bad` {turn, dist}."""
         if self.retreat is not None:   # Plan 33 Task 3 fix 3: away from the closing group's centroid, GROUP_LEAVE's
-            return self._clear_turn(self.retreat)
+            h, least_bad = self._retreat_heading()
+            if least_bad is not None:
+                self.why["retreat_least_bad"] = least_bad
+            return h
         ts = [q for q in (self.threats or [z]) if q.get("x") is not None and q.get("y") is not None]
         away = away_vector(self.world, [(q["x"], q["y"]) for q in ts])
         lone = "circle" in self.rules and away is not None and len(self._standing(KEEP_R)) == 1
         return self._circle_turn(away) if lone else self._clear_turn(away)   # P28-E: the arc from a lone zombie
+
+    def _retreat_heading(self):
+        """Plan 33 Task 3 fix 4 (b): `(heading, None)` with the retreat heading turned by STEER_TURNS to the first
+        clear one (`_clear_turn`); with none clear, `(heading, {turn, dist})` of the least-bad turn as SIDE_CLEAR takes
+        it (`group.ThreatGroup._least_bad`): of the retreat heading and its SIDE_TURNS turns, the one whose nearest
+        standing zombie passed within SIDE_R lies farthest along its first SIDE_LOOK tiles (`side_dist`), the nearest
+        turn on a tie. Read without side effects (`busy` reads it)."""
+        h = self._clear_turn(self.retreat)
+        if h is not None:
+            return h, None
+        zs = [(zid, q) for zid, q, _ in self._standing(SIDE_LOOK + SIDE_R)]
+        best = None
+        for turn in (0,) + SIDE_TURNS:
+            d = side_dist(self.world, _rotate(self.retreat, turn), zs)
+            if best is None or d > best[1]:
+                best = (turn, d)
+        return _rotate(self.retreat, best[0]), {"turn": best[0], "dist": best[1]}
+
+    def _retreat_holds(self, t):
+        """Plan 33 Task 3 fix 4 (b): `busy` for this Fight's running aim under the retreat, the pin `t` its target:
+        held while it is the `back` leg, the pin beyond FIGHT_REACH (within reach it gives way to the swing, the
+        melee's dispatch point; the stance flag is not read: the retreat's leg goes in a Fight out of the stance too),
+        and its heading within RETREAT_RESEND_DEG of the retreat's (`_retreat_heading`); else it gives way and the back
+        leg is sent again on the retreat heading."""
+        if self._leg != "back" or t[2] <= FIGHT_REACH:
+            return False
+        vx, vy = self.last.args.get("vx") or 0.0, self.last.args.get("vy") or 0.0
+        n = math.hypot(vx, vy)
+        if n == 0.0:
+            return False
+        h = self._retreat_heading()[0]
+        return (vx * h[0] + vy * h[1]) / n >= math.cos(math.radians(RETREAT_RESEND_DEG))
 
     def _circle_turn(self, a):
         """Ruling P28-E (`circle`, Survive's CIRCLE; E20, `e_day_20-20261103-121340`'s candidate, #4576: the stance's
