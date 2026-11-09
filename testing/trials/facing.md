@@ -32,3 +32,20 @@ The log of Plan 32's facing trials (ruling P31-T, CLAUDE.md § 5 "Trials"): one 
 | x_facing-20261108-211140 | 1cc4c36f | unaimed_snap | still | - | 60 | 0.0 | 0.0 | 0.0 | 0.0 | 0.98 | 0.00 | yes | 1.00 -> 1.00 | round one boot 3: the two press modes against one zombie at 1.1 tiles, 60 ticks, standing and back-pedalling |
 | x_facing-20261108-211140 | 1cc4c36f | snap_aimed | back | - | 60 | 0.0 | 4.4 | 0.0 | 19.4 | 1.00 | 0.38 | yes | 1.00 -> 1.00 | round one boot 3: the two press modes against one zombie at 1.1 tiles, 60 ticks, standing and back-pedalling |
 | x_facing-20261108-211140 | 1cc4c36f | unaimed_snap | back | - | 60 | 0.0 | 0.1 | 0.0 | 0.1 | 0.98 | 0.00 | yes | 1.00 -> 1.00 | round one boot 3: the two press modes against one zombie at 1.1 tiles, 60 ticks, standing and back-pedalling |
+
+## Baseline (F17, grade_x2)
+
+The offline read of F17 (`testing/artifacts/f_goals_17-20261108-172833/`, booted before the facing was adopted: the stance's faceThisObject under the force-aim, the meet unaimed inside faceR) by `grade_x2` (`testing/agent/base/grades/x2.py`, through `testing/agent/drivers/f_grade_14.py`; pinned by `test_grades_x2.py`): the absolute error of `me.bodyAngle` against the bearing to the act's target, in degrees, nearest rank. The presses are read at the frame at or before each press's line (82 presses; F17's leaves name no press mode); the stance ticks are the frames of every `aim` leg and every `melee` span; a break is a run of consecutive stance frames over 45 degrees. F17's log is PZA/1.10: the facing ring (`fwdAngle`, `aimAngle`) is unread.
+
+| reading | n | body med | body p90 | hold30 |
+|---|---|---|---|---|
+| presses, all | 82 | 0.3 | 22.1 | 0.90 |
+| presses, swing | 14 | 0.0 | 2.0 | 1.00 |
+| presses, shove | 28 | 0.0 | 12.6 | 0.93 |
+| presses, stomp | 39 | 1.1 | 42.0 | 0.85 |
+| presses, floor | 1 | 0.0 | 0.0 | 1.00 |
+| stance ticks, all | 1582 | 15.9 | 135.6 | 0.55 |
+| stance ticks, aim legs | 764 | 78.2 | 164.9 | 0.18 |
+| stance ticks, melee spans | 818 | 0.3 | 36.4 | 0.89 |
+
+Breaks: 45 runs over 45 degrees, 615 frames; 36 in `aim` legs, the action sent last before each an `aim`, 0.02 to 1.30 s before the run; 9 in `melee` spans (5 at a stomp step, 2 at a shove, 1 at a head, 1 at a close), the action sent last before each a `melee`.
