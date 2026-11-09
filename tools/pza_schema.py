@@ -35,7 +35,7 @@ ARG_TYPES = {"integer": "int", "number": "float", "string": "str", "boolean": "b
 # the $defs enums an argument may refer to, each with its Python constant and its Lua set's key (meleeMode: Plan 28 Task 7a
 # fix 1 residual, review-t7a minor 1): the generated class checks the value, tools.json carries the enum, PZA.schema the set
 ARG_ENUMS = {"gait": ("GAITS", "gaits"), "ikind": ("IKINDS", "ikinds"), "filter": ("FILTERS", "filters"),
-             "meleeMode": ("MELEE_MODES", "meleeModes")}
+             "meleeMode": ("MELEE_MODES", "meleeModes"), "probeMode": ("PROBE_MODES", "probeModes")}   # probeMode: PZA/1.11
 LUA_KEYWORDS = frozenset("and break do else elseif end false for function if in local nil not or repeat return then "
                          "true until while".split())
 

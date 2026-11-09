@@ -290,7 +290,47 @@ def make_player(x=10.0, y=20.0, z=0, hunger=0.3, health=100.0, items=(), moodle_
     angles = {"look": 0.0, "body": 0.0}
     p.angles = angles
     p.getLookAngleRadians, p.getAnimAngleRadians = (lambda s: angles["look"]), (lambda s: angles["body"])
+    # PZA/1.11 (Plan 32 Task 1): the facing ring. getDirectionAngleRadians answers p.angles["fwd"], getTwist
+    # p.angles["twist"] (degrees), getAimVector(v) sets v's x and y to p.aim["vec"] and returns v (the jar's
+    # getAimVector(Vector2) fills the vector it is given; (1, 0) by default, a zero vector when a test sets (0, 0)).
+    # The probe's writers record (name, value) into p.aim["calls"] beside setForceAim and nullifyAiming:
+    # setTargetAndCurrentDirection(x, y) (the value (x, y); it also sets fwd, body and look to atan2(y, x), the snap),
+    # setBlockMovement, setIsAiming (it also sets p.aim["aiming"], which isAiming answers), setIgnoreAimingInput and
+    # setTurnDelta (it also sets p.aim["turn"], which getTurnDelta answers, 1.0 at first); faceLocationF(x, y) appends
+    # (x, y) to p.faced
+    angles.update(fwd=0.0, twist=0.0)
+    aim.update(vec=(1.0, 0.0), turn=1.0)
+    p.getDirectionAngleRadians, p.getTwist = (lambda s: angles["fwd"]), (lambda s: angles["twist"])
+
+    def get_aim_vector(s, v):
+        v.x, v.y = aim["vec"]
+        return v
+    p.getAimVector = get_aim_vector
+
+    def ring_setter(name, key=None):
+        def f(s, *v):
+            aim["calls"].append((name, v[0] if len(v) == 1 else tuple(v)))
+            if key is not None:
+                aim[key] = v[0]
+        return f
+
+    def snap(s, fx, fy):
+        aim["calls"].append(("setTargetAndCurrentDirection", (fx, fy)))
+        a = math.atan2(fy, fx)
+        angles.update(fwd=a, body=a, look=a)
+    p.setTargetAndCurrentDirection = snap
+    p.setBlockMovement, p.setIsAiming = ring_setter("setBlockMovement"), ring_setter("setIsAiming", "aiming")
+    p.setIgnoreAimingInput, p.setTurnDelta = ring_setter("setIgnoreAimingInput"), ring_setter("setTurnDelta", "turn")
+    p.getTurnDelta = lambda s: aim["turn"]
+    p.faceLocationF = lambda s, fx, fy: faced.append((fx, fy)) or True   # PZA/1.11: a point faced, into p.faced
     return p
+
+
+def make_vector2(x, y):
+    """A Vector2 as the Lua reads it: x and y fields, getLength and getDirection (atan2(y, x), the jar's
+    Vector2.getDirection) read live, so a getAimVector that refills it is read afresh (PZA/1.11)."""
+    return J(_cls="Vector2", x=x, y=y, getLength=lambda s: math.hypot(s.x, s.y),
+             getDirection=lambda s: math.atan2(s.y, s.x))
 
 
 def make_zombie(zid, x, y, dead=False, health=1.0):
@@ -411,7 +451,7 @@ def make_lua(fs, runtime=lua51.LuaRuntime):
     g.Events = J(OnTick=J(Add=lambda f: handlers.append(f)), OnPlayerUpdate=J(Add=lambda f: upd_handlers.append(f)),
                  OnPlayerGetDamage=J(Add=lambda f: damage_handlers.append(f)),
                  OnPlayerDeath=J(Add=lambda f: death_handlers.append(f)))
-    g.Vector2 = J(new=lambda x, y: J(_cls="Vector2", x=x, y=y))
+    g.Vector2 = J(new=lambda x, y: make_vector2(x, y))
     core = J(toggle=False, toggles=[])
 
     def set_toggle(s, v):
@@ -576,6 +616,14 @@ def make_mover(px=10.0, py=20.0, zx=12.0, zy=20.0, zid=7, zspeed=0.0, chasing=Tr
         return True
     p.faceThisObject, p.faceLocationF = face_obj, face_at
     p.getLookAngleRadians = p.getAnimAngleRadians = lambda s: w["look"]
+    # PZA/1.11: the forward direction is the facing last written (w["face_to"]), else the look; the snap
+    # (setTargetAndCurrentDirection) sets the look and the written facing at once
+    p.getDirectionAngleRadians = lambda s: w["face_to"] if w["face_to"] is not None else w["look"]
+
+    def snap(s, fx, fy):
+        p.aim["calls"].append(("setTargetAndCurrentDirection", (fx, fy)))
+        w["look"] = w["face_to"] = math.atan2(fy, fx)
+    p.setTargetAndCurrentDirection = snap
     p.getCombatSpeed = lambda s: w["cs"]
     z = J(getOnlineID=lambda s: zid, getX=lambda s: w["zx"], getY=lambda s: w["zy"], isDead=lambda s: w["zdead"],
           getTarget=lambda s: p if w["chasing"] else None, isCrawling=lambda s: False, getHealth=lambda s: w["zhp"],

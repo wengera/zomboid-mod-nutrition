@@ -50,7 +50,9 @@ def rand_frame(rng, seq=1):
                                     "cond": lua_float(rng, 0, 10)} for _ in range(rng.choice([0, 1, 2]))], 0.7),
                "loadedWidth": maybe(rng, rng.choice([104, 152]), 0.5),
                "sneaking": maybe(rng, b()), "sneakLevel": maybe(rng, rng.randrange(0, 11)),   # PZA/1.9
-               "lookAngle": maybe(rng, lua_float(rng, -4, 4)), "bodyAngle": maybe(rng, lua_float(rng, -4, 4))},   # 1.10
+               "lookAngle": maybe(rng, lua_float(rng, -4, 4)), "bodyAngle": maybe(rng, lua_float(rng, -4, 4)),   # 1.10
+               "fwdAngle": maybe(rng, lua_float(rng, -4, 4)), "twist": maybe(rng, lua_float(rng, -90, 90)),      # 1.11
+               "aimAngle": maybe(rng, lua_float(rng, -4, 4))},
         "stats": {k: lua_float(rng, 0, 1) for k in pza1.GROUPS["stats"]},
         "body": {"health": lua_float(rng, 0, 100), "bleeding": rng.randrange(0, 3), "scratched": rng.randrange(0, 3),
                  "bitten": 0, "parts": parts, "armPain": maybe(rng, lua_float(rng, 0, 40)),
@@ -841,7 +843,7 @@ def test_the_e7_log_decodes_with_worn_clothing_and_locked_absent(tmp_path):
 
 def test_window_is_an_action_with_its_args_result_and_reason():
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
-    assert pza1.ACTION_TYPES[-7:-5] == ("wear", "window")                     # PZA/1.8 appends melee, PZA/1.9 sneak
+    assert pza1.ACTION_TYPES[-8:-6] == ("wear", "window")                     # PZA/1.8 appends melee, PZA/1.9 sneak, 1.11 probe
     assert d["reason"]["enum"][-10] == "not a window"                           # and the reasons out of range, crowd
     assert pza1.ACTION_ARGS["window"] == {"x": "int", "y": "int", "smash": "bool"}
     assert set(d["result_window"]["properties"]) == {"smashed", "opened", "cut", "wounds"}
@@ -855,7 +857,7 @@ def test_window_is_an_action_with_its_args_result_and_reason():
 
 def test_sneak_is_the_last_action_with_its_bool_arg_and_its_result():
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
-    assert pza1.ACTION_TYPES[-2:] == ("melee", "sneak") and pza1.ACTION_ARGS["sneak"] == {"on": "bool"}
+    assert pza1.ACTION_TYPES[-3:-1] == ("melee", "sneak") and pza1.ACTION_ARGS["sneak"] == {"on": "bool"}   # 1.11: probe last
     assert d["args_sneak"]["properties"]["on"]["default"] is False and "required" not in d["args_sneak"]
     assert set(d["result_sneak"]["properties"]) == {"ok", "sneaking"}
     assert d["args_sneak"]["additionalProperties"] is False
@@ -918,7 +920,7 @@ def test_the_lua_encoder_writes_the_1_9_fields_as_python_does(lua_schema):
 
 def test_me_appends_look_angle_and_body_angle_and_a_1_9_frame_decodes_with_them_none():
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]["me"]
-    assert pza1.GROUPS["me"][-2:] == ("lookAngle", "bodyAngle") and pza1.PRIOR["me"] == 11
+    assert pza1.GROUPS["me"][23:25] == ("lookAngle", "bodyAngle") and pza1.PRIOR["me"] == 11
     assert d["properties"]["lookAngle"]["type"] == "number" == d["properties"]["bodyAngle"]["type"]
     assert "getLookAngleRadians()" in d["properties"]["lookAngle"]["description"]
     assert "calibrated on the first live frame" in d["properties"]["lookAngle"]["description"]
@@ -927,7 +929,7 @@ def test_me_appends_look_angle_and_body_angle_and_a_1_9_frame_decodes_with_them_
     f["me"].update(lookAngle=0.5, bodyAngle=0.25)
     arr = json.loads(pza1.encode("frame", f))
     me = pza1.ORDER["frame"].index("me")
-    assert arr[me][-2:] == [0.5, 0.25] and pza1.decode(arr) == f
+    assert arr[me][23:25] == [0.5, 0.25] and pza1.decode(arr) == f
     arr[me] = arr[me][:23]                                       # a PZA/1.9 me
     m = pza1.decode(arr)["me"]
     assert m["lookAngle"] is None and m["bodyAngle"] is None and m["sneakLevel"] == f["me"]["sneakLevel"]

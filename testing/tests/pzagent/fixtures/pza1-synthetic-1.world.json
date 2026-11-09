@@ -360,6 +360,7 @@
  },
  "mapLines": 4,
  "me": {
+  "aimAngle": null,
   "aiming": false,
   "attackers": 0,
   "autoWalk": false,
@@ -369,6 +370,7 @@
   "forceAim": false,
   "forceRun": false,
   "forceSprint": false,
+  "fwdAngle": null,
   "hitReaction": "",
   "hour": 8,
   "loadedWidth": null,
@@ -379,6 +381,7 @@
   "sneakLevel": 0,
   "sneaking": false,
   "sprinting": false,
+  "twist": null,
   "worn": null,
   "x": 107,
   "y": 200,

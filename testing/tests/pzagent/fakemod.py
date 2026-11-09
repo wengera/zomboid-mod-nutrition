@@ -22,7 +22,8 @@ DEFAULT_FRAME = {
            "zombiesSeen": 0, "zombiesListed": 0, "hour": 8.0, "attackers": 0, "hitReaction": "",
            "dragDown": False, "aiming": False, "forceAim": False, "worn": None, "loadedWidth": None,
            "sneaking": False, "sneakLevel": 0,                                 # PZA/1.9: upright, Sneak 0
-           "lookAngle": 0.0, "bodyAngle": 0.0},                                # PZA/1.10: facing +x
+           "lookAngle": 0.0, "bodyAngle": 0.0,                                 # PZA/1.10: facing +x
+           "fwdAngle": None, "twist": None, "aimAngle": None},                # PZA/1.11: the ring unread
     "stats": {"hunger": 0.1, "thirst": 0.1, "fatigue": 0.05, "endurance": 1.0, "panic": 0.0, "pain": 0.0,
               "sickness": 0.0, "wetness": 0.0, "temperature": 37.0},
     "body": {"health": 100.0, "bleeding": 0, "scratched": 0, "bitten": 0, "parts": [], "armPain": None,

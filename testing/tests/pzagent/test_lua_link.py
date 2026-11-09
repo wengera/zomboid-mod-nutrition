@@ -35,7 +35,8 @@ def frame_body(x=10.5, stats_hunger=0.25, **over):
                 "zombiesListed": 0, "hour": 13.5, "attackers": 1, "hitReaction": "", "dragDown": False,
                 "aiming": True, "forceAim": True, "worn": [{"loc": "base:tshirt", "bite": 0, "scratch": 10.5, "holes": 1, "cond": 8}],
                 "loadedWidth": 104, "sneaking": True, "sneakLevel": 2,              # PZA/1.9
-                "lookAngle": 1.5, "bodyAngle": 1.25},                                # PZA/1.10
+                "lookAngle": 1.5, "bodyAngle": 1.25,                                 # PZA/1.10
+                "fwdAngle": 1.0, "twist": -12.5, "aimAngle": None},                 # PZA/1.11
          "stats": {"hunger": stats_hunger, "thirst": 0.5, "fatigue": 0.125, "endurance": 0.75, "panic": 0, "pain": 0,
                    "sickness": 0, "wetness": 5, "temperature": 37},
          "body": {"health": 100, "bleeding": 0, "scratched": 0, "bitten": 0, "parts": [], "armPain": 2.5,

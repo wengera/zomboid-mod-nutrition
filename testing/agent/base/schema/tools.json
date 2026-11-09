@@ -590,5 +590,66 @@
       "required": [],
       "additionalProperties": false
     }
+  },
+  {
+    "name": "probe",
+    "description": "The facing probe (PZA/1.11, Plan 32 Task 1; a harness experiment for the zombie-free trial driver, never a planner action): for ticks client ticks, PZAgent_FacingProbe.lua reads the facing ring (getDirectionAngleRadians, getAnimAngleRadians, getLookAngleRadians, getTwist, getAimVector, isAiming, isForceAim, isAutoWalk and the bearing to the target) before any write, then applies the mode's write toward the target, one progress line a tick (result_probe_step), then done with the summary (result_probe) on the tick after the last. The target is the zombie targetId (when 0 or more; no target when it is not listed) else the point (x, y). Every member the mode calls is index-checked on the first tick (failed not loaded, its result naming the member); every flag a mode sets is restored on every end (done, a stop, a supersede, a raise: failed interrupted). snap_aimed and unaimed_snap at a zombie press DoAttack(0) after the last tick's snap.",
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "read",
+            "snap_aimed",
+            "unaimed_face",
+            "unaimed_snap",
+            "block_aim",
+            "ignore_aim",
+            "turn_k"
+          ],
+          "description": "The mechanism probed."
+        },
+        "targetId": {
+          "type": "integer",
+          "description": "The zombie's online id; -1 (the default) aims at the point (x, y).",
+          "default": -1
+        },
+        "x": {
+          "type": "number",
+          "description": "The target point's world x when no targetId; -1 when none.",
+          "default": -1
+        },
+        "y": {
+          "type": "number",
+          "description": "The target point's world y when no targetId; -1 when none.",
+          "default": -1
+        },
+        "ticks": {
+          "type": "integer",
+          "description": "The ring ticks, 1 or more.",
+          "default": 60
+        },
+        "k": {
+          "type": "number",
+          "description": "turn_k's turn delta, above 0 (setTurnDelta(k); the read value restored at the end); ignored by the other modes.",
+          "default": -1
+        },
+        "vx": {
+          "type": "number",
+          "description": "A back-pedal's world x: with vy non-zero, the steer skill's auto-walk along (vx, vy) at a walk for the probe's span, cleared at its end.",
+          "default": 0
+        },
+        "vy": {
+          "type": "number",
+          "description": "A back-pedal's world y.",
+          "default": 0
+        }
+      },
+      "required": [
+        "mode"
+      ],
+      "additionalProperties": false
+    }
   }
 ]

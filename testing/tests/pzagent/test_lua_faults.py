@@ -41,7 +41,8 @@ VANILLA = ("ISTimedActionQueue", "ISWalkToTimedAction", "ISOpenCloseDoor", "ISOp
            "ISApplyBandage", "ISWashClothing", "ISInventoryPaneContextMenu", "ISTakeWaterAction", "ISWearClothing",
            "ISClimbThroughWindow", "ISSmashWindow", "ISUnequipAction")
 MAIN_TYPES = ("scan", "rate")          # answered by Main, never the runner (ruling P22-5)
-PENDING_TYPES = ()                     # sleep, in the schema since PZA/1.2 (Plan 23 Task 4), got its skill in Task 8
+PENDING_TYPES = ("probe",)             # sleep, in the schema since PZA/1.2 (Plan 23 Task 4), got its skill in Task 8;
+                                       # probe, in the schema since PZA/1.11 (Plan 32 Task 1), gets its skill in the next commit
 
 # valid args for every action type of the schema; a case name maps to its type (interact and consume take two)
 VALID = {

@@ -1354,3 +1354,50 @@ def test_a_fallen_zombie_without_its_body_angle_carries_no_head_and_names_it_mis
     lua.globals()._cell = make_cell(zombies=[a])
     z = dict(list(frame(lua, make_player())["zombies"].values())[0])
     assert z.get("headX") is None and "getAnimAngleRadians" in missing(lua)
+
+
+# ---- PZA/1.11 (Plan 32 Task 1): the facing ring, me.fwdAngle, me.twist and me.aimAngle -------------------------------
+
+def test_me_carries_the_facing_ring(lua):
+    """fwdAngle is getDirectionAngleRadians() (the forward direction the update left), twist getTwist() (degrees),
+    aimAngle the direction of getAimVector(v) (the vector the aimed update writes, the mouse's); autoWalk stays me's
+    own isAutoWalk field. No member is missing on the full fake."""
+    load(lua)
+    p = make_player()
+    p.angles.update(fwd=-0.5, twist=12.5)
+    p.aim["vec"] = (0.0, 2.0)
+    p.motor["autoWalk"] = True
+    me = frame(lua, p)["me"]
+    assert (me["fwdAngle"], me["twist"], me["autoWalk"]) == (-0.5, 12.5, True)
+    assert me["aimAngle"] == pytest.approx(1.5707963267948966) and missing(lua) == []
+
+
+def test_a_zero_aim_vector_leaves_aim_angle_nil_and_the_vector_is_made_once(lua):
+    load(lua)
+    made = []
+    v2 = lua.globals().Vector2
+    lua.globals().Vector2 = J(new=lambda x, y: made.append((x, y)) or v2.new(x, y))
+    p = make_player()
+    p.aim["vec"] = (0.0, 0.0)
+    assert frame(lua, p)["me"]["aimAngle"] is None
+    p.aim["vec"] = (-1.0, 0.0)
+    assert frame(lua, p)["me"]["aimAngle"] == pytest.approx(3.141592653589793)
+    assert made == [(0, 0)] and missing(lua) == []
+
+
+@pytest.mark.parametrize("member, key", [("getDirectionAngleRadians", "fwdAngle"), ("getTwist", "twist"),
+                                         ("getAimVector", "aimAngle")])
+def test_an_absent_ring_member_leaves_its_field_nil_named_missing_and_raises_nothing(lua, member, key):
+    load(lua)
+    p = make_player()
+    setattr(p, member, None)
+    me = frame(lua, p)["me"]
+    assert me[key] is None and member in missing(lua)
+    assert me["bodyAngle"] == 0.0 and not [m for m in missing(lua) if m.startswith("raise:")]
+
+
+def test_without_vector2_aim_angle_is_nil_and_named_missing(lua):
+    load(lua)
+    lua.globals().Vector2 = None
+    me = frame(lua, make_player())["me"]
+    assert me["aimAngle"] is None and me["fwdAngle"] == 0.0 and "Vector2.new" in missing(lua)

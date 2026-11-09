@@ -26,7 +26,7 @@ ORDER = {
 }
 # a frame's groups, elidable in a delta
 GROUPS = {
-    "me": ("x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn", "loadedWidth", "sneaking", "sneakLevel", "lookAngle", "bodyAngle"),
+    "me": ("x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn", "loadedWidth", "sneaking", "sneakLevel", "lookAngle", "bodyAngle", "fwdAngle", "twist", "aimAngle"),
     "stats": ("hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature"),
     "body": ("health", "bleeding", "scratched", "bitten", "parts", "armPain", "strain"),
     "load": ("weight", "max", "level", "n"),
@@ -67,7 +67,7 @@ SHAPES = {
     "map": {"squares": ("list", "square"), "missing": ("vlist", None)},
 }
 REASONS = frozenset(("bad args", "unknown type", "dead", "no square", "no path", "stuck", "superseded", "not loaded", "no target", "no weapon", "out of reach", "no door", "locked", "not adjacent", "no container", "empty", "no match", "none held", "not valid", "interrupted", "not safe", "not allowed", "busy", "not hoppable", "fell", "failed", "no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water", "not a container", "full", "in bag", "leg part", "stopped", "aiming", "not a window", "moving", "not worn", "held", "too far", "standing", "dropped", "stood", "out of range", "crowd"))
-ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear", "window", "unwear", "shove", "stomp", "melee", "sneak")
+ACTION_TYPES = ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan", "rate", "sleep", "aim", "climb", "bandage", "rip", "wash", "fill", "wear", "window", "unwear", "shove", "stomp", "melee", "sneak", "probe")
 # each action type's arguments and their kinds
 ACTION_ARGS = {
     "walkTo": {"x": "float", "y": "float", "gait": "gait"},
@@ -94,11 +94,13 @@ ACTION_ARGS = {
     "stomp": {"targetId": "int"},
     "melee": {"targetId": "int", "mode": "meleeMode", "reach": "float", "shoveR": "float", "releaseR": "float", "faceR": "float", "pressAngle": "float", "pressLo": "float", "floorR": "float", "handbackR": "float", "stall": "int", "floorSwing": "bool", "headAim": "bool"},
     "sneak": {"on": "bool"},
+    "probe": {"mode": "probeMode", "targetId": "int", "x": "float", "y": "float", "ticks": "int", "k": "float", "vx": "float", "vy": "float"},
 }
 GAITS = ("walk", "run", "sprint")
 IKINDS = ("open", "close", "loot")
 FILTERS = ("food", "water", "weapon", "bandage", "container", "all", "clothing")
 MELEE_MODES = ("strike", "shove", "finish")
+PROBE_MODES = ("read", "snap_aimed", "unaimed_face", "unaimed_snap", "block_aim", "ignore_aim", "turn_k")
 ITEM_USES = ("food", "water", "weapon", "bandage", "other", "container", "clothing")
 ACT_STATES = ("accepted", "rejected", "progress", "done", "failed")
 MAP_MODES = ("full", "delta")
@@ -278,7 +280,7 @@ def merge_delta(frame, base):
     return out
 
 
-_ENUMS = {"gait": GAITS, "ikind": IKINDS, "filter": FILTERS, "meleeMode": MELEE_MODES}
+_ENUMS = {"gait": GAITS, "ikind": IKINDS, "filter": FILTERS, "meleeMode": MELEE_MODES, "probeMode": PROBE_MODES}
 
 
 class _Cmd:
@@ -496,3 +498,17 @@ class Sneak(_Cmd):
     """Set the sneak posture (PZA/1.9, Plan 30 Task 1): setSneaking(on), written once and held until the next sneak (the flag is one stored field that nothing clears on an attack, a shove, a run, an aim or a hit, #4654). Not a skill: answered on its tick by one act line, done with the flag read back, so a running skill and a held stance go on (a walk plays the crouched sneak walk under the flag and a run the sneak run, #4656), and a stop or a skill's end leaves the flag. Rejected bad args (on not a boolean), or not loaded when the player exposes no setSneaking or isSneaking; a raise is failed interrupted. At Sneak 0 or 1 sneaking makes a zombie's spotting chance larger than upright beyond about 4.5 tiles and skips the tripling within it (#4657); at Lightfoot 0, shod, with no trait and outside a room, footsteps carry 4 tiles against 7 and sound one step in four against one in two (#4661)."""
     TYPE: ClassVar[str] = "sneak"
     on: bool = False  # True to sneak, false (or absent) to stand upright.
+
+
+@dataclasses.dataclass(frozen=True)
+class Probe(_Cmd):
+    """The facing probe (PZA/1.11, Plan 32 Task 1; a harness experiment for the zombie-free trial driver, never a planner action): for ticks client ticks, PZAgent_FacingProbe.lua reads the facing ring (getDirectionAngleRadians, getAnimAngleRadians, getLookAngleRadians, getTwist, getAimVector, isAiming, isForceAim, isAutoWalk and the bearing to the target) before any write, then applies the mode's write toward the target, one progress line a tick (result_probe_step), then done with the summary (result_probe) on the tick after the last. The target is the zombie targetId (when 0 or more; no target when it is not listed) else the point (x, y). Every member the mode calls is index-checked on the first tick (failed not loaded, its result naming the member); every flag a mode sets is restored on every end (done, a stop, a supersede, a raise: failed interrupted). snap_aimed and unaimed_snap at a zombie press DoAttack(0) after the last tick's snap."""
+    TYPE: ClassVar[str] = "probe"
+    mode: str  # The mechanism probed.
+    targetId: int = -1  # The zombie's online id; -1 (the default) aims at the point (x, y).
+    x: float = -1.0  # The target point's world x when no targetId; -1 when none.
+    y: float = -1.0  # The target point's world y when no targetId; -1 when none.
+    ticks: int = 60  # The ring ticks, 1 or more.
+    k: float = -1.0  # turn_k's turn delta, above 0 (setTurnDelta(k); the read value restored at the end); ignored by the other modes.
+    vx: float = 0.0  # A back-pedal's world x: with vy non-zero, the steer skill's auto-walk along (vx, vy) at a walk for the probe's span, cleared at its end.
+    vy: float = 0.0  # A back-pedal's world y.

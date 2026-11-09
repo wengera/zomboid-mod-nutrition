@@ -1045,10 +1045,39 @@ function S.headOf(z, crawler)
     return x + S.HEAD_R * math.cos(a), y + S.HEAD_R * math.sin(a)
 end
 
+-- PZA/1.11 (Plan 32 Task 1, the facing jar read's claims 7 and 15): me.fwdAngle is getDirectionAngleRadians(), the
+-- forward direction as the update left it (the last of the engine's three facing writers, or a Lua face); me.twist
+-- getTwist(), degrees; me.aimAngle the direction of getAimVector(v), the vector the aimed update writes as the forward
+-- direction (the mouse's), nil when it reads zero length (no aim key counts). The vector is made once (S.aimVec, on
+-- the first frame: Vector2.new index-checked, named missing when absent) and refilled by the getter, so a frame
+-- allocates nothing. autoWalk is me's own isAutoWalk field (PZA/1). Cost a frame: three calls more on me, two more
+-- on the vector when it is non-zero.
+local function aimAngle(p, m)
+    if S.aimVec == nil then
+        if Vector2 == nil or Vector2.new == nil then
+            PZA.missing(S.missing, "Vector2.new")
+            return
+        end
+        S.aimVec = Vector2.new(0, 0)
+    end
+    local ok, v = PZA.call(p, "getAimVector", S.aimVec)
+    if not ok then
+        PZA.missing(S.missing, "getAimVector")
+        return
+    end
+    local okL, len = PZA.call(v, "getLength")
+    if okL and type(len) == "number" and len > 0 then
+        get(m, "aimAngle", v, "getDirection")
+    end
+end
+
 local function meAngles(p, f)
     local m = f.me
     get(m, "lookAngle", p, "getLookAngleRadians")
     get(m, "bodyAngle", p, "getAnimAngleRadians")
+    get(m, "fwdAngle", p, "getDirectionAngleRadians")
+    get(m, "twist", p, "getTwist")
+    aimAngle(p, m)
 end
 
 local function zombiesHead(f)

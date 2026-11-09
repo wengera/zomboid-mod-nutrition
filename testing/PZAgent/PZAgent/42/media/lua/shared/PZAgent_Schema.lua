@@ -18,7 +18,7 @@ PZA.schema = {
         reply = { "kind", "seq", "tick", "wallMs", "to", "body" },
     },
     groups = {
-        me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn", "loadedWidth", "sneaking", "sneakLevel", "lookAngle", "bodyAngle" },
+        me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn", "loadedWidth", "sneaking", "sneakLevel", "lookAngle", "bodyAngle", "fwdAngle", "twist", "aimAngle" },
         stats = { "hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature" },
         body = { "health", "bleeding", "scratched", "bitten", "parts", "armPain", "strain" },
         load = { "weight", "max", "level", "n" },
@@ -63,11 +63,13 @@ PZA.schema = {
         stomp = { "targetId" },
         melee = { "targetId", "mode", "reach", "shoveR", "releaseR", "faceR", "pressAngle", "pressLo", "floorR", "handbackR", "stall", "floorSwing", "headAim" },
         sneak = { "on" },
+        probe = { "mode", "targetId", "x", "y", "ticks", "k", "vx", "vy" },
     },
     gaits = { walk = true, run = true, sprint = true },
     ikinds = { open = true, close = true, loot = true },
     filters = { food = true, water = true, weapon = true, bandage = true, container = true, all = true, clothing = true },
     meleeModes = { strike = true, shove = true, finish = true },
+    probeModes = { read = true, snap_aimed = true, unaimed_face = true, unaimed_snap = true, block_aim = true, ignore_aim = true, turn_k = true },
     states = { accepted = true, rejected = true, progress = true, done = true, failed = true },
     mapModes = { full = true, delta = true },
     events = {
@@ -255,9 +257,12 @@ PZA.enc.square = enc_square
 --   sneakLevel: PZA/1.9 (Plan 30 Task 1): the Sneak perk level, getPerkLevel(Perks.Sneak), 0 to 10: the level that sets the sneaking spot factor (#4657: 1.14 at 0 and 1.08 at 1, above upright beyond the close range, falling to 0.48 at 10). Null in logs written before PZA/1.9.
 --   lookAngle: PZA/1.10 (Plan 31 Task 2): getLookAngleRadians(), the look in radians: the animation player's angle plus its twist plus the head look, the angle the melee hit list's dot (#4591) and the zombie bite's facing skip (#4688) read, the forward direction's angle while the animation player is not ready. The convention is Vector2.getDirection's atan2(y, x) on the world axes (the jar: Vector2.getDirection(FF) L105, AnimationPlayer.calculateAnimPlayerAngle L889), not dir's eight-point name of the written facing, which reads the new facing at once while the body turns toward it (#4689); calibrated on the first live frame before a grade relies on it. Not wrapped: the sum may pass pi. Null in logs written before PZA/1.10.
 --   bodyAngle: PZA/1.10 (Plan 31 Task 2): getAnimAngleRadians(), the body's angle alone in radians (no twist, no head look), lookAngle's convention, the forward direction's angle while the animation player is not ready. Null in logs written before PZA/1.10.
+--   fwdAngle: PZA/1.11 (Plan 32 Task 1): getDirectionAngleRadians(), the forward direction's angle in radians as the update left it (the facing the engine's three writers last wrote, the facing jar read's claim 15: the movement facing, the aim facing toward the mouse, a Lua face), lookAngle's convention; dir names it to 45 degrees only. Null in logs written before PZA/1.11.
+--   twist: PZA/1.11 (Plan 32 Task 1): getTwist(), the upper body's twist off the body angle in degrees (the facing jar read's claim 15). Null in logs written before PZA/1.11.
+--   aimAngle: PZA/1.11 (Plan 32 Task 1): the direction in radians of getAimVector(v), the vector the aimed update writes as the forward direction (the mouse's, the facing jar read's claim 7), lookAngle's convention; null when the vector reads zero length (no aim key counts, the force-aim included) and in logs written before PZA/1.11.
 local function enc_me(t)
     if t == nil then return "null" end
-    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "," .. v(t.zombiesSeen) .. "," .. v(t.zombiesListed) .. "," .. v(t.hour) .. "," .. v(t.attackers) .. "," .. v(t.hitReaction) .. "," .. v(t.dragDown) .. "," .. v(t.aiming) .. "," .. v(t.forceAim) .. "," .. list(t.worn, enc_wornLoc) .. "," .. v(t.loadedWidth) .. "," .. v(t.sneaking) .. "," .. v(t.sneakLevel) .. "," .. v(t.lookAngle) .. "," .. v(t.bodyAngle) .. "]"
+    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "," .. v(t.zombiesSeen) .. "," .. v(t.zombiesListed) .. "," .. v(t.hour) .. "," .. v(t.attackers) .. "," .. v(t.hitReaction) .. "," .. v(t.dragDown) .. "," .. v(t.aiming) .. "," .. v(t.forceAim) .. "," .. list(t.worn, enc_wornLoc) .. "," .. v(t.loadedWidth) .. "," .. v(t.sneaking) .. "," .. v(t.sneakLevel) .. "," .. v(t.lookAngle) .. "," .. v(t.bodyAngle) .. "," .. v(t.fwdAngle) .. "," .. v(t.twist) .. "," .. v(t.aimAngle) .. "]"
 end
 PZA.enc.me = enc_me
 
