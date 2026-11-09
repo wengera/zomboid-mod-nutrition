@@ -2418,33 +2418,35 @@ PRE_T17 = {"e2": ("b521d04739ecfafb186f857a8646f3898d31e12cde7665daca2af70c56cf8
 # the first line each group rule moves, alone on, on each golden it moves (DRAG_GUARD_FIGHT moves none: no golden's
 # frames read the drag-down guard under a hit reaction or unmoving)
 FIRST_T17 = {"e2": {},
-             "e3": {"GROUP_LEAVE": 255},
+             "e3": {"GROUP_LEAVE": 260},
              "e4": {"GROUP_LEAVE": 388, "SIDE_CLEAR": 489},
-             "e5": {"GROUP_LEAVE": 223},
-             "f1": {"GROUP_LEAVE": 444, "SIDE_CLEAR": 610},
-             SIXTH: {"GROUP_LEAVE": 444, "SIDE_CLEAR": 610}}
+             "e5": {"GROUP_LEAVE": 224},
+             "f1": {"SIDE_CLEAR": 610},
+             SIXTH: {"SIDE_CLEAR": 610}}
 # the why each rule logs on the first line it moves alone
 WHY_T17 = {"GROUP_LEAVE": "group_leave", "DRAG_GUARD_FIGHT": "drag_fight", "SIDE_CLEAR": "side_clear"}
 # every line on each golden whose decision (branch or action) the three rules move together; E4's re-read at Task 3
 # fix 2 (SIDE_CLEAR's least-bad run in its shove's place: line 489 now the wanted heading's run, as the record's)
 ACTED_T17 = {"e2": [],
              "e3": [],
-             "e4": [388, 389, 390, 395, 397, 425, 433, 485, 492, 494, 495, 499, 501, 502, 503, 506, 509, 513, 516, 519,
-                    522, 526, 529, 533, 536, 539, 543, 546, 550, 552, 556, 558, 563, 565, 566, 567, 568, 569, 570, 571,
-                    572, 573, 574, 575, 576, 577, 578, 582, 583, 584, 585, 586, 587, 780, 781, 787, 788, 793, 795, 800,
-                    801, 806, 808, 813, 815, 819, 821, 826, 828, 833, 835, 840, 841, 847, 848, 854, 861, 868, 869, 875,
-                    950, 963, 964, 966, 967, 968, 969, 973, 975, 976, 979, 983, 986, 989, 993, 996, 1000, 1061, 1068,
-                    1075, 1082, 1089, 1096, 1102, 1109, 1116, 1121, 1123, 1124, 1126, 1132, 1139, 1274, 1280, 1281,
-                    1286, 1288, 1293, 1295, 1300, 1302, 1307, 1308, 1314, 1315, 1320, 1322, 1327, 1329, 1334, 1336,
-                    1341, 1343, 1348, 1350, 1354, 1356, 1361, 1363, 1367, 1369, 1374, 1376, 1381, 1383, 1388, 1389,
-                    1394, 1396, 1401, 1403, 1408, 1410, 1415, 1417, 1421, 1423, 1428, 1430, 1435, 1437, 1442, 1444,
-                    1448, 1451, 1455, 1458, 1462, 1465, 1468, 1471, 1474, 1478, 1481, 1484, 1487, 1491, 1494, 1497,
-                    1501, 1504, 1506, 1508, 1509, 1513, 1516, 1519, 1522, 1526, 1528, 1533, 1535, 1540, 1542, 1547,
-                    1549, 1554, 1555, 1560, 1562, 1567, 1569, 1574, 1576, 1581, 1583, 1588, 1590, 1594, 1596, 1601,
-                    1603, 1608, 1610, 1614, 1616, 1621, 1622],
-             "e5": [224, 225],
-             "f1": [491, 498, 499, 610, 614],
-             SIXTH: [487, 493, 495, 499, 501, 610, 614]}
+             "e4": [388, 395, 469, 470, 471, 474, 477, 482, 485, 492, 494, 495, 499, 501, 502, 503, 506, 509, 513, 516, 519,
+                    522, 526, 529, 533, 536, 539, 543, 546, 550, 552, 556, 558, 563, 565, 566, 567, 568,
+                    569, 570, 571, 572, 573, 574, 575, 576, 577, 578, 582, 583, 584, 585, 586, 587, 780,
+                    781, 787, 788, 793, 795, 800, 801, 806, 808, 813, 815, 819, 821, 826, 828, 833, 835,
+                    840, 841, 847, 848, 854, 861, 868, 869, 875, 950, 963, 964, 966, 967, 968, 969, 973,
+                    975, 976, 979, 983, 986, 989, 993, 996, 1000, 1061, 1068, 1075, 1082, 1089, 1096,
+                    1102, 1109, 1116, 1121, 1123, 1124, 1126, 1132, 1139, 1274, 1280, 1281, 1286, 1288,
+                    1293, 1295, 1300, 1302, 1307, 1308, 1314, 1315, 1320, 1322, 1327, 1329, 1334, 1336,
+                    1341, 1343, 1348, 1350, 1354, 1356, 1361, 1363, 1367, 1369, 1374, 1376, 1381, 1383,
+                    1388, 1389, 1394, 1396, 1401, 1403, 1408, 1410, 1415, 1417, 1421, 1423, 1428, 1430,
+                    1435, 1437, 1442, 1444, 1448, 1451, 1455, 1458, 1462, 1465, 1468, 1471, 1474, 1478,
+                    1481, 1484, 1487, 1491, 1494, 1497, 1501, 1504, 1506, 1508, 1509, 1513, 1516, 1519,
+                    1522, 1526, 1528, 1533, 1535, 1540, 1542, 1547, 1549, 1554, 1555, 1560, 1562, 1567,
+                    1569, 1574, 1576, 1581, 1583, 1588, 1590, 1594, 1596, 1601, 1603, 1608, 1610, 1614,
+                    1616, 1621, 1622],
+             "e5": [225, 226, 228],
+             "f1": [610, 614],
+             SIXTH: [610, 614]}
 
 
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
@@ -2461,10 +2463,11 @@ def test_with_the_group_rules_off_the_goldens_are_plan_32_s(key):
 def test_the_group_rules_move_the_goldens_at_their_lines(key):
     """Named change `Plan 33 Task 3: GROUP_LEAVE, DRAG_GUARD_FIGHT and SIDE_CLEAR on by default`, each switch alone on
     against the goldens before it (`pre_t17_gold`):
-    - GROUP_LEAVE (fix 1: two closing within GROUP_ENTRY_R, withheld only within FIGHT_REACH) moves E3 from line 255,
-      E4 from 388, E5 from 223, F1 and the sixth from 444 (`group_leave`): on E3 the why only (each two-closing line
-      withheld), on E4, E5, F1 and the sixth the leave's run sent where the record fought (`ACTED_T17`), every later
-      moved line downstream (open loop).
+    - GROUP_LEAVE (fix 3, re-recorded under `Plan 33 Task 3 fix 3: GROUP_LEAVE at three closing`: GROUP_LEAVE_N 3 closing
+      within GROUP_ENTRY_R, no FIGHT_REACH exception, the fighting retreat) moves E3 from line 260, E4 from 388 and E5
+      from 224 (`group_leave`), and F1 and the sixth no longer (their fix-1 leaves at 444 were pairs): the why only on
+      E3, the retreat's backpedal or shove sent where the record fought on E4 and E5 (`ACTED_T17`), every later moved
+      line downstream (open loop).
     - SIDE_CLEAR moves E4 from line 489 (its long tail, a dead character's frames replayed to the day cap, every later
       moved line downstream) and F1 and the sixth from 610: a run steer passing a standing zombie turned to a clear
       heading, else (Task 3 fix 2, re-recorded under `Plan 33 Task 3 fix 2: ...`) to the least-bad heading where it
