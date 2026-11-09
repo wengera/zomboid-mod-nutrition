@@ -479,3 +479,20 @@ def test_the_regrade_scripts_refuse_an_argument_they_do_not_define():
     f = open(FG14.__file__, encoding="utf-8").read()
     assert "if len(argv) != 1:" in f and "usage: f_grade_14.py" in f and FG14.KIND == "f"
     assert EG23.grade_x2 is G.grade_x2 and FG14.grade_x2 is G.grade_x2
+
+
+F18 = os.path.join(TESTING, "artifacts", "f_goals_18-20261108-235005")
+
+
+def test_f_grade_14_on_f18_reproduces_the_committed_f_grade_txt_byte_for_byte():
+    """Ruling P26-Q: `f_grade_14.py` on the committed F18 artifact (the first session graded through `grade_x2`: the facing
+    body at every press and stance tick and the facing ring over grade_x1's readings) reproduces its
+    committed `f_grade.txt` byte for byte (CRLF folded), so a drift in any live name read through the grade chain fails here."""
+    p = os.path.join(F18, "f_goals_18.json")
+    if not os.path.isfile(p):
+        pytest.skip("%s is not checked out" % F18)
+    script = os.path.join(TESTING, "agent", "drivers", "f_grade_14.py")
+    r = subprocess.run([sys.executable, script, p], capture_output=True, cwd=TESTING)
+    assert r.returncode == 0
+    want = open(os.path.join(F18, "f_grade.txt"), "rb").read().replace(b"\r\n", b"\n")
+    assert r.stdout.replace(b"\r\n", b"\n") == want
