@@ -253,6 +253,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                           # the flee while no zombie is within KEEP_R (`_dress_waits`, `care_yield.CareYield
                           # ._bleed_rate`), logged `dress_ride` {part, rate}; off, P29-D's wait with nobody within
                           # DANGER_R alone
+    # Plan 32 Task 5 (the coward fix; survive.py's docstring): in `survive.T16_SWITCHES`
+    POINT_BLANK_FIGHT = False  # (a): a standing zombie within KEEP_R is fought whatever flee reason the plan would take
+                               # (`_point_blank`), the health under FLEE_HEALTH_FLOOR and a running retreat to a named
+                               # structure excepted; off, the flee reasons as before
     FLEE_HELD_STANCE = True   # ruling P29-H': a flee walk whose observed heading runs at a held zombie is dropped with
                               # its plan, its door marked `walled`, and the fight meets it in the stance
                               # (`flee.Flee._held_ahead`, the Flee's `flee_held_stance` rule); off, the walk runs on
@@ -799,6 +803,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.one_exit_refused, self.listing, self.corner_exit = None, None, None
         self.health_near, self.health_pass, self.many_near = None, False, None   # P29-E, P29-G: this tick's
         self.finish_lone = None   # P29-F: this tick's
+        self.point_blank_fight = None   # Plan 32 Task 5 (a): this tick's
         door = self._doorway()
         if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
             return door
@@ -811,7 +816,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if self._cornered(held, inside) is not None:
             return "cornered", None
         if self.group_steer:
-            return "flee", self._flee_reason(held, len(self._danger_near())) or "many"
+            reason = self._flee_reason(held, len(self._danger_near())) or "many"
+            if self._point_blank(reason) is not None:   # Plan 32 Task 5 (a): the group steer at point blank
+                return "fight", None
+            return "flee", reason
         steps = self.mode == "flee" and self.flee is not None and (self.flee.running_shelter()
                                                                    or self.flee.running_exit())
         held_inside = not steps and self._held_inside(held) and self.door_open is None   # P30-C: the open first
@@ -837,7 +845,38 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             reason = self._kept_flee()
             if reason is None:
                 return "fight", None
+        if self._point_blank(reason) is not None:   # Plan 32 Task 5 (a): no flee at point blank
+            return "fight", None
         return self._trapped_fight(held, inside) or ("flee", reason)
+
+    def _point_blank(self, reason):
+        """Plan 32 Task 5 (a) (`POINT_BLANK_FIGHT`; Angus watching F17, `f_goals_17-20261108-172833`: its first wound,
+        seq 1613-1621, followed line 144's `attack` at 16101 and line 145's group steer fleeing `many` at
+        0.1848981257193573 tiles from it, one zombie standing within DANGER_R; a flee from a zombie at point blank turns
+        the back on it): `{target, dist, over}` when the plan would flee for `reason` while a standing zombie (not
+        `onFloor`, one read dead or held out across a blocked edge aside: `_within`) a Fight may target stands within
+        KEEP_R on a line not read blocked (`line_to`): the nearest such is fought instead, `over` the reason withheld,
+        logged `point_blank_fight` and pinned by the Fight a new one makes (`_decide`). None with the rule off, under
+        FLEE_HEALTH_FLOOR, for `steps` (a running shelter plan or way out: the retreat to a named structure, Plan 31's
+        refuge ruling) or with no such zombie. The doorway stand, the drag-down guard and the sheltered Flee keep their
+        own rows. Cost if wrong: a fight held against a second zombie arriving within KEEP_R."""
+        self.point_blank_fight = None
+        if not self.POINT_BLANK_FIGHT or reason == "steps" or self._health() < FLEE_HEALTH_FLOOR:
+            return None
+        near = self._within(KEEP_R)
+        skip = self._skipped()
+        best = None
+        for zid, z in self.world.zombies.items():
+            if (not target_id_ok(zid) or zid in skip or on_floor(z) or not any(z is w for w in near)
+                    or line_to(self.world, z) is False):
+                continue
+            d = zdist(self.world, z)
+            if best is None or (d, repr(zid)) < (best[1], repr(best[0])):
+                best = (zid, d)
+        if best is None:
+            return None
+        self.point_blank_fight = {"target": best[0], "dist": best[1], "over": reason}
+        return self.point_blank_fight
 
     def _attackers(self):
         """The frame's `me.attackers` (PZA/1.4, an int; absent or not an int on an older frame: 0)."""
@@ -1015,6 +1054,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             if want == "fight":
                 self.fight = Fight(self.world, self.actions, self.clock, unreachable=self.unreachable, dead=self.dead)
                 self.fight.seek = self._seeks() and door is None   # P24-X: every fight but the door's is sought
+                if self.point_blank_fight is not None:   # Plan 32 Task 5 (a): the fight at the point-blank zombie
+                    self.fight.target = self.point_blank_fight["target"]
                 self.fight.pull = self.fight.seek and self.PULL    # P24-AN: a lone chaser pulled from the group
                 if door is None:
                     self.flee = None   # a door fight keeps the sheltered Flee for the re-close
@@ -1140,7 +1181,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                        ("doorway_inside", self.stand_inside),
                        ("pair_yield", self.pair_yield), ("listing", self.listing), ("corner", self.corner_exit),
                        ("health_near", self.health_near), ("many_near", self.many_near),
-                       ("finish_lone", self.finish_lone), ("flee_held_stance", self.held_cut)):
+                       ("finish_lone", self.finish_lone), ("flee_held_stance", self.held_cut),
+                       ("point_blank_fight", self.point_blank_fight)):
             if v is not None:
                 self.why[key] = v
         if self.broken is not None:

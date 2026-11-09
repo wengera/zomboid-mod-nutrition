@@ -339,6 +339,9 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     (`fight.Fight._chaser_stands`); a wound not bleeding is one Dress once no zombie stands within KEEP_R, the threat
     branch yielding to it (`care.Care.scratch_wanted`, `care_yield.CareYield._wound_yields`); `T15_SWITCHES`
     (CHASER_STANCE, SCRATCH_DRESS).
+    Plan 32 Task 5 (the coward fix; Angus watching F17, `f_goals_17-20261108-172833`: 389 flee lines over 51.8 of 222
+    game minutes): (a) a standing zombie within KEEP_R is fought whatever the flee reason, but under FLEE_HEALTH_FLOOR
+    and on a running retreat to a named structure (`threat.Threat._point_blank`); `T16_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -488,6 +491,12 @@ T15_SWITCHES = ("CHASER_STANCE", "SCRATCH_DRESS")
 # Plan 31 Task 15a (Harden, the ladder's two street defects): (a) on `threat.Threat` (CHASER_STANCE, the Fight's
 # `chaser_stance` rule); (b) on `Survive` (SCRATCH_DRESS: the wound Dress and the threat branch's yield to it, copied to
 # the Care and read by `care_yield.CareYield._wound_yields`)
+T16_SWITCHES = ("POINT_BLANK_FIGHT",)
+# Plan 32 Task 5 (the coward fix, Angus's direction of 2026-11-08 watching F17), all on `threat.Threat`: (a)
+# POINT_BLANK_FIGHT, a standing zombie within KEEP_R fought whatever the flee reason (`Threat._point_blank`); (b)
+# PAIR_NEAREST, the Fight's `pair_nearest` rule (`fight.Fight._pair_pin`); (c) CARE_COMMIT, one distance leg, then the
+# care action finished with the threat branch yielding (`care_yield.CareYield._care_commit`); (d) STRAIN_BOUND, the
+# `strain` flee only under a real exhaustion (`hold.Hold._strain_flees`)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -509,7 +518,8 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "NEED_STATS", "CONSUME_CHECK_MIN", "STAT_FALL_MIN", "CONSUME_RETRY_MIN", "FILL_RETRY_MIN", "FILL_SETTLE_S", "FILL_WANTS",
            "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T3_SWITCHES",
            "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES", "T7_SWITCHES", "T8_SWITCHES", "T9_SWITCHES", "T10_SWITCHES",
-           "T11_SWITCHES", "T12_SWITCHES", "T13_SWITCHES", "T14_SWITCHES", "T15_SWITCHES"]
+           "T11_SWITCHES", "T12_SWITCHES", "T13_SWITCHES", "T14_SWITCHES", "T15_SWITCHES",
+           "T16_SWITCHES"]
 
 
 @dataclass
@@ -643,6 +653,8 @@ class Survive(SneakGait, Threat):
         self.care_yield = None    # this tick: the nearest zombie's tiles when the threat yielded to the care (P24-P)
         self.bleed_yield = None   # this tick: those tiles when the yield was the bleed's rule's alone (P26-D)
         self.scratch_yield = None   # this tick: those tiles when the yield was a scratch's Dress's (Plan 31 Task 15a)
+        self.point_blank_fight = None   # this tick: {target, dist, over} when a flee was fought at point blank (Plan 32
+                                        # Task 5 (a), `Threat._point_blank`), else None
         self.bleed_held = False   # this tick: that yield was made by the dressing's hold alone (P26-L2)
         self.bleed_dressing = None   # the last bandage the care sent, when the bleed's yield made its tick (P26-L2)
         self.flee_reason = None   # the running flee's reason at its last decision, else None (P26-D's `pair` and
