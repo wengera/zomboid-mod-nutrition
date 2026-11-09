@@ -4,7 +4,7 @@ by `tools/facing_score.py` into `testing/trials/facing.md`. A trial is not evide
 `testing/runs/x_facing-<stamp>/` (trial.json at its root), nothing is copied into `testing/artifacts/`, and no row,
 page or brief cites it (CLAUDE.md section 5, "Trials").
 
-    python testing/agent/drivers/x_facing.py [--fixture arena-east] [--ticks 60] [--zombie]
+    python testing/agent/drivers/x_facing.py [--fixture arena-east] [--ticks 60] [--zombie] [--dist 6.0]
         [--modes read,snap_aimed,...] [--minutes N] [--detached]
 
 The driver is thin: its key, file, artifact and profile, and the refusal before `main` (an argument it does not define
@@ -34,7 +34,7 @@ KEY = "x_facing"
 DRIVER = "x_facing.py"
 ARTIFACT = "x_facing.json"
 PROFILE = "testing/profiles/agent.toml"
-ALLOWED = ("--fixture", "--ticks", "--zombie", "--modes", "--minutes", "--detached")
+ALLOWED = ("--fixture", "--ticks", "--zombie", "--dist", "--modes", "--minutes", "--detached")
 _ME = os.path.basename(os.path.abspath(__file__))
 
 

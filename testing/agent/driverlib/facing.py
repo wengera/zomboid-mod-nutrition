@@ -61,14 +61,14 @@ TARGET_DIST = 6.0                    # tiles from the character to the target
 CONFIRM_R = 2.0                      # tiles: a new zombie this near the spawn square confirms it
 CONFIRM_S = 8.0                      # seconds a spawn has to reach the frames before its one re-send
 PROBE_SLACK_S = 10.0                 # a Probe's deadline beyond its ring ticks at 20 per second
-VALUED = ("--fixture", "--ticks", "--modes", "--minutes")
+VALUED = ("--fixture", "--ticks", "--modes", "--minutes", "--dist")
 BARE = ("--zombie", "--detached")
 FIXTURE_RX = TR.FIXTURE_RX
 
 
 # ---------------------------------------------------------------- the arguments
 def usage(me):
-    return ("%s takes only --fixture <name> [--ticks N] [--zombie] [--modes %s,...] [--minutes N] [--detached]"
+    return ("%s takes only --fixture <name> [--ticks N] [--zombie] [--dist T] [--modes %s,...] [--minutes N] [--detached]"
             % (me, "|".join(pza1.PROBE_MODES[:2])))
 
 
@@ -89,6 +89,15 @@ def _tokens(argv):
         else:
             return None
     return got
+
+
+def _dist(s):
+    """The --dist tiles (the target point and the zombie square from the character), 0.5 to 12.0; None otherwise."""
+    try:
+        d = float(s)
+    except ValueError:
+        return None
+    return d if 0.5 <= d <= 12.0 and d == d else None
 
 
 def _ticks(s):
@@ -115,6 +124,8 @@ def parse_argv(argv, driver_file):
         why = "--fixture takes a fixture name"
     elif "--ticks" in t and _ticks(t["--ticks"]) is None:
         why = "--ticks takes a whole number from 1 to %d" % MAX_TICKS
+    elif "--dist" in t and _dist(t["--dist"]) is None:
+        why = "--dist takes tiles from 0.5 to 12.0 (the target point and the zombie square from the character)"
     elif "--modes" in t and _mode_names(t["--modes"]) is None:
         why = "--modes takes distinct names of %s" % ", ".join(pza1.PROBE_MODES)
     elif "--minutes" in t and TR._minutes(t["--minutes"]) is None:
@@ -134,6 +145,7 @@ def flags(argv):
     return {"variant": VARIANT, "fixture": t.get("--fixture", DEFAULT_FIXTURE),
             "ticks": _ticks(t["--ticks"]) if "--ticks" in t else DEFAULT_TICKS, "zombie": bool(t.get("--zombie")),
             "modes": _mode_names(t["--modes"]) if "--modes" in t else None,
+            "dist": _dist(t["--dist"]) if "--dist" in t else TARGET_DIST,
             "minutes": TR._minutes(t["--minutes"]) if "--minutes" in t else TR.DEFAULT_MINUTES,
             "no_llm": True, "goals": TR.DEFAULT_GOALS, "waves": TR.DEFAULT_WAVES, "teleport": None,
             "make_fixture": None, "detached": bool(t.get("--detached"))}
@@ -182,9 +194,9 @@ class ProbeSequencer:
     `error` names why a run ended without its plan."""
     last_branch = "probe"
 
-    def __init__(self, log_path, clock, ticks=DEFAULT_TICKS, zombie=False, modes=None, spawn=None):
+    def __init__(self, log_path, clock, ticks=DEFAULT_TICKS, zombie=False, modes=None, spawn=None, dist=TARGET_DIST):
         self.log_path, self.clock = log_path, clock
-        self.ticks, self.zombie, self.spawn = ticks, zombie, spawn
+        self.ticks, self.zombie, self.spawn, self.dist = ticks, zombie, spawn, dist
         self.modes = filter_modes(MODES, modes)
         self.state, self.finished, self.error = "aim", False, None
         self.cur, self.rest_until = None, None
@@ -239,7 +251,7 @@ class ProbeSequencer:
         if c is None or not all(isinstance(me.get(k), (int, float)) for k in ("x", "y")):
             return self._fail("no cursor bearing: me.aimAngle read null for the whole stance hold", actions)
         self.cursor = c
-        self.target = target_point(me, c)
+        self.target = target_point(me, c, dist=self.dist)
         if self.zombie:
             self.state = "confirm"
             self.before = set(world.zombies)
@@ -330,7 +342,7 @@ def run_session(args, xs, transport, pre, note_planner, **kw):
         return xs.rcon(TR.CREATEHORDE2_CMD.format(x=x, y=y, z=0, count=1, radius=0), "facing_zombie")
 
     def planner(world, actions, log_path, clock):
-        return ProbeSequencer(log_path, clock, ticks=args["ticks"], zombie=args["zombie"], modes=args["modes"],
+        return ProbeSequencer(log_path, clock, ticks=args["ticks"], zombie=args["zombie"], modes=args["modes"], dist=args.get("dist", TARGET_DIST),
                               spawn=spawn)
     limits = dict(TR.limits_of(args), **(kw.pop("limits", None) or {}))
     sess = DY.make_day_session(xs, transport, planner, limits=limits, cls=FacingChain, **kw)

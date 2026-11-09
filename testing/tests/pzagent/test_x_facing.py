@@ -30,7 +30,7 @@ def test_the_driver_refuses_arguments_before_main_with_exit_2():
     i_main = src.rindex("    main(flags(sys.argv[1:]), sys.argv[1:])")
     assert src.index('if __name__ == "__main__":') < i_ref < i_main
     assert "sys.exit(2)" in src[i_ref:i_main]
-    assert XF.ALLOWED == ("--fixture", "--ticks", "--zombie", "--modes", "--minutes", "--detached")
+    assert XF.ALLOWED == ("--fixture", "--ticks", "--zombie", "--dist", "--modes", "--minutes", "--detached")
     assert XF.parse_argv is F.parse_argv and XF.flags is F.flags
     for bad in (["--bogus"], ["--fix", "arena-east"], ["--variant", "ladder"], ["--waves", "lone"],
                 ["--goals", "hold"], ["--no-llm"], ["--teleport", "1,2"], ["--make-fixture", "x"], ["x"], ["--help"],
@@ -38,12 +38,13 @@ def test_the_driver_refuses_arguments_before_main_with_exit_2():
                 ["--ticks", "2.5"], ["--ticks", "-3"], ["--zombie", "--zombie"], ["--zombie", "x"],
                 ["--modes"], ["--modes", "read,nope"], ["--modes", "read,read"], ["--modes", ""],
                 ["--minutes", "0"], ["--minutes", "nan"], ["--minutes", "61"], ["--detached", "--detached"],
-                ["--fixture", "../x"], ["--minutes", "7"]):
+                ["--fixture", "../x"], ["--minutes", "7"], ["--dist"], ["--dist", "x"], ["--dist", "0.4"],
+                ["--dist", "12.5"], ["--dist", "nan"], ["--dist", "1", "--dist", "2"]):
         r = XF.parse_argv(bad, ME)
         assert r and "x_facing.py" in r and "\n" not in r, bad
     for good in ([], ["--fixture", "arena-east"], ["--ticks", "60", "--zombie"], ["--modes", "read,snap_aimed"],
                  ["--minutes", "5"], ["--minutes", "9", "--detached"], ["--zombie", "--ticks", "120"],
-                 ["--modes", "turn_k"]):
+                 ["--modes", "turn_k"], ["--dist", "1.0", "--zombie"], ["--dist", "12"]):
         assert XF.parse_argv(good, ME) is None, good
 
 
