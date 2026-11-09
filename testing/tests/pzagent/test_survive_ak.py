@@ -385,8 +385,8 @@ def pair(at, **k):
 
 
 def closing(tmp_path, on=("GROUP_LEAVE",), second=NEAR, scan=None, x=100.5, y=200.5, off=(), **frame):
-    """Two ticks: the trio at WEST, then at `second`; `scan` squares scanned first; the switches in `off` (Plan 34's
-    T19 switches, on by default) set off."""
+    """Two ticks: the trio at WEST, then at `second`; `scan` squares scanned first; the Plan 34 switches named in `off`
+    (`survive.T19_SWITCHES`) set off (a test of an earlier rule pinned with the later rule's switch off)."""
     r, sv = make(tmp_path)
     for name in T17:
         setattr(sv, name, name in on)
@@ -406,8 +406,10 @@ def test_a_closing_trio_in_the_open_is_left_by_a_fighting_retreat_from_its_centr
     """GROUP_LEAVE, no door known (the fighting retreat, Angus 2026-11-09, memory `fighting-retreat`): the second line's
     three closing within GROUP_ENTRY_R keep the Fight on the nearest standing zombie, its stance leg `aim` (no steer,
     no run) with `targetId` that zombie and the back vector away from the three's centroid, logged `group_leave`
-    {closing [1, 2, 3], leg "retreat"} and `group_retreat` {leg, closing, centroid_away}."""
-    r, sv = closing(tmp_path)
+    {closing [1, 2, 3], leg "retreat"} and `group_retreat` {leg, closing, centroid_away}. Pinned with Plan 34's
+    RETREAT_GAP off (a named change: the nearest at 2.90 tiles lies beyond KEEP_R, where the rule sends the stand, not
+    fix 3's back leg; `test_survive_an.py` reads the rule on)."""
+    r, sv = closing(tmp_path, off=("RETREAT_GAP",))
     why = threat_why(tmp_path)
     assert why["fight"] is True and "flee" not in why and sv.mode == "fight"
     assert sorted(why["group_leave"]["closing"]) == [1, 2, 3] and why["group_leave"]["leg"] == "retreat"
@@ -530,8 +532,9 @@ def test_a_trio_not_closing_is_not_left(tmp_path):
 
 def test_the_leave_ends_when_the_trio_strings_out(tmp_path):
     """The running leave (the run) ends on the line reading fewer than two standing within GROUP_ENTRY_R (logged
-    `group_leave` {end "strung"}); the tick then decides by the other rules."""
-    r, sv = closing(tmp_path)
+    `group_leave` {end "strung"}); the tick then decides by the other rules. Pinned with Plan 34's STRUNG_HOLD off (a
+    named change: the rule holds the leave STRUNG_LINES lines; `test_survive_an.py` reads it on)."""
+    r, sv = closing(tmp_path, off=("STRUNG_HOLD",))
     assert sv.leave is not None
     r.advance(0.5)
     r.frame(x=100.5, y=200.5, zombies=pair(((94.0, 200.6), (97.65, 199.95), (100.5, 214.0))))
@@ -547,8 +550,9 @@ def test_f18_s_first_leave_is_the_retreat_at_line_358():
     the retreat (`group_leave` {leg "retreat"}, `group_retreat` away from the centroid), held on 359 to 361 while three
     stand within GROUP_ENTRY_R and ended `strung` on 362 (two). Line 174, the group's earlier three closing
     (13652, 13649, 13651), is withheld `cover` (a wall at the back, {"kind": "wall", "at": [10752, 10642, "N"]}). No
-    leave line sends a steer or a run."""
-    rows = f18(**only("GROUP_LEAVE"))
+    leave line sends a steer or a run. Pinned with Plan 34's STRUNG_HOLD off (a named change: the rule holds line 362's
+    leave, two standing, for STRUNG_LINES lines)."""
+    rows = f18(**only("GROUP_LEAVE"), STRUNG_HOLD=False)
     gl = {k: threat(r)["group_leave"] for k, r in enumerate(rows, 1) if "group_leave" in threat(r)}
     assert sorted(gl) == [174, 358, 359, 360, 361, 362]
     assert gl[174]["withheld"] == "cover" and gl[174]["closing"] == [13652, 13649, 13651]
@@ -687,9 +691,11 @@ def test_a_retreat_line_under_a_hit_reaction_sends_the_back_leg(tmp_path):
     """Fix 4 (b), the trial's lines 102 to 104 (`hitReaction` with nothing sent): a Fight out of the stance (more than
     MAX_FIGHT held) under the retreat, its pin 1 at 1.5 tiles within FIGHT_REACH, the frame reading a hit reaction:
     the ladder sends nothing (P24-A (i)), so the back leg goes, `aim` on the retreat heading with `targetId` the pin,
-    logged `retreat_leg` {in_place_of None}, `leg` back, `retreat` true; with no retreat, nothing."""
+    logged `retreat_leg` {in_place_of None}, `leg` back, `retreat` true; with no retreat, nothing. Pinned with Plan
+    34's `retreat_gap` off (a named change: the why gains the leg's `kind`; `test_survive_an.py` reads it on)."""
     zs = [zm(1, 102.0, 200.5), zm(2, 103.5, 200.5), zm(3, 104.0, 201.5)]
     r, f = fight4(tmp_path, zs, stance=False, target=1, hit_reaction="Bite")
+    f.rules = f.rules - {"retreat_gap"}
     cmd = f.choose()
     assert (cmd.TYPE, cmd.targetId, cmd.seconds) == ("aim", 1, P.AIM_LEG_S)
     assert (cmd.vx, cmd.vy) == pytest.approx(WEST_V)
@@ -703,9 +709,11 @@ def test_a_retreat_line_under_a_hit_reaction_sends_the_back_leg(tmp_path):
 def test_a_retreat_line_never_sends_a_walk(tmp_path):
     """Fix 4 (b), the agent fixture's lines 204 to 212 (`leg: walk` held toward a far pin): a Fight out of the stance
     under the retreat, its pin 4 tiles east and not chasing (a chaser is met in the stance, Plan 31 Task 15a): the
-    approach walk is the back leg instead (`retreat_leg` {in_place_of "walkTo"}); with no retreat the walk."""
+    approach walk is the back leg instead (`retreat_leg` {in_place_of "walkTo"}); with no retreat the walk. Pinned with
+    Plan 34's `retreat_gap` off (a named change: the pin at 4 tiles, beyond KEEP_R, takes the stand)."""
     zs = [zm(1, 104.5, 200.5, hasTarget=False)]
     r, f = fight4(tmp_path, zs, stance=False, target=1)
+    f.rules = f.rules - {"retreat_gap"}
     cmd = f.choose()
     assert cmd.TYPE == "aim" and cmd.targetId == 1 and (cmd.vx, cmd.vy) == pytest.approx(WEST_V)
     assert f.why["retreat_leg"] == {"in_place_of": "walkTo"}
@@ -743,8 +751,10 @@ def test_a_build_without_aim_keeps_its_walk_under_the_retreat(tmp_path):
 @pytest.mark.parametrize("turn, held", [(20.0, True), (45.0, False)])
 def test_a_running_back_leg_is_re_sent_once_the_retreat_heading_turns_past_retreat_resend_deg(tmp_path, turn, held):
     """Fix 4 (b): the back leg sent on the retreat heading (the pin 3 tiles east, beyond FIGHT_REACH) is held while
-    the heading turns 20 degrees (within RETREAT_RESEND_DEG 30) and gives way at 45."""
+    the heading turns 20 degrees (within RETREAT_RESEND_DEG 30) and gives way at 45. Pinned with Plan 34's
+    `retreat_gap` off (a named change: the pin at 3 tiles, beyond KEEP_R, takes the stand, held whatever the heading)."""
     r, f = fight4(tmp_path, [zm(1, 103.5, 200.5)], target=1)
+    f.rules = f.rules - {"retreat_gap"}
     f.step()
     r.fake.answer({"aim": ["accepted"]})
     r.pump()
@@ -779,11 +789,14 @@ FIVE_WEST = WEST + ((96.9, 201.3), (96.95, 199.3))   # two more beside the pair,
 FIVE_NEAR = NEAR + ((97.6, 201.4), (97.7, 199.3))    # ... closing to 3.04 and 3.05
 
 
-def band(tmp_path, n):
-    """Two ticks of the first `n` of FIVE: their first line, then closing within GROUP_ENTRY_R."""
+def band(tmp_path, n, off=()):
+    """Two ticks of the first `n` of FIVE: their first line, then closing within GROUP_ENTRY_R; the Plan 34 switches
+    named in `off` set off."""
     r, sv = make(tmp_path)
     for name in T17:
         setattr(sv, name, name == "GROUP_LEAVE")
+    for name in off:
+        setattr(sv, name, False)
     r.frame(x=100.5, y=200.5, zombies=pair(FIVE_WEST[:n]))
     tick(r, sv)
     r.advance(0.5)
@@ -810,8 +823,9 @@ def test_five_closing_take_the_many_run_and_four_the_retreat(tmp_path):
 
 def test_the_retreat_resumes_when_the_count_falls_to_retreat_max_n_and_ends_strung_under_three(tmp_path):
     """Fix 4 (c): the run's leave held while five stand; the line reading four within GROUP_ENTRY_R resumes the retreat
-    (the Fight, `group_leave` {n 4, leg "retreat"}); the line reading two ends it `strung`."""
-    r, sv = band(tmp_path, 5)
+    (the Fight, `group_leave` {n 4, leg "retreat"}); the line reading two ends it `strung`. Pinned with Plan 34's
+    STRUNG_HOLD off (a named change: the rule holds the leave STRUNG_LINES lines)."""
+    r, sv = band(tmp_path, 5, off=("STRUNG_HOLD",))
     assert threat_why(tmp_path)["group_leave"]["leg"] == "run"
     r.advance(0.5)
     four = FIVE_NEAR[:2] + ((100.5, 207.5),) + FIVE_NEAR[3:]   # 3 beyond GROUP_ENTRY_R

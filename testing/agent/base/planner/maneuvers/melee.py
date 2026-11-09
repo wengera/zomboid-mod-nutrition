@@ -102,7 +102,12 @@ class Melee(Maneuver):
         line's step is no press in flight (STRIKE_STEPS: its result is read first)."""
         if self.action is None or not self.running() or self.inputs is None:
             return False
-        return self.inputs.behaviour() != self._sent and self._progress.get("step") not in STRIKE_STEPS
+        return self.inputs.behaviour() != self._sent and not self.pressing()
+
+    def pressing(self):
+        """The last progress line's step is a press in flight (STRIKE_STEPS: from its press to its result), which no
+        re-send and no owner's give-way cuts (Plan 34: `fight.Fight._retreat_breaks`, the crawler clear's `busy`)."""
+        return self._progress.get("step") in STRIKE_STEPS
 
     def step(self):
         """The next `pza1.Melee` (the module docstring), else None."""

@@ -291,12 +291,18 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                              # from inside (Task 2); off, the enter's `done` and the close as before
     LEAVE_DOOR_RACE = True   # the leave's door only with the nearest standing beyond DOOR_RACE_R and a second exit,
                              # dropped at DOOR_ABORT_R (Task 2); off, any `ok` door within LEAVE_DOOR_R
-    RETREAT_GAP = True       # the retreat's leg by the distance's band (Task 3); off, every stance leg a backpedal
+    RETREAT_GAP = True       # the retreat's leg by the distance's band, the stand beyond KEEP_R (Task 3; the Fight's
+                             # `retreat_gap` rule, `fight.Fight._retreat_kind`); off, every stance leg a backpedal
     RETREAT_MELEE = True     # the strike melee's give-way to the back leg with another standing within RETREAT_BACK_R
-                             # (Task 3); off, the melee held
-    STRUNG_HOLD = True       # the leave's `strung` end after STRUNG_LINES lines under GROUP_LEAVE_N (Task 3); off, on
-                             # the first
+                             # (Task 3; the Fight's `retreat_melee` rule, `fight.Fight._retreat_breaks`); off, the melee
+                             # held
+    STRUNG_HOLD = True       # the leave's `strung` end after STRUNG_LINES lines under GROUP_LEAVE_N (Task 3,
+                             # `group.ThreatGroup._group_leave`); off, on the first
     SHOVE_CLEAR = True       # the Lua's shove and stomp waiting for the reaction's end (Task 4); off, refused `busy`
+    CRAWLER_CLEAR = True     # ruling P34-A fix B: a fallen or crawling zombie within CRAWLER_AVOID_R other than the
+                             # finish target (or two whatever the target), with a standing one within DANGER_R, is
+                             # backpedalled from, no melee nor stomp meanwhile (the Fight's `crawler_clear` rule,
+                             # `crawler.FightCrawler._crawler_clear`); off, the melee and CRAWLER_FIRST as before
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -1369,7 +1375,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("close_idle", self.CLOSE_IDLE),
                                                ("swing_close", self.SWING_CLOSE),
                                                ("chaser_stance", self.CHASER_STANCE),
-                                               ("pair_nearest", self.PAIR_NEAREST))
+                                               ("pair_nearest", self.PAIR_NEAREST),
+                                               ("retreat_gap", self.RETREAT_GAP),
+                                               ("retreat_melee", self.RETREAT_MELEE),
+                                               ("crawler_clear", self.CRAWLER_CLEAR))
                          if on)
 
     def _flee_rules(self):

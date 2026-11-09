@@ -366,7 +366,12 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     ride with GROUP_LEAVE_N or more standing within GROUP_ENTRY_R (`group_n`, `group.ThreatGroup._group_read`; the
     rule in `care_yield.CareYield._care_commit` and `_care_yields`), logged `care_withheld` {why "group", n, key} on the
     threat's why; DOOR_INSIDE, LEAVE_DOOR_RACE, RETREAT_GAP, RETREAT_MELEE, STRUNG_HOLD and SHOVE_CLEAR (the spec's
-    §§ 3.2 to 3.4, Tasks 2 to 4); `T19_SWITCHES`.
+    §§ 3.2 to 3.4, Tasks 2 to 4; Task 3's three: the retreat's leg by the stance's band, the strike melee's give-way to
+    a standing zombie behind within RETREAT_BACK_R, the leave's `strung` end after STRUNG_LINES lines, `fight.py`'s and
+    `group.py`'s docstrings the record); CRAWLER_CLEAR (ruling P34-A fix B; the smoke trial
+    `x_trial-ladder-20261109-105452`: the character stood over the crawlers 9174 and 9175 while the melee pressed the
+    standing 9128, 13 wounds in 20 s): the stance's backpedal from a fallen or crawling zombie within CRAWLER_AVOID_R
+    while one stands within DANGER_R (`crawler.FightCrawler._crawler_clear`); `T19_SWITCHES`.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -533,14 +538,16 @@ T18_SWITCHES = ("GROUP_LEAVE", "DRAG_GUARD_FIGHT", "SIDE_CLEAR")
 # under a hit reaction or STUCK_FRAMES unmoving frames (`ThreatGroup._drag_fight`); SIDE_CLEAR, no run steer within
 # SIDE_R of a standing zombie (`ThreatGroup._side_clear`)
 T19_SWITCHES = ("LEAVE_CARE", "DOOR_INSIDE", "LEAVE_DOOR_RACE", "RETREAT_GAP", "RETREAT_MELEE", "STRUNG_HOLD",
-                "SHOVE_CLEAR")
+                "SHOVE_CLEAR", "CRAWLER_CLEAR")
 # Plan 34 (the column; F19, `f_goals_19-20261109-060929`; the spec's § 3), all on `threat.Threat`: LEAVE_CARE, the care
 # barred under a column of GROUP_LEAVE_N standing within GROUP_ENTRY_R but the ride (`care_yield.CareYield._care_commit`,
 # `_care_yields`); DOOR_INSIDE, the shelter plan's enter read inside and its close sent from inside; LEAVE_DOOR_RACE,
 # the leave's door only with the nearest standing beyond DOOR_RACE_R, a second exit, dropped at DOOR_ABORT_R;
 # RETREAT_GAP, the retreat's leg by the distance's band; RETREAT_MELEE, the strike melee's give-way to the back leg with
 # another standing within RETREAT_BACK_R; STRUNG_HOLD, the `strung` end after STRUNG_LINES lines; SHOVE_CLEAR, the Lua's
-# shove and stomp waiting for the reaction's end. Task 1 declares the seven and lands LEAVE_CARE; Tasks 2 to 4 the rest
+# shove and stomp waiting for the reaction's end; CRAWLER_CLEAR (ruling P34-A fix B, the smoke trial's crawler pile),
+# the backpedal from a fallen or crawling zombie within CRAWLER_AVOID_R with a standing one within DANGER_R. Task 1
+# declares the seven and lands LEAVE_CARE; Tasks 2 to 4 the rest; Task 3 adds CRAWLER_CLEAR
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")

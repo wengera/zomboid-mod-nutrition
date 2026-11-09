@@ -41,6 +41,14 @@ before it closes, never by running into it.
   step is not yet the close with a standing zombie within DOOR_ABORT_R (`Flee.abort_door`, `group_leave` {door_dropped
   "abort", near}) and re-reads the leg on the same line (the retreat or the run). Its partner, `DOOR_INSIDE`, is the
   Flee's (`flee.py`: the enter read inside, the close sent from inside).
+  Plan 34 STRUNG_HOLD (F19, `f_goals_19-20261109-060929`, GUIDE.md § 4: episode one's 15 retreat lines alternated with
+  11 `strung` ends at decision lines 274 to 299 as the count within 6 tiles flicked between three and fewer, the stance
+  leg turning from the back heading to a seek toward 12340 and back, the character moving back and forth under a tile
+  for 13 s): the `strung` end comes only once the count has read under GROUP_LEAVE_N on STRUNG_LINES consecutive lines
+  (`strung_n` counting them, `_strung_holds`; reset on a line at or above the count, at the leave's start and its end);
+  the lines before it hold the leave and its leg, logged `group_leave` {n, strung_n} (the key on those lines alone); a
+  line reading none standing ends it at once. With the switch off, the end on the first such line.
+  The Fight's side of the retreat at the stance's band (Plan 34 RETREAT_GAP and RETREAT_MELEE) is `fight.py`'s.
 - `DRAG_GUARD_FIGHT` (`_drag_fight`, `_drag_shove`): the drag-down guard's flee, when the frame reads a hit reaction
   (`me.hitReaction` non-empty) or STUCK_FRAMES frames of `me.moving` false while a steer or a walk is the running
   action (`_drag_stuck`), shoves the nearest standing zombie within SHOVE_R in front of the character (within 90 degrees
@@ -76,8 +84,8 @@ from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, DOOR_ABORT_R, DO
                                          FLEE_GAIT,
                                          FLEE_HEALTH_FLOOR, GROUP_ENTRY_R, GROUP_LEAVE_N,
                                          LEAVE_DOOR_R, RETREAT_MAX_N, SHOVE_R, STAND_MIN_R, SIDE_LOOK, SIDE_R,
-                                         STEER_PROBE, STUCK_FRAMES, STUCK_FREE_R, WALL_R, _rotate, blocked,
-                                         clear_heading, hit_reaction, on_floor, target_id_ok, zdist)
+                                         STEER_PROBE, STRUNG_LINES, STUCK_FRAMES, STUCK_FREE_R, WALL_R, _rotate,
+                                         blocked, clear_heading, hit_reaction, on_floor, target_id_ok, zdist)
 from agent.base.pza1 import Shove, Steer
 from agent.base.world import me_floor, me_xy
 
@@ -346,16 +354,20 @@ class ThreatGroup:
         centroid."""
         self._clear_leave()
         if not self.GROUP_LEAVE or inside or self.sheltered or self._health() < FLEE_HEALTH_FLOOR:
-            self.leave = None
+            self.leave, self.strung_n = None, 0
             return False
         if self.leave is not None:
             door_leg = self.flee is not None and self.flee.plan is not None
             n = len(self._group_standing(DANGER_R if door_leg else GROUP_ENTRY_R))
-            if n < GROUP_LEAVE_N:
-                self.leave = None
+            if n >= GROUP_LEAVE_N:
+                self.strung_n = 0
+                self.group_leave = {"n": n}
+            elif self._strung_holds(n):
+                self.group_leave = {"n": n, "strung_n": self.strung_n}
+            else:
+                self.leave, self.strung_n = None, 0
                 self.group_leave = {"end": "strung", "n": n}
                 return False
-            self.group_leave = {"n": n}
             self._leave_leg()
             return True
         closing = self._group_closing
@@ -369,10 +381,20 @@ class ThreatGroup:
         if cover is not None:
             self.group_leave = {"withheld": "cover", "closing": ids, "cover": cover}
             return False
-        self.leave = {"since": self.clock(), "closing": ids}
+        self.leave, self.strung_n = {"since": self.clock(), "closing": ids}, 0
         self.group_leave = {"closing": ids}
         self._leave_leg()
         return True
+
+    def _strung_holds(self, n):
+        """STRUNG_HOLD (Plan 34; the module docstring): a running leave's line reading `n` (fewer than GROUP_LEAVE_N,
+        one or more) standing counts one more line under the count (`strung_n`); True while fewer than STRUNG_LINES
+        such lines ran in a row (the leave held), False once the end is due. With the rule off, or with none standing
+        (nothing to retreat from), the end at once."""
+        if not self.STRUNG_HOLD or n == 0:
+            return False
+        self.strung_n += 1
+        return self.strung_n < STRUNG_LINES
 
     def _leave_leg(self):
         """The leave's leg this tick, the first that applies:

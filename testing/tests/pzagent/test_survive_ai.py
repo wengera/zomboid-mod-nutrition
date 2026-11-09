@@ -60,9 +60,12 @@ def _f17(switches):
 def f17(**switches):
     """F17's replayed decision lines (list index line - 1) with `switches` set. Pinned with Plan 33 Task 2's
     CRAWLER_FIRST off (`T17_SWITCHES`) and Plan 33 Task 3's group rules off (`T18_SWITCHES`, fix 1: GROUP_LEAVE's
-    entry at GROUP_ENTRY_R reaches F17's lines), named changes that move F17's lines, unless a case sets them."""
+    entry at GROUP_ENTRY_R reaches F17's lines) and Plan 34's CRAWLER_CLEAR off (ruling P34-A fix B: F17's fallen
+    16230 within CRAWLER_AVOID_R beside the standing 16232 is backpedalled from), named changes that move F17's lines,
+    unless a case sets them."""
     switches = dict({k: False for k in S.T18_SWITCHES}, **switches)
     switches.setdefault("CRAWLER_FIRST", False)
+    switches.setdefault("CRAWLER_CLEAR", False)
     return json.loads(_f17(tuple(sorted(switches.items()))))
 
 
@@ -209,12 +212,13 @@ def test_a_running_retreat_to_a_named_structure_is_kept_at_point_blank(tmp_path)
 def fight_rig(tmp_path, zs, rule=True):
     """A Fight on a fresh Rig over one frame of `zs`, its rules the defaults with `pair_nearest` on or off; pinned
     with Plan 33 Task 2's `crawler_first` off (a named change: a fallen zombie within CRAWLER_R beside a standing one
-    is that rule's)."""
+    is that rule's) and Plan 34's `crawler_clear` off (ruling P34-A fix B, a named change: a fallen zombie within
+    CRAWLER_AVOID_R beside the pair's standing pin is backpedalled from)."""
     r = Rig(tmp_path)
     r.frame(zombies=zs)
     f = F.Fight(r.world, r.acts, r.clock)
     f.rules = (f.rules | {"pair_nearest"}) if rule else (f.rules - {"pair_nearest"})
-    f.rules = f.rules - {"crawler_first"}
+    f.rules = f.rules - {"crawler_first", "crawler_clear"}
     return r, f
 
 

@@ -24,7 +24,9 @@ command at its pin. Its state is the Fight's own (`_init_dispatch`), and `fight.
   time, two; Plan 31 Task 15a fix 1, review-t15a I1, at its end since Task 15a): no melee while MELEE_CROWD_N standing
   zombies, a standing pin counted, are listed within MELEE_CROWD_R of the player (the Lua would end it handback crowd
   with no press, #4290), the ladder's rules owning that tick; with fewer the melee goes, the Lua re-pinning to the
-  nearer of two and pressing it (#4688: the press is the defence); nor at a target in its backoff (below).
+  nearer of two and pressing it (#4688: the press is the defence); nor at a target in its backoff (below); nor in the
+  crawler clear's backpedal's place (Plan 34, ruling P34-A fix B: `crawler_clear` on the why,
+  `crawler.FightCrawler._crawler_clear`).
   Everything above the point stays the ladder's (the pin and its re-pins, P27-N's pin-first, the finish's choice of a
   fallen zombie other than the pin, the fence wait, the edge route, the reposition, the seek, the pull, the advance's
   `toward` legs and walks, the approach); the corner Fight (`point_blank`), the door fight (`only`) and the doorway
@@ -204,6 +206,8 @@ class FightDispatch:
         if (cmd is None or "melee" not in self.rules or self.melee_off is not None or not self.world.can("melee")
                 or self.point_blank or self.only is not None or self.doorway is not None):
             return None
+        if "crawler_clear" in self.why:
+            return None   # Plan 34 fix B: the backpedal from the crawlers is the leg, never a melee in its place
         zid = getattr(cmd, "targetId", None)
         z = self.world.zombies.get(zid) if target_id_ok(zid) and zid == self.target else None
         if z is None or z.get("x") is None or z.get("y") is None:

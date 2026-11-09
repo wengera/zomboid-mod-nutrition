@@ -1119,3 +1119,14 @@ FRAME_STALE_S = 0.5  # seconds: a decision line whose frame is older than this (
 DOOR_RACE_R = 3.0     # tiles: the leave picks no new door with the nearest standing zombie within DANGER_R this near
                       # (the walk to the door, the open, the enter and the close take about three seconds)
 DOOR_ABORT_R = 1.0    # tiles: a running leave door plan before its close is dropped with a standing zombie this near
+# Plan 34 Task 3 (the column; F19, `f_goals_19-20261109-060929`, GUIDE.md § 4): the retreat at the stance's band
+RETREAT_BACK_R = 1.5   # tiles: under the retreat a strike melee not pressing gives way to the back leg while a standing
+                       # zombie other than its target is this near (RETREAT_MELEE: F19's lines 1536 and 1537, a281 held
+                       # at 0.84 tiles from 12445 while 12454 walked in from behind to 0.49 and bit)
+STRUNG_LINES = 3       # consecutive lines the leave's count reads under GROUP_LEAVE_N before its `strung` end
+                       # (STRUNG_HOLD: F19's episode one, 11 `strung` ends alternating with 15 retreat lines as the count
+                       # within 6 tiles flicked between three and fewer)
+# Plan 34 ruling P34-A fix B (the smoke trial `x_trial-ladder-20261109-105452`, P31-T: the crawler 9174 bit from 0.85
+# tiles while the melee pressed the standing 9128; the crawler's bite reach, #4727-#4730)
+CRAWLER_AVOID_R = 1.2  # tiles: a fallen or crawling zombie this near, other than the finish target (or two whatever the
+                       # target), with a standing one within DANGER_R, is backpedalled from (CRAWLER_CLEAR)

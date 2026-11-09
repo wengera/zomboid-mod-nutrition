@@ -61,11 +61,14 @@ def crawl(zid, x):
 
 
 def fight_rig(tmp_path, zs, rule=True):
-    """A Fight on a fresh Rig over one frame of `zs`, its rules the defaults with `crawler_first` on or off."""
+    """A Fight on a fresh Rig over one frame of `zs`, its rules the defaults with `crawler_first` on or off; pinned
+    with Plan 34's `crawler_clear` off (ruling P34-A fix B, a named change: two crawlers within CRAWLER_AVOID_R, or one
+    the crawler first has left after CRAWLER_TRIES, are backpedalled from; `test_survive_an.py` reads the rule on)."""
     r = Rig(tmp_path)
     r.frame(zombies=zs)
     f = F.Fight(r.world, r.acts, r.clock)
     f.rules = (f.rules | {"crawler_first"}) if rule else (f.rules - {"crawler_first"})
+    f.rules = f.rules - {"crawler_clear"}
     return r, f
 
 
@@ -262,13 +265,17 @@ def _need_f18():
 def _f18(on):
     """F18 replayed (every line) with CRAWLER_FIRST `on`, as JSON. Pinned with Plan 33 Task 3's group rules off
     (`survive.T18_SWITCHES`: GROUP_LEAVE, DRAG_GUARD_FIGHT, SIDE_CLEAR), a named change that moves F18's lines from 342
-    (the controller's pin at the merge of Tasks 2 and 3; CLAUDE.md section 6)."""
+    (the controller's pin at the merge of Tasks 2 and 3; CLAUDE.md section 6), and with Plan 34's CRAWLER_CLEAR off
+    (ruling P34-A fix B, a named change: F18's fallen zombies within CRAWLER_AVOID_R beside the standing ones move its
+    lines from 349 with CRAWLER_FIRST on, the crawler 13649 and the fallen 13651 both within it, and from 270 with it
+    off)."""
     _need_f18()
     orig = R.align
     R.align = align_f18
     try:
         def mutate(sv):
             sv.CRAWLER_FIRST = on
+            sv.CRAWLER_CLEAR = False
             for k in S.T18_SWITCHES:
                 setattr(sv, k, False)
         return json.dumps(R.replay(F18, mutate=mutate))

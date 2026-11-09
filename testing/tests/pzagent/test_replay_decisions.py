@@ -2528,9 +2528,9 @@ PRE_T19 = {"e2": ("b521d04739ecfafb186f857a8646f3898d31e12cde7665daca2af70c56cf8
            "f1": ("28afd0642b5d89ec9c46295a91c6a9b83b73f2983fa1a3ab84aedaf0b44c78e7", "9110c961", "2026-11-09"),
            SIXTH: ("4fb2a7960b9d2fde3a47e71cb8740ecce90d7f5d51394397a69cc7ebd4375730", "9110c961", "2026-11-09")}
 # the first line each column rule moves, alone on, on each golden it moves
-FIRST_T19 = {"e2": {}, "e3": {}, "e4": {}, "e5": {}, "f1": {}, SIXTH: {"LEAVE_CARE": 490}}
+FIRST_T19 = {"e2": {}, "e3": {}, "e4": {"STRUNG_HOLD": 390}, "e5": {}, "f1": {}, SIXTH: {"LEAVE_CARE": 490}}
 # the why each rule logs on the first line it moves alone
-WHY_T19 = {"LEAVE_CARE": "care_withheld"}
+WHY_T19 = {"LEAVE_CARE": "care_withheld", "STRUNG_HOLD": "group_retreat"}
 # every line on each golden whose decision (branch or action) the column's rules move together
 ACTED_T19 = {"e2": [], "e3": [], "e4": [], "e5": [], "f1": [], SIXTH: []}
 
@@ -2556,6 +2556,14 @@ def test_the_column_rules_move_the_goldens_at_their_lines(key):
       (`World.can`), so `_care_commit` and `_care_yields` return before the count.
     - DOOR_INSIDE, LEAVE_DOOR_RACE, RETREAT_GAP, RETREAT_MELEE, STRUNG_HOLD and SHOVE_CLEAR carry no rule at Task 1
       (Tasks 2 to 4) and move none.
+    - Named change `Plan 34 Task 3: RETREAT_GAP, RETREAT_MELEE and STRUNG_HOLD (the retreat at the band) and
+      CRAWLER_CLEAR (ruling P34-A fix B)`, re-recording E4 alone: STRUNG_HOLD moves E4's whys at lines 390, 391, 396
+      and 397 and no decision (the Fight's walk a40 held on all four): on 390 and 396 the count of one standing within
+      GROUP_ENTRY_R holds the leave (`group_leave` {leg "retreat", n 1, strung_n 1} and its `group_retreat`, where the
+      record ended it `strung`), on 391 the held leave reads `n` 3 where a new one logged its `closing`, and on 397 the
+      line reading none standing ends it (`group_leave` {end "strung", n 0}). RETREAT_GAP, RETREAT_MELEE and
+      CRAWLER_CLEAR move none (E2 to E5 and F1 announce no `aim`; the sixth's lines meet no retreat and no fallen zombie
+      within CRAWLER_AVOID_R beside a standing one).
     The rules together move each golden first at the least of those lines; the acted lines are `ACTED_T19`."""
     base, got = pre_t19_gold(key), gold(key)
     diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
