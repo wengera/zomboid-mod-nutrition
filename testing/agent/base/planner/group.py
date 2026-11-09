@@ -30,33 +30,43 @@ before it closes, never by running into it.
   (`me.hitReaction` non-empty) or STUCK_FRAMES frames of `me.moving` false while a steer or a walk is the running
   action (`_drag_stuck`), shoves the nearest standing zombie within SHOVE_R in front of the character (within 90 degrees
   of `me.lookAngle`; else the nearest within SHOVE_R) in the run's place, the shove being the one press the engine takes
-  at the reaction's end (#4372); the read latches (`drag_latch`) until a frame reads the character moving, so a run is
-  sent only once it has moved. Logged `drag_fight` {target, dist, why hit | stuck | latched}.
+  at the reaction's end (#4372). Fix 2 (round one, trial 3, `x_trial-ladder-20261109-022952`: in a pile of three the
+  character was hit every tick, so the latch never released and the guard shoved tick after tick, the targets
+  alternating, until the death; Plan 32's plain run left such a pile and lived): the shove opens a stuck episode
+  (`drag_episode` {at, shoves}, at the character's place) and is sent at most DRAG_SHOVES_PER_EPISODE times in it; from
+  the next guard line the guard's run is sent as it always was, whatever the reaction reads (a shove still running
+  dropped for it: the engine moves the character the moment the reaction ends, and the run's steer stands meanwhile),
+  until the character has moved STUCK_FREE_R from the episode's start (`_group_read`), which ends the episode (the
+  threat's end too); a new one may shove once again. Logged `drag_fight` {target, dist, why hit | stuck} on the shove,
+  {spent, why} on the runs after it.
 - `SIDE_CLEAR` (`_side_clear`): no run steer the threat branch answers passes within SIDE_R of a standing zombie over
   its first SIDE_LOOK tiles (`side_hits`: ahead of the player, within SIDE_R of the leg's segment); the heading is turned
   by 30-degree steps both ways, nearest first, to the first heading clear of them and of the map (then clear of them
-  alone), else the shove of `_front_shove_target` is sent in its place (else the steer is kept). Logged `side_clear`
-  {turn, near, shove}.
+  alone). With no clear heading (fix 2: the shove sent there in a pile was the trial's second shover) the least-bad run
+  (`_least_bad`): of the wanted heading and its SIDE_TURNS turns (those the map reads clear over STEER_PROBE, else all),
+  the one whose nearest passed standing zombie lies farthest along the leg (`side_dist`), the nearest turn on a tie;
+  never a shove, so DRAG_GUARD_FIGHT's one shove is the only one these rules send. Logged `side_clear` {turn, near} and,
+  on the least-bad run, `least_bad` that distance.
 """
 import math
 
-from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, FIGHT_REACH, FLEE_GAIT, FLEE_HEALTH_FLOOR, GROUP_ENTRY_R,
-                                         LEAVE_R, LEAVE_S, SHOVE_R, SIDE_LOOK, SIDE_R, STEER_PROBE, STUCK_FRAMES,
-                                         WALL_R, _rotate, blocked, clear_heading, hit_reaction, on_floor, target_id_ok,
-                                         zdist)
+from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, DRAG_SHOVES_PER_EPISODE, FIGHT_REACH, FLEE_GAIT,
+                                         FLEE_HEALTH_FLOOR, GROUP_ENTRY_R, LEAVE_R, LEAVE_S, SHOVE_R, SIDE_LOOK, SIDE_R,
+                                         STEER_PROBE, STUCK_FRAMES, STUCK_FREE_R, WALL_R, _rotate, blocked,
+                                         clear_heading, hit_reaction, on_floor, target_id_ok, zdist)
 from agent.base.pza1 import Shove, Steer
 from agent.base.world import me_floor, me_xy
 
-__all__ = ["ThreatGroup", "SIDE_TURNS", "side_hits", "back_cover"]
+__all__ = ["ThreatGroup", "SIDE_TURNS", "side_hits", "side_dist", "back_cover"]
 
 SIDE_TURNS = (30, -30, 60, -60, 90, -90, 120, -120, 150, -150, 180)   # degrees a heading turns, nearest first
 ROAMING = ("steer", "walkTo")   # the running actions under which an unmoving frame counts toward STUCK_FRAMES
 
 
-def side_hits(world, v, zs):
-    """The ids of `zs` ((id, zombie) pairs) a leg from the player along unit `v` passes within SIDE_R of over its first
-    SIDE_LOOK tiles: ahead of the player (the projection on `v` above 0: one abeam or behind is left by the leg) and
-    within SIDE_R of the leg's segment."""
+def _side_passes(world, v, zs):
+    """(id, projection) of each of `zs` ((id, zombie) pairs) a leg from the player along unit `v` passes within SIDE_R
+    of over its first SIDE_LOOK tiles: ahead of the player (the projection on `v` above 0: one abeam or behind is left by
+    the leg) and within SIDE_R of the leg's segment."""
     mx, my = me_xy(world)
     out = []
     for zid, z in zs:
@@ -67,8 +77,19 @@ def side_hits(world, v, zs):
         perp = abs(dx * v[1] - dy * v[0])
         d = perp if t <= SIDE_LOOK else math.hypot(t - SIDE_LOOK, perp)
         if d < SIDE_R:
-            out.append(zid)
+            out.append((zid, t))
     return out
+
+
+def side_hits(world, v, zs):
+    """The ids of `zs` a leg along unit `v` passes (`_side_passes`)."""
+    return [zid for zid, _ in _side_passes(world, v, zs)]
+
+
+def side_dist(world, v, zs):
+    """Tiles along a leg on unit `v` to the nearest of `zs` it passes (its projection, `_side_passes`), SIDE_LOOK +
+    SIDE_R when it passes none: SIDE_CLEAR's least-bad measure (fix 2)."""
+    return min((t for _, t in _side_passes(world, v, zs)), default=SIDE_LOOK + SIDE_R)
 
 
 def _seg_dist(p, a, b):
@@ -140,15 +161,18 @@ class ThreatGroup:
         closing read (`_group_closing`: the standing zombies within GROUP_ENTRY_R each nearer than on the line before,
         `_group_prev` their distances within DISENGAGE_R, kept for the next line); the unmoving count's start
         (`_still_n0`: the World's `frame_n` of the first tick reading `me.moving` false while a steer or a walk runs,
-        reset by any other) and the drag latch's release on a frame reading the character moving."""
+        reset by any other) and the stuck episode's end once the character stands STUCK_FREE_R from its start (fix 2)."""
         self.group_leave, self.drag_fight, self.side_clear = None, None, None
+        ep = self.drag_episode
+        if ep is not None and math.hypot(*(a - b for a, b in zip(me_xy(self.world), ep["at"]))) >= STUCK_FREE_R:
+            self.drag_episode = None
         near = self._group_standing(DISENGAGE_R)
         prev = self._group_prev
         self._group_closing = [(zid, z, d) for zid, z, d in near
                                if d <= GROUP_ENTRY_R and zid in prev and d < prev[zid]]
         self._group_prev = {zid: d for zid, _, d in near}
         if (self.world.me or {}).get("moving") is True:
-            self._still_n0, self.drag_latch = None, False
+            self._still_n0 = None
             return
         cur = self.actions.current
         if cur is not None and cur.type in ROAMING:
@@ -180,25 +204,37 @@ class ThreatGroup:
 
     def _drag_fight(self):
         """DRAG_GUARD_FIGHT's read on a tick the drag-down guard flees (the module docstring): `{target, dist, why}` of
-        the shove in the run's place, else None (the rule off, no hit reaction nor unmoving count nor latch, or no
-        standing zombie within SHOVE_R: the guard's run as before)."""
+        the shove in the run's place, the stuck episode opened (or counted) by it; `{spent, why}` when the episode has
+        sent its DRAG_SHOVES_PER_EPISODE shoves (fix 2: the run); else None (the rule off, no hit reaction nor unmoving
+        count, or no standing zombie within SHOVE_R: the guard's run as before)."""
         if not self.DRAG_GUARD_FIGHT:
             return None
         hit = hit_reaction(self.world) is not None
-        stuck = self._drag_stuck()
-        if not (hit or stuck or self.drag_latch):
+        if not (hit or self._drag_stuck()):
             return None
-        self.drag_latch = True
+        why = "hit" if hit else "stuck"
+        ep = self.drag_episode
+        if ep is not None and ep["shoves"] >= DRAG_SHOVES_PER_EPISODE:
+            self.drag_fight = {"spent": ep["shoves"], "why": why}
+            return self.drag_fight
         t = self._front_shove_target()
         if t is None:
             return None
-        self.drag_fight = {"target": t[0], "dist": t[2], "why": "hit" if hit else ("stuck" if stuck else "latched")}
+        if ep is None:
+            ep = self.drag_episode = {"at": me_xy(self.world), "shoves": 0}
+        ep["shoves"] += 1
+        self.drag_fight = {"target": t[0], "dist": t[2], "why": why}
         return self.drag_fight
 
     def _drag_shove(self, flee):
-        """The Flee's answer under DRAG_GUARD_FIGHT: its own shove still running held, else the shove at the read's
-        target (superseding a running run); None with no read this tick."""
+        """The Flee's answer under DRAG_GUARD_FIGHT: on a spent episode's line (fix 2) None, the guard's run, a shove
+        of the Flee's still running dropped for it; else its own shove still running held, else the shove at the
+        read's target (superseding a running run); None with no read this tick."""
         if self.drag_fight is None:
+            return None
+        if "spent" in self.drag_fight:
+            if flee.busy() and flee.last.type == "shove":
+                flee._dropped = flee.last   # the run in its place, whatever the reaction reads
             return None
         if flee.busy() and flee.last.type == "shove":
             self.why = {"holding": flee.last.aid}
@@ -223,9 +259,23 @@ class ThreatGroup:
                 return turn
         return None
 
+    def _least_bad(self, v, zs):
+        """Fix 2: (turn, tiles) of the heading off unit `v` (0 or a SIDE_TURNS turn, those the map reads clear over
+        STEER_PROBE, else all) whose nearest passed zombie of `zs` lies farthest along the leg (`side_dist`), the nearest
+        turn on a tie."""
+        turns = (0,) + SIDE_TURNS
+        open_ = [t for t in turns if clear_heading(self.world, _rotate(v, t), STEER_PROBE, self.TRANS)] or turns
+        best = None
+        for t in open_:
+            d = side_dist(self.world, _rotate(v, t), zs)
+            if best is None or d > best[1]:
+                best = (t, d)
+        return best
+
     def _side_clear(self, ans):
         """SIDE_CLEAR (the module docstring) over the threat branch's answer `ans`: a run steer whose leg passes a
-        standing zombie turned to the nearest clear heading, else the shove; any other answer as it is."""
+        standing zombie turned to the nearest clear heading, else to the least-bad one (fix 2), never a shove; any other
+        answer as it is."""
         if not self.SIDE_CLEAR or ans is None or ans[1] is None or ans[1].TYPE != "steer" or ans[1].gait != FLEE_GAIT:
             return ans
         policy, cmd = ans
@@ -239,9 +289,10 @@ class ThreatGroup:
             h = _rotate(v, turn)
             self.side_clear = {"turn": turn, "near": hits}
             return policy, Steer(h[0], h[1], cmd.seconds, cmd.gait)
-        t = self._front_shove_target()
-        self.side_clear = {"turn": None, "near": hits, "shove": None if t is None else t[0]}
-        return ans if t is None else (policy, Shove(t[0]))
+        turn, d = self._least_bad(v, zs)
+        h = _rotate(v, turn)
+        self.side_clear = {"turn": turn, "near": hits, "least_bad": d}
+        return policy, Steer(h[0], h[1], cmd.seconds, cmd.gait)
 
     # ------------------------------------------------------------------------------------------------ GROUP_LEAVE
     def _group_leave(self, inside):

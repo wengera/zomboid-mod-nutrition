@@ -690,9 +690,9 @@ class Survive(SneakGait, Threat):
                                   # (d), `Threat._strain_flees`), else None
         self.leave = None         # the running leave {since, closing} (Plan 33 Task 3, GROUP_LEAVE), else None
         self.group_leave = None   # this tick: GROUP_LEAVE's why (a leave taken, held, ended or withheld), else None
-        self.drag_fight = None    # this tick: {target, dist, why} of DRAG_GUARD_FIGHT's shove, else None
-        self.side_clear = None    # this tick: {turn, near, shove} when SIDE_CLEAR turned or replaced a run, else None
-        self.drag_latch = False   # DRAG_GUARD_FIGHT's latch: set by its read, released by a frame reading `moving`
+        self.drag_fight = None    # this tick: DRAG_GUARD_FIGHT's {target, dist, why} shove or {spent, why} run, else None
+        self.side_clear = None    # this tick: {turn, near[, least_bad]} when SIDE_CLEAR turned a run, else None
+        self.drag_episode = None  # DRAG_GUARD_FIGHT's stuck episode {at, shoves} (fix 2), ended at STUCK_FREE_R from `at`
         self._still_n0 = None     # the World's frame_n of the first tick reading the character unmoving under a running
                                   # steer or walk (Plan 33 Task 3: STUCK_FRAMES from it), else None
         self._group_prev = {}     # standing zombie id -> tiles on the last tick, within DISENGAGE_R (the closing read)

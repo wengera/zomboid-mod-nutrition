@@ -10,9 +10,16 @@ outcome) and its unit tests on the fake mod.
   nor under FLEE_HEALTH_FLOOR. On F18 it fires first at line 201 (13652, 13649) and, on the group of three's approach,
   at line 342 (13651, 13648), then 349, 352 and 362 (13648, 13653).
 - DRAG_GUARD_FIGHT (`group.ThreatGroup._drag_fight`): the drag-down guard's flee under a hit reaction or STUCK_FRAMES
-  unmoving frames shoves the standing zombie in front; F18's guard lines 402 to 415 send a shove, never a steer.
-- SIDE_CLEAR (`group.ThreatGroup._side_clear`): no run steer within SIDE_R of a standing zombie over SIDE_LOOK; F18's
-  line 402 has no clear heading and sends the shove.
+  unmoving frames shoves the standing zombie in front, at most DRAG_SHOVES_PER_EPISODE times a stuck episode (fix 2),
+  the run sent after it until the character has moved STUCK_FREE_R from the episode's start; F18's guard line 402
+  sends the shove and the lines after it the run.
+- SIDE_CLEAR (`group.ThreatGroup._side_clear`): no run steer within SIDE_R of a standing zombie over SIDE_LOOK; with no
+  clear heading (F18's line 402) the least-bad run (fix 2: the heading whose nearest standing zombie along the leg is
+  farthest), never a shove.
+
+Fix 2 (Plan 33 round one, trial 3: arm N died on `street-1` standing in a pile of three, the guard's and SIDE_CLEAR's
+shoves sent tick after tick under the hit reactions, never a run): one shove a stuck episode, then the run; SIDE_CLEAR's
+least-bad heading in place of its shove.
 """
 import functools
 import json
@@ -78,6 +85,7 @@ def test_the_t17_switches_and_constants():
     assert T17 == ("GROUP_LEAVE", "DRAG_GUARD_FIGHT", "SIDE_CLEAR")
     assert all(getattr(S.Survive, k) is True for k in T17)
     assert (P.WALL_R, P.LEAVE_R, P.LEAVE_S, P.STUCK_FRAMES, P.SIDE_R, P.SIDE_LOOK) == (1.5, 20.0, 4.0, 10, 1.0, 3.0)
+    assert (P.STUCK_FREE_R, P.DRAG_SHOVES_PER_EPISODE) == (1.0, 1)   # fix 2
     assert P.GROUP_ENTRY_R == P.DANGER_R == 6.0   # fix 1: DANGER_R's value, its own constant
 
 
@@ -132,29 +140,37 @@ def test_the_guard_under_a_hit_reaction_shoves_the_zombie_in_front(tmp_path):
     assert "drag_fight" not in threat_why(tmp_path / "off")
 
 
-def test_the_guard_s_shove_is_held_while_it_runs_and_sent_again_after_its_end(tmp_path):
-    """The shove running is held (no second send); after it ends (rejected `busy` under the reaction, as the Lua
-    answers a shove in one) the next guard tick sends it again: never a run while the latch holds."""
+def test_after_the_episode_s_one_shove_the_guard_runs_whatever_the_reaction_reads(tmp_path):
+    """Fix 2: the episode's one shove sent, the next guard tick (the reaction still read) sends the guard's run, the
+    shove still running dropped for it (logged `drag_fight` {spent 1, why "hit"}); no second shove while the character
+    has not moved STUCK_FREE_R, a rejected shove's end included."""
     k = guard(("DRAG_GUARD_FIGHT",))
     zs = k.pop("zombies")
     r, sv = rig(tmp_path, zs, **k)
     tick(r, sv)
-    n = len(r.acts.history)
+    assert r.cmd() == ("shove", {"targetId": 1})
     r.advance(0.5)
     r.frame(x=100.5, y=200.5, zombies=zs, attackers=2, hit_reaction="Bite")
     tick(r, sv)
-    assert len(r.acts.history) == n and threat_why(tmp_path)["holding"] == r.acts.history[-1].aid
-    r.fake.answer({"shove": ["rejected busy"]})
+    assert r.cmd()[0] == "steer" and r.cmd()[1]["gait"] == "run"
+    assert threat_why(tmp_path)["drag_fight"] == {"spent": 1, "why": "hit"}
+    r.fake.answer({"shove": ["rejected busy"], "steer": ["done"]})
     r.pump()
-    r.advance(0.5)
-    r.frame(x=100.5, y=200.5, zombies=zs, attackers=2, hit_reaction="")
-    tick(r, sv)
-    assert r.cmd() == ("shove", {"targetId": 1}) and threat_why(tmp_path)["drag_fight"]["why"] == "latched"
+    for _ in range(3):
+        r.advance(0.5)
+        r.frame(x=100.6, y=200.5, zombies=zs, attackers=2, hit_reaction="Bite")
+        tick(r, sv)
+        assert threat_why(tmp_path)["drag_fight"] == {"spent": 1, "why": "hit"}
+        r.fake.answer({"steer": ["done"]})
+        r.pump()
+    assert [a.type for a in r.acts.history].count("shove") == 1
 
 
 def test_stuck_frames_under_a_running_steer_turn_the_guard_s_run_into_the_shove(tmp_path):
     """No hit reaction: the guard runs (the steer); once STUCK_FRAMES frames have read `moving` false under that running
-    steer, the next guard tick shoves (`why` "stuck"); a frame reading the character moving releases the latch."""
+    steer, the next guard tick shoves (`why` "stuck") and opens the episode at the character's place; a frame reading
+    the character moving ends no episode (fix 2), the run follows; moved STUCK_FREE_R from the episode's start, the
+    episode ends and a new read (here the hit reaction) may shove once again."""
     k = guard(("DRAG_GUARD_FIGHT",), hit="")
     zs = k.pop("zombies")
     r, sv = rig(tmp_path, zs, **k)
@@ -168,14 +184,62 @@ def test_stuck_frames_under_a_running_steer_turn_the_guard_s_run_into_the_shove(
         r.advance(0.5)
         tick(r, sv)
     assert r.cmd() == ("shove", {"targetId": 1}) and threat_why(tmp_path)["drag_fight"]["why"] == "stuck"
-    assert sv.drag_latch is True
+    assert sv.drag_episode == {"at": (100.5, 200.5), "shoves": 1}
     r.fake.answer({"shove": ["done"]})
     r.pump()
-    r.frame(x=100.5, y=200.5, zombies=zs, attackers=2)
+    r.frame(x=100.9, y=200.5, zombies=zs, attackers=2, hit_reaction="Bite")
     r.world.me["moving"] = True
     r.advance(0.5)
     tick(r, sv)
-    assert sv.drag_latch is False and r.cmd()[0] == "steer" and "drag_fight" not in threat_why(tmp_path)
+    assert sv.drag_episode is not None and r.cmd()[0] == "steer"   # 0.4 tiles: the episode stands, the run
+    r.fake.answer({"steer": ["done"]})
+    r.pump()
+    moved = [dict(zz, x=zz["x"] + 1.0) for zz in zs]
+    r.frame(x=101.5, y=200.5, zombies=moved, attackers=2, hit_reaction="Bite")
+    r.advance(0.5)
+    tick(r, sv)
+    assert r.cmd() == ("shove", {"targetId": 1}) and sv.drag_episode == {"at": (101.5, 200.5), "shoves": 1}
+
+
+def pile(dx=0.0):
+    """The trial's pile: four standing round the player at (100.5 + dx, 200.5) facing +x, at 0.6 to 0.7 tiles."""
+    me = (100.5 + dx, 200.5)
+    return [z(1, 101.1 + dx, 200.5, me=me), z(2, 99.85 + dx, 200.6, me=me), z(3, 100.5 + dx, 201.2, me=me),
+            z(4, 100.4 + dx, 199.8, me=me)]
+
+
+def test_a_pile_shoves_once_then_runs_the_least_bad_heading_until_moved(tmp_path):
+    """Fix 2, the trial's pile (four standing round the character, a hit reaction on every frame, the three rules on):
+    the first tick shoves the one in front; every next tick, the character unmoved, sends the guard's run, which no
+    heading passes clear, as SIDE_CLEAR's least-bad heading (`side_clear` {turn, near, least_bad}: the distance along
+    the leg to its nearest standing zombie, the largest over the turns); no second shove until the character has moved
+    STUCK_FREE_R; past it, the next read shoves once again."""
+    r, sv = rig(tmp_path, pile(), on=T17, attackers=2, hit_reaction="Bite")
+    tick(r, sv)
+    assert r.cmd() == ("shove", {"targetId": 1})
+    named = [(e["id"], e) for e in pile()]
+    for i in range(4):
+        r.advance(0.5)
+        r.frame(x=100.5, y=200.5, zombies=pile(), attackers=2, hit_reaction="Bite")
+        tick(r, sv)
+        why = threat_why(tmp_path)
+        last = r.acts.history[-1]
+        assert last.type == "steer" and last.args["gait"] == "run", i
+        assert why["drag_fight"] == {"spent": 1, "why": "hit"}
+        sc = why["side_clear"]
+        assert set(sc) == {"turn", "near", "least_bad"} and sc["near"], i
+        v = (last.args["vx"], last.args["vy"])
+        v0 = P._rotate(v, -sc["turn"])
+        assert G.side_dist(r.world, v, named) == pytest.approx(sc["least_bad"])
+        assert all(G.side_dist(r.world, P._rotate(v0, t), named) <= sc["least_bad"] + 1e-9
+                   for t in (0,) + G.SIDE_TURNS)
+        r.fake.answer({"steer": ["done"]})
+        r.pump()
+    assert [a.type for a in r.acts.history].count("shove") == 1
+    r.advance(0.5)
+    r.frame(x=101.6, y=200.5, zombies=pile(1.1), attackers=2, hit_reaction="Bite")
+    tick(r, sv)
+    assert r.cmd() == ("shove", {"targetId": 1}) and [a.type for a in r.acts.history].count("shove") == 2
 
 
 def test_with_no_standing_zombie_within_shove_r_the_guard_runs(tmp_path):
@@ -187,18 +251,20 @@ def test_with_no_standing_zombie_within_shove_r_the_guard_runs(tmp_path):
     assert r.cmd()[0] == "steer" and "drag_fight" not in threat_why(tmp_path)
 
 
-def test_f18_s_guard_lines_send_the_shove_never_a_run():
-    """F18, open loop, DRAG_GUARD_FIGHT alone: line 402 (two attackers, the hit reaction "Bite") sends the shove at
-    13653 (0.5086990833343952 tiles, the nearest standing in front) where the record ran; every guard line after it
-    holds that shove or sends one, each logging `drag_fight` with `why` "hit" (every guard frame read a hit reaction),
-    and none sends a steer."""
+def test_f18_s_guard_lines_send_one_shove_then_the_run():
+    """F18, open loop, DRAG_GUARD_FIGHT alone (fix 2): line 402 (two attackers, the hit reaction "Bite") sends the shove
+    at 13653 (0.5086990833343952 tiles, the nearest standing in front) where the record ran; the episode's one shove
+    spent, line 403 sends the guard's run (the shove dropped for it) and no guard line after 402 sends a shove, each
+    logging `drag_fight` {spent 1, why "hit"} (every guard frame read a hit reaction; the open loop never moves the
+    character, so the episode stands)."""
     rows = f18(**only("DRAG_GUARD_FIGHT"))
     assert rows[401]["action"] == {"type": "shove", "args": {"targetId": 13653}}
     assert threat(rows[401])["drag_fight"] == {"target": 13653, "dist": 0.5086990833343952, "why": "hit"}
-    for k in GUARD:
+    assert action(rows[402]) == "steer" and rows[402]["action"]["args"]["gait"] == "run"
+    for k in GUARD[1:]:
         why = threat(rows[k - 1])
-        assert action(rows[k - 1]) in (None, "shove"), k
-        assert why["drag_fight"]["why"] == "hit" and why["group"] == "drag", k
+        assert action(rows[k - 1]) in (None, "steer"), k
+        assert why["drag_fight"] == {"spent": 1, "why": "hit"} and why["group"] == "drag", k
 
 
 # ================================================================ SIDE_CLEAR
@@ -248,17 +314,34 @@ def test_a_run_into_a_standing_zombie_at_the_side_is_turned_to_the_nearest_clear
     assert all(G.side_hits(r2.world, P._rotate(v0, t), named) for t in G.SIDE_TURNS[:G.SIDE_TURNS.index(turn)])
 
 
-def test_with_no_clear_heading_the_shove_is_sent(tmp_path):
-    """Eight standing round the player at 0.8 tiles: every heading passes one, so the run is replaced by the shove at
-    the nearest standing in front (logged `side_clear` {turn None, shove})."""
+def test_with_no_clear_heading_the_least_bad_run_is_sent(tmp_path):
+    """Fix 2: eight standing round the player at 0.8 tiles, every heading passes one, so the run takes the heading
+    (the wanted one or a SIDE_TURNS turn of it) whose nearest standing zombie along the leg is farthest (logged
+    `side_clear` {turn, near, least_bad}), its seconds and gait kept; never a shove."""
     ring = [z(i + 1, 100.5 + 0.8 * math.cos(math.radians(45 * i + 10)),
               200.5 + 0.8 * math.sin(math.radians(45 * i + 10))) for i in range(8)]
     r, sv = rig(tmp_path, ring, on=("SIDE_CLEAR",), attackers=2)
     tick(r, sv)
     why = threat_why(tmp_path)
-    t = sv._front_shove_target()
-    assert r.cmd() == ("shove", {"targetId": t[0]}) and why["side_clear"]["turn"] is None
-    assert why["side_clear"]["shove"] == t[0] and t[1]["x"] > 100.5   # in front: the facing +x
+    assert r.cmd()[0] == "steer" and r.cmd()[1]["gait"] == "run"
+    sc = why["side_clear"]
+    assert set(sc) == {"turn", "near", "least_bad"} and sc["turn"] in (0,) + G.SIDE_TURNS
+    named = [(i + 1, zz) for i, zz in enumerate(ring)]
+    v = heading(r)
+    v0 = P._rotate(v, -sc["turn"])
+    assert G.side_dist(r.world, v, named) == pytest.approx(sc["least_bad"])
+    assert all(G.side_dist(r.world, P._rotate(v0, t), named) <= sc["least_bad"] + 1e-9 for t in (0,) + G.SIDE_TURNS)
+    assert G.side_hits(r.world, v, named)   # no heading clear: the least bad passes one
+
+
+def test_side_dist_reads_the_nearest_passed_zombie_along_the_leg():
+    """`side_dist`: the projection along the leg of the nearest zombie `side_hits` names; SIDE_LOOK + SIDE_R with
+    none."""
+    class W:
+        me = {"x": 0.0, "y": 0.0}
+    zs = [(1, {"x": 2.0, "y": 0.9}), (2, {"x": -0.5, "y": 0.2}), (4, {"x": 3.5, "y": 0.5})]
+    assert G.side_dist(W(), (1.0, 0.0), zs) == pytest.approx(2.0)
+    assert G.side_dist(W(), (0.0, -1.0), zs) == P.SIDE_LOOK + P.SIDE_R
 
 
 def test_a_walk_steer_is_never_turned(tmp_path):
@@ -271,14 +354,15 @@ def test_a_walk_steer_is_never_turned(tmp_path):
     assert sv._side_clear(run)[1].TYPE == "steer" and sv._side_clear(run)[1] != run[1]
 
 
-def test_f18_s_line_402_has_no_clear_heading_and_shoves():
-    """F18, open loop, SIDE_CLEAR alone: line 402's run (0.2351089324902877, 0.9719690272139733) passes 13653; with
-    four standing within 0.92 tiles no SIDE_TURNS heading is clear, so the shove at 13653 is sent in its place; no guard
-    line sends a steer."""
+def test_f18_s_line_402_has_no_clear_heading_and_runs_the_least_bad():
+    """F18, open loop, SIDE_CLEAR alone (fix 2): line 402's run (0.2351089324902877, 0.9719690272139733) passes 13653;
+    with four standing within 0.92 tiles no SIDE_TURNS heading is clear, so the least-bad heading's run is sent in its
+    place (`side_clear` {turn, near [13653], least_bad}); no guard line sends a shove."""
     rows = f18(**only("SIDE_CLEAR"))
-    assert rows[401]["action"] == {"type": "shove", "args": {"targetId": 13653}}
-    assert threat(rows[401])["side_clear"] == {"turn": None, "near": [13653], "shove": 13653}
-    assert all(action(rows[k - 1]) != "steer" for k in GUARD)
+    assert action(rows[401]) == "steer" and rows[401]["action"]["args"]["gait"] == "run"
+    sc = threat(rows[401])["side_clear"]
+    assert sc["near"] == [13653] and set(sc) == {"turn", "near", "least_bad"} and sc["least_bad"] > 0.0
+    assert all(action(rows[k - 1]) != "shove" for k in GUARD)
 
 
 # ================================================================ GROUP_LEAVE
@@ -424,12 +508,13 @@ def test_f18_s_leave_fires_on_the_group_s_approach():
                (threat(r).get("group_leave", {}) for r in rows))
 
 
-def test_f18_with_the_three_on_by_default_its_guard_shoves_and_no_line_runs_into_the_group():
-    """F18, open loop, the three on (the defaults): the guard's line 402 shoves 13653 (DRAG_GUARD_FIGHT reads first, so
-    no run reaches SIDE_CLEAR), no guard line sends a steer, and the leaves fire as GROUP_LEAVE's alone (201, 342, 349,
-    352, 362)."""
+def test_f18_with_the_three_on_by_default_its_guard_shoves_once_then_runs_the_least_bad():
+    """F18, open loop, the three on (the defaults; fix 2): the guard's line 402 shoves 13653 (DRAG_GUARD_FIGHT reads
+    first, so no run reaches SIDE_CLEAR), line 403 sends the run through SIDE_CLEAR (turned or least bad), no guard line
+    after 402 sends a shove, and the leaves fire as GROUP_LEAVE's alone (201, 342, 349, 352, 362)."""
     rows = f18(**{k: True for k in T17})
     assert rows[401]["action"] == {"type": "shove", "args": {"targetId": 13653}}
-    assert all(action(rows[k - 1]) != "steer" for k in GUARD)
+    assert action(rows[402]) == "steer" and "side_clear" in threat(rows[402])
+    assert all(action(rows[k - 1]) != "shove" for k in GUARD[1:])
     assert [k for k, r in enumerate(rows, 1) if threat(r).get("flee") == "leave"
             and "closing" in threat(r).get("group_leave", {})] == [201, 342, 349, 352, 362]

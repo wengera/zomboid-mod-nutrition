@@ -275,10 +275,11 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                               # stand there, else a run from their centroid for LEAVE_S (`group.ThreatGroup._group_leave`);
                               # off, no such row
     DRAG_GUARD_FIGHT = True   # the drag-down guard's flee under a hit reaction or STUCK_FRAMES unmoving frames shoves the
-                              # standing zombie in front, a run sent only once the character has moved
-                              # (`group.ThreatGroup._drag_fight`); off, the guard's run as before
+                              # standing zombie in front once a stuck episode (fix 2: DRAG_SHOVES_PER_EPISODE), the run
+                              # after it until moved STUCK_FREE_R (`group.ThreatGroup._drag_fight`); off, the guard's run
     SIDE_CLEAR = True         # no run steer passes within SIDE_R of a standing zombie over SIDE_LOOK tiles: turned to the
-                              # nearest clear heading, else the shove (`group.ThreatGroup._side_clear`); off, as sent
+                              # nearest clear heading, else the least-bad one (fix 2; `group.ThreatGroup._side_clear`);
+                              # off, as sent
     FLEE_HELD_STANCE = True   # ruling P29-H': a flee walk whose observed heading runs at a held zombie is dropped with
                               # its plan, its door marked `walled`, and the fight meets it in the stance
                               # (`flee.Flee._held_ahead`, the Flee's `flee_held_stance` rule); off, the walk runs on
@@ -856,7 +857,6 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             self.cornered, self._corner_fight, self.group_steer, self.door = None, None, "drag", None
             self._drag_fight()   # Plan 33 Task 3 (DRAG_GUARD_FIGHT): the shove in the run's place, answered in `_decide`
             return "flee", self._flee_reason(held, len(self._danger_near())) or "many"
-        self.drag_latch = False   # Plan 33 Task 3: the latch is the guard's alone
         self.door = self._door_targets() if self.sheltered else None
         if self.door:
             return "door", None
@@ -1013,7 +1013,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             self.sheltered, self.cornered, self.closing = False, None, (0, None)
             self.stuck_heading, self._nearest_seen = None, []
             self._still_rec = None   # P30-E: the still read starts again with the next threat
-            self.leave, self.drag_latch = None, False   # Plan 33 Task 3: the leave and the drag latch end with it
+            self.leave, self.drag_episode = None, None   # Plan 33 Task 3: the leave and the stuck episode end with it
             return
         self._nearest_seen = (self._nearest_seen + [self._nearest_listed()])[-(CARE_STILL_TICKS + 1):]
         if self.flee is not None:   # a shelter or exit step's end read before the hold (the close may have ended),

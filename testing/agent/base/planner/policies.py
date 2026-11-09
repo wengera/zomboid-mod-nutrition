@@ -1092,3 +1092,8 @@ SIDE_R = 1.0          # tiles: no run steer passes this near a standing zombie (
 SIDE_LOOK = 3.0       # tiles of a run steer's leg SIDE_CLEAR reads for a standing zombie (STEER_PROBE's reach)
 GROUP_ENTRY_R = 6.0   # tiles: GROUP_LEAVE counts the closing standing zombies this near (Plan 33 Task 3 fix 1: DANGER_R's
                       # value, its own constant; GROUP_NEAR_R left a half-tile window outside KEEP_R)
+# Plan 33 Task 3 fix 2 (round one, trial 3: a death standing in a pile of three, the guard's shoves sent tick after tick
+# under the hit reactions, never a run; Plan 32's plain `many` run left such a pile and lived)
+DRAG_SHOVES_PER_EPISODE = 1   # shoves DRAG_GUARD_FIGHT sends a stuck episode (one to break the grab), the run after them
+STUCK_FREE_R = 1.0    # tiles the character moves from a stuck episode's start that end it (DRAG_GUARD_FIGHT: a new
+                      # episode may shove again)
