@@ -1,8 +1,8 @@
 {
- "created": "2026-10-30T17:26:35",
- "build": "42.21.0",
+ "created": "2026-11-09T12:36:58",
+ "build": "42.22.2",
  "game_dir": "D:\\SteamLibrary\\steamapps\\common\\ProjectZomboid",
- "provision_run": "prov-20261030-172459",
+ "provision_run": "prov-20261109-123545",
  "server": {
   "name": "pzt",
   "port": 27261,
@@ -24,10 +24,10 @@
   }
  },
  "timings": {
-  "server_start": 47.2,
-  "client_admin_ready": 37.9
+  "server_start": 25.3,
+  "client_admin_ready": 37.4
  },
  "boot_errors": [],
  "name": "agent-night",
- "size_mb": 9.9
+ "size_mb": 9.8
 }

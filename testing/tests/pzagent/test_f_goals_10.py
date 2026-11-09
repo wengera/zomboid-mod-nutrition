@@ -562,7 +562,7 @@ def test_the_night_fixture_record_is_the_agent_fixtures_with_the_9_pm_start():
         pytest.skip("the agent and agent-night fixture records are machine-local")
     rec = lambda name: json.load(open(path(name), encoding="utf-8"))        # noqa: E731
     a, n = rec("agent"), rec("agent-night")
-    assert n["name"] == "agent-night" and n["build"] == a["build"] == "42.21.0"
+    assert n["name"] == "agent-night" and n["build"] == a["build"] == "42.22.2"   # re-pinned at the 42.22.2 re-baseline (Plan 34 Task R)
     assert a["server"]["sandbox"] == {"Zombies": "5"}
     assert n["server"]["sandbox"] == {"Zombies": "5", "StartTime": "6"}            # option 6 of StartTime is "9 PM"
     skip = ("name", "created", "provision_run", "timings", "size_mb", "server")
