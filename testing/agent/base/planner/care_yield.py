@@ -202,7 +202,9 @@ class CareYield:
         to 1.78-2.47 tiles, every care line logging `care_commit` {phase "yield", key ["bleed", 7]} with the nearest
         standing 2.9 to 4.2 tiles off: this read only KEEP_R, before the threat plan read the group): with GROUP_LEAVE_N
         or more standing within GROUP_ENTRY_R (`group_n`) None, no leg and no yield, `care_withheld` set; the care
-        resumes on the line the count falls under GROUP_LEAVE_N."""
+        resumes on the line the count falls under GROUP_LEAVE_N.
+        Plan 35 ENGAGE_HOLD: None while the Fight's melee is engaged (`threat.Threat._engage_holds`, logged
+        `engage_hold` {rule "care"}) where the commitment would answer: no leg nor yield over the reflex."""
         self.care_commit = None
         c = self.care
         if not self.CARE_COMMIT or not self.world.can("bandage") or c.riding() is not None:
@@ -215,6 +217,8 @@ class CareYield:
         if key is None:
             self.care_leg = None
             return None
+        if self._engage_holds("care"):
+            return None   # Plan 35 ENGAGE_HOLD: the engaged melee is not superseded for the care
         leg = self.care_leg
         if leg is not None and leg.key != key:
             leg = self.care_leg = None

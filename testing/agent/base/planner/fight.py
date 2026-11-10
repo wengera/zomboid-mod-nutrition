@@ -247,13 +247,15 @@ FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finis
                "drift_stand", "circle", "approach_walk", "melee",
                "route_cross", "close_idle", "swing_close", "chaser_stance",
                "pair_nearest", "crawler_first", "retreat_gap", "retreat_melee",
-               "crawler_clear", "retreat_regain")   # survival iterations 13 to 24's
+               "crawler_clear", "retreat_regain",
+               "footwork", "engage_hold", "withdraw")   # survival iterations 13 to 24's
                      # Fight rules and Plan 31's (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E;
                      # P27-G, P27-H, P27-J, P27-K2; fix 2's P27-M and P27-N; P28-D, P28-C, P28-B2, P28-B3, P28-E, the
                      # approach walk; the melee, cut 1 of the maneuver layer; P29-A's route, P29-C's close; P30-A's
                      # swing close; Plan 31 Task 15a's chaser stance; Plan 32 Task 5 (b)'s pair; Plan 33 Task 2's
                      # crawler first; Plan 34 Task 3's retreat gap and retreat melee; P34-A fix B's crawler clear;
-                     # Task 3c's retreat regain),
+                     # Task 3c's retreat regain; Plan 35 Task 2's footwork, engagement hold and withdraw bias,
+                     # `dispatch.FightDispatch`),
                      # each on in `rules`
                      # unless Survive's switch for it is off
 
@@ -637,9 +639,14 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         or the advance's) gives way as a leg does (`_walk_gives_way`, Task 18 fix 1, the review's blocker); any other
         walk (the approach and swing's, a reposition) holds until it ends. Plan 34: the crawler clear's give-way first
         (`crawler.FightCrawler._crawler_clear_busy`), then RETREAT_MELEE's break (`_retreat_breaks`), then
-        RETREAT_REGAIN's press and back leg (`_regain_busy`)."""
+        RETREAT_REGAIN's press and back leg (`_regain_busy`). Plan 35 ENGAGE_HOLD: while the engagement runs
+        (`dispatch.FightDispatch._engaged`, the melee with `work`) each of those three answers the hold where it would
+        cut the melee, logged `engage_hold` {rule: crawler_clear | retreat_melee | retreat_regain}, and the rules after
+        them (the crawler first's and the pair's give-way, the pin-first, the finish) are not read: the melee holds
+        until a re-send is due (`_melee_holds`)."""
         if not super().busy():
             return False
+        self.why.pop("engage_hold", None)   # Plan 35: this tick's hold, if any, logged below
         clear = self._crawler_clear_busy()   # Plan 34 fix B: the backpedal from the crawlers, its leg held
         if clear is not None:
             return clear
@@ -648,6 +655,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         regain = self._regain_busy()   # Plan 34 Task 3c RETREAT_REGAIN: the press once, the back leg held
         if regain is not None:
             return regain
+        if self._engaged():
+            return self._melee_holds()   # Plan 35 ENGAGE_HOLD: no re-pin, crawler or finish give-way cuts the reflex
         crawl = self._crawler_busy()   # Plan 33 Task 2: a running send at another than the crawler gives way
         if crawl is not None:
             return crawl
@@ -1126,7 +1135,11 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         gives it back to the ladder (`_m_ladder`). Plan 34 RETREAT_MELEE: on the choose after `busy` read a break
         (`_break`), the back leg in the ladder's command's place (`_break_leg`), no melee. Plan 34 Task 3c
         RETREAT_REGAIN: after a point-blank press the back leg in its place (`_regain_back`), else the press armed before
-        the dispatch (`_regain_arm`: the shove form with two in reach) and noted after it (`_regain_note`)."""
+        the dispatch (`_regain_arm`: the shove form with two in reach) and noted after it (`_regain_note`). Plan 35
+        ENGAGE_HOLD: under the engagement (`_engaged`) the choose is the melee's re-send alone (`_engage_resend`), the
+        ladder not read."""
+        if self._engaged():
+            return self._engage_resend()
         cmd = self._retreat_leg(self._ladder())
         if self._break is not None:
             leg = self._break_leg(cmd)
@@ -1196,6 +1209,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             return False
         other = next((s for s in self._standing(RETREAT_BACK_R, (m.target,)) if not is_crawler(s[1])), None)
         if other is None:
+            return False
+        if self._engaged():
+            self._engage_note("retreat_melee")   # Plan 35 ENGAGE_HOLD: the reflex steps back between its presses
             return False
         self._break = {"other": other[0], "dist": other[2]}
         return True
@@ -1346,7 +1362,7 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             return self._on_retreat_heading()
         if live and g.get("m") is m:
             if m.presses > g["n0"] and not m.pressing():
-                return False
+                return self._engage_hold("retreat_regain") if self._engaged() else False   # Plan 35 ENGAGE_HOLD
             return self._melee_holds()   # fix 1: the press held to its one press, never cut by a re-pin
         return None
 

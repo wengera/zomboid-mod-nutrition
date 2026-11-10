@@ -386,6 +386,15 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     `x_trial-ladder-20261109-134527`: the leg flicked between the run at five and the retreat at four, the character
     never running clear), a leave whose leg read `run` keeps it until the leave ends, logged `group_leave` {held};
     `T19_SWITCHES`.
+    Plan 35 Task 2 (the footwork; the spec's §§ 3.2 and 3.3: the deaths' hits land in held contact while a 2 Hz leg
+    superseded the melee reflex whose press is the defence): FOOTWORK, the melee sent with its `work` arguments
+    (PZA/1.13: the reflex's footwork, the pile met, the floor and clear hand-backs) to a build announcing mod 1.13 or
+    later (`World.mod_at_least`); ENGAGE_HOLD, the running melee with `work` holds against every leg (the Fight's own
+    give-ways and the threat branch's drag guard, leave, strung end, corner, still read, `many` and care rows, while
+    the health reads above FLEE_HEALTH), logged `engage_hold` {rule}, the crowd gate off at the dispatch point;
+    WITHDRAW, the fighting retreat's heading sent as the reflex's withdraw bias with GROUP_LEAVE_N or more standing
+    within GROUP_ENTRY_R, re-sent only past its WITHDRAW_RESEND_DEG sector (`dispatch.py`'s docstring the record);
+    `T20_SWITCHES`. Off, or on a build before 1.13, the planner runs as before.
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -567,6 +576,13 @@ T19_SWITCHES = ("LEAVE_CARE", "DOOR_INSIDE", "LEAVE_DOOR_RACE", "RETREAT_GAP", "
 # P34-I) RETREAT_REGAIN, the point-blank press then the back leg held to FIGHT_REACH or RETREAT_REGAIN_S, SPENT_LEAVE,
 # the `run` at GROUP_LEAVE_N with the meet spent, and DRAG_DEFER, no guard's run after its shove under the retreat;
 # amendment 1 RUN_HOLD, a leave whose leg read `run` keeps the run until it ends
+T20_SWITCHES = ("FOOTWORK", "ENGAGE_HOLD", "WITHDRAW")
+# Plan 35 Task 2 (the footwork; the spec's §§ 3.2 and 3.3), all on `threat.Threat`, each a Fight rule of its name
+# lower-cased: FOOTWORK, the melee's `work` arguments to a build at mod 1.13 or later (`dispatch.FightDispatch
+# ._work_inputs`); ENGAGE_HOLD, the running melee with `work` held against every leg, the Fight's and the threat
+# branch's (`dispatch.FightDispatch._engaged`, `threat.Threat._engage_holds`), logged `engage_hold` {rule}, the crowd
+# gate off; WITHDRAW, the fighting retreat's heading as the reflex's withdraw bias with GROUP_LEAVE_N or more standing
+# within GROUP_ENTRY_R
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -589,7 +605,7 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T3_SWITCHES",
            "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES", "T7_SWITCHES", "T8_SWITCHES", "T9_SWITCHES", "T10_SWITCHES",
            "T11_SWITCHES", "T12_SWITCHES", "T13_SWITCHES", "T14_SWITCHES", "T15_SWITCHES",
-           "T16_SWITCHES", "T17_SWITCHES", "T18_SWITCHES", "T19_SWITCHES"]
+           "T16_SWITCHES", "T17_SWITCHES", "T18_SWITCHES", "T19_SWITCHES", "T20_SWITCHES"]
 
 
 @dataclass
@@ -748,6 +764,8 @@ class Survive(SneakGait, Threat):
         self.group_n = 0          # this tick: the standing zombies within GROUP_ENTRY_R (Plan 34, `_group_read`)
         self.strung_n = 0         # the consecutive lines the leave's count read under GROUP_LEAVE_N (Plan 34, STRUNG_HOLD)
         self.care_withheld = None   # this tick: LEAVE_CARE's {why "group", n, key} when the care was barred, else None
+        self.engage_hold = None   # this tick: {rule} of the first threat row ENGAGE_HOLD held off the Fight's engaged
+                                  # melee (Plan 35 Task 2, `Threat._engage_holds`), else None
         self.care_leg = None      # the care's one distance leg (Plan 32 Task 5 (c), `care_yield.CareLeg`), else None
         self.care_commit = None   # this tick: the care commitment's why (Plan 32 Task 5 (c)), else None
         self.bleed_held = False   # this tick: that yield was made by the dressing's hold alone (P26-L2)

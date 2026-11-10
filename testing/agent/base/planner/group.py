@@ -439,9 +439,13 @@ class ThreatGroup:
         """STRUNG_HOLD (Plan 34; the module docstring): a running leave's line reading `n` (fewer than GROUP_LEAVE_N,
         one or more) standing counts one more line under the count (`strung_n`); True while fewer than STRUNG_LINES
         such lines ran in a row (the leave held), False once the end is due. With the rule off, or with none standing
-        (nothing to retreat from), the end at once."""
+        (nothing to retreat from), the end at once. Plan 35 ENGAGE_HOLD: held while the Fight's melee is engaged
+        (`threat.Threat._engage_holds`, logged `engage_hold` {rule "strung"}), the count not run: the leave and its
+        heading stay with the reflex's fight."""
         if not self.STRUNG_HOLD or n == 0:
             return False
+        if self._engage_holds("strung"):
+            return True
         self.strung_n += 1
         return self.strung_n < STRUNG_LINES
 

@@ -275,7 +275,10 @@ class FightCrawler:
         return h
 
     def _crawler_clear(self):
-        """The crawler clear's `back` leg (the module docstring), else None."""
+        """The crawler clear's `back` leg (the module docstring), else None; None under Plan 35's engagement
+        (`dispatch.FightDispatch._engaged`: the reflex steps off the crawlers)."""
+        if self._engaged():
+            return None
         read = self._crawler_clear_read()
         if read is None:
             return None
@@ -311,5 +314,9 @@ class FightCrawler:
             return (vx * v[0] + vy * v[1]) / n >= math.cos(math.radians(RETREAT_RESEND_DEG))
         if self.last.type == "melee":
             m = self.m
-            return m is not None and m.action is self.last and m.pressing()
+            if m is not None and m.action is self.last and m.pressing():
+                return True
+            if self._engaged():   # Plan 35 ENGAGE_HOLD: the reflex steps off the crawlers, no back leg cuts it
+                return self._engage_hold("crawler_clear")
+            return False
         return self.last.type in ("attack", "shove", "stomp")   # a press in flight: its end is read first

@@ -61,13 +61,26 @@ command at its pin. Its state is the Fight's own (`_init_dispatch`), and `fight.
 - The log: `maneuver` (`Melee.log`: target, mode, sends, step, d, the counts, spent, the last press leaf) on every
   choose that dispatches and every observe while it runs, `ladder` (the ladder's command type it replaced), `melee`
   {mode, pain} on every send (P28-H: the frame's `body.armPain`, so a write-up reads the swings under pain), with
-  `resend` "inputs" on a re-send.
+  `resend` "inputs" on a re-send and (Plan 35) `withdraw` [vx, vy] on a send carrying the withdraw bias.
+- Plan 35 Task 2 (the footwork, PZA/1.13; the spec's §§ 3.2 and 3.3): with the Fight's `footwork` rule (Survive's
+  FOOTWORK) and the build announcing mod WORK_MOD or later (`World.mod_at_least`: every golden's hello announces 1.11
+  or earlier, so none moves), every melee carries `work` (`_work_inputs`: WORK_R, WORK_CRAWLER_R, WORK_BAND_LO, the
+  floor FLEE_HEALTH, `pile` true; with the `withdraw` rule (WITHDRAW) the fighting retreat's heading, `retreat`, while
+  GROUP_LEAVE_N or more stand within GROUP_ENTRY_R, `group_n`, else none). With the `engage_hold` rule too
+  (ENGAGE_HOLD) the crowd gate and the crawler clear's exemption are off at the dispatch point (the reflex meets the
+  pile and the crawlers), and the running melee with `work` is the engagement (`_engaged`): `_melee_holds` holds it
+  whatever its pin, the pin-first and the finish read, until a re-send is due, and the choose that follows re-sends it
+  and nothing else (`_engage_resend`: no ladder leg supersedes it); the Fight's own give-ways (`fight.Fight.busy`) and
+  the threat branch's flees (`threat.Threat._engage_holds`) answer the hold, logged `engage_hold` {rule}. Its ends:
+  `handback` why `floor` (the body's health at FLEE_HEALTH) gives the next choose to the ladder (the threat branch's
+  health flee reads the health on its own), `clear` (no zombie left to meet) as `lost` out of range (the ladder's, no
+  mark).
 """
 from agent.base.planner.maneuvers import Melee
-from agent.base.planner.maneuvers.melee import MeleeInputs
-from agent.base.planner.policies import (KEEP_R, MELEE_BACKOFF_TICKS, MELEE_CROWD_N, MELEE_CROWD_R, MELEE_RELEASE_R,
-                                         SEEK_SKIP_S, STALL_SWINGS, UNREACHABLE_S, arm_pain, on_floor, target_id_ok,
-                                         zdist)
+from agent.base.planner.maneuvers.melee import MeleeInputs, WorkInputs
+from agent.base.planner.policies import (FLEE_HEALTH, GROUP_LEAVE_N, KEEP_R, MELEE_BACKOFF_TICKS, MELEE_CROWD_N,
+                                         MELEE_CROWD_R, MELEE_RELEASE_R, SEEK_SKIP_S, STALL_SWINGS, UNREACHABLE_S,
+                                         WORK_BAND_LO, WORK_CRAWLER_R, WORK_R, arm_pain, on_floor, target_id_ok, zdist)
 
 MELEE_LEGS = ("enter", "back", "stand")   # the ladder's stance legs within KEEP_R a melee replaces
 MELEE_SENDS = ("attack", "shove", "stomp")   # the ladder's sends at its pin a melee replaces (an attack at a fallen
@@ -78,6 +91,9 @@ LOST_UNREACHABLE = {"out of reach": SEEK_SKIP_S, "no progress": UNREACHABLE_S}  
 OFF_ENDS = ("not loaded", "bad args", "unknown type")    # ... that end the melee for the rest of the Fight
 BACKOFF_ENDS = ("interrupted", "timeout", "no target")   # ... that leave its target to the ladder for
                                                          # MELEE_BACKOFF_TICKS (fix 1, review-t7b m2)
+WORK_ENDS = ("floor", "clear")   # Plan 35: a `handback`'s whys under `work` that give the next choose to the ladder,
+                                 # no re-pin (the body at the floor; nothing left to meet, as `lost` out of range)
+WORK_MOD = "1.13"   # Plan 35 (PZA/1.13): the hello's least mod version whose melee takes the `work` arguments
 
 # The maneuver registry (Plan 31 Task 8): every maneuver by its logged name, the one table a decider (a variant, the
 # ladder's care branch) reads to start one; the Fight's dispatch above starts its Melee directly.
@@ -99,6 +115,8 @@ class FightDispatch:
         self._m_ladder = False              # the next choose is the ladder's whatever it sends (an `out of range`)
         self.melee_off = None               # the end after which no melee goes for the rest of the Fight, else None
         self._m_backoff = {}                # zombie id -> planner ticks left in which no melee goes at it (fix 1, m2)
+        self.group_n = 0                    # Survive sets it each tick (Plan 35, WITHDRAW): the standing zombies within
+                                            # GROUP_ENTRY_R (`group.ThreatGroup._group_read`)
 
     def _retire_maneuver(self):
         """The running maneuver is dropped, its sends' ends still read (`_spent_m`)."""
@@ -138,8 +156,9 @@ class FightDispatch:
                 self._mark_unreachable(m.target, LOST_UNREACHABLE[m.end_why])
             self._m_ladder = True
         elif end == "handback":
-            if not self._melee_crowd(m):
-                self._m_ladder = True   # fix 1, M1: no fresh melee on the same geometry; the ladder's press
+            if m.end_why in WORK_ENDS or not self._melee_crowd(m):
+                self._m_ladder = True   # fix 1, M1: no fresh melee on the same geometry; the ladder's press (Plan 35:
+                                        # `floor` the ladder's, the health flee next; `clear` as `lost` out of range)
         elif end in OFF_ENDS:
             self.melee_off = end
         elif end in BACKOFF_ENDS:
@@ -183,8 +202,37 @@ class FightDispatch:
             return True
         return False
 
+    def _work_on(self):
+        """Plan 35 FOOTWORK: the melee carries `work` (the rule on, the build announcing mod WORK_MOD or later)."""
+        return "footwork" in self.rules and self.world.mod_at_least(WORK_MOD)
+
+    def _pile_met(self):
+        """Plan 35 ENGAGE_HOLD at the dispatch point: the melee carries `work` with `pile` and the hold is on, so the
+        crowd gate and the crawler clear's exemption are off (the reflex meets the pile and the crawlers)."""
+        return "engage_hold" in self.rules and self._work_on()
+
+    def _engaged(self):
+        """Plan 35 ENGAGE_HOLD: the engagement, the rule on and this Fight's running `Melee` (its action the Fight's
+        last and not ended) whose last send carried `work` (`Melee.work`); no Python leg supersedes it (the module
+        docstring)."""
+        m = self.m
+        return ("engage_hold" in self.rules and m is not None and self.last is not None and m.action is self.last
+                and m.work is not None and m.running())
+
+    def _engage_note(self, rule):
+        """Plan 35 ENGAGE_HOLD: the Fight's rule `rule` held off the engagement this tick, logged `engage_hold` {rule}
+        (the first one read on the tick)."""
+        self.why.setdefault("engage_hold", {"rule": rule})
+
+    def _engage_hold(self, rule):
+        """`busy`'s answer where rule `rule` would cut the engagement: logged (`_engage_note`), the melee's own hold
+        (`_melee_holds`: held until a re-send is due)."""
+        self._engage_note(rule)
+        return self._melee_holds()
+
     def _melee_holds(self):
-        """`busy` for the running melee (the module docstring)."""
+        """`busy` for the running melee (the module docstring); Plan 35: held while engaged (`_engaged`) whatever the
+        pin, until a re-send is due."""
         m = self.m
         if m is None or m.action is not self.last:
             return False
@@ -193,6 +241,8 @@ class FightDispatch:
             m.inputs = self._melee_inputs(self._melee_mode_at(z), z)   # the inputs read afresh on the tick
         if m.resend_due():
             return False
+        if self._engaged():
+            return True   # Plan 35 ENGAGE_HOLD: the reflex re-pins, finishes and steps; no pin read cuts it
         t = self._target(pin=False)
         if t is None or t[0] != m.target:
             return False
@@ -206,7 +256,8 @@ class FightDispatch:
         if (cmd is None or "melee" not in self.rules or self.melee_off is not None or not self.world.can("melee")
                 or self.point_blank or self.only is not None or self.doorway is not None):
             return None
-        if "crawler_clear" in self.why:
+        pile = self._pile_met()   # Plan 35 ENGAGE_HOLD: the reflex meets the pile and the crawlers
+        if "crawler_clear" in self.why and not pile:
             return None   # Plan 34 fix B: the backpedal from the crawlers is the leg, never a melee in its place
         zid = getattr(cmd, "targetId", None)
         z = self.world.zombies.get(zid) if target_id_ok(zid) and zid == self.target else None
@@ -215,7 +266,7 @@ class FightDispatch:
         d = zdist(self.world, z)
         if d > MELEE_RELEASE_R or self._m_backoff.get(zid):
             return None
-        if self._crowded(zid, z):
+        if not pile and self._crowded(zid, z):
             return None   # the crowd gate (the module docstring): the Lua would end it handback crowd
         if cmd.TYPE == "aim":
             if "fence_wait" in self.why or self.why.get("leg") not in MELEE_LEGS or d > KEEP_R or on_floor(z):
@@ -244,7 +295,18 @@ class FightDispatch:
 
     def _melee_inputs(self, mode, z):
         """The send's `MeleeInputs` at pin `z` (the module docstring), read afresh."""
-        return MeleeInputs(mode, self.reach_r() or 0.0, "floor_finish" in self.rules and not self.floor_swing_barred())
+        return MeleeInputs(mode, self.reach_r() or 0.0, "floor_finish" in self.rules and not self.floor_swing_barred(),
+                           self._work_inputs())
+
+    def _work_inputs(self):
+        """Plan 35 FOOTWORK: the send's `WorkInputs` (the module docstring), else None (the rule off, an older
+        build)."""
+        if not self._work_on():
+            return None
+        withdraw = None
+        if "withdraw" in self.rules and self.retreat is not None and self.group_n >= GROUP_LEAVE_N:
+            withdraw = (float(self.retreat[0]), float(self.retreat[1]))   # WITHDRAW: the fighting retreat's heading
+        return WorkInputs(WORK_R, WORK_CRAWLER_R, WORK_BAND_LO, withdraw, FLEE_HEALTH, True)
 
     def _melee_dispatch(self, cmd):
         """The ladder's `cmd`, or at the dispatch point the running maneuver's next command (a new `Melee` where none
@@ -264,8 +326,25 @@ class FightDispatch:
             if out is not None or m.over() is None:
                 break
         self.why = dict(self.why, maneuver=m.log(), ladder=cmd.TYPE)
-        if out is not None:
-            self.why["melee"] = {"mode": mode, "pain": arm_pain(self.world)}   # P28-H: the swings under pain read
-            if m.resend is not None:
-                self.why["melee"]["resend"] = m.resend
+        self._melee_why(m, out)
+        return out
+
+    def _melee_why(self, m, out):
+        """A send's `melee` why: {mode, pain} (P28-H: the swings under pain read), `resend` on a re-send, `withdraw`
+        [vx, vy] when it carries the withdraw bias (Plan 35)."""
+        if out is None:
+            return
+        self.why["melee"] = {"mode": m.mode, "pain": arm_pain(self.world)}
+        if m.resend is not None:
+            self.why["melee"]["resend"] = m.resend
+        if m.work is not None and m.work.withdraw is not None:
+            self.why["melee"]["withdraw"] = list(m.work.withdraw)
+
+    def _engage_resend(self):
+        """Plan 35 ENGAGE_HOLD: the choose under the engagement (`busy` gave way only for a re-send, `_melee_holds`):
+        the engaged melee's re-send on its inputs read afresh, else None; nothing else is sent."""
+        m = self.m
+        out = m.step()
+        self.why = dict(self.why, maneuver=m.log())
+        self._melee_why(m, out)
         return out

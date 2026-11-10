@@ -1141,3 +1141,11 @@ RETREAT_REGAIN_S = 1.5   # wall seconds the retreat's back leg after a point-bla
 # `x_trial-ladder-20261109-141434`, line 392: 13837 pinned at 2.24 over `many`; P31-T, not evidence)
 POINT_BLANK_OVER_R = 1.5   # tiles: under a `many` or `health` flee reason POINT_BLANK_FIGHT fights only a standing
                            # zombie this near (already on the character); beyond it the flee stands (KEEP_R otherwise)
+# Plan 35 Task 2 (the footwork; the spec's §§ 3.1 to 3.3): the melee's `work` arguments the Fight sends under FOOTWORK
+# to a build announcing mod 1.13 or later (`dispatch.FightDispatch._melee_inputs`, `maneuvers.melee.WorkInputs`)
+WORK_R = 3.5               # tiles: the reflex reads the standing zombies this near for the footwork's heading (`workR`)
+WORK_CRAWLER_R = 1.2       # tiles: a crawler this near repels the heading hard and is never stepped onto (`crawlerR`)
+WORK_BAND_LO = 0.4         # tiles: the step back goes while the nearest standing is nearer than the reach less this
+                           # (`bandLo`)
+WITHDRAW_RESEND_DEG = 30.0   # degrees: the withdraw bias re-sends the running melee only once its heading leaves its
+                             # WITHDRAW_RESEND_DEG sector (`maneuvers.melee.WorkInputs.behaviour`)

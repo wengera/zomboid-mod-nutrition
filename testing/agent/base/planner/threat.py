@@ -321,6 +321,14 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                              # the line falling through to the retreat (`group.ThreatGroup._drag_defers`); off, the run
     RUN_HOLD = True          # Task 3c amendment 1: a leave whose leg read `run` keeps the run until it ends, the retreat
                              # never resumed inside it (`group.ThreatGroup._leave_leg`); off, the leg by the count
+    # Plan 35 Task 2 (the footwork; the spec's §§ 3.2 and 3.3): in survive.T20_SWITCHES
+    FOOTWORK = True          # the melee's `work` arguments to a build at mod 1.13 or later (the Fight's `footwork`
+                             # rule, `dispatch.FightDispatch._work_inputs`); off, the melee as before
+    ENGAGE_HOLD = True       # the running melee with `work` held against every leg, the Fight's give-ways and the
+                             # threat rows (the Fight's `engage_hold` rule, `_engage_holds`), the crowd gate off; off,
+                             # as before
+    WITHDRAW = True          # the fighting retreat's heading as the reflex's withdraw bias with GROUP_LEAVE_N or more
+                             # standing within GROUP_ENTRY_R (the Fight's `withdraw` rule); off, no bias
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -451,7 +459,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
 
     def _many(self, held, n):
         """`_many_read`'s `many`, its `listed` kept for the decision's why (logged `listed`); ruling P29-G: a tick
-        whose `many` the reads before it made and `_many_near` does not, logged `many_near` {n}."""
+        whose `many` the reads before it made and `_many_near` does not, logged `many_near` {n}. Plan 35 ENGAGE_HOLD: a
+        `many` read while the Fight's melee is engaged (`_engage_holds`) answers the hold (False), logged `engage_hold`
+        {rule "many"}."""
         many, listed = self._many_read(held, n)
         if listed is not None:
             self.listed = listed
@@ -460,7 +470,21 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         out = self._listing_out() if self.LISTING_FALLEN else None
         if out is not None:
             self.listing = out   # P27-I: the zombies the counts left out, on the decision's why
-        return many
+        return many and not self._engage_holds("many")
+
+    def _engage_holds(self, rule):
+        """Plan 35 ENGAGE_HOLD (the spec's § 3.2): True when the threat row `rule` would supersede the Fight's engaged
+        melee (`dispatch.FightDispatch._engaged`: the running melee with `work`, this branch fighting) and the health
+        reads above FLEE_HEALTH (the reflex's floor, `floorHealth`: at or under it the reflex hands back `floor` and the
+        rows run as before), the hold logged `engage_hold` {rule} (the first row held on the tick); else False (the rule
+        off, no engagement)."""
+        f = self.fight
+        if not (self.ENGAGE_HOLD and self.mode == "fight" and f is not None and f._engaged()
+                and self._health() > FLEE_HEALTH):
+            return False
+        if self.engage_hold is None:
+            self.engage_hold = {"rule": rule}
+        return True
 
     def _flee_reason(self, held, n):
         """Why the threat branch flees, by the hysteresis in the module docstring (`_hysteresis`); None when it fights.
@@ -548,7 +572,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             return "unarmed"
         if self._many(held, n):
             return "many"
-        if health < FLEE_HEALTH and not self._low_fight(n) and self.health_near is None:
+        if (health < FLEE_HEALTH and not self._low_fight(n) and self.health_near is None
+                and not self._engage_holds("health")):   # Plan 35: held only above the floor (the reflex's)
             return "health"
         if n >= 2 and (health < FLEE_HEALTH_PAIR or self._wounds() > 0):
             fallen = self._pair_finish()   # P25-J (3): the finish of a fallen (or knocked) one goes before the flee
@@ -894,7 +919,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
             self.leave = None   # Plan 33 Task 3: a leave ends at the doorway
             return door
-        if self._drag(held, inside):   # P24-A (h): first, whatever the fight or the corner
+        if self._drag(held, inside) and not self._engage_holds("drag"):   # P24-A (h): first, whatever the fight or
+            # the corner; Plan 35 ENGAGE_HOLD: not over the engaged melee (the reflex meets the pile)
             self.cornered, self._corner_fight, self.group_steer, self.door = None, None, "drag", None
             self._drag_fight()   # Plan 33 Task 3 (DRAG_GUARD_FIGHT): the shove in the run's place, answered in `_decide`
             if self._drag_defers(inside):   # Plan 34 Task 3c (DRAG_DEFER): after its shove the leave's retreat owns it
@@ -906,9 +932,16 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             return "door", None
         if self._group_leave(inside):   # Plan 33 Task 3 (GROUP_LEAVE): a closing trio left in the open
             self.cornered, self._corner_fight = None, None
-            return LEAVE_PLAN[self.leave_leg]   # fix 3: the retreat is the Fight's; fix 4: above RETREAT_MAX_N the run
+            plan = LEAVE_PLAN[self.leave_leg]   # fix 3: the retreat is the Fight's; fix 4: above RETREAT_MAX_N the run
+            if plan[0] != "fight" and self._engage_holds("leave"):
+                return "fight", None   # Plan 35 ENGAGE_HOLD: the leave's shove, door or run not over the engaged melee
+            return plan
         if self._cornered(held, inside) is not None:
-            return "cornered", None
+            if not self._engage_holds("cornered"):
+                return "cornered", None
+            self.cornered, self._corner_fight = None, None   # Plan 35 ENGAGE_HOLD: no corner Fight over the
+            # engaged melee (the reflex meets the zombie at point blank)
+            return "fight", None
         if self.group_steer:
             reason = self._flee_reason(held, len(self._danger_near())) or "many"
             if self._point_blank(reason) is not None:   # Plan 32 Task 5 (a): the group steer at point blank
@@ -1041,6 +1074,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.finish_block = None   # Task 36 fix 1: this tick's refusal only (`_finish_chaser` sets it)
         self.held_cut = None       # P29-H': this tick's cut flee walk (`flee.Flee.take_held_cut`)
         self.care_withheld = None  # Plan 34 (LEAVE_CARE): this tick's care barred under a column
+        self.engage_hold = None    # Plan 35 (ENGAGE_HOLD): this tick's threat row held off the engaged melee
         self._read_bleed()         # P30-F: each part's health sampled, its bleed's rate read by `_dress_waits`
         self._release_edges()   # P25-X: a zombie refused across a blocked edge, read on the player's side, is free
         self._door_held_read()   # P30-C: a zombie behind a door within DOOR_HELD_R, decided before the hold counts
@@ -1112,6 +1146,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             self.why = {"care_commit": self.care_commit, "held": len(held)}
             return commit[1]
         self.care_yield = commit[1] if commit is not None else self._care_yields(held)
+        if self.care_yield is not None and not self.care.ride_now and self._engage_holds("care"):
+            self.care_yield, self.bleed_yield, self.scratch_yield = None, None, None   # Plan 35: no care over the
+                                                                                       # engaged melee
         if self.care_yield is not None:
             self.why = {"care": True, "nearest": self.care_yield, "held": len(held)}
             if commit is not None:
@@ -1230,6 +1267,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.ride = self.care.riding()   # P24-U: the stance legs held off while a bandage rides
             policy.threats = held
             policy.retreat = self.retreat   # Plan 33 Task 3 fix 3: GROUP_LEAVE's fighting retreat heading, else None
+            policy.group_n = self.group_n   # Plan 35 WITHDRAW: the bias only with GROUP_LEAVE_N standing within reach
             policy.outside_press = self.drag_press   # Plan 34 Task 3c (DRAG_DEFER): the guard's shove, the regain's press
             policy.edge_ticks = EDGE_HOLD_TICKS if self.EDGE else 0   # P24-AU, read at the policy's observe
             policy.rules = self._fight_rules()   # P25-A, P25-B, P25-D, P25-F
@@ -1238,7 +1276,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.shove_only = self._shove_only(kind)   # P25-P, P25-S: no swing, no seek
             policy.door_open = self.door_open   # P30-C: the stance_open plan's steps, this tick's
             policy.crowd = self._inside_crowd() if kind == "cornered" else None   # P26-C
-            still = None if replanned or kind != "fight" or door is not None else self._still_read(held, policy)
+            still = (None if replanned or kind != "fight" or door is not None or policy._engaged()   # Plan 35: never
+                     else self._still_read(held, policy))   # over the engaged melee (its approach nor its pass)
             if still is not None and still[0] == "goal":   # P30-E: the zombie left, the branch passes
                 self.mode, self.fight, self.flee = None, None, None
                 self._end_flee_episode()
@@ -1302,7 +1341,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                        ("finish_lone", self.finish_lone), ("flee_held_stance", self.held_cut),
                        ("point_blank_fight", self.point_blank_fight), ("strain_bound", self.strain_bound),
                        ("group_leave", self.group_leave), ("group_retreat", self.group_retreat), ("drag_fight", self.drag_fight),
-                       ("side_clear", self.side_clear)):
+                       ("side_clear", self.side_clear), ("engage_hold", self.engage_hold)):
             if v is not None:
                 self.why[key] = v
         if self.broken is not None:
@@ -1408,7 +1447,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("retreat_gap", self.RETREAT_GAP),
                                                ("retreat_melee", self.RETREAT_MELEE),
                                                ("crawler_clear", self.CRAWLER_CLEAR),
-                                               ("retreat_regain", self.RETREAT_REGAIN))
+                                               ("retreat_regain", self.RETREAT_REGAIN),
+                                               ("footwork", self.FOOTWORK), ("engage_hold", self.ENGAGE_HOLD),
+                                               ("withdraw", self.WITHDRAW))
                          if on)
 
     def _flee_rules(self):

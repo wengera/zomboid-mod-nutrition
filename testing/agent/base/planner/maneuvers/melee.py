@@ -32,14 +32,22 @@ before each `step`; a decider variant may start one wherever it fights.
   for its owner's log.
 - `why` (logged by the Fight as `maneuver`): target, mode, sends, and the last progress line's step and distance, with
   its counts and `spent` once one carries them, and the last press leaf.
+- PZA/1.13 (Plan 35 Task 2, the footwork): `MeleeInputs.work` (`WorkInputs`, else None) sends the melee's `work`
+  arguments (`workR`, `crawlerR`, `bandLo`, `withdrawX` and `withdrawY`, `floorHealth`, `pile`), and `work` keeps the
+  last send's (the Fight's engagement, `dispatch.FightDispatch._engaged`); the work fields are part of the behaviour a
+  re-send follows, the withdraw heading by its WITHDRAW_RESEND_DEG sector (a turn inside the sector re-sends nothing),
+  and the `done` hand-backs' whys `floor` (the body's health at the floor) and `clear` (the reflex read nothing left to
+  meet) land in `end_why` as every why does.
 """
 import dataclasses
+import math
 import time
+from typing import Optional, Tuple
 
 from agent.base import pza1
 from agent.base.planner.maneuvers.base import Maneuver
 from agent.base.planner.policies import (FACE_R, FLOOR_R, HANDBACK_R, HEAD_AIM, MELEE_RELEASE_R, PRESS_ANGLE,
-                                         PRESS_LO, SHOVE_SEND_R, STALL_SWINGS)
+                                         PRESS_LO, SHOVE_SEND_R, STALL_SWINGS, WITHDRAW_RESEND_DEG)
 
 STRIKE_KEYS = ("swings", "floors", "stomps")   # a span's strikes the no-progress streak counts: the ladder's attack
                                                # (the swing and the floor swing) and its stomp (`Fight.observe`)
@@ -54,17 +62,51 @@ PRESS_OPTIONAL = ("knock_p", "body_off", "facing")   # ... kept only where the l
                                                      # body_off and facing from Plan 32 Task 4's Lua on)
 
 
+def withdraw_sector(v):
+    """The WITHDRAW_RESEND_DEG sector a withdraw heading `v` ((vx, vy), else None) lies in: its angle floored to the
+    sector (the angle read 0 to 360 degrees), None with no heading; a turn inside one sector re-sends nothing
+    (`WorkInputs.behaviour`)."""
+    if v is None:
+        return None
+    return int(math.floor((math.degrees(math.atan2(v[1], v[0])) % 360.0) / WITHDRAW_RESEND_DEG))
+
+
+@dataclasses.dataclass(frozen=True)
+class WorkInputs:
+    """The melee's `work` arguments for one send (PZA/1.13, Plan 35: `fight.Fight._melee_inputs` under FOOTWORK)."""
+    work_r: float                              # workR: the standing zombies read for the heading, tiles
+    crawler_r: float                           # crawlerR: a crawler's repulsion and veto radius, tiles
+    band_lo: float                             # bandLo: the step back under the reach less this, tiles
+    withdraw: Optional[Tuple[float, float]]    # withdrawX, withdrawY: the planner's bias (a unit vector), else None
+    floor_health: float                        # floorHealth: the hand-back floor (0 to 100), 0 for none
+    pile: bool                                 # pile: three within 0.9 tiles met in the reflex, never handed back
+
+    def behaviour(self):
+        """The work as the reflex runs it, the withdraw heading by its sector (`withdraw_sector`)."""
+        return (float(self.work_r), float(self.crawler_r), float(self.band_lo), withdraw_sector(self.withdraw),
+                float(self.floor_health), bool(self.pile))
+
+    def args(self):
+        """The `pza1.Melee` keyword arguments (the raw withdraw vector on the wire)."""
+        w = self.withdraw
+        return {"workR": float(self.work_r), "crawlerR": float(self.crawler_r), "bandLo": float(self.band_lo),
+                "withdrawX": None if w is None else float(w[0]), "withdrawY": None if w is None else float(w[1]),
+                "floorHealth": float(self.floor_health), "pile": bool(self.pile)}
+
+
 @dataclasses.dataclass(frozen=True)
 class MeleeInputs:
     """What the owner reads for one send (`fight.Fight._melee_inputs`)."""
     mode: str           # strike, shove (the spent meet) or finish (sent at a fallen target)
     reach: float        # the swing's distance at the collision, 0 for the Lua's own (`K.reachOf`)
     floor_swing: bool   # the weapon's floor swing at a fallen target allowed
+    work: Optional[WorkInputs] = None   # PZA/1.13 (Plan 35): the footwork's arguments, None for the melee before it
 
     def behaviour(self):
         """The inputs as the reflex runs them: strike and finish are one meet (the target's posture picks the finish),
-        shove the spent meet."""
-        return ("shove" if self.mode == "shove" else "meet", float(self.reach), bool(self.floor_swing))
+        shove the spent meet; the work's (`WorkInputs.behaviour`) after them when given."""
+        out = ("shove" if self.mode == "shove" else "meet", float(self.reach), bool(self.floor_swing))
+        return out if self.work is None else out + (self.work.behaviour(),)
 
 
 def _number(v):
@@ -88,7 +130,9 @@ class Melee(Maneuver):
         self.mode = None        # the mode of the last send
         self.resend = None      # the last step's re-send: "inputs", or None for the first send
         self.handback = None    # a `handback` end's other zombie {id, d}
-        self.end_why = None     # a `done` end's why (out of range, out of reach, no progress; crowd, standing)
+        self.end_why = None     # a `done` end's why (out of range, out of reach, no progress; crowd, standing;
+                                # PZA/1.13's floor and clear)
+        self.work = None        # the last send's `WorkInputs` (PZA/1.13), None when it carried no `work`
         self.press = None       # the last press leaf a line carried
         self.d = None           # the last progress line's distance to the target
         self._sent = None       # the running send's inputs (`MeleeInputs.behaviour`)
@@ -125,12 +169,12 @@ class Melee(Maneuver):
             return None   # its end is read by `observe`, which ends the maneuver
         self.resend = None if self.action is None else "inputs"
         i = self.inputs
-        self.mode = i.mode
+        self.mode, self.work = i.mode, i.work
         self._sent = i.behaviour()
         cmd = pza1.Melee(targetId=self.target, mode=i.mode, reach=float(i.reach), shoveR=SHOVE_SEND_R,
                          releaseR=MELEE_RELEASE_R, faceR=FACE_R, pressAngle=PRESS_ANGLE, pressLo=PRESS_LO,
                          floorR=FLOOR_R, handbackR=HANDBACK_R, stall=STALL_SWINGS, floorSwing=bool(i.floor_swing),
-                         headAim=HEAD_AIM)
+                         headAim=HEAD_AIM, **({} if i.work is None else i.work.args()))
         self._log(sends=self.n + 1)
         return cmd
 
