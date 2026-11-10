@@ -26,10 +26,11 @@
 --   its id re-choosing the heading at once; contact (the tick's nearest standing inside K.WORK_CONTACT_R, counted when
 --   no press is in flight at the tick's end); clear (done handback, why clear: K.WORK_CLEAR_TICKS ticks in a row with
 --   the target a crawler beyond crawlerR, no standing zombie within releaseR and no other crawler within crawlerR); the
---   pile (pile true: K.MELEE_CROWD_N standing within K.MELEE_CROWD_R, the target counted while it stands, and the
---   target the nearest: the shove at it, its leaf's knock_p; at its result the step `pile` along the heading for
---   K.WORK_TICKS ticks at once, the body snapped on the target; then the meet's next press; again while the pile
---   holds). The crowd hand-back is kept for pile false.
+--   pile (pile true; fix 3: triggered by the engine's attackers count at 2 or more, or K.MELEE_CROWD_N standing
+--   within K.WORK_PILE_R, the target counted while it stands; re-pinned to the nearest: the shove at it within shoveR,
+--   its leaf's knock_p, skipped after two in a row at it that knocked nothing down; at its result the step `pile`
+--   along the heading for K.WORK_STEP_TICKS ticks, ungated, the body snapped on the target; then the meet's next
+--   press; again while the trigger holds; pileTick below). The crowd hand-back is kept for pile false.
 --   the idle (K.footwork, where the meet would stand or face): a crawler within crawlerR with no standing zombie within
 --   the reach is the target (the re-pin; finished as fallen, the finish's stomp; after it a standing zombie breaks the
 --   stomp only within the reach); the gap under the reach less bandLo the step `work` along the heading (the stance's
@@ -75,6 +76,8 @@ K.WORK_STEP_TICKS = 30       -- fix 1: the most ticks of the step after a press'
                              -- second, a judgment: the struck zombie's stagger, #4686, is the step's window)
 K.WORK_POINT_BLANK_R = 0.9   -- fix 2: tiles: no step with the nearest standing zombie inside this (K.MELEE_CROWD_R's
                              -- radius, the pile's: #4290); there the press is the defence (#4372, #4688)
+K.WORK_PILE_R = 1.3          -- fix 3: tiles: three standing within this (the target counted) trigger the pile, as the
+                             -- engine's attackers 2 do (the drag-down's approach, x_trial-ladder-20261110-091352)
 
 local WORK_NUMS = { "workR", "crawlerR", "bandLo", "floorHealth" }
 local WORK_KEYS = { "workR", "crawlerR", "bandLo", "floorHealth", "withdrawX", "withdrawY", "pile" }
@@ -101,6 +104,7 @@ local function workArgs(args)
              withdrawX = wx or 0, withdrawY = wy or 0, pile = args.pile == true,
              contact = 0, inContact = false, near = nil, gap = nil, nearId = nil, n = nil, clear = nil,
              stepTicks = 0, pressMark = 0, nearO = nil, held = nil,
+             pileWhy = nil, pileShove = false, pileWait = 0, shoveId = nil, shoveFails = 0,
              hx = nil, hy = nil, heading = nil, turn = nil, crawlerD = nil, sinceChoose = K.WORK_TICKS,
              clearTicks = 0, pinId = nil, pileState = nil, pileTicks = 0, pileMark = 0, piles = 0 }
 end
@@ -380,30 +384,86 @@ local function presses(st)
     return st.swings + st.shoves + st.stomps + st.floors
 end
 
--- the pile (pile true): the shove at the nearest, at its result the step, then the meet's next press; nil to go on
-local function pileTick(p, st, d, crowd, fallen, nearest)
-    local w = st.work
+-- fix 3 (x_trial-ladder-20261110-091352, the drag-down death at frame 1420: two to four standing at 0.47 to 1.3 tiles
+-- for 70 frames with the engine's attackers 1 to 2, a30 and a31 shoving nine times with no knock-down, the pile met
+-- only at frame 1395, three within K.MELEE_CROWD_R one frame before the drag): the engine's attackers count, the last
+-- frame's me.attackers, else getSurroundingAttackingZombies live; 0 unread
+local function attackersOf(p)
+    local S = PZA.sense
+    local f = S ~= nil and S.last or nil
+    local a = f ~= nil and type(f.me) == "table" and f.me.attackers or nil
+    if type(a) == "number" then return a end
+    local ok, v = PZA.call(p, "getSurroundingAttackingZombies")
+    if ok and type(v) == "number" then return v end
+    return 0
+end
+
+-- the pile's trigger now, or nil: attackers (the engine counts 2 or more attacking), else near (K.MELEE_CROWD_N
+-- standing within K.WORK_PILE_R, the target counted while it stands: the drag-down's approach, not its radius, #4290)
+local function pileTrigger(p, st, standing)
+    if attackersOf(p) >= 2 then return "attackers" end
     local n = 0
-    if crowd ~= nil then n = #crowd end
-    if not fallen then n = n + 1 end
-    local inPile = n >= K.MELEE_CROWD_N
+    if standing then n = 1 end
+    local near = st.work.near
+    if near ~= nil then
+        for i = 1, #near do
+            if near[i].d < K.WORK_PILE_R then n = n + 1 end
+        end
+    end
+    if n >= K.MELEE_CROWD_N then return "near" end
+    return nil
+end
+
+-- the pile (pile true; fix 3): on the trigger the shove at the nearest standing zombie (re-pinned to it first; within
+-- shoveR, and not after two shoves in a row at it that knocked nothing down), at its result the step `pile` along the
+-- clearest heading for K.WORK_STEP_TICKS ticks with the body snapped on the target, ungated (the move at point
+-- blank: no point-blank, lunge or attack hold), `cornered` with no clear heading (the meet presses next); then the
+-- meet's next press (the swing once the gap passes MinRange), waited K.WORK_STEP_TICKS at most; again while the
+-- trigger holds. nil to go on
+local function pileTick(p, st, d, fallen, standing)
+    local w = st.work
+    local why = pileTrigger(p, st, standing)
+    if why ~= nil then w.pileWhy = why end
     if w.pileState == "step" then
-        if w.pileTicks < K.WORK_TICKS then
+        if w.pileShove then   -- the shove's result, read on the step's first tick
+            w.pileShove = false
+            if st.knocked then
+                w.shoveFails = 0
+            elseif w.shoveId == st.id then
+                w.shoveFails = w.shoveFails + 1
+            else
+                w.shoveId, w.shoveFails = st.id, 1
+            end
+        end
+        if w.pileTicks < K.WORK_STEP_TICKS then
             w.pileTicks = w.pileTicks + 1
             K.FACING.hold(p, st, K.FACING.bearing(st.px, st.py, st.zx, st.zy))
-            return stepAlong(p, st, "pile", fallen)
+            local step = stepAlong(p, st, "pile", fallen)
+            if step == "cornered" then w.pileTicks = K.WORK_STEP_TICKS end
+            return step
         end
-        w.pileState, w.pileMark = "press", presses(st)
+        w.pileState, w.pileMark, w.pileWait = "press", presses(st), 0
         return nil
     end
     if w.pileState == "press" then
-        if presses(st) > w.pileMark or not inPile then w.pileState = nil else return nil end
+        w.pileWait = w.pileWait + 1
+        if presses(st) > w.pileMark or why == nil or w.pileWait >= K.WORK_STEP_TICKS then
+            w.pileState = nil
+        else
+            return nil
+        end
     end
-    if not inPile or fallen or not nearest then return nil end
+    if why == nil or fallen or not standing then return nil end
+    local near = w.near
+    if near ~= nil and near[1].d < d - K.MELEE_REPIN_SLACK then return M.repin(p, st, near[1]) end
+    if d > st.shoveR or (w.shoveId == st.id and w.shoveFails >= 2) then   -- the step first, then the meet's press
+        w.pileState, w.pileTicks, w.piles = "step", 0, w.piles + 1
+        return pileTick(p, st, d, fallen, standing)
+    end
     local off = M.lookOff(p, st.px, st.py, st.zx, st.zy)
-    local step, why = M.press(p, st, "shove", d, d, off, "face", d)
-    if step == "shove" then w.pileState, w.pileTicks, w.piles = "step", 0, w.piles + 1 end
-    return step, why
+    local step, pwhy = M.press(p, st, "shove", d, d, off, "face", d)
+    if step == "shove" then w.pileState, w.pileTicks, w.piles, w.pileShove = "step", 0, w.piles + 1, true end
+    return step, pwhy
 end
 
 -- fix 1 (the smokes x_trial-ladder-20261110-081250 and -081935: inside the band the meet pressed swing after swing
@@ -486,8 +546,7 @@ function K.workTick(p, st, d, crowd, fallen, now)
         w.clearTicks = 0
     end
     if w.pile then
-        local nearest = standing and (near == nil or near[1].d >= d - K.MELEE_REPIN_SLACK)
-        local ps, phow, pres = pileTick(p, st, d, crowd, fallen, nearest)
+        local ps, phow, pres = pileTick(p, st, d, fallen, standing)
         if ps ~= nil then return ps, phow, pres end
     end
     return pressStep(p, st, standing, g)
@@ -523,5 +582,5 @@ function K.workResult(st, out)
     local w = st.work
     out.contact = w.contact
     out.work = { heading = w.heading, turn = w.turn, clear = w.clear, gap = w.gap, n = w.n, crawler = w.crawlerD,
-                 held = w.held }
+                 held = w.held, pile = w.pileWhy }
 end

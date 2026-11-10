@@ -24,7 +24,7 @@ SCHEMA = os.path.join(ROOT, "testing", "agent", "base", "schema", "pza1.json")
 WORK = {"workR": 3.5, "crawlerR": 1.2, "bandLo": 0.4, "floorHealth": 0.0, "reach": 1.475}   # fix 2: the live reach
 # (the smoke x_trial-ladder-20261110-084643 sent 1.475): the band, reach - bandLo, 1.075; the step goes in [0.9, 1.075)
 BAND_X = 10.95   # the target 0.95 tiles east: inside the band, beyond K.WORK_POINT_BLANK_R
-WORK_LEAF = {"heading", "turn", "clear", "gap", "n", "crawler", "held"}   # fix 2: held
+WORK_LEAF = {"heading", "turn", "clear", "gap", "n", "crawler", "held", "pile"}   # fix 2: held; fix 3: pile
 LOOK_OFF = {"look": math.pi, "turn": 0.0, "snap": False}   # the look held away: the meet never presses
 
 
@@ -70,7 +70,7 @@ def world(lua, squares=True, **kw):
     return p, z, w
 
 
-def records(lua, recs, objs):
+def records(lua, recs, objs, attackers=None):
     """PZA.sense.last's zombie records ({id, dist[, crawler][, onFloor][, x, y]} each) and PZA.sense.zobj."""
     g = lua.globals()
     g._objs = lua.table_from(objs)
@@ -85,7 +85,8 @@ def records(lua, recs, objs):
             if k in r:
                 fields.append("%s = %r" % (k, r[k]))
         parts.append("{ " + ", ".join(fields) + " }")
-    lua.execute("PZA.sense.last = { zombies = { %s }, body = {} }" % ", ".join(parts))
+    me = "" if attackers is None else ", me = { attackers = %d }" % attackers   # fix 3: the frame's me.attackers
+    lua.execute("PZA.sense.last = { zombies = { %s }, body = {}%s }" % (", ".join(parts), me))
 
 
 def target_rec(w, zid=7):
@@ -376,7 +377,7 @@ def test_the_pile_is_met_in_the_reflex_the_shove_then_the_step_no_hand_back(lua,
     assert seq[0] == "shove" and w["presses"][0]["shove"] is True
     assert seq.index("pile") > 0 and "knock_p" in leaves(lua, fs)[0]
     assert all(a["state"] != "done" for a in acts(lua, fs) if a["aid"] == "m1")
-    assert lua.eval("PZA.skills.cur.st.steps.pile") == 6
+    assert lua.eval("PZA.skills.cur.st.steps.pile") >= 6   # fix 3: the pile step runs K.WORK_STEP_TICKS (30), not 6
 
 
 def test_without_pile_the_crowd_hands_back(lua, fs):
@@ -525,7 +526,7 @@ def test_every_progress_line_carries_contact_and_the_work_leaf(lua, fs):
     assert pr and all("contact" in a["result"] and "work" in a["result"] for a in pr)
     assert all(set(a["result"]["work"]) <= WORK_LEAF and {"clear", "n"} <= set(a["result"]["work"]) for a in pr)
     leaf = pr[-1]["result"]["work"]
-    assert leaf["n"] == 1 and leaf["gap"] > 0 and set(leaf) == WORK_LEAF - {"crawler", "held"}
+    assert leaf["n"] == 1 and leaf["gap"] > 0 and set(leaf) == WORK_LEAF - {"crawler", "held", "pile"}
 
 
 def test_the_done_line_carries_contact_the_leaf_and_the_steps(lua, fs):
@@ -786,3 +787,65 @@ def test_no_step_into_a_lunge_and_a_step_in_flight_ends_at_once(lua, fs):
     n = len(step_seq(lua, fs))
     run(lua, p, w, 10)
     assert "work" not in step_seq(lua, fs)[n:]
+
+
+# ---- fix 3: the pile triggers on the engine's attackers and its step goes at point blank (the run 091352) -------------
+
+def pile_world(lua, attackers, others, **kw):
+    """a30's and a31's shape (frames 1300 to 1395): the target 7 at 0.55 tiles east in a lunge, more standing zombies
+    at the distances `others` (north and south of the player), the frame's me.attackers `attackers`."""
+    p, z, w = world(lua, zx=10.55, attack_ticks=6, **kw)
+    z.getRealState = lambda s: "lunge"
+    recs, objs = [target_rec(w)], {7: z}
+    for i, dd in enumerate(others):
+        y = 20.0 + dd if i % 2 == 0 else 20.0 - dd
+        o = make_zombie(20 + i, 10.0, y)
+        o.getRealState = lambda s: "lunge"
+        recs.append({"id": 20 + i, "dist": dd, "x": 10.0, "y": y})
+        objs[20 + i] = o
+    records(lua, recs, objs, attackers=attackers)
+    return p, z, w
+
+
+def test_two_attackers_trigger_the_pile_the_shove_then_the_step_at_point_blank(lua, fs):
+    """Four standing at 0.55 to 1.25 (none but the target within 0.9) and the engine's attackers 2: the pile's shove
+    at the target, and within K.WORK_TICKS of its result the step `pile` along the heading, the point-blank and lunge
+    gate not applied to it; the leaf names the trigger."""
+    p, z, w = pile_world(lua, 2, (1.0, 1.15, 1.25), **LOOK_OFF)
+    gow(lua, p, pile=True)
+    run(lua, p, w, 6 + 1 + 6)
+    seq = step_seq(lua, fs)
+    assert seq[0] == "shove" and w["presses"][0]["shove"] is True and "pile" in seq
+    assert work_of(lua, "pileWhy") == "attackers" and lua.eval("PZA.skills.WORK_PILE_R") == 1.3
+    assert progress(lua, fs)[-1]["result"]["work"]["pile"] == "attackers"
+
+
+def test_three_standing_within_1_3_trigger_the_pile_near(lua, fs):
+    p, z, w = pile_world(lua, 0, (1.1, 1.25), **LOOK_OFF)
+    gow(lua, p, pile=True)
+    run(lua, p, w, 13)
+    assert "pile" in step_seq(lua, fs) and work_of(lua, "pileWhy") == "near"
+
+
+def test_two_standing_and_one_attacker_are_no_pile(lua, fs):
+    p, z, w = pile_world(lua, 1, (1.1,), **LOOK_OFF)
+    gow(lua, p, pile=True)
+    run(lua, p, w, 40)
+    assert "pile" not in step_seq(lua, fs) and work_of(lua, "pileWhy") is None
+
+
+def test_the_pile_step_lasts_work_step_ticks(lua, fs):
+    p, z, w = pile_world(lua, 2, (1.0, 1.15, 1.25), **LOOK_OFF)
+    gow(lua, p, pile=True)
+    run(lua, p, w, 45)
+    assert lua.eval("PZA.skills.cur.st.steps.pile") == lua.eval("PZA.skills.WORK_STEP_TICKS")
+
+
+def test_after_two_pile_shoves_that_knocked_nothing_at_one_target_the_next_pile_steps_first(lua, fs):
+    """a31's four shoves knocked nothing down: after two in a row at the same target the pile's shove is skipped, the
+    step goes first and the meet's press (the swing once the gap passes MinRange) is next."""
+    p, z, w = pile_world(lua, 2, (1.0, 1.15, 1.25), zspeed=2.0, **LOOK_OFF)
+    gow(lua, p, pile=True)
+    run(lua, p, w, 300)
+    shoves = [x for x in w["presses"] if x["shove"]]
+    assert len(shoves) == 2 and lua.eval("PZA.skills.cur.st.steps.pile") > 2 * lua.eval("PZA.skills.WORK_STEP_TICKS")

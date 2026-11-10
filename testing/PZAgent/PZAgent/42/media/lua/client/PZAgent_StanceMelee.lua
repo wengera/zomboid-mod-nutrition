@@ -1138,7 +1138,9 @@ K.meleeWork = { standingNear = standingNear, walkAlong = walkAlong, stopWalk = s
 function K.meleeCrowd(p, st)
     local w = st.work
     if w == nil then return standingNear(p, st, K.MELEE_CROWD_R) end
-    local near = standingNear(p, st, math.max(reachOf(p, st), K.MELEE_CROWD_R, K.WORK_CONTACT_R or 0))
+    local pileR = 0
+    if w.pile then pileR = K.WORK_PILE_R or 0 end   -- Plan 35 Task 1 fix 3: the pile's trigger radius read too
+    local near = standingNear(p, st, math.max(reachOf(p, st), K.MELEE_CROWD_R, K.WORK_CONTACT_R or 0, pileR))
     w.near = near
     if near == nil then return nil end
     local crowd = nil
