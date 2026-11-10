@@ -311,6 +311,12 @@ It selects the shots within two of every wound (a wound event: the first frame o
 It finds the state logs beside the JSON in an artifact or under `clients/*/Lua/pzagent/*/` in a run (the `admin` client's first), decodes them through the agent base's `FileTransport` on a temporary copy, writes only the sheet, and exits `2` with a message on stderr when the index, the decision log or the state log is missing.
 Its tests are `tools/tests/test_shot_sheet.py`, on a fabricated run folder and on E20's artifact.
 
+<a id="trial-score"></a>
+## `trial_score.py` — the trials' scorecard
+
+`python tools/trial_score.py <run> [--seen "..."]`, `--rescore-all` and `--round <variant> <fixture> <since-stamp>` score a trial's run folder into one row of the trials log `testing/trials/trials.md` (a trial is not evidence, so no row or page cites the log). From Plan 35 Task 3 the row carries `contact s` (the frames' seconds with the nearest standing zombie inside 1.0 tile, no press in flight and no hit reaction, summed) and `engagements` (the melees sent under `work`) after `care@3+`, a log written before them widened by `-` cells, and `--round` prints, and appends under the log's table, the arm's trials, deaths, death rate and the medians of its kills, contact seconds and hits per kill from the stamp on.
+Its tests are `tools/tests/test_trial_score.py`.
+
 <a id="fit-tools"></a>
 ## The fit tools
 
