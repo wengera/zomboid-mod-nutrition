@@ -355,7 +355,7 @@ def test_a_leg_melee_legs_lacks_is_a_dispatch_point_under_the_engagement(tmp_pat
     assert mode == ("strike" if on else None) and f._m_from == ("point_blank_leg" if on else None)
 
 
-# ================================================================ fix 6: an approach walk gives way at a pin within KEEP_R
+# ================================================================ fix 6: an approach walk gives way within KEEP_R
 CHASERS = [zm(1, ME[0] + 7.96, ME[1]), zm(2, ME[0] + 9.0, ME[1] + 1.0), zm(3, ME[0] + 9.9, ME[1] - 1.0)]   # line 25
 
 
@@ -394,7 +394,8 @@ def test_a_walk_at_a_pin_beyond_reach_within_keep_r_is_the_melee(tmp_path, on):
     assert f.busy() is (not on)
     if on:
         b = f.step()
-        assert b.type == "melee" and f.why["melee"]["engage_dispatch"] == {"from": "walk"} and f.why["ladder"] == "attack"
+        assert b.type == "melee" and f.why["ladder"] == "attack"
+        assert f.why["melee"]["engage_dispatch"] == {"from": "walk"}
 
 
 def test_a_walk_at_a_pin_beyond_keep_r_holds(tmp_path):
@@ -402,6 +403,75 @@ def test_a_walk_at_a_pin_beyond_keep_r_holds(tmp_path):
     r, f, a = walking(tmp_path, True)
     again(r, f, [zm(1, ME[0] + 3.0, ME[1]), CHASERS[1], CHASERS[2]])
     assert f.busy() is True
+
+
+# ================================================================ fix 7: the door fight and the doorway stand
+@pytest.mark.parametrize("on", [True, False])
+def test_the_door_fight_dispatches_the_melee_with_work(tmp_path, on):
+    """Plan 35 fix 7 (the trial `x_trial-ladder-20261110-104053`, decision lines 337 to 357: the sheltered door fight's
+    raw attacks at 22774 and 22776 at 0.42 to 0.76 tiles): a Fight with `only` {1} (the door's targets), its pin at 0.6
+    tiles: engaged-dispatch on, the melee with `work`, logged `engage_dispatch` {from "door"}; with ENGAGE_HOLD off, the
+    raw `attack` (the pin of cut 1's exclusion)."""
+    r, f = fight(tmp_path, [zm(1, ME[0] + 0.6, ME[1])], target=1, off=() if on else ("engage_hold",))
+    f.only = {1}
+    a = f.step()
+    if on:
+        assert a.type == "melee" and work_of(a) == WORK_ARGS and f.why["melee"]["engage_dispatch"] == {"from": "door"}
+    else:
+        assert a.type == "attack"
+
+
+def test_the_door_fight_never_sends_the_melee_outside_only(tmp_path):
+    """The `only` set restricts the target: a melee whose reflex re-pinned to 2, outside `only` {1}, is retired (`busy`
+    False) and the next choose sends a new melee at the pin 1; `_melee_mode` refuses a command at a zombie outside
+    it."""
+    from agent.base.pza1 import Attack
+    zs = [zm(1, ME[0] + 0.6, ME[1]), zm(2, ME[0], ME[1] + 0.7)]
+    r, f = fight(tmp_path, zs, target=1)
+    f.only = {1}
+    a = f.step()
+    assert a.type == "melee" and a.args["targetId"] == 1
+    accept(r, a)
+    r.fake.act(a.aid, "progress", "melee", result={"step": "repin", "target": 2})
+    r.pump()
+    again(r, f, zs)
+    assert f.busy() is False and f.m is None
+    b = f.step()
+    assert (b.type, b.args["targetId"]) == ("melee", 1)
+    f.target = 2
+    assert f._melee_mode(Attack(2)) is None
+
+
+def doorway_fight(tmp_path, on):
+    from agent.base.planner.doorway import Doorway
+    r = rig(tmp_path)
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, ME[0] + 1.4, ME[1])])
+    plan = {"building": 1, "doors": [(101, 200, 0)], "door_i": 0, "post": (100, 200, 0), "way": None}
+    f = Doorway(r.world, r.acts, r.clock, plan)
+    f.rules = f.rules - {"crawler_first"} - (set() if on else {"engage_hold"})
+    return r, f
+
+
+@pytest.mark.parametrize("on", [True, False])
+def test_the_doorway_stand_dispatches_the_melee_with_work(tmp_path, on):
+    """Plan 35 fix 7: the doorway stand (`doorway.Doorway`) with a standing zombie 1.4 tiles off in reach (beyond
+    POINT_BLANK_R: the swing): engaged-dispatch on, the melee with `work` in its swing's place, logged
+    `engage_dispatch` {from "doorway"}, held while it runs and re-sent once its inputs change (the meet spent: mode
+    `shove`); with ENGAGE_HOLD off, the stand's raw `attack` (the pin)."""
+    r, f = doorway_fight(tmp_path, on)
+    a = f.step()
+    if on:
+        assert a.type == "melee" and work_of(a) == WORK_ARGS
+        assert f.why["melee"]["engage_dispatch"] == {"from": "doorway"}
+        accept(r, a, "face")
+        again(r, f, [zm(1, ME[0] + 1.4, ME[1])])
+        assert f.busy() is True
+        f.spent = ("arms",)
+        assert f.busy() is False
+        b = f.step()
+        assert (b.type, b.args["mode"]) == ("melee", "shove") and f.why["melee"]["resend"] == "inputs"
+    else:
+        assert a.type == "attack"
 
 
 # ================================================================ the hand-backs
@@ -706,8 +776,8 @@ def test_the_pair_flee_at_the_engaged_melee_is_held(tmp_path, on):
 def test_the_strain_flee_at_the_engaged_melee_is_held(tmp_path, on):
     """Plan 35 fix 1: the endurance spent (0.4, under STRAIN_ENDURANCE: the hold and a real exhaustion, two standing
     within DANGER_R), the melee's target stepped back to 2.6 (beyond KEEP_R, no wounded fight): engaged, the melee
-    holds, re-sent in mode `shove` (the reflex's spent meet), logged `engage_hold` {rule "strain"}; with ENGAGE_HOLD off, the P24-AG `strain`
-    flee as before (the pin of the rule before it) superseding the melee."""
+    holds, re-sent in mode `shove` (the reflex's spent meet), logged `engage_hold` {rule "strain"}; with ENGAGE_HOLD
+    off, the P24-AG `strain` flee as before (the pin of the rule before it) superseding the melee."""
     r, sv, a = engaged(tmp_path, on, zombies=STEPPED, endurance=0.4)
     why = threat_why(tmp_path)
     if on:

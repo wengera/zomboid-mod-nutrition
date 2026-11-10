@@ -214,6 +214,15 @@ class FightDispatch:
         crowd gate and the crawler clear's exemption are off (the reflex meets the pile and the crawlers)."""
         return "engage_hold" in self.rules and self._work_on()
 
+    def _outside_only(self, m):
+        """Plan 35 fix 7: the door fight's (`only`) running melee whose reflex re-pinned (its last progress line's
+        `target`) to a zombie outside `only`: it is retired, and the next choose sends a melee at the pin among `only`
+        (the reflex's state kept by the Lua's same-target re-send rule only where the pin is its old one)."""
+        if self.only is None or m is None:
+            return False
+        t = m._progress.get("target")
+        return isinstance(t, int) and not isinstance(t, bool) and t not in self.only
+
     def _walk_meets_pin(self):
         """Plan 35 fix 6 (the arena lone wave's trial `x_trial-ladder-20261110-100118`, decision lines 25 to 42: the
         Fight, out of the stance at three chasers, sent its approach walk a9 at 3648 7.96 tiles off, and `busy` held it
@@ -256,6 +265,9 @@ class FightDispatch:
         z = self.world.zombies.get(m.target)
         if z is not None:
             m.inputs = self._melee_inputs(self._melee_mode_at(z), z)   # the inputs read afresh on the tick
+        if self._outside_only(m):
+            self._retire_maneuver()   # Plan 35 fix 7: the door fight's melee re-pinned outside `only`: a new send
+            return False
         if m.resend_due():
             return False
         if self._engaged():
@@ -276,17 +288,21 @@ class FightDispatch:
         the engagement's dispatch (`_pile_met`) a cornered Fight (`point_blank`) dispatches the melee with `work` too
         (logged `engage_dispatch` {from "corner"}), and an aim leg of any kind at a standing pin within KEEP_R is a
         dispatch point (the fence wait's aside), logged {from "point_blank_leg"} when the leg is a corner Fight's or
-        one MELEE_LEGS lacks; the door fight (`only`) and the doorway stand stay the ladder's."""
+        one MELEE_LEGS lacks. Fix 7 (the trial `x_trial-ladder-20261110-104053`, decision lines 315 to 415: the
+        sheltered door fight sent raw attacks, strain shoves and wounded aim legs at 22774 and 22776 at 0.42 to 0.76
+        tiles, every bite on its lines): under `_pile_met` the door fight (`only`: its pin among `only`, never a melee at
+        another) and the doorway stand (`doorway`: `doorway.Doorway`'s own dispatch) dispatch it too, logged
+        {from "door" | "doorway"}."""
         self._m_from = None
         pile = self._pile_met()   # Plan 35 ENGAGE_HOLD: the reflex meets the pile and the crawlers
         if (cmd is None or "melee" not in self.rules or self.melee_off is not None or not self.world.can("melee")
-                or (self.point_blank and not pile) or self.only is not None or self.doorway is not None):
+                or (not pile and (self.point_blank or self.only is not None or self.doorway is not None))):
             return None
         if "crawler_clear" in self.why and not pile:
             return None   # Plan 34 fix B: the backpedal from the crawlers is the leg, never a melee in its place
         zid = getattr(cmd, "targetId", None)
         z = self.world.zombies.get(zid) if target_id_ok(zid) and zid == self.target else None
-        if z is None or z.get("x") is None or z.get("y") is None:
+        if z is None or z.get("x") is None or z.get("y") is None or (self.only is not None and zid not in self.only):
             return None
         d = zdist(self.world, z)
         if d > MELEE_RELEASE_R or self._m_backoff.get(zid):
@@ -303,6 +319,8 @@ class FightDispatch:
             return None
         elif self.point_blank:
             self._m_from = "corner"   # Plan 35 fix 5 (only under `pile`: the guard above)
+        if self.doorway is not None or self.only is not None:   # Plan 35 fix 7 (only under `pile`: the guard above)
+            self._m_from = "doorway" if self.doorway is not None else "door"
         if cmd.TYPE == "stomp":
             return "finish"
         return self._melee_mode_at(z)

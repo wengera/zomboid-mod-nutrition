@@ -213,6 +213,8 @@ class Doorway(Fight):
         review's major 2): a zombie in reach is fought from where the player stands."""
         if not Policy.busy(self):
             return False
+        if self.last.type == "melee":
+            return self._melee_holds()   # Plan 35 fix 7: the stand's melee (`dispatch.FightDispatch`), until a re-send
         if self.last.type == "walkTo":
             return self._in_reach() is None and not self._finishable()
         if self.last.type != "aim":
@@ -222,12 +224,26 @@ class Doorway(Fight):
         t = self._in_reach()
         return t is None or (self.no_swing() and t[2] > POINT_BLANK_R and self.last.args.get("targetId") == t[0])
 
+    def _in_reach_send(self, zid, z, d):
+        """The stand's command at the nearest standing zombie in reach: the shove at point blank (once a swing; every
+        time at STRAIN_HARD), the face at STRAIN_HARD, else the swing."""
+        if (d <= POINT_BLANK_R and (not self._shoved or self.no_swing()) and self._swing_ok("shove", zid)
+                and self._standing_near(STAND_MIN_R, (zid,)) is None):
+            self.why["shove"] = "doorway"
+            return Shove(zid)
+        if self.no_swing():
+            return self._wounded_leg(zid, z, d)
+        self.why["stance"] = self.in_stance()   # the swing from the running aim (the attack releases it, R2)
+        return Attack(zid)
+
     def _choose(self):
         """The stand's next command (the module docstring): nothing in a hit reaction; a downed zombie in reach finished
         (`_finish`); the nearest standing zombie in reach shoved at point blank (once a swing; every time at
         STRAIN_HARD), else swung at (never at STRAIN_HARD: faced); off the post, the walk back; else the stance held
         facing out."""
         self._seek_send, self._walk_kind = False, None
+        if self._engaged():
+            return self._engage_resend()   # Plan 35 fix 7: the engaged melee's re-send alone
         hit = hit_reaction(self.world)
         if hit is not None:
             self.why = dict(self._base(), hitReaction=hit)
@@ -241,14 +257,8 @@ class Doorway(Fight):
             zid, z, d = t
             self.target = zid
             self.why = dict(self._base(), target=zid, dist=d)
-            if (d <= POINT_BLANK_R and (not self._shoved or self.no_swing()) and self._swing_ok("shove", zid)
-                    and self._standing_near(STAND_MIN_R, (zid,)) is None):
-                self.why["shove"] = "doorway"
-                return Shove(zid)
-            if self.no_swing():
-                return self._wounded_leg(zid, z, d)
-            self.why["stance"] = self.in_stance()   # the swing from the running aim (the attack releases it, R2)
-            return Attack(zid)
+            return self._melee_dispatch(self._in_reach_send(zid, z, d))   # Plan 35 fix 7: the melee under
+            # the engagement's dispatch (`_pile_met`), else the stand's own command as before
         if not self._on_post():
             self.why = dict(self._base(), step="return")
             return WalkTo(*centre(self.plan["post"]), "walk")
