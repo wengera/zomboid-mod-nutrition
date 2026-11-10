@@ -1130,7 +1130,7 @@ end
 -- hit step's hand-backs (the floor only, K.meleeWorkFloor) and counts (contact and the work leaf, K.workResult).
 -- K.meleeWork exports the melee's own reads and moves the footwork reuses.
 K.meleeWork = { standingNear = standingNear, walkAlong = walkAlong, stopWalk = stopWalk, press = press, repin = repin,
-                reachOf = reachOf, lookOff = lookOff }
+                reachOf = reachOf, lookOff = lookOff, minRangeOf = minRangeOf }   -- fix 5: the shove range
 
 -- reflex's crowd: the standing zombies within K.MELEE_CROWD_R, nearest first, or nil. With work, one read within the
 -- larger of the reach, K.MELEE_CROWD_R and K.WORK_CONTACT_R kept as st.work.near for the footwork's gap, and the crowd
@@ -1166,10 +1166,10 @@ function K.meleeWorkTick(p, st, d, crowd, fallen, now)
 end
 
 -- the finish's standing zombie with work: the re-pin to the nearest within handbackR (the spec's item 6), except after
--- a crawler pin, when only one within the reach breaks the stomp (no flapping between the crawler and a far walker)
+-- a crawler pin, when only one inside MinRange breaks the stomp (fix 5; no flapping between the crawler and a walker)
 function K.meleeWorkStanding(p, st, near)
     local w = st.work
-    if w.pinId ~= nil and w.pinId == st.id and near[1].d > reachOf(p, st) then return nil end
+    if w.pinId ~= nil and w.pinId == st.id and near[1].d > minRangeOf(p, st) then return nil end   -- fix 5: MinRange
     return repin(p, st, near[1])
 end
 

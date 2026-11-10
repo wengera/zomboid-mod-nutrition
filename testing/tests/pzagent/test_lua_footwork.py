@@ -24,7 +24,7 @@ SCHEMA = os.path.join(ROOT, "testing", "agent", "base", "schema", "pza1.json")
 WORK = {"workR": 3.5, "crawlerR": 1.2, "bandLo": 0.4, "floorHealth": 0.0, "reach": 1.475}   # fix 2: the live reach
 # (the smoke x_trial-ladder-20261110-084643 sent 1.475): the band, reach - bandLo, 1.075; the step goes in [0.9, 1.075)
 BAND_X = 10.95   # the target 0.95 tiles east: inside the band, beyond K.WORK_POINT_BLANK_R
-WORK_LEAF = {"heading", "turn", "clear", "gap", "n", "crawler", "held", "pile"}   # fix 2: held; fix 3: pile
+WORK_LEAF = {"heading", "turn", "clear", "gap", "n", "crawler", "held", "pile", "step_for"}   # fix 2: held; fix 3: pile; fix 5: step_for
 LOOK_OFF = {"look": math.pi, "turn": 0.0, "snap": False}   # the look held away: the meet never presses
 
 
@@ -246,7 +246,7 @@ def test_the_heading_turns_off_a_crawler(lua, fs):
             {7: z, 8: c})
     gow(lua, p)
     run(lua, p, w, 2)
-    assert abs(work_of(lua, "turn")) == 60 and work_of(lua, "crawlerD") == pytest.approx(1.4)
+    assert abs(work_of(lua, "turn")) == 60 and work_of(lua, "crawlerD") == pytest.approx(1.4, abs=0.05)
 
 
 def test_without_the_crawler_the_heading_holds(lua, fs):
@@ -314,9 +314,10 @@ def test_a_crawler_within_crawler_r_with_no_standing_in_reach_is_the_target(lua,
     assert w["presses"] and w["presses"][0]["shove"] is True   # the stomp: the shove pair at the floor
 
 
-def test_a_crawler_with_a_standing_zombie_in_reach_is_not_the_target(lua, fs):
-    """The falsifier: the target standing at 1.0 (within the reach): the crawler is left."""
-    p, z, w = world(lua, zx=11.0, **LOOK_OFF)
+def test_a_crawler_with_a_standing_zombie_in_the_shove_range_is_not_the_target(lua, fs):
+    """The falsifier: the target standing at 0.5 (inside MinRange, fix 5's widened rule): the crawler is left (the
+    forced step goes instead)."""
+    p, z, w = world(lua, zx=10.5, **LOOK_OFF)
     c = crawler(8, 9.2, 20.0)
     records(lua, [target_rec(w), {"id": 8, "dist": 0.8, "crawler": True, "onFloor": True, "x": 9.2, "y": 20.0}],
             {7: z, 8: c})
@@ -524,9 +525,11 @@ def test_every_progress_line_carries_contact_and_the_work_leaf(lua, fs):
     run(lua, p, w, 70)
     pr = progress(lua, fs)
     assert pr and all("contact" in a["result"] and "work" in a["result"] for a in pr)
-    assert all(set(a["result"]["work"]) <= WORK_LEAF and {"clear", "n"} <= set(a["result"]["work"]) for a in pr)
-    leaf = pr[-1]["result"]["work"]
-    assert leaf["n"] == 1 and leaf["gap"] > 0 and set(leaf) == WORK_LEAF - {"crawler", "held", "pile"}
+    assert all(set(a["result"]["work"]) <= WORK_LEAF for a in pr)
+    stepped = [a["result"]["work"] for a in pr if a["result"]["step"] == "work"]   # fix 5: a stepping tick's own
+    assert stepped and all({"clear", "n", "heading", "step_for"} <= set(x) for x in stepped)
+    assert all("clear" not in a["result"]["work"] for a in pr if a["result"]["step"] != "work")
+    assert stepped[0]["n"] == 1 and stepped[0]["gap"] > 0 and stepped[0]["step_for"] == "gap"
 
 
 def test_the_done_line_carries_contact_the_leaf_and_the_steps(lua, fs):
@@ -861,3 +864,68 @@ def test_after_two_pile_shoves_that_knocked_nothing_at_one_target_the_next_pile_
     run(lua, p, w, 300)
     shoves = [x for x in w["presses"] if x["shove"]]
     assert len(shoves) == 2 and lua.eval("PZA.skills.cur.st.steps.pile") > 2 * lua.eval("PZA.skills.WORK_STEP_TICKS")
+
+
+# ---- fix 5: a crawler within crawlerR forces the step and is stomped first inside the shove range (the run 103609) ----
+
+def crawler_world(lua, tx, cx, cy, **kw):
+    """a56's shape (frames 2747 to 2805): a standing target 7 at (tx, 20.0), the crawler 8 at (cx, cy) (crawler and
+    onFloor true in the frame), its position a test may move (`cpos`)."""
+    p, z, w = world(lua, zx=tx, attack_ticks=6, **kw)
+    cpos = {"x": cx, "y": cy}
+    c = crawler(8, cx, cy)
+    c.getX, c.getY = (lambda s: cpos["x"]), (lambda s: cpos["y"])
+
+    def recs():
+        cd = math.hypot(cpos["x"] - w["px"], cpos["y"] - w["py"])
+        records(lua, [target_rec(w), {"id": 8, "dist": cd, "crawler": True, "onFloor": True, "x": cpos["x"],
+                                      "y": cpos["y"]}], {7: z, 8: c})
+    recs()
+    return p, z, w, cpos, recs
+
+
+def test_a_crawler_within_crawler_r_forces_the_step_away_whatever_the_point_blank_hold(lua, fs):
+    """The standing target at 0.4 (inside MinRange: point blank) and the crawler at 0.95 north: the step goes,
+    away from the crawler (south), step_for crawler, no hold on the leaf."""
+    p, z, w, cpos, recs = crawler_world(lua, 10.4, 10.0, 20.95)
+    gow(lua, p)
+    run(lua, p, w, 3)
+    assert step_seq(lua, fs)[0] == "work" and work_of(lua, "stepFor") == "crawler"
+    assert w["walk"][1] < 0 and work_of(lua, "held") is None
+    leaf = progress(lua, fs)[-1]["result"]["work"]
+    assert leaf["step_for"] == "crawler" and "held" not in leaf
+
+
+def test_a_crawler_under_the_feet_leaves_a_heading_away_from_it(lua, fs):
+    """a56's crawler at 0.17 tiles (frames 2747 to 2772) vetoed every probe point within crawlerR of it, so every
+    heading read cornered: a probe point moving away from a crawler is no longer vetoed by it."""
+    p, z, w, cpos, recs = crawler_world(lua, 10.4, 10.0, 20.17)
+    gow(lua, p)
+    run(lua, p, w, 3)
+    assert "cornered" not in step_seq(lua, fs) and work_of(lua, "clear") is True
+
+
+def test_a_crawler_with_no_standing_zombie_in_the_shove_range_is_stomped_first(lua, fs):
+    """The crawler at 0.9 and the standing target at 1.3 (inside the reach, beyond MinRange): re-pinned to the
+    crawler and stomped (the shove pair at the floor)."""
+    p, z, w, cpos, recs = crawler_world(lua, 11.3, 10.0, 20.9)
+    gow(lua, p)
+    run(lua, p, w, 90, stop=lambda: w["presses"])
+    assert step_seq(lua, fs)[0] == "repin" and lua.eval("PZA.skills.cur.st.id") == 8
+    assert w["presses"] and w["presses"][0]["shove"] is True
+
+
+def test_the_leaf_s_crawler_is_this_tick_s(lua, fs):
+    """The leaf's crawler is the nearest crawler's distance read this tick, absent with none within crawlerR x 2."""
+    p, z, w, cpos, recs = crawler_world(lua, 11.2, 10.0, 22.0, **LOOK_OFF)   # 2.0: within crawlerR x 2
+    gow(lua, p)
+    run(lua, p, w, 2)
+    assert work_of(lua, "crawlerD") == pytest.approx(2.0, abs=0.05)
+    cpos["y"] = 22.3
+    recs()
+    run(lua, p, w, 1)
+    assert work_of(lua, "crawlerD") == pytest.approx(2.3, abs=0.05)
+    cpos["y"] = 24.0                                                  # 4.0: beyond crawlerR x 2
+    recs()
+    run(lua, p, w, 1)
+    assert work_of(lua, "crawlerD") is None
