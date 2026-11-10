@@ -27,7 +27,7 @@ from agent.base.planner.policies import (AIM_R, BLEED_FAST, CLOSING_TICKS, CORNE
                                          REFIGHT_MARGIN, STUCK_RETRY_GROUP_S, STUCK_RETRY_S, adoptable, blocked,
                                          chasing, exit_plan, in_building, in_reach, line_to, on_floor, others_behind,
                                          seek_allowed, spare, target_id_ok, zdist, STRAIN_ENDURANCE,
-                                         POINT_BLANK_OVER_R)
+                                         POINT_BLANK_OVER_R, RETREAT_MAX_N)
 from agent.base.planner.pull import ThreatPull
 from agent.base.planner.still import ThreatStill
 from agent.base.pza1 import Drop
@@ -470,19 +470,37 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         out = self._listing_out() if self.LISTING_FALLEN else None
         if out is not None:
             self.listing = out   # P27-I: the zombies the counts left out, on the decision's why
-        return many and not self._engage_holds("many")
+        return many and not self._engage_holds("many", lapse=True)
 
-    def _engage_holds(self, rule):
+    def _engage_holds(self, rule, lapse=False):
         """Plan 35 ENGAGE_HOLD (the spec's § 3.2): True when the threat row `rule` would supersede the Fight's engaged
         melee (`dispatch.FightDispatch._engaged`: the running melee with `work`, this branch fighting) and the health
         reads above FLEE_HEALTH (the reflex's floor, `floorHealth`: at or under it the reflex hands back `floor` and the
         rows run as before), the hold logged `engage_hold` {rule} (the first row held on the tick); else False (the rule
-        off, no engagement)."""
+        off, no engagement). Fix 3 (the controller's ruling; the trial `x_trial-ladder-20261110-091352`, decision lines
+        86 to 111: the leave's run held 14 times and the drag guard 12 while the reflex shoved in a pile of four to six,
+        the drag-down at health 54): a row read with `lapse` (the drag guard, the leave's run, `many`) is not held while
+        the drag-down is imminent (`_drag_lapse`), logged `engage_yield` {rule "drag" | "many"}: the planner's answer
+        as before Plan 35, the run the last resort."""
         if not self._engage_on():
+            return False
+        why = self._drag_lapse() if lapse else None
+        if why is not None:
+            if self.engage_yield is None:
+                self.engage_yield = {"rule": why}
             return False
         if self.engage_hold is None:
             self.engage_hold = {"rule": rule}
         return True
+
+    def _drag_lapse(self):
+        """Fix 3: why the drag-down is imminent this tick, else None: `drag` with the frame's `me.attackers` at
+        DRAG_DOWN_N - 1 or more on this threat tick and the one before (`_attackers_prev`: the count flickers frame to
+        frame, so one tick is no pile), `many` with more than RETREAT_MAX_N standing within GROUP_ENTRY_R (`group_n`:
+        the leave's `run` leg's own count)."""
+        if self._attackers() >= DRAG_DOWN_N - 1 and self._attackers_prev >= DRAG_DOWN_N - 1:
+            return "drag"
+        return "many" if self.group_n > RETREAT_MAX_N else None
 
     def _engage_on(self):
         """`_engage_holds`'s read, with no log: ENGAGE_HOLD on, this branch fighting, its Fight engaged, the health above
@@ -928,7 +946,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
             self.leave = None   # Plan 33 Task 3: a leave ends at the doorway
             return door
-        if self._drag(held, inside) and not self._engage_holds("drag"):   # P24-A (h): first, whatever the fight or
+        if self._drag(held, inside) and not self._engage_holds("drag", lapse=True):   # P24-A (h): first, whatever the fight or
             # the corner; Plan 35 ENGAGE_HOLD: not over the engaged melee (the reflex meets the pile)
             self.cornered, self._corner_fight, self.group_steer, self.door = None, None, "drag", None
             self._drag_fight()   # Plan 33 Task 3 (DRAG_GUARD_FIGHT): the shove in the run's place, answered in `_decide`
@@ -942,7 +960,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if self._group_leave(inside):   # Plan 33 Task 3 (GROUP_LEAVE): a closing trio left in the open
             self.cornered, self._corner_fight = None, None
             plan = LEAVE_PLAN[self.leave_leg]   # fix 3: the retreat is the Fight's; fix 4: above RETREAT_MAX_N the run
-            if plan[0] != "fight" and self._engage_holds("leave"):
+            if plan[0] != "fight" and self._engage_holds("leave", lapse=self.leave_leg == "run"):
                 return "fight", None   # Plan 35 ENGAGE_HOLD: the leave's shove, door or run not over the engaged melee
             return plan
         if self._cornered(held, inside) is not None:
@@ -1085,6 +1103,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.care_withheld = None  # Plan 34 (LEAVE_CARE): this tick's care barred under a column
         self.engage_hold = None    # Plan 35 (ENGAGE_HOLD): this tick's threat row held off the engaged melee
         self.engage_yield = None   # Plan 35 fix 2: this tick's care the engagement yielded to (a bleed, nobody in KEEP_R)
+        self._attackers_prev, self._attackers_now = self._attackers_now, self._attackers()   # fix 3: two threat ticks
         self._read_bleed()         # P30-F: each part's health sampled, its bleed's rate read by `_dress_waits`
         self._release_edges()   # P25-X: a zombie refused across a blocked edge, read on the player's side, is free
         self._door_held_read()   # P30-C: a zombie behind a door within DOOR_HELD_R, decided before the hold counts
