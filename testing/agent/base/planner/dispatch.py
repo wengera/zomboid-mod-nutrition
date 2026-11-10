@@ -80,7 +80,9 @@ from agent.base.planner.maneuvers import Melee
 from agent.base.planner.maneuvers.melee import MeleeInputs, WorkInputs
 from agent.base.planner.policies import (FLEE_HEALTH, GROUP_LEAVE_N, KEEP_R, MELEE_BACKOFF_TICKS, MELEE_CROWD_N,
                                          MELEE_CROWD_R, MELEE_RELEASE_R, SEEK_SKIP_S, STALL_SWINGS, UNREACHABLE_S,
-                                         WORK_BAND_LO, WORK_CRAWLER_R, WORK_R, arm_pain, on_floor, target_id_ok, zdist)
+                                         WORK_BAND_LO, WORK_CRAWLER_R, WORK_R, arm_pain, line_to, on_floor,
+                                         target_id_ok, zdist)
+from agent.base.pza1 import Attack
 
 MELEE_LEGS = ("enter", "back", "stand")   # the ladder's stance legs within KEEP_R a melee replaces
 MELEE_SENDS = ("attack", "shove", "stomp")   # the ladder's sends at its pin a melee replaces (an attack at a fallen
@@ -212,6 +214,20 @@ class FightDispatch:
         crowd gate and the crawler clear's exemption are off (the reflex meets the pile and the crawlers)."""
         return "engage_hold" in self.rules and self._work_on()
 
+    def _walk_meets_pin(self):
+        """Plan 35 fix 6 (the arena lone wave's trial `x_trial-ladder-20261110-100118`, decision lines 25 to 42: the
+        Fight, out of the stance at three chasers, sent its approach walk a9 at 3648 7.96 tiles off, and `busy` held it
+        16 s, to its `done`, while 3648 and 3651 stood at 0.3 to 0.8 tiles and bit six times: a walk the Fight sent
+        that is not the stance's own holds until it ends, `fight.Fight.busy`'s tail, before this plan as after):
+        under the engagement's dispatch (`_pile_met`) the pin stands (not `onFloor`) within KEEP_R on a line not read
+        blocked, so a running walk gives way and the dispatch sends the melee at the pin in the walk's place."""
+        if not self._pile_met() or not target_id_ok(self.target):
+            return False
+        z = self.world.zombies.get(self.target)
+        if z is None or z.get("x") is None or z.get("y") is None or on_floor(z):
+            return False
+        return zdist(self.world, z) <= KEEP_R and line_to(self.world, z) is not False
+
     def _engaged(self):
         """Plan 35 ENGAGE_HOLD: the engagement, the rule on and this Fight's running `Melee` (its action the Fight's
         last and not ended) whose last send carried `work` (`Melee.work`); no Python leg supersedes it (the module
@@ -327,6 +343,8 @@ class FightDispatch:
         runs at the pin): its re-send, or None while it runs and none is due (nothing sent; it goes on)."""
         mode = self._melee_mode(cmd)
         if mode is None:
+            mode, cmd = self._walk_melee(cmd)
+        if mode is None:
             return cmd
         z = self.world.zombies[cmd.targetId]
         out = None
@@ -344,6 +362,20 @@ class FightDispatch:
         if out is not None and m.resend is None and self._m_from is not None:
             self.why["melee"]["engage_dispatch"] = {"from": self._m_from}   # Plan 35 fix 5: the first send
         return out
+
+    def _walk_melee(self, cmd):
+        """Plan 35 fix 6: `(mode, Attack at the pin)` in place of the ladder's walk (or of its nothing under a hit
+        reaction, P24-A (i)) while the pin stands within KEEP_R (`_walk_meets_pin`) and the dispatch takes the attack,
+        `engage_dispatch` {from "walk" | "hit_reaction"}; else `(None, cmd)`."""
+        hit = cmd is None and "hitReaction" in self.why
+        if not ((hit or (cmd is not None and cmd.TYPE == "walkTo")) and self._walk_meets_pin()):
+            return None, cmd
+        alt = Attack(self.target)
+        mode = self._melee_mode(alt)
+        if mode is None:
+            return None, cmd
+        self._m_from = "hit_reaction" if hit else "walk"
+        return mode, alt
 
     def _melee_why(self, m, out):
         """A send's `melee` why: {mode, pain} (P28-H: the swings under pain read), `resend` on a re-send, `withdraw`

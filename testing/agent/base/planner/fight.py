@@ -657,6 +657,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             return regain
         if self._engaged():
             return self._melee_holds()   # Plan 35 ENGAGE_HOLD: no re-pin, crawler or finish give-way cuts the reflex
+        if self.last.type == "walkTo" and self._walk_meets_pin():
+            return False   # Plan 35 fix 6: a walk gives way to the melee at a pin within KEEP_R
         crawl = self._crawler_busy()   # Plan 33 Task 2: a running send at another than the crawler gives way
         if crawl is not None:
             return crawl

@@ -355,6 +355,55 @@ def test_a_leg_melee_legs_lacks_is_a_dispatch_point_under_the_engagement(tmp_pat
     assert mode == ("strike" if on else None) and f._m_from == ("point_blank_leg" if on else None)
 
 
+# ================================================================ fix 6: an approach walk gives way at a pin within KEEP_R
+CHASERS = [zm(1, ME[0] + 7.96, ME[1]), zm(2, ME[0] + 9.0, ME[1] + 1.0), zm(3, ME[0] + 9.9, ME[1] - 1.0)]   # line 25
+
+
+def walking(tmp_path, on):
+    """The arena trial's line 25 (`x_trial-ladder-20261110-100118`): the Fight out of the stance (three chasers over
+    MAX_FIGHT) pinned on 1 at 7.96 tiles sends its approach walk (a9), accepted."""
+    r, f = fight(tmp_path, CHASERS, target=1, off=() if on else ("engage_hold",))
+    f.stance = False
+    a = f.step()
+    assert a.type == "walkTo" and f.why["leg"] == "walk"
+    accept(r, a)
+    return r, f, a
+
+
+@pytest.mark.parametrize("on", [True, False])
+def test_an_approach_walk_gives_way_to_the_melee_at_a_pin_within_keep_r(tmp_path, on):
+    """Plan 35 fix 6 (lines 25 to 42: a9 held 16 s with 3648 and 3651 at 0.3 to 0.8 tiles, six bites): the walk
+    running, the pin come to 0.5 tiles: engaged-dispatch on, `busy` gives way and the melee with `work` goes at the pin;
+    with ENGAGE_HOLD off, the walk held to its end (`busy`'s tail, as before this plan: the pin of the rule before
+    it)."""
+    r, f, a = walking(tmp_path, on)
+    again(r, f, [zm(1, ME[0] + 0.5, ME[1]), zm(2, ME[0] + 0.8, ME[1] + 0.3), CHASERS[2]])
+    assert f.busy() is (not on)
+    if on:
+        b = f.step()
+        assert (b.type, b.args["targetId"]) == ("melee", 1) and work_of(b) == WORK_ARGS
+
+
+@pytest.mark.parametrize("on", [True, False])
+def test_a_walk_at_a_pin_beyond_reach_within_keep_r_is_the_melee(tmp_path, on):
+    """The pin at 2.3 tiles (beyond FIGHT_REACH, within KEEP_R) and not chasing (so no chaser stance's leg): the walk
+    gives way and the ladder's next approach walk is the melee in its place, logged `engage_dispatch` {from "walk"};
+    off, the walk held as before."""
+    r, f, a = walking(tmp_path, on)
+    again(r, f, [zm(1, ME[0] + 2.3, ME[1], hasTarget=False), CHASERS[1], CHASERS[2]])
+    assert f.busy() is (not on)
+    if on:
+        b = f.step()
+        assert b.type == "melee" and f.why["melee"]["engage_dispatch"] == {"from": "walk"} and f.why["ladder"] == "attack"
+
+
+def test_a_walk_at_a_pin_beyond_keep_r_holds(tmp_path):
+    """Engaged-dispatch on, the pin come to 3.0 tiles (beyond KEEP_R): the walk holds as before."""
+    r, f, a = walking(tmp_path, True)
+    again(r, f, [zm(1, ME[0] + 3.0, ME[1]), CHASERS[1], CHASERS[2]])
+    assert f.busy() is True
+
+
 # ================================================================ the hand-backs
 def done(r, a, why, **res):
     r.fake.act(a.aid, "done", "melee", result=dict({"end": "handback", "why": why, "kill": False}, **res))
