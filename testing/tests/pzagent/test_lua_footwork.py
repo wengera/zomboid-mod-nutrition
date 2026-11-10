@@ -686,3 +686,50 @@ def test_a_stepping_tick_at_a_re_choose_stays_under_40_java_calls(lua, fs):
     # 10, the square's isSolid, isSolidTrans, isBlockedTo and its crossed hop flag 4); none of the five is within the
     # near read's candidates (the reach + K.MELEE_CROWD_SLACK), the floor off (0)
     assert len(log) == 31 and len(log) < 40, sorted(log)
+
+
+# ---- fix 1: the live shape (x_trial-ladder-20261110-081250 and -081935: the step never went) -------------------------
+
+def test_inside_the_band_the_step_goes_between_presses_with_the_look_on(lua, fs):
+    """The smokes' shape: a chaser inside the reach less bandLo with the look on. The meet pressed swing after swing
+    (a7: 193 swing ticks, the gap 0.73, no idle tick) and the footwork, reached only at the meet's stand and face,
+    never ran. Fix 1: at a press's result with the nearest standing inside the band, the step `work` goes before the
+    next press (the spec's item 1: the step and the press alternate as the swing clip and the gap allow)."""
+    p, z, w = world(lua, zx=10.75, zspeed=1.0, attack_ticks=20)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p)
+    run(lua, p, w, 60)
+    seq = step_seq(lua, fs)
+    assert seq[:3] == ["swing", "work", "swing"] and len(w["presses"]) == 2   # the press, the step, the press
+    assert work_of(lua, "clear") is True and work_of(lua, "n") == 1
+
+
+def test_without_work_the_same_chaser_is_pressed_with_no_step(lua, fs):
+    p, z, w = world(lua, zx=10.75, zspeed=1.0, attack_ticks=20)
+    records(lua, [target_rec(w)], {7: z})
+    go(lua, p)
+    run(lua, p, w, 60)
+    assert "work" not in step_seq(lua, fs) and w["presses"]
+
+
+def test_a_knocked_down_target_is_no_contact_and_takes_no_step(lua, fs):
+    """The smokes' contact 9 and 18 were a7's and a14's knock_wait ticks (9 and 18): a target the press knocked down
+    is no standing zombie for the gap, the contact or the step."""
+    p, z, w = world(lua, zx=10.8, attack_ticks=6)
+    w["on_attack"] = lambda wd, shove: wd.__setitem__("knocked", True)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p)
+    run(lua, p, w, 30)
+    assert "knock_wait" in step_seq(lua, fs) and "work" not in step_seq(lua, fs)
+    assert work_of(lua, "contact") == 0
+
+
+def test_the_leaf_carries_no_clear_until_a_heading_was_chosen(lua, fs):
+    """The smokes' leaves read clear false, n 0 on every line though no heading was ever chosen: the leaf now says
+    nothing of clear and n until a choose has run."""
+    p, z, w = world(lua, zx=11.5, **LOOK_OFF)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p)
+    run(lua, p, w, 3)
+    leaf = progress(lua, fs)[-1]["result"]["work"]
+    assert "clear" not in leaf and "n" not in leaf and leaf["gap"] == pytest.approx(1.5)

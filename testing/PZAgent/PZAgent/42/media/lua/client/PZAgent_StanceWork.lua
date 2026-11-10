@@ -46,7 +46,8 @@
 --   within K.WORK_FALLEN_R. Each square's verdict is read once a choose.
 -- The lines: every result line (progress, done, failed) carries contact and the work leaf {heading (degrees, atan2's
 --   convention), turn (degrees), clear, gap, n (the standing zombies in the sum), crawler (the nearest crawler's
---   distance within crawlerR x 2)}, a value not yet read absent; the steps work, cornered and pile in the done line's
+--   distance within crawlerR x 2)}, a value not yet read absent (clear and n until the first heading choice, fix 1:
+--   "never chose" told from "chose, nothing clear"); the steps work, cornered and pile in the done line's
 --   steps.
 -- The cost (counted in test_lua_footwork.py): K.meleeCrowd's one read replaces the crowd's (3 a candidate: isDead,
 --   isOnFloor, the distance); the floor reads the frame (2 calls without one); the step keeps its walk (walkAlong sets
@@ -69,6 +70,8 @@ K.WORK_FALLEN_R = 0.5        -- tiles: a fallen zombie this near a probe point v
 K.WORK_WITHDRAW_W = 1.0      -- the withdraw vector's weight in the sum
 K.WORK_CRAWLER_W = 2.0       -- a crawler's weight in the sum (the standing ones' 1)
 K.WORK_CONTACT_R = 1.0       -- tiles: the nearest standing zombie inside this is contact (the spec's reading)
+K.WORK_STEP_TICKS = 30       -- fix 1: the most ticks of the step after a press's result inside the band (half a
+                             -- second, a judgment: the struck zombie's stagger, #4686, is the step's window)
 
 local WORK_NUMS = { "workR", "crawlerR", "bandLo", "floorHealth" }
 local WORK_KEYS = { "workR", "crawlerR", "bandLo", "floorHealth", "withdrawX", "withdrawY", "pile" }
@@ -93,7 +96,8 @@ local function workArgs(args)
     if args.pile ~= nil and type(args.pile) ~= "boolean" then return nil, true end
     return { workR = args.workR, crawlerR = args.crawlerR, bandLo = args.bandLo, floorHealth = args.floorHealth,
              withdrawX = wx or 0, withdrawY = wy or 0, pile = args.pile == true,
-             contact = 0, inContact = false, near = nil, gap = nil, nearId = nil, n = 0, clear = false,
+             contact = 0, inContact = false, near = nil, gap = nil, nearId = nil, n = nil, clear = nil,
+             stepTicks = 0, pressMark = 0,
              hx = nil, hy = nil, heading = nil, turn = nil, crawlerD = nil, sinceChoose = K.WORK_TICKS,
              clearTicks = 0, pinId = nil, pileState = nil, pileTicks = 0, pileMark = 0, piles = 0 }
 end
@@ -399,6 +403,33 @@ local function pileTick(p, st, d, crowd, fallen, nearest)
     return step, why
 end
 
+-- fix 1 (the smokes x_trial-ladder-20261110-081250 and -081935: inside the band the meet pressed swing after swing
+-- and never reached its stand or face, so the step never went): at a press's result (the presses' count moved since
+-- the last tick read, no refusal running) the step is armed for K.WORK_STEP_TICKS ticks; while armed and the nearest
+-- standing zombie (the target not knocked down) is inside the reach less bandLo, the step `work` goes before the
+-- meet's next press, the body snapped on the target; cornered, or the gap out of the band, ends it and the meet presses
+local function pressStep(p, st, standing, g)
+    local w = st.work
+    local pc = presses(st)
+    if pc ~= w.pressMark then
+        w.pressMark = pc
+        if st.refusals == 0 then w.stepTicks = K.WORK_STEP_TICKS end
+    end
+    if w.stepTicks <= 0 then return nil end
+    if not standing or g == nil or g >= M.reachOf(p, st) - w.bandLo then
+        w.stepTicks = 0
+        return nil
+    end
+    w.stepTicks = w.stepTicks - 1
+    K.FACING.hold(p, st, K.FACING.bearing(st.px, st.py, st.zx, st.zy))
+    local step = stepAlong(p, st, "work", false)
+    if step == "cornered" then
+        w.stepTicks = 0
+        return nil
+    end
+    return step
+end
+
 -- the footwork's tick (the header's): the floor, the gap and contact, clear, the pile; a step or an end, else nil
 function K.workTick(p, st, d, crowd, fallen, now)
     local w = st.work
@@ -406,7 +437,8 @@ function K.workTick(p, st, d, crowd, fallen, now)
     local fh, fhow, fres = K.workFloor(p, st)
     if fh ~= nil then return fh, fhow, fres end
     local g, gid = nil, nil
-    if not fallen then g, gid = d, st.id end
+    local standing = not fallen and not st.knocked   -- fix 1: a target the press knocked down is no standing zombie
+    if standing then g, gid = d, st.id end
     local near = w.near
     if near ~= nil and (g == nil or near[1].d < g) then g, gid = near[1].d, near[1].id end
     w.gap = g
@@ -427,10 +459,11 @@ function K.workTick(p, st, d, crowd, fallen, now)
         w.clearTicks = 0
     end
     if w.pile then
-        local nearest = not fallen and (near == nil or near[1].d >= d - K.MELEE_REPIN_SLACK)
-        return pileTick(p, st, d, crowd, fallen, nearest)
+        local nearest = standing and (near == nil or near[1].d >= d - K.MELEE_REPIN_SLACK)
+        local ps, phow, pres = pileTick(p, st, d, crowd, fallen, nearest)
+        if ps ~= nil then return ps, phow, pres end
     end
-    return nil
+    return pressStep(p, st, standing, g)
 end
 
 -- the idle (the meet would stand or face): the crawler target, the step inside the band, else the meet's own
