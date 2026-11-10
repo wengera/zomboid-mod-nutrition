@@ -688,7 +688,7 @@ def test_a_stepping_tick_at_a_re_choose_stays_under_40_java_calls(lua, fs):
     # setForceAim at the step: 2), the re-choose (getZ, the player's and one probe square 2, the five others' positions
     # 10, the square's isSolid, isSolidTrans, isBlockedTo and its crossed hop flag 4); none of the five is within the
     # near read's candidates (the reach + K.MELEE_CROWD_SLACK), the floor off (0); fix 2: the nearest's getRealState
-    # (the lunge read, 1): 32
+    # (the attack read, 1): 32
     assert len(log) == 32 and len(log) < 40, sorted(log)
 
 
@@ -771,22 +771,34 @@ def test_beyond_point_blank_inside_the_band_the_step_still_goes(lua, fs):
     assert "work" in step_seq(lua, fs) and work_of(lua, "held") is None
 
 
-def test_no_step_into_a_lunge_and_a_step_in_flight_ends_at_once(lua, fs):
-    """The target at 0.95 stepped back from; once its state reads a lunge the step ends at once and the meet presses;
-    the leaf says held lunge."""
+def test_the_step_goes_against_a_lunging_chaser_and_ends_at_once_on_an_attack(lua, fs):
+    """Fix 4 (the controller's ruling: live, `lunge` is every chaser's state at any distance, x_trial-ladder-20261110-
+    091352): the step goes at 0.95 against a chaser reading `lunge-network`, no hold; once its state reads `attack`
+    the step ends at once and the meet presses; the leaf says held attack, never lunge."""
     p, z, w = world(lua, zx=10.95, zspeed=2.0, attack_ticks=6, **LOOK_OFF)   # a chaser at the walk's pace
-    state = {"v": "walktoward"}
+    state = {"v": "lunge-network"}
     z.getRealState = lambda s: state["v"]
     records(lua, [target_rec(w)], {7: z})
     gow(lua, p)
     run(lua, p, w, 10, stop=lambda: lua.eval("PZA.skills.cur.st.step") == "work")
-    assert lua.eval("PZA.skills.cur.st.step") == "work"
-    state["v"] = "lunge-network"
+    assert lua.eval("PZA.skills.cur.st.step") == "work" and work_of(lua, "held") is None
+    state["v"] = "attack"
     run(lua, p, w, 1)
-    assert lua.eval("PZA.skills.cur.st.step") != "work" and work_of(lua, "held") == "lunge"
+    assert lua.eval("PZA.skills.cur.st.step") != "work" and work_of(lua, "held") == "attack"
     n = len(step_seq(lua, fs))
     run(lua, p, w, 10)
     assert "work" not in step_seq(lua, fs)[n:]
+
+
+def test_a_lunge_state_is_never_written_as_held(lua, fs):
+    """The falsifier of the dropped hold: a lunging chaser in the band for 30 ticks never reads held lunge."""
+    p, z, w = world(lua, zx=10.95, zspeed=2.0, attack_ticks=6, **LOOK_OFF)
+    z.getRealState = lambda s: "lunge"
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p)
+    run(lua, p, w, 30)
+    assert "work" in step_seq(lua, fs)
+    assert all(a["result"].get("work", {}).get("held") != "lunge" for a in acts(lua, fs) if a.get("result"))
 
 
 # ---- fix 3: the pile triggers on the engine's attackers and its step goes at point blank (the run 091352) -------------
@@ -809,7 +821,7 @@ def pile_world(lua, attackers, others, **kw):
 
 def test_two_attackers_trigger_the_pile_the_shove_then_the_step_at_point_blank(lua, fs):
     """Four standing at 0.55 to 1.25 (none but the target within 0.9) and the engine's attackers 2: the pile's shove
-    at the target, and within K.WORK_TICKS of its result the step `pile` along the heading, the point-blank and lunge
+    at the target, and within K.WORK_TICKS of its result the step `pile` along the heading, the point-blank and attack
     gate not applied to it; the leaf names the trigger."""
     p, z, w = pile_world(lua, 2, (1.0, 1.15, 1.25), **LOOK_OFF)
     gow(lua, p, pile=True)

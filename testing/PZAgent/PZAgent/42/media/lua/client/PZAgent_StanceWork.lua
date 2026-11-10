@@ -47,7 +47,7 @@
 --   within K.WORK_FALLEN_R. Each square's verdict is read once a choose.
 -- The lines: every result line (progress, done, failed) carries contact and the work leaf {heading (degrees, atan2's
 --   convention), turn (degrees), clear, gap, n (the standing zombies in the sum), crawler (the nearest crawler's
---   distance within crawlerR x 2), held (fix 2: point_blank, lunge or attack, why the step was last withheld or ended;
+--   distance within crawlerR x 2), held (fixes 2 and 4: point_blank or attack, why the step was last withheld or ended;
 --   absent once one goes)}, a value not yet read absent (clear and n until the first heading choice, fix 1:
 --   "never chose" told from "chose, nothing clear"); the steps work, cornered and pile in the done line's
 --   steps.
@@ -417,7 +417,7 @@ end
 -- the pile (pile true; fix 3): on the trigger the shove at the nearest standing zombie (re-pinned to it first; within
 -- shoveR, and not after two shoves in a row at it that knocked nothing down), at its result the step `pile` along the
 -- clearest heading for K.WORK_STEP_TICKS ticks with the body snapped on the target, ungated (the move at point
--- blank: no point-blank, lunge or attack hold), `cornered` with no clear heading (the meet presses next); then the
+-- blank: no point-blank or attack hold), `cornered` with no clear heading (the meet presses next); then the
 -- meet's next press (the swing once the gap passes MinRange), waited K.WORK_STEP_TICKS at most; again while the
 -- trigger holds. nil to go on
 local function pileTick(p, st, d, fallen, standing)
@@ -474,15 +474,15 @@ end
 -- fix 2 (x_trial-ladder-20261110-084643, a73's wound at frame 2618: the step went at the leaf's gap 0.59, the nearest
 -- the second zombie 4378 reading `attack`, ahead of the meet's re-pin to it and its press; the bite landed at 0.73):
 -- why the step is withheld or ended now, or nil: point_blank (the nearest standing zombie inside
--- K.WORK_POINT_BLANK_R), lunge or attack (its getRealState so reading; one call). The reason is kept in w.held for
--- the leaf, cleared when a step goes
+-- K.WORK_POINT_BLANK_R) or attack (its getRealState so reading; one call). The reason is kept in w.held for the leaf,
+-- cleared when a step goes. Fix 4 (the controller's ruling on fix 3's concern 1): no lunge hold; live, `lunge` is every
+-- chaser's state at any distance (x_trial-ladder-20261110-091352: 0.6 to 2.5 tiles), so it held the whole band
 local function stepHeld(w, g)
     if g ~= nil and g < K.WORK_POINT_BLANK_R then return "point_blank" end
     local o = w.nearO
     if o == nil then return nil end
     local ok, state = PZA.call(o, "getRealState")
     if not ok or type(state) ~= "string" then return nil end
-    if string.find(state, "lunge") ~= nil then return "lunge" end
     if string.find(state, "attack") ~= nil then return "attack" end
     return nil
 end
@@ -565,7 +565,7 @@ function K.footwork(p, st, d, px, py, zx, zy, now)
         end
     end
     if w.gap ~= nil and w.gap < reach - w.bandLo then
-        local held = stepHeld(w, w.gap)   -- fix 2: no step at point blank or into a lunge
+        local held = stepHeld(w, w.gap)   -- fixes 2 and 4: no step at point blank or into an attack
         if held == nil then
             w.held = nil
             return stepAlong(p, st, "work", false)
