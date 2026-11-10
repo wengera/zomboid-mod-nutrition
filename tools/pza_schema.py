@@ -427,7 +427,7 @@ does.
 import dataclasses
 import json
 import math
-from typing import ClassVar
+from typing import ClassVar, Optional
 '''
 
 PY_RUNTIME = '''
@@ -603,9 +603,11 @@ class _Cmd:
 
     def args(self):
         """The wire args: every field, but a bool field left at False (PZA/1.5.3: absent reads false in the Lua, so a
-        command sent before the bool existed and one leaving it off are the same line)."""
+        command sent before the bool existed and one leaving it off are the same line) and an optional field left at
+        None (PZA/1.13: a schema default of null, absent on the wire)."""
         return {f.name: getattr(self, f.name) for f in dataclasses.fields(self)
-                if not (ACTION_ARGS[self.TYPE][f.name] == "bool" and getattr(self, f.name) is False)}
+                if getattr(self, f.name) is not None
+                and not (ACTION_ARGS[self.TYPE][f.name] == "bool" and getattr(self, f.name) is False)}
 '''
 
 PY_TYPES = dict({"int": "int", "float": "float", "str": "str", "bool": "bool"}, **{k: "str" for k in ARG_ENUMS})
@@ -655,7 +657,9 @@ def render_py(sch=None):
         P.append("    TYPE: ClassVar[str] = %s" % _pl(t))
         for arg in a["args"]:
             line = "    %s: %s" % (arg["name"], PY_TYPES[arg["kind"]])
-            if arg["has_default"]:
+            if arg["has_default"] and arg["default"] is None:   # PZA/1.13: a null default, the field absent on the wire
+                line = "    %s: Optional[%s] = None" % (arg["name"], PY_TYPES[arg["kind"]])
+            elif arg["has_default"]:
                 default = arg["default"]
                 line += " = %s" % _pl(float(default) if arg["kind"] == "float" else default)   # a number field's 0 is 0.0
             P.append(line + "  # " + arg["prop"]["description"])
@@ -680,7 +684,7 @@ def render_tools(sch=None):
             else:
                 p = {"type": JSON_TYPES[arg["kind"]]}
             p["description"] = arg["prop"]["description"]
-            if arg["has_default"]:
+            if arg["has_default"] and arg["default"] is not None:   # PZA/1.13: a null default is left unstated
                 p["default"] = arg["default"]
             props[arg["name"]] = p
         tools.append({"name": t, "description": a["description"],

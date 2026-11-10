@@ -8,6 +8,7 @@ writes one `state-NNNNNN.log` file per line instead of appending to `state.log`.
 fake mod's own, written against `ACTION_ARGS` and independent of `agent.base.actions`.
 """
 import copy
+import dataclasses
 import json
 import os
 import time
@@ -69,6 +70,9 @@ MELEE_CAPS = list(CAPS_17) + list(MELEE_TYPES)      # a PZA/1.8 build's hello ca
 _GROUPS = [f for f, s in pza1.SHAPES["frame"].items() if s[0] == "group"]
 _GROUP_AT = {g: pza1.ORDER["frame"].index(g) for g in _GROUPS}
 _ENUMS = pza1._ENUMS     # every argument enum the generator lists (ARG_ENUMS; PZA/1.8 adds melee's meleeMode)
+# PZA/1.13: each command's arguments whose schema default is null (absent on the wire), off the generated dataclasses
+_ABSENT = {c.TYPE: {f.name for f in dataclasses.fields(c) if f.default is None}
+           for c in vars(pza1).values() if isinstance(c, type) and dataclasses.is_dataclass(c) and getattr(c, "TYPE", "")}
 
 
 def bad_args(cmd):
@@ -80,6 +84,7 @@ def bad_args(cmd):
         return "unknown type"
     args = cmd["args"]
     optional = {n for n, k in want.items() if k == "bool"}     # PZA/1.5.3: a bool arg absent reads false (the Lua's)
+    optional |= _ABSENT.get(cmd["type"], set())                # PZA/1.13: a null-default arg absent (melee's work)
     if not isinstance(args, dict) or not set(want) - optional <= set(args) <= set(want):
         return "bad args"
     for name, kind in want.items():

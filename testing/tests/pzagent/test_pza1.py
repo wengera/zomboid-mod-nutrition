@@ -970,7 +970,8 @@ def test_the_melee_s_pza1_10_args_and_result():
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
     assert tuple(pza1.ACTION_ARGS["melee"]) == ("targetId", "mode", "reach", "shoveR", "releaseR", "faceR",
                                                  "pressAngle", "pressLo", "floorR", "handbackR", "stall", "floorSwing",
-                                                 "headAim")
+                                                 "headAim", "workR", "crawlerR", "bandLo", "withdrawX", "withdrawY",
+                                                 "floorHealth", "pile")   # PZA/1.13 (Plan 35 Task 1): the work
     assert pza1.ACTION_ARGS["melee"]["stall"] == "int"
     assert d["args_melee"]["additionalProperties"] is False
     leaf = {"d_press", "d_collide_pred", "d_min", "look_off", "hp0", "hp1", "knock", "cut_by",

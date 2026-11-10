@@ -61,7 +61,10 @@ def check(cmd):
     fields = {f.name: getattr(cmd, f.name) for f in dataclasses.fields(cmd)}
     if set(fields) != set(want):
         raise TypeError("PZA/1 %s: fields %s, the schema wants %s" % (typ, sorted(fields), sorted(want)))
+    absent = {f.name for f in dataclasses.fields(cmd) if f.default is None}   # PZA/1.13: a null default
     for name, kind in want.items():
+        if fields[name] is None and name in absent:    # an optional field left absent: off the wire (pza1's args)
+            continue
         if not _ok(kind, fields[name]):
             raise TypeError("PZA/1 %s.%s: %r is not a %s" % (typ, name, fields[name], kind))
     return cmd.args()      # PZA/1.5.3: a bool field at False is left off the wire (pza1's args)

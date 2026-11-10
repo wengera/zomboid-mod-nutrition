@@ -628,6 +628,7 @@ local function swingPress(p, st, d, v, off, on, at)
     local dmin = d   -- the shove test's distance: a standing target's readable point is its position (F5)
     if dmin <= minR then
         if on then return press(p, st, "shove", d, d, off, "face", dmin) end
+        if st.work ~= nil and K.footwork ~= nil then return K.footwork(p, st, d, st.px, st.py, st.zx, st.zy, PZA.now()) end
         stopWalk(p, st)
         return "face"
     end
@@ -656,6 +657,7 @@ local function meet(p, st, d, px, py, zx, zy, now)
     if not st.near then
         holdStance(p, st)
         if not closing then return walkToward(p, st, "close", px, py, zx, zy, d, now) end
+        if st.work ~= nil and K.footwork ~= nil then return K.footwork(p, st, d, px, py, zx, zy, now) end
         stopWalk(p, st)
         return "stand"
     end
@@ -667,6 +669,7 @@ local function meet(p, st, d, px, py, zx, zy, now)
     if spent and not swingNext then
         if d <= st.shoveR then
             if on then return press(p, st, "shove", d, d, off, "face") end
+            if st.work ~= nil and K.footwork ~= nil then return K.footwork(p, st, d, px, py, zx, zy, now) end
             stopWalk(p, st)
             return "face"
         end
@@ -676,6 +679,7 @@ local function meet(p, st, d, px, py, zx, zy, now)
         if step ~= nil then return step, why end
     end
     if not closing and d > at then return walkToward(p, st, "close", px, py, zx, zy, d, now) end
+    if st.work ~= nil and K.footwork ~= nil then return K.footwork(p, st, d, px, py, zx, zy, now) end
     stopWalk(p, st)
     return "face"
 end
@@ -700,7 +704,7 @@ end
 local function crowdOf(p, st, crowd, d, fallen)
     local n = #crowd
     if not fallen then n = n + 1 end
-    if n >= K.MELEE_CROWD_N then
+    if n >= K.MELEE_CROWD_N and (st.work == nil or not st.work.pile) then   -- Plan 35: with pile, the reflex meets it
         local ds = {}
         if not fallen then ds[1] = d end
         for i = 1, #crowd do ds[#ds + 1] = crowd[i].d end
@@ -741,8 +745,10 @@ local function reflex(p, st, d, px, py, zx, zy, now)
         if st.refusals >= K.REFUSE_END then return "done", "lost", { why = "refused" } end
     end
     if d > st.releaseR then return "done", "lost", { why = "out of range" } end
-    local crowd = standingNear(p, st, K.MELEE_CROWD_R)
-    local fallen = K.onFloor(z)
+    local crowd = K.meleeCrowd(p, st)   -- Plan 35 Task 1: standingNear within K.MELEE_CROWD_R (work: a wider read's cut)
+    local fallen = K.onFloor(z) or K.meleeCrawlerPinned(st)
+    local ws, wh, wr = K.meleeWorkTick(p, st, d, crowd, fallen, now)   -- Plan 35 Task 1: nil without work
+    if ws ~= nil then return ws, wh, wr end
     if crowd ~= nil then
         local step, how, res = crowdOf(p, st, crowd, d, fallen)
         if step ~= nil then return step, how, res end
@@ -771,6 +777,7 @@ local function counts(st, out)
     out.swings, out.shoves, out.stomps, out.floors = st.swings, st.shoves, st.stomps, st.floors
     out.knockdowns, out.hits = st.knockdowns, st.hits
     if st.repins > 0 then out.target, out.repins = st.id, st.repins end   -- Task 15a: the zombie now pressed
+    if st.work ~= nil and K.workResult ~= nil then K.workResult(st, out) end   -- Plan 35 Task 1: contact, the work leaf
     return out
 end
 
@@ -1087,6 +1094,7 @@ end
 local function standingHandback(p, st)
     local near = standingNear(p, st, st.handbackR)
     if near == nil then return nil end
+    if st.work ~= nil then return K.meleeWorkStanding(p, st, near) end   -- Plan 35 Task 1: the re-pin, no hand-back
     return "done", "handback", { why = "standing", id = near[1].id, d = near[1].d }
 end
 K.meleeStanding = standingHandback
@@ -1099,11 +1107,72 @@ function K.meleeHitHandback(p, st, d)
         fallen = K.onFloor(st.z)
         local n = #crowd
         if not fallen then n = n + 1 end
-        if n >= K.MELEE_CROWD_N then return crowdOf(p, st, crowd, d, fallen) end
+        if n >= K.MELEE_CROWD_N and (st.work == nil or not st.work.pile) then return crowdOf(p, st, crowd, d, fallen) end
     end
+    if st.work ~= nil then return K.meleeWorkFloor(p, st) end   -- Plan 35 Task 1: the floor; the re-pin after it
     local hb, how, res = standingHandback(p, st)
     if hb == nil then return nil end
     if fallen == nil then fallen = K.onFloor(st.z) end
     if not fallen then return nil end
     return hb, how, res
+end
+
+-- ---- the footwork's sites (Plan 35 Task 1, PZA/1.13) ---------------------------------------------------------------
+-- The spec 2026-11-10-plan-35-the-footwork-design.md section 3.1. The footwork reflex is PZAgent_StanceWork.lua (it
+-- sorts after this file: "stancem" before "stancew"), which types the melee's optional work arguments (workR, crawlerR,
+-- bandLo, withdrawX, withdrawY, floorHealth, pile) into st.work, nil when none is given; with st.work nil every site
+-- below and every hook above answers as before (the melee's lines, presses and setters byte for byte,
+-- test_lua_footwork.py), and a tree without the new file runs the melee unchanged. The hooks above: meet's idle
+-- returns (stand, face: the footwork's gap, heading and step, K.footwork), reflex's crowd read (K.meleeCrowd), its
+-- fallen read (a crawler the footwork pinned is finished, K.meleeCrawlerPinned), the footwork's tick before the
+-- crowd (K.meleeWorkTick: the floor and clear hand-backs, the gap and the contact read, the pile), crowdOf and the hit
+-- step's crowd (no crowd hand-back with pile), the finish's standing hand-back (the re-pin, K.meleeWorkStanding), the
+-- hit step's hand-backs (the floor only, K.meleeWorkFloor) and counts (contact and the work leaf, K.workResult).
+-- K.meleeWork exports the melee's own reads and moves the footwork reuses.
+K.meleeWork = { standingNear = standingNear, walkAlong = walkAlong, stopWalk = stopWalk, press = press, repin = repin,
+                reachOf = reachOf, lookOff = lookOff }
+
+-- reflex's crowd: the standing zombies within K.MELEE_CROWD_R, nearest first, or nil. With work, one read within the
+-- larger of the reach, K.MELEE_CROWD_R and K.WORK_CONTACT_R kept as st.work.near for the footwork's gap, and the crowd
+-- cut from it (one candidate read a tick, not two)
+function K.meleeCrowd(p, st)
+    local w = st.work
+    if w == nil then return standingNear(p, st, K.MELEE_CROWD_R) end
+    local near = standingNear(p, st, math.max(reachOf(p, st), K.MELEE_CROWD_R, K.WORK_CONTACT_R or 0))
+    w.near = near
+    if near == nil then return nil end
+    local crowd = nil
+    for i = 1, #near do
+        if near[i].d < K.MELEE_CROWD_R then
+            crowd = crowd or {}
+            crowd[#crowd + 1] = near[i]
+        end
+    end
+    return crowd
+end
+
+-- the target is a crawler the footwork pinned (finished as fallen whatever isOnFloor reads)
+function K.meleeCrawlerPinned(st)
+    local w = st.work
+    return w ~= nil and w.pinId ~= nil and w.pinId == st.id
+end
+
+-- the footwork's tick (K.workTick), nil without work or without the footwork's file
+function K.meleeWorkTick(p, st, d, crowd, fallen, now)
+    if st.work == nil or K.workTick == nil then return nil end
+    return K.workTick(p, st, d, crowd, fallen, now)
+end
+
+-- the finish's standing zombie with work: the re-pin to the nearest within handbackR (the spec's item 6), except after
+-- a crawler pin, when only one within the reach breaks the stomp (no flapping between the crawler and a far walker)
+function K.meleeWorkStanding(p, st, near)
+    local w = st.work
+    if w.pinId ~= nil and w.pinId == st.id and near[1].d > reachOf(p, st) then return nil end
+    return repin(p, st, near[1])
+end
+
+-- the hit step's hand-back with work: the floor (K.workFloor), else nothing
+function K.meleeWorkFloor(p, st)
+    if K.workFloor == nil then return nil end
+    return K.workFloor(p, st)
 end

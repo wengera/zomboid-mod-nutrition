@@ -62,7 +62,7 @@ PZA.schema = {
         unwear = { "itemId" },
         shove = { "targetId" },
         stomp = { "targetId" },
-        melee = { "targetId", "mode", "reach", "shoveR", "releaseR", "faceR", "pressAngle", "pressLo", "floorR", "handbackR", "stall", "floorSwing", "headAim" },
+        melee = { "targetId", "mode", "reach", "shoveR", "releaseR", "faceR", "pressAngle", "pressLo", "floorR", "handbackR", "stall", "floorSwing", "headAim", "workR", "crawlerR", "bandLo", "withdrawX", "withdrawY", "floorHealth", "pile" },
         sneak = { "on" },
         probe = { "mode", "targetId", "x", "y", "ticks", "k", "vx", "vy" },
     },
@@ -343,7 +343,7 @@ PZA.enc.action = enc_action
 -- group act: The current skill.
 --   aid: The skill's action id.
 --   state: The skill's state.
---   step: PZA/1.8 (Plan 28 Task 7a): the melee reflex's step in force when the frame was read (face, swing, shove, stomp, floor, stomp_walk, knock_wait, back, close, stand or hit, as its progress lines name them: the step of the client tick that ran before the frame's read); null for every other skill, and in logs written before PZA/1.8.
+--   step: PZA/1.8 (Plan 28 Task 7a): the melee reflex's step in force when the frame was read (face, swing, shove, stomp, floor, stomp_walk, knock_wait, back, close, stand or hit, and since PZA/1.13 work, cornered and pile, as its progress lines name them: the step of the client tick that ran before the frame's read); null for every other skill, and in logs written before PZA/1.8.
 local function enc_act(t)
     if t == nil then return "null" end
     return "[" .. v(t.aid) .. "," .. v(t.state) .. "," .. v(t.step) .. "]"
