@@ -478,13 +478,18 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         reads above FLEE_HEALTH (the reflex's floor, `floorHealth`: at or under it the reflex hands back `floor` and the
         rows run as before), the hold logged `engage_hold` {rule} (the first row held on the tick); else False (the rule
         off, no engagement)."""
-        f = self.fight
-        if not (self.ENGAGE_HOLD and self.mode == "fight" and f is not None and f._engaged()
-                and self._health() > FLEE_HEALTH):
+        if not self._engage_on():
             return False
         if self.engage_hold is None:
             self.engage_hold = {"rule": rule}
         return True
+
+    def _engage_on(self):
+        """`_engage_holds`'s read, with no log: ENGAGE_HOLD on, this branch fighting, its Fight engaged, the health above
+        FLEE_HEALTH."""
+        f = self.fight
+        return (self.ENGAGE_HOLD and self.mode == "fight" and f is not None and f._engaged()
+                and self._health() > FLEE_HEALTH)
 
     def _flee_reason(self, held, n):
         """Why the threat branch flees, by the hysteresis in the module docstring (`_hysteresis`); None when it fights.
@@ -1079,6 +1084,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.held_cut = None       # P29-H': this tick's cut flee walk (`flee.Flee.take_held_cut`)
         self.care_withheld = None  # Plan 34 (LEAVE_CARE): this tick's care barred under a column
         self.engage_hold = None    # Plan 35 (ENGAGE_HOLD): this tick's threat row held off the engaged melee
+        self.engage_yield = None   # Plan 35 fix 2: this tick's care the engagement yielded to (a bleed, nobody in KEEP_R)
         self._read_bleed()         # P30-F: each part's health sampled, its bleed's rate read by `_dress_waits`
         self._release_edges()   # P25-X: a zombie refused across a blocked edge, read on the player's side, is free
         self._door_held_read()   # P30-C: a zombie behind a door within DOOR_HELD_R, decided before the hold counts
@@ -1148,9 +1154,11 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if commit is not None and commit[0] == "leg":
             self.care_yield = None
             self.why = {"care_commit": self.care_commit, "held": len(held)}
+            if self.engage_yield is not None:   # Plan 35 fix 2: the bleed's leg over the engaged melee
+                self.why["engage_yield"] = self.engage_yield
             return commit[1]
         self.care_yield = commit[1] if commit is not None else self._care_yields(held)
-        if self.care_yield is not None and not self.care.ride_now and self._engage_holds("care"):
+        if self.care_yield is not None and not self.care.ride_now and self._care_engage_holds():
             self.care_yield, self.bleed_yield, self.scratch_yield = None, None, None   # Plan 35: no care over the
                                                                                        # engaged melee
         if self.care_yield is not None:
@@ -1172,6 +1180,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             self.why["many_tail"] = self.many_tail   # P27-B: the tick the `many` episode's tail ended it
         if self.care_withheld is not None:   # Plan 34 (LEAVE_CARE): the care barred under a column
             self.why = dict(self.why or {}, care_withheld=self.care_withheld)
+        if self.engage_yield is not None:   # Plan 35 fix 2: the engagement yielded to the bleed's care
+            self.why = dict(self.why or {}, engage_yield=self.engage_yield)
         return ans
 
     def _decide(self, held, breach, replanned=False):

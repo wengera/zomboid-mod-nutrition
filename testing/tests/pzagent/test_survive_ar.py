@@ -374,29 +374,87 @@ def test_the_drag_guard_at_the_engaged_melee_is_held(tmp_path, on):
         assert why.get("group") == "drag" and r.acts.history[-1] is not a
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_the_care_s_commitment_at_the_engaged_melee_is_held(tmp_path, on):
-    """Part 7 bleeding, a rag held, the melee's target stepped back to 2.6 tiles (beyond KEEP_R, within CARE_HOLD_R):
-    engaged, no care leg and no yield (the melee holds), logged `engage_hold` {rule "care"}; with ENGAGE_HOLD off,
-    CARE_COMMIT's one distance leg (Plan 32 Task 5 (c)'s answer) superseding the melee."""
-    parts = [part(7, bleeding=True, bleedingTime=5.0)]
-    rr = rig(tmp_path)
-    sv = S.Survive(rr.world, rr.acts, str(tmp_path / "decision.log"), rr.clock)
+def care_engaged(tmp_path, on, dist, parts):
+    """`engaged`'s two lines with a rag held and `parts` on the second, the melee's target then at `dist` tiles."""
+    r = rig(tmp_path)
+    sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
     sv.GROUP_LEAVE, sv.ENGAGE_HOLD = False, on
-    hold(rr, 11, "Base.RippedSheets")
-    rr.frame(zombies=[z(1, 101.8)])
-    tick(rr, sv)
-    a = rr.acts.history[-1]
+    hold(r, 11, "Base.RippedSheets")
+    r.frame(zombies=[z(1, 101.8)])
+    tick(r, sv)
+    a = r.acts.history[-1]
     assert a.type == "melee"
-    accept(rr, a, "face")
-    rr.advance(0.5)
-    care_frame(rr, parts, zombies=[z(1, 102.6)])
-    tick(rr, sv)
+    accept(r, a, "face")
+    r.advance(0.5)
+    care_frame(r, parts, zombies=[z(1, 100.0 + dist)])
+    tick(r, sv)
+    return r, sv, a
+
+
+BLEED = [part(7, bleeding=True, bleedingTime=5.0)]
+SCRATCH = [part(7, wound=True)]   # a wound that does not bleed (a scratch's Dress wanted)
+
+
+@pytest.mark.parametrize("on", [True, False])
+def test_a_bleed_with_nobody_within_keep_r_yields_the_engagement_to_the_dressing(tmp_path, on):
+    """Plan 35 fix 2 (the controller's ruling; Angus's dress first): part 7 bleeding, a rag held, the melee's target
+    stepped back to 3.2 tiles (no standing zombie within KEEP_R; beyond CARE_HOLD_R, so the commitment yields rather
+    than walks its leg): engaged, the care's commitment answers as before, its Dress's stop superseding the melee,
+    logged `engage_yield` {rule "bleed"}; with ENGAGE_HOLD off (the pin of the rule before it) the same yield, no
+    `engage_yield`."""
+    r, sv, a = care_engaged(tmp_path, on, 3.2, BLEED)
     why = threat_why(tmp_path)
+    assert last(tmp_path)["branch"] == "care" and r.acts.history[-1].type == "stop"
+    assert why["care_commit"]["phase"] == "yield" and "engage_hold" not in why
+    assert (why.get("engage_yield") == {"rule": "bleed"}) is on
+
+
+@pytest.mark.parametrize("on", [True, False])
+def test_a_bleed_at_the_engaged_melee_s_leg_distance_takes_the_commitment_s_leg(tmp_path, on):
+    """The same with the target at 2.6 (beyond KEEP_R, within CARE_HOLD_R): the commitment's one distance leg as before
+    (Plan 32 Task 5 (c)), engaged or not; engaged, logged `engage_yield` {rule "bleed"}."""
+    r, sv, a = care_engaged(tmp_path, on, 2.6, BLEED)
+    why = threat_why(tmp_path)
+    assert why["care_commit"]["phase"] == "leg" and r.acts.history[-1].type == "steer"
+    assert (why.get("engage_yield") == {"rule": "bleed"}) is on
+
+
+@pytest.mark.parametrize("on", [True, False])
+def test_a_bleed_with_a_zombie_within_keep_r_keeps_the_fight(tmp_path, on):
+    """The bleed with the target at 1.5 (within KEEP_R): the Fight's (CARE_COMMIT's rule (a)), engaged or not: the melee
+    holds, no care send, no `engage_yield` (the trial `x_trial-ladder-20261110-084643`'s lines 291 to 306)."""
+    r, sv, a = care_engaged(tmp_path, on, 1.5, BLEED)
+    why = threat_why(tmp_path)
+    assert last(tmp_path)["branch"] == "threat" and r.acts.history[-1] is a and "engage_yield" not in why
+
+
+@pytest.mark.parametrize("on", [True, False])
+def test_the_bleed_s_yield_within_keep_r_is_held(tmp_path, on):
+    """The bleed with the target at 2.2 (within KEEP_R, beyond FIGHT_REACH): P26-D's bleed yield (`_bleed_free`) would
+    dress between swings; engaged, a standing zombie within KEEP_R keeps the hold (logged `engage_hold` {rule "care"},
+    no `engage_yield`); with ENGAGE_HOLD off, the bleed's yield as before (`care_yield` {why "bleed"}, the pin), the
+    melee superseded (in this fixture by the goal's scan: the care sends nothing on that tick)."""
+    r, sv, a = care_engaged(tmp_path, on, 2.2, BLEED)
+    why = threat_why(tmp_path)
+    assert "engage_yield" not in why
     if on:
-        assert rr.acts.history[-1] is a and why["engage_hold"] == {"rule": "care"} and "care_commit" not in why
+        assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "care"}
     else:
-        assert why["care_commit"]["phase"] == "leg" and rr.acts.history[-1].type == "steer"
+        assert why["care_yield"]["why"] == "bleed" and r.acts.history[-1] is not a
+
+
+@pytest.mark.parametrize("on", [True, False])
+def test_with_no_bleed_the_care_s_commitment_at_the_engaged_melee_is_held(tmp_path, on):
+    """A scratch (no part bleeding), the target at 3.2: engaged, the melee holds, logged `engage_hold` {rule "care"},
+    no `engage_yield`; with ENGAGE_HOLD off, CARE_COMMIT's yield to the scratch's Dress (Plan 32 Task 5 (c)'s answer,
+    the pin) superseding the melee."""
+    r, sv, a = care_engaged(tmp_path, on, 3.2, SCRATCH)
+    why = threat_why(tmp_path)
+    assert "engage_yield" not in why
+    if on:
+        assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "care"} and "care_commit" not in why
+    else:
+        assert why["care_commit"]["phase"] == "yield" and r.acts.history[-1] is not a
 
 
 FIVE = [z(1, 101.8), z(2, 100.0, 202.3), z(3, 100.0, 197.4), z(4, 98.0, 200.0), z(5, 102.0, 202.5)]   # five standing

@@ -766,6 +766,8 @@ class Survive(SneakGait, Threat):
         self.care_withheld = None   # this tick: LEAVE_CARE's {why "group", n, key} when the care was barred, else None
         self.engage_hold = None   # this tick: {rule} of the first threat row ENGAGE_HOLD held off the Fight's engaged
                                   # melee (Plan 35 Task 2, `Threat._engage_holds`), else None
+        self.engage_yield = None  # this tick: {rule "bleed"} when the engagement yielded to the bleed's care (Plan 35
+                                  # Task 2 fix 2, `CareYield._care_engage_holds`), else None
         self.care_leg = None      # the care's one distance leg (Plan 32 Task 5 (c), `care_yield.CareLeg`), else None
         self.care_commit = None   # this tick: the care commitment's why (Plan 32 Task 5 (c)), else None
         self.bleed_held = False   # this tick: that yield was made by the dressing's hold alone (P26-L2)

@@ -204,7 +204,8 @@ class CareYield:
         or more standing within GROUP_ENTRY_R (`group_n`) None, no leg and no yield, `care_withheld` set; the care
         resumes on the line the count falls under GROUP_LEAVE_N.
         Plan 35 ENGAGE_HOLD: None while the Fight's melee is engaged (`threat.Threat._engage_holds`, logged
-        `engage_hold` {rule "care"}) where the commitment would answer: no leg nor yield over the reflex."""
+        `engage_hold` {rule "care"}) where the commitment would answer: no leg nor yield over the reflex; fix 2: but a
+        bleeding part answers as before (`_care_engage_holds`)."""
         self.care_commit = None
         c = self.care
         if not self.CARE_COMMIT or not self.world.can("bandage") or c.riding() is not None:
@@ -217,8 +218,8 @@ class CareYield:
         if key is None:
             self.care_leg = None
             return None
-        if self._engage_holds("care"):
-            return None   # Plan 35 ENGAGE_HOLD: the engaged melee is not superseded for the care
+        if self._care_engage_holds():
+            return None   # Plan 35 ENGAGE_HOLD: the engaged melee is not superseded for the care (but a bleed's)
         leg = self.care_leg
         if leg is not None and leg.key != key:
             leg = self.care_leg = None
@@ -246,6 +247,19 @@ class CareYield:
                 return "leg", (self.care_leg, Steer(v[0], v[1], CARE_LEG_S, "walk"))
         self.care_commit = dict(why, phase="yield")
         return "yield", self._yield_near()
+
+    def _care_engage_holds(self):
+        """Plan 35 ENGAGE_HOLD over the care (`_care_commit`, the yields' post-check in `threat.Threat._threat`): True
+        (logged `engage_hold` {rule "care"}) while the engagement holds (`threat.Threat._engage_holds`); fix 2 (the
+        controller's ruling; Angus's dress first, memory `stand-and-fight-dress-first`): a bleeding unbandaged part
+        (`care.Care.bleeding_n`, P24-AR's count) with no standing zombie within KEEP_R (rule (a)'s read, `standing`)
+        yields it, False, logged `engage_yield` {rule "bleed"}: the dressing goes over the melee, which the ladder
+        re-sends once a zombie stands in reach."""
+        if (self._engage_on() and self.care.bleeding_n() > 0
+                and not standing(self.world, KEEP_R, self._skipped())):
+            self.engage_yield = {"rule": "bleed"}
+            return False
+        return self._engage_holds("care")
 
     def _column_bars(self, key):
         """Plan 34 (LEAVE_CARE, the spec's § 3.1): the care is barred this tick, a column of GROUP_LEAVE_N or more
