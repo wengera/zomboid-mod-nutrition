@@ -767,10 +767,8 @@ class Survive(SneakGait, Threat):
         self.engage_hold = None   # this tick: {rule} of the first threat row ENGAGE_HOLD held off the Fight's engaged
                                   # melee (Plan 35 Task 2, `Threat._engage_holds`), else None
         self.engage_yield = None  # this tick: {rule "bleed"} when the engagement yielded to the bleed's care (Plan 35
-                                  # Task 2 fix 2, `CareYield._care_engage_holds`), {rule "drag" | "many"} at the
-                                  # drag-down (fix 3, `Threat._drag_lapse`), else None
-        self._attackers_now = 0   # the frame's `me.attackers` at this threat tick's read (Plan 35 fix 3)
-        self._attackers_prev = 0  # ... at the one before (`Threat._drag_lapse`)
+                                  # Task 2 fix 2, `CareYield._care_engage_holds`), {rule "many"} above
+                                  # RETREAT_MAX_N (fixes 3 and 4, `Threat._group_lapse`), else None
         self.care_leg = None      # the care's one distance leg (Plan 32 Task 5 (c), `care_yield.CareLeg`), else None
         self.care_commit = None   # this tick: the care commitment's why (Plan 32 Task 5 (c)), else None
         self.bleed_held = False   # this tick: that yield was made by the dressing's hold alone (P26-L2)

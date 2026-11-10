@@ -379,18 +379,22 @@ def test_the_drag_guard_at_the_engaged_melee_is_held_for_one_tick(tmp_path, on):
 
 
 @pytest.mark.parametrize("on", [True, False])
-def test_two_attackers_on_two_ticks_lapse_the_hold_to_the_drag_guard(tmp_path, on):
-    """Plan 35 fix 3 (the controller's ruling; the trial `x_trial-ladder-20261110-091352`, lines 98 to 111): two
-    attackers on this threat tick and the one before: the drag-down is imminent, so the engagement's hold lapses and
-    the drag guard answers as before Plan 35 (`group` "drag", its run superseding the melee), logged `engage_yield`
-    {rule "drag"}; with ENGAGE_HOLD off, the guard as before (the pin), no `engage_yield`."""
+def test_two_attackers_on_two_ticks_keep_the_hold(tmp_path, on):
+    """Plan 35 fix 4 (the controller's ruling, reversing fix 3's drag lapse; the trial `x_trial-ladder-20261110-094757`,
+    decision line 191: the lapse's guard run superseded the melee holding three at 0.4 to 1.2 tiles, the first bite 0.6
+    s later): a pin that two attackers on this threat tick and the one before keep the hold: engaged, the melee holds,
+    logged `engage_hold` {rule "drag"}, no `engage_yield`; with ENGAGE_HOLD off, the guard as before (`group` "drag",
+    the pin of the rule before Plan 35)."""
     r, sv, a = engaged(tmp_path, on, zombies=DRAGGED, attackers=2)
     r.advance(0.5)
     r.frame(zombies=DRAGGED, attackers=2)
     tick(r, sv)
     why = threat_why(tmp_path)
-    assert why.get("group") == "drag" and r.acts.history[-1].type != "melee" and "engage_hold" not in why
-    assert (why.get("engage_yield") == {"rule": "drag"}) is on
+    assert "engage_yield" not in why
+    if on:
+        assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "drag"} and "group" not in why
+    else:
+        assert why.get("group") == "drag" and r.acts.history[-1].type != "melee"
 
 
 def care_engaged(tmp_path, on, dist, parts):
