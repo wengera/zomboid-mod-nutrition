@@ -35,6 +35,9 @@
 --   standing and no standing zombie inside MinRange is the target (the re-pin; finished as fallen, the finish's stomp;
 --   after it a standing zombie breaks the stomp only inside MinRange); with one inside MinRange the step goes for
 --   K.WORK_STEP_TICKS ungated, step_for crawler, a press between two.
+--   the retreat (fix 6, after the crawler, retreatTick below): with a withdraw vector given, the step along the biased
+--   heading is the default (step_for retreat, the leaf's retreat true), the press only with the nearest standing
+--   zombie within the reach and closing or inside MinRange; the pile and the band step do not run under it.
 --   the idle (K.footwork, where the meet would stand or face): the gap under the reach less bandLo the step `work`
 --   along the heading (the stance's
 --   force-aim held, the auto-walk in input space, the facing the meet's own snap this tick), `cornered` with no clear
@@ -106,6 +109,7 @@ local function workArgs(args)
     if args.pile ~= nil and type(args.pile) ~= "boolean" then return nil, true end
     return { workR = args.workR, crawlerR = args.crawlerR, bandLo = args.bandLo, floorHealth = args.floorHealth,
              withdrawX = wx or 0, withdrawY = wy or 0, pile = args.pile == true,
+             retreat = wx ~= nil and (wx ~= 0 or wy ~= 0), retreating = false,   -- fix 6: a withdraw vector given
              contact = 0, inContact = false, near = nil, gap = nil, nearId = nil, n = nil, clear = nil,
              stepTicks = 0, pressMark = 0, nearO = nil, held = nil,
              pileWhy = nil, pileShove = false, pileWait = 0, shoveId = nil, shoveFails = 0,
@@ -555,6 +559,41 @@ local function crawlerTick(p, st, standing, g)
     return cs, step
 end
 
+-- fix 6 (the controller's ruling, Angus's fighting retreat; x_trial-ladder-20261110-104702: four standing at 1.0 to
+-- 1.4 tiles for 60 frames while the character stood shoving at pace 0, the planner's withdraw vector sent on 12 lines
+-- and used only in the band step's window, then the drag-down): with a withdraw vector given and a standing zombie
+-- read (the target or the near read's), the retreat runs: the step along the heading (the repulsion sum plus the
+-- withdraw bias) is the default, ungated by the point-blank and attack holds, the body snapped on the nearest standing
+-- zombie, step_for retreat; the press is the exception, when the nearest standing zombie is within the reach and
+-- closing (the meet's closing read) or inside MinRange (the protective shove): nil, and the meet presses (re-pinned
+-- to the nearest first when it is not the target); the step resumes at the press's result. With no clear heading the
+-- meet presses, its idle reading cornered. The crawler (fix 5) goes first; the pile and the band step do not run
+local function retreatSnap(p, st, gid)
+    local w = st.work
+    local x, y = st.zx, st.zy
+    if gid ~= st.id and w.nearO ~= nil then x, y = posOf(w.nearO) end
+    K.FACING.hold(p, st, K.FACING.bearing(st.px, st.py, x, y))
+end
+
+local function retreatTick(p, st, d, standing, g, gid)
+    local w = st.work
+    w.retreating = false
+    if not w.retreat or g == nil then return nil end
+    w.retreating = true
+    if g <= M.reachOf(p, st) then
+        local near = w.near
+        if gid ~= st.id and near ~= nil and near[1].id == gid then return M.repin(p, st, near[1]) end
+        if standing then
+            local v = M.closingOf(st, st.px, st.py, st.zx, st.zy, d)
+            if g <= M.minRangeOf(p, st) or (v ~= nil and v > K.MELEE_CLOSING_V) then return nil end
+        end
+    end
+    retreatSnap(p, st, gid)
+    local step = stepAlong(p, st, "work", false, "retreat")
+    if step == "cornered" then return nil end   -- the meet presses; its idle reads cornered
+    return step
+end
+
 -- the footwork's tick (the header's): the floor, the gap and contact, clear, the pile; a step or an end, else nil
 function K.workTick(p, st, d, crowd, fallen, now)
     local w = st.work
@@ -586,6 +625,9 @@ function K.workTick(p, st, d, crowd, fallen, now)
     end
     local cs, cstep = crawlerTick(p, st, standing, g)   -- fix 5: the crawler is the first concern
     if cstep ~= nil then return cstep end
+    local rs, rhow, rres = retreatTick(p, st, d, standing, g, gid)   -- fix 6: the fighting retreat
+    if rs ~= nil then return rs, rhow, rres end
+    if w.retreating then return nil end   -- the press due: the meet's (the swing, the protective shove)
     if w.pile then
         local ps, phow, pres = pileTick(p, st, d, fallen, standing)
         if ps ~= nil then return ps, phow, pres end
@@ -597,6 +639,10 @@ end
 -- K.workTick's since fix 5)
 function K.footwork(p, st, d, px, py, zx, zy, now)
     local w = st.work
+    if w.retreating then   -- fix 6: the meet pressed nothing: the retreat's step (cornered with no clear heading)
+        retreatSnap(p, st, w.nearId)
+        return stepAlong(p, st, "work", false, "retreat")
+    end
     local reach = M.reachOf(p, st)
     if w.gap ~= nil and w.gap < reach - w.bandLo then
         local held = stepHeld(w, w.gap)   -- fixes 2 and 4: no step at point blank or into an attack
@@ -616,6 +662,7 @@ function K.workResult(st, out)
     local w = st.work
     out.contact = w.contact
     local leaf = { gap = w.gap, crawler = w.crawlerD, held = w.held, pile = w.pileWhy }
+    if w.retreating then leaf.retreat = true end   -- fix 6: the retreat's mode running
     if w.steppedNow then   -- fix 5: the heading, its turn, clear and n of the step this tick, absent on any other
         leaf.heading, leaf.turn, leaf.clear, leaf.n, leaf.step_for = w.heading, w.turn, w.clear, w.n, w.stepFor
     end

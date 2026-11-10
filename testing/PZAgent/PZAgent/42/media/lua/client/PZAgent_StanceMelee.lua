@@ -1130,7 +1130,8 @@ end
 -- hit step's hand-backs (the floor only, K.meleeWorkFloor) and counts (contact and the work leaf, K.workResult).
 -- K.meleeWork exports the melee's own reads and moves the footwork reuses.
 K.meleeWork = { standingNear = standingNear, walkAlong = walkAlong, stopWalk = stopWalk, press = press, repin = repin,
-                reachOf = reachOf, lookOff = lookOff, minRangeOf = minRangeOf }   -- fix 5: the shove range
+                reachOf = reachOf, lookOff = lookOff, minRangeOf = minRangeOf,   -- fix 5: the shove range
+                closingOf = closingOf }   -- fix 6: the retreat's press test
 
 -- reflex's crowd: the standing zombies within K.MELEE_CROWD_R, nearest first, or nil. With work, one read within the
 -- larger of the reach, K.MELEE_CROWD_R and K.WORK_CONTACT_R kept as st.work.near for the footwork's gap, and the crowd

@@ -24,7 +24,7 @@ SCHEMA = os.path.join(ROOT, "testing", "agent", "base", "schema", "pza1.json")
 WORK = {"workR": 3.5, "crawlerR": 1.2, "bandLo": 0.4, "floorHealth": 0.0, "reach": 1.475}   # fix 2: the live reach
 # (the smoke x_trial-ladder-20261110-084643 sent 1.475): the band, reach - bandLo, 1.075; the step goes in [0.9, 1.075)
 BAND_X = 10.95   # the target 0.95 tiles east: inside the band, beyond K.WORK_POINT_BLANK_R
-WORK_LEAF = {"heading", "turn", "clear", "gap", "n", "crawler", "held", "pile", "step_for"}   # fix 2: held; fix 3: pile; fix 5: step_for
+WORK_LEAF = {"heading", "turn", "clear", "gap", "n", "crawler", "held", "pile", "step_for", "retreat"}   # fix 2: held; fix 3: pile; fix 5: step_for
 LOOK_OFF = {"look": math.pi, "turn": 0.0, "snap": False}   # the look held away: the meet never presses
 
 
@@ -929,3 +929,52 @@ def test_the_leaf_s_crawler_is_this_tick_s(lua, fs):
     recs()
     run(lua, p, w, 1)
     assert work_of(lua, "crawlerD") is None
+
+
+# ---- fix 6: the fighting retreat under a withdraw bias (the run 104702: four standing at 1.0 to 1.4 tiles for 60 frames
+# while the character stood shoving, pace 0, then the drag-down) -----------------------------------------------------
+
+def retreat_world(lua, **kw):
+    """Three standing closing: the target 7 at 1.6 tiles east chasing at 2.5 tiles a second (faster than the walk),
+    two more at 1.8 north-east and 2.0 south-east (the frame's records)."""
+    p, z, w = world(lua, zx=11.6, zspeed=2.5, attack_ticks=12, **kw)
+    o8, o9 = make_zombie(8, 11.3, 21.5), make_zombie(9, 11.3, 18.4)
+    records(lua, [target_rec(w), {"id": 8, "dist": 1.98, "x": 11.3, "y": 21.5},
+                  {"id": 9, "dist": 2.06, "x": 11.3, "y": 18.4}], {7: z, 8: o8, 9: o9})
+    return p, z, w
+
+
+def test_under_a_withdraw_bias_the_step_is_the_default_and_the_press_the_exception(lua, fs):
+    """The step every idle tick while the target closes from 1.6; the swing once it is within the reach and closing;
+    the swing staggers it (#4686: the fake's chase stops at the press), not closing, and the step resumes."""
+    p, z, w = retreat_world(lua)
+    w["on_attack"] = lambda wd, shove: wd.__setitem__("zspeed", 0.0)
+    gow(lua, p, withdrawX=-1.0, withdrawY=0.0)
+    run(lua, p, w, 90)
+    seq = step_seq(lua, fs)
+    assert seq[0] == "work" and "swing" in seq                     # the step first, the press once in reach
+    i = seq.index("swing")
+    assert "work" in seq[i + 1:]                                   # the step again after the swing
+    assert w["presses"] and all(x["d"] <= 1.6 for x in w["presses"])
+    leaves = [a["result"]["work"] for a in progress(lua, fs) if a["result"]["step"] == "work"]
+    assert leaves and all(x.get("step_for") == "retreat" and x.get("retreat") is True for x in leaves)
+
+
+def test_under_the_retreat_no_point_blank_hold(lua, fs):
+    """The target at 0.95 standing still (not closing): under the retreat the step goes, no hold."""
+    p, z, w = world(lua, zx=10.7, **LOOK_OFF)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p, withdrawX=-1.0, withdrawY=0.0)
+    run(lua, p, w, 3)
+    assert step_seq(lua, fs)[0] == "work" and work_of(lua, "held") is None and work_of(lua, "stepFor") == "retreat"
+
+
+def test_without_the_withdraw_vector_the_band_behaviour_stands(lua, fs):
+    """The falsifier: the same three closing with no withdraw: no step before the first press (the target beyond the
+    band), the leaf never reads retreat."""
+    p, z, w = retreat_world(lua)
+    gow(lua, p)
+    run(lua, p, w, 90)
+    seq = step_seq(lua, fs)
+    assert seq[0] != "work" and "swing" in seq and "work" not in seq[:seq.index("swing")]
+    assert all("retreat" not in (a["result"].get("work") or {}) for a in progress(lua, fs))
