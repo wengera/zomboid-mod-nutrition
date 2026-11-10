@@ -578,7 +578,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if n >= 2 and (health < FLEE_HEALTH_PAIR or self._wounds() > 0):
             fallen = self._pair_finish()   # P25-J (3): the finish of a fallen (or knocked) one goes before the flee
             if fallen is None:
-                return "pair"
+                if not self._engage_holds("pair"):   # Plan 35 fix 1: no pair flee over the engaged melee
+                    return "pair"
+                return self._unpaired(held, health, n)
             reason = self._unpaired(held, health, n)
             if reason is None:
                 self.pair_yield = fallen   # kept only where the fight answers: never on a `strain` (or any flee) line
@@ -665,8 +667,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         """The hysteresis past the `pair` rule (`_hysteresis`; `n` the DANGER_R count): `strain`, `unreachable`,
         `stalled`, `held`, else None."""
         if (self.spent is not None and not self._wounded_fight() and not self._hold_lone()   # P24-AG, P24-AK: the
-                and self._strain_flees()):   # arms, the endurance or the tiredness halve every swing; P24-AP within
-            return "strain"                  # KEEP_R; P27-C; Plan 32 Task 5 (d): only under a real exhaustion
+                and self._strain_flees() and not self._engage_holds("strain")):   # arms, the endurance or the
+            # tiredness halve every swing; P24-AP within KEEP_R; P27-C; Plan 32 Task 5 (d): only under a real
+            # exhaustion; Plan 35 fix 1: not over the engaged melee (the reflex's spent meet)
+            return "strain"
         if not self._reachable_held():
             return "unreachable"
         near = min(zdist(self.world, z) for z in held)

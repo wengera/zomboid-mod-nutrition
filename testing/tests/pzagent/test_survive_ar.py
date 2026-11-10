@@ -468,6 +468,39 @@ def test_no_still_read_over_the_engaged_melee(tmp_path, monkeypatch):
     assert r.acts.history[-1] is a and threat_why(tmp_path).get("fight") is True
 
 
+STEPPED = [z(1, 102.6), z(2, 100.0, 204.0)]   # the target stepped back to 2.6 (beyond KEEP_R), a second at 4.0
+
+
+@pytest.mark.parametrize("on", [True, False])
+def test_the_pair_flee_at_the_engaged_melee_is_held(tmp_path, on):
+    """Plan 35 fix 1 (the controller's ruling on concern 4): two standing within DANGER_R, the health 55 (under
+    FLEE_HEALTH_PAIR, above the floor), the melee's target stepped back to 2.6 (beyond KEEP_R, so POINT_BLANK_FIGHT
+    does not keep it): engaged, the melee holds, logged `engage_hold` {rule "pair"}; with ENGAGE_HOLD off, the Plan 23
+    `pair` flee as before (the pin of the rule before it) superseding the melee."""
+    r, sv, a = engaged(tmp_path, on, zombies=STEPPED, health=55.0)
+    why = threat_why(tmp_path)
+    if on:
+        assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "pair"} and why.get("fight") is True
+    else:
+        assert why.get("flee") == "pair" and r.acts.history[-1] is not a and "engage_hold" not in why
+
+
+@pytest.mark.parametrize("on", [True, False])
+def test_the_strain_flee_at_the_engaged_melee_is_held(tmp_path, on):
+    """Plan 35 fix 1: the endurance spent (0.4, under STRAIN_ENDURANCE: the hold and a real exhaustion, two standing
+    within DANGER_R), the melee's target stepped back to 2.6 (beyond KEEP_R, no wounded fight): engaged, the melee
+    holds, re-sent in mode `shove` (the reflex's spent meet), logged `engage_hold` {rule "strain"}; with ENGAGE_HOLD off, the P24-AG `strain`
+    flee as before (the pin of the rule before it) superseding the melee."""
+    r, sv, a = engaged(tmp_path, on, zombies=STEPPED, endurance=0.4)
+    why = threat_why(tmp_path)
+    if on:
+        b = r.acts.history[-1]   # the same melee re-sent in mode `shove` (the hold's spent meet), no leg
+        assert (b.type, b.args["targetId"], b.args["mode"]) == ("melee", 1, "shove")
+        assert why["engage_hold"] == {"rule": "strain"} and why.get("fight") is True
+    else:
+        assert why.get("flee") == "strain" and r.acts.history[-1] is not a and "engage_hold" not in why
+
+
 def test_under_the_floor_the_many_flee_runs_as_before(tmp_path):
     """The many read at the engaged melee with the health at 39 (under FLEE_HEALTH, the reflex's floor): the hold gives
     way, the `many` flee as before, no `engage_hold`."""
