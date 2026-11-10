@@ -21,8 +21,10 @@ from .test_lua_skills import acts, load, sense, start, states, tick
 from .test_lua_stance import Rec
 
 SCHEMA = os.path.join(ROOT, "testing", "agent", "base", "schema", "pza1.json")
-WORK = {"workR": 3.5, "crawlerR": 1.2, "bandLo": 0.4, "floorHealth": 0.0}
-WORK_LEAF = {"heading", "turn", "clear", "gap", "n", "crawler"}
+WORK = {"workR": 3.5, "crawlerR": 1.2, "bandLo": 0.4, "floorHealth": 0.0, "reach": 1.475}   # fix 2: the live reach
+# (the smoke x_trial-ladder-20261110-084643 sent 1.475): the band, reach - bandLo, 1.075; the step goes in [0.9, 1.075)
+BAND_X = 10.95   # the target 0.95 tiles east: inside the band, beyond K.WORK_POINT_BLANK_R
+WORK_LEAF = {"heading", "turn", "clear", "gap", "n", "crawler", "held"}   # fix 2: held
 LOOK_OFF = {"look": math.pi, "turn": 0.0, "snap": False}   # the look held away: the meet never presses
 
 
@@ -154,7 +156,7 @@ def test_without_work_args_the_state_has_no_work(lua, fs):
 def test_the_step_goes_inside_the_band_away_from_the_nearest(lua, fs):
     """The target at 0.7 tiles (inside the reach 1.25 less bandLo 0.4), the look held away so the meet presses
     nothing: the step `work`, the stance held (force-aim) and the auto-walk along the heading away from it (west)."""
-    p, z, w = world(lua, zx=10.7, **LOOK_OFF)
+    p, z, w = world(lua, zx=BAND_X, **LOOK_OFF)
     records(lua, [target_rec(w)], {7: z})
     gow(lua, p)
     run(lua, p, w, 3)
@@ -166,8 +168,8 @@ def test_the_step_goes_inside_the_band_away_from_the_nearest(lua, fs):
 
 
 def test_beyond_the_band_no_step_the_face(lua, fs):
-    """The falsifier: the target at 1.0 (beyond 0.85): the meet's face, no walk."""
-    p, z, w = world(lua, zx=11.0, **LOOK_OFF)
+    """The falsifier: the target at 1.2 (beyond the band's 1.075): the meet's face, no walk."""
+    p, z, w = world(lua, zx=11.2, **LOOK_OFF)
     records(lua, [target_rec(w)], {7: z})
     gow(lua, p)
     run(lua, p, w, 5)
@@ -176,7 +178,7 @@ def test_beyond_the_band_no_step_the_face(lua, fs):
 
 
 def test_without_work_the_same_gap_faces(lua, fs):
-    p, z, w = world(lua, zx=10.7, **LOOK_OFF)
+    p, z, w = world(lua, zx=BAND_X, **LOOK_OFF)
     records(lua, [target_rec(w)], {7: z})
     go(lua, p)
     run(lua, p, w, 5)
@@ -185,7 +187,7 @@ def test_without_work_the_same_gap_faces(lua, fs):
 
 def test_the_press_goes_before_the_step(lua, fs):
     """The look on: the meet presses (the swing or the protective shove) where the footwork would step."""
-    p, z, w = world(lua, zx=10.7, attack_ticks=6)
+    p, z, w = world(lua, zx=BAND_X, attack_ticks=6)
     records(lua, [target_rec(w)], {7: z})
     gow(lua, p)
     run(lua, p, w, 2)
@@ -195,11 +197,11 @@ def test_the_press_goes_before_the_step(lua, fs):
 def test_the_withdraw_bias_turns_the_heading(lua, fs):
     """A withdraw vector north (0, 1) at weight 1.0 beside the target's repulsion 1/0.7^2 west: the heading between
     them, north of west."""
-    p, z, w = world(lua, zx=10.7, **LOOK_OFF)
+    p, z, w = world(lua, zx=BAND_X, **LOOK_OFF)
     records(lua, [target_rec(w)], {7: z})
     gow(lua, p, withdrawX=0.0, withdrawY=1.0)
     run(lua, p, w, 2)
-    want = bearing(-1 / 0.49, 1.0)
+    want = bearing(-1 / 0.95 ** 2, 1.0)
     assert work_of(lua, "heading") == pytest.approx(want, abs=1e-6)
     vx, vy = walk_world(w)
     assert bearing(vx, vy) == pytest.approx(want, abs=0.01)
@@ -211,7 +213,7 @@ def test_the_withdraw_bias_turns_the_heading(lua, fs):
 def test_the_heading_turns_off_a_square_that_is_not_clear(lua, fs, how):
     """West of the player (the square (9, 20)) solid, blocked from the player's square, behind a hoppable west edge
     of the player's square, or unreadable: the first clear candidate is 30 degrees off."""
-    p, z, w = world(lua, zx=10.7, squares=False, **LOOK_OFF)
+    p, z, w = world(lua, zx=BAND_X, squares=False, **LOOK_OFF)
     kw = {"solid": {"solid": {(9, 20)}}, "blocked": {"blocked": {(9, 20)}},
           "hop": {"hops": {(10, 20): ("HoppableW",)}}, "missing": {"missing": {(9, 20)}}}[how]
     grid(lua, **kw)
@@ -226,7 +228,7 @@ def test_the_heading_turns_off_a_square_that_is_not_clear(lua, fs, how):
 
 def test_a_hop_on_another_edge_does_not_turn_the_heading(lua, fs):
     """The falsifier: a hoppable north edge on the player's square is never crossed going west."""
-    p, z, w = world(lua, zx=10.7, squares=False, **LOOK_OFF)
+    p, z, w = world(lua, zx=BAND_X, squares=False, **LOOK_OFF)
     grid(lua, hops={(10, 20): ("HoppableN",)})
     records(lua, [target_rec(w)], {7: z})
     gow(lua, p)
@@ -237,7 +239,7 @@ def test_a_hop_on_another_edge_does_not_turn_the_heading(lua, fs):
 def test_the_heading_turns_off_a_crawler(lua, fs):
     """A crawler at (8.6, 20), 1.4 tiles west (beyond crawlerR, inside its term's 2.4): the sum still points west,
     but the probe points west lie within crawlerR of it; the first clear candidate is 60 degrees off."""
-    p, z, w = world(lua, zx=10.7, **LOOK_OFF)
+    p, z, w = world(lua, zx=BAND_X, **LOOK_OFF)
     c = crawler(8, 8.6, 20.0)
     records(lua, [target_rec(w), {"id": 8, "dist": 1.4, "crawler": True, "onFloor": True, "x": 8.6, "y": 20.0}],
             {7: z, 8: c})
@@ -247,7 +249,7 @@ def test_the_heading_turns_off_a_crawler(lua, fs):
 
 
 def test_without_the_crawler_the_heading_holds(lua, fs):
-    p, z, w = world(lua, zx=10.7, **LOOK_OFF)
+    p, z, w = world(lua, zx=BAND_X, **LOOK_OFF)
     records(lua, [target_rec(w)], {7: z})
     gow(lua, p)
     run(lua, p, w, 2)
@@ -256,7 +258,7 @@ def test_without_the_crawler_the_heading_holds(lua, fs):
 
 def test_the_heading_turns_off_a_fallen_zombie(lua, fs):
     """A fallen zombie's record at (9.2, 20.0): within K.WORK_FALLEN_R of both probe points west."""
-    p, z, w = world(lua, zx=10.7, **LOOK_OFF)
+    p, z, w = world(lua, zx=BAND_X, **LOOK_OFF)
     f = make_zombie(9, 9.2, 20.0)
     f.isOnFloor = lambda s: True
     records(lua, [target_rec(w), {"id": 9, "dist": 0.8, "onFloor": True, "x": 9.2, "y": 20.0}], {7: z, 9: f})
@@ -268,7 +270,7 @@ def test_the_heading_turns_off_a_fallen_zombie(lua, fs):
 def test_no_clear_heading_is_cornered_and_no_walk(lua, fs):
     """Every square around the player solid (the player at its square's centre, so every probe at 1.0 leaves it): the
     step cornered, no auto-walk."""
-    p, z, w = world(lua, px=10.5, py=20.5, zx=11.2, zy=20.5, squares=False, **LOOK_OFF)
+    p, z, w = world(lua, px=10.5, py=20.5, zx=11.45, zy=20.5, squares=False, **LOOK_OFF)
     grid(lua, solid={(x, y) for x in range(8, 13) for y in range(18, 23) if (x, y) != (10, 20)})
     records(lua, [target_rec(w)], {7: z})
     gow(lua, p)
@@ -279,7 +281,7 @@ def test_no_clear_heading_is_cornered_and_no_walk(lua, fs):
 
 def test_the_heading_is_re_chosen_every_work_ticks(lua, fs):
     """The heading read once, then again K.WORK_TICKS ticks on: the player's square read once a choose."""
-    p, z, w = world(lua, zx=10.7, **LOOK_OFF)
+    p, z, w = world(lua, zx=BAND_X, **LOOK_OFF)
     reads = []
     cell = lua.globals()._cell
     inner = cell.getGridSquare
@@ -490,7 +492,7 @@ def test_a_fallen_target_that_is_no_crawler_is_never_clear(lua, fs):
 
 def test_contact_counts_the_ticks_with_the_nearest_standing_inside_1_0_and_no_press(lua, fs):
     """bandLo the reach (no step), the look away (no press): every tick with the target at 0.7 counts."""
-    p, z, w = world(lua, zx=10.7, **LOOK_OFF)
+    p, z, w = world(lua, zx=BAND_X, **LOOK_OFF)
     records(lua, [target_rec(w)], {7: z})
     gow(lua, p, bandLo=1.25)
     run(lua, p, w, 10)
@@ -507,7 +509,7 @@ def test_contact_counts_nothing_beyond_1_0(lua, fs):
 
 def test_contact_counts_no_tick_of_a_press_in_flight(lua, fs):
     """The look on, a swing of 20 ticks: those ticks (the press's own included) are not contact."""
-    p, z, w = world(lua, zx=10.7, attack_ticks=20)
+    p, z, w = world(lua, zx=BAND_X, attack_ticks=20)
     records(lua, [target_rec(w)], {7: z})
     gow(lua, p, bandLo=1.25)
     run(lua, p, w, 10)
@@ -515,7 +517,7 @@ def test_contact_counts_no_tick_of_a_press_in_flight(lua, fs):
 
 
 def test_every_progress_line_carries_contact_and_the_work_leaf(lua, fs):
-    p, z, w = world(lua, zx=10.7, **LOOK_OFF)
+    p, z, w = world(lua, zx=BAND_X, **LOOK_OFF)
     records(lua, [target_rec(w)], {7: z})
     gow(lua, p)
     run(lua, p, w, 70)
@@ -523,11 +525,11 @@ def test_every_progress_line_carries_contact_and_the_work_leaf(lua, fs):
     assert pr and all("contact" in a["result"] and "work" in a["result"] for a in pr)
     assert all(set(a["result"]["work"]) <= WORK_LEAF and {"clear", "n"} <= set(a["result"]["work"]) for a in pr)
     leaf = pr[-1]["result"]["work"]
-    assert leaf["n"] == 1 and leaf["gap"] > 0 and set(leaf) == WORK_LEAF - {"crawler"}
+    assert leaf["n"] == 1 and leaf["gap"] > 0 and set(leaf) == WORK_LEAF - {"crawler", "held"}
 
 
 def test_the_done_line_carries_contact_the_leaf_and_the_steps(lua, fs):
-    p, z, w = world(lua, zx=10.7, **LOOK_OFF)
+    p, z, w = world(lua, zx=BAND_X, **LOOK_OFF)
     records(lua, [target_rec(w)], {7: z})
     gow(lua, p)
     run(lua, p, w, 5)
@@ -541,7 +543,7 @@ def test_every_work_key_is_in_the_schema(lua, fs):
     with open(SCHEMA, encoding="utf-8") as fh:
         defs = json.load(fh)["$defs"]
     props, step = defs["result_melee"]["properties"], defs["result_melee_step"]["properties"]
-    p, z, w = world(lua, zx=10.7, **LOOK_OFF)
+    p, z, w = world(lua, zx=BAND_X, **LOOK_OFF)
     records(lua, [target_rec(w)], {7: z})
     gow(lua, p)
     run(lua, p, w, 5)
@@ -581,7 +583,7 @@ def test_the_core_announces_1_13(lua, fs):
 # ---- the re-send ------------------------------------------------------------------------------------------------------
 
 def test_a_same_target_resend_keeps_the_footwork_state_and_takes_the_new_work_fields(lua, fs):
-    p, z, w = world(lua, zx=10.7, **LOOK_OFF)
+    p, z, w = world(lua, zx=BAND_X, **LOOK_OFF)
     records(lua, [target_rec(w)], {7: z})
     gow(lua, p, aid="m1")
     run(lua, p, w, 3)
@@ -594,7 +596,7 @@ def test_a_same_target_resend_keeps_the_footwork_state_and_takes_the_new_work_fi
 
 
 def test_another_target_s_resend_starts_a_fresh_footwork(lua, fs):
-    p, z, w = world(lua, zx=10.7, **LOOK_OFF)
+    p, z, w = world(lua, zx=BAND_X, **LOOK_OFF)
     z8 = make_zombie(8, 10.0, 21.0)
     sense(lua, [z, z8])
     records(lua, [target_rec(w), {"id": 8, "dist": 1.0, "x": 10.0, "y": 21.0}], {7: z, 8: z8})
@@ -652,7 +654,7 @@ def test_work_absent_runs_the_melee_as_before_byte_for_byte(fs, case):
 def test_a_stepping_tick_at_a_re_choose_stays_under_40_java_calls(lua, fs):
     """The footwork's step at its heading's re-choose with the target and five more standing within workR: every Java
     member read on the tick, counted through Rec wrappers, under the spec's 40."""
-    p, z, w = world(lua, zx=10.7, zspeed=3.0, **LOOK_OFF)          # a chaser keeping inside the band
+    p, z, w = world(lua, zx=BAND_X, zspeed=2.0, **LOOK_OFF)          # a chaser at the walk's pace: the gap held
     others = {}
     recs = [target_rec(w)]
     for i, (x, y) in enumerate([(12.5, 21.0), (12.5, 19.0), (11.5, 22.5), (11.5, 17.5), (13.0, 20.0)]):
@@ -684,8 +686,9 @@ def test_a_stepping_tick_at_a_re_choose_stays_under_40_java_calls(lua, fs):
     # within the reach, the snap, the look: 12), the stance re-held for the step (nullifyAiming at the meet's release,
     # setForceAim at the step: 2), the re-choose (getZ, the player's and one probe square 2, the five others' positions
     # 10, the square's isSolid, isSolidTrans, isBlockedTo and its crossed hop flag 4); none of the five is within the
-    # near read's candidates (the reach + K.MELEE_CROWD_SLACK), the floor off (0)
-    assert len(log) == 31 and len(log) < 40, sorted(log)
+    # near read's candidates (the reach + K.MELEE_CROWD_SLACK), the floor off (0); fix 2: the nearest's getRealState
+    # (the lunge read, 1): 32
+    assert len(log) == 32 and len(log) < 40, sorted(log)
 
 
 # ---- fix 1: the live shape (x_trial-ladder-20261110-081250 and -081935: the step never went) -------------------------
@@ -695,12 +698,12 @@ def test_inside_the_band_the_step_goes_between_presses_with_the_look_on(lua, fs)
     (a7: 193 swing ticks, the gap 0.73, no idle tick) and the footwork, reached only at the meet's stand and face,
     never ran. Fix 1: at a press's result with the nearest standing inside the band, the step `work` goes before the
     next press (the spec's item 1: the step and the press alternate as the swing clip and the gap allow)."""
-    p, z, w = world(lua, zx=10.75, zspeed=1.0, attack_ticks=20)
+    p, z, w = world(lua, zx=BAND_X, zspeed=0.0, attack_ticks=20)   # fix 2: beyond K.WORK_POINT_BLANK_R
     records(lua, [target_rec(w)], {7: z})
     gow(lua, p)
     run(lua, p, w, 60)
     seq = step_seq(lua, fs)
-    assert seq[:3] == ["swing", "work", "swing"] and len(w["presses"]) == 2   # the press, the step, the press
+    assert seq[:3] == ["swing", "work", "swing"] and len(w["presses"]) >= 2   # the press, the step, the press
     assert work_of(lua, "clear") is True and work_of(lua, "n") == 1
 
 
@@ -732,4 +735,54 @@ def test_the_leaf_carries_no_clear_until_a_heading_was_chosen(lua, fs):
     gow(lua, p)
     run(lua, p, w, 3)
     leaf = progress(lua, fs)[-1]["result"]["work"]
-    assert "clear" not in leaf and "n" not in leaf and leaf["gap"] == pytest.approx(1.5)
+    assert "clear" not in leaf and "n" not in leaf and leaf["gap"] > 1.075   # beyond the band (the close walk)
+
+
+# ---- fix 2: no step at point blank or into a lunge (x_trial-ladder-20261110-084643, a73's wound) ---------------------
+
+def a73_world(lua):
+    """a73's shape at its wound (frames 2608 to 2618): the target 7 struck at 0.96 tiles east, a second standing
+    zombie 8 attacking at 0.59 tiles south. The step went at the gap 0.59 (the leaf's), ahead of the meet's re-pin to
+    8 and its press, and the bite landed at 0.73 eleven ticks into it."""
+    p, z, w = world(lua, zx=10.96, zspeed=0.0, attack_ticks=6)
+    o8 = make_zombie(8, 10.0, 19.41)
+    o8.getRealState = lambda s: "attack"
+    records(lua, [{"id": 8, "dist": 0.59, "x": 10.0, "y": 19.41}, target_rec(w)], {7: z, 8: o8})
+    return p, z, w
+
+
+def test_no_step_with_the_nearest_standing_at_point_blank(lua, fs):
+    p, z, w = a73_world(lua)
+    gow(lua, p)
+    run(lua, p, w, 40)
+    seq = step_seq(lua, fs)
+    assert "work" not in seq and "repin" in seq and lua.eval("PZA.skills.cur.st.id") == 8
+    assert len(w["presses"]) >= 2 and work_of(lua, "held") == "point_blank"
+    assert lua.eval("PZA.skills.WORK_POINT_BLANK_R") == 0.9
+
+
+def test_beyond_point_blank_inside_the_band_the_step_still_goes(lua, fs):
+    """The falsifier: the second zombie gone, the target at 0.95 (inside the band, beyond 0.9): the step goes."""
+    p, z, w = world(lua, zx=10.95, zspeed=0.0, attack_ticks=6)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p)
+    run(lua, p, w, 20)
+    assert "work" in step_seq(lua, fs) and work_of(lua, "held") is None
+
+
+def test_no_step_into_a_lunge_and_a_step_in_flight_ends_at_once(lua, fs):
+    """The target at 0.95 stepped back from; once its state reads a lunge the step ends at once and the meet presses;
+    the leaf says held lunge."""
+    p, z, w = world(lua, zx=10.95, zspeed=2.0, attack_ticks=6, **LOOK_OFF)   # a chaser at the walk's pace
+    state = {"v": "walktoward"}
+    z.getRealState = lambda s: state["v"]
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p)
+    run(lua, p, w, 10, stop=lambda: lua.eval("PZA.skills.cur.st.step") == "work")
+    assert lua.eval("PZA.skills.cur.st.step") == "work"
+    state["v"] = "lunge-network"
+    run(lua, p, w, 1)
+    assert lua.eval("PZA.skills.cur.st.step") != "work" and work_of(lua, "held") == "lunge"
+    n = len(step_seq(lua, fs))
+    run(lua, p, w, 10)
+    assert "work" not in step_seq(lua, fs)[n:]
