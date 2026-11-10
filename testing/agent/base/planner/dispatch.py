@@ -115,6 +115,7 @@ class FightDispatch:
         self._m_ladder = False              # the next choose is the ladder's whatever it sends (an `out of range`)
         self.melee_off = None               # the end after which no melee goes for the rest of the Fight, else None
         self._m_backoff = {}                # zombie id -> planner ticks left in which no melee goes at it (fix 1, m2)
+        self._m_from = None                 # Plan 35 fix 5: the dispatch point's `engage_dispatch` source this choose
         self.group_n = 0                    # Survive sets it each tick (Plan 35, WITHDRAW): the standing zombies within
                                             # GROUP_ENTRY_R (`group.ThreatGroup._group_read`)
 
@@ -252,11 +253,19 @@ class FightDispatch:
         return not fin or fin[0][0] == m.target
 
     def _melee_mode(self, cmd):
-        """The melee's mode where the ladder's `cmd` is at the dispatch point (the module docstring), else None."""
-        if (cmd is None or "melee" not in self.rules or self.melee_off is not None or not self.world.can("melee")
-                or self.point_blank or self.only is not None or self.doorway is not None):
-            return None
+        """The melee's mode where the ladder's `cmd` is at the dispatch point (the module docstring), else None. Plan 35
+        fix 5 (the controller's ruling; the street-1 trial `x_trial-ladder-20261110-095321`, decision lines 152 to 234:
+        the corner's Fight sent raw attacks and shoves, then, kept by the threat branch after its corner ended, its
+        `point_blank` still set, every back leg, circle and shove back went as an aim, four bites with no melee): under
+        the engagement's dispatch (`_pile_met`) a cornered Fight (`point_blank`) dispatches the melee with `work` too
+        (logged `engage_dispatch` {from "corner"}), and an aim leg of any kind at a standing pin within KEEP_R is a
+        dispatch point (the fence wait's aside), logged {from "point_blank_leg"} when the leg is a corner Fight's or
+        one MELEE_LEGS lacks; the door fight (`only`) and the doorway stand stay the ladder's."""
+        self._m_from = None
         pile = self._pile_met()   # Plan 35 ENGAGE_HOLD: the reflex meets the pile and the crawlers
+        if (cmd is None or "melee" not in self.rules or self.melee_off is not None or not self.world.can("melee")
+                or (self.point_blank and not pile) or self.only is not None or self.doorway is not None):
+            return None
         if "crawler_clear" in self.why and not pile:
             return None   # Plan 34 fix B: the backpedal from the crawlers is the leg, never a melee in its place
         zid = getattr(cmd, "targetId", None)
@@ -269,10 +278,15 @@ class FightDispatch:
         if not pile and self._crowded(zid, z):
             return None   # the crowd gate (the module docstring): the Lua would end it handback crowd
         if cmd.TYPE == "aim":
-            if "fence_wait" in self.why or self.why.get("leg") not in MELEE_LEGS or d > KEEP_R or on_floor(z):
+            leg_ok = pile or self.why.get("leg") in MELEE_LEGS   # Plan 35 fix 5: any leg under the engagement
+            if "fence_wait" in self.why or not leg_ok or d > KEEP_R or on_floor(z):
                 return None
+            if pile and (self.point_blank or self.why.get("leg") not in MELEE_LEGS):
+                self._m_from = "point_blank_leg"
         elif cmd.TYPE not in MELEE_SENDS:
             return None
+        elif self.point_blank:
+            self._m_from = "corner"   # Plan 35 fix 5 (only under `pile`: the guard above)
         if cmd.TYPE == "stomp":
             return "finish"
         return self._melee_mode_at(z)
@@ -327,6 +341,8 @@ class FightDispatch:
                 break
         self.why = dict(self.why, maneuver=m.log(), ladder=cmd.TYPE)
         self._melee_why(m, out)
+        if out is not None and m.resend is None and self._m_from is not None:
+            self.why["melee"]["engage_dispatch"] = {"from": self._m_from}   # Plan 35 fix 5: the first send
         return out
 
     def _melee_why(self, m, out):

@@ -300,6 +300,61 @@ def test_the_pair_s_re_pin_never_cuts_the_engaged_melee(tmp_path, on):
     assert f.busy() is on
 
 
+# ================================================================ fix 5: the corner Fight and the point-blank legs
+@pytest.mark.parametrize("on", [True, False])
+def test_the_corner_fight_dispatches_the_melee_with_work(tmp_path, on):
+    """Plan 35 fix 5 (the street-1 trial `x_trial-ladder-20261110-095321`, decision lines 152 to 161: the corner's
+    Fight sent raw attacks and a shove at 32487 and 32488 at 0.45 to 0.66 tiles): two standing at 0.5 tiles corner the
+    character (`cornered`, a `walk` corner); engaged-dispatch on, the corner Fight sends the melee with `work` at its
+    pin, logged `engage_dispatch` {from "corner"}; with ENGAGE_HOLD off, the corner's raw `attack` (P23-AJ 2's answer,
+    the pin)."""
+    r = rig(tmp_path)
+    sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
+    sv.GROUP_LEAVE, sv.ENGAGE_HOLD = False, on
+    r.frame(zombies=[z(1, 100.5), z(2, 100.0, 200.5)])
+    tick(r, sv)
+    why = threat_why(tmp_path)
+    a = r.acts.history[-1]
+    assert why["cornered"] == 1
+    if on:
+        assert a.type == "melee" and work_of(a) == WORK_ARGS and why["melee"]["engage_dispatch"] == {"from": "corner"}
+    else:
+        assert a.type == "attack" and "melee" not in why
+
+
+@pytest.mark.parametrize("on", [True, False])
+def test_a_point_blank_fight_s_circle_leg_is_the_melee(tmp_path, on):
+    """Plan 35 fix 5 (the same trial's lines 178 to 219: the Fight kept from the corner, `point_blank` still set, sent
+    its wounded backpedal's circling `back` legs as aims at 0.74 to 1.4 tiles): a Fight with `point_blank` whose ladder
+    answers the circle leg at 1.2 tiles (the arms' pain 40.8, `wounded`): engaged-dispatch on, the melee with `work`,
+    logged `engage_dispatch` {from "point_blank_leg"}; with ENGAGE_HOLD off, the aim as before (the pin)."""
+    r = rig(tmp_path)
+    r.frame(x=ME[0], y=ME[1], zombies=[zm(1, ME[0] + 1.2, ME[1])], wounds={"armPain": 40.8})
+    f = F.Fight(r.world, r.acts, r.clock)
+    f.rules = f.rules - {"crawler_first"} - (set() if on else {"engage_hold"})
+    f.stance, f.point_blank, f.target = True, True, 1
+    a = f.step()
+    assert f.why["leg"] == "back" and "circle" in f.why and "wounded" in f.why
+    if on:
+        assert a.type == "melee" and work_of(a) == WORK_ARGS
+        assert f.why["melee"]["engage_dispatch"] == {"from": "point_blank_leg"}
+    else:
+        assert a.type == "aim"
+
+
+@pytest.mark.parametrize("on", [True, False])
+def test_a_leg_melee_legs_lacks_is_a_dispatch_point_under_the_engagement(tmp_path, on):
+    """Plan 35 fix 5 (2), tested at the method directly (no planner-level case found sends a leg outside MELEE_LEGS at
+    a pin within KEEP_R; P26-7f): `_melee_mode` at an aim whose why reads leg `toward` at a standing pin 2.0 tiles off:
+    engaged-dispatch on, the strike mode, `engage_dispatch` source "point_blank_leg"; off, None (MELEE_LEGS as before,
+    the pin)."""
+    from agent.base.pza1 import Aim
+    r, f = fight(tmp_path, [zm(1, ME[0] + 2.0, ME[1])], target=1, off=() if on else ("engage_hold",))
+    f.why = {"leg": "toward", "target": 1}
+    mode = f._melee_mode(Aim(1.0, 0.0, P.AIM_LEG_S, targetId=1))
+    assert mode == ("strike" if on else None) and f._m_from == ("point_blank_leg" if on else None)
+
+
 # ================================================================ the hand-backs
 def done(r, a, why, **res):
     r.fake.act(a.aid, "done", "melee", result=dict({"end": "handback", "why": why, "kill": False}, **res))
