@@ -600,6 +600,12 @@ function K.workTick(p, st, d, crowd, fallen, now)
     w.sinceChoose = w.sinceChoose + 1
     local fh, fhow, fres = K.workFloor(p, st)
     if fh ~= nil then return fh, fhow, fres end
+    if st.nothing >= st.stall then   -- fix 7: the stall re-read every tick (deferred in shove range, K.meleeStall)
+        local ss, sh, sr = K.meleeStall(p, st, d)
+        if ss ~= nil then return ss, sh, sr end
+    else
+        st.stallHeld = false
+    end
     local g, gid = nil, nil
     local standing = not fallen and not st.knocked   -- fix 1: a target the press knocked down is no standing zombie
     if standing then g, gid, w.nearO = d, st.id, st.z end
@@ -663,6 +669,7 @@ function K.workResult(st, out)
     out.contact = w.contact
     local leaf = { gap = w.gap, crawler = w.crawlerD, held = w.held, pile = w.pileWhy }
     if w.retreating then leaf.retreat = true end   -- fix 6: the retreat's mode running
+    if st.stallHeld then leaf.stall_held = true end   -- fix 7: the stall deferred in shove range
     if w.steppedNow then   -- fix 5: the heading, its turn, clear and n of the step this tick, absent on any other
         leaf.heading, leaf.turn, leaf.clear, leaf.n, leaf.step_for = w.heading, w.turn, w.clear, w.n, w.stepFor
     end

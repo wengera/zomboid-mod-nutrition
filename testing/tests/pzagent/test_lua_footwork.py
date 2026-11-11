@@ -24,7 +24,7 @@ SCHEMA = os.path.join(ROOT, "testing", "agent", "base", "schema", "pza1.json")
 WORK = {"workR": 3.5, "crawlerR": 1.2, "bandLo": 0.4, "floorHealth": 0.0, "reach": 1.475}   # fix 2: the live reach
 # (the smoke x_trial-ladder-20261110-084643 sent 1.475): the band, reach - bandLo, 1.075; the step goes in [0.9, 1.075)
 BAND_X = 10.95   # the target 0.95 tiles east: inside the band, beyond K.WORK_POINT_BLANK_R
-WORK_LEAF = {"heading", "turn", "clear", "gap", "n", "crawler", "held", "pile", "step_for", "retreat"}   # fix 2: held; fix 3: pile; fix 5: step_for
+WORK_LEAF = {"heading", "turn", "clear", "gap", "n", "crawler", "held", "pile", "step_for", "retreat", "stall_held"}   # fix 2: held; fix 3: pile; fix 5: step_for
 LOOK_OFF = {"look": math.pi, "turn": 0.0, "snap": False}   # the look held away: the meet never presses
 
 
@@ -334,8 +334,11 @@ def test_after_a_crawler_pin_a_standing_zombie_beyond_the_reach_does_not_break_t
             {7: z, 8: c})
     gow(lua, p)
     run(lua, p, w, 40, stop=lambda: lua.eval("PZA.skills.cur") is None)
-    assert step_seq(lua, fs).count("repin") == 1
-    assert all(a["result"].get("target") == 8 for a in progress(lua, fs)) and len(w["presses"]) >= 2
+    seq = step_seq(lua, fs)   # fix 7: three stomps that lowered nothing re-pin to the standing one (rule 3), never before
+    assert seq[0] == "repin" and (seq.count("repin") == 1 or seq[1:seq.index("repin", 1)].count("stomp") >= 3)
+    pr = progress(lua, fs)
+    k = next((i for i, a in enumerate(pr) if i > 0 and a["result"]["step"] == "repin"), len(pr))
+    assert all(a["result"].get("target") == 8 for a in pr[:k]) and len(w["presses"]) >= 2
 
 
 # ---- the finish with work: the re-pin instead of the standing hand-back ---------------------------------------------------
@@ -978,3 +981,70 @@ def test_without_the_withdraw_vector_the_band_behaviour_stands(lua, fs):
     seq = step_seq(lua, fs)
     assert seq[0] != "work" and "swing" in seq and "work" not in seq[:seq.index("swing")]
     assert all("retreat" not in (a["result"].get("work") or {}) for a in progress(lua, fs))
+
+
+# ---- fix 7: the stall deferred in shove range; a press beyond reach neither counts nor resets (the run 112648, a112) ---
+
+def test_a_stall_with_the_target_in_shove_range_is_deferred_then_ends_once_it_is_beyond(lua, fs):
+    """a112: three swings that lowered nothing reach the stall (3) with the target at 0.7 (inside shoveR 0.9): no done
+    lost, the meet presses on, the leaf reads stall_held; once the target stands beyond shoveR with the counter still
+    at the stall, the melee ends lost, no progress."""
+    p, z, w = world(lua, zx=10.7, attack_ticks=6)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p)
+    run(lua, p, w, 120, stop=lambda: lua.eval("PZA.skills.cur.st.nothing") >= 3)
+    run(lua, p, w, 3)
+    assert lua.eval("PZA.skills.cur") is not None and lua.eval("PZA.skills.cur.st.nothing") >= 3
+    n = len(w["presses"])
+    run(lua, p, w, 40)
+    assert lua.eval("PZA.skills.cur") is not None and len(w["presses"]) > n
+    assert any((a["result"].get("work") or {}).get("stall_held") is True for a in progress(lua, fs))
+    w["zx"] = 11.3                                                    # beyond shoveR, within the release
+    records(lua, [target_rec(w)], {7: z})
+    run(lua, p, w, 30, stop=lambda: lua.eval("PZA.skills.cur") is None)
+    r = last(lua, fs)["result"]
+    assert (last(lua, fs)["state"], r["end"], r["why"]) == ("done", "lost", "no progress")
+
+
+def test_at_the_stall_beyond_shove_range_another_standing_zombie_is_re_pinned(lua, fs):
+    """Rule 3: at the stall with the target beyond shoveR and another standing zombie within workR, the re-pin."""
+    p, z, w = world(lua, zx=10.7, attack_ticks=6)
+    o8 = make_zombie(8, 10.0, 22.5)
+    records(lua, [target_rec(w), {"id": 8, "dist": 2.5, "x": 10.0, "y": 22.5}], {7: z, 8: o8})
+    gow(lua, p)
+    run(lua, p, w, 120, stop=lambda: lua.eval("PZA.skills.cur.st.nothing") >= 3)
+    w["zx"] = 11.3
+    records(lua, [target_rec(w), {"id": 8, "dist": 2.5, "x": 10.0, "y": 22.5}], {7: z, 8: o8})
+    run(lua, p, w, 20, stop=lambda: lua.eval("PZA.skills.cur.st.id") == 8)   # a press may still be in flight
+    assert lua.eval("PZA.skills.cur") is not None and lua.eval("PZA.skills.cur.st.id") == 8
+    assert "repin" in step_seq(lua, fs)
+
+
+def test_without_work_the_stall_ends_lost_in_shove_range_as_before(lua, fs):
+    p, z, w = world(lua, zx=10.7, attack_ticks=6)
+    records(lua, [target_rec(w)], {7: z})
+    go(lua, p)
+    run(lua, p, w, 200, stop=lambda: lua.eval("PZA.skills.cur") is None)
+    r = last(lua, fs)["result"]
+    assert (r["end"], r["why"]) == ("lost", "no progress")
+
+
+def test_a_press_whose_d_min_stayed_beyond_reach_neither_counts_nor_resets(lua, fs):
+    """Rule 2: reach 1.0 (the bat's engine reach 1.25), a chaser at 1.2 closing at 2.0: the swing goes at the
+    predicted collision (d_min 1.2, beyond the reach) and lowers nothing: st.nothing stays at its value."""
+    p, z, w = world(lua, zx=11.2, zspeed=2.0, attack_ticks=6)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p, reach=1.0)
+    lua.execute("PZA.skills.cur.st.nothing = 1")
+    run(lua, p, w, 12, stop=lambda: len(w["presses"]) >= 1 and lua.eval("PZA.skills.cur.st.strike") is None)
+    lf = leaves(lua, fs)
+    assert lf and lf[0]["d_min"] > 1.0 and lua.eval("PZA.skills.cur.st.nothing") == 1
+
+
+def test_a_press_within_reach_that_lowered_nothing_counts(lua, fs):
+    p, z, w = world(lua, zx=10.9, attack_ticks=6)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p, reach=1.0)
+    run(lua, p, w, 12, stop=lambda: len(w["presses"]) >= 1 and lua.eval("PZA.skills.cur.st.strike") is None)
+    lf = leaves(lua, fs)
+    assert lf and lf[0]["d_min"] <= 1.0 and lua.eval("PZA.skills.cur.st.nothing") == 1

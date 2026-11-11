@@ -44,7 +44,11 @@
 --       the bite's facing skip, #4688, read the look, which turns toward the last facing written, #4689), until its
 --       end (isAttackStarted read true then false, or K.SWING_MS) and one tick more, then its result: the press leaf
 --       (below), a swing or shove's knock-down (isKnockedDown) counted and the knock wait armed, the no-progress run
---       (stall reached: done lost, why no progress). A press isAttackStarted reads false on the tick after it was
+--       (stall reached: done lost, why no progress). Plan 35 Task 1 fix 7, with work (a trial reading, the run
+--       x_trial-ladder-20261111-112648's a112): the stall is deferred while the target stands within shoveR, the leaf
+--       reading stall_held, and beyond it re-pins to another standing zombie within workR before ending lost; a press
+--       whose d_min exceeded the reach neither counts nor resets the run (K.meleeStall, the block at the end of this
+--       file). A press isAttackStarted reads false on the tick after it was
 --       refused (fix 1, F3: pressedAttack sets attackStarted at the press, review-t2): its leaf cut_by refused, no
 --       stall counted, and the meet presses again on that tick. The retry is bounded (the residual): after
 --       K.REFUSE_MAX refusals in a row the press waits K.REFUSE_WAIT_MS (step refused, the facing still written), then
@@ -562,7 +566,7 @@ local function strikeResult(p, st)
     if not s.refused then   -- Task 15a: a shove that knocked nothing down asks the spent meet's swing next
         if s.kind == "shove" then st.shoveFailed = not knocked elseif s.kind == "swing" then st.shoveFailed = false end
     end
-    if s.kind ~= "shove" and not s.refused then
+    if s.kind ~= "shove" and not s.refused and not K.meleeBeyondReach(p, st, s) then   -- Plan 35 fix 7: rule 2
         if not knocked and s.hp0 ~= nil and leaf.hp1 ~= nil and leaf.hp1 >= s.hp0 then
             st.nothing = st.nothing + 1
         else
@@ -741,7 +745,10 @@ local function reflex(p, st, d, px, py, zx, zy, now)
             return st.strike.kind
         end
         strikeResult(p, st)
-        if st.nothing >= st.stall then return "done", "lost", { why = "no progress" } end
+        if st.nothing >= st.stall then   -- Plan 35 Task 1 fix 7: K.meleeStall (done lost without work, as before)
+            local ss, sh, sr = K.meleeStall(p, st, d)
+            if ss ~= nil then return ss, sh, sr end
+        end
         if st.refusals >= K.REFUSE_END then return "done", "lost", { why = "refused" } end
     end
     if d > st.releaseR then return "done", "lost", { why = "out of range" } end
@@ -1178,4 +1185,34 @@ end
 function K.meleeWorkFloor(p, st)
     if K.workFloor == nil then return nil end
     return K.workFloor(p, st)
+end
+
+-- ---- the stall with work (Plan 35 Task 1 fix 7) ---------------------------------------------------------------------
+-- A trial reading, never evidence (P31-T): x_trial-ladder-20261111-112648's melee a112 swung five times at 25245, the
+-- last three lowering nothing (the target staggered out to 2.45 tiles and lunged back), and ended done lost, why no
+-- progress, with the target at 0.50 tiles (the done line's dMin 0.5025); the bite landed 0.8 s later under a planner
+-- leg and the drag-down followed. With work, the stall (st.nothing at st.stall) is deferred while the target stands
+-- within st.shoveR (the planner's shove range: a zombie there is never unreachable; the reach is not the bound, since
+-- a target held off by a fence within the reach would never end): the counter is kept, the meet's own rules run, and
+-- the leaf carries stall_held. Beyond shoveR with the counter still at the stall, another standing zombie within workR
+-- is re-pinned to (the counter restarted by the re-pin), else the end fires as before; K.workTick re-reads it every
+-- tick. And a press whose d_min (the distance at the press) exceeded the reach lowered nothing because the target was
+-- out of reach, not blocked: it neither counts in st.nothing nor resets it, as a refused press. Without work both
+-- answer as before.
+function K.meleeStall(p, st, d)
+    st.stallHeld = false
+    if st.work ~= nil then
+        if d <= st.shoveR and not K.onFloor(st.z) then
+            st.stallHeld = true
+            return nil
+        end
+        local near = standingNear(p, st, st.work.workR)
+        if near ~= nil then return repin(p, st, near[1]) end
+    end
+    return "done", "lost", { why = "no progress" }
+end
+
+-- a press's leaf distance beyond the reach (with work only): the press neither counts nor resets the stall
+function K.meleeBeyondReach(p, st, s)
+    return st.work ~= nil and s.dMin ~= nil and s.dMin > reachOf(p, st)
 end
