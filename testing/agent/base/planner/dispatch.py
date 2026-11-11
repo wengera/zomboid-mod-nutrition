@@ -166,12 +166,13 @@ class FightDispatch:
         """The one rule after a melee end (Plan 35 fixes 8 and 8b; Task 8 fix 1, review-t8 A: a `head_stall` handback
         and a `refused` lost at a pin 0.4 tiles off handed the ladder a raw aim leg): with a standing zombie (not a
         crawler) within KEEP_R (`contact`), no end gives the next choose to the ladder but the body at the floor (a
-        handback why `floor`: the health flee is the ladder's); the next choose dispatches the melee with `work` at the
+        handback why `floor`: the health flee is the ladder's) and `no weapon` (fix 1b: the ladder's bare-hand shove
+        and stomp, not a melee re-sent every choose); the next choose dispatches the melee with `work` at the
         Fight's pin (`_m_kept`, `fight.Fight._choose`), logged `engage_dispatch` {from: the end}, the end's own marks
         written as before (a `lost` end's `_lost_end`, a crowd handback's re-pin); an end in contact sets no backoff.
         With nobody standing within KEEP_R (`clear`, an `out of range` with the zombie gone, any end at range) the
         ladder takes the ends it took before (`ladder`)."""
-        if contact and not (end == "handback" and why == "floor"):
+        if contact and not (end == "handback" and why == "floor") and end != "no weapon":
             self._m_kept = end
             return
         if ladder:

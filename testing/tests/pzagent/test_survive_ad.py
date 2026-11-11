@@ -691,8 +691,8 @@ def test_no_weapon_takes_the_ladder_s_path_for_one_choose(tmp_path):
     act(r, a, "rejected", "no weapon")
     r.advance(0.5)
     fr(r, [z(9, 102.0)])
-    b = f.step()   # Task 8 fix 1 (a named change): in contact the melee again, where the ladder sent its leg
-    assert (b.type, f.why["melee_end"]["end"]) == ("melee", "no weapon") and f.melee_off is None
+    b = f.step()   # Task 8 fix 1b: `no weapon` hands the ladder the choose whatever the contact
+    assert (b.type, f.why["melee_end"]["end"]) == ("aim", "no weapon") and f.melee_off is None
 
 
 @pytest.mark.parametrize("state, reason", [("failed", "not loaded"), ("rejected", "bad args"),

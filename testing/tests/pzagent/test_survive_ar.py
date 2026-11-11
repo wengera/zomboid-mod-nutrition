@@ -789,3 +789,17 @@ def test_the_door_meet_across_a_just_opened_door_is_the_melee(tmp_path):
     r.frame(x=me[0], y=me[1], zombies=[zombie(9, me[0] - 1.05, 10633.5, me=me)], health=60.0)
     a = tick(r, sv)
     assert a.type == "melee" and a.args["targetId"] == 9 and "workR" in a.args
+
+def test_a_no_weapon_end_in_contact_hands_the_ladder_the_choose(tmp_path):
+    """Task 8 fix 1b (the ruling on fix 1's concern 1): a melee end `no weapon` with a standing zombie at 0.5 tiles
+    gives the next choose to the ladder (its bare-hand shove and stomp), never a melee re-sent every choose."""
+    zs = [zm(9, ME[0] + 0.5, ME[1])]
+    r, f = fight(tmp_path, zs, target=9)
+    a = f.step()
+    assert a.type == "melee"
+    r.fake.act(a.aid, "rejected", "melee", reason="no weapon")
+    r.pump()
+    again(r, f, zs)
+    assert f._m_ladder is True and f._m_kept is None
+    b = f.step()
+    assert b is None or b.type != "melee"
