@@ -61,9 +61,9 @@ command at its pin. Its state is the Fight's own (`_init_dispatch`), and `fight.
   threat branch's rows answer the hold above FLEE_HEALTH (`threat.Threat._engage_holds`, logged `engage_hold` {rule}).
   Its ends: `handback` why `floor` (the body's health at FLEE_HEALTH) gives the next choose to the ladder (the threat
   branch's health flee reads the health on its own), `clear` (no zombie left to meet) as `lost` out of range (the
-  ladder's, no mark); an end with a standing zombie (not a crawler) within KEEP_R is followed by the melee at the pin
-  (`_m_kept`, fixes 8 and 8b: a `lost` end's zombie marked and left out of P27-N's pin, `_stalled`, no ladder
-  choose), logged `engage_dispatch` {from: the end}.
+  ladder's, no mark); any end but `floor` with a standing zombie (not a crawler) within KEEP_R is followed by the melee
+  at the pin, no ladder choose and no backoff (`_contact_rule`, the one rule: fixes 8 and 8b, Task 8 fix 1; a `lost`
+  end's zombie marked and left out of P27-N's pin, `_stalled`), logged `engage_dispatch` {from: the end}.
 """
 from agent.base.planner.crawler import is_crawler
 from agent.base.planner.maneuvers import Melee
@@ -146,44 +146,55 @@ class FightDispatch:
             self._m_end["why"] = m.end_why   # PZA/1.10: a handback's or a lost end's why
         self._retire_maneuver()
         contact = self._contact()
-        if contact:
-            self._m_kept = end   # Plan 35 fix 8b: the next melee logs the end it follows
+        ladder = False
         if end in LADDER_ENDS:
-            self._m_ladder = True
+            ladder = True
         elif end == "lost":
-            self._lost_end(m, contact)
+            self._lost_end(m)
+            ladder = True
         elif end == "handback":
-            if m.end_why in WORK_ENDS or not self._melee_crowd(m):
-                self._m_ladder = True   # fix 1, M1: no fresh melee on the same geometry; the ladder's press (Plan 35:
-                                        # `floor` the ladder's, the health flee next; `clear` as `lost` out of range)
+            ladder = m.end_why in WORK_ENDS or not self._melee_crowd(m)   # fix 1, M1: no fresh melee on the
+            # same geometry; Plan 35: `floor` the ladder's (the health flee next), `clear` as `lost` out of range
         elif end in OFF_ENDS:
             self.melee_off = end
-        elif end in BACKOFF_ENDS:
+        elif end in BACKOFF_ENDS and not contact:
             self._m_backoff[m.target] = MELEE_BACKOFF_TICKS
             self._m_end["backoff"] = MELEE_BACKOFF_TICKS
+        self._contact_rule(end, getattr(m, "end_why", None), contact, ladder)
+
+    def _contact_rule(self, end, why, contact, ladder):
+        """The one rule after a melee end (Plan 35 fixes 8 and 8b; Task 8 fix 1, review-t8 A: a `head_stall` handback
+        and a `refused` lost at a pin 0.4 tiles off handed the ladder a raw aim leg): with a standing zombie (not a
+        crawler) within KEEP_R (`contact`), no end gives the next choose to the ladder but the body at the floor (a
+        handback why `floor`: the health flee is the ladder's); the next choose dispatches the melee with `work` at the
+        Fight's pin (`_m_kept`, `fight.Fight._choose`), logged `engage_dispatch` {from: the end}, the end's own marks
+        written as before (a `lost` end's `_lost_end`, a crowd handback's re-pin); an end in contact sets no backoff.
+        With nobody standing within KEEP_R (`clear`, an `out of range` with the zombie gone, any end at range) the
+        ladder takes the ends it took before (`ladder`)."""
+        if contact and not (end == "handback" and why == "floor"):
+            self._m_kept = end
+            return
+        if ladder:
+            self._m_ladder = True
 
     def _contact(self):
         """Plan 35 fixes 8 and 8b: a standing zombie (`_standing`, not a crawler) within KEEP_R of the player."""
         return any(not is_crawler(z) for _, z, _ in self._standing(KEEP_R))
 
-    def _lost_end(self, m, contact):
-        """A `lost` end (the module docstring): its target left unreachable by its why (out of reach for SEEK_SKIP_S,
-        no progress for UNREACHABLE_S, out of range never), the next choose the ladder's. Plan 35 fix 8 (the
+    def _lost_end(self, m):
+        """A `lost` end's marks (the module docstring): its target left unreachable by its why (out of reach for
+        SEEK_SKIP_S, no progress for UNREACHABLE_S, out of range and refused never). Plan 35 fix 8 (the
         controller's ruling; the proof round's death, `x_trial-ladder-20261111-112648`, decision lines 365 to 370:
         a112, sent at 25246 fallen 2.85 tiles off, re-pinned in the reflex to 25245 lunging at 0.50 and ended `lost`
         `no progress`; 25246 was marked, and the ladder's choose sent a back leg in its attack's place, 25201 climbing
         the fence at 0.49 bit under it 0.8 s later): the mark goes on the zombie the reflex stalled on (its last
         `target`, `span_id`), for its whole span (fix 8b; the reflex's own re-pin at the stall takes another standing
-        zombie), the zombie left out of P27-N's pin while another stands in contact (`_stalled`); and with a standing
-        zombie (not a crawler) within KEEP_R (`contact`) the next choose is no ladder's: it sends the melee with `work`
-        at the Fight's pin (`_m_kept`, `fight.Fight._choose`), logged `engage_dispatch` {from "lost"}."""
+        zombie), the zombie left out of P27-N's pin while another stands in contact (`_stalled`). Who takes the next
+        choose is `_contact_rule`'s."""
         zid = getattr(m, "span_id", None) or m.target
         if m.end_why in LOST_UNREACHABLE:
             self._mark_unreachable(zid, LOST_UNREACHABLE[m.end_why])   # fix 1, m1: as the ladder's stomp walk or stall
             self._stalled[zid] = self.clock() + LOST_UNREACHABLE[m.end_why]
-            if contact:
-                return   # Plan 35 fix 8: the engagement kept, no ladder choose
-        self._m_ladder = True
 
     def _melee_span(self, zid, span):
         """A `done` span at `zid` (strikes, health fell or None): strikes with no health fall count in the
@@ -282,9 +293,10 @@ class FightDispatch:
         MELEE_LEGS lacks. Fix 7 (the trial `x_trial-ladder-20261110-104053`, decision lines 315 to 415: the sheltered
         door fight sent raw attacks, strain shoves and wounded aim legs at 0.42 to 0.76 tiles, every bite on its
         lines): the door fight (`only`: its pin among `only`, never a melee at another) and the doorway stand
-        (`doorway`: `doorway.Doorway`'s own dispatch) dispatch it too, logged {from "door" | "doorway"}. Task 8: an aim
-        leg at a pin across a line read blocked (P30-C's walk to the post of a closed door, the zombie behind it) is no
-        dispatch point: the melee meets only a zombie it can reach, as the walk's give-way reads (`_walk_meets_pin`)."""
+        (`doorway`: `doorway.Doorway`'s own dispatch) dispatch it too, logged {from "door" | "doorway"}. Task 8 fix 1
+        (review-t8 C): P30-C's walk to the post of a closed door (`door_step` "post", the zombie behind the door) is
+        no dispatch point; every other leg is, whatever the map's line reads (a just-opened door keeps its scanned
+        edge, a hoppable fence reads blocked: the reflex's own probes and its stall own them)."""
         self._m_from = None
         if cmd is None or not self._melee_on():
             return None
@@ -296,7 +308,7 @@ class FightDispatch:
         if d > MELEE_RELEASE_R or self._m_backoff.get(zid):
             return None
         if cmd.TYPE == "aim":
-            if "fence_wait" in self.why or d > KEEP_R or on_floor(z) or line_to(self.world, z) is False:
+            if "fence_wait" in self.why or self.why.get("door_step") == "post" or d > KEEP_R or on_floor(z):
                 return None
             if self.point_blank or self.why.get("leg") not in MELEE_LEGS:
                 self._m_from = "point_blank_leg"

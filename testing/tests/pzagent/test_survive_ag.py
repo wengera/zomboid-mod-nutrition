@@ -373,8 +373,8 @@ def test_one_zombie_behind_a_closed_door_at_3_tiles_takes_the_stance_at_the_post
     """P30-C (F14's line 1081 in shape, the character outdoors, health 60): one zombie 3.5 tiles off inside behind the
     closed door: `door_held` {kind "door", n_behind 1, decision "stance_open"}; the stance's leg toward the post (the
     square beyond the door's outdoor square, (10771, 10633)) facing it; at the post `Interact` open on the door's
-    square; the door read open with the zombie still across, the stance stands facing it; once it is through, the
-    Fight's melee at it."""
+    square; the door read open with the zombie still across: Task 8 fix 1 (a named change, review-t8 C) the melee at it
+    (the dispatch skips the post leg alone; the meet leg was an aim there while the map kept the door's edge)."""
     me = (10773.0, 10633.5)
     r, sv = door_rig(tmp_path, me, [(9, 10769.5, 10633.5)])
     a = tick(r, sv)
@@ -392,11 +392,7 @@ def test_one_zombie_behind_a_closed_door_at_3_tiles_takes_the_stance_at_the_post
     r.event("door", x=10770, y=10633, z=0, open=True, locked=False)
     r.frame(x=me[0], y=me[1], zombies=[zombie(9, 10769.5, 10633.5, me=me)], health=60.0)
     a = tick(r, sv)
-    assert (a.type, a.args["vx"], a.args["vy"], threat_why(tmp_path)["door_step"]) == ("aim", 0.0, 0.0, "meet")
-    r.answer()
-    r.frame(x=me[0], y=me[1], zombies=[zombie(9, 10770.6, 10633.5, me=me)], health=60.0)
-    a = tick(r, sv)
-    assert a.type == "melee" and a.args["targetId"] == 9
+    assert (a.type, a.args["targetId"], threat_why(tmp_path)["door_step"]) == ("melee", 9, "meet")
 
 
 @pytest.mark.parametrize("zs, health", [([(9, 10769.5, 10633.5), (10, 10769.2, 10633.6)], 60.0),

@@ -12,6 +12,7 @@ itself (`frozen`): one child pytest a test file, its frozen nodes together, cach
 T8_FROZEN, the last build whose pins they held: `91062036` (`Plan 35 Task 4: proof round 2 rows`), the head this
 task's branch started from."""
 import functools
+import importlib.util
 import io
 import os
 import subprocess
@@ -27,6 +28,15 @@ BASE = ("pytest.ini", "data", "testing/agent", "testing/PZAgent", "testing/tests
         "testing/tests/slow_tests.txt", "testing/tests/pzagent")
 
 
+def _scrubbed_env():
+    """`tools/tests/gitenv.scrubbed_env` (CLAUDE.md § 6 scratch copies: no GIT_* variable aims git, or the archived
+    child, at the real repository), loaded by path."""
+    spec = importlib.util.spec_from_file_location("gitenv", os.path.join(REPO, "tools", "tests", "gitenv.py"))
+    gitenv = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(gitenv)
+    return gitenv.scrubbed_env()
+
+
 @functools.lru_cache(maxsize=None)
 def _run(test_file, funcs, extra):
     """(returncode, output) of the frozen functions `funcs` of `test_file` (its path under the repository) run in one
@@ -34,14 +44,14 @@ def _run(test_file, funcs, extra):
     git or the commit is not reachable (a source export with no history)."""
     try:
         blob = subprocess.run(["git", "-C", REPO, "archive", "--format=tar", T8_FROZEN] + list(BASE) + list(extra),
-                              capture_output=True, check=True).stdout
+                              capture_output=True, check=True, env=_scrubbed_env()).stdout
     except (OSError, subprocess.CalledProcessError) as e:
         pytest.skip("no git archive of %s: %s" % (T8_FROZEN, e))
     with tempfile.TemporaryDirectory() as tmp:
         with tarfile.open(fileobj=io.BytesIO(blob)) as tf:
             tf.extractall(tmp, filter="data")
         nodes = ["%s::%s" % (test_file, f) for f in funcs]
-        env = dict(os.environ, PYTHONDONTWRITEBYTECODE="1")
+        env = dict(_scrubbed_env(), PYTHONDONTWRITEBYTECODE="1")
         runs = runs_root()
         if runs is not None:
             env["PZT_RUNS"] = runs   # the trials' replays read this machine's `testing/runs/` (per-machine)

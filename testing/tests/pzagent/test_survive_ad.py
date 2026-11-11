@@ -397,9 +397,9 @@ def test_a_change_of_mode_re_sends_once_with_resend_inputs(tmp_path):
 
 # ================================================================ the ends
 def test_lost_out_of_range_takes_the_ladder_s_path_for_one_choose(tmp_path):
-    """`done lost` (why out of range): the next choose is the ladder's whatever it sends (the frame may still read the
-    target within KEEP_R: its `back` leg), logged `melee_end` {.., end lost, why}; the target is not marked; the
-    choose after that leg's end dispatches again; beyond KEEP_R the ladder's `stand`."""
+    """`done lost` (why out of range), logged `melee_end` {.., end lost, why}, the target not marked. Task 8 fix 1 (a
+    named change): with the target still within KEEP_R the next choose is the melee again, logged `engage_dispatch`
+    {from "lost"} (the ladder's `back` leg before it); beyond KEEP_R the ladder's `stand`, as before."""
     r = rig(tmp_path, "lag")
     fr(r, [z(9, 102.0)])
     f = fight(r)
@@ -409,13 +409,9 @@ def test_lost_out_of_range_takes_the_ladder_s_path_for_one_choose(tmp_path):
     r.advance(0.5)
     fr(r, [z(9, 102.3)])
     b = f.step()
-    assert (b.type, f.why["leg"]) == ("aim", "back") and f.why["melee_end"]["end"] == "lost"
-    assert f.why["melee_end"]["why"] == "out of range" and 9 not in f.unreachable
-    assert f.m is None and "maneuver" not in f.why
-    act(r, b, "done", result={})
-    r.advance(0.5)
-    fr(r, [z(9, 102.3)])
-    assert f.step().type == "melee"
+    assert b.type == "melee" and f.why["melee"]["engage_dispatch"] == {"from": "lost"}
+    assert f.why["melee_end"]["end"] == "lost" and f.why["melee_end"]["why"] == "out of range"
+    assert 9 not in f.unreachable
     r = rig(tmp_path, "far")
     fr(r, [z(9, 102.0)])
     f = fight(r)
@@ -435,8 +431,9 @@ def test_too_far_takes_the_ladder_s_path_as_out_of_range_does(tmp_path):
     act(r, a, "rejected", "too far")
     r.advance(0.5)
     fr(r, [z(9, 102.0)])
-    b = f.step()
-    assert (b.type, f.why["leg"]) == ("aim", "enter") and f.why["melee_end"]["end"] == "too far"
+    b = f.step()   # Task 8 fix 1 (a named change): in contact the melee again, where the ladder sent its `enter` leg
+    assert b.type == "melee" and f.why["melee_end"]["end"] == "too far"
+    assert f.why["melee"]["engage_dispatch"] == {"from": "too far"}
 
 
 def test_a_handback_re_pins_to_the_other_zombie_the_lua_reports_nearer(tmp_path):
@@ -497,8 +494,8 @@ def test_a_build_that_cannot_run_the_melee_falls_back_to_the_ladder_for_the_figh
 def test_spans_with_strikes_and_no_health_fall_reach_the_no_progress_mark(tmp_path):
     """A `done` span with strikes (swings, floor swings, stomps) and `hp1` not under `hp0` counts its strikes in the
     no-progress streak STALL_SWINGS reads: the third such strike marks the target unreachable, and the Fight sends
-    nothing at it; a span whose health fell restarts the streak. Each `done lost` (out of range) gives one choose to
-    the ladder (its leg, ended) before the next melee."""
+    nothing at it; a span whose health fell restarts the streak. Task 8 fix 1 (a named change): each `done lost` (out
+    of range) with the target within KEEP_R is followed by the next melee at once (the ladder's leg before it)."""
     for falls in (False, True):
         r = rig(tmp_path, str(falls))
         fr(r, [z(9, 102.0)])
@@ -510,12 +507,6 @@ def test_spans_with_strikes_and_no_health_fall_reach_the_no_progress_mark(tmp_pa
             done(r, a, swings=1, hp1=0.8 if (falls and k == 1) else 1.0)
             r.advance(0.5)
             fr(r, [z(9, 102.0)])
-            if k < P.STALL_SWINGS - 1 or falls:
-                leg = f.step()
-                assert leg.type == "aim", k
-                act(r, leg, "done", result={})
-                r.advance(0.5)
-                fr(r, [z(9, 102.0)])
         b = f.step()
         if falls:
             assert b.type == "melee" and f.no_progress == 1 and 9 not in f.unreachable
@@ -700,8 +691,8 @@ def test_no_weapon_takes_the_ladder_s_path_for_one_choose(tmp_path):
     act(r, a, "rejected", "no weapon")
     r.advance(0.5)
     fr(r, [z(9, 102.0)])
-    b = f.step()
-    assert (b.type, f.why["melee_end"]["end"]) == ("aim", "no weapon") and f.melee_off is None
+    b = f.step()   # Task 8 fix 1 (a named change): in contact the melee again, where the ladder sent its leg
+    assert (b.type, f.why["melee_end"]["end"]) == ("melee", "no weapon") and f.melee_off is None
 
 
 @pytest.mark.parametrize("state, reason", [("failed", "not loaded"), ("rejected", "bad args"),
@@ -829,8 +820,9 @@ def test_lost_out_of_reach_marks_the_fallen_target_and_takes_the_ladder(tmp_path
 
 def test_interrupted_timeout_and_no_target_back_off_to_the_ladder(tmp_path):
     """Fix 1 (review-t7b m2): a melee ended `interrupted`, `timeout` or `no target` leaves its target to the ladder for
-    MELEE_BACKOFF_TICKS planner ticks (Survive's FAILED_COOLDOWN_TICKS), logged `melee_end` {.., backoff}; the tick
-    after them dispatches again."""
+    MELEE_BACKOFF_TICKS planner ticks (Survive's FAILED_COOLDOWN_TICKS), logged `melee_end` {.., backoff}. Task 8 fix 1
+    (a named change): only with nobody standing within KEEP_R; with the target within it (2.0 tiles here) no backoff is
+    set and the next choose is the melee, logged `engage_dispatch` {from: the end}."""
     assert P.MELEE_BACKOFF_TICKS == S.FAILED_COOLDOWN_TICKS
     for state, reason in (("failed", "interrupted"), ("timeout", ""), ("rejected", "no target")):
         r = rig(tmp_path, state)
@@ -841,15 +833,11 @@ def test_interrupted_timeout_and_no_target_back_off_to_the_ladder(tmp_path):
             a.state = "timeout"
         else:
             act(r, a, state, reason)
-        for k in range(1, P.MELEE_BACKOFF_TICKS + 2):
-            r.advance(0.5)
-            fr(r, [z(9, 102.0)])
-            b = f.step()
-            if k == 1:
-                assert f.why["melee_end"]["end"] == (reason or "timeout") and f.why["melee_end"]["backoff"] == 10
-            assert (b.type == "melee") is (k > P.MELEE_BACKOFF_TICKS), (reason, k)
-            if b.type != "melee":
-                act(r, b, "done", result={})
+        r.advance(0.5)
+        fr(r, [z(9, 102.0)])
+        b = f.step()
+        assert f.why["melee_end"]["end"] == (reason or "timeout") and "backoff" not in f.why["melee_end"]
+        assert b.type == "melee" and f.why["melee"]["engage_dispatch"] == {"from": reason or "timeout"}
 
 
 
@@ -936,9 +924,10 @@ def test_the_re_send_waits_for_a_press_in_flight(tmp_path):
 
 
 def test_a_handback_with_the_frame_behind_still_gives_the_ladder_the_choose(tmp_path):
-    """Fix 1 (review-t7b M1): the Lua reads the other zombie live, the frame up to a tenth of a second behind it; with
-    the next frame still listing 8 beyond STAND_MIN_R (0.9 tiles, so the guard reads nothing), the crowd end alone
-    hands that choose to the ladder: its leg, never a fresh melee on the geometry the Lua refused."""
+    """Fix 1 (review-t7b M1): the Lua reads the other zombie live, the frame up to a tenth of a second behind it, the
+    next frame still listing 8 beyond STAND_MIN_R (0.9 tiles). Task 8 fix 1 (a named change, reversing M1's "never a
+    fresh melee on the geometry the Lua refused" under `work`, whose pile meets the crowd): the handback in contact is
+    followed by the melee at the pin, never a ladder leg."""
     r = Rig(tmp_path, caps=MELEE_CAPS)
     fr(r, [z(9, 100.4), z(8, 100.0, 200.9)])
     f = fight(r, target=9)
@@ -948,7 +937,8 @@ def test_a_handback_with_the_frame_behind_still_gives_the_ladder_the_choose(tmp_
     r.advance(0.5)
     fr(r, [z(9, 100.4), z(8, 100.0, 200.9)])
     b = f.step()
-    assert b.type == "aim" and f.why["melee_end"]["end"] == "handback" and f.m is None
+    assert b.type == "melee" and f.why["melee_end"]["end"] == "handback"
+    assert f.why["melee"]["engage_dispatch"] == {"from": "handback"}
 
 
 

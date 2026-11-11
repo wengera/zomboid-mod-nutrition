@@ -469,17 +469,18 @@ def done(r, a, why, **res):
     r.pump()
 
 
-@pytest.mark.parametrize("why", ["floor", "clear"])
-def test_the_floor_and_clear_hand_backs_give_the_next_choose_to_the_ladder(tmp_path, why):
-    """`done handback` why `floor` (the body at the floor) or `clear` (nothing left to meet): the engagement ends, the
-    next choose is the ladder's (no melee, and the crowd's re-pin, `_melee_crowd`, never read), logged `melee_end` {end
-    "handback", why}; nothing is marked unreachable."""
+@pytest.mark.parametrize("why, after", [("floor", ONE), ("clear", [zm(1, ME[0] + 3.0, ME[1])])])
+def test_the_floor_and_clear_hand_backs_give_the_next_choose_to_the_ladder(tmp_path, why, after):
+    """`done handback` why `floor` (the body at the floor, the pin still 1.8 tiles off) or `clear` (nothing left to
+    meet; Task 8 fix 1, a named change: the pin read beyond KEEP_R, 3.0 tiles, since in contact the melee follows every
+    end but `floor`): the engagement ends, the next choose is the ladder's (no melee, and the crowd's re-pin,
+    `_melee_crowd`, never read), logged `melee_end` {end "handback", why}; nothing is marked unreachable."""
     r, f = fight(tmp_path, ONE)
     a = f.step()
     accept(r, a, "face")
     f._melee_crowd = lambda m: pytest.fail("a work hand-back re-pinned")
     done(r, a, why, id=2, d=1.0)
-    again(r, f, ONE)
+    again(r, f, after)
     assert f._engaged() is False and f.busy() is False
     b = f.step()
     assert b.type != "melee" and f.target == 1 and not f.marked()
@@ -722,3 +723,69 @@ def test_under_the_floor_the_many_flee_runs_as_before(tmp_path):
     why = threat_why(tmp_path)
     assert why.get("flee") == "many" and "engage_hold" not in why and r.acts.history[-1] is not a
 
+
+# ================================================================ Task 8 fix 1: no melee end hands the ladder a leg in contact
+CONTACT = [zm(9, ME[0] + 0.4, ME[1]), zm(8, ME[0], ME[1] + 0.55)]   # review-t8 A's probe: the pin 9 at 0.4, 8 at 0.55
+
+
+def ended(tmp_path, res, zs=CONTACT):
+    """The melee at 9 accepted, then `done` with the result `res`, then one observe on the same frame."""
+    r, f = fight(tmp_path, zs, target=9)
+    a = f.step()
+    assert (a.type, a.args["targetId"]) == ("melee", 9)
+    accept(r, a, "face")
+    r.fake.act(a.aid, "done", "melee", result=dict({"kill": False}, **res))
+    r.pump()
+    again(r, f, zs)
+    return r, f
+
+
+@pytest.mark.parametrize("res", [{"end": "handback", "why": "head_stall", "id": 8, "d": 0.55},
+                                 {"end": "handback", "why": "crowd", "id": 7, "d": 0.3},
+                                 {"end": "lost", "why": "refused"},
+                                 {"end": "lost", "why": "out of range"},
+                                 {"end": "too far"}],
+                         ids=["head_stall", "handback_no_repin", "refused", "out_of_range", "too_far"])
+def test_a_melee_end_in_contact_is_followed_by_the_melee_with_work(tmp_path, res):
+    """Task 8 fix 1 (review-t8 A: after a `head_stall` handback and a `refused` lost at a pin 0.4 tiles off the ladder
+    sent a raw aim leg first): with a standing zombie within KEEP_R, the first send after any melee end but `floor` is
+    the melee with `work`, logged `engage_dispatch` {from: the end}, no ladder choose (`_m_ladder` False)."""
+    r, f = ended(tmp_path, res)
+    assert f._m_ladder is False
+    b = f.step()
+    assert b.type == "melee" and work_of(b) == WORK_ARGS
+    end = res["end"]
+    assert f.why["melee"]["engage_dispatch"] == {"from": end}
+
+
+def test_the_floor_hand_back_in_contact_still_hands_the_ladder_the_choose(tmp_path):
+    """Task 8 fix 1: `handback` why `floor` (the body at FLEE_HEALTH: the health flee is the ladder's) gives the next
+    choose to the ladder whatever stands within KEEP_R."""
+    r, f = ended(tmp_path, {"end": "handback", "why": "floor"})
+    assert f._m_ladder is True and f._m_kept is None
+    b = f.step()
+    assert b is None or b.type != "melee"
+
+
+# ================================================================ Task 8 fix 1: the melee across a just-opened door
+def test_the_door_meet_across_a_just_opened_door_is_the_melee(tmp_path):
+    """Task 8 fix 1 (review-t8 C: the blocked-line guard sent `aim` `door_step` "meet" at a standing zombie 1.05 tiles
+    across the door the character had just opened, the map keeping the scan's blocked edge): the P30-C flow to the
+    open, then the zombie at 1.05 tiles across the open door: the melee with `work` (the guard reads the post leg
+    only)."""
+    from .test_policies import zombie
+    from .test_survive_ag import door_rig
+    me = (10771.6, 10633.5)
+    r, sv = door_rig(tmp_path, (10773.0, 10633.5), [(9, 10769.5, 10633.5)])
+    a = tick(r, sv)
+    assert threat_why(tmp_path)["door_step"] == "post" and a.type == "aim"
+    r.answer()
+    r.frame(x=me[0], y=me[1], zombies=[zombie(9, 10769.5, 10633.5, me=me)], health=60.0)
+    a = tick(r, sv)
+    assert a.type == "interact"
+    r.answer()
+    r.event("door", x=10770, y=10633, z=0, open=True, locked=False)
+    me = (10770.6, 10633.5)   # one step on toward the open door; 9 still across its edge (x 10770), 1.05 tiles off
+    r.frame(x=me[0], y=me[1], zombies=[zombie(9, me[0] - 1.05, 10633.5, me=me)], health=60.0)
+    a = tick(r, sv)
+    assert a.type == "melee" and a.args["targetId"] == 9 and "workR" in a.args
