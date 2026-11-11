@@ -757,11 +757,12 @@ def test_f10_s_wound_rip_under_the_flee_is_held_while_the_nearest_stays_beyond_c
     the hold's lone fight), the care's rip of the T-shirt running: the yield holds it (nothing sent, the rip still
     current) as it holds a running bandage; with `STOCK_EARLY` off the flee's leg supersedes it.
     Named change, Plan 32 Task 5 (the coward rules on by default): pinned with the four off (`survive.T16_SWITCHES`),
-    the rules before them."""
+    the rules before them. Pinned with ACTION_CLOCK off (Plan 36 Task 4, a named change: the action clock reaches this fixture)."""
     monkeypatch.setattr("agent.base.planner.threat.Threat.POINT_BLANK_FIGHT", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.PAIR_NEAREST", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     monkeypatch.setattr("agent.base.planner.threat.Threat.STRAIN_BOUND", False)
+    monkeypatch.setattr("agent.base.planner.clock.ClockGate.ACTION_CLOCK", False)
     two = [z(1, 105.0), z(2, 91.0)]
     for on in (True, False):
         d = tmp_path / str(on)
@@ -788,9 +789,11 @@ def test_the_bleed_s_yield_under_a_fight_takes_the_wound_s_rip(tmp_path, monkeyp
     `stock_early` {branch yield}); with `STOCK_EARLY` off the yield takes a dressing only and the Fight answers.
     Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
     Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
-    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding)."""
+    ((c), a care action wanted taking one walk away, then finished with the threat branch yielding).
+    Pinned with ACTION_CLOCK off (Plan 36 Task 4, a named change: the action clock reaches this fixture)."""
     monkeypatch.setattr("agent.base.planner.threat.Threat.CARE_COMMIT", False)
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
+    monkeypatch.setattr("agent.base.planner.clock.ClockGate.ACTION_CLOCK", False)
     one = [z(1, 103.0)]
     for on in (True, False):
         d = tmp_path / str(on)

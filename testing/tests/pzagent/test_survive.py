@@ -31,10 +31,13 @@ def make(tmp_path, caps=None):
     swing is the fight from its start. On a PZA/1.5 build the same rules run only after a stand-off
     (`Fight.standoff`): `make_build(..., "standoff")` pins that path (Task 10 fix 1, the review's minor 10).
     Named change, Plan 33 Task 3 fix 3 (a unit test of an earlier rule whose trio fixture the leave now reaches, pinned
-    with the new rule's switch off): `GROUP_LEAVE` off here; `test_survive_ak.py` sets its own switches."""
+    with the new rule's switch off): `GROUP_LEAVE` off here; `test_survive_ak.py` sets its own switches.
+    Named change, Plan 36 Task 4 (the same rule: the action clock reaches the earlier rules' care, loot and door
+    fixtures): `ACTION_CLOCK` off here; `test_clock.py` and `test_survive_at.py` set it on."""
     r = Rig(tmp_path, caps=caps)
     sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
     sv.GROUP_LEAVE = False
+    sv.ACTION_CLOCK = False
     return r, sv
 
 
@@ -2510,12 +2513,13 @@ def test_a_shelter_walk_that_moves_or_stands_with_no_threat_within_danger_r_is_k
 def test_an_open_step_stands_at_the_door_unstalled_but_its_walk_to_the_door_stalls(tmp_path):
     """Rule 2 on `open`: the Lua's interact walks until the player is within one square of the door, then queues the
     open; standing there 2 s is the open, never a stall. An open sent from 3 squares off whose walk stands 1 s with a
-    threat within DANGER_R is dropped."""
+    threat within DANGER_R is dropped. Pinned with ACTION_CLOCK off (Plan 36 Task 4, a named change: the action clock reaches this fixture)."""
     for far in (False, True):
         d = tmp_path / str(far)
         d.mkdir()
         r = Rig(d)
         sv = Survive(r.world, r.acts, str(d / "decision.log"), r.clock)
+        sv.ACTION_CLOCK = False
         stall_shelter(r, sv)
         r.fake.answer({"walkTo": ["done"]})
         r.pump()

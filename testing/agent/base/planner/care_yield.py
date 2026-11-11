@@ -7,6 +7,7 @@ stays the record of every rule here.
 """
 from agent.base.planner.care import (CARE_HOLD_R, CARE_LEG_S, CARE_MARGIN, CARE_R, CARE_STILL_TICKS, FLEE_CARE_N,
                                      FLEE_CARE_S, RIDE_MANY_R, RIDE_R)
+from agent.base.planner.clock import ClockGate
 from agent.base.planner.policies import (BLEED_SPAN_MIN, BLEED_WINDOW_MIN, DANGER_R, DRAG_DOWN_N, FIGHT_REACH,
                                          GROUP_LEAVE_N, KEEP_R, POINT_BLANK_R, STEER_TURNS, Policy, _rotate, away_vector, blocked,
                                          clear_heading, standing, zdist)
@@ -36,8 +37,9 @@ def _num(v):
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
-class CareYield:
-    """The care yield (the module docstring): `Threat`'s mixin."""
+class CareYield(ClockGate):
+    """The care yield (the module docstring): `Threat`'s mixin; Plan 36 Task 4: over the action clock's gate
+    (`clock.ClockGate`), whose commitment `_clock_commit` is."""
 
     def _read_bleed(self):
         """Ruling P30-F (`DRESS_RIDE`): each part's health (`body.parts` `h`) sampled this tick at the World's minutes,
@@ -140,7 +142,10 @@ class CareYield:
         8 stops, an unwear and 5 rips, each rip superseded 0.5 to 1.5 s later as the column of four or five within 6
         tiles closed back to 1.78-2.47 tiles): with GROUP_LEAVE_N or more standing within GROUP_ENTRY_R the ride above
         (P24-U, P24-AR, P26-D, P27-O: a bandage with keepMoving on a part above the legs, which keeps the leg) is the one
-        yield; every one after it (the scratch's, the bleed's standing dressing, the rip) is None, `care_withheld` set."""
+        yield; every one after it (the scratch's, the bleed's standing dressing, the rip) is None, `care_withheld` set.
+        Plan 36 Task 4 (ACTION_CLOCK): past the ride every yield here is the clock's commitment's (`_clock_commit`),
+        whose care step the clock decides; the distance rules above (CARE_R, CARE_HOLD_R, the closing read, the bleed's
+        room, the column) read nothing."""
         if not self.world.can("bandage") or not self._nearest_seen or self.care.riding() is not None:
             return None
         near = self._nearest_seen[-1][1]
@@ -155,6 +160,8 @@ class CareYield:
                 self.bleed_yield = near if bleed else None
                 self.ride_flee = "health" if health else None
                 return near
+        if self._clock_on():
+            return None   # Plan 36 Task 4: past the ride the clock's commitment is the one yield (`_clock_commit`)
         if self._column_bars(self.care.commit_key()):
             return None   # Plan 34 (LEAVE_CARE): under a column the ride alone
         scratch = self._wound_yields(held, near)   # Plan 31 Task 15a: a scratch's Dress, no part bleeding
@@ -205,11 +212,14 @@ class CareYield:
         resumes on the line the count falls under GROUP_LEAVE_N.
         Plan 35: None while the Fight's melee is engaged (`threat.Threat._engage_holds`, logged
         `engage_hold` {rule "care"}) where the commitment would answer: no leg nor yield over the reflex; fix 2: but a
-        bleeding part answers as before (`_care_engage_holds`)."""
+        bleeding part answers as before (`_care_engage_holds`).
+        Plan 36 Task 4 (ACTION_CLOCK): the commitment is `_clock_commit`'s, the leg the clock's (`clock.ClockLeg`)."""
         self.care_commit = None
         c = self.care
         if not self.CARE_COMMIT or not self.world.can("bandage") or c.riding() is not None:
             return None
+        if self._clock_on():
+            return self._clock_commit()   # Plan 36 Task 4: the commitment is the clock's
         key = c.commit_key()   # read before the bars, so a column's bar names what it withheld
         if self._column_bars(key):
             return None   # Plan 34 (LEAVE_CARE): the yields after it, the ride alone, decide
@@ -245,6 +255,38 @@ class CareYield:
                 self.care_leg = CareLeg(self.world, self.actions, self.clock, key)
                 self.care_commit = dict(why, phase="leg")
                 return "leg", (self.care_leg, Steer(v[0], v[1], CARE_LEG_S, "walk"))
+        self.care_commit = dict(why, phase="yield")
+        return "yield", self._yield_near()
+
+    def _clock_commit(self):
+        """Plan 36 Task 4 (the action clock, `clock.py`'s docstring; F21, `f_goals_21-20261111-150552`, decision lines
+        427 to 494: seven rips started under the commitment's yield with the nearest standing 3.4 to 5.7 tiles off,
+        every one superseded by the threat branch's next steer once LEAVE_CARE read the column, and no bandage sent
+        while three parts bled from 68 to 13 health): the commitment rewritten to the clock. An action the care wants or
+        runs (`care.Care.commit_key`) takes the tick, `("yield", near)` logged `care_commit` {key, near, phase
+        "yield"}, so the care branch steps it and the clock decides each step there (`ClockGate._clock_gate`: the
+        action, or the gain-distance leg); None (the threat branch decides) with nothing wanted, under the clock's cut
+        (`clock_cut`: the melee), with a standing zombie within KEEP_R (the Fight's, rule (a)), while the engaged melee
+        holds (Plan 35, `_care_engage_holds`), or while the action's episode is spent and the clock still refuses it
+        (phase "spent"). CARE_HOLD_R's leg and LEAVE_CARE's column bar are the clock's now. Cost if wrong: a care step
+        refused for a zombie the clock reads closing that never comes (the leg's seconds)."""
+        c = self.care
+        key = c.commit_key()
+        if key is None:
+            self.care_leg = None
+            return None
+        if self.clock_cut is not None or self._clock_contact() or self._care_engage_holds():
+            return None
+        ids = {id(z): zid for zid, z in self.world.zombies.items()}
+        nz = min(((zdist(self.world, z), repr(ids[id(z)])) for z in standing(self.world, DANGER_R, self._skipped())),
+                 default=None)
+        why = {"key": list(key), "near": None if nz is None else nz[0]}
+        if self._clock_spent(key):
+            kind = c.next_kind()
+            if kind is not None and not self.action_clock.allows(kind):
+                self.care_commit = dict(why, phase="spent")
+                return None
+            self.clock_leg = None   # the clock allows it now: the action goes
         self.care_commit = dict(why, phase="yield")
         return "yield", self._yield_near()
 

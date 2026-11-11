@@ -479,8 +479,10 @@ def test_a_view_is_built_only_when_a_goal_is_proposed(tmp_path):
 
 
 def test_a_goal_pre_empted_by_a_threat_reads_superseded_and_is_proposed_again(tmp_path):
+    """Pinned with ACTION_CLOCK off (Plan 36 Task 4, a named change: the action clock reaches this fixture)."""
     r = Rig(tmp_path)
     sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
+    sv.ACTION_CLOCK = False
     r.scan([inside(101, 200, containers=[CRATE])])
     r.frame()
     sv.tick(r.world, r.acts)

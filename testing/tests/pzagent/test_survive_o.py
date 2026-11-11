@@ -274,6 +274,7 @@ def _e9(off=()):
     from agent.base import replay_decisions as R
 
     def m(sv):
+        sv.ACTION_CLOCK = False   # Pinned with ACTION_CLOCK off (Plan 36 Task 4, a named change: the action clock reaches this fixture).
         for k in off:
             setattr(sv, k, False)
     return json.dumps(R.decisions(R.replay(os.path.join(R.ARTIFACTS, E9), mutate=m)))

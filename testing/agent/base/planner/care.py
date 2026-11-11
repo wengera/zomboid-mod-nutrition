@@ -902,6 +902,29 @@ class Care(Policy):
             return True
         return self.busy() and self.last is not None and self.last.type in COMMIT_TYPES
 
+    def next_kind(self):
+        """Plan 36 Task 4 (the action clock, `clock.ClockGate._clock_kind`): the timed step the care would take next,
+        `bandage`, `rip` or `unwear`: a running Dress's action in flight, else its pick (`Dress._choice`); with no Dress,
+        the worst bleeding part's pick (`dress_pick`), a scratch's (`scratch_wanted`), else `bandage` (the old bleeding
+        step's dressing); a riding bandage stands nowhere and is no kind (None)."""
+        d = self.dress
+        if d is not None and d.over() is None:
+            a = d.action
+            if a is not None and not self.actions.done(a) and a.type in ("unwear", "rip", "bandage"):
+                return None if a.args.get("keepMoving") is True else a.type
+            got = d._choice()
+            if got is not None and got[0] == "bandage" and d.ride:
+                return None
+            return None if got is None else got[0]
+        bleeding = self._bleeding()
+        if self.dress_cls is not None and bleeding:
+            got = dress_pick(self.world, bleeding[0].get("bleedingTime") or 0.0)
+            return None if got is None else got[0]
+        if self.dress_cls is not None and self.scratch_wanted():
+            got = dress_pick(self.world, 0.0, dirty_ok=True)
+            return None if got is None else got[0]
+        return "bandage"
+
     def owns_last(self):
         """The care's last action is the running Dress's (its send through `sent`)."""
         d = self.dress

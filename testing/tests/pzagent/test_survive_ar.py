@@ -552,11 +552,13 @@ def test_two_attackers_on_two_ticks_keep_the_hold(tmp_path):
     assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "drag"} and "group" not in why
 
 
-def care_engaged(tmp_path, dist, parts):
-    """`engaged`'s two lines with a rag held and `parts` on the second, the melee's target then at `dist` tiles."""
+def care_engaged(tmp_path, dist, parts, clock=True):
+    """`engaged`'s two lines with a rag held and `parts` on the second, the melee's target then at `dist` tiles
+    (ACTION_CLOCK `clock`: Plan 36 Task 4's pins read the rules before it with it off)."""
     r = rig(tmp_path)
     sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
     sv.GROUP_LEAVE = False
+    sv.ACTION_CLOCK = clock
     hold(r, 11, "Base.RippedSheets")
     r.frame(zombies=[z(1, 101.8)])
     tick(r, sv)
@@ -578,8 +580,8 @@ def test_a_bleed_with_nobody_within_keep_r_yields_the_engagement_to_the_dressing
     stepped back to 3.2 tiles (no standing zombie within KEEP_R; beyond CARE_HOLD_R, so the commitment yields rather
     than walks its leg): engaged, the care's commitment answers as before, its Dress's stop superseding the melee,
     logged `engage_yield` {rule "bleed"}; with ENGAGE_HOLD off (the pin of the rule before it) the same yield, no
-    `engage_yield`."""
-    r, sv, a = care_engaged(tmp_path, 3.2, BLEED)
+    `engage_yield`. Pinned with ACTION_CLOCK off (Plan 36 Task 4, a named change: the action clock reaches this fixture)."""
+    r, sv, a = care_engaged(tmp_path, 3.2, BLEED, clock=False)
     why = threat_why(tmp_path)
     assert last(tmp_path)["branch"] == "care" and r.acts.history[-1].type == "stop"
     assert why["care_commit"]["phase"] == "yield" and "engage_hold" not in why
@@ -588,8 +590,8 @@ def test_a_bleed_with_nobody_within_keep_r_yields_the_engagement_to_the_dressing
 
 def test_a_bleed_at_the_engaged_melee_s_leg_distance_takes_the_commitment_s_leg(tmp_path):
     """The same with the target at 2.6 (beyond KEEP_R, within CARE_HOLD_R): the commitment's one distance leg as before
-    (Plan 32 Task 5 (c)), engaged or not; engaged, logged `engage_yield` {rule "bleed"}."""
-    r, sv, a = care_engaged(tmp_path, 2.6, BLEED)
+    (Plan 32 Task 5 (c)), engaged or not; engaged, logged `engage_yield` {rule "bleed"}. Pinned with ACTION_CLOCK off (Plan 36 Task 4, a named change: the action clock reaches this fixture)."""
+    r, sv, a = care_engaged(tmp_path, 2.6, BLEED, clock=False)
     why = threat_why(tmp_path)
     assert why["care_commit"]["phase"] == "leg" and r.acts.history[-1].type == "steer"
     assert why.get("engage_yield") == {"rule": "bleed"}
@@ -607,8 +609,8 @@ def test_the_bleed_s_yield_within_keep_r_is_held(tmp_path):
     """The bleed with the target at 2.2 (within KEEP_R, beyond FIGHT_REACH): P26-D's bleed yield (`_bleed_free`) would
     dress between swings; engaged, a standing zombie within KEEP_R keeps the hold (logged `engage_hold` {rule "care"},
     no `engage_yield`); with ENGAGE_HOLD off, the bleed's yield as before (`care_yield` {why "bleed"}, the pin), the
-    melee superseded (in this fixture by the goal's scan: the care sends nothing on that tick)."""
-    r, sv, a = care_engaged(tmp_path, 2.2, BLEED)
+    melee superseded (in this fixture by the goal's scan: the care sends nothing on that tick). Pinned with ACTION_CLOCK off (Plan 36 Task 4, a named change: the action clock reaches this fixture)."""
+    r, sv, a = care_engaged(tmp_path, 2.2, BLEED, clock=False)
     why = threat_why(tmp_path)
     assert "engage_yield" not in why
     assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "care"}

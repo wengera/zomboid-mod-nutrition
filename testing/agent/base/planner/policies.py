@@ -69,7 +69,7 @@ import time
 
 from agent.base.items import holds_use, use_of
 from agent.base.pza1 import Interact, Scan, WalkTo
-from agent.base.world import STUCK_AREA_N, STUCK_WALK_CAP, me_floor, me_xy
+from agent.base.world import ROOM_STEP_DEG, STUCK_AREA_N, STUCK_WALK_CAP, me_floor, me_xy
 
 DANGER_R = 6.0        # tiles: a zombie this close is a threat (Survive's threat branch; the night sends nothing)
 FIGHT_REACH = 2.0     # tiles: a nearest zombie beyond this is walked to, within it attacked
@@ -1131,3 +1131,56 @@ ROOM_OPEN_DEG = 45.0       # degrees: the `many` run above RETREAT_MAX_N takes t
                            # this of its own (`flee.Flee._room_open`), § 3.3
 RETREAT_HOLD_R = 1.0      # tiles: Task 3 fix 1b, the armed fighting retreat's withdraw holds while three stand within
                            # GROUP_ENTRY_R plus this, closing or not (a column keeping pace reads flat distances)
+# Plan 36 Task 4 (the action clock, `planner/clock.py`; the spec's § 3.4; F21, `f_goals_21-20261111-150552`, decision
+# lines 427 to 494: seven rips, every one superseded by the next steer, while three parts bled from 68 to 13 health).
+# The speeds: tiles a second off consecutive frames within 0.3 s, read offline by the controller (the ledger's line of
+# 2026-11-11 17:13:44) from F21's committed frames and three Plan 35 trial logs (the trials' part is P31-T, not
+# evidence; the F21 part is citable at F22's mint): lunge median 1.34, p90 1.58, p95 1.80; walktoward median 0.55, p90
+# 1.45 (bimodal: shamblers and fast shamblers); pathfind median 0.43, p90 1.42; staggerback median 0.53, p90 1.51;
+# crawler median 0.00, p90 0.71; floor and onground about 0. A zombie's clock speed is the larger of its own recent
+# speed (CLOCK_SPEED_S of frames) and its state's floor below (the controller's ruling of 17:13:44)
+LUNGE_TPS = 1.6            # tiles a second: the floor of a lunging or attacking zombie (lunge p90 1.58, p95 1.80)
+WALK_TPS = 1.45            # tiles a second: the floor of a standing zombie walking, pathing, turning or staggering, or
+                           # chasing in any state (walktoward p90 1.45: a fast shambler walks at it)
+CRAWL_TPS = 0.7            # tiles a second: the floor of a crawler (crawler p90 0.71)
+FLOOR_TPS = 0.3            # tiles a second: the floor of a fallen zombie until it stands (floor and onground about 0;
+                           # the controller's ruling: a fallen one rises)
+CLOCK_SPEED_S = 2.0        # seconds of frames a zombie's own recent speed is read over (its displacement over them)
+CLOCK_SPEED_MIN_S = 0.3    # seconds: a track spanning less reads no speed of its own (the floor alone), the read's
+                           # consecutive-frame window
+CONTACT_R = 0.7            # tiles: the time to contact is the distance less this over the speed: the bites of
+                           # platform/agent's sessions came with a zombie within 0.36 to 0.63 tiles, rounded up
+ACTION_MARGIN_S = 1.5      # seconds: a timed action starts only when the smallest time to contact exceeds its
+                           # duration plus this; a running one is cut into the melee once it falls under this
+# The durations (seconds, the median of accepted to done over F20's and F21's act lines, `f_goals_20-20261109-155512`
+# and `f_goals_21-20261111-150552`, by a scratch script aligning decision.log's sends to state.log's aids; the scan's
+# sent to done, it has no accepted line): rip n=1 (F21's seven all superseded; F16-F19 and E20-E23 read 4.126 over 7),
+# unwear n=1 (1.046 over 2 there), bandage n=3 (3.339 over 30 there: the two sessions' longer one kept), loot n=21,
+# the door's interact open n=1 (F20's five closes read 0.0 to 1.178), scan n=8 (sent to done)
+ACTION_S = {"rip": 4.134, "unwear": 1.078, "bandage": 5.444, "loot": 1.679, "door": 0.112, "scan": 0.031}
+CLOCK_LEG_S = 3.0          # seconds one gain-distance leg runs before it is re-aimed while the clock refuses (FLEE_S)
+CLOCK_EPISODE_S = 12.0     # seconds a refused action's gain-distance episode runs at most; then the action waits and
+                           # the threat branch decides (a judgment: four legs at a run)
+
+
+def room_open_heading(world, heading):
+    """Plan 36 Tasks 3 (fix 2) and 4 (the spec's §§ 3.3 and 3.4): `(heading, degrees)` of the room ring's most open
+    heading within ROOM_OPEN_DEG of `heading` (`World.room`: heading i at ROOM_STEP_DEG * i degrees from the world's +x
+    in atan2's convention; the largest clear tiles `h`, a tie to the heading nearest `heading`), else `(heading, None)`:
+    no ring on the frame, or every candidate reading 0.0 tiles clear. The `many` run's steer (`flee.Flee._room_open`)
+    and the clock's gain-distance leg (`clock.ClockGate._clock_heading`) share it, the one ring read."""
+    ring = world.room()
+    if ring is None:
+        return heading, None
+    deg = math.degrees(math.atan2(heading[1], heading[0]))
+    picks = []
+    for i, clear in enumerate(ring["h"]):
+        at = ROOM_STEP_DEG * i
+        off = abs((at - deg + 180.0) % 360.0 - 180.0)
+        if off <= ROOM_OPEN_DEG + 1e-9 and isinstance(clear, (int, float)) and not isinstance(clear, bool):
+            picks.append((-clear, off, i, at))
+    if not picks or min(picks)[0] >= 0.0:
+        return heading, None
+    at = min(picks)[3]
+    r = math.radians(at)
+    return (math.cos(r), math.sin(r)), at

@@ -926,6 +926,12 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.finish_lone = None   # P29-F: this tick's
         self.point_blank_fight = None   # Plan 32 Task 5 (a): this tick's
         self.strain_bound = None   # Plan 32 Task 5 (d): this tick's
+        pin = (self.clock_cut or self.clock_fight) if self._clock_on() else None
+        if pin is not None and pin.get("target") in self.world.zombies:   # Plan 36 Task 4: the clock's melee first
+            z = self.world.zombies[pin["target"]]
+            self.cornered, self._corner_fight = None, None
+            self.point_blank_fight = {"target": pin["target"], "dist": zdist(self.world, z), "over": "clock"}
+            return "fight", None
         door = self._doorway()
         if door is not None:   # P24-AO: the doorway stand and its close go first, the drag guard's leg included
             self.leave = None   # Plan 33 Task 3: a leave ends at the doorway
@@ -1142,7 +1148,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         """The threat branch: the tick's bookkeeping (`_threat_read`, read in `_read` with `OBSERVES_IN_READ` on); then
         the care's commitment (`_care_commit`, Plan 32 Task 5 (c)) and the yield to the care (`_care_yields`, P24-P),
         both barred but the ride under a column (Plan 34's LEAVE_CARE, logged `care_withheld` on the line's why), else
-        the decision (`_decide`), which a corner's retarget may re-plan without them."""
+        the decision (`_decide`), which a corner's retarget may re-plan without them. Plan 36 Task 4 (ACTION_CLOCK,
+        `clock.py`): first, a running timed action the clock lets run is held (`_clock_hold`, no row supersedes it)
+        and one under the margin is cut into the melee (`clock_cut`, `_threat_plan`'s first row); the decision's own
+        timed command asks the clock (`_clock_threat`); logged `clock` on the why."""
         self.trapped_pass = False
         if not self.OBSERVES_IN_READ:
             self._threat_read()
@@ -1151,6 +1160,12 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             if self.avoid:   # Task 18 fix 1: the zombies within ENGAGE_R no engage reaches, logged as the goal runs
                 self.why = {"unsought": sorted(self.avoid, key=repr)}
             return None
+        if self._clock_on():   # Plan 36 Task 4: a running timed action is cut by the clock only (`clock.py`)
+            hold = self._clock_hold()
+            if hold is not None:
+                self.care_yield = None
+                self.why = {"clock": self.clock_now, "held": len(held)}
+                return hold
         commit = self._care_commit(held)   # Plan 32 Task 5 (c): one leg, then the care's action finished
         if commit is not None and commit[0] == "leg":
             self.care_yield = None
@@ -1176,7 +1191,12 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                     self.why["care_yield"]["held"] = True   # P26-L2: held only by the dressing's hold
             ans = None
         else:
-            ans = self._decide(held, breach)
+            ans = self._clock_threat(held, breach, self._decide(held, breach))   # Plan 36 Task 4: its own timed
+                                                                                 # command asks the clock
+        if self.clock_now is not None:
+            self.why = dict(self.why or {}, clock=self.clock_now)   # Plan 36 Task 4
+        if commit is None and (self.care_commit or {}).get("phase") == "spent":
+            self.why = dict(self.why or {}, care_commit=self.care_commit)   # Plan 36 Task 4: the care's episode spent
         if self.many_tail is not None:
             self.why["many_tail"] = self.many_tail   # P27-B: the tick the `many` episode's tail ended it
         if self.care_withheld is not None:   # Plan 34 (LEAVE_CARE): the care barred under a column

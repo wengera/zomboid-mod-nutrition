@@ -38,8 +38,10 @@ def house(bid, x0, y0=200, door=CLOSED):
 
 
 def make(tmp_path):
+    """A Survive on a fresh Rig. Pinned with ACTION_CLOCK off (Plan 36 Task 4, a named change: the action clock reaches this fixture)."""
     r = Rig(tmp_path)
     sv = Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
+    sv.ACTION_CLOCK = False
     return r, sv
 
 

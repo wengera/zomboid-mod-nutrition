@@ -385,6 +385,11 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     Plan 36 Task 3 (the engagement picker; the spec's § 3.3; F21, `f_goals_21-20261111-150552`): the withdraw bias is
     the pull to a line and the cone trigger (`group.ThreatGroup._pull`, logged `engage_pull`); the leave's hold over the
     engaged melee is deleted, the leave at GROUP_LEAVE_N the pull (`group.py`'s docstring the record).
+    Plan 36 Task 4 (the action clock; the spec's § 3.4; F21's seven rips superseded): no timed action (a rip, an
+    unwear, a standing bandage, a loot, a door's open or close, a scan) starts unless the smallest time to contact
+    exceeds its duration plus ACTION_MARGIN_S; refused, the gain-distance leg first; a running one is held by the threat
+    branch while the clock holds and cut only under the margin, into the melee (`clock.py`'s docstring the record;
+    `ACTION_CLOCK`, `T21_SWITCHES`; logged `clock`). The care's commitment is the clock's (`CareYield._clock_commit`).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -560,6 +565,12 @@ T19_SWITCHES = ("LEAVE_CARE", "DOOR_INSIDE", "LEAVE_DOOR_RACE", "LEAVE_ENTRY", "
 # ends. Plan 35 Task 8 deleted RETREAT_GAP, RETREAT_MELEE, STRUNG_HOLD, CRAWLER_CLEAR, RETREAT_REGAIN, DRAG_DEFER and
 # SHOVE_CLEAR (its one Python reader the drag guard's shove), and Plan 35 Task 2's T20_SWITCHES (FOOTWORK, ENGAGE_HOLD,
 # WITHDRAW: the engagement is the only behaviour)
+T21_SWITCHES = ("ACTION_CLOCK",)
+# Plan 36 Task 4 (the action clock; the spec `2026-11-11-plan-36-the-engagement-design.md` § 3.4; F21,
+# `f_goals_21-20261111-150552`) on `clock.ClockGate`, the mixin `care_yield.CareYield` derives from: ACTION_CLOCK,
+# no timed action starts unless the smallest time to contact exceeds its duration plus ACTION_MARGIN_S, a refused one
+# gaining distance first, a running one cut by the clock only, into the melee (`planner/clock.py`); off, the yields and
+# the supersedes before it
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -582,7 +593,7 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T3_SWITCHES",
            "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES", "T7_SWITCHES", "T8_SWITCHES", "T9_SWITCHES", "T10_SWITCHES",
            "T11_SWITCHES", "T12_SWITCHES", "T13_SWITCHES", "T14_SWITCHES", "T15_SWITCHES",
-           "T16_SWITCHES", "T17_SWITCHES", "T18_SWITCHES", "T19_SWITCHES"]
+           "T16_SWITCHES", "T17_SWITCHES", "T18_SWITCHES", "T19_SWITCHES", "T21_SWITCHES"]
 
 
 @dataclass
@@ -745,6 +756,7 @@ class Survive(SneakGait, Threat):
         self.engage_dispatch = None   # this tick: {from "unreachable", target} when the `unreachable` flee was withheld
                                       # in contact (Plan 35 Task 2 fix 8b, `Threat._contact_lift`), else None
         self.care_leg = None      # the care's one distance leg (Plan 32 Task 5 (c), `care_yield.CareLeg`), else None
+        self._init_clock()        # Plan 36 Task 4: the action clock, its episode and this tick's cut (`clock.ClockGate`)
         self.care_commit = None   # this tick: the care commitment's why (Plan 32 Task 5 (c)), else None
         self.bleed_held = False   # this tick: that yield was made by the dressing's hold alone (P26-L2)
         self.bleed_dressing = None   # the last bandage the care sent, when the bleed's yield made its tick (P26-L2)
@@ -1283,6 +1295,7 @@ class Survive(SneakGait, Threat):
         self.goals.observe(world, actions)
         self.engaging = False   # P24-X: set again by this tick's threat branch
         self._finish_kill = self._finish_end()   # P24-AQ: the flee's finishing stomp's end (fix 1, the review's minor 11)
+        self._clock_read()   # Plan 36 Task 4: the clock observed once a tick, before any branch
         inputs = self._inputs()
         if self.OBSERVES_IN_READ:
             self._read_observes()
@@ -1360,6 +1373,12 @@ class Survive(SneakGait, Threat):
                 continue
             branch, (owner, cmd) = name, ans
             break
+        if branch not in (None, "threat"):   # Plan 36 Task 4: every other branch's timed command asks the clock
+            owner, cmd, clock = self._clock_gate(branch, owner, cmd)
+            if clock is not None and isinstance(tried.get(branch), dict):
+                tried[branch]["clock"] = clock   # in place: a policy's `sent` adds to the same why (the night's aid)
+            elif clock is not None:
+                tried[branch] = {"clock": clock}
         inputs["need"] = self.need_mark
         inputs["consume_refused"] = self.consume_refused
         inputs["cooled"] = cooled

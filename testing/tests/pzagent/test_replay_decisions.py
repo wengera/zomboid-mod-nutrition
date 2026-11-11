@@ -297,6 +297,16 @@ def pre_t19(sv, keep=()):
             setattr(sv, name, False)
     if "POINT_BLANK_OVER_R" not in keep:
         sv.POINT_BLANK_OVER_R = P.KEEP_R
+    pre_t21(sv)
+
+
+def pre_t21(sv, keep=()):
+    """The replay's mutate seam onto the rules before Plan 36 Task 4 (the action clock): its switch off
+    (`survive.T21_SWITCHES`: ACTION_CLOCK), but those named in `keep`; every seam onto an earlier rule reads it off
+    (`pre_t19`)."""
+    for name in S.T21_SWITCHES:
+        if name not in keep:
+            setattr(sv, name, False)
 
 
 # ---------------------------------------------------------------- the rules before P24-X (Plan 24 Task 18)

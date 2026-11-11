@@ -195,8 +195,10 @@ def goal_rig(tmp_path):
 def test_through_survive_the_care_s_unwear_pre_empts_a_running_goal_on_a_quiet_tick(tmp_path, monkeypatch):
     """F4's 903 goal lines: the care branch, before the goal's, sends the unwear while the goal's loot runs; its line
     is the care branch's with the why. With UNWEAR_WOUND off the goal keeps the tick (the stock waits for an idle one).
-    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off."""
+    Named change, Plan 31 Task 15a (ruling P31-H): the Dress the default; pinned with `DRESS_MANEUVER` off.
+    Pinned with ACTION_CLOCK off (Plan 36 Task 4, a named change: the action clock reaches this fixture)."""
     monkeypatch.setattr("agent.base.planner.survive.Survive.DRESS_MANEUVER", False)
+    monkeypatch.setattr("agent.base.planner.clock.ClockGate.ACTION_CLOCK", False)
     r, sv = goal_rig(tmp_path)
     goal_cmd = r.cmd()
     bleed(r)

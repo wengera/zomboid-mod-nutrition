@@ -77,6 +77,7 @@ def e17_replay(upto, **on):
     """E17's record replayed through decision line `upto` with iteration 18's switches as given (each of
     `survive.T8_SWITCHES` off unless named True): the replayed decision lines."""
     def mutate(sv):
+        sv.ACTION_CLOCK = False   # Pinned with ACTION_CLOCK off (Plan 36 Task 4, a named change: the action clock reaches this fixture).
         for name in S.T8_SWITCHES:
             setattr(sv, name, bool(on.get(name)))
     return R.replay(E17, mutate=mutate, upto=upto)
@@ -332,6 +333,7 @@ def test_e17_s_window_act_is_dropped_at_its_stall_and_the_window_noted_stalled(m
 
     def mutate(sv):
         kept["sv"] = sv
+        sv.ACTION_CLOCK = False   # Pinned with ACTION_CLOCK off (Plan 36 Task 4, a named change: the action clock reaches this fixture).
         for name in S.T8_SWITCHES:
             setattr(sv, name, name == "WINDOW_STALL")
         for name in S.T9_SWITCHES + S.T10_SWITCHES + S.T13_SWITCHES + S.T14_SWITCHES:
@@ -555,6 +557,7 @@ def f8_replay(upto, **on):
             setattr(sv, name, bool(on.get(name)))
         for name in S.T10_SWITCHES + S.T11_SWITCHES + ("HEALTH_NEAR", "DRESS_FINISH", "DRESS_RIDE"):
             setattr(sv, name, False)
+        sv.ACTION_CLOCK = False   # Pinned with ACTION_CLOCK off (Plan 36 Task 4, a named change: the action clock reaches this fixture).
     return R.replay(F8, mutate=mutate, upto=upto)
 
 
