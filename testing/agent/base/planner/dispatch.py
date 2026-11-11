@@ -55,7 +55,8 @@ command at its pin. Its state is the Fight's own (`_init_dispatch`), and `fight.
 - Plan 35 (the footwork, PZA/1.13; the spec's §§ 3.2 and 3.3; Task 8 removed its switches and the crowd gate): every
   melee carries `work` (`_work_inputs`: WORK_R, WORK_CRAWLER_R, WORK_BAND_LO, the floor FLEE_HEALTH, `pile` true, so
   the reflex meets the pile and the crawlers; the withdraw bias the engagement picker's vector, `withdraw`, Plan 36
-  Task 3's `group.ThreatGroup._pull`, else none), and the running melee with `work` is the
+  Task 3's `group.ThreatGroup._pull`, else none; backswing the Fight's `backswing`, threat.Threat's BACKSWING, Plan 36
+  Task 2a addendum), and the running melee with `work` is the
   engagement (`_engaged`): `_melee_holds` holds it whatever its pin, the pin-first and the finish read, until a re-send
   is due, and the choose that follows re-sends it and nothing else (`_engage_resend`: no ladder leg supersedes it); the
   threat branch's rows answer the hold above FLEE_HEALTH (`threat.Threat._engage_holds`, logged `engage_hold` {rule}).
@@ -113,6 +114,8 @@ class FightDispatch:
                                             # with a standing zombie within KEEP_R: the melee, logged `engage_dispatch`
         self.withdraw = None                # Survive sets it each tick (Plan 36 Task 3): the engagement picker's unit
                                             # vector (`group.ThreatGroup._pull`), the melee's withdraw bias, else None
+        self.backswing = False              # Survive sets it each tick (Plan 36 Task 2a addendum: threat.Threat's
+                                            # BACKSWING, T21_SWITCHES): the work's backswing; a bare Fight sends none
 
     def _retire_maneuver(self):
         """The running maneuver is dropped, its sends' ends still read (`_spent_m`)."""
@@ -338,10 +341,11 @@ class FightDispatch:
 
     def _work_inputs(self):
         """Plan 35: the send's `WorkInputs` (the module docstring): the withdraw bias the engagement picker's vector
-        (Plan 36 Task 3, `withdraw`), else none."""
+        (Plan 36 Task 3, `withdraw`), else none; Plan 36 Task 2a addendum: backswing the Fight's `backswing`."""
         w = self.withdraw
         withdraw = None if w is None else (float(w[0]), float(w[1]))
-        return WorkInputs(WORK_R, WORK_CRAWLER_R, WORK_BAND_LO, withdraw, FLEE_HEALTH, True)
+        return WorkInputs(WORK_R, WORK_CRAWLER_R, WORK_BAND_LO, withdraw, FLEE_HEALTH, True,
+                          backswing=bool(self.backswing))
 
     def _melee_dispatch(self, cmd):
         """The ladder's `cmd`, or at the dispatch point the running maneuver's next command (a new `Melee` where none

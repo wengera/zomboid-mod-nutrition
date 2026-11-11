@@ -1522,10 +1522,10 @@ def test_backswing_with_no_step_walking_is_no_moving_back(lua, fs):
     assert step_seq(lua, fs)[:2] == ["swing", "work"] and lv[0]["moving_back"] is False
 
 
-def test_air_at_its_method_a_swing_beyond_the_reach(lua, fs):
-    """K.meleePressAir tested at its method (no meet path reaches it: swingPress presses a swing only with its
-    predicted distance within the reach): a swing or a floor swing beyond reachOf reads air, within it none, a shove or
-    a stomp never, an unread prediction none."""
+def test_air_launch_at_its_method_a_swing_beyond_the_reach(lua, fs):
+    """K.meleePressAir (the leaf's air_launch since the addendum) tested at its method (no meet path reaches it:
+    swingPress presses a swing only with its predicted distance within the reach): a swing or a floor swing beyond
+    reachOf reads true, within it false, a shove or a stomp never, an unread prediction false."""
     p, z, w = world(lua, zx=10.95, **LOOK_OFF)
     records(lua, [target_rec(w)], {7: z})
     gow(lua, p)                                                       # reach 1.475
@@ -1539,17 +1539,105 @@ def test_air_at_its_method_a_swing_beyond_the_reach(lua, fs):
     assert air("shove", 1.6) is False and air("stomp", 1.6) is False and air("swing", "nil") is False
 
 
-def test_a_press_launched_beyond_the_reach_reads_air_and_one_within_none(lua, fs):
-    """The press's own leaf and count: a swing launched through the melee's press with its prediction at 1.6 (beyond
-    the reach 1.475) reads air and air_presses 1; the meet's own presses within the reach read none."""
-    p, z, w = world(lua, zx=10.95, zspeed=0.0, attack_ticks=6, **LOOK_OFF)
+def _press_at(lua, p, d):
+    """A swing sent through the melee's own press at the running state, its prediction and distance d (no meet path
+    presses beyond the reach: the press tested at its method)."""
+    lua.globals()._p = p
+    lua.execute('PZA.skills.meleeWork.press(_p, PZA.skills.cur.st, "swing", %r, %r, 0, "face", %r)' % (d, d, d))
+
+
+def test_a_swing_whose_target_stayed_beyond_the_reach_and_landed_nothing_reads_air(lua, fs):
+    """The addendum's air, read at the result: the target static at 1.6 tiles (the reach 1.475) through the whole
+    flight, the swing landing nothing: air and air_launch true, air_presses 1."""
+    p, z, w = world(lua, zx=11.6, zspeed=0.0, attack_ticks=6, **LOOK_OFF)
     records(lua, [target_rec(w)], {7: z})
     gow(lua, p)
     run(lua, p, w, 1)
-    lua.globals()._p = p
-    lua.execute('PZA.skills.meleeWork.press(_p, PZA.skills.cur.st, "swing", 1.6, 1.6, 0, "face", 1.6)')
+    _press_at(lua, p, 1.6)
     run(lua, p, w, 10)
-    assert leaves(lua, fs)[0]["air"] is True and progress(lua, fs)[-1]["result"]["air_presses"] == 1
+    leaf = leaves(lua, fs)[0]
+    assert leaf["air"] is True and leaf["air_launch"] is True
+    assert progress(lua, fs)[-1]["result"]["air_presses"] == 1
+
+
+def test_a_swing_beyond_the_reach_that_landed_reads_no_air(lua, fs):
+    """The falsifier: the same swing lowering the target's health is no air (it landed), air_launch still true."""
+    p, z, w = world(lua, zx=11.6, zspeed=0.0, attack_ticks=6, **LOOK_OFF)
+    w["on_attack"] = lambda wd, shove: wd.__setitem__("zhp", wd["zhp"] - 0.4)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p)
+    run(lua, p, w, 1)
+    _press_at(lua, p, 1.6)
+    run(lua, p, w, 10)
+    leaf = leaves(lua, fs)[0]
+    assert leaf["air"] is False and leaf["air_launch"] is True
+    assert progress(lua, fs)[-1]["result"]["air_presses"] == 0
+
+
+def test_a_target_closing_into_the_reach_over_the_flight_reads_no_air(lua, fs):
+    """The second falsifier: launched at 1.6 with the target closing at 2.5 tiles a second over a 12-tick flight (into
+    the reach before the result), the swing landing nothing: no air (the flight's least distance within the reach)."""
+    p, z, w = world(lua, zx=11.6, zspeed=2.5, attack_ticks=12, **LOOK_OFF)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p)
+    run(lua, p, w, 1)
+    _press_at(lua, p, 1.6)
+    run(lua, p, w, 14)
+    leaf = leaves(lua, fs)[0]
+    assert leaf["air"] is False and lua.eval("PZA.skills.cur.st.dMin") < 1.475
+
+
+def test_air_at_the_result_is_no_shove_and_no_refused_press(lua, fs):
+    """K.meleeAirAt at its method: a shove, a refused swing, a knocked-down target and an unread health never read air;
+    the swing beyond the reach over its flight with nothing landed does."""
+    melee_world(lua)
+    load_work(lua)
+
+    def air(s, leaf):
+        return lua.eval("PZA.skills.meleeAirAt(%s, %s)" % (s, leaf))
+    base = "kind = 'swing', hp0 = 1.0, dFly = 1.6, reachAt = 1.475"
+    assert air("{ %s }" % base, "{ hp1 = 1.0 }") is True
+    assert air("{ kind = 'shove', hp0 = 1.0, dFly = 1.6, reachAt = 1.475 }", "{ hp1 = 1.0 }") is False
+    assert air("{ %s, refused = true }" % base, "{ hp1 = 1.0 }") is False
+    assert air("{ %s }" % base, "{ hp1 = 1.0, knock = true }") is False
+    assert air("{ %s }" % base, "{ }") is False
+    assert air("{ kind = 'swing', hp0 = 1.0, dFly = 1.4, reachAt = 1.475 }", "{ hp1 = 1.0 }") is False
+
+
+def test_the_back_step_s_speed_is_tracked_and_added_only_under_backswing_with_the_step_walking(lua, fs):
+    """K.meleeTrack: the player 0.05 tiles farther from the target over one 50 ms tick reads 1.0 tile a second away
+    (a step toward reads 0); K.meleeBackAway adds it only with backswing and the step's walk (st.walk work)."""
+    melee_world(lua)
+    load_work(lua)
+    lua.execute("_st = { zx = 12.0, zy = 20.0, work = { backswing = true }, walk = 'work' }")
+    lua.execute("PZA.skills.meleeTrack(_st, 10.0, 20.0, 2.0, 1000)")
+    assert lua.eval("_st.backV") == 0
+    lua.execute("PZA.skills.meleeTrack(_st, 9.95, 20.0, 2.05, 1050)")
+    assert lua.eval("_st.backV") == pytest.approx(1.0)
+    assert lua.eval("PZA.skills.meleeBackAway(_st)") == pytest.approx(1.0)
+    lua.execute("_st.walk = nil")
+    assert lua.eval("PZA.skills.meleeBackAway(_st)") == 0
+    lua.execute("_st.walk = 'work'; _st.work.backswing = false")
+    assert lua.eval("PZA.skills.meleeBackAway(_st)") == 0
+    lua.execute("PZA.skills.meleeTrack(_st, 10.0, 20.0, 2.0, 1100)")
+    assert lua.eval("_st.backV") == 0                                 # a step toward the target is no gain
+
+
+def test_under_backswing_the_retreat_s_prediction_adds_the_back_step(lua, fs):
+    """The retreat with backswing: the first swing's d_collide_pred lies above the off arm's reading of the same
+    shape by the back step's gain (the player walking away at the press), so it is pressed no earlier."""
+    def first(bs):
+        from .conftest import make_lua, FakeFS
+        fs2 = FakeFS()
+        l2 = make_lua(fs2)
+        p, z, w = retreat_world(l2)
+        w["on_attack"] = _stagger
+        gow(l2, p, withdrawX=-1.0, withdrawY=0.0, backswing=bs)
+        run(l2, p, w, 90, stop=lambda: len(w["presses"]) >= 1)
+        run(l2, p, w, 30)
+        leaf = leaves(l2, fs2)[0]
+        return leaf["d_press"] - leaf["d_collide_pred"]
+    assert first(True) < first(False)                                 # the gain read against the closing
 
 
 def test_the_meet_s_presses_within_the_reach_read_no_air(lua, fs):
@@ -1568,7 +1656,7 @@ def test_the_backswing_fields_are_in_the_schema_and_the_generated_melee():
     for res in ("result_melee", "result_melee_step"):
         props = defs[res]["properties"]
         assert {"air_presses", "back_presses"} <= set(props)
-        assert {"moving_back", "air"} <= set(props["press"]["properties"])
+        assert {"moving_back", "air", "air_launch"} <= set(props["press"]["properties"])
     base = dict(targetId=7, mode="strike", reach=1.25, shoveR=0.9, releaseR=2.75, faceR=3.0, pressAngle=41.0,
                 pressLo=0.0, floorR=1.0, handbackR=2.0, stall=3, workR=3.5, crawlerR=1.2, bandLo=0.4, floorHealth=0.0)
     assert "backswing" not in pza1.Melee(**base).args()

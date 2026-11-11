@@ -565,12 +565,16 @@ T19_SWITCHES = ("LEAVE_CARE", "DOOR_INSIDE", "LEAVE_DOOR_RACE", "LEAVE_ENTRY", "
 # ends. Plan 35 Task 8 deleted RETREAT_GAP, RETREAT_MELEE, STRUNG_HOLD, CRAWLER_CLEAR, RETREAT_REGAIN, DRAG_DEFER and
 # SHOVE_CLEAR (its one Python reader the drag guard's shove), and Plan 35 Task 2's T20_SWITCHES (FOOTWORK, ENGAGE_HOLD,
 # WITHDRAW: the engagement is the only behaviour)
-T21_SWITCHES = ("ACTION_CLOCK",)
+T21_SWITCHES = ("ACTION_CLOCK", "BACKSWING")
 # Plan 36 Task 4 (the action clock; the spec `2026-11-11-plan-36-the-engagement-design.md` § 3.4; F21,
 # `f_goals_21-20261111-150552`) on `clock.ClockGate`, the mixin `care_yield.CareYield` derives from: ACTION_CLOCK,
 # no timed action starts unless the smallest time to contact exceeds its duration plus ACTION_MARGIN_S, a refused one
 # gaining distance first, a running one cut by the clock only, into the melee (`planner/clock.py`); off, the yields and
 # the supersedes before it
+# Plan 36 Task 2a addendum (the press on the back step; the spec's § 3.2), on `threat.Threat`: BACKSWING, every melee
+# sent with work carries backswing true (the Fight's `backswing`, set each tick; `dispatch.FightDispatch._work_inputs`),
+# so a press launched while the reflex's step walks keeps the walk held through it; off, the walk stopped on the
+# press's tick as before. The probe's off arm is the head before this switch, its on arm the head with it
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")

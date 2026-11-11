@@ -80,18 +80,21 @@ class WorkInputs:
     withdraw: Optional[Tuple[float, float]]    # withdrawX, withdrawY: the planner's bias (a unit vector), else None
     floor_health: float                        # floorHealth: the hand-back floor (0 to 100), 0 for none
     pile: bool                                 # pile: three within 0.9 tiles met in the reflex, never handed back
+    backswing: bool = False                    # backswing (PZA/1.15, Plan 36 Task 2a addendum: threat.Threat's
+                                               # BACKSWING): the press held on the reflex's back step; false on the
+                                               # wire is absent (pza1.Melee's default)
 
     def behaviour(self):
         """The work as the reflex runs it, the withdraw heading by its sector (`withdraw_sector`)."""
         return (float(self.work_r), float(self.crawler_r), float(self.band_lo), withdraw_sector(self.withdraw),
-                float(self.floor_health), bool(self.pile))
+                float(self.floor_health), bool(self.pile), bool(self.backswing))
 
     def args(self):
         """The `pza1.Melee` keyword arguments (the raw withdraw vector on the wire)."""
         w = self.withdraw
         return {"workR": float(self.work_r), "crawlerR": float(self.crawler_r), "bandLo": float(self.band_lo),
                 "withdrawX": None if w is None else float(w[0]), "withdrawY": None if w is None else float(w[1]),
-                "floorHealth": float(self.floor_health), "pile": bool(self.pile)}
+                "floorHealth": float(self.floor_health), "pile": bool(self.pile), "backswing": bool(self.backswing)}
 
 
 @dataclasses.dataclass(frozen=True)

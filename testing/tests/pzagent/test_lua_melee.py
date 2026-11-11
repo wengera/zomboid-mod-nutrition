@@ -29,8 +29,9 @@ ARGS = {"targetId": 7, "mode": "strike", "reach": 1.25, "shoveR": P.SHOVE_SEND_R
         "stall": P.STALL_SWINGS}
 PRESSES = ("swing", "shove", "stomp", "floor")
 LEAF = {"d_press", "d_collide_pred", "d_min", "look_off", "hp0", "hp1", "knock", "cut_by", "body_off",
-        "facing", "head_ticks", "moving_back", "air"}   # fix 1: d_min; Plan 32 Task 4: body_off and facing; Plan 33
-# Task 1: head_ticks; Plan 36 Task 2a (PZA/1.15): moving_back and air, on every leaf
+        "facing", "head_ticks", "moving_back", "air", "air_launch"}   # fix 1: d_min; Plan 32 Task 4: body_off and
+# facing; Plan 33 Task 1: head_ticks; Plan 36 Task 2a (PZA/1.15): moving_back and air, on every leaf; its addendum:
+# air_launch (air read at the result)
 COUNTS = {"swings", "shoves", "stomps", "floors", "knockdowns", "hits", "air_presses",
           "back_presses"}   # Plan 36 Task 2a: the presses launched with air and with moving_back
 R2 = 1 / math.sqrt(2)

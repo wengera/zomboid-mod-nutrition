@@ -127,10 +127,13 @@
 --   was left walking through the press (K.meleePressWalk, the block at the end of this file: work's backswing true
 --   and the auto-walk of kind work running at the press; the step moves the player by setAutoWalk and
 --   setAutoWalkDirection in input space, never by a position write; with backswing false or absent the walk is
---   stopped on the press's own tick, setAutoWalk(false) then DoAttack(0), today's order), and air, a swing or floor
---   swing whose d_collide_pred at the launch lies beyond reachOf (K.meleePressAir; false for a shove or a stomp).
---   Every result line counts air_presses and back_presses beside swings (the presses launched with air and with
---   moving_back, refused ones included, as swings counts them).
+--   stopped on the press's own tick, setAutoWalk(false) then DoAttack(0), today's order), air_launch, a swing or
+--   floor swing whose d_collide_pred at the launch lies beyond reachOf (K.meleePressAir; false for a shove or a
+--   stomp), and (the addendum) air, read at the result: a swing or floor swing that landed nothing with its target's
+--   least distance over the flight beyond the launch's reach (K.meleeAirAt). Under backswing d_collide_pred adds the
+--   player's own speed away from the target times the flight time (K.meleeBackAway). Every result line counts
+--   air_presses (the leaves reading air) and back_presses (the presses launched with moving_back, refused ones
+--   included, as swings counts them) beside swings.
 -- The act lines: progress on every step change, on each press leaf and once a second while a step holds, result {step,
 --   d, hp, swings, shoves, stomps, floors, knockdowns, hits, air_presses, back_presses, spent[, press][, target,
 --   repins]}; done {end, kill, why, id, d, the five counts, hits, air_presses, back_presses, hp0, hp1, dMin, steps
@@ -515,13 +518,13 @@ local function press(p, st, kind, d, pred, off, waitStep, dmin, ax, ay)
     st.strike = { kind = kind, at = PZA.now(), started = false, ended = false, refused = false, ticks = 0, hp0 = hp,
                   dPress = d, dPred = pred, dMin = dmin or d, off = off, cut = "", ax = ax, ay = ay, knockP = kp,
                   bodyOff = bodyOff, facing = K.PRESS_FACING, headTicks = st.headTicks, movingBack = back,
-                  air = K.meleePressAir(p, st, kind, pred) }
+                  airLaunch = K.meleePressAir(p, st, kind, pred), reachAt = (kind == "swing" or kind == "floor") and reachOf(p, st) or nil,
+                  dFly = dmin or d }
     st.headTicks = 0   -- Plan 33 Task 1: a press restarts the head step's count
     F.press_enter(p, st, b)
     pcall(PZA.call, p, "DoAttack", 0)
     st[COUNT[kind]] = st[COUNT[kind]] + 1
     if back then st.backPresses = st.backPresses + 1 end            -- Plan 36 Task 2a: the done line's counts
-    if st.strike.air then st.airPresses = st.airPresses + 1 end
     st.walkBest, st.walkMs = nil, 0   -- a press restarts the walk's bound (fix 1, F6)
     return kind
 end
@@ -549,12 +552,16 @@ local function strikeOver(p, st)
     return false
 end
 
--- the press's leaf with its result read now (cut its cut_by)
+-- the press's leaf with its result read now (cut its cut_by); its air read at the result (K.meleeAirAt, counted
+-- in air_presses: the leaf is made once a press)
 local function leafOf(st, s, cut)
     local knocked = K.knockedDown(st.z)
-    return { d_press = s.dPress, d_collide_pred = s.dPred, d_min = s.dMin, look_off = s.off, hp0 = s.hp0,
-             hp1 = healthOf(st.z), knock = knocked, cut_by = cut, knock_p = s.knockP, body_off = s.bodyOff,
-             facing = s.facing, head_ticks = s.headTicks, moving_back = s.movingBack, air = s.air }, knocked
+    local leaf = { d_press = s.dPress, d_collide_pred = s.dPred, d_min = s.dMin, look_off = s.off, hp0 = s.hp0,
+                   hp1 = healthOf(st.z), knock = knocked, cut_by = cut, knock_p = s.knockP, body_off = s.bodyOff,
+                   facing = s.facing, head_ticks = s.headTicks, moving_back = s.movingBack, air_launch = s.airLaunch }
+    leaf.air = K.meleeAirAt(s, leaf)
+    if leaf.air then st.airPresses = st.airPresses + 1 end
+    return leaf, knocked
 end
 
 -- the ended press's result: its leaf, a swing's or a shove's knock-down (counted, the knock wait armed), the shove flag
@@ -652,7 +659,8 @@ local function swingPress(p, st, d, v, off, on, at)
     end
     if on then
         local vv = v or 0
-        local pred = d - vv * (st.dtS + K.MELEE_HIT_FRAC / combatSpeed(p))
+        local tc = st.dtS + K.MELEE_HIT_FRAC / combatSpeed(p)
+        local pred = d - vv * tc + K.meleeBackAway(st) * tc   -- Plan 36 Task 2a addendum: the back step's own gain
         if pred >= st.pressLo and pred <= at and dmin - vv * st.dtS > minR and d <= engineReach(p, st, d) then
             return press(p, st, "swing", d, pred, off, "face", dmin)
         end
@@ -907,6 +915,7 @@ K.types.melee = {
         sample(st, now, zx, zy)
         st.px, st.py, st.zx, st.zy = px, py, zx, zy   -- the facing's bearing (K.FACING) reads this tick's positions
         if st.dMin == nil or d < st.dMin then st.dMin = d end
+        K.meleeTrack(st, px, py, d, now)   -- Plan 36 Task 2a addendum: the player's step speed, the flight's least d
         local step, why, res = reflex(p, st, d, px, py, zx, zy, now)
         if step == "failed" then return "failed", why, res end
         if step == "done" then return "done", doneResult(p, st, why, res) end
@@ -1269,11 +1278,53 @@ function K.meleePressWalk(p, st)
     return false
 end
 
--- a swing into the air (Plan 36 Task 2a: the leaf's air): a swing or a floor swing whose predicted distance at the
--- collision (d_collide_pred) lies beyond the swing's distance (reachOf) at the launch; false for a shove and a stomp
--- (no swing) and with the prediction unread
+-- the launch's air read (Plan 36 Task 2a; since the addendum the leaf's air_launch): a swing or a floor swing whose
+-- predicted distance at the collision (d_collide_pred) lies beyond the swing's distance (reachOf) at the launch;
+-- false for a shove and a stomp (no swing) and with the prediction unread
 function K.meleePressAir(p, st, kind, pred)
     if kind ~= "swing" and kind ~= "floor" then return false end
     if type(pred) ~= "number" then return false end
     return pred > reachOf(p, st)
+end
+
+-- ---- the swing into the air and the back step's gain (Plan 36 Task 2a addendum) ----------------------------------
+-- The controller's ruling on Phase A's concerns 1 and 2. The air is read at the press's result, not at its launch: a
+-- swing or a floor swing, not refused, that landed nothing (not knocked down, its target's health at the result at
+-- or above its health at the press, both read) and whose target's least distance over its flight (s.dFly: the
+-- distance at the press, then every tick's d while the press is in flight, K.meleeTrack) stayed beyond the reach at
+-- the launch (s.reachAt): the Plan 35 fix 7 rule 2 reading, a press out of reach rather than blocked. The leaf keeps
+-- the launch's read as air_launch. And under backswing (the walk held through the press, K.meleePressWalk's
+-- condition) the swing's predicted distance at the collision adds the player's own speed away from the target
+-- (K.meleeBackAway: its displacement since the last tick along the unit from the target to the player, over the
+-- tick's length, at least 0) times the swing's flight time, so the prediction is not short by the back step.
+-- Cost: no Java call (the positions are the tick's own).
+
+-- the tick's bookkeeping: the player's speed away from the target since the last tick (st.backV, tiles a second, at
+-- least 0; 0 on the first tick) and, with a press in flight, the flight's least distance
+function K.meleeTrack(st, px, py, d, now)
+    local b = st.backPrev
+    st.backV = 0
+    if b ~= nil and now > b.t and d > 0 then
+        local v = ((px - b.x) * (px - st.zx) + (py - b.y) * (py - st.zy)) / d / ((now - b.t) / 1000)
+        if v > 0 then st.backV = v end
+    end
+    st.backPrev = { x = px, y = py, t = now }
+    local s = st.strike
+    if s ~= nil and not s.ended and (s.dFly == nil or d < s.dFly) then s.dFly = d end
+end
+
+-- the back step's speed away from the target the prediction adds: st.backV under backswing with the step walking,
+-- else 0
+function K.meleeBackAway(st)
+    local w = st.work
+    if w == nil or not w.backswing or st.walk ~= "work" then return 0 end
+    return st.backV or 0
+end
+
+-- the leaf's air at the press's result (the block's rule): true or false
+function K.meleeAirAt(s, leaf)
+    if s.kind ~= "swing" and s.kind ~= "floor" then return false end
+    if s.refused or leaf.knock == true then return false end
+    if type(s.hp0) ~= "number" or type(leaf.hp1) ~= "number" or leaf.hp1 < s.hp0 then return false end
+    return type(s.dFly) == "number" and type(s.reachAt) == "number" and s.dFly > s.reachAt
 end

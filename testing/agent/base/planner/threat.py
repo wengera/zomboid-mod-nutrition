@@ -299,6 +299,11 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                              # standing take the `run` (`group.ThreatGroup._leave_leg`); off, RETREAT_MAX_N whatever
     RUN_HOLD = True          # Task 3c amendment 1: a leave whose leg read `run` keeps the run until it ends, the retreat
                              # never resumed inside it (`group.ThreatGroup._leave_leg`); off, the leg by the count
+    # Plan 36 Task 2a addendum (the press on the back step; the spec's § 3.2): in survive.T21_SWITCHES
+    BACKSWING = True         # every melee sent with work carries backswing true (the Fight's `backswing`, set each
+                             # tick, `dispatch.FightDispatch._work_inputs`): a press launched while the reflex's step
+                             # walks keeps the walk held through it (PZAgent_StanceMelee.lua's K.meleePressWalk);
+                             # off, the walk stopped on the press's tick as before
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -1306,6 +1311,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             # melee's withdraw bias, else None
             open_ground = kind == "fight" and door is None and not self.sheltered and not self.night.inside()
             policy.withdraw = self._pull(policy) if open_ground and policy._melee_on() else None
+            policy.backswing = self.BACKSWING   # Plan 36 Task 2a addendum (T21_SWITCHES): the work's backswing
             policy.edge_ticks = EDGE_HOLD_TICKS if self.EDGE else 0   # P24-AU, read at the policy's observe
             policy.rules = self._fight_rules()   # P25-A, P25-B, P25-D, P25-F
             policy.edge_marks = self.edge_marks   # P25-X: the refusals across a blocked edge, shared as `unreachable`
