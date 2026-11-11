@@ -1,0 +1,5496 @@
+kills 10 (engine 10, planner 0); died at 630; 69.8 game minutes
+kills sources: planner 0 (act lines), zombie_dead events 10, engine 10; disagree
+not survived (stop death), 70 game min (loop.first_world_age)
+drink: sent 0, done 0, stat fell None
+eat: sent 0, done 0, stat fell None
+unknown consumes (no valid use): 0; frame time base t_loop0_ms
+sleep: sent 0, done 0, slept 0.0 h, fatigue fell None
+fights: 19 (ended 18, fled 11, stand-offs 0)
+fights_resolved: unresolved 1
+load: max ratio 0.777, guard drops 0, flee drops 0
+cost p50 0.000 ms, p99 2.000 ms, max 6.000 ms, over5 705
+death (signal event) explained by the frames: first wound seq 3340, window 741 frames: None
+wounds: 155 real over 2668 kept frames (the old reading counted 155), first seq 3340
+care: bandage sent 0 done 0 (parts {}, dirty 0), rip done 0 (0 rags), wash done 0 (0 water)
+fill: sent 0 done 0, tainted 0, fills []
+stance: aim sent 47 done 19 failed 28 (held 19, released 0, target dead 0), 1064 of 2668 kept frames aiming; standing fights 8 {'kill': 0, 'flee': 1, 'fallback': 5, 'stagger_inferred': 0, 'none': 2}
+climb: sent 0 done 0 fell 0 failed 0 wounds 0; need chain: drinks 0 (stat fell None), fills 0, containers looted 1
+kills: per fight [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; standing fights 8 with 0 kills (0.00 per fight); planner ids []
+stance held: 2295 of 2298 ticks over 19 aim legs (19 with the field), ratio 1.00; kept frames: 1064 aiming, 731 forceAim of 2668
+bandages: riding sent 0 done 0 (walking 0) failed 0 (stopped 0) rejected 0, parts {}; standing sent 0 done 0 failed 0
+care yield: 19 care actions, 9 fights ended by the care; decision log: 33 yields (0 riding), 15 dead skips of 6 ids
+glides (an inference, never a trip): 1 over 2.54 tiles in the kept frames: [(4840, '1.903')]
+frames: state_logs (2668 frames, files ['state.log'])
+engage: 11 fights, 2 sought (92 sought lines); 42 seek lines (legs {'walkTo': {}, 'aim': 13, 'other': 5}, n/a walk share); 1 flee turns to fight; flees {'held': 5, 'held_inside': 2, 'many': 46, 'leave': 6}; many by listed count 0 lines (max None)
+destinations: 18 walks, by kind {'building': 0, 'cluster': 18, 'other': 0}, farthest 31.41 tiles from a known building; ok
+doors: 0 marked stuck [], 0 tried while marked, loots routed around to buildings []
+loot: 6 sent, 6 done, 0 failed; by kind {'container': {'done': 1, 'failed': 0}, 'clothing': {'done': 2, 'failed': 0}, 'food': {'done': 3, 'failed': 0}}; failures {}
+minutes: 69.8 alive (death event), log end 70.7
+rags: rips {'sent': 7, 'done': 0, 'failed': 7, 'by_branch': {'care': 7}}; stock lines 0 (sent 0), dressings held min None max None, bandage wants 0
+legs: goal walks {'sent': 18, 'failed': 0}; leg lines 0 (sent 0), lengths [], 0 halvings, goal failed no square 0, legs per target n/a
+idle many: 46 many lines, 15 with an idle zombie beyond 6.0 tiles (max 2)
+pza16: clothing looted {'sent': 2, 'done': 2, 'failed': 0}; wear {'sent': 2, 'done': 2, 'failed': 0, 'reasons': {}, 'replaced': 0}; window {'sent': 0, 'done': 0, 'failed': 0, 'reasons': {}, 'smashed': 0, 'opened': 0, 'cut': 0}; worn {'read': True, 'max_locs': 7, 'last': []}; doors {'read': True, 'seen': 26, 'locked': 15}
+pull (P24-AN): 11 fights, 9 engaged with a zombie listed beyond 6.0 tiles (154 lines) [inference: the frame at the line]; pull legs 39 lines (11 sent); 3 fights held a pull, 0 swung, 0 kills
+doorway (P24-AO): 0 fights (0 lines), 0 swings, 0 shoves, 0 kills under many (E9: 0); attackers 3 or more in 0 frames [inference]; drag-down deaths 0
+wounded (P24-AP): swings at armPain 20.0 or above 0 (must read 0) [inference: the frame at the line]; shoves 0, stomps 0, kills 0 under the hold; strain flees with a zombie within 2.5 tiles 0 (must read 0); hold lines 0
+fallen (P24-AQ): 8 fallen targets with no standing zombie within 6.0 tiles [inference], 0 finished, 8 left; finish lines 0 (0 kills)
+care tick (P24-AR): bandages ridden on a many flee 0 (0 lines); dressings held at the last care line None; bleeding parts max 4 over 21 game minutes
+transparent solid (P24-AS): 15 steer sends, 0 held runs of 5.0 s or more into a solidTrans square [] (E9: one, 16.511 s) [inference]
+shots (P24-AM): 69 index lines, by method {'screen': 0, 'window': 69}, 69 images (69 by window after a refused screen grab); skipped {}
+llm: 9 calls (9 ok, 0 fallbacks), latency p50 3.50 s, p99 5.78 s; goals {'LootBuilding': 1, 'ExploreToward': 8}; ends {'done': 5, 'failed': 0, 'superseded': 4}
+answers (a): by type {'LootBuilding': 1, 'ExploreToward': 8}, by want {}; weapon 0, refused bag 0 [reading of goals.log]
+shelter (b): 0 answers, 0 with tired or night true in the view, 0 with both false (the line says loot instead), 0 unread [inference: the view at the call]
+loot z (b): 1 answers, 0 of a building reading z:0, 0 of z above 0 while a z:0 building was shown, 1 of z above 0 with none shown, 0 unread [inference: the view at the call]
+nearest (b): 1 loot answers, 1 the nearest unlooted shown, ranks {'0': 1}, 0 unranked (looted, blocked or not shown) [inference: the view at the call]
+refusals (c): by why {}, 0 invalid by the goal contract; carried into the next view 0, not carried 0, unchecked 0 [reading of goals.log]
+loop (b): looted already 0 answers named a building looted already [reading]
+latency (d): 9 calls, 9 answered, mean 3.88 s, max 5.78 s; timeouts 0, cli error 0, malformed 0 [reading]
+fallback (f): 0 of 9 goals scripted (share 0.00); 0 of 9 calls fell back [reading]
+open views (P26-G) [reading]: 8 views carrying the `open:` line, taken {'ExploreToward': 8}, refused {}, other {}, 0 stand-ins; [inference off the view] 8 all-looted views, 0 of them without the line (must read 0 on a fourth-round log)
+objects (P26-F) [reading]: 9 answers, objects per answer {'1': 9} (0 with two or more, at calls []), skipped by why {} (0 invalid), 0 taken after a skipped object
+re-asks (P26-H) [reading]: 0 cycles re-asked, 0 taken on the re-ask, 0 fell to the stand-in, 0 unpaired (must read 0), 9 cycles; reasks_total 0 (agree)
+flee finish (P27-A) [reading]: 0 lines, sent by reason {}, 0 kills, 0 landed, 0 struck, 0 unstruck, 0 refused; [inference] 0 sent with a standing zombie at or within FINISH_CLEAR_R (must read 0)
+many tail (P27-B) [reading]: 0 ends, 0 short of MANY_TAIL_TICKS and 0 crowded (both must read 0); [inference] 0 followed by a fight (0 kills), 0 by a new `many` episode within TAIL_AFTER_LINES
+hold fight (P27-C) [reading]: 0 `hold_fight` lines in 0 runs, 0 shoves, 0 stomps, 0 attacks (must read 0), 0 kills
+hold rest (P27-C2) [reading]: 0 rest ticks, 0 with a zombie within DANGER_R (must read 0), 0 endurance-hold walk ticks with none; [inference] the endurance's rise standing not read (fewer than two frames or no game minute passed), walking not read (fewer than two frames or no game minute passed)
+spent kept (P27-D) [reading]: 0 `spent_kept` lines by part {}, 0 at or under SPENT_REDRESS_BT (must read 0), 0 spent dressings replaced; health across the kept lines by part {}
+low swing (P27-E) [reading]: 0 lines, 0 swings sent, 0 landed, 0 under SHOVE_FAIL_N misses (must read 0); [inference] the target's health before and after []
+wounded swings (P26-L1) [reading]: 0 lines, 0 swings sent, 0 landed; [inference] the target's health before and after [], 0 frames after them reading a new wound (0 swings)
+window still (WINDOW_STALL_S) [reading]: climbs (aid, state, accept to done s; [inference] still s) []; 0 still for WINDOW_STALL_S or more
+unwear live (P26-O) [reading]: 1 unwears sent, 1 done, rejected {}, failed {}, 1 followed by the rip of the garment
+stuck leave (P27-F) [reading]: 0 `stuck_mark` lines by goal {} (0 naming an edge), `leave` picks by way {'walk': 0, 'loot': 0, 'explore': 0} ([inference] the walk away told from the walk back by its target); [inference] 0 rests proposed on a marked square (a reading: the planner may rest there when every way out is cooled), 0.0 game minutes on a marked square
+floor finish (P27-G) [reading]: 7 `floor_finish` lines, 0 swings sent, 0 kills, 0 `strike_runs` holds; [inference] 0 with a swing event, 0 followed by a stomp at the same zombie
+fallen seek (P27-H) [reading]: 0 `fallen_seek` lines, 0 walks, 0 left, ticks {}, 0 under FALLEN_SEEK_TICKS (must read 0); [inference] 0 walked targets killed after
+listing (P27-I) [reading]: 64 `listing` lines leaving out 117 fallen and 0 across; [inference] 37 lines whose listing fell under MANY_LISTED_N by the clause
+shove close (P27-J) [reading]: 0 `shove_close` lines, 0 walks, 0 left, 0 under SHOVE_CLOSE_TICKS (must read 0), 0 rests at an idle zombie; [inference] 0 walks followed by a shove at the same zombie
+stock early (P27-K1) [reading]: 7 `stock_early` lines, rips by branch {'yield': 7} (7 the care yield's), 0 at RAG_STOCK or more (must read 0); [inference] 0 followed by more clean dressings held
+low exit (P27-K2) [reading]: 0 `low_exit` lines, 0 under SHOVE_FAIL_N misses (must read 0), 0 inside corner yields, 0 at FLEE_HEALTH_FLOOR or more (must read 0); [inference] 0 followed by the `health` flee, 0 by a new bite within BITE_AFTER_S
+spent held (P27-K3) [reading]: 0 `spent_held` lines by part {}, 0 with no chaser (must read 0), 0 spent replaces after a hold; [inference] 0 holds on a bleeding part
+wounded swing off (P27-L) [reading]: 0 `wounded_swing` lines, 0 divided swings sent (must read 0 with the default), 0 P25-L breaks
+hits (P28-M) [reading]: 4 reaction runs {'BiteRIGHT': 2, 'Bite': 2} over 0 kills (None a kill), 9 wounds on 7 frames (None a kill), by fight [0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0 outside a fight; [inference] the strike within STRIKE_BEFORE_S before each by type {'None': 4}
+wound dress (P28-A) [reading]: 0 `wound` dressings sent (0 done) by part {}, part h first and last {}, 0 `wound_held` lines (0 over WOUND_RESERVE, must read 0), parts undressed at the end [0, 1, 2, 3, 8, 9]; [inference] 0.0 health fallen quiet on an undressed wound
+shove back (P28-B2) [reading]: 0 `shove_back` lines, 0 legs; [inference] 0 with a bite reaction during the leg, 0 followed by a shove at the same zombie
+drift stand (P28-B3) [reading]: 0 drifted pins' stance lines, 0 legs; [inference] 0 followed by a shove at the pin, 0 by a bite reaction within BITE_AFTER_S
+floor pain (P28-C) [reading]: 0 floor swings at or over STRAIN_HARD, 0 kills, 0 older floor swings under the pain (must read 0); [inference] 0 with a swing event, 0 followed by a stomp at the same zombie
+busy retry (P28-D) [reading]: 0 `busy_retry` sends by kind {}; [inference] 0 followed by a landed stomp at the same zombie, 0 by its kill
+circle (P28-E) [reading]: 0 circle legs by side {}, 0 off CIRCLE_TURN (must read 0); [inference] 0 sides switched, 0 straight `back` legs at two or more standing within KEEP_R, 0 at one
+facing (P28-F) [reading]: 0 attack swings by the points off the target {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0} (0 unread), shoves {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0} (0 unread), stomps {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0} (0 unread), each swing event's act the frame's own 0; [inference] by the last accepted act line 0
+client end (the spec's 1 (c)) [reading]: the stop death, loop.end seq None health None
+melee (iteration 22) [reading]: 21 sent by mode {'strike': 15, 'finish': 6}, 20 accepted, ends {'failed superseded': 8, 'done lost': 2, 'rejected too far': 1, 'done kill': 10}, steps {'face': 18, 'repin': 18, 'swing': 14, 'floor': 9, 'stomp_walk': 11, 'knock_wait': 13, 'work': 15, 'shove': 17, 'hit': 6, 'pile': 1, 'close': 3}, ticks per step {'face': 185, 'floor': 241, 'repin': 4, 'swing': 930, 'stomp_walk': 189, 'knock_wait': 132, 'work': 61, 'hit': 87, 'shove': 124}, frames per act.step {'face': 58, 'repin': 5, 'swing': 196, 'floor': 40, 'stomp_walk': 48, 'knock_wait': 49, 'work': 55, 'shove': 117, 'hit': 43, 'pile': 5, 'close': 9}, swings 27 shoves 17 stomps 0 floors 10 knockdowns 22 hits 6, re-sends {'inputs': 5}, the planner's ends {'kill': 15, 'too far': 1, 'superseded': 20, 'lost': 28}, replaced {'aim': 14, 'attack': 7}, 133 maneuver lines; [inference] 8 kills inside the spans (a ladder's by its wall), the mean span 3.10745 s, spans by fight [3, 0, 0, 0, 2, 2, 2, 2, 0, 8, 1, 0, 0, 0, 0, 0, 0, 0, 0], 0 outside a fight
+hits in melee (iteration 22, the A/B) [reading]: 4 reaction runs over 10 zombie_dead events (0.4 a kill, the session's), over 8 act-line kills (0.5 a kill, a melee's kill counted); [inference] 8 kills inside the spans and 0 outside (a ladder's by its wall), 3 runs inside (0.375 a kill), 1 outside (None a kill), 1 of those in a fight
+melee strike (iteration 22) [reading]: 3 runs inside a span by the first frame's act.step {'hit': 3}; [inference] by the step before {'swing': 1, 'shove': 1, 'repin': 1}, by the press within STRIKE_BEFORE_S {'swing': 1, 'shove': 2}
+melee cost (iteration 22) [reading]: inside the spans 625 frames actMs mean 0.1664 max 2, maxActMs mean 0.6624 max 4; outside 2043 frames actMs mean 0.07586882036221243 max 10, maxActMs mean 0.3054331864904552 max 10; [inference] a frame in a span by its wallMs
+kills whole (P29-J) [reading]: 8 kills [20369, 20377, 20420, 20371, 20409, 20363, 20411, 20380] (melee [20369, 20377, 20420, 20371, 20409, 20363, 20411, 20380], ladder []) against 10 zombie_dead events [20368, 20369, 20450, 20377, 20420, 20371, 20409, 20363, 20411, 20380], agree False (the frozen read 0); whole too: per fight [1, 0, 0, 0, 1, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 8 on the standing fights (1.0 a standing fight); 4 reaction runs, 0.5 a kill
+facing over every press (P29-J) [reading]: 37 presses; the melee's swings 15 (by points {'0': 12, '1': 1, '2': 2, '3': 0, '4': 0}, 0 unread), shoves 13 (by points {'0': 5, '1': 4, '2': 4, '3': 0, '4': 0}, 0 unread), stomps 0 (by points {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0}, 0 unread), floor swings 9 (by points {'0': 8, '1': 1, '2': 0, '3': 0, '4': 0}, 0 unread); the ladder's attacks 0 (by points {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0}, 0 unread), shoves 0 (by points {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0}, 0 unread), stomps 0 (by points {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0}, 0 unread); 0 melee events at no press step; each event's act the frame's own 37; [inference] by the last accepted act line 0
+pain swings (P29-J) [reading]: the melee's swings sent under STRAIN_HARD 12, at or above 2, the pain unread 0; [inference] off the melee's next line (its own `hp`/`hp1`, `knockdowns`, `kill`): lowered 12 / 2 / 0, knock-downs 7 / 1 / 0, killed 1 / 0 / 0
+route cross (iteration 23, P29-A): no line read (no decision log, or no line carrying its why)
+goal stall (iteration 23, P29-B): no line read (no decision log, or no line carrying its why) (0 budget ends)
+close idle (iteration 23, P29-C): no line read (no decision log, or no line carrying its why)
+dress finish (iteration 23, P29-D): no line read (no decision log, or no line carrying its why)
+health near (iteration 23, P29-E): no line read (no decision log, or no line carrying its why)
+finish lone (iteration 23, P29-F): no line read (no decision log, or no line carrying its why)
+many near (iteration 23, P29-G) [reading]: 3 lines withholding `many` by the standing count, by count {'2': 3}
+flee held (iteration 23, P29-H'): no line read (no decision log, or no line carrying its why)
+stall views (iteration 23, P29-B): no line read (no goals log, or no view carrying `stall:`)
+hits union (P30, the union of the reaction runs and the hit steps) [reading]: 4 reaction runs, 6 hit step runs; [inference] 6 joined to a run, 4 attacks landed, 0.400 a kill over 10 kills matched (`kills_matched.planner`)
+kills matched (P30, the kills matched to the press) [reading]: the whole read 8 [20369, 20377, 20420, 20371, 20409, 20363, 20411, 20380], the events [20368, 20369, 20450, 20377, 20420, 20371, 20409, 20363, 20411, 20380]; [inference] matched [(20368, 'a8', 'melee', 'swing', 11), (20450, 'a46', 'melee', 'floor', 4)] ({'melee': 2}), unmatched []: 10 kills [20369, 20377, 20420, 20371, 20409, 20363, 20411, 20380, 20368, 20450], agree True
+sneak (iteration 24, P30-D) [reading]: postures sent {'on': 8, 'off': 8}; [reading] 146 frames sneaking over 9 game minutes (14.605 s); the sneak walk 1.674 tiles a second over 1 legs; zombies within SNEAK_R 11: passed [20369, 20372, 20410, 20454, 20421, 20416, 20424], noticed [20368, 20377] (first {'seq': 293, 'id': 20368, 'd': 6.97710605396282, 'state': 'idle'}), chasing [20371, 20414]
+goal wait (iteration 24, P30-B) [reading]: 60 continued-walk lines (12 sent, by source {'edge': 45, 'last': 15}), 3 hops extended by [1.0, 7.211102550927978, 2.8284271247461903]; [reading] the standing on the wait (the plan's reading): 4 pending lines unmoved near a zombie (2.000 s), unmoved under STILL_DRIFT_R 0.3 tiles from the line before (a walk under 0.6 tiles a second reads unmoved: read the sneak walk's speed first); 60 lines pending in 10 runs (29.898 s), 11 unmoved; [the desk read's A.2, movement not read, never the plan's reading] 8 runs pending with a zombie within NEAR_R at an end, 45 lines (22.393 s); the explore hops [4.91, 6.5, 2.92, 4.65, 11.24, 5.72, 11.55, 4.91]
+door held (iteration 24, P30-C): no line read (no source, or no line carrying its field)
+swing close (iteration 24, P30-A): no line read (no source, or no line carrying its field) (capable False); [inference] the back steps after a landed press 0, after a press that did nothing 0, with no press 0; 0 hits in a back step
+still (iteration 24, P30-E) [reading]: 2 resolutions {'approach': 2} at [20371]
+dress ride (iteration 24, P30-F): no line read (no source, or no line carrying its field)
+standing (P30, the standing minutes) [reading]: 2 stretches of STAND_LINES or more lines unmoved near a zombie, 54 lines, 26.961 s, 8 game minutes, by branch {'threat': (2, 54)}
+clip (the loop's stop) [reading]: the new readings cut at 254.373 s after loop.startPyMs 1794427649643.223; dropped 60 state lines (35 frames), 0 decision lines, 0 actions
+landed hits (the scorecard's: the reaction segments, the reflex's hit steps) [reading]: 7 segments, 6 hit steps; [inference] 3 joined, 10 attacks landed, 1.000 a kill over 10 kills (zombie_dead events)
+fleeing (the trial loop's) [reading]: 59 lines, 7.464 game minutes (28.818 s) over 67.206, by {'flee:held': 5, 'flee:held_inside': 2, 'flee:many': 46, 'flee:leave': 6}; the legs {'pull': (39, 5.11), 'back': (75, 10.04)}; [inference] away from a chaser with no refuge named 276 intervals, 7.313 game minutes (76 under a refuge skipped)
+toward a named target (the trial loop's) [inference]: 69 lines, 9.096 game minutes over 67.206 (named on 99 lines, 13.035 min; 0 unresolved), by {'continue': 40, 'ExploreToward': 29}
+wounds dressed (the scorecard's, every wound, within DRESS_MIN 1.0 game minute) [reading]: 0 of 6 wounds (0 carried from the first frame), 0 closed: [(8, 3340, None, None, None), (1, 3355, None, None, None), (2, 3518, None, None, None), (9, 3676, None, None, None), (0, 4889, None, None, None), (3, 4900, None, None, None)]
+melees superseded before their press [reading]: 4 of 21 sent (8 superseded in all, 6 with no swing step) ['a6', 'a110', 'a115', 'a116']
+meet presses (PZA/1.10's leaf against its outcome) [reading]: 54 presses by kind {'swing': 27, 'floor': 10, 'shove': 17}, by outcome {'knocked': 23, 'killed': 10, 'lowered': 17, 'nothing': 4} (0 refused); the shoves 17 knocked 14, expected rolls 17 summed 7.300
+meet refusals [reading]: 0 runs, 0 refused presses, by count {}, 0 waits, 0 melees ended refused, 0 open
+meet finishes [reading]: 6 sent in mode finish, headAim {'on': 0, 'off': 21, 'absent': 21}; the finish presses {'floor': 10, 'stomp': 0} by outcome {'killed': 9, 'knocked': 1} (9 kills), 0 turns to the head
+meet handbacks [reading]: 0 handbacks by why {}, by target {}, handed back again []; the crowds []; the reflex's re-pins {'melees': 6, 'total': 18, 'steps': 18}
+dresses (the Dress maneuver) [reading]: 6 Dresses by end {'superseded': 5, 'open': 1} (0 rides, 0 failed): [(8, 'superseded', [], [], 3.5), (8, 'superseded', [], [], 2.5), (8, 'superseded', [1021894735, 1021894735], [1021894735], 8.0), (8, 'superseded', [1021894735], [], 2.9), (8, 'superseded', [1021894735], [], 10.0), (8, None, [1021894735, 1021894735, 1021894735], [], None)]; [inference] the seconds from the part's bleeding onset to the start and the end [(8, 28.6, 32.1), (8, 32.1, 34.6), (8, 34.6, 42.6), (8, 42.6, 45.6), (8, 45.6, 55.5), (8, 55.5, None)]
+facing body (me.bodyAngle against the bearing to the target, degrees) [reading]: the presses n 54, median 0.0, p90 86.9, hold30 0.81 (the look n 54, median 0.0, p90 101.9, hold30 0.81), by kind {'floor': 'n 10, median 0.0, p90 0.0, hold30 0.9', 'shove': 'n 17, median 32.1, p90 122.7, hold30 0.47', 'swing': 'n 27, median 0.0, p90 0.0, hold30 1.0'}, by mode {'unaimed_snap': 'n 54, median 0.0, p90 86.9, hold30 0.81'}; the stance ticks 1296 of 1296 frames read: n 1296, median 0.0, p90 0.0, hold30 1.0, by type {'aim': 'n 671, median 0.0, p90 0.0, hold30 1.0', 'melee': 'n 625, median 0.0, p90 0.0, hold30 1.0'}; [inference] 0 breaks over 45.0 degrees (0 frames): []
+facing ring (me.fwdAngle within 10.0 degrees) [reading]: 1296 stance frames; on the aim vector 0.08 of 731, on the walk vector 0.47 of 738, on the bearing 1.0 of 1296
+head ticks (the finish's head step, the press leaves' and handbacks' head_ticks) [reading]: 54 values read, max 0, 0 melees handed back head_stall, by melee [['a8', 0], ['a9', 0], ['a46', 0], ['a47', 0], ['a58', 0], ['a64', 0], ['a75', 0], ['a78', 0], ['a87', 0], ['a90', 0], ['a114', 0], ['a117', 0], ['a119', 0], ['a120', 0], ['a122', 0]]
+crawler first (threat why crawler_first) [reading]: 0 lines, 0 finishes sent at [], 0 of them killed; []
+group leave (threat why group_leave) [reading]: 68 lines, 8 legs, 1 toward a door, 7 runs; standing within 3.0 tiles at each leg's first line [0, 3, 0, 1, 1, 0, 0, 2]
+drag guard (threat why drag_guard, side_clear) [reading]: 0 guard lines, 0 shoves, 0 runs refused, 0 runs; 0 clear lines, 0 clear steers rotated [], 0 side shoves; [inference] 5 of 15 steers sent heading within 1.0 tiles of a standing zombie over 3.0 tiles
+idle snap (me.bodyAngle against the nearest standing zombie within 2.5 tiles, no melee running) [reading]: 256 frames, n 256, median 111.7, p90 177.9, hold30 0.38
+care withheld (threat why care_withheld) [reading]: 87 lines, by n {'3': 47, '4': 27, '5': 2, '6': 7, '7': 4}, keys [['bleed', 8]]
+care at group (care sends stop/rip/unwear, or a bandage without keepMoving, with 3 or more standing within 6.0 tiles) [reading]: 0 lines []
+door leave (group_leave leg door, door_refused, door_dropped; the shelter why) [reading]: 6 door lines, 1 picks, refused {'race': 0, 'one_exit': 0}, 1 aborts, 35 enters ended outside; closes 0 sent, 0 refused {}; [inference] 0 closes sent on a room square of the plan's building, 0 unread
+retreat (group_retreat leg retreat) [reading]: 21 lines, by kind {'stand': 0, 'back': 0, 'melee': 6}, 0 breaks (retreat_break), 0 strung holds (strung_n); the gap: nearest min 0.569 median 1.412, 3 lines under 0.6
+shoves (shove and stomp acts) [reading]: 0 sent, 0 done, 0 started, 0 busy, waited median None; by type (sent, busy, done, started) {'shove': (0, 0, 0, 0), 'stomp': (0, 0, 0, 0)}
+idle snap by act (x3's idle frames by the frame's act) [reading]: 256 frames, {'none': 'n 33, median 0.0, p90 0.7, hold30 1.0', 'steer': 'n 149, median 148.5, p90 178.8, hold30 0.16', 'aim': 'n 32, median 0.0, p90 0.0, hold30 1.0', 'walkTo': 'n 27, median 114.7, p90 155.9, hold30 0.33', 'rip': 'n 14, median 177.8, p90 179.9, hold30 0.0', 'interact': 'n 1, median 161.6, p90 161.6, hold30 0.0'}
+frame age (the line's frame_age, seconds) [reading]: 0 lines, median None, max None
+group leave legs (threat why group_leave by leg and end) [reading]: 68 lines, legs {'shove': 0, 'door': 6, 'retreat': 21, 'run': 37}, ends {'strung': 4}
+drag fight (threat why drag_fight) [reading]: 0 lines, by why {'hit': 0, 'stuck': 0}, 0 spent
+work (the melee's footwork steps) [reading]: step entries {'work': 15, 'cornered': 0, 'pile': 1}, turns {'0': 18}, 0 cornered ticks (done lines); pile: 1 episodes, 1 shoves, 1 knock-downs
+contact (nearest standing inside 1.0 tiles, no press in flight, no hit reaction, inside the 20 engagements) [reading]: 2.42 s over 24 frames, 0 hits inside contact; per engagement [('a6', 0, 0, 0), ('a8', 0, 0, 0), ('a9', 0, 0, 0), ('a46', 0.3, 0, 0), ('a47', 0, 0, 0), ('a58', 0, 0, 0), ('a64', 0, 0, 0), ('a75', 0, 0, 0), ('a78', 0.3, 0, 0), ('a87', 0.2, 0, 0), ('a90', 0, 0, 0), ('a110', 0.21, 0, 0), ('a111', 0, 0, 0), ('a114', 0.3, 1, 0), ('a115', 0, 0, 0), ('a116', 0, 0, 0), ('a117', 0.5, 0, 0), ('a119', 0.1, 1, 0), ('a120', 0.4, 1, 0), ('a122', 0.1, 0, 0)]
+handbacks (the engagements' done handback lines) [reading]: 0 lines, by why {}
+engage hold (threat why engage_hold) [reading]: 57 lines, by rule {'drag': 5, 'leave': 18, 'pair': 34}
+withdraw (threat why withdraw) [reading]: 18 lines, 6 melee sends, 5 re-sends at the same target
+{
+ "answers": {
+  "bag_refused": 0,
+  "by_type": {
+   "ExploreToward": 8,
+   "LootBuilding": 1
+  },
+  "by_want": {},
+  "read": true,
+  "weapon": 0
+ },
+ "base": "grade_x4",
+ "base_x1": "grade_f12",
+ "base_x2": "grade_x1",
+ "base_x3": "grade_x2",
+ "base_x4": "grade_x3",
+ "busy_retry": {
+  "by_kind": {},
+  "kills_after": 0,
+  "read": true,
+  "sends": 0,
+  "stomps_landed_after": 0
+ },
+ "care": {
+  "bandage": {
+   "by_part": {},
+   "dirty": 0,
+   "done": 0,
+   "failed": 0,
+   "sent": 0
+  },
+  "climb": {
+   "done": 0,
+   "failed": 0,
+   "fell": 0,
+   "sent": 0,
+   "tall": 0,
+   "wounds": 0
+  },
+  "fill": {
+   "done": 0,
+   "fills": [],
+   "sent": 0,
+   "tainted": 0
+  },
+  "loot": {
+   "containers": 1,
+   "containers_moved": 2,
+   "done": 6,
+   "sent": 6
+  },
+  "need_chain": {
+   "containers_looted": 1,
+   "drink_done": 0,
+   "drink_stat_fell": null,
+   "fills_done": 0
+  },
+  "rip": {
+   "dirty_rags": 0,
+   "done": 0,
+   "rags": 0,
+   "sent": 7
+  },
+  "stance": {
+   "aim_done": 19,
+   "aim_failed": 28,
+   "aim_sent": 47,
+   "frames": 2668,
+   "frames_aiming": 1064,
+   "held_at_end": 19,
+   "moved": 22.524163086050002,
+   "released": 0,
+   "target_dead": 0
+  },
+  "standing": {
+   "n": 8,
+   "outcomes": {
+    "fallback": 5,
+    "flee": 1,
+    "kill": 0,
+    "none": 2,
+    "stagger_inferred": 0
+   },
+   "rows": [
+    {
+     "actions": [
+      "aim",
+      "melee",
+      "steer",
+      "melee",
+      "melee",
+      "aim",
+      "aim",
+      "interact"
+     ],
+     "aim_states": [
+      "done",
+      "failed",
+      "failed"
+     ],
+     "fight": 0,
+     "outcome": "flee"
+    },
+    {
+     "actions": [
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "scan"
+     ],
+     "aim_states": [
+      "done",
+      "done",
+      "failed",
+      "failed"
+     ],
+     "fight": 2,
+     "outcome": "none"
+    },
+    {
+     "actions": [
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "walkTo"
+     ],
+     "aim_states": [
+      "done",
+      "done",
+      "failed",
+      "failed"
+     ],
+     "fight": 3,
+     "outcome": "fallback"
+    },
+    {
+     "actions": [
+      "aim",
+      "sneak",
+      "sneak",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "melee",
+      "melee",
+      "walkTo"
+     ],
+     "aim_states": [
+      "failed",
+      "failed",
+      "failed",
+      "failed",
+      "failed"
+     ],
+     "fight": 4,
+     "outcome": "fallback"
+    },
+    {
+     "actions": [
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "melee",
+      "aim",
+      "sneak",
+      "sneak",
+      "aim",
+      "aim",
+      "melee",
+      "walkTo"
+     ],
+     "aim_states": [
+      "done",
+      "done",
+      "failed",
+      "failed",
+      "failed",
+      "done",
+      "failed",
+      "failed",
+      "failed"
+     ],
+     "fight": 5,
+     "outcome": "fallback"
+    },
+    {
+     "actions": [
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "melee",
+      "aim",
+      "aim",
+      "melee",
+      "scan"
+     ],
+     "aim_states": [
+      "done",
+      "failed",
+      "done",
+      "done",
+      "failed",
+      "done",
+      "done",
+      "failed"
+     ],
+     "fight": 6,
+     "outcome": "none"
+    },
+    {
+     "actions": [
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "aim",
+      "melee",
+      "aim",
+      "aim",
+      "melee",
+      "walkTo"
+     ],
+     "aim_states": [
+      "failed",
+      "failed",
+      "failed",
+      "done",
+      "done",
+      "failed",
+      "failed",
+      "done"
+     ],
+     "fight": 7,
+     "outcome": "fallback"
+    },
+    {
+     "actions": [
+      "aim",
+      "sneak",
+      "aim",
+      "aim",
+      "sneak",
+      "aim",
+      "sneak",
+      "aim",
+      "walkTo",
+      "sneak",
+      "sneak",
+      "sneak",
+      "melee",
+      "melee",
+      "melee",
+      "aim",
+      "melee",
+      "melee",
+      "melee",
+      "melee",
+      "steer",
+      "melee",
+      "melee",
+      "stop"
+     ],
+     "aim_states": [
+      "done",
+      "done",
+      "failed",
+      "done",
+      "failed",
+      "failed"
+     ],
+     "fight": 9,
+     "outcome": "fallback"
+    }
+   ]
+  },
+  "wash": {
+   "done": 0,
+   "sent": 0,
+   "water": 0
+  }
+ },
+ "care_at_group": {
+  "lines": 0,
+  "read": true,
+  "rows": []
+ },
+ "care_tick": {
+  "bleeding": {
+   "max": 4,
+   "minutes": 21,
+   "series": [
+    [
+     560,
+     0
+    ],
+    [
+     611,
+     1
+    ],
+    [
+     611,
+     2
+    ],
+    [
+     614,
+     3
+    ],
+    [
+     630,
+     4
+    ]
+   ]
+  },
+  "dressings_last": null,
+  "read": true,
+  "ride_lines": 0,
+  "rides_many": 0
+ },
+ "care_withheld": {
+  "by_n": {
+   "3": 47,
+   "4": 27,
+   "5": 2,
+   "6": 7,
+   "7": 4
+  },
+  "keys": [
+   [
+    "bleed",
+    8
+   ]
+  ],
+  "lines": 87,
+  "read": true
+ },
+ "circle": {
+  "blocked_turns": 0,
+  "legs": 0,
+  "off_turn": 0,
+  "read": true,
+  "sides": {},
+  "straight_one": 0,
+  "straight_two": 0
+ },
+ "client_end": {
+  "health": null,
+  "read": true,
+  "seq": null,
+  "stopped": "death"
+ },
+ "clip": {
+  "actions": 0,
+  "decisions": 0,
+  "first_frame_s": -9.10622265625,
+  "frames": 35,
+  "last_frame_s": 254.36977734375,
+  "lines": 60,
+  "read": true,
+  "start_ms": 1794427649643.2227,
+  "stop_ms": 1794427904016.1082,
+  "stop_s": 254.37288546562195
+ },
+ "close_idle": {
+  "read": false
+ },
+ "contact": {
+  "engagements": 20,
+  "frames": 24,
+  "hits_inside": 0,
+  "per_engagement": [
+   {
+    "aid": "a6",
+    "hits": 0,
+    "hits_inside": 0,
+    "seconds": 0
+   },
+   {
+    "aid": "a8",
+    "hits": 0,
+    "hits_inside": 0,
+    "seconds": 0
+   },
+   {
+    "aid": "a9",
+    "hits": 0,
+    "hits_inside": 0,
+    "seconds": 0
+   },
+   {
+    "aid": "a46",
+    "hits": 0,
+    "hits_inside": 0,
+    "seconds": 0.302
+   },
+   {
+    "aid": "a47",
+    "hits": 0,
+    "hits_inside": 0,
+    "seconds": 0
+   },
+   {
+    "aid": "a58",
+    "hits": 0,
+    "hits_inside": 0,
+    "seconds": 0
+   },
+   {
+    "aid": "a64",
+    "hits": 0,
+    "hits_inside": 0,
+    "seconds": 0
+   },
+   {
+    "aid": "a75",
+    "hits": 0,
+    "hits_inside": 0,
+    "seconds": 0
+   },
+   {
+    "aid": "a78",
+    "hits": 0,
+    "hits_inside": 0,
+    "seconds": 0.3
+   },
+   {
+    "aid": "a87",
+    "hits": 0,
+    "hits_inside": 0,
+    "seconds": 0.201
+   },
+   {
+    "aid": "a90",
+    "hits": 0,
+    "hits_inside": 0,
+    "seconds": 0
+   },
+   {
+    "aid": "a110",
+    "hits": 0,
+    "hits_inside": 0,
+    "seconds": 0.20700000000000002
+   },
+   {
+    "aid": "a111",
+    "hits": 0,
+    "hits_inside": 0,
+    "seconds": 0
+   },
+   {
+    "aid": "a114",
+    "hits": 1,
+    "hits_inside": 0,
+    "seconds": 0.303
+   },
+   {
+    "aid": "a115",
+    "hits": 0,
+    "hits_inside": 0,
+    "seconds": 0
+   },
+   {
+    "aid": "a116",
+    "hits": 0,
+    "hits_inside": 0,
+    "seconds": 0
+   },
+   {
+    "aid": "a117",
+    "hits": 0,
+    "hits_inside": 0,
+    "seconds": 0.503
+   },
+   {
+    "aid": "a119",
+    "hits": 1,
+    "hits_inside": 0,
+    "seconds": 0.099
+   },
+   {
+    "aid": "a120",
+    "hits": 1,
+    "hits_inside": 0,
+    "seconds": 0.399
+   },
+   {
+    "aid": "a122",
+    "hits": 0,
+    "hits_inside": 0,
+    "seconds": 0.101
+   }
+  ],
+  "read": true,
+  "seconds": 2.415
+ },
+ "cost": {
+  "max": 6,
+  "over5": 705,
+  "p50": 0,
+  "p99": 2
+ },
+ "crawler_first": {
+  "finishes": 0,
+  "kills": 0,
+  "lines": 0,
+  "read": true,
+  "rows": [],
+  "targets": []
+ },
+ "death": {
+  "check": {
+   "diff": 91.32655519864056,
+   "explained": true,
+   "explained_by": "wound",
+   "frames_n": 741,
+   "frames_window_ms": {
+    "from": 1794427830013,
+    "to": 1794427904013
+   },
+   "health_fall": 100.0,
+   "server_amount": 8.673444801359437,
+   "server_n": 2103,
+   "server_tags": {
+    "BLEEDING": 8.673444801359437
+   },
+   "server_window_ms": {
+    "from": 1794427830013,
+    "rule": "from < wall <= to",
+    "to": 1794427904013
+   },
+   "signal": "event",
+   "tagged": {
+    "explained": false,
+    "why": "the fall 100.0 and the server's 8.673444801359437 differ by more than 0.1 of it"
+   },
+   "tol": 0.1,
+   "why": null,
+   "wound": {
+    "danger_r": 6.0,
+    "explained": true,
+    "fall_seq": 3340,
+    "frame_seq": 3340,
+    "gameMin": 611,
+    "wallMs": 1794427830118,
+    "what": "bleeding 0 -> 1",
+    "why": null,
+    "wound_health": 91.32655519864056,
+    "zombie": {
+     "dist": 0.569178459674573,
+     "id": 20424,
+     "seq": 3340
+    }
+   }
+  },
+  "explained": true,
+  "first_wound_seq": 3340,
+  "window_frames": 741,
+  "window_frames_n": 741,
+  "window_truncated": false
+ },
+ "destinations": {
+  "by_branch": {
+   "goal": {
+    "building": 0,
+    "cluster": 18,
+    "other": 0
+   }
+  },
+  "by_kind": {
+   "building": 0,
+   "cluster": 18,
+   "other": 0
+  },
+  "farthest": 31.40859754907882,
+  "off_building": [],
+  "ok": true,
+  "read": true,
+  "walks": 18
+ },
+ "door_held": {
+  "read": false
+ },
+ "door_leave": {
+  "aborts": 1,
+  "closes": {
+   "inside": 0,
+   "refused": 0,
+   "refused_by": {},
+   "sent": 0,
+   "unread": 0
+  },
+  "enters_outside": 35,
+  "lines": 6,
+  "picks": 1,
+  "read": true,
+  "refused": {
+   "one_exit": 0,
+   "race": 0
+  }
+ },
+ "doors": {
+  "marks": [],
+  "ok": true,
+  "read": true,
+  "routes_around": [],
+  "tried_marked": 0
+ },
+ "doorway": {
+  "attackers3_frames": 0,
+  "drag_deaths": 0,
+  "ends": {},
+  "fights": 0,
+  "kills": 0,
+  "lines": 0,
+  "read": true,
+  "shoves": 0,
+  "swings": 0
+ },
+ "drag_fight": {
+  "by_why": {
+   "hit": 0,
+   "stuck": 0
+  },
+  "lines": 0,
+  "read": true,
+  "spent": 0
+ },
+ "drag_guard": {
+  "clear_lines": 0,
+  "clear_steers": 0,
+  "guard_lines": 0,
+  "into_side": {
+   "blocked": 5,
+   "steers": 15
+  },
+  "read": true,
+  "rotations": [],
+  "runs": 0,
+  "runs_refused": 0,
+  "shoves": 0,
+  "side_shoves": 0
+ },
+ "dress_finish": {
+  "read": false
+ },
+ "dress_ride": {
+  "read": false
+ },
+ "dresses": {
+  "by_end": {
+   "open": 1,
+   "superseded": 5
+  },
+  "dresses": 6,
+  "failed": 0,
+  "read": true,
+  "rides": 0,
+  "rows": [
+   {
+    "bandages": [],
+    "end": "superseded",
+    "end_wall": 1794427862.2153785,
+    "fail": null,
+    "line": 419,
+    "lost": 0,
+    "onset_s": -28.609828233718872,
+    "onset_to_end_s": 32.09737849235535,
+    "onset_to_start_s": 28.609828233718872,
+    "part": 8,
+    "ride": false,
+    "s": 3.4875502586364746,
+    "sends": 1,
+    "stop": {
+     "sent_s": 0.0,
+     "still_s": null,
+     "still_waits": 0
+    },
+    "torn": [],
+    "unworn": [],
+    "wall": 1794427858.7278283
+   },
+   {
+    "bandages": [],
+    "end": "superseded",
+    "end_wall": 1794427864.7153723,
+    "fail": null,
+    "line": 426,
+    "lost": 0,
+    "onset_s": -32.09737849235535,
+    "onset_to_end_s": 34.59737229347229,
+    "onset_to_start_s": 32.09737849235535,
+    "part": 8,
+    "ride": false,
+    "s": 2.4999938011169434,
+    "sends": 1,
+    "stop": {
+     "sent_s": 0.0,
+     "still_s": null,
+     "still_waits": 0
+    },
+    "torn": [],
+    "unworn": [],
+    "wall": 1794427862.2153785
+   },
+   {
+    "bandages": [],
+    "end": "superseded",
+    "end_wall": 1794427872.738853,
+    "fail": null,
+    "line": 431,
+    "lost": 2,
+    "onset_s": -34.59737229347229,
+    "onset_to_end_s": 42.62085294723511,
+    "onset_to_start_s": 34.59737229347229,
+    "part": 8,
+    "ride": false,
+    "s": 8.023480653762817,
+    "sends": 5,
+    "stop": {
+     "sent_s": 0.0,
+     "still_s": 0.544342041015625,
+     "still_waits": 0
+    },
+    "torn": [
+     1021894735,
+     1021894735
+    ],
+    "unworn": [
+     1021894735
+    ],
+    "wall": 1794427864.7153723
+   },
+   {
+    "bandages": [],
+    "end": "superseded",
+    "end_wall": 1794427875.6710026,
+    "fail": null,
+    "line": 447,
+    "lost": 1,
+    "onset_s": -42.62085294723511,
+    "onset_to_end_s": 45.55300259590149,
+    "onset_to_start_s": 42.62085294723511,
+    "part": 8,
+    "ride": false,
+    "s": 2.932149648666382,
+    "sends": 2,
+    "stop": {
+     "sent_s": 0.0,
+     "still_s": 0.4416344165802002,
+     "still_waits": 0
+    },
+    "torn": [
+     1021894735
+    ],
+    "unworn": [],
+    "wall": 1794427872.738853
+   },
+   {
+    "bandages": [],
+    "end": "superseded",
+    "end_wall": 1794427885.6562958,
+    "fail": null,
+    "line": 453,
+    "lost": 1,
+    "onset_s": -45.55300259590149,
+    "onset_to_end_s": 55.53829574584961,
+    "onset_to_start_s": 45.55300259590149,
+    "part": 8,
+    "ride": false,
+    "s": 9.98529314994812,
+    "sends": 2,
+    "stop": {
+     "sent_s": 0.0,
+     "still_s": 0.5397524833679199,
+     "still_waits": 0
+    },
+    "torn": [
+     1021894735
+    ],
+    "unworn": [],
+    "wall": 1794427875.6710026
+   },
+   {
+    "bandages": [],
+    "end": null,
+    "end_wall": null,
+    "fail": null,
+    "line": 473,
+    "lost": 2,
+    "onset_s": -55.53829574584961,
+    "onset_to_end_s": null,
+    "onset_to_start_s": 55.53829574584961,
+    "part": 8,
+    "ride": false,
+    "s": null,
+    "sends": 5,
+    "stop": {
+     "sent_s": 0.0,
+     "still_s": 0.5490295886993408,
+     "still_waits": 0
+    },
+    "torn": [
+     1021894735,
+     1021894735,
+     1021894735
+    ],
+    "unworn": [],
+    "wall": 1794427885.6562958
+   }
+  ]
+ },
+ "drift_stand": {
+  "bites_after": 0,
+  "legs": 0,
+  "lines": 0,
+  "read": true,
+  "shoves_after": 0
+ },
+ "engage": {
+  "fight_lines": 282,
+  "fights": 11,
+  "fights_sought": 2,
+  "flee_turns": 1,
+  "flees": {
+   "held": 5,
+   "held_inside": 2,
+   "leave": 6,
+   "many": 46
+  },
+  "lines": 509,
+  "many_listed_lines": 0,
+  "many_listed_max": null,
+  "read": true,
+  "seek_legs": {
+   "aim": 13,
+   "other": 5,
+   "walkTo": {}
+  },
+  "seek_lines": 42,
+  "seek_walk_share": null,
+  "sought_lines": 92
+ },
+ "engage_hold": {
+  "by_rule": {
+   "drag": 5,
+   "leave": 18,
+   "pair": 34
+  },
+  "lines": 57,
+  "read": true
+ },
+ "facing": {
+  "off_by_points": {
+   "0": 0,
+   "1": 0,
+   "2": 0,
+   "3": 0,
+   "4": 0
+  },
+  "paired": {
+   "frame": 0,
+   "line": 0
+  },
+  "read": true,
+  "shoves_off": {
+   "off_by_points": {
+    "0": 0,
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "swings": 0,
+   "unread": 0
+  },
+  "stomps_off": {
+   "off_by_points": {
+    "0": 0,
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "swings": 0,
+   "unread": 0
+  },
+  "swings": 0,
+  "unread": 0
+ },
+ "facing_all": {
+  "by_source": {
+   "ladder": {
+    "floors": {
+     "n": 0,
+     "off_by_points": {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0
+     },
+     "unread": 0
+    },
+    "shoves": {
+     "n": 0,
+     "off_by_points": {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0
+     },
+     "unread": 0
+    },
+    "stomps": {
+     "n": 0,
+     "off_by_points": {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0
+     },
+     "unread": 0
+    },
+    "swings": {
+     "n": 0,
+     "off_by_points": {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0
+     },
+     "unread": 0
+    }
+   },
+   "melee": {
+    "floors": {
+     "n": 9,
+     "off_by_points": {
+      "0": 8,
+      "1": 1,
+      "2": 0,
+      "3": 0,
+      "4": 0
+     },
+     "unread": 0
+    },
+    "shoves": {
+     "n": 13,
+     "off_by_points": {
+      "0": 5,
+      "1": 4,
+      "2": 4,
+      "3": 0,
+      "4": 0
+     },
+     "unread": 0
+    },
+    "stomps": {
+     "n": 0,
+     "off_by_points": {
+      "0": 0,
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0
+     },
+     "unread": 0
+    },
+    "swings": {
+     "n": 15,
+     "off_by_points": {
+      "0": 12,
+      "1": 1,
+      "2": 2,
+      "3": 0,
+      "4": 0
+     },
+     "unread": 0
+    }
+   }
+  },
+  "floors": {
+   "n": 9,
+   "off_by_points": {
+    "0": 8,
+    "1": 1,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "unread": 0
+  },
+  "other": 0,
+  "paired": {
+   "frame": 37,
+   "line": 0
+  },
+  "presses": 37,
+  "read": true,
+  "shoves": {
+   "n": 13,
+   "off_by_points": {
+    "0": 5,
+    "1": 4,
+    "2": 4,
+    "3": 0,
+    "4": 0
+   },
+   "unread": 0
+  },
+  "stomps": {
+   "n": 0,
+   "off_by_points": {
+    "0": 0,
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0
+   },
+   "unread": 0
+  },
+  "swings": {
+   "n": 15,
+   "off_by_points": {
+    "0": 12,
+    "1": 1,
+    "2": 2,
+    "3": 0,
+    "4": 0
+   },
+   "unread": 0
+  }
+ },
+ "facing_body": {
+  "breaks": {
+   "frames": 0,
+   "n": 0,
+   "rows": []
+  },
+  "presses": {
+   "body": {
+    "hold30": 0.8148148148148148,
+    "median": 4.792012907013153e-06,
+    "n": 54,
+    "p90": 86.92748168498954
+   },
+   "by_kind": {
+    "floor": {
+     "body": {
+      "hold30": 0.9,
+      "median": 6.0530972340760894e-06,
+      "n": 10,
+      "p90": 1.5785902526103147e-05
+     },
+     "look": {
+      "hold30": 0.9,
+      "median": 1.068166854136799e-05,
+      "n": 10,
+      "p90": 0.6151036142084727
+     },
+     "n": 10
+    },
+    "shove": {
+     "body": {
+      "hold30": 0.47058823529411764,
+      "median": 32.14406240640452,
+      "n": 17,
+      "p90": 122.69917311902455
+     },
+     "look": {
+      "hold30": 0.47058823529411764,
+      "median": 36.76205487985442,
+      "n": 17,
+      "p90": 122.69917311902455
+     },
+     "n": 17
+    },
+    "swing": {
+     "body": {
+      "hold30": 1.0,
+      "median": 3.136099629764155e-06,
+      "n": 27,
+      "p90": 1.60686438121769e-05
+     },
+     "look": {
+      "hold30": 1.0,
+      "median": 3.6530478725555994e-06,
+      "n": 27,
+      "p90": 14.99999395785275
+     },
+     "n": 27
+    }
+   },
+   "by_mode": {
+    "unaimed_snap": {
+     "body": {
+      "hold30": 0.8148148148148148,
+      "median": 4.792012907013153e-06,
+      "n": 54,
+      "p90": 86.92748168498954
+     },
+     "look": {
+      "hold30": 0.8148148148148148,
+      "median": 1.5785902526103147e-05,
+      "n": 54,
+      "p90": 101.927478687308
+     },
+     "n": 54
+    }
+   },
+   "look": {
+    "hold30": 0.8148148148148148,
+    "median": 1.5785902526103147e-05,
+    "n": 54,
+    "p90": 101.927478687308
+   },
+   "n": 54,
+   "rows": [
+    {
+     "aid": "a8",
+     "err_body": -7.84423078855223e-06,
+     "err_look": 4.449491569817338,
+     "frame_seq": 394,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 396,
+     "wallMs": 1794427655250
+    },
+    {
+     "aid": "a8",
+     "err_body": 9.28050890305108e-06,
+     "err_look": 9.28050890305108e-06,
+     "frame_seq": 419,
+     "kind": "floor",
+     "mode": "unaimed_snap",
+     "seq": 421,
+     "wallMs": 1794427655996
+    },
+    {
+     "aid": "a9",
+     "err_body": -6.475707521543846e-06,
+     "err_look": 0.3857626086147986,
+     "frame_seq": 444,
+     "kind": "floor",
+     "mode": "unaimed_snap",
+     "seq": 445,
+     "wallMs": 1794427657162
+    },
+    {
+     "aid": "a46",
+     "err_body": 3.8447248528226533e-07,
+     "err_look": 3.8447248528226533e-07,
+     "frame_seq": 1332,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 1333,
+     "wallMs": 1794427711296
+    },
+    {
+     "aid": "a46",
+     "err_body": -3.6530478725555994e-06,
+     "err_look": -3.6530478725555994e-06,
+     "frame_seq": 1342,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 1343,
+     "wallMs": 1794427712095
+    },
+    {
+     "aid": "a46",
+     "err_body": -3.6530478725555994e-06,
+     "err_look": -3.6530478725555994e-06,
+     "frame_seq": 1351,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 1352,
+     "wallMs": 1794427712846
+    },
+    {
+     "aid": "a46",
+     "err_body": -3.6530478725555994e-06,
+     "err_look": -3.6530478725555994e-06,
+     "frame_seq": 1359,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 1360,
+     "wallMs": 1794427713563
+    },
+    {
+     "aid": "a46",
+     "err_body": -3.136099629764155e-06,
+     "err_look": -3.136099629764155e-06,
+     "frame_seq": 1374,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 1375,
+     "wallMs": 1794427714665
+    },
+    {
+     "aid": "a46",
+     "err_body": -5.561563868661143e-06,
+     "err_look": -5.561563868661143e-06,
+     "frame_seq": 1391,
+     "kind": "floor",
+     "mode": "unaimed_snap",
+     "seq": 1392,
+     "wallMs": 1794427716012
+    },
+    {
+     "aid": "a47",
+     "err_body": 131.74318963119643,
+     "err_look": 131.74318963119643,
+     "frame_seq": 1403,
+     "kind": "floor",
+     "mode": "unaimed_snap",
+     "seq": 1405,
+     "wallMs": 1794427716769
+    },
+    {
+     "aid": "a58",
+     "err_body": -5.224571416108014e-07,
+     "err_look": 3.854316207316074,
+     "frame_seq": 1772,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 1775,
+     "wallMs": 1794427737267
+    },
+    {
+     "aid": "a58",
+     "err_body": -2.802082058143458e-06,
+     "err_look": -2.802082058143458e-06,
+     "frame_seq": 1783,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 1784,
+     "wallMs": 1794427737947
+    },
+    {
+     "aid": "a58",
+     "err_body": 2.086837159348649e-06,
+     "err_look": 2.086837159348649e-06,
+     "frame_seq": 1800,
+     "kind": "floor",
+     "mode": "unaimed_snap",
+     "seq": 1801,
+     "wallMs": 1794427739331
+    },
+    {
+     "aid": "a64",
+     "err_body": 4.41034535926558e-06,
+     "err_look": -0.31679342373817215,
+     "frame_seq": 1858,
+     "kind": "floor",
+     "mode": "unaimed_snap",
+     "seq": 1859,
+     "wallMs": 1794427743645
+    },
+    {
+     "aid": "a64",
+     "err_body": 6.0530972340760894e-06,
+     "err_look": 6.0530972340760894e-06,
+     "frame_seq": 1868,
+     "kind": "floor",
+     "mode": "unaimed_snap",
+     "seq": 1869,
+     "wallMs": 1794427744429
+    },
+    {
+     "aid": "a75",
+     "err_body": 1.8401349133010686e-06,
+     "err_look": 1.8401349133010686e-06,
+     "frame_seq": 2323,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 2324,
+     "wallMs": 1794427766481
+    },
+    {
+     "aid": "a75",
+     "err_body": 1.9756014990438524e-06,
+     "err_look": 1.9756014990438524e-06,
+     "frame_seq": 2332,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 2333,
+     "wallMs": 1794427767212
+    },
+    {
+     "aid": "a75",
+     "err_body": 2.82152972513211e-07,
+     "err_look": 2.82152972513211e-07,
+     "frame_seq": 2341,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 2342,
+     "wallMs": 1794427767964
+    },
+    {
+     "aid": "a75",
+     "err_body": 2.82152972513211e-07,
+     "err_look": 2.82152972513211e-07,
+     "frame_seq": 2350,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 2351,
+     "wallMs": 1794427768746
+    },
+    {
+     "aid": "a75",
+     "err_body": 2.82152972513211e-07,
+     "err_look": 2.82152972513211e-07,
+     "frame_seq": 2358,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 2359,
+     "wallMs": 1794427769478
+    },
+    {
+     "aid": "a75",
+     "err_body": 2.82152972513211e-07,
+     "err_look": 2.82152972513211e-07,
+     "frame_seq": 2367,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 2368,
+     "wallMs": 1794427770229
+    },
+    {
+     "aid": "a75",
+     "err_body": 2.82152972513211e-07,
+     "err_look": 2.82152972513211e-07,
+     "frame_seq": 2376,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 2377,
+     "wallMs": 1794427770945
+    },
+    {
+     "aid": "a78",
+     "err_body": -4.228571290443638e-06,
+     "err_look": -4.228571290443638e-06,
+     "frame_seq": 2433,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 2434,
+     "wallMs": 1794427775678
+    },
+    {
+     "aid": "a78",
+     "err_body": -1.068166854136799e-05,
+     "err_look": -1.068166854136799e-05,
+     "frame_seq": 2446,
+     "kind": "floor",
+     "mode": "unaimed_snap",
+     "seq": 2447,
+     "wallMs": 1794427776650
+    },
+    {
+     "aid": "a87",
+     "err_body": -1.8917639637094003e-07,
+     "err_look": -1.8917639637094003e-07,
+     "frame_seq": 2636,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 2637,
+     "wallMs": 1794427789396
+    },
+    {
+     "aid": "a87",
+     "err_body": -4.792012907013153e-06,
+     "err_look": 14.999995625400121,
+     "frame_seq": 2650,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 2651,
+     "wallMs": 1794427790428
+    },
+    {
+     "aid": "a87",
+     "err_body": 4.098313804435936e-06,
+     "err_look": 0.6151036142084727,
+     "frame_seq": 2665,
+     "kind": "floor",
+     "mode": "unaimed_snap",
+     "seq": 2666,
+     "wallMs": 1794427791579
+    },
+    {
+     "aid": "a90",
+     "err_body": 6.915252507024213e-06,
+     "err_look": 6.915252507024213e-06,
+     "frame_seq": 2715,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 2716,
+     "wallMs": 1794427795428
+    },
+    {
+     "aid": "a90",
+     "err_body": 4.670900342658877e-06,
+     "err_look": 4.670900342658877e-06,
+     "frame_seq": 2724,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 2725,
+     "wallMs": 1794427796178
+    },
+    {
+     "aid": "a90",
+     "err_body": -1.60686438121769e-05,
+     "err_look": -1.60686438121769e-05,
+     "frame_seq": 2733,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 2734,
+     "wallMs": 1794427796929
+    },
+    {
+     "aid": "a90",
+     "err_body": -1.60686438121769e-05,
+     "err_look": -1.60686438121769e-05,
+     "frame_seq": 2742,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 2743,
+     "wallMs": 1794427797678
+    },
+    {
+     "aid": "a90",
+     "err_body": -1.5785902526103147e-05,
+     "err_look": -1.5785902526103147e-05,
+     "frame_seq": 2757,
+     "kind": "floor",
+     "mode": "unaimed_snap",
+     "seq": 2758,
+     "wallMs": 1794427798846
+    },
+    {
+     "aid": "a114",
+     "err_body": -1.7172685701037716e-05,
+     "err_look": -15.000014175004145,
+     "frame_seq": 3276,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 3277,
+     "wallMs": 1794427825646
+    },
+    {
+     "aid": "a114",
+     "err_body": 3.0444656929751173e-06,
+     "err_look": -14.99999395785275,
+     "frame_seq": 3307,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 3308,
+     "wallMs": 1794427828062
+    },
+    {
+     "aid": "a114",
+     "err_body": 106.72476094710169,
+     "err_look": 106.72476094710169,
+     "frame_seq": 3317,
+     "kind": "shove",
+     "mode": "unaimed_snap",
+     "seq": 3319,
+     "wallMs": 1794427828845
+    },
+    {
+     "aid": "a114",
+     "err_body": 7.319692603652237e-06,
+     "err_look": 7.319692603652237e-06,
+     "frame_seq": 3330,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 3332,
+     "wallMs": 1794427829547
+    },
+    {
+     "aid": "a117",
+     "err_body": -108.42205366249115,
+     "err_look": -108.42205366249115,
+     "frame_seq": 3362,
+     "kind": "shove",
+     "mode": "unaimed_snap",
+     "seq": 3364,
+     "wallMs": 1794427831512
+    },
+    {
+     "aid": "a117",
+     "err_body": 137.9430660537022,
+     "err_look": 137.9430660537022,
+     "frame_seq": 3372,
+     "kind": "shove",
+     "mode": "unaimed_snap",
+     "seq": 3374,
+     "wallMs": 1794427832202
+    },
+    {
+     "aid": "a117",
+     "err_body": -86.92748168498954,
+     "err_look": -101.927478687308,
+     "frame_seq": 3387,
+     "kind": "shove",
+     "mode": "unaimed_snap",
+     "seq": 3389,
+     "wallMs": 1794427833394
+    },
+    {
+     "aid": "a117",
+     "err_body": 49.0190481595376,
+     "err_look": 49.0190481595376,
+     "frame_seq": 3397,
+     "kind": "shove",
+     "mode": "unaimed_snap",
+     "seq": 3399,
+     "wallMs": 1794427834078
+    },
+    {
+     "aid": "a119",
+     "err_body": -4.3906958161101865e-06,
+     "err_look": -15.000001393014259,
+     "frame_seq": 3460,
+     "kind": "shove",
+     "mode": "unaimed_snap",
+     "seq": 3461,
+     "wallMs": 1794427838529
+    },
+    {
+     "aid": "a119",
+     "err_body": 1.931330509224462e-06,
+     "err_look": -12.370604466964805,
+     "frame_seq": 3497,
+     "kind": "shove",
+     "mode": "unaimed_snap",
+     "seq": 3498,
+     "wallMs": 1794427841494
+    },
+    {
+     "aid": "a119",
+     "err_body": 46.76011016220285,
+     "err_look": 46.76011016220285,
+     "frame_seq": 3506,
+     "kind": "shove",
+     "mode": "unaimed_snap",
+     "seq": 3508,
+     "wallMs": 1794427842197
+    },
+    {
+     "aid": "a120",
+     "err_body": 1.0727395643189986e-05,
+     "err_look": -12.376237407154102,
+     "frame_seq": 3542,
+     "kind": "shove",
+     "mode": "unaimed_snap",
+     "seq": 3543,
+     "wallMs": 1794427845013
+    },
+    {
+     "aid": "a120",
+     "err_body": -4.481865042054715e-06,
+     "err_look": -4.481865042054715e-06,
+     "frame_seq": 3551,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 3552,
+     "wallMs": 1794427845711
+    },
+    {
+     "aid": "a120",
+     "err_body": 5.451065801250862e-06,
+     "err_look": -14.999991551252641,
+     "frame_seq": 3570,
+     "kind": "shove",
+     "mode": "unaimed_snap",
+     "seq": 3571,
+     "wallMs": 1794427847095
+    },
+    {
+     "aid": "a120",
+     "err_body": 1.1944115335362044e-05,
+     "err_look": -14.999985058203107,
+     "frame_seq": 3600,
+     "kind": "shove",
+     "mode": "unaimed_snap",
+     "seq": 3601,
+     "wallMs": 1794427849378
+    },
+    {
+     "aid": "a120",
+     "err_body": 4.97536434648493e-06,
+     "err_look": -12.37661198940058,
+     "frame_seq": 3621,
+     "kind": "shove",
+     "mode": "unaimed_snap",
+     "seq": 3622,
+     "wallMs": 1794427850913
+    },
+    {
+     "aid": "a120",
+     "err_body": 1.6546628867037464e-06,
+     "err_look": 1.6546628867037464e-06,
+     "frame_seq": 3632,
+     "kind": "swing",
+     "mode": "unaimed_snap",
+     "seq": 3633,
+     "wallMs": 1794427851695
+    },
+    {
+     "aid": "a120",
+     "err_body": 1.1389119904387982e-05,
+     "err_look": 1.1389119904387982e-05,
+     "frame_seq": 3654,
+     "kind": "shove",
+     "mode": "unaimed_snap",
+     "seq": 3655,
+     "wallMs": 1794427853446
+    },
+    {
+     "aid": "a120",
+     "err_body": -122.69917311902455,
+     "err_look": -122.69917311902455,
+     "frame_seq": 3663,
+     "kind": "shove",
+     "mode": "unaimed_snap",
+     "seq": 3665,
+     "wallMs": 1794427854145
+    },
+    {
+     "aid": "a120",
+     "err_body": -32.14406240640452,
+     "err_look": -47.14405940872297,
+     "frame_seq": 3696,
+     "kind": "shove",
+     "mode": "unaimed_snap",
+     "seq": 3698,
+     "wallMs": 1794427856600
+    },
+    {
+     "aid": "a120",
+     "err_body": 36.76205487985442,
+     "err_look": 36.76205487985442,
+     "frame_seq": 3706,
+     "kind": "shove",
+     "mode": "unaimed_snap",
+     "seq": 3708,
+     "wallMs": 1794427857295
+    },
+    {
+     "aid": "a122",
+     "err_body": -6.140291339168632e-07,
+     "err_look": -14.999997616347576,
+     "frame_seq": 3752,
+     "kind": "shove",
+     "mode": "unaimed_snap",
+     "seq": 3753,
+     "wallMs": 1794427860529
+    }
+   ]
+  },
+  "read": true,
+  "stance": {
+   "body": {
+    "hold30": 1.0,
+    "median": 4.6265018348606416e-06,
+    "n": 1296,
+    "p90": 1.440713230068865e-05
+   },
+   "by_type": {
+    "aim": {
+     "hold30": 1.0,
+     "median": 4.423541149861285e-06,
+     "n": 671,
+     "p90": 1.4162147964460614e-05
+    },
+    "melee": {
+     "hold30": 1.0,
+     "median": 4.859430749290683e-06,
+     "n": 625,
+     "p90": 1.4460244993980908e-05
+    }
+   },
+   "frames": 1296,
+   "read": 1296
+  }
+ },
+ "facing_ring": {
+  "aim": 0.07660738714090287,
+  "aim_n": 731,
+  "bearing": 1.0,
+  "bearing_n": 1296,
+  "frames": 1296,
+  "read": true,
+  "walk": 0.470189701897019,
+  "walk_n": 738
+ },
+ "fallback": {
+  "calls": 9,
+  "calls_fallbacks": 0,
+  "goals": 9,
+  "llm": 9,
+  "scripted": 0,
+  "share": 0.0
+ },
+ "fallen": {
+  "fallen": 8,
+  "finish_kills": 0,
+  "finish_lines": 0,
+  "finished": 0,
+  "left": 8,
+  "read": true,
+  "rows": [
+   {
+    "finished": false,
+    "id": 20368,
+    "wall": 1794427655.298
+   },
+   {
+    "finished": false,
+    "id": 20369,
+    "wall": 1794427655.298
+   },
+   {
+    "finished": false,
+    "id": 20377,
+    "wall": 1794427706.213
+   },
+   {
+    "finished": false,
+    "id": 20420,
+    "wall": 1794427739.017
+   },
+   {
+    "finished": false,
+    "id": 20371,
+    "wall": 1794427743.012
+   },
+   {
+    "finished": false,
+    "id": 20363,
+    "wall": 1794427776.713
+   },
+   {
+    "finished": false,
+    "id": 20411,
+    "wall": 1794427791.417
+   },
+   {
+    "finished": false,
+    "id": 20380,
+    "wall": 1794427798.515
+   }
+  ]
+ },
+ "fallen_seek": {
+  "kills_after": 0,
+  "left": 0,
+  "lines": 0,
+  "read": true,
+  "short": 0,
+  "ticks": {},
+  "walks": 0
+ },
+ "fights": {
+  "ended": 18,
+  "fled": 11,
+  "n": 19,
+  "stand_offs": 0
+ },
+ "fights_unresolved": 1,
+ "finish_lone": {
+  "read": false
+ },
+ "flee_finish": {
+  "clear_within": 0,
+  "kills": 0,
+  "landed": 0,
+  "lines": 0,
+  "read": true,
+  "refused": 0,
+  "sent": {},
+  "struck": 0,
+  "unstruck": 0
+ },
+ "flee_held": {
+  "read": false
+ },
+ "fleeing": {
+  "away": {
+   "intervals": 276,
+   "minutes": 7.313232421875,
+   "refuge_skipped": 76
+  },
+  "by": {
+   "flee:held": 5,
+   "flee:held_inside": 2,
+   "flee:leave": 6,
+   "flee:many": 46
+  },
+  "legs": {
+   "back": {
+    "lines": 75,
+    "minutes": 10.040359497070312
+   },
+   "pull": {
+    "lines": 39,
+    "minutes": 5.107669830322266
+   }
+  },
+  "lines": 59,
+  "minutes": 7.464408874511719,
+  "read": true,
+  "seconds": 28.81826949119568,
+  "total_minutes": 67.2059440612793
+ },
+ "floor_finish": {
+  "kills": 0,
+  "landed": 0,
+  "lines": 7,
+  "read": true,
+  "sent": 0,
+  "stomps_after": 0,
+  "strike_holds": 0
+ },
+ "floor_pain": {
+  "kills": 0,
+  "landed": 0,
+  "read": true,
+  "stomps_after": 0,
+  "swings": 0,
+  "swings_under_pain_before": 0
+ },
+ "frame_age": {
+  "lines": 0,
+  "max": null,
+  "median": null,
+  "read": true
+ },
+ "frames_files": [
+  "state.log"
+ ],
+ "frames_n": 2668,
+ "frames_source": "state_logs",
+ "game_minutes": 69.77605819702148,
+ "game_minutes_alive": 69.77605819702148,
+ "game_minutes_log_end": 70.71327209472656,
+ "glides": {
+  "base": "t_loop0_ms",
+  "rows": [
+   {
+    "aid": "a150",
+    "endS": 251.07677734375,
+    "gait": "run",
+    "s": 1.9029999999999916,
+    "seq": 4840,
+    "startS": 249.17377734375,
+    "tiles": 2.5439250688973822
+   }
+  ],
+  "runs": 1,
+  "tiles": 2.5439250688973822
+ },
+ "goal_stall": {
+  "ends": 0,
+  "read": false
+ },
+ "goal_wait": {
+  "continued": {
+   "by_source": {
+    "edge": 45,
+    "last": 15
+   },
+   "lines": 60,
+   "sent": 12
+  },
+  "extended": {
+   "lengths": [
+    1.0,
+    7.211102550927978,
+    2.8284271247461903
+   ],
+   "lines": 3
+  },
+  "hops": [
+   4.914353208933827,
+   6.496807855109568,
+   2.919362829269164,
+   4.649908778618683,
+   11.238032184767237,
+   5.715206194718133,
+   11.545588854033785,
+   4.90876540315415
+  ],
+  "lines": 60,
+  "near_runs": {
+   "lines": 45,
+   "runs": 8,
+   "s": 22.39264225959778
+  },
+  "read": true,
+  "runs": 10,
+  "seconds": 29.897864818572998,
+  "unmoved": 11,
+  "unmoved_near": 4,
+  "unmoved_near_s": 2.0
+ },
+ "grade": "grade_x5",
+ "group_leave": {
+  "legs": 8,
+  "lines": 68,
+  "read": true,
+  "rows": [
+   {
+    "i0": 342,
+    "i1": 368,
+    "standing": 0,
+    "types": [
+     "sneak",
+     "sneak",
+     "sneak",
+     "melee",
+     "melee",
+     "melee",
+     "aim",
+     "melee",
+     "melee",
+     "melee",
+     "melee"
+    ]
+   },
+   {
+    "i0": 426,
+    "i1": 429,
+    "standing": 3,
+    "types": [
+     "steer"
+    ]
+   },
+   {
+    "i0": 436,
+    "i1": 436,
+    "standing": 0,
+    "types": [
+     "steer"
+    ]
+   },
+   {
+    "i0": 441,
+    "i1": 441,
+    "standing": 1,
+    "types": [
+     "steer"
+    ]
+   },
+   {
+    "i0": 457,
+    "i1": 460,
+    "standing": 1,
+    "types": [
+     "interact",
+     "walkTo",
+     "steer"
+    ]
+   },
+   {
+    "i0": 476,
+    "i1": 476,
+    "standing": 0,
+    "types": [
+     "steer"
+    ]
+   },
+   {
+    "i0": 479,
+    "i1": 480,
+    "standing": 0,
+    "types": [
+     "steer"
+    ]
+   },
+   {
+    "i0": 489,
+    "i1": 493,
+    "standing": 2,
+    "types": [
+     "steer"
+    ]
+   }
+  ],
+  "runs": 7,
+  "standing_at": [
+   0,
+   3,
+   0,
+   1,
+   1,
+   0,
+   0,
+   2
+  ],
+  "to_door": 1
+ },
+ "group_leave_legs": {
+  "ends": {
+   "strung": 4
+  },
+  "legs": {
+   "door": 6,
+   "retreat": 21,
+   "run": 37,
+   "shove": 0
+  },
+  "lines": 68,
+  "read": true
+ },
+ "handbacks": {
+  "by_why": {},
+  "lines": 0,
+  "read": true
+ },
+ "head_ticks": {
+  "by_melee": [
+   [
+    "a8",
+    0
+   ],
+   [
+    "a9",
+    0
+   ],
+   [
+    "a46",
+    0
+   ],
+   [
+    "a47",
+    0
+   ],
+   [
+    "a58",
+    0
+   ],
+   [
+    "a64",
+    0
+   ],
+   [
+    "a75",
+    0
+   ],
+   [
+    "a78",
+    0
+   ],
+   [
+    "a87",
+    0
+   ],
+   [
+    "a90",
+    0
+   ],
+   [
+    "a114",
+    0
+   ],
+   [
+    "a117",
+    0
+   ],
+   [
+    "a119",
+    0
+   ],
+   [
+    "a120",
+    0
+   ],
+   [
+    "a122",
+    0
+   ]
+  ],
+  "leaves": 54,
+  "max": 0,
+  "over_cap": 0,
+  "read": true
+ },
+ "health_near": {
+  "read": false
+ },
+ "hits": {
+  "by_fight": [
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   3,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   1
+  ],
+  "kills": 8,
+  "kinds": {
+   "Bite": 2,
+   "BiteRIGHT": 2
+  },
+  "legacy": {
+   "kills": 0,
+   "per_kill": null,
+   "wounds_per_kill": null
+  },
+  "outside": 0,
+  "per_kill": 0.5,
+  "read": true,
+  "runs": 4,
+  "strike_before": [
+   {
+    "aid": null,
+    "attackStarted": null,
+    "before_s": null,
+    "kind": "BiteRIGHT",
+    "knockdown": null,
+    "nearest": null,
+    "seq": 3340,
+    "target": null,
+    "type": null
+   },
+   {
+    "aid": null,
+    "attackStarted": null,
+    "before_s": null,
+    "kind": "BiteRIGHT",
+    "knockdown": null,
+    "nearest": null,
+    "seq": 3517,
+    "target": null,
+    "type": null
+   },
+   {
+    "aid": null,
+    "attackStarted": null,
+    "before_s": null,
+    "kind": "Bite",
+    "knockdown": null,
+    "nearest": null,
+    "seq": 3676,
+    "target": null,
+    "type": null
+   },
+   {
+    "aid": null,
+    "attackStarted": null,
+    "before_s": null,
+    "kind": "Bite",
+    "knockdown": null,
+    "nearest": null,
+    "seq": 4888,
+    "target": null,
+    "type": null
+   }
+  ],
+  "wound_frames": 7,
+  "wounds": 9,
+  "wounds_per_kill": 1.125
+ },
+ "hits_in_melee": {
+  "inside": 3,
+  "kills": 8,
+  "kills_events": 10,
+  "kills_inside": 8,
+  "kills_outside": 0,
+  "outside": 1,
+  "outside_fight": 1,
+  "per_kill": 0.5,
+  "per_kill_events": 0.4,
+  "per_kill_inside": 0.375,
+  "per_kill_outside": null,
+  "read": true,
+  "runs": 4
+ },
+ "hits_union": {
+  "joined": 6,
+  "kills": 10,
+  "per_kill_union": 0.4,
+  "read": true,
+  "rows": [
+   {
+    "aid": "a114",
+    "kind": "BiteRIGHT",
+    "seq": 3339,
+    "source": "both",
+    "wallMs": 1794427830048
+   },
+   {
+    "aid": "a119",
+    "kind": "BiteRIGHT",
+    "seq": 3516,
+    "source": "both",
+    "wallMs": 1794427842879
+   },
+   {
+    "aid": "a120",
+    "kind": "Bite",
+    "seq": 3675,
+    "source": "both",
+    "wallMs": 1794427854847
+   },
+   {
+    "aid": null,
+    "kind": "Bite",
+    "seq": 4888,
+    "source": "reaction",
+    "wallMs": 1794427901515
+   }
+  ],
+  "runs": 4,
+  "steps": 6,
+  "union": 4
+ },
+ "hold_fight": {
+  "attacks": 0,
+  "kills": 0,
+  "lines": 0,
+  "read": true,
+  "runs": 0,
+  "shoves": 0,
+  "stomps": 0
+ },
+ "hold_rest": {
+  "near": 0,
+  "read": true,
+  "standing": {
+   "read": false
+  },
+  "ticks": 0,
+  "walk_ticks": 0,
+  "walking": {
+   "read": false
+  }
+ },
+ "idle_many": {
+  "many_lines": 46,
+  "max_idle": 2,
+  "read": true,
+  "rows": [
+   {
+    "gameMin": 621,
+    "idle": 1,
+    "wall": 1794427867.7568965,
+    "why": "many"
+   },
+   {
+    "gameMin": 621,
+    "idle": 2,
+    "wall": 1794427870.2556915,
+    "why": "many"
+   },
+   {
+    "gameMin": 621,
+    "idle": 2,
+    "wall": 1794427870.6869211,
+    "why": "many"
+   },
+   {
+    "gameMin": 622,
+    "idle": 2,
+    "wall": 1794427871.2282588,
+    "why": "many"
+   },
+   {
+    "gameMin": 622,
+    "idle": 2,
+    "wall": 1794427871.661203,
+    "why": "many"
+   },
+   {
+    "gameMin": 622,
+    "idle": 2,
+    "wall": 1794427872.1973877,
+    "why": "many"
+   },
+   {
+    "gameMin": 622,
+    "idle": 2,
+    "wall": 1794427873.7198472,
+    "why": "many"
+   },
+   {
+    "gameMin": 624,
+    "idle": 1,
+    "wall": 1794427880.225577,
+    "why": "many"
+   },
+   {
+    "gameMin": 624,
+    "idle": 1,
+    "wall": 1794427880.6600509,
+    "why": "many"
+   },
+   {
+    "gameMin": 624,
+    "idle": 1,
+    "wall": 1794427881.2018723,
+    "why": "many"
+   }
+  ],
+  "with_idle": 15
+ },
+ "idle_snap": {
+  "body": {
+   "hold30": 0.3828125,
+   "median": 111.71876943776489,
+   "n": 256,
+   "p90": 177.92465812209764
+  },
+  "body_err_median": 111.71876943776489,
+  "frames": 256,
+  "read": true
+ },
+ "idle_snap_by_act": {
+  "by_act": {
+   "aim": {
+    "hold30": 1.0,
+    "median": 3.595750542552268e-06,
+    "n": 32,
+    "p90": 1.3879036652655222e-05
+   },
+   "interact": {
+    "hold30": 0.0,
+    "median": 161.63720199206807,
+    "n": 1,
+    "p90": 161.63720199206807
+   },
+   "none": {
+    "hold30": 1.0,
+    "median": 0.009078171372324244,
+    "n": 33,
+    "p90": 0.7347406335061587
+   },
+   "rip": {
+    "hold30": 0.0,
+    "median": 177.8390463710474,
+    "n": 14,
+    "p90": 179.88563803846827
+   },
+   "steer": {
+    "hold30": 0.1610738255033557,
+    "median": 148.46801855719727,
+    "n": 149,
+    "p90": 178.76781836686416
+   },
+   "walkTo": {
+    "hold30": 0.3333333333333333,
+    "median": 114.73087068858108,
+    "n": 27,
+    "p90": 155.9059105270747
+   }
+  },
+  "frames": 256,
+  "read": true
+ },
+ "kills": {
+  "agree": false,
+  "died": true,
+  "died_at": 630,
+  "engine": 10,
+  "event_ids": [
+   20368,
+   20369,
+   20450,
+   20377,
+   20420,
+   20371,
+   20409,
+   20363,
+   20411,
+   20380
+  ],
+  "events": 10,
+  "ladder": [],
+  "legacy_planner": {
+   "agree": false,
+   "died": true,
+   "died_at": 630,
+   "engine": 10,
+   "event_ids": [
+    20368,
+    20369,
+    20450,
+    20377,
+    20420,
+    20371,
+    20409,
+    20363,
+    20411,
+    20380
+   ],
+   "events": 10,
+   "per_fight": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   "per_standing_fight": 0.0,
+   "planner": 0,
+   "planner_ids": [],
+   "source": "act lines",
+   "standing_fights": 8,
+   "standing_kills": 0
+  },
+  "melee": [
+   20369,
+   20377,
+   20420,
+   20371,
+   20409,
+   20363,
+   20411,
+   20380
+  ],
+  "per_fight": [
+   1,
+   0,
+   0,
+   0,
+   1,
+   2,
+   2,
+   2,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  "per_standing_fight": 1.0,
+  "planner": 8,
+  "planner_ids": [
+   20369,
+   20377,
+   20420,
+   20371,
+   20409,
+   20363,
+   20411,
+   20380
+  ],
+  "source": "act lines",
+  "standing_fights": 8,
+  "standing_kills": 8
+ },
+ "kills_matched": {
+  "agree": true,
+  "by_source": {
+   "melee": 2
+  },
+  "event_ids": [
+   20368,
+   20369,
+   20450,
+   20377,
+   20420,
+   20371,
+   20409,
+   20363,
+   20411,
+   20380
+  ],
+  "events": 10,
+  "ladder": [],
+  "matched": [
+   {
+    "aid": "a8",
+    "d": 1.1220732872295207,
+    "frames_before": 11,
+    "id": 20368,
+    "reach": 1.475,
+    "seq": 397,
+    "source": "melee",
+    "step": "swing",
+    "type": "melee"
+   },
+   {
+    "aid": "a46",
+    "d": 0.9787928632020034,
+    "frames_before": 4,
+    "id": 20450,
+    "reach": 1.475,
+    "seq": 1393,
+    "source": "melee",
+    "step": "floor",
+    "type": "melee"
+   }
+  ],
+  "melee": [
+   20369,
+   20377,
+   20420,
+   20371,
+   20409,
+   20363,
+   20411,
+   20380
+  ],
+  "planner": 10,
+  "planner_ids": [
+   20369,
+   20377,
+   20420,
+   20371,
+   20409,
+   20363,
+   20411,
+   20380,
+   20368,
+   20450
+  ],
+  "source": "act lines",
+  "unmatched": [],
+  "whole": 8,
+  "whole_ids": [
+   20369,
+   20377,
+   20420,
+   20371,
+   20409,
+   20363,
+   20411,
+   20380
+  ]
+ },
+ "landed_hits": {
+  "joined": 3,
+  "kills": 10,
+  "per_kill_union": 1.0,
+  "read": true,
+  "rows": [
+   {
+    "aid": "a114",
+    "kind": "BiteRIGHT",
+    "seq": 3339,
+    "source": "both",
+    "wallMs": 1794427830048
+   },
+   {
+    "aid": "a115",
+    "kind": null,
+    "seq": 3344,
+    "source": "step",
+    "wallMs": 1794427830319
+   },
+   {
+    "aid": "a116",
+    "kind": null,
+    "seq": 3351,
+    "source": "step",
+    "wallMs": 1794427830720
+   },
+   {
+    "aid": "a117",
+    "kind": null,
+    "seq": 3360,
+    "source": "step",
+    "wallMs": 1794427831271
+   },
+   {
+    "aid": "a119",
+    "kind": "BiteRIGHT",
+    "seq": 3516,
+    "source": "both",
+    "wallMs": 1794427842879
+   },
+   {
+    "aid": "a120",
+    "kind": "Bite",
+    "seq": 3675,
+    "source": "both",
+    "wallMs": 1794427854847
+   },
+   {
+    "aid": null,
+    "kind": "Bite",
+    "seq": 4888,
+    "source": "reaction",
+    "wallMs": 1794427901515
+   },
+   {
+    "aid": null,
+    "kind": "BiteRIGHT",
+    "seq": 4902,
+    "source": "reaction",
+    "wallMs": 1794427902615
+   },
+   {
+    "aid": null,
+    "kind": "Bite",
+    "seq": 4914,
+    "source": "reaction",
+    "wallMs": 1794427903614
+   },
+   {
+    "aid": null,
+    "kind": "EndDeath",
+    "seq": 4918,
+    "source": "reaction",
+    "wallMs": 1794427903913
+   }
+  ],
+  "runs": 7,
+  "steps": 6,
+  "union": 10
+ },
+ "latency": {
+  "answered": 9,
+  "calls": 9,
+  "cli_error": 0,
+  "malformed": 0,
+  "max": 5.7799232006073,
+  "mean": 3.882753928502401,
+  "timeouts": 0
+ },
+ "legs": {
+  "goal_no_square_fails": 0,
+  "halvings": 0,
+  "leg_lines": 0,
+  "leg_sent": 0,
+  "legs_per_target": null,
+  "lens": [],
+  "min_len": null,
+  "no_square": {
+   "failed": 0,
+   "sent": 18
+  },
+  "read": true,
+  "targets": []
+ },
+ "lineage": null,
+ "lineage_source": null,
+ "listing": {
+  "across": 0,
+  "fallen": 117,
+  "lines": 64,
+  "many_avoided": 37,
+  "read": true
+ },
+ "llm": {
+  "calls": 9,
+  "fallbacks": 0,
+  "goal_ends": {
+   "done": 5,
+   "failed": 0,
+   "superseded": 4
+  },
+  "goals_by_type": {
+   "ExploreToward": 8,
+   "LootBuilding": 1
+  },
+  "latency_p50": 3.5017759799957275,
+  "latency_p99": 5.7799232006073,
+  "ok": 9
+ },
+ "load": {
+  "flee_drops": 0,
+  "guard_drops": 0,
+  "max_ratio": 0.776562511920929
+ },
+ "loot": {
+  "by_kind": {
+   "clothing": {
+    "done": 2,
+    "failed": 0
+   },
+   "container": {
+    "done": 1,
+    "failed": 0
+   },
+   "food": {
+    "done": 3,
+    "failed": 0
+   }
+  },
+  "done": 6,
+  "failed": 0,
+  "failed_reasons": {},
+  "sent": 6
+ },
+ "low_exit": {
+  "above_floor": 0,
+  "bites_after": 0,
+  "corner_yields": 0,
+  "exits": 0,
+  "flee_after": 0,
+  "read": true,
+  "short": 0
+ },
+ "low_swing": {
+  "health_before_after": [],
+  "landed": 0,
+  "lines": 0,
+  "read": true,
+  "sent": 0,
+  "short": 0
+ },
+ "many_near": {
+  "lines": 3,
+  "n": {
+   "2": 3
+  },
+  "read": true
+ },
+ "many_tail": {
+  "crowded": 0,
+  "ends": 0,
+  "kills_after": 0,
+  "lone_fights_after": 0,
+  "re_entries": 0,
+  "read": true,
+  "short": 0
+ },
+ "meet_finishes": {
+  "by_outcome": {
+   "killed": 9,
+   "knocked": 1
+  },
+  "head_aim": {
+   "absent": 21,
+   "off": 21,
+   "on": 0
+  },
+  "heads": 0,
+  "kills": 9,
+  "presses": {
+   "floor": 10,
+   "stomp": 0
+  },
+  "read": true,
+  "rows": [
+   {
+    "aid": "a8",
+    "d_press": 0.7838731596579442,
+    "head_aim": false,
+    "kind": "floor",
+    "look_off": 3.4695947125840005e-06,
+    "outcome": "killed"
+   },
+   {
+    "aid": "a9",
+    "d_press": 0.9826591917950181,
+    "head_aim": false,
+    "kind": "floor",
+    "look_off": 0.4630233939026427,
+    "outcome": "killed"
+   },
+   {
+    "aid": "a46",
+    "d_press": 0.9787928632020034,
+    "head_aim": false,
+    "kind": "floor",
+    "look_off": 2.9058532524024447e-06,
+    "outcome": "killed"
+   },
+   {
+    "aid": "a47",
+    "d_press": 0.20454963525680364,
+    "head_aim": false,
+    "kind": "floor",
+    "look_off": 1.0707542671757163e-06,
+    "outcome": "killed"
+   },
+   {
+    "aid": "a58",
+    "d_press": 0.9923263813049069,
+    "head_aim": false,
+    "kind": "floor",
+    "look_off": 2.1030062565022187e-05,
+    "outcome": "killed"
+   },
+   {
+    "aid": "a64",
+    "d_press": 0.9848641285398562,
+    "head_aim": false,
+    "kind": "floor",
+    "look_off": 0.3452540365416377,
+    "outcome": "knocked"
+   },
+   {
+    "aid": "a64",
+    "d_press": 0.0719548321085494,
+    "head_aim": false,
+    "kind": "floor",
+    "look_off": 6.0530972340760894e-06,
+    "outcome": "killed"
+   },
+   {
+    "aid": "a78",
+    "d_press": 0.8900921214571983,
+    "head_aim": false,
+    "kind": "floor",
+    "look_off": 1.287309491455637e-05,
+    "outcome": "killed"
+   },
+   {
+    "aid": "a87",
+    "d_press": 0.9703302108450572,
+    "head_aim": false,
+    "kind": "floor",
+    "look_off": 5.650483093890693e-06,
+    "outcome": "killed"
+   },
+   {
+    "aid": "a90",
+    "d_press": 0.9782782778826538,
+    "head_aim": false,
+    "kind": "floor",
+    "look_off": 0.10009366778230715,
+    "outcome": "killed"
+   }
+  ],
+  "sent_finish": 6
+ },
+ "meet_handbacks": {
+  "by_target": {},
+  "by_why": {},
+  "handbacks": 0,
+  "read": true,
+  "repinned": [],
+  "repins": {
+   "melees": 6,
+   "steps": 18,
+   "total": 18
+  },
+  "rows": []
+ },
+ "meet_presses": {
+  "by_kind": {
+   "floor": 10,
+   "shove": 17,
+   "swing": 27
+  },
+  "by_outcome": {
+   "killed": 10,
+   "knocked": 23,
+   "lowered": 17,
+   "nothing": 4
+  },
+  "presses": 54,
+  "read": true,
+  "refused": 0,
+  "rows": [
+   {
+    "aid": "a8",
+    "cut_by": "",
+    "d_collide_pred": 1.0870752966665398,
+    "d_min": 1.1937289251094934,
+    "d_press": 1.1937289251094934,
+    "head_aim": false,
+    "hp0": 1.5889999866485596,
+    "hp1": 0.5563963651657104,
+    "kind": "swing",
+    "knock": true,
+    "knock_p": null,
+    "look_off": 3.6531776264643845e-06,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 421,
+    "wallMs": 1794427655996
+   },
+   {
+    "aid": "a8",
+    "cut_by": "",
+    "d_collide_pred": 0.7838731596579442,
+    "d_min": 0.7838731596579442,
+    "d_press": 0.7838731596579442,
+    "head_aim": false,
+    "hp0": 0.5563963651657104,
+    "hp1": 0,
+    "kind": "floor",
+    "knock": true,
+    "knock_p": null,
+    "look_off": 3.4695947125840005e-06,
+    "mode": "strike",
+    "outcome": "killed",
+    "seq": 428,
+    "wallMs": 1794427656331
+   },
+   {
+    "aid": "a9",
+    "cut_by": "",
+    "d_collide_pred": 0.9826591917950181,
+    "d_min": 0.9826591917950181,
+    "d_press": 0.9826591917950181,
+    "head_aim": false,
+    "hp0": 0.9309999942779541,
+    "hp1": 0,
+    "kind": "floor",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 0.4630233939026427,
+    "mode": "finish",
+    "outcome": "killed",
+    "seq": 453,
+    "wallMs": 1794427657549
+   },
+   {
+    "aid": "a46",
+    "cut_by": "",
+    "d_collide_pred": 0.807489301131197,
+    "d_min": 1.2414702257940797,
+    "d_press": 1.2414702257940797,
+    "head_aim": false,
+    "hp0": 1.9830000400543213,
+    "hp1": 1.8082576990127563,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 2.8994987649543644e-06,
+    "mode": "strike",
+    "outcome": "lowered",
+    "seq": 1343,
+    "wallMs": 1794427712095
+   },
+   {
+    "aid": "a46",
+    "cut_by": "",
+    "d_collide_pred": 0.7047757586169391,
+    "d_min": 0.7047757586169391,
+    "d_press": 0.7047757586169391,
+    "head_aim": false,
+    "hp0": 1.8082576990127563,
+    "hp1": 1.6466230154037476,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 3.6530478725555994e-06,
+    "mode": "strike",
+    "outcome": "lowered",
+    "seq": 1352,
+    "wallMs": 1794427712846
+   },
+   {
+    "aid": "a46",
+    "cut_by": "",
+    "d_collide_pred": 0.7047757586169391,
+    "d_min": 0.7047757586169391,
+    "d_press": 0.7047757586169391,
+    "head_aim": false,
+    "hp0": 1.6466230154037476,
+    "hp1": 1.5231775045394897,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 3.6530478725555994e-06,
+    "mode": "strike",
+    "outcome": "lowered",
+    "seq": 1360,
+    "wallMs": 1794427713563
+   },
+   {
+    "aid": "a46",
+    "cut_by": "",
+    "d_collide_pred": 0.7047757586169391,
+    "d_min": 0.7047757586169391,
+    "d_press": 0.7047757586169391,
+    "head_aim": false,
+    "hp0": 1.5231775045394897,
+    "hp1": 0.7426401972770691,
+    "kind": "swing",
+    "knock": true,
+    "knock_p": null,
+    "look_off": 3.6530478725555994e-06,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 1367,
+    "wallMs": 1794427714213
+   },
+   {
+    "aid": "a46",
+    "cut_by": "",
+    "d_collide_pred": 0.8890548538079119,
+    "d_min": 1.2426361617272084,
+    "d_press": 1.2426361617272084,
+    "head_aim": false,
+    "hp0": 1.0989999771118164,
+    "hp1": 0.680984377861023,
+    "kind": "swing",
+    "knock": true,
+    "knock_p": null,
+    "look_off": 2.6767833304118603e-06,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 1384,
+    "wallMs": 1794427715367
+   },
+   {
+    "aid": "a46",
+    "cut_by": "",
+    "d_collide_pred": 0.9787928632020034,
+    "d_min": 0.9787928632020034,
+    "d_press": 0.9787928632020034,
+    "head_aim": false,
+    "hp0": 0.680984377861023,
+    "hp1": 0,
+    "kind": "floor",
+    "knock": true,
+    "knock_p": null,
+    "look_off": 2.9058532524024447e-06,
+    "mode": "strike",
+    "outcome": "killed",
+    "seq": 1398,
+    "wallMs": 1794427716349
+   },
+   {
+    "aid": "a47",
+    "cut_by": "",
+    "d_collide_pred": 0.20454963525680364,
+    "d_min": 0.20454963525680364,
+    "d_press": 0.20454963525680364,
+    "head_aim": false,
+    "hp0": 0.7426401972770691,
+    "hp1": 0,
+    "kind": "floor",
+    "knock": true,
+    "knock_p": null,
+    "look_off": 1.0707542671757163e-06,
+    "mode": "finish",
+    "outcome": "killed",
+    "seq": 1411,
+    "wallMs": 1794427717131
+   },
+   {
+    "aid": "a58",
+    "cut_by": "",
+    "d_collide_pred": 0.841774783099034,
+    "d_min": 0.841774783099034,
+    "d_press": 0.841774783099034,
+    "head_aim": false,
+    "hp0": 1.4299999475479126,
+    "hp1": 1.4299999475479126,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 1.6821014047185448e-06,
+    "mode": "strike",
+    "outcome": "nothing",
+    "seq": 1784,
+    "wallMs": 1794427737947
+   },
+   {
+    "aid": "a58",
+    "cut_by": "",
+    "d_collide_pred": 1.253580506906713,
+    "d_min": 1.1787659538216906,
+    "d_press": 1.1787659538216906,
+    "head_aim": false,
+    "hp0": 1.4299999475479126,
+    "hp1": 0.7910144329071045,
+    "kind": "swing",
+    "knock": true,
+    "knock_p": null,
+    "look_off": 1.8444176981129464e-05,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 1792,
+    "wallMs": 1794427738628
+   },
+   {
+    "aid": "a58",
+    "cut_by": "",
+    "d_collide_pred": 0.9923263813049069,
+    "d_min": 0.9923263813049069,
+    "d_press": 0.9923263813049069,
+    "head_aim": false,
+    "hp0": 0.7910144329071045,
+    "hp1": 0,
+    "kind": "floor",
+    "knock": true,
+    "knock_p": null,
+    "look_off": 2.1030062565022187e-05,
+    "mode": "strike",
+    "outcome": "killed",
+    "seq": 1806,
+    "wallMs": 1794427739681
+   },
+   {
+    "aid": "a64",
+    "cut_by": "",
+    "d_collide_pred": 0.9848641285398562,
+    "d_min": 0.9848641285398562,
+    "d_press": 0.9848641285398562,
+    "head_aim": false,
+    "hp0": 2.4709999561309814,
+    "hp1": 2.1518261432647705,
+    "kind": "floor",
+    "knock": true,
+    "knock_p": null,
+    "look_off": 0.3452540365416377,
+    "mode": "finish",
+    "outcome": "knocked",
+    "seq": 1869,
+    "wallMs": 1794427744429
+   },
+   {
+    "aid": "a64",
+    "cut_by": "",
+    "d_collide_pred": 0.0719548321085494,
+    "d_min": 0.0719548321085494,
+    "d_press": 0.0719548321085494,
+    "head_aim": false,
+    "hp0": 2.1518261432647705,
+    "hp1": 0,
+    "kind": "floor",
+    "knock": true,
+    "knock_p": null,
+    "look_off": 6.0530972340760894e-06,
+    "mode": "finish",
+    "outcome": "killed",
+    "seq": 1874,
+    "wallMs": 1794427744800
+   },
+   {
+    "aid": "a75",
+    "cut_by": "",
+    "d_collide_pred": 0.8470051226647444,
+    "d_min": 1.2274054285355491,
+    "d_press": 1.2274054285355491,
+    "head_aim": false,
+    "hp0": 2.753000020980835,
+    "hp1": 2.62835955619812,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 2.6218808531253665e-06,
+    "mode": "strike",
+    "outcome": "lowered",
+    "seq": 2333,
+    "wallMs": 1794427767212
+   },
+   {
+    "aid": "a75",
+    "cut_by": "",
+    "d_collide_pred": 0.8002589417123843,
+    "d_min": 0.8036397390243717,
+    "d_press": 0.8036397390243717,
+    "head_aim": false,
+    "hp0": 2.62835955619812,
+    "hp1": 2.4376237392425537,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 5.275453489395244e-06,
+    "mode": "strike",
+    "outcome": "lowered",
+    "seq": 2342,
+    "wallMs": 1794427767964
+   },
+   {
+    "aid": "a75",
+    "cut_by": "",
+    "d_collide_pred": 0.8027943683861999,
+    "d_min": 0.8027943683861999,
+    "d_press": 0.8027943683861999,
+    "head_aim": false,
+    "hp0": 2.4376237392425537,
+    "hp1": 2.3090059757232666,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 2.8215297092293366e-07,
+    "mode": "strike",
+    "outcome": "lowered",
+    "seq": 2351,
+    "wallMs": 1794427768746
+   },
+   {
+    "aid": "a75",
+    "cut_by": "",
+    "d_collide_pred": 0.8027943683861999,
+    "d_min": 0.8027943683861999,
+    "d_press": 0.8027943683861999,
+    "head_aim": false,
+    "hp0": 2.3090059757232666,
+    "hp1": 1.838581919670105,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 2.8215297092293366e-07,
+    "mode": "strike",
+    "outcome": "lowered",
+    "seq": 2359,
+    "wallMs": 1794427769478
+   },
+   {
+    "aid": "a75",
+    "cut_by": "",
+    "d_collide_pred": 0.8027943683861999,
+    "d_min": 0.8027943683861999,
+    "d_press": 0.8027943683861999,
+    "head_aim": false,
+    "hp0": 1.838581919670105,
+    "hp1": 1.214205026626587,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 2.8215297092293366e-07,
+    "mode": "strike",
+    "outcome": "lowered",
+    "seq": 2368,
+    "wallMs": 1794427770229
+   },
+   {
+    "aid": "a75",
+    "cut_by": "",
+    "d_collide_pred": 0.8027943683861999,
+    "d_min": 0.8027943683861999,
+    "d_press": 0.8027943683861999,
+    "head_aim": false,
+    "hp0": 1.214205026626587,
+    "hp1": 0.36305665969848633,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 2.8215297092293366e-07,
+    "mode": "strike",
+    "outcome": "lowered",
+    "seq": 2377,
+    "wallMs": 1794427770945
+   },
+   {
+    "aid": "a75",
+    "cut_by": "",
+    "d_collide_pred": 0.8027943683861999,
+    "d_min": 0.8027943683861999,
+    "d_press": 0.8027943683861999,
+    "head_aim": false,
+    "hp0": 0.36305665969848633,
+    "hp1": 0,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 2.8215297092293366e-07,
+    "mode": "strike",
+    "outcome": "killed",
+    "seq": 2380,
+    "wallMs": 1794427771213
+   },
+   {
+    "aid": "a78",
+    "cut_by": "",
+    "d_collide_pred": 0.8324044717868065,
+    "d_min": 1.2393286093351126,
+    "d_press": 1.2393286093351126,
+    "head_aim": false,
+    "hp0": 0.574999988079071,
+    "hp1": 0.19855386018753052,
+    "kind": "swing",
+    "knock": true,
+    "knock_p": null,
+    "look_off": 6.787425161987539e-06,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 2443,
+    "wallMs": 1794427776345
+   },
+   {
+    "aid": "a78",
+    "cut_by": "",
+    "d_collide_pred": 0.8900921214571983,
+    "d_min": 0.8900921214571983,
+    "d_press": 0.8900921214571983,
+    "head_aim": false,
+    "hp0": 0.19855386018753052,
+    "hp1": 0,
+    "kind": "floor",
+    "knock": true,
+    "knock_p": null,
+    "look_off": 1.287309491455637e-05,
+    "mode": "strike",
+    "outcome": "killed",
+    "seq": 2452,
+    "wallMs": 1794427777014
+   },
+   {
+    "aid": "a87",
+    "cut_by": "",
+    "d_collide_pred": 1.0552641372865907,
+    "d_min": 1.4497411562641158,
+    "d_press": 1.4497411562641158,
+    "head_aim": false,
+    "hp0": 1.5820000171661377,
+    "hp1": 1.3692020177841187,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 6.826180195336735e-06,
+    "mode": "strike",
+    "outcome": "lowered",
+    "seq": 2647,
+    "wallMs": 1794427790163
+   },
+   {
+    "aid": "a87",
+    "cut_by": "",
+    "d_collide_pred": 1.083440970917834,
+    "d_min": 1.083440970917834,
+    "d_press": 1.083440970917834,
+    "head_aim": false,
+    "hp0": 1.3692020177841187,
+    "hp1": 0.8920953273773193,
+    "kind": "swing",
+    "knock": true,
+    "knock_p": null,
+    "look_off": 14.99999378178854,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 2659,
+    "wallMs": 1794427791078
+   },
+   {
+    "aid": "a87",
+    "cut_by": "",
+    "d_collide_pred": 0.9703302108450572,
+    "d_min": 0.9703302108450572,
+    "d_press": 0.9703302108450572,
+    "head_aim": false,
+    "hp0": 0.8920953273773193,
+    "hp1": 0,
+    "kind": "floor",
+    "knock": true,
+    "knock_p": null,
+    "look_off": 5.650483093890693e-06,
+    "mode": "strike",
+    "outcome": "killed",
+    "seq": 2672,
+    "wallMs": 1794427791949
+   },
+   {
+    "aid": "a90",
+    "cut_by": "",
+    "d_collide_pred": 1.0278390698152524,
+    "d_min": 1.4322426897402734,
+    "d_press": 1.4322426897402734,
+    "head_aim": false,
+    "hp0": 3.484999895095825,
+    "hp1": 3.3007123470306396,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 7.424640030643522e-07,
+    "mode": "strike",
+    "outcome": "lowered",
+    "seq": 2725,
+    "wallMs": 1794427796178
+   },
+   {
+    "aid": "a90",
+    "cut_by": "",
+    "d_collide_pred": 1.1138438127537975,
+    "d_min": 1.0974829051569852,
+    "d_press": 1.0974829051569852,
+    "head_aim": false,
+    "hp0": 3.3007123470306396,
+    "hp1": 3.0956811904907227,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 1.263792327652046e-06,
+    "mode": "strike",
+    "outcome": "lowered",
+    "seq": 2734,
+    "wallMs": 1794427796929
+   },
+   {
+    "aid": "a90",
+    "cut_by": "",
+    "d_collide_pred": 1.1006864486601804,
+    "d_min": 1.1006864486601804,
+    "d_press": 1.1006864486601804,
+    "head_aim": false,
+    "hp0": 3.0956811904907227,
+    "hp1": 2.8728368282318115,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 1.60686438121769e-05,
+    "mode": "strike",
+    "outcome": "lowered",
+    "seq": 2743,
+    "wallMs": 1794427797678
+   },
+   {
+    "aid": "a90",
+    "cut_by": "",
+    "d_collide_pred": 1.1006864486601804,
+    "d_min": 1.1006864486601804,
+    "d_press": 1.1006864486601804,
+    "head_aim": false,
+    "hp0": 2.8728368282318115,
+    "hp1": 1.4826654195785522,
+    "kind": "swing",
+    "knock": true,
+    "knock_p": null,
+    "look_off": 1.60686438121769e-05,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 2751,
+    "wallMs": 1794427798377
+   },
+   {
+    "aid": "a90",
+    "cut_by": "",
+    "d_collide_pred": 0.9782782778826538,
+    "d_min": 0.9782782778826538,
+    "d_press": 0.9782782778826538,
+    "head_aim": false,
+    "hp0": 1.4826654195785522,
+    "hp1": 0,
+    "kind": "floor",
+    "knock": true,
+    "knock_p": null,
+    "look_off": 0.10009366778230715,
+    "mode": "strike",
+    "outcome": "killed",
+    "seq": 2763,
+    "wallMs": 1794427799214
+   },
+   {
+    "aid": "a114",
+    "cut_by": "",
+    "d_collide_pred": 1.058318890350527,
+    "d_min": 1.442444962058135,
+    "d_press": 1.442444962058135,
+    "head_aim": false,
+    "hp0": 0.6370000243186951,
+    "hp1": 0.4228602945804596,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 14.999994226155055,
+    "mode": "strike",
+    "outcome": "lowered",
+    "seq": 3287,
+    "wallMs": 1794427826444
+   },
+   {
+    "aid": "a114",
+    "cut_by": "",
+    "d_collide_pred": 0.9012942073493772,
+    "d_min": 1.2436840710825843,
+    "d_press": 1.2436840710825843,
+    "head_aim": false,
+    "hp0": 3.1080000400543213,
+    "hp1": 2.9437851905822754,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 14.999999755741372,
+    "mode": "strike",
+    "outcome": "lowered",
+    "seq": 3318,
+    "wallMs": 1794427828828
+   },
+   {
+    "aid": "a114",
+    "cut_by": "",
+    "d_collide_pred": 0.515538063812225,
+    "d_min": 0.515538063812225,
+    "d_press": 0.515538063812225,
+    "head_aim": false,
+    "hp0": 0.4228602945804596,
+    "hp1": 0.4228602945804596,
+    "kind": "shove",
+    "knock": true,
+    "knock_p": 0.43,
+    "look_off": 7.300397094399546e-06,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 3329,
+    "wallMs": 1794427829510
+   },
+   {
+    "aid": "a114",
+    "cut_by": "superseded",
+    "d_collide_pred": 0.5867221524191049,
+    "d_min": 0.6546706313552503,
+    "d_press": 0.6546706313552503,
+    "head_aim": false,
+    "hp0": 3.1070001125335693,
+    "hp1": 3.0039002895355225,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 6.187932327390397,
+    "mode": "strike",
+    "outcome": "lowered",
+    "seq": 3342,
+    "wallMs": 1794427830318
+   },
+   {
+    "aid": "a117",
+    "cut_by": "",
+    "d_collide_pred": 0.6319589391962726,
+    "d_min": 0.6319589391962726,
+    "d_press": 0.6319589391962726,
+    "head_aim": false,
+    "hp0": 2.9437851905822754,
+    "hp1": 2.9437851905822754,
+    "kind": "shove",
+    "knock": false,
+    "knock_p": 0.43,
+    "look_off": 4.034541730212018e-06,
+    "mode": "finish",
+    "outcome": "nothing",
+    "seq": 3373,
+    "wallMs": 1794427832178
+   },
+   {
+    "aid": "a117",
+    "cut_by": "",
+    "d_collide_pred": 0.518415816798104,
+    "d_min": 0.518415816798104,
+    "d_press": 0.518415816798104,
+    "head_aim": false,
+    "hp0": 3.0039002895355225,
+    "hp1": 3.0039002895355225,
+    "kind": "shove",
+    "knock": true,
+    "knock_p": 0.43,
+    "look_off": 1.4472365645626777,
+    "mode": "finish",
+    "outcome": "knocked",
+    "seq": 3382,
+    "wallMs": 1794427832879
+   },
+   {
+    "aid": "a117",
+    "cut_by": "",
+    "d_collide_pred": 0.677993944574282,
+    "d_min": 0.677993944574282,
+    "d_press": 0.677993944574282,
+    "head_aim": false,
+    "hp0": 2.9437851905822754,
+    "hp1": 2.9437851905822754,
+    "kind": "shove",
+    "knock": true,
+    "knock_p": 0.43,
+    "look_off": 15.066672780850881,
+    "mode": "finish",
+    "outcome": "knocked",
+    "seq": 3398,
+    "wallMs": 1794427834062
+   },
+   {
+    "aid": "a117",
+    "cut_by": "",
+    "d_collide_pred": 0.633801100136069,
+    "d_min": 0.633801100136069,
+    "d_press": 0.633801100136069,
+    "head_aim": false,
+    "hp0": 3.1419999599456787,
+    "hp1": 3.1419999599456787,
+    "kind": "shove",
+    "knock": true,
+    "knock_p": 0.43,
+    "look_off": 1.1053270797631746e-05,
+    "mode": "finish",
+    "outcome": "knocked",
+    "seq": 3407,
+    "wallMs": 1794427834762
+   },
+   {
+    "aid": "a119",
+    "cut_by": "",
+    "d_collide_pred": 0.8963168118525239,
+    "d_min": 0.8963168118525239,
+    "d_press": 0.8963168118525239,
+    "head_aim": false,
+    "hp0": 0.4228602945804596,
+    "hp1": 0.4228602945804596,
+    "kind": "shove",
+    "knock": true,
+    "knock_p": 0.43,
+    "look_off": 14.999988817371879,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 3470,
+    "wallMs": 1794427839227
+   },
+   {
+    "aid": "a119",
+    "cut_by": "",
+    "d_collide_pred": 0.8903722571754222,
+    "d_min": 0.8903722571754222,
+    "d_press": 0.8903722571754222,
+    "head_aim": false,
+    "hp0": 3.1419999599456787,
+    "hp1": 3.1419999599456787,
+    "kind": "shove",
+    "knock": true,
+    "knock_p": 0.43,
+    "look_off": 14.999979040327476,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 3507,
+    "wallMs": 1794427842178
+   },
+   {
+    "aid": "a119",
+    "cut_by": "",
+    "d_collide_pred": 0.5666520210318261,
+    "d_min": 0.5666520210318261,
+    "d_press": 0.5666520210318261,
+    "head_aim": false,
+    "hp0": 3.0039002895355225,
+    "hp1": 3.0039002895355225,
+    "kind": "shove",
+    "knock": true,
+    "knock_p": 0.43,
+    "look_off": 1.0621310201011452e-05,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 3533,
+    "wallMs": 1794427844327
+   },
+   {
+    "aid": "a120",
+    "cut_by": "",
+    "d_collide_pred": 0.8872402187054398,
+    "d_min": 0.8872402187054398,
+    "d_press": 0.8872402187054398,
+    "head_aim": false,
+    "hp0": 2.9437851905822754,
+    "hp1": 2.9437851905822754,
+    "kind": "shove",
+    "knock": false,
+    "knock_p": 0.43,
+    "look_off": 15.000000349952419,
+    "mode": "strike",
+    "outcome": "nothing",
+    "seq": 3552,
+    "wallMs": 1794427845711
+   },
+   {
+    "aid": "a120",
+    "cut_by": "",
+    "d_collide_pred": 1.321529449999577,
+    "d_min": 1.2264458667675995,
+    "d_press": 1.2264458667675995,
+    "head_aim": false,
+    "hp0": 2.9437851905822754,
+    "hp1": 2.8917458057403564,
+    "kind": "swing",
+    "knock": true,
+    "knock_p": null,
+    "look_off": 2.2089886073618603e-07,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 3563,
+    "wallMs": 1794427846644
+   },
+   {
+    "aid": "a120",
+    "cut_by": "",
+    "d_collide_pred": 0.8926149857336856,
+    "d_min": 0.8926149857336856,
+    "d_press": 0.8926149857336856,
+    "head_aim": false,
+    "hp0": 0.4228602945804596,
+    "hp1": 0.4228602945804596,
+    "kind": "shove",
+    "knock": true,
+    "knock_p": 0.43,
+    "look_off": 14.999989910189361,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 3580,
+    "wallMs": 1794427847780
+   },
+   {
+    "aid": "a120",
+    "cut_by": "",
+    "d_collide_pred": 0.8937419757616184,
+    "d_min": 0.8937419757616184,
+    "d_press": 0.8937419757616184,
+    "head_aim": false,
+    "hp0": 3.1419999599456787,
+    "hp1": 3.1419999599456787,
+    "kind": "shove",
+    "knock": true,
+    "knock_p": 0.43,
+    "look_off": 14.999987834308456,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 3610,
+    "wallMs": 1794427850079
+   },
+   {
+    "aid": "a120",
+    "cut_by": "",
+    "d_collide_pred": 0.8911928742279681,
+    "d_min": 0.8911928742279681,
+    "d_press": 0.8911928742279681,
+    "head_aim": false,
+    "hp0": 3.0039002895355225,
+    "hp1": 3.0039002895355225,
+    "kind": "shove",
+    "knock": false,
+    "knock_p": 0.43,
+    "look_off": 14.999995349923037,
+    "mode": "strike",
+    "outcome": "nothing",
+    "seq": 3631,
+    "wallMs": 1794427851595
+   },
+   {
+    "aid": "a120",
+    "cut_by": "",
+    "d_collide_pred": 1.469565671090832,
+    "d_min": 1.4493510142221442,
+    "d_press": 1.4493510142221442,
+    "head_aim": false,
+    "hp0": 3.0039002895355225,
+    "hp1": 2.988114595413208,
+    "kind": "swing",
+    "knock": false,
+    "knock_p": null,
+    "look_off": 5.237422752631717e-06,
+    "mode": "strike",
+    "outcome": "lowered",
+    "seq": 3647,
+    "wallMs": 1794427852729
+   },
+   {
+    "aid": "a120",
+    "cut_by": "",
+    "d_collide_pred": 0.8781382278043404,
+    "d_min": 0.8781382278043404,
+    "d_press": 0.8781382278043404,
+    "head_aim": false,
+    "hp0": 2.988114595413208,
+    "hp1": 2.988114595413208,
+    "kind": "shove",
+    "knock": true,
+    "knock_p": 0.43,
+    "look_off": 1.0080685139476962e-05,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 3664,
+    "wallMs": 1794427854127
+   },
+   {
+    "aid": "a120",
+    "cut_by": "",
+    "d_collide_pred": 0.4274410827370549,
+    "d_min": 0.4274410827370549,
+    "d_press": 0.4274410827370549,
+    "head_aim": false,
+    "hp0": 2.8917458057403564,
+    "hp1": 2.8917458057403564,
+    "kind": "shove",
+    "knock": true,
+    "knock_p": 0.43,
+    "look_off": 1.6802567593366083e-06,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 3674,
+    "wallMs": 1794427854829
+   },
+   {
+    "aid": "a120",
+    "cut_by": "",
+    "d_collide_pred": 0.8706524334026977,
+    "d_min": 0.8706524334026977,
+    "d_press": 0.8706524334026977,
+    "head_aim": false,
+    "hp0": 3.1419999599456787,
+    "hp1": 3.1419999599456787,
+    "kind": "shove",
+    "knock": true,
+    "knock_p": 0.43,
+    "look_off": 15.07495673653818,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 3707,
+    "wallMs": 1794427857278
+   },
+   {
+    "aid": "a120",
+    "cut_by": "",
+    "d_collide_pred": 0.6486316068661635,
+    "d_min": 0.6486316068661635,
+    "d_press": 0.6486316068661635,
+    "head_aim": false,
+    "hp0": 0.4228602945804596,
+    "hp1": 0.4228602945804596,
+    "kind": "shove",
+    "knock": true,
+    "knock_p": 0.43,
+    "look_off": 2.7460935073082206e-06,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 3716,
+    "wallMs": 1794427857977
+   },
+   {
+    "aid": "a122",
+    "cut_by": "",
+    "d_collide_pred": 0.8920993313757251,
+    "d_min": 0.8920993313757251,
+    "d_press": 0.8920993313757251,
+    "head_aim": false,
+    "hp0": 2.988114595413208,
+    "hp1": 2.988114595413208,
+    "kind": "shove",
+    "knock": true,
+    "knock_p": 0.42,
+    "look_off": 14.99999751579158,
+    "mode": "strike",
+    "outcome": "knocked",
+    "seq": 3761,
+    "wallMs": 1794427861210
+   }
+  ],
+  "shoves": {
+   "knock_p_n": 17,
+   "knock_p_sum": 7.3,
+   "knocked": 14,
+   "n": 17
+  },
+  "table": {
+   "floor": {
+    "killed": {
+     "d_collide_pred": {
+      "max": 0.9923263813049069,
+      "median": 0.9703302108450572,
+      "min": 0.0719548321085494,
+      "n": 9
+     },
+     "d_min": {
+      "max": 0.9923263813049069,
+      "median": 0.9703302108450572,
+      "min": 0.0719548321085494,
+      "n": 9
+     },
+     "d_press": {
+      "max": 0.9923263813049069,
+      "median": 0.9703302108450572,
+      "min": 0.0719548321085494,
+      "n": 9
+     },
+     "knock_p": {
+      "n": 0
+     },
+     "look_off": {
+      "max": 0.4630233939026427,
+      "median": 6.0530972340760894e-06,
+      "min": 1.0707542671757163e-06,
+      "n": 9
+     },
+     "n": 9
+    },
+    "knocked": {
+     "d_collide_pred": {
+      "max": 0.9848641285398562,
+      "median": 0.9848641285398562,
+      "min": 0.9848641285398562,
+      "n": 1
+     },
+     "d_min": {
+      "max": 0.9848641285398562,
+      "median": 0.9848641285398562,
+      "min": 0.9848641285398562,
+      "n": 1
+     },
+     "d_press": {
+      "max": 0.9848641285398562,
+      "median": 0.9848641285398562,
+      "min": 0.9848641285398562,
+      "n": 1
+     },
+     "knock_p": {
+      "n": 0
+     },
+     "look_off": {
+      "max": 0.3452540365416377,
+      "median": 0.3452540365416377,
+      "min": 0.3452540365416377,
+      "n": 1
+     },
+     "n": 1
+    }
+   },
+   "shove": {
+    "knocked": {
+     "d_collide_pred": {
+      "max": 0.8963168118525239,
+      "median": 0.7743231889884898,
+      "min": 0.4274410827370549,
+      "n": 14
+     },
+     "d_min": {
+      "max": 0.8963168118525239,
+      "median": 0.7743231889884898,
+      "min": 0.4274410827370549,
+      "n": 14
+     },
+     "d_press": {
+      "max": 0.8963168118525239,
+      "median": 0.7743231889884898,
+      "min": 0.4274410827370549,
+      "n": 14
+     },
+     "knock_p": {
+      "max": 0.43,
+      "median": 0.43,
+      "min": 0.42,
+      "n": 14
+     },
+     "look_off": {
+      "max": 15.07495673653818,
+      "median": 8.223607802445077,
+      "min": 1.6802567593366083e-06,
+      "n": 14
+     },
+     "n": 14
+    },
+    "nothing": {
+     "d_collide_pred": {
+      "max": 0.8911928742279681,
+      "median": 0.8872402187054398,
+      "min": 0.6319589391962726,
+      "n": 3
+     },
+     "d_min": {
+      "max": 0.8911928742279681,
+      "median": 0.8872402187054398,
+      "min": 0.6319589391962726,
+      "n": 3
+     },
+     "d_press": {
+      "max": 0.8911928742279681,
+      "median": 0.8872402187054398,
+      "min": 0.6319589391962726,
+      "n": 3
+     },
+     "knock_p": {
+      "max": 0.43,
+      "median": 0.43,
+      "min": 0.43,
+      "n": 3
+     },
+     "look_off": {
+      "max": 15.000000349952419,
+      "median": 14.999995349923037,
+      "min": 4.034541730212018e-06,
+      "n": 3
+     },
+     "n": 3
+    }
+   },
+   "swing": {
+    "killed": {
+     "d_collide_pred": {
+      "max": 0.8027943683861999,
+      "median": 0.8027943683861999,
+      "min": 0.8027943683861999,
+      "n": 1
+     },
+     "d_min": {
+      "max": 0.8027943683861999,
+      "median": 0.8027943683861999,
+      "min": 0.8027943683861999,
+      "n": 1
+     },
+     "d_press": {
+      "max": 0.8027943683861999,
+      "median": 0.8027943683861999,
+      "min": 0.8027943683861999,
+      "n": 1
+     },
+     "knock_p": {
+      "n": 0
+     },
+     "look_off": {
+      "max": 2.8215297092293366e-07,
+      "median": 2.8215297092293366e-07,
+      "min": 2.8215297092293366e-07,
+      "n": 1
+     },
+     "n": 1
+    },
+    "knocked": {
+     "d_collide_pred": {
+      "max": 1.321529449999577,
+      "median": 1.085258133792187,
+      "min": 0.7047757586169391,
+      "n": 8
+     },
+     "d_min": {
+      "max": 1.2426361617272084,
+      "median": 1.186247439465592,
+      "min": 0.7047757586169391,
+      "n": 8
+     },
+     "d_press": {
+      "max": 1.2426361617272084,
+      "median": 1.186247439465592,
+      "min": 0.7047757586169391,
+      "n": 8
+     },
+     "knock_p": {
+      "n": 0
+     },
+     "look_off": {
+      "max": 14.99999378178854,
+      "median": 5.220301394225962e-06,
+      "min": 2.2089886073618603e-07,
+      "n": 8
+     },
+     "n": 8
+    },
+    "lowered": {
+     "d_collide_pred": {
+      "max": 1.469565671090832,
+      "median": 0.807489301131197,
+      "min": 0.5867221524191049,
+      "n": 17
+     },
+     "d_min": {
+      "max": 1.4497411562641158,
+      "median": 1.0974829051569852,
+      "min": 0.6546706313552503,
+      "n": 17
+     },
+     "d_press": {
+      "max": 1.4497411562641158,
+      "median": 1.0974829051569852,
+      "min": 0.6546706313552503,
+      "n": 17
+     },
+     "knock_p": {
+      "n": 0
+     },
+     "look_off": {
+      "max": 14.999999755741372,
+      "median": 3.6530478725555994e-06,
+      "min": 2.8215297092293366e-07,
+      "n": 17
+     },
+     "n": 17
+    },
+    "nothing": {
+     "d_collide_pred": {
+      "max": 0.841774783099034,
+      "median": 0.841774783099034,
+      "min": 0.841774783099034,
+      "n": 1
+     },
+     "d_min": {
+      "max": 0.841774783099034,
+      "median": 0.841774783099034,
+      "min": 0.841774783099034,
+      "n": 1
+     },
+     "d_press": {
+      "max": 0.841774783099034,
+      "median": 0.841774783099034,
+      "min": 0.841774783099034,
+      "n": 1
+     },
+     "knock_p": {
+      "n": 0
+     },
+     "look_off": {
+      "max": 1.6821014047185448e-06,
+      "median": 1.6821014047185448e-06,
+      "min": 1.6821014047185448e-06,
+      "n": 1
+     },
+     "n": 1
+    }
+   }
+  }
+ },
+ "meet_refusals": {
+  "by_count": {},
+  "ended": 0,
+  "open": 0,
+  "read": true,
+  "refused": 0,
+  "rows": [],
+  "runs": 0,
+  "waits": 0
+ },
+ "melee": {
+  "accepted": 20,
+  "by_fight": [
+   3,
+   0,
+   0,
+   0,
+   2,
+   2,
+   2,
+   2,
+   0,
+   8,
+   1,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0,
+   0
+  ],
+  "by_mode": {
+   "finish": 6,
+   "strike": 15
+  },
+  "ends": {
+   "done kill": 10,
+   "done lost": 2,
+   "failed superseded": 8,
+   "rejected too far": 1
+  },
+  "floors": 10,
+  "frame_steps": {
+   "close": 9,
+   "face": 58,
+   "floor": 40,
+   "hit": 43,
+   "knock_wait": 49,
+   "pile": 5,
+   "repin": 5,
+   "shove": 117,
+   "stomp_walk": 48,
+   "swing": 196,
+   "work": 55
+  },
+  "hits": 6,
+  "kills": 8,
+  "knockdowns": 22,
+  "lines": 133,
+  "mean_span_s": 3.10745,
+  "outside_fights": 0,
+  "planner_ends": {
+   "kill": 15,
+   "lost": 28,
+   "superseded": 20,
+   "too far": 1
+  },
+  "read": true,
+  "replaced": {
+   "aim": 14,
+   "attack": 7
+  },
+  "resends": {
+   "inputs": 5
+  },
+  "sent": 21,
+  "shoves": 17,
+  "step_ticks": {
+   "face": 185,
+   "floor": 241,
+   "hit": 87,
+   "knock_wait": 132,
+   "repin": 4,
+   "shove": 124,
+   "stomp_walk": 189,
+   "swing": 930,
+   "work": 61
+  },
+  "steps": {
+   "close": 3,
+   "face": 18,
+   "floor": 9,
+   "hit": 6,
+   "knock_wait": 13,
+   "pile": 1,
+   "repin": 18,
+   "shove": 17,
+   "stomp_walk": 11,
+   "swing": 14,
+   "work": 15
+  },
+  "stomps": 0,
+  "swings": 27
+ },
+ "melee_cost": {
+  "inside": {
+   "actMs_max": 2,
+   "actMs_mean": 0.1664,
+   "frames": 625,
+   "maxActMs_max": 4,
+   "maxActMs_mean": 0.6624
+  },
+  "outside": {
+   "actMs_max": 10,
+   "actMs_mean": 0.07586882036221243,
+   "frames": 2043,
+   "maxActMs_max": 10,
+   "maxActMs_mean": 0.3054331864904552
+  },
+  "read": true
+ },
+ "melee_strike": {
+  "by_frame_step": {
+   "hit": 3
+  },
+  "by_press": {
+   "shove": 2,
+   "swing": 1
+  },
+  "by_step_before": {
+   "repin": 1,
+   "shove": 1,
+   "swing": 1
+  },
+  "read": true,
+  "rows": [
+   {
+    "aid": "a114",
+    "frame_aid": "a114",
+    "frame_step": "hit",
+    "kind": "BiteRIGHT",
+    "press": {
+     "aid": "a114",
+     "before_s": 0.571,
+     "d": 0.6546706313552503,
+     "step": "swing"
+    },
+    "prev_step": "swing",
+    "seq": 3340,
+    "step_before": "swing",
+    "step_before_aid": "a114",
+    "step_before_s": 0.571,
+    "strike_before": {
+     "aid": null,
+     "attackStarted": null,
+     "before_s": null,
+     "kind": "BiteRIGHT",
+     "knockdown": null,
+     "nearest": null,
+     "seq": 3340,
+     "target": null,
+     "type": null
+    }
+   },
+   {
+    "aid": "a119",
+    "frame_aid": "a119",
+    "frame_step": "hit",
+    "kind": "BiteRIGHT",
+    "press": {
+     "aid": "a119",
+     "before_s": 0.721,
+     "d": 0.5666520210318261,
+     "step": "shove"
+    },
+    "prev_step": "shove",
+    "seq": 3517,
+    "step_before": "shove",
+    "step_before_aid": "a119",
+    "step_before_s": 0.721,
+    "strike_before": {
+     "aid": null,
+     "attackStarted": null,
+     "before_s": null,
+     "kind": "BiteRIGHT",
+     "knockdown": null,
+     "nearest": null,
+     "seq": 3517,
+     "target": null,
+     "type": null
+    }
+   },
+   {
+    "aid": "a120",
+    "frame_aid": "a120",
+    "frame_step": "hit",
+    "kind": "Bite",
+    "press": {
+     "aid": "a120",
+     "before_s": 0.769,
+     "d": 0.4274410827370549,
+     "step": "shove"
+    },
+    "prev_step": "shove",
+    "seq": 3676,
+    "step_before": "repin",
+    "step_before_aid": "a120",
+    "step_before_s": 0.085,
+    "strike_before": {
+     "aid": null,
+     "attackStarted": null,
+     "before_s": null,
+     "kind": "Bite",
+     "knockdown": null,
+     "nearest": null,
+     "seq": 3676,
+     "target": null,
+     "type": null
+    }
+   }
+  ],
+  "runs": 3
+ },
+ "melees_superseded": {
+  "aids": [
+   "a6",
+   "a110",
+   "a115",
+   "a116"
+  ],
+  "no_swing_step": 6,
+  "read": true,
+  "sent": 21,
+  "spans": 20,
+  "superseded": 8,
+  "superseded_before": 4
+ },
+ "minutes_alive_source": "death event",
+ "minutes_source": "loop.first_world_age",
+ "needs": {
+  "drink": {
+   "done": 0,
+   "sent": 0,
+   "stat_fell": null
+  },
+  "eat": {
+   "done": 0,
+   "sent": 0,
+   "stat_fell": null
+  },
+  "sleep": {
+   "done": 0,
+   "fatigue_fell": null,
+   "sent": 0,
+   "sleptH": 0
+  },
+  "time_base": "t_loop0_ms",
+  "unknown": 0
+ },
+ "objects": {
+  "answers": 9,
+  "multi": 0,
+  "multi_calls": [],
+  "per_answer": {
+   "1": 9
+  },
+  "read": true,
+  "skipped_by_why": {},
+  "skipped_invalid": 0,
+  "taken_after_skip": 0
+ },
+ "open_views": {
+  "all_looted": 8,
+  "all_looted_no_open": 0,
+  "n": 8,
+  "other": {},
+  "read": true,
+  "refused": {},
+  "stand_in": 0,
+  "taken": {
+   "ExploreToward": 8
+  }
+ },
+ "pain_swings": {
+  "at_or_above": {
+   "killed": 0,
+   "knockdowns": 1,
+   "lowered": 2,
+   "swings": 2
+  },
+  "read": true,
+  "rows": [
+   {
+    "aid": "a8",
+    "hp0": 1.5889999866485596,
+    "hp1": 0.5563963651657104,
+    "killed": false,
+    "knockdown": true,
+    "lowered": true,
+    "pain": 0,
+    "target": 20369
+   },
+   {
+    "aid": "a46",
+    "hp0": 1.9830000400543213,
+    "hp1": 0.7426401972770691,
+    "killed": false,
+    "knockdown": true,
+    "lowered": true,
+    "pain": 0,
+    "target": 20377
+   },
+   {
+    "aid": "a46",
+    "hp0": 1.0989999771118164,
+    "hp1": 0.680984377861023,
+    "killed": false,
+    "knockdown": true,
+    "lowered": true,
+    "pain": 0,
+    "target": 20377
+   },
+   {
+    "aid": "a58",
+    "hp0": 1.4299999475479126,
+    "hp1": 0.7910144329071045,
+    "killed": false,
+    "knockdown": true,
+    "lowered": true,
+    "pain": 0.8,
+    "target": 20420
+   },
+   {
+    "aid": "a75",
+    "hp0": 2.753000020980835,
+    "hp1": 0,
+    "killed": true,
+    "knockdown": false,
+    "lowered": true,
+    "pain": 0,
+    "target": 20409
+   },
+   {
+    "aid": "a78",
+    "hp0": 0.574999988079071,
+    "hp1": 0.19855386018753052,
+    "killed": false,
+    "knockdown": true,
+    "lowered": true,
+    "pain": 3.6,
+    "target": 20363
+   },
+   {
+    "aid": "a87",
+    "hp0": 1.5820000171661377,
+    "hp1": 1.3692020177841187,
+    "killed": false,
+    "knockdown": false,
+    "lowered": true,
+    "pain": 2.7,
+    "target": 20411
+   },
+   {
+    "aid": "a87",
+    "hp0": 1.3692020177841187,
+    "hp1": 0.8920953273773193,
+    "killed": false,
+    "knockdown": true,
+    "lowered": true,
+    "pain": 2.7,
+    "target": 20411
+   },
+   {
+    "aid": "a90",
+    "hp0": 3.484999895095825,
+    "hp1": 1.4826654195785522,
+    "killed": false,
+    "knockdown": true,
+    "lowered": true,
+    "pain": 3.8,
+    "target": 20380
+   },
+   {
+    "aid": "a114",
+    "hp0": 0.6370000243186951,
+    "hp1": 0.4228602945804596,
+    "killed": false,
+    "knockdown": false,
+    "lowered": true,
+    "pain": 2.8,
+    "target": 20416
+   },
+   {
+    "aid": "a114",
+    "hp0": 3.1080000400543213,
+    "hp1": 0.4228602945804596,
+    "killed": false,
+    "knockdown": false,
+    "lowered": true,
+    "pain": 2.8,
+    "target": 20416
+   },
+   {
+    "aid": "a114",
+    "hp0": 3.1070001125335693,
+    "hp1": 3.0039002895355225,
+    "killed": false,
+    "knockdown": false,
+    "lowered": true,
+    "pain": 2.8,
+    "target": 20416
+   },
+   {
+    "aid": "a120",
+    "hp0": 2.9437851905822754,
+    "hp1": 2.8917458057403564,
+    "killed": false,
+    "knockdown": true,
+    "lowered": true,
+    "pain": 105.3,
+    "target": 20414
+   },
+   {
+    "aid": "a120",
+    "hp0": 3.0039002895355225,
+    "hp1": 2.988114595413208,
+    "killed": false,
+    "knockdown": false,
+    "lowered": true,
+    "pain": 105.3,
+    "target": 20414
+   }
+  ],
+  "under": {
+   "killed": 1,
+   "knockdowns": 7,
+   "lowered": 12,
+   "swings": 12
+  },
+  "unread": {
+   "killed": 0,
+   "knockdowns": 0,
+   "lowered": 0,
+   "swings": 0
+  }
+ },
+ "pull": {
+  "beyond_fights": 9,
+  "beyond_lines": 154,
+  "fights": 11,
+  "pull_fights": 3,
+  "pull_fights_swung": 0,
+  "pull_kills": 0,
+  "pull_lines": 39,
+  "pull_sent": 11,
+  "read": true
+ },
+ "pza16": {
+  "clothing_looted": {
+   "done": 2,
+   "failed": 0,
+   "sent": 2
+  },
+  "doors": {
+   "locked": 15,
+   "read": true,
+   "seen": 26
+  },
+  "wear": {
+   "done": 2,
+   "failed": 0,
+   "reasons": {},
+   "replaced": 0,
+   "sent": 2
+  },
+  "window": {
+   "cut": 0,
+   "done": 0,
+   "failed": 0,
+   "opened": 0,
+   "reasons": {},
+   "sent": 0,
+   "smashed": 0
+  },
+  "worn": {
+   "last": [],
+   "max_locs": 7,
+   "read": true
+  }
+ },
+ "rags": {
+  "dressings": [],
+  "dressings_max": null,
+  "dressings_min": null,
+  "read": true,
+  "rips": {
+   "by_branch": {
+    "care": 7
+   },
+   "done": 0,
+   "failed": 7,
+   "sent": 7
+  },
+  "stock_lines": 0,
+  "stock_sent": 0,
+  "want_lines": 0
+ },
+ "reasks": {
+  "agree": true,
+  "cycles": 9,
+  "n": 0,
+  "read": true,
+  "reasks_total": 0,
+  "stand_in": 0,
+  "taken": 0,
+  "unpaired": 0
+ },
+ "refusals": {
+  "by_why": {
+   "done": 0,
+   "failed": 0,
+   "in the woods": 0,
+   "looted already": 0,
+   "out of range": 0,
+   "refused": 0,
+   "stuck": 0,
+   "superseded by an instinct": 0,
+   "superseded by the threat": 0
+  },
+  "carried": 0,
+  "invalid_other": 0,
+  "not_carried": 0,
+  "read": true,
+  "unchecked": 0
+ },
+ "report_lines": [
+  "kills 10 (engine 10, planner 0); died at 630; 69.8 game minutes",
+  "kills sources: planner 0 (act lines), zombie_dead events 10, engine 10; disagree",
+  "not survived (stop death), 70 game min (loop.first_world_age)",
+  "drink: sent 0, done 0, stat fell None",
+  "eat: sent 0, done 0, stat fell None",
+  "unknown consumes (no valid use): 0; frame time base t_loop0_ms",
+  "sleep: sent 0, done 0, slept 0.0 h, fatigue fell None",
+  "fights: 19 (ended 18, fled 11, stand-offs 0)",
+  "fights_resolved: unresolved 1",
+  "load: max ratio 0.777, guard drops 0, flee drops 0",
+  "cost p50 0.000 ms, p99 2.000 ms, max 6.000 ms, over5 705",
+  "death (signal event) explained by the frames: first wound seq 3340, window 741 frames: None",
+  "wounds: 155 real over 2668 kept frames (the old reading counted 155), first seq 3340",
+  "care: bandage sent 0 done 0 (parts {}, dirty 0), rip done 0 (0 rags), wash done 0 (0 water)",
+  "fill: sent 0 done 0, tainted 0, fills []",
+  "stance: aim sent 47 done 19 failed 28 (held 19, released 0, target dead 0), 1064 of 2668 kept frames aiming; standing fights 8 {'kill': 0, 'flee': 1, 'fallback': 5, 'stagger_inferred': 0, 'none': 2}",
+  "climb: sent 0 done 0 fell 0 failed 0 wounds 0; need chain: drinks 0 (stat fell None), fills 0, containers looted 1",
+  "kills: per fight [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; standing fights 8 with 0 kills (0.00 per fight); planner ids []",
+  "stance held: 2295 of 2298 ticks over 19 aim legs (19 with the field), ratio 1.00; kept frames: 1064 aiming, 731 forceAim of 2668",
+  "bandages: riding sent 0 done 0 (walking 0) failed 0 (stopped 0) rejected 0, parts {}; standing sent 0 done 0 failed 0",
+  "care yield: 19 care actions, 9 fights ended by the care; decision log: 33 yields (0 riding), 15 dead skips of 6 ids",
+  "glides (an inference, never a trip): 1 over 2.54 tiles in the kept frames: [(4840, '1.903')]",
+  "frames: state_logs (2668 frames, files ['state.log'])",
+  "engage: 11 fights, 2 sought (92 sought lines); 42 seek lines (legs {'walkTo': {}, 'aim': 13, 'other': 5}, n/a walk share); 1 flee turns to fight; flees {'held': 5, 'held_inside': 2, 'many': 46, 'leave': 6}; many by listed count 0 lines (max None)",
+  "destinations: 18 walks, by kind {'building': 0, 'cluster': 18, 'other': 0}, farthest 31.41 tiles from a known building; ok",
+  "doors: 0 marked stuck [], 0 tried while marked, loots routed around to buildings []",
+  "loot: 6 sent, 6 done, 0 failed; by kind {'container': {'done': 1, 'failed': 0}, 'clothing': {'done': 2, 'failed': 0}, 'food': {'done': 3, 'failed': 0}}; failures {}",
+  "minutes: 69.8 alive (death event), log end 70.7",
+  "rags: rips {'sent': 7, 'done': 0, 'failed': 7, 'by_branch': {'care': 7}}; stock lines 0 (sent 0), dressings held min None max None, bandage wants 0",
+  "legs: goal walks {'sent': 18, 'failed': 0}; leg lines 0 (sent 0), lengths [], 0 halvings, goal failed no square 0, legs per target n/a",
+  "idle many: 46 many lines, 15 with an idle zombie beyond 6.0 tiles (max 2)",
+  "pza16: clothing looted {'sent': 2, 'done': 2, 'failed': 0}; wear {'sent': 2, 'done': 2, 'failed': 0, 'reasons': {}, 'replaced': 0}; window {'sent': 0, 'done': 0, 'failed': 0, 'reasons': {}, 'smashed': 0, 'opened': 0, 'cut': 0}; worn {'read': True, 'max_locs': 7, 'last': []}; doors {'read': True, 'seen': 26, 'locked': 15}",
+  "pull (P24-AN): 11 fights, 9 engaged with a zombie listed beyond 6.0 tiles (154 lines) [inference: the frame at the line]; pull legs 39 lines (11 sent); 3 fights held a pull, 0 swung, 0 kills",
+  "doorway (P24-AO): 0 fights (0 lines), 0 swings, 0 shoves, 0 kills under many (E9: 0); attackers 3 or more in 0 frames [inference]; drag-down deaths 0",
+  "wounded (P24-AP): swings at armPain 20.0 or above 0 (must read 0) [inference: the frame at the line]; shoves 0, stomps 0, kills 0 under the hold; strain flees with a zombie within 2.5 tiles 0 (must read 0); hold lines 0",
+  "fallen (P24-AQ): 8 fallen targets with no standing zombie within 6.0 tiles [inference], 0 finished, 8 left; finish lines 0 (0 kills)",
+  "care tick (P24-AR): bandages ridden on a many flee 0 (0 lines); dressings held at the last care line None; bleeding parts max 4 over 21 game minutes",
+  "transparent solid (P24-AS): 15 steer sends, 0 held runs of 5.0 s or more into a solidTrans square [] (E9: one, 16.511 s) [inference]",
+  "shots (P24-AM): 69 index lines, by method {'screen': 0, 'window': 69}, 69 images (69 by window after a refused screen grab); skipped {}",
+  "llm: 9 calls (9 ok, 0 fallbacks), latency p50 3.50 s, p99 5.78 s; goals {'LootBuilding': 1, 'ExploreToward': 8}; ends {'done': 5, 'failed': 0, 'superseded': 4}",
+  "answers (a): by type {'LootBuilding': 1, 'ExploreToward': 8}, by want {}; weapon 0, refused bag 0 [reading of goals.log]",
+  "shelter (b): 0 answers, 0 with tired or night true in the view, 0 with both false (the line says loot instead), 0 unread [inference: the view at the call]",
+  "loot z (b): 1 answers, 0 of a building reading z:0, 0 of z above 0 while a z:0 building was shown, 1 of z above 0 with none shown, 0 unread [inference: the view at the call]",
+  "nearest (b): 1 loot answers, 1 the nearest unlooted shown, ranks {'0': 1}, 0 unranked (looted, blocked or not shown) [inference: the view at the call]",
+  "refusals (c): by why {}, 0 invalid by the goal contract; carried into the next view 0, not carried 0, unchecked 0 [reading of goals.log]",
+  "loop (b): looted already 0 answers named a building looted already [reading]",
+  "latency (d): 9 calls, 9 answered, mean 3.88 s, max 5.78 s; timeouts 0, cli error 0, malformed 0 [reading]",
+  "fallback (f): 0 of 9 goals scripted (share 0.00); 0 of 9 calls fell back [reading]",
+  "open views (P26-G) [reading]: 8 views carrying the `open:` line, taken {'ExploreToward': 8}, refused {}, other {}, 0 stand-ins; [inference off the view] 8 all-looted views, 0 of them without the line (must read 0 on a fourth-round log)",
+  "objects (P26-F) [reading]: 9 answers, objects per answer {'1': 9} (0 with two or more, at calls []), skipped by why {} (0 invalid), 0 taken after a skipped object",
+  "re-asks (P26-H) [reading]: 0 cycles re-asked, 0 taken on the re-ask, 0 fell to the stand-in, 0 unpaired (must read 0), 9 cycles; reasks_total 0 (agree)",
+  "flee finish (P27-A) [reading]: 0 lines, sent by reason {}, 0 kills, 0 landed, 0 struck, 0 unstruck, 0 refused; [inference] 0 sent with a standing zombie at or within FINISH_CLEAR_R (must read 0)",
+  "many tail (P27-B) [reading]: 0 ends, 0 short of MANY_TAIL_TICKS and 0 crowded (both must read 0); [inference] 0 followed by a fight (0 kills), 0 by a new `many` episode within TAIL_AFTER_LINES",
+  "hold fight (P27-C) [reading]: 0 `hold_fight` lines in 0 runs, 0 shoves, 0 stomps, 0 attacks (must read 0), 0 kills",
+  "hold rest (P27-C2) [reading]: 0 rest ticks, 0 with a zombie within DANGER_R (must read 0), 0 endurance-hold walk ticks with none; [inference] the endurance's rise standing not read (fewer than two frames or no game minute passed), walking not read (fewer than two frames or no game minute passed)",
+  "spent kept (P27-D) [reading]: 0 `spent_kept` lines by part {}, 0 at or under SPENT_REDRESS_BT (must read 0), 0 spent dressings replaced; health across the kept lines by part {}",
+  "low swing (P27-E) [reading]: 0 lines, 0 swings sent, 0 landed, 0 under SHOVE_FAIL_N misses (must read 0); [inference] the target's health before and after []",
+  "wounded swings (P26-L1) [reading]: 0 lines, 0 swings sent, 0 landed; [inference] the target's health before and after [], 0 frames after them reading a new wound (0 swings)",
+  "window still (WINDOW_STALL_S) [reading]: climbs (aid, state, accept to done s; [inference] still s) []; 0 still for WINDOW_STALL_S or more",
+  "unwear live (P26-O) [reading]: 1 unwears sent, 1 done, rejected {}, failed {}, 1 followed by the rip of the garment",
+  "stuck leave (P27-F) [reading]: 0 `stuck_mark` lines by goal {} (0 naming an edge), `leave` picks by way {'walk': 0, 'loot': 0, 'explore': 0} ([inference] the walk away told from the walk back by its target); [inference] 0 rests proposed on a marked square (a reading: the planner may rest there when every way out is cooled), 0.0 game minutes on a marked square",
+  "floor finish (P27-G) [reading]: 7 `floor_finish` lines, 0 swings sent, 0 kills, 0 `strike_runs` holds; [inference] 0 with a swing event, 0 followed by a stomp at the same zombie",
+  "fallen seek (P27-H) [reading]: 0 `fallen_seek` lines, 0 walks, 0 left, ticks {}, 0 under FALLEN_SEEK_TICKS (must read 0); [inference] 0 walked targets killed after",
+  "listing (P27-I) [reading]: 64 `listing` lines leaving out 117 fallen and 0 across; [inference] 37 lines whose listing fell under MANY_LISTED_N by the clause",
+  "shove close (P27-J) [reading]: 0 `shove_close` lines, 0 walks, 0 left, 0 under SHOVE_CLOSE_TICKS (must read 0), 0 rests at an idle zombie; [inference] 0 walks followed by a shove at the same zombie",
+  "stock early (P27-K1) [reading]: 7 `stock_early` lines, rips by branch {'yield': 7} (7 the care yield's), 0 at RAG_STOCK or more (must read 0); [inference] 0 followed by more clean dressings held",
+  "low exit (P27-K2) [reading]: 0 `low_exit` lines, 0 under SHOVE_FAIL_N misses (must read 0), 0 inside corner yields, 0 at FLEE_HEALTH_FLOOR or more (must read 0); [inference] 0 followed by the `health` flee, 0 by a new bite within BITE_AFTER_S",
+  "spent held (P27-K3) [reading]: 0 `spent_held` lines by part {}, 0 with no chaser (must read 0), 0 spent replaces after a hold; [inference] 0 holds on a bleeding part",
+  "wounded swing off (P27-L) [reading]: 0 `wounded_swing` lines, 0 divided swings sent (must read 0 with the default), 0 P25-L breaks",
+  "hits (P28-M) [reading]: 4 reaction runs {'BiteRIGHT': 2, 'Bite': 2} over 0 kills (None a kill), 9 wounds on 7 frames (None a kill), by fight [0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 1], 0 outside a fight; [inference] the strike within STRIKE_BEFORE_S before each by type {'None': 4}",
+  "wound dress (P28-A) [reading]: 0 `wound` dressings sent (0 done) by part {}, part h first and last {}, 0 `wound_held` lines (0 over WOUND_RESERVE, must read 0), parts undressed at the end [0, 1, 2, 3, 8, 9]; [inference] 0.0 health fallen quiet on an undressed wound",
+  "shove back (P28-B2) [reading]: 0 `shove_back` lines, 0 legs; [inference] 0 with a bite reaction during the leg, 0 followed by a shove at the same zombie",
+  "drift stand (P28-B3) [reading]: 0 drifted pins' stance lines, 0 legs; [inference] 0 followed by a shove at the pin, 0 by a bite reaction within BITE_AFTER_S",
+  "floor pain (P28-C) [reading]: 0 floor swings at or over STRAIN_HARD, 0 kills, 0 older floor swings under the pain (must read 0); [inference] 0 with a swing event, 0 followed by a stomp at the same zombie",
+  "busy retry (P28-D) [reading]: 0 `busy_retry` sends by kind {}; [inference] 0 followed by a landed stomp at the same zombie, 0 by its kill",
+  "circle (P28-E) [reading]: 0 circle legs by side {}, 0 off CIRCLE_TURN (must read 0); [inference] 0 sides switched, 0 straight `back` legs at two or more standing within KEEP_R, 0 at one",
+  "facing (P28-F) [reading]: 0 attack swings by the points off the target {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0} (0 unread), shoves {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0} (0 unread), stomps {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0} (0 unread), each swing event's act the frame's own 0; [inference] by the last accepted act line 0",
+  "client end (the spec's 1 (c)) [reading]: the stop death, loop.end seq None health None",
+  "melee (iteration 22) [reading]: 21 sent by mode {'strike': 15, 'finish': 6}, 20 accepted, ends {'failed superseded': 8, 'done lost': 2, 'rejected too far': 1, 'done kill': 10}, steps {'face': 18, 'repin': 18, 'swing': 14, 'floor': 9, 'stomp_walk': 11, 'knock_wait': 13, 'work': 15, 'shove': 17, 'hit': 6, 'pile': 1, 'close': 3}, ticks per step {'face': 185, 'floor': 241, 'repin': 4, 'swing': 930, 'stomp_walk': 189, 'knock_wait': 132, 'work': 61, 'hit': 87, 'shove': 124}, frames per act.step {'face': 58, 'repin': 5, 'swing': 196, 'floor': 40, 'stomp_walk': 48, 'knock_wait': 49, 'work': 55, 'shove': 117, 'hit': 43, 'pile': 5, 'close': 9}, swings 27 shoves 17 stomps 0 floors 10 knockdowns 22 hits 6, re-sends {'inputs': 5}, the planner's ends {'kill': 15, 'too far': 1, 'superseded': 20, 'lost': 28}, replaced {'aim': 14, 'attack': 7}, 133 maneuver lines; [inference] 8 kills inside the spans (a ladder's by its wall), the mean span 3.10745 s, spans by fight [3, 0, 0, 0, 2, 2, 2, 2, 0, 8, 1, 0, 0, 0, 0, 0, 0, 0, 0], 0 outside a fight",
+  "hits in melee (iteration 22, the A/B) [reading]: 4 reaction runs over 10 zombie_dead events (0.4 a kill, the session's), over 8 act-line kills (0.5 a kill, a melee's kill counted); [inference] 8 kills inside the spans and 0 outside (a ladder's by its wall), 3 runs inside (0.375 a kill), 1 outside (None a kill), 1 of those in a fight",
+  "melee strike (iteration 22) [reading]: 3 runs inside a span by the first frame's act.step {'hit': 3}; [inference] by the step before {'swing': 1, 'shove': 1, 'repin': 1}, by the press within STRIKE_BEFORE_S {'swing': 1, 'shove': 2}",
+  "melee cost (iteration 22) [reading]: inside the spans 625 frames actMs mean 0.1664 max 2, maxActMs mean 0.6624 max 4; outside 2043 frames actMs mean 0.07586882036221243 max 10, maxActMs mean 0.3054331864904552 max 10; [inference] a frame in a span by its wallMs",
+  "kills whole (P29-J) [reading]: 8 kills [20369, 20377, 20420, 20371, 20409, 20363, 20411, 20380] (melee [20369, 20377, 20420, 20371, 20409, 20363, 20411, 20380], ladder []) against 10 zombie_dead events [20368, 20369, 20450, 20377, 20420, 20371, 20409, 20363, 20411, 20380], agree False (the frozen read 0); whole too: per fight [1, 0, 0, 0, 1, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 8 on the standing fights (1.0 a standing fight); 4 reaction runs, 0.5 a kill",
+  "facing over every press (P29-J) [reading]: 37 presses; the melee's swings 15 (by points {'0': 12, '1': 1, '2': 2, '3': 0, '4': 0}, 0 unread), shoves 13 (by points {'0': 5, '1': 4, '2': 4, '3': 0, '4': 0}, 0 unread), stomps 0 (by points {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0}, 0 unread), floor swings 9 (by points {'0': 8, '1': 1, '2': 0, '3': 0, '4': 0}, 0 unread); the ladder's attacks 0 (by points {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0}, 0 unread), shoves 0 (by points {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0}, 0 unread), stomps 0 (by points {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0}, 0 unread); 0 melee events at no press step; each event's act the frame's own 37; [inference] by the last accepted act line 0",
+  "pain swings (P29-J) [reading]: the melee's swings sent under STRAIN_HARD 12, at or above 2, the pain unread 0; [inference] off the melee's next line (its own `hp`/`hp1`, `knockdowns`, `kill`): lowered 12 / 2 / 0, knock-downs 7 / 1 / 0, killed 1 / 0 / 0",
+  "route cross (iteration 23, P29-A): no line read (no decision log, or no line carrying its why)",
+  "goal stall (iteration 23, P29-B): no line read (no decision log, or no line carrying its why) (0 budget ends)",
+  "close idle (iteration 23, P29-C): no line read (no decision log, or no line carrying its why)",
+  "dress finish (iteration 23, P29-D): no line read (no decision log, or no line carrying its why)",
+  "health near (iteration 23, P29-E): no line read (no decision log, or no line carrying its why)",
+  "finish lone (iteration 23, P29-F): no line read (no decision log, or no line carrying its why)",
+  "many near (iteration 23, P29-G) [reading]: 3 lines withholding `many` by the standing count, by count {'2': 3}",
+  "flee held (iteration 23, P29-H'): no line read (no decision log, or no line carrying its why)",
+  "stall views (iteration 23, P29-B): no line read (no goals log, or no view carrying `stall:`)",
+  "hits union (P30, the union of the reaction runs and the hit steps) [reading]: 4 reaction runs, 6 hit step runs; [inference] 6 joined to a run, 4 attacks landed, 0.400 a kill over 10 kills matched (`kills_matched.planner`)",
+  "kills matched (P30, the kills matched to the press) [reading]: the whole read 8 [20369, 20377, 20420, 20371, 20409, 20363, 20411, 20380], the events [20368, 20369, 20450, 20377, 20420, 20371, 20409, 20363, 20411, 20380]; [inference] matched [(20368, 'a8', 'melee', 'swing', 11), (20450, 'a46', 'melee', 'floor', 4)] ({'melee': 2}), unmatched []: 10 kills [20369, 20377, 20420, 20371, 20409, 20363, 20411, 20380, 20368, 20450], agree True",
+  "sneak (iteration 24, P30-D) [reading]: postures sent {'on': 8, 'off': 8}; [reading] 146 frames sneaking over 9 game minutes (14.605 s); the sneak walk 1.674 tiles a second over 1 legs; zombies within SNEAK_R 11: passed [20369, 20372, 20410, 20454, 20421, 20416, 20424], noticed [20368, 20377] (first {'seq': 293, 'id': 20368, 'd': 6.97710605396282, 'state': 'idle'}), chasing [20371, 20414]",
+  "goal wait (iteration 24, P30-B) [reading]: 60 continued-walk lines (12 sent, by source {'edge': 45, 'last': 15}), 3 hops extended by [1.0, 7.211102550927978, 2.8284271247461903]; [reading] the standing on the wait (the plan's reading): 4 pending lines unmoved near a zombie (2.000 s), unmoved under STILL_DRIFT_R 0.3 tiles from the line before (a walk under 0.6 tiles a second reads unmoved: read the sneak walk's speed first); 60 lines pending in 10 runs (29.898 s), 11 unmoved; [the desk read's A.2, movement not read, never the plan's reading] 8 runs pending with a zombie within NEAR_R at an end, 45 lines (22.393 s); the explore hops [4.91, 6.5, 2.92, 4.65, 11.24, 5.72, 11.55, 4.91]",
+  "door held (iteration 24, P30-C): no line read (no source, or no line carrying its field)",
+  "swing close (iteration 24, P30-A): no line read (no source, or no line carrying its field) (capable False); [inference] the back steps after a landed press 0, after a press that did nothing 0, with no press 0; 0 hits in a back step",
+  "still (iteration 24, P30-E) [reading]: 2 resolutions {'approach': 2} at [20371]",
+  "dress ride (iteration 24, P30-F): no line read (no source, or no line carrying its field)",
+  "standing (P30, the standing minutes) [reading]: 2 stretches of STAND_LINES or more lines unmoved near a zombie, 54 lines, 26.961 s, 8 game minutes, by branch {'threat': (2, 54)}",
+  "clip (the loop's stop) [reading]: the new readings cut at 254.373 s after loop.startPyMs 1794427649643.223; dropped 60 state lines (35 frames), 0 decision lines, 0 actions",
+  "landed hits (the scorecard's: the reaction segments, the reflex's hit steps) [reading]: 7 segments, 6 hit steps; [inference] 3 joined, 10 attacks landed, 1.000 a kill over 10 kills (zombie_dead events)",
+  "fleeing (the trial loop's) [reading]: 59 lines, 7.464 game minutes (28.818 s) over 67.206, by {'flee:held': 5, 'flee:held_inside': 2, 'flee:many': 46, 'flee:leave': 6}; the legs {'pull': (39, 5.11), 'back': (75, 10.04)}; [inference] away from a chaser with no refuge named 276 intervals, 7.313 game minutes (76 under a refuge skipped)",
+  "toward a named target (the trial loop's) [inference]: 69 lines, 9.096 game minutes over 67.206 (named on 99 lines, 13.035 min; 0 unresolved), by {'continue': 40, 'ExploreToward': 29}",
+  "wounds dressed (the scorecard's, every wound, within DRESS_MIN 1.0 game minute) [reading]: 0 of 6 wounds (0 carried from the first frame), 0 closed: [(8, 3340, None, None, None), (1, 3355, None, None, None), (2, 3518, None, None, None), (9, 3676, None, None, None), (0, 4889, None, None, None), (3, 4900, None, None, None)]",
+  "melees superseded before their press [reading]: 4 of 21 sent (8 superseded in all, 6 with no swing step) ['a6', 'a110', 'a115', 'a116']",
+  "meet presses (PZA/1.10's leaf against its outcome) [reading]: 54 presses by kind {'swing': 27, 'floor': 10, 'shove': 17}, by outcome {'knocked': 23, 'killed': 10, 'lowered': 17, 'nothing': 4} (0 refused); the shoves 17 knocked 14, expected rolls 17 summed 7.300",
+  "meet refusals [reading]: 0 runs, 0 refused presses, by count {}, 0 waits, 0 melees ended refused, 0 open",
+  "meet finishes [reading]: 6 sent in mode finish, headAim {'on': 0, 'off': 21, 'absent': 21}; the finish presses {'floor': 10, 'stomp': 0} by outcome {'killed': 9, 'knocked': 1} (9 kills), 0 turns to the head",
+  "meet handbacks [reading]: 0 handbacks by why {}, by target {}, handed back again []; the crowds []; the reflex's re-pins {'melees': 6, 'total': 18, 'steps': 18}",
+  "dresses (the Dress maneuver) [reading]: 6 Dresses by end {'superseded': 5, 'open': 1} (0 rides, 0 failed): [(8, 'superseded', [], [], 3.5), (8, 'superseded', [], [], 2.5), (8, 'superseded', [1021894735, 1021894735], [1021894735], 8.0), (8, 'superseded', [1021894735], [], 2.9), (8, 'superseded', [1021894735], [], 10.0), (8, None, [1021894735, 1021894735, 1021894735], [], None)]; [inference] the seconds from the part's bleeding onset to the start and the end [(8, 28.6, 32.1), (8, 32.1, 34.6), (8, 34.6, 42.6), (8, 42.6, 45.6), (8, 45.6, 55.5), (8, 55.5, None)]",
+  "facing body (me.bodyAngle against the bearing to the target, degrees) [reading]: the presses n 54, median 0.0, p90 86.9, hold30 0.81 (the look n 54, median 0.0, p90 101.9, hold30 0.81), by kind {'floor': 'n 10, median 0.0, p90 0.0, hold30 0.9', 'shove': 'n 17, median 32.1, p90 122.7, hold30 0.47', 'swing': 'n 27, median 0.0, p90 0.0, hold30 1.0'}, by mode {'unaimed_snap': 'n 54, median 0.0, p90 86.9, hold30 0.81'}; the stance ticks 1296 of 1296 frames read: n 1296, median 0.0, p90 0.0, hold30 1.0, by type {'aim': 'n 671, median 0.0, p90 0.0, hold30 1.0', 'melee': 'n 625, median 0.0, p90 0.0, hold30 1.0'}; [inference] 0 breaks over 45.0 degrees (0 frames): []",
+  "facing ring (me.fwdAngle within 10.0 degrees) [reading]: 1296 stance frames; on the aim vector 0.08 of 731, on the walk vector 0.47 of 738, on the bearing 1.0 of 1296",
+  "head ticks (the finish's head step, the press leaves' and handbacks' head_ticks) [reading]: 54 values read, max 0, 0 melees handed back head_stall, by melee [['a8', 0], ['a9', 0], ['a46', 0], ['a47', 0], ['a58', 0], ['a64', 0], ['a75', 0], ['a78', 0], ['a87', 0], ['a90', 0], ['a114', 0], ['a117', 0], ['a119', 0], ['a120', 0], ['a122', 0]]",
+  "crawler first (threat why crawler_first) [reading]: 0 lines, 0 finishes sent at [], 0 of them killed; []",
+  "group leave (threat why group_leave) [reading]: 68 lines, 8 legs, 1 toward a door, 7 runs; standing within 3.0 tiles at each leg's first line [0, 3, 0, 1, 1, 0, 0, 2]",
+  "drag guard (threat why drag_guard, side_clear) [reading]: 0 guard lines, 0 shoves, 0 runs refused, 0 runs; 0 clear lines, 0 clear steers rotated [], 0 side shoves; [inference] 5 of 15 steers sent heading within 1.0 tiles of a standing zombie over 3.0 tiles",
+  "idle snap (me.bodyAngle against the nearest standing zombie within 2.5 tiles, no melee running) [reading]: 256 frames, n 256, median 111.7, p90 177.9, hold30 0.38",
+  "care withheld (threat why care_withheld) [reading]: 87 lines, by n {'3': 47, '4': 27, '5': 2, '6': 7, '7': 4}, keys [['bleed', 8]]",
+  "care at group (care sends stop/rip/unwear, or a bandage without keepMoving, with 3 or more standing within 6.0 tiles) [reading]: 0 lines []",
+  "door leave (group_leave leg door, door_refused, door_dropped; the shelter why) [reading]: 6 door lines, 1 picks, refused {'race': 0, 'one_exit': 0}, 1 aborts, 35 enters ended outside; closes 0 sent, 0 refused {}; [inference] 0 closes sent on a room square of the plan's building, 0 unread",
+  "retreat (group_retreat leg retreat) [reading]: 21 lines, by kind {'stand': 0, 'back': 0, 'melee': 6}, 0 breaks (retreat_break), 0 strung holds (strung_n); the gap: nearest min 0.569 median 1.412, 3 lines under 0.6",
+  "shoves (shove and stomp acts) [reading]: 0 sent, 0 done, 0 started, 0 busy, waited median None; by type (sent, busy, done, started) {'shove': (0, 0, 0, 0), 'stomp': (0, 0, 0, 0)}",
+  "idle snap by act (x3's idle frames by the frame's act) [reading]: 256 frames, {'none': 'n 33, median 0.0, p90 0.7, hold30 1.0', 'steer': 'n 149, median 148.5, p90 178.8, hold30 0.16', 'aim': 'n 32, median 0.0, p90 0.0, hold30 1.0', 'walkTo': 'n 27, median 114.7, p90 155.9, hold30 0.33', 'rip': 'n 14, median 177.8, p90 179.9, hold30 0.0', 'interact': 'n 1, median 161.6, p90 161.6, hold30 0.0'}",
+  "frame age (the line's frame_age, seconds) [reading]: 0 lines, median None, max None",
+  "group leave legs (threat why group_leave by leg and end) [reading]: 68 lines, legs {'shove': 0, 'door': 6, 'retreat': 21, 'run': 37}, ends {'strung': 4}",
+  "drag fight (threat why drag_fight) [reading]: 0 lines, by why {'hit': 0, 'stuck': 0}, 0 spent",
+  "work (the melee's footwork steps) [reading]: step entries {'work': 15, 'cornered': 0, 'pile': 1}, turns {'0': 18}, 0 cornered ticks (done lines); pile: 1 episodes, 1 shoves, 1 knock-downs",
+  "contact (nearest standing inside 1.0 tiles, no press in flight, no hit reaction, inside the 20 engagements) [reading]: 2.42 s over 24 frames, 0 hits inside contact; per engagement [('a6', 0, 0, 0), ('a8', 0, 0, 0), ('a9', 0, 0, 0), ('a46', 0.3, 0, 0), ('a47', 0, 0, 0), ('a58', 0, 0, 0), ('a64', 0, 0, 0), ('a75', 0, 0, 0), ('a78', 0.3, 0, 0), ('a87', 0.2, 0, 0), ('a90', 0, 0, 0), ('a110', 0.21, 0, 0), ('a111', 0, 0, 0), ('a114', 0.3, 1, 0), ('a115', 0, 0, 0), ('a116', 0, 0, 0), ('a117', 0.5, 0, 0), ('a119', 0.1, 1, 0), ('a120', 0.4, 1, 0), ('a122', 0.1, 0, 0)]",
+  "handbacks (the engagements' done handback lines) [reading]: 0 lines, by why {}",
+  "engage hold (threat why engage_hold) [reading]: 57 lines, by rule {'drag': 5, 'leave': 18, 'pair': 34}",
+  "withdraw (threat why withdraw) [reading]: 18 lines, 6 melee sends, 5 re-sends at the same target"
+ ],
+ "retreat": {
+  "breaks": 0,
+  "by_kind": {
+   "back": 0,
+   "melee": 6,
+   "stand": 0
+  },
+  "gap": {
+   "closed": 3,
+   "lines": 21,
+   "median": 1.4115960123214975,
+   "min": 0.569178459674573,
+   "minutes": 2.8100967407226562,
+   "read": true
+  },
+  "lines": 21,
+  "read": true,
+  "strung_holds": 0
+ },
+ "ride": {
+  "riding": {
+   "by_part": {},
+   "done": 0,
+   "failed": 0,
+   "rejected": 0,
+   "sent": 0,
+   "stopped": 0,
+   "walking": 0
+  },
+  "standing": {
+   "done": 0,
+   "failed": 0,
+   "sent": 0
+  }
+ },
+ "route_cross": {
+  "read": false
+ },
+ "run_id": "f_goals_21-20261111-150552",
+ "session_key": "f_goals_21",
+ "shots": {
+  "by_method": {
+   "screen": 0,
+   "window": 69
+  },
+  "images": 69,
+  "lines": 69,
+  "read": true,
+  "skipped": {},
+  "window_after_screen_refused": 69
+ },
+ "shove_back": {
+  "bites_during": 0,
+  "legs": 0,
+  "lines": 0,
+  "read": true,
+  "shoves_after": 0
+ },
+ "shove_close": {
+  "idle_rests": 0,
+  "left": 0,
+  "lines": 0,
+  "read": true,
+  "short": 0,
+  "shoves_after": 0,
+  "walks": 0
+ },
+ "shoves": {
+  "busy": 0,
+  "by_type": {
+   "shove": {
+    "busy": 0,
+    "done": 0,
+    "sent": 0,
+    "started": 0,
+    "waited": null
+   },
+   "stomp": {
+    "busy": 0,
+    "done": 0,
+    "sent": 0,
+    "started": 0,
+    "waited": null
+   }
+  },
+  "done": 0,
+  "read": true,
+  "sent": 0,
+  "started": 0,
+  "waited": null
+ },
+ "sneak": {
+  "capable": true,
+  "chasing": [
+   20371,
+   20414
+  ],
+  "first_change": {
+   "d": 6.97710605396282,
+   "id": 20368,
+   "seq": 293,
+   "state": "idle"
+  },
+  "frames": 146,
+  "legs": [
+   {
+    "aid": "a106",
+    "gait": "walk",
+    "s": 1.798,
+    "speed": 1.6740164000315592,
+    "tiles": 3.0098814872567434
+   }
+  ],
+  "minutes": 9,
+  "near": 11,
+  "noticed": [
+   20368,
+   20377
+  ],
+  "passed": [
+   20369,
+   20372,
+   20410,
+   20454,
+   20421,
+   20416,
+   20424
+  ],
+  "postures": {
+   "off": 8,
+   "on": 8
+  },
+  "read": true,
+  "seconds": 14.605000000000018,
+  "walk_speed": 1.6740164000315592
+ },
+ "spent_held": {
+  "bleeding_while_held": 0,
+  "holds": 0,
+  "parts": {},
+  "read": true,
+  "replaces_after": 0,
+  "unchased": 0
+ },
+ "spent_kept": {
+  "health_across": {},
+  "lines": 0,
+  "parts": {},
+  "read": true,
+  "redressed": 0,
+  "short": 0
+ },
+ "stall_views": {
+  "read": false
+ },
+ "stance_held": {
+  "frames": 2668,
+  "frames_aiming": 1064,
+  "frames_force_aim": 731,
+  "held_frames": 2295,
+  "legs": 19,
+  "per_leg": [
+   {
+    "aid": "a5",
+    "heldFrames": 119,
+    "ticks": 120
+   },
+   {
+    "aid": "a21",
+    "heldFrames": 120,
+    "ticks": 121
+   },
+   {
+    "aid": "a22",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a27",
+    "heldFrames": 120,
+    "ticks": 121
+   },
+   {
+    "aid": "a28",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a52",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a53",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a57",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a69",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a71",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a72",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a74",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a76",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a84",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a85",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a89",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a98",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a100",
+    "heldFrames": 121,
+    "ticks": 121
+   },
+   {
+    "aid": "a103",
+    "heldFrames": 121,
+    "ticks": 121
+   }
+  ],
+  "ratio": 0.9986945169712794,
+  "ticks": 2298,
+  "with_field": 19
+ },
+ "standing": {
+  "by_branch": {
+   "threat": {
+    "lines": 54,
+    "seconds": 26.960803270339966,
+    "stretches": 2
+   }
+  },
+  "game_minutes": 8,
+  "lines": 54,
+  "read": true,
+  "rows": [
+   {
+    "branch": "threat",
+    "branches": {
+     "goal": 1,
+     "threat": 19
+    },
+    "first": 117,
+    "gm": 3,
+    "last": 136,
+    "lines": 20,
+    "s": 9.94808030128479
+   },
+   {
+    "branch": "threat",
+    "branches": {
+     "threat": 34
+    },
+    "first": 375,
+    "gm": 5,
+    "last": 408,
+    "lines": 34,
+    "s": 17.012722969055176
+   }
+  ],
+  "seconds": 26.960803270339966,
+  "stretches": 2
+ },
+ "still": {
+  "by": {
+   "approach": 2
+  },
+  "d": [
+   8.847213983323995,
+   8.763654790036556
+  ],
+  "read": true,
+  "resolutions": 2,
+  "targets": [
+   20371
+  ]
+ },
+ "stock_early": {
+  "full": 0,
+  "lines": 7,
+  "rags_after": 0,
+  "read": true,
+  "rips": {
+   "yield": 7
+  },
+  "yields": 7
+ },
+ "stop": {
+  "detail": "event death seq 4920 via isDead body.health 0",
+  "reason": "death"
+ },
+ "strategy": {
+  "loop": {
+   "looted_already": 0
+  },
+  "loot": {
+   "answers": 1,
+   "unread": 0,
+   "z0": 0,
+   "zpos_no_z0_shown": 1,
+   "zpos_with_z0_shown": 0
+  },
+  "nearest": {
+   "answers": 1,
+   "rank0": 1,
+   "ranks": {
+    "0": 1
+   },
+   "unranked": 0
+  },
+  "read": true,
+  "shelter": {
+   "answers": 0,
+   "neither": 0,
+   "tired_or_night": 0,
+   "unread": 0
+  }
+ },
+ "stuck_leave": {
+  "edged": 0,
+  "leaves": {
+   "explore": 0,
+   "loot": 0,
+   "walk": 0
+  },
+  "marks": {},
+  "minutes_on_marked_square": 0.0,
+  "read": true,
+  "rests_on_marked": 0
+ },
+ "survived": false,
+ "swing_close": {
+  "again": null,
+  "back": {
+   "after_landed": 0,
+   "after_nothing": 0,
+   "no_press": 0
+  },
+  "bites_in_back": 0,
+  "capable": false,
+  "held": null,
+  "lines": null,
+  "read": false
+ },
+ "toward_target": {
+  "by": {
+   "ExploreToward": 29,
+   "continue": 40
+  },
+  "lines": 69,
+  "minutes": 9.095535278320312,
+  "named_lines": 99,
+  "named_minutes": 13.034706115722656,
+  "read": true,
+  "total_minutes": 67.2059440612793,
+  "unresolved": 0
+ },
+ "transparent": {
+  "held_runs": 0,
+  "read": true,
+  "rows": [],
+  "steers": 15
+ },
+ "unwear_live": {
+  "done": 1,
+  "failed": {},
+  "read": true,
+  "rejected": {},
+  "rip_after": 1,
+  "sent": 1
+ },
+ "window_still": {
+  "climbs": [],
+  "over": 0,
+  "read": true
+ },
+ "withdraw": {
+  "lines": 18,
+  "read": true,
+  "resends": 5,
+  "sends": 6
+ },
+ "work": {
+  "cornered_ticks": 0,
+  "pile": {
+   "episodes": 1,
+   "knockdowns": 1,
+   "shoves": 1
+  },
+  "read": true,
+  "steps": {
+   "cornered": 0,
+   "pile": 1,
+   "work": 15
+  },
+  "turns": {
+   "0": 18
+  }
+ },
+ "wound_dress": {
+  "by_part": {},
+  "done": 0,
+  "held": 0,
+  "held_over_reserve": 0,
+  "no_bleed_fall": 0.0,
+  "part_h": {},
+  "parts_undressed_at_end": [
+   0,
+   1,
+   2,
+   3,
+   8,
+   9
+  ],
+  "read": true,
+  "sent": 0
+ },
+ "wounded": {
+  "hold_lines": 0,
+  "kills_hold": 0,
+  "read": true,
+  "shoves_hold": 0,
+  "shoves_spent": 0,
+  "stomps_hold": 0,
+  "strain_flees_near": 0,
+  "swings_at_pain": 0,
+  "swings_spent": 0
+ },
+ "wounded_swing_off": {
+  "breaks": 0,
+  "lines": 0,
+  "read": true,
+  "swings": 0
+ },
+ "wounded_swings": {
+  "health_before_after": [],
+  "landed": 0,
+  "lines": 0,
+  "read": true,
+  "sent": 0,
+  "wound_frames_after": 0,
+  "wounded": 0
+ },
+ "wounds": {
+  "first_seq": 3340,
+  "frames": 2668,
+  "listed": 155,
+  "real": 155
+ },
+ "wounds_dressed": {
+  "carried": 0,
+  "dressed": 0,
+  "read": true,
+  "rows": [
+   {
+    "bandaged": null,
+    "minutes": null,
+    "part": 8,
+    "seq0": 3340,
+    "seq1": null
+   },
+   {
+    "bandaged": null,
+    "minutes": null,
+    "part": 1,
+    "seq0": 3355,
+    "seq1": null
+   },
+   {
+    "bandaged": null,
+    "minutes": null,
+    "part": 2,
+    "seq0": 3518,
+    "seq1": null
+   },
+   {
+    "bandaged": null,
+    "minutes": null,
+    "part": 9,
+    "seq0": 3676,
+    "seq1": null
+   },
+   {
+    "bandaged": null,
+    "minutes": null,
+    "part": 0,
+    "seq0": 4889,
+    "seq1": null
+   },
+   {
+    "bandaged": null,
+    "minutes": null,
+    "part": 3,
+    "seq0": 4900,
+    "seq1": null
+   }
+  ],
+  "stopped": 0,
+  "wounds": 6
+ },
+ "yields": {
+  "care_actions": 19,
+  "fights_ended_by_care": 9,
+  "log": {
+   "care_rides": 0,
+   "care_yields": 33,
+   "dead_ids": [
+    20368,
+    20369,
+    20450,
+    20420,
+    20409,
+    20411
+   ],
+   "dead_skips": 15,
+   "kill_lines": 10,
+   "lines": 509
+  }
+ }
+}
