@@ -9,8 +9,9 @@
   the `many` flee, the care's commitment), logged `engage_hold` {rule} on the threat rows; the reflex meets the pile
   and the crawlers; the hand-backs `floor` and `clear` give the next choose to the ladder; under FLEE_HEALTH the rows
   run as before;
-- the withdraw: the fighting retreat's heading (`Fight.retreat`) is the withdraw bias with GROUP_LEAVE_N or more
-  standing within GROUP_ENTRY_R (`Fight.group_n`), re-sent only once it leaves its WITHDRAW_RESEND_DEG sector.
+- the withdraw: the planner's vector (`Fight.withdraw`, Plan 36 Task 3's engagement picker, `test_survive_as.py`) is
+  the withdraw bias, re-sent only once it leaves its WITHDRAW_RESEND_DEG sector; the leave's retreat heading
+  (`Fight.retreat`) alone is none.
 
 Every fixture is synthetic (shapes of the Plan 34 trials and the spec's § 1 probe, never a replay), the fake mod. Task 8
 dropped the switch-off arms (the Plan 33/34 answers the hold replaced) with the rules they pinned."""
@@ -50,14 +51,15 @@ def rig(tmp_path, mod="1.13", caps=MELEE_CAPS):
     return r
 
 
-def fight(tmp_path, zs, mod="1.13", retreat=None, target=None, group_n=0, off=(), me=ME):
+def fight(tmp_path, zs, mod="1.13", retreat=None, target=None, withdraw=None, off=(), me=ME):
     """A Fight on a `rig` at `me` over one frame of `zs`, its rules the defaults but Plan 33 Task 2's `crawler_first`
-    and those in `off`, `retreat`, `group_n` and the stance set as Survive sets them, pinned on `target`."""
+    and those in `off`, `retreat`, `withdraw` (Plan 36 Task 3: the engagement picker's vector) and the stance set as
+    Survive sets them, pinned on `target`."""
     r = rig(tmp_path, mod)
     r.frame(x=me[0], y=me[1], zombies=zs)
     f = F.Fight(r.world, r.acts, r.clock)
     f.rules = f.rules - {"crawler_first"} - set(off)
-    f.retreat, f.stance, f.target, f.group_n = retreat, True, target, group_n
+    f.retreat, f.stance, f.target, f.withdraw = retreat, True, target, withdraw
     return r, f
 
 
@@ -96,20 +98,21 @@ def test_a_1_13_build_gets_the_seven_work_fields(tmp_path, mod):
     assert f._engaged() is True
 
 
-def test_the_withdraw_bias_is_the_retreat_heading_with_a_group(tmp_path):
-    """Under the fighting retreat (west) with GROUP_LEAVE_N standing within GROUP_ENTRY_R (`group_n` 3): withdrawX -1,
-    withdrawY 0 beside the five, logged on the melee's why as `withdraw` [-1, 0]."""
-    r, f = fight(tmp_path, ONE, retreat=WEST_V, group_n=3)
+def test_the_withdraw_bias_is_the_planner_s_vector(tmp_path):
+    """The planner's withdraw (west, Plan 36 Task 3: the engagement picker's vector): withdrawX -1, withdrawY 0 beside
+    the five, logged on the melee's why as `withdraw` [-1, 0]."""
+    r, f = fight(tmp_path, ONE, withdraw=WEST_V)
     a = f.step()
     assert a.type == "melee" and work_of(a) == dict(WORK_ARGS, withdrawX=-1.0, withdrawY=0.0)
     assert f.why["melee"]["withdraw"] == [-1.0, 0.0]
 
 
-def test_no_withdraw_under_the_group_count_or_with_the_rule_off(tmp_path):
-    """Two standing within GROUP_ENTRY_R: the retreat's heading is no bias (the reflex's own sum)."""
-    r, f = fight(tmp_path, ONE, retreat=WEST_V, group_n=2)
+def test_the_retreat_heading_alone_is_no_withdraw(tmp_path):
+    """Plan 36 Task 3: the leave's retreat heading (west) with no planner vector is no bias (the reflex's own sum):
+    the withdraw is the engagement picker's alone (Plan 35's GROUP_LEAVE_N gate on `group_n` is gone)."""
+    r, f = fight(tmp_path, ONE, retreat=WEST_V)
     a = f.step()
-    assert work_of(a) == WORK_ARGS
+    assert work_of(a) == WORK_ARGS and not hasattr(f, "group_n")
 
 
 def test_the_work_s_behaviour_reads_the_withdraw_by_its_sector():
@@ -128,10 +131,10 @@ def test_the_withdraw_re_sends_only_past_its_sector(tmp_path, turn, resend):
     """The engaged melee under the retreat (west); the retreat turns to `turn` degrees: 20 degrees (inside the sector)
     holds and sends nothing; 35 degrees (past it) gives way and the choose re-sends the melee alone (`resend`
     "inputs", the new withdraw on the wire and the why), no ladder leg."""
-    r, f = fight(tmp_path, ONE, retreat=WEST_V, group_n=3)
+    r, f = fight(tmp_path, ONE, withdraw=WEST_V)
     a = f.step()
     accept(r, a, "face")
-    f.retreat = heading(turn)
+    f.withdraw = heading(turn)
     again(r, f, ONE)
     assert f.busy() is (not resend)
     if resend:
@@ -145,10 +148,10 @@ def test_the_re_send_beyond_keep_r_is_the_melee_never_the_ladder_s_stand(tmp_pat
     """The engaged melee's target stepped back to 2.6 tiles (beyond KEEP_R, within MELEE_RELEASE_R), the retreat
     turned past its sector: the choose is the melee's re-send (`_engage_resend`), never a ladder leg."""
     far = [zm(1, ME[0] + 2.6, ME[1])]
-    r, f = fight(tmp_path, ONE, retreat=WEST_V, group_n=3)
+    r, f = fight(tmp_path, ONE, withdraw=WEST_V)
     a = f.step()
     accept(r, a, "face")
-    f.retreat = heading(240)
+    f.withdraw = heading(240)
     again(r, f, far)
     assert f.busy() is False
     b = f.step()
@@ -157,10 +160,10 @@ def test_the_re_send_beyond_keep_r_is_the_melee_never_the_ladder_s_stand(tmp_pat
 
 def test_no_withdraw_re_send_while_a_press_is_in_flight(tmp_path):
     """The retreat turned past the sector while the melee's swing is in flight: it holds (its result read first)."""
-    r, f = fight(tmp_path, ONE, retreat=WEST_V, group_n=3)
+    r, f = fight(tmp_path, ONE, withdraw=WEST_V)
     a = f.step()
     accept(r, a, "swing")
-    f.retreat = heading(240)
+    f.withdraw = heading(240)
     again(r, f, ONE)
     assert f.busy() is True
 
@@ -201,7 +204,7 @@ def test_a_crawler_arriving_at_the_engaged_melee_is_held(tmp_path):
 def test_a_standing_zombie_behind_the_engaged_melee_takes_no_break(tmp_path):
     """Under the retreat (west) a standing zombie comes 1.3 tiles south of the engaged strike melee at 1: it holds (the
     reflex steps back between its presses; Task 8 deleted RETREAT_MELEE's break)."""
-    r, f = fight(tmp_path, ONE, retreat=WEST_V, group_n=3)
+    r, f = fight(tmp_path, ONE, withdraw=WEST_V)
     a = f.step()
     accept(r, a, "face")
     again(r, f, ONE + [zm(2, ME[0], ME[1] + 1.3)])
@@ -385,7 +388,7 @@ def lost_rig(tmp_path, mod="1.13", zs=LOST_PILE, scan=None):
     r.frame(x=ME[0], y=ME[1], zombies=zs)
     f = F.Fight(r.world, r.acts, r.clock)
     f.rules = f.rules - {"crawler_first"}
-    f.retreat, f.stance, f.target, f.group_n = WEST_V, True, 1, 3
+    f.retreat, f.withdraw, f.stance, f.target = WEST_V, WEST_V, True, 1
     f.m = Melee(r.world, r.acts, r.clock, 1)
     f.m.inputs = f._melee_inputs("strike", r.world.zombies[1])
     a = f.send(f.m.step())
@@ -638,21 +641,12 @@ def test_above_retreat_max_n_the_leave_s_run_lapses_the_hold(tmp_path):
     assert "engage_hold" not in why and why.get("engage_yield") == {"rule": "many"}
 
 
-def test_the_spent_leave_s_run_at_four_is_held(tmp_path):
-    """Four standing within GROUP_ENTRY_R with the meet spent (the arms' pain 15, over STRAIN_SOFT: SPENT_LEAVE's run
-    at GROUP_LEAVE_N), no drag-down read: engaged, the melee holds, logged `engage_hold` {rule "leave"}, no
-    `engage_yield`; with ENGAGE_HOLD off, the leave's run (Plan 34 Task 3c's answer, the pin)."""
-    r, sv, a = engaged(tmp_path, leave=True, zombies=FOUR, wounds={"armPain": 15.0})
-    why = threat_why(tmp_path)
-    assert why["group_leave"]["leg"] == "run" and "engage_yield" not in why
-    b = r.acts.history[-1]   # the melee kept (re-sent in mode `shove` for the spent meet), no leg
-    assert b.type == "melee" and b.args["targetId"] == 1 and why["engage_hold"] == {"rule": "leave"}
-
-
-def test_the_leave_strung_out_at_the_engaged_melee_is_held(tmp_path):
-    """GROUP_LEAVE on: three standing take the leave (its retreat, the Fight's: the melee re-sent with the withdraw
-    bias); then a line reads two within GROUP_ENTRY_R: the leave ends `strung` on it (Task 8 deleted STRUNG_HOLD's
-    held lines) and the engaged melee is re-sent without the bias, no leg in its place."""
+def test_the_leave_strung_out_at_the_engaged_melee_keeps_the_pull_until_the_spread_closes(tmp_path):
+    """GROUP_LEAVE on: three standing take the leave (its retreat, the Fight's: the melee re-sent with the pull's
+    withdraw, Plan 36 Task 3); then a line reads two within GROUP_ENTRY_R: the leave ends `strung` on it (Task 8 deleted
+    STRUNG_HOLD's held lines) and the pull holds (their spread 90 degrees, not under PULL_STOP_DEG), the melee re-sent
+    on the new gap's heading, no leg in its place; then the second stands 30 degrees off the first: the spread closed,
+    the melee is re-sent without the bias."""
     trio = GROUP
     r, sv, a = engaged(tmp_path, leave=True, zombies=trio)
     why = threat_why(tmp_path)
@@ -665,8 +659,16 @@ def test_the_leave_strung_out_at_the_engaged_melee_is_held(tmp_path):
     tick(r, sv)
     why = threat_why(tmp_path)
     assert sv.leave is None and why["group_leave"]["end"] == "strung"
-    c = r.acts.history[-1]   # the melee re-sent with no withdraw (two standing): no leg in its place
-    assert c.type == "melee" and "withdrawX" not in c.args
+    assert why["engage_pull"]["why"] == "spread" and why["engage_pull"]["n"] == 2
+    c = r.acts.history[-1]   # the melee re-sent on the gap between 90 and 360 degrees: no leg in its place
+    assert c.type == "melee" and (c.args["withdrawX"], c.args["withdrawY"]) == pytest.approx(heading(225))
+    accept(r, c, "face")
+    r.advance(0.5)
+    r.frame(zombies=[trio[0], z(2, 100.0 + 2.3 * math.cos(math.radians(30)), 200.0 + 2.3 * math.sin(math.radians(30)))])
+    tick(r, sv)
+    assert "engage_pull" not in threat_why(tmp_path)
+    d = r.acts.history[-1]   # the melee re-sent with no withdraw: the reflex stands
+    assert d.type == "melee" and "withdrawX" not in d.args
 
 
 def test_a_corner_at_the_engaged_melee_inside_is_held(tmp_path):

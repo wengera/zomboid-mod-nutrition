@@ -54,8 +54,8 @@ command at its pin. Its state is the Fight's own (`_init_dispatch`), and `fight.
   `resend` "inputs" on a re-send and (Plan 35) `withdraw` [vx, vy] on a send carrying the withdraw bias.
 - Plan 35 (the footwork, PZA/1.13; the spec's §§ 3.2 and 3.3; Task 8 removed its switches and the crowd gate): every
   melee carries `work` (`_work_inputs`: WORK_R, WORK_CRAWLER_R, WORK_BAND_LO, the floor FLEE_HEALTH, `pile` true, so
-  the reflex meets the pile and the crawlers; the fighting retreat's heading, `retreat`, as the withdraw bias while
-  GROUP_LEAVE_N or more stand within GROUP_ENTRY_R, `group_n`, else none), and the running melee with `work` is the
+  the reflex meets the pile and the crawlers; the withdraw bias the engagement picker's vector, `withdraw`, Plan 36
+  Task 3's `group.ThreatGroup._pull`, else none), and the running melee with `work` is the
   engagement (`_engaged`): `_melee_holds` holds it whatever its pin, the pin-first and the finish read, until a re-send
   is due, and the choose that follows re-sends it and nothing else (`_engage_resend`: no ladder leg supersedes it); the
   threat branch's rows answer the hold above FLEE_HEALTH (`threat.Threat._engage_holds`, logged `engage_hold` {rule}).
@@ -68,7 +68,7 @@ command at its pin. Its state is the Fight's own (`_init_dispatch`), and `fight.
 from agent.base.planner.crawler import is_crawler
 from agent.base.planner.maneuvers import Melee
 from agent.base.planner.maneuvers.melee import MeleeInputs, WorkInputs
-from agent.base.planner.policies import (FLEE_HEALTH, GROUP_LEAVE_N, KEEP_R, MELEE_BACKOFF_TICKS,
+from agent.base.planner.policies import (FLEE_HEALTH, KEEP_R, MELEE_BACKOFF_TICKS,
                                          MELEE_RELEASE_R, SEEK_SKIP_S, STALL_SWINGS, UNREACHABLE_S,
                                          WORK_BAND_LO, WORK_CRAWLER_R, WORK_R, arm_pain, line_to, on_floor,
                                          target_id_ok, zdist)
@@ -111,8 +111,8 @@ class FightDispatch:
                                             # P27-N pin leaves it out while another stands within KEEP_R, `pin.py`)
         self._m_kept = None                 # Plan 35 fixes 8 and 8b: the end (kill, lost, ...) the next choose follows
                                             # with a standing zombie within KEEP_R: the melee, logged `engage_dispatch`
-        self.group_n = 0                    # Survive sets it each tick (Plan 35): the standing zombies within
-                                            # GROUP_ENTRY_R (`group.ThreatGroup._group_read`), the withdraw bias's gate
+        self.withdraw = None                # Survive sets it each tick (Plan 36 Task 3): the engagement picker's unit
+                                            # vector (`group.ThreatGroup._pull`), the melee's withdraw bias, else None
 
     def _retire_maneuver(self):
         """The running maneuver is dropped, its sends' ends still read (`_spent_m`)."""
@@ -337,11 +337,10 @@ class FightDispatch:
                            self._work_inputs())
 
     def _work_inputs(self):
-        """Plan 35: the send's `WorkInputs` (the module docstring): the withdraw bias the fighting retreat's heading
-        (`retreat`) while GROUP_LEAVE_N or more stand within GROUP_ENTRY_R (`group_n`), else none."""
-        withdraw = None
-        if self.retreat is not None and self.group_n >= GROUP_LEAVE_N:
-            withdraw = (float(self.retreat[0]), float(self.retreat[1]))
+        """Plan 35: the send's `WorkInputs` (the module docstring): the withdraw bias the engagement picker's vector
+        (Plan 36 Task 3, `withdraw`), else none."""
+        w = self.withdraw
+        withdraw = None if w is None else (float(w[0]), float(w[1]))
         return WorkInputs(WORK_R, WORK_CRAWLER_R, WORK_BAND_LO, withdraw, FLEE_HEALTH, True)
 
     def _melee_dispatch(self, cmd):

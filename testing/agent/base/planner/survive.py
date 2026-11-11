@@ -378,11 +378,13 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     Plan 35 (the footwork, PZA/1.13; the spec's §§ 3.2 and 3.3: the deaths' hits land in held contact while a 2 Hz leg
     superseded the melee reflex whose press is the defence; no switch since Task 8, the deletion): the melee always
     carries its `work` arguments (the reflex's footwork, the pile met, the floor and clear hand-backs); the running melee
-    with `work` holds against every leg (the Fight's own give-ways and the threat branch's drag guard, leave, corner,
-    still read, `many` and care rows, while the health reads above FLEE_HEALTH), logged `engage_hold` {rule}; the
-    fighting retreat's heading is the reflex's withdraw bias with GROUP_LEAVE_N or more standing within GROUP_ENTRY_R,
-    re-sent only past its WITHDRAW_RESEND_DEG sector (`dispatch.py`'s docstring the record). Task 8 deleted the Python
-    legs that fought in contact beside the reflex (`fight.py`'s docstring the record).
+    with `work` holds against every leg (the Fight's own give-ways and the threat branch's drag guard, corner, still
+    read, `many` and care rows, while the health reads above FLEE_HEALTH), logged `engage_hold` {rule}; the withdraw
+    bias is re-sent only past its WITHDRAW_RESEND_DEG sector (`dispatch.py`'s docstring the record). Task 8 deleted the
+    Python legs that fought in contact beside the reflex (`fight.py`'s docstring the record).
+    Plan 36 Task 3 (the engagement picker; the spec's § 3.3; F21, `f_goals_21-20261111-150552`): the withdraw bias is
+    the pull to a line and the cone trigger (`group.ThreatGroup._pull`, logged `engage_pull`); the leave's hold over the
+    engaged melee is deleted, the leave at GROUP_LEAVE_N the pull (`group.py`'s docstring the record).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -730,6 +732,10 @@ class Survive(SneakGait, Threat):
         self._group_prev = {}     # standing zombie id -> tiles on the last tick, within DISENGAGE_R (the closing read)
         self._group_closing = []  # this tick: (id, zombie, tiles) of the standing within GROUP_NEAR_R nearer than before
         self.group_n = 0          # this tick: the standing zombies within GROUP_ENTRY_R (Plan 34, `_group_read`)
+        self.pull = None          # this tick: the engagement picker's withdraw (Plan 36 Task 3, `_pull`), else None
+        self.engage_pull = None   # this tick: its why {why, spread, n, heading[, flank]}, else None
+        self._pull_on = None      # the pull's read on its last line {why, spread, n[, flank]}, else None
+        self._pull_prev = None    # this tick: `_pull_on` as the tick before left it (the pull's hysteresis)
         self.care_withheld = None   # this tick: LEAVE_CARE's {why "group", n, key} when the care was barred, else None
         self.engage_hold = None   # this tick: {rule} of the first threat row held off the Fight's engaged melee
                                   # (Plan 35 Task 2, `Threat._engage_holds`), else None

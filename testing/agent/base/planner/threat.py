@@ -451,9 +451,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         86 to 111: the leave's run held while the reflex shoved in a pile of four to six, the drag-down at health 54),
         as fix 4 narrowed it (the trial `x_trial-ladder-20261110-094757`, decision line 191: the drag lapse's guard run
         superseded the melee holding three at 0.4 to 1.2 tiles, the first bite 0.6 s later and the body bled to 0): a
-        row read with `lapse` (the leave's run, `many`) is not held above RETREAT_MAX_N standing (`_group_lapse`),
-        logged `engage_yield` {rule "many"}: the planner's answer as before Plan 35, the run the last resort; the drag
-        guard is held whatever the attackers read."""
+        row read with `lapse` (`many`) is not held above RETREAT_MAX_N standing (`_group_lapse`), logged
+        `engage_yield` {rule "many"}: the planner's answer as before Plan 35, the run the last resort; the drag guard is
+        held whatever the attackers read. Plan 36 Task 3 deleted the leave's row here (`engage_hold` {rule "leave"}):
+        the leave's legs give way to its retreat under the engaged melee in `group.ThreatGroup._leave_leg` (the pull)."""
         if not self._engage_on():
             return False
         why = self._group_lapse() if lapse else None
@@ -939,8 +940,10 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if self._group_leave(inside):   # Plan 33 Task 3 (GROUP_LEAVE): a closing trio left in the open
             self.cornered, self._corner_fight = None, None
             plan = LEAVE_PLAN[self.leave_leg]   # fix 3: the retreat is the Fight's; fix 4: above RETREAT_MAX_N the run
-            if plan[0] != "fight" and self._engage_holds("leave", lapse=self.leave_leg == "run"):
-                return "fight", None   # Plan 35: the leave's door or run not over the engaged melee
+            if plan[0] != "fight" and self._engage_on() and self.engage_yield is None:
+                # Plan 36 Task 3: the engaged melee keeps the leave's retreat (the pull) up to RETREAT_MAX_N
+                # (`_leave_leg`); above it the run or the door goes over the melee (Plan 35 fix 3's lapse)
+                self.engage_yield = {"rule": "many" if self.leave_leg == "run" else self.leave_leg}
             return plan
         if self._cornered(held, inside) is not None:
             if not self._engage_holds("cornered"):
@@ -1246,6 +1249,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.threats = held
             policy.hold_ok = breach is None
             policy.steer_now = self.group_steer is not None
+            policy.open_run = reason == "many" and self.group_n > RETREAT_MAX_N   # Plan 36 Task 3: the room's open way
             policy.rules = self._flee_rules()   # P25-E, P26-A, P26-B, P26-I, P26-J, Plan 34 Task 2 (DOOR_INSIDE)
             # Plan 34 Task 2 (LEAVE_DOOR_RACE): the leave's pick refuses a one-exit building as its leg read did
             policy.second_exit = True if reason == "leave" and self.LEAVE_DOOR_RACE else None
@@ -1277,7 +1281,11 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.ride = self.care.riding()   # P24-U: the stance legs held off while a bandage rides
             policy.threats = held
             policy.retreat = self.retreat   # Plan 33 Task 3 fix 3: GROUP_LEAVE's fighting retreat heading, else None
-            policy.group_n = self.group_n   # Plan 35: the withdraw bias only with GROUP_LEAVE_N standing within reach
+            # Plan 36 Task 3: the engagement picker's withdraw on the open-ground Fight (no corner, no door fight, off
+            # a room square, not sheltered) whose melee can go (`_melee_on`: no golden's hello announces `melee`), the
+            # melee's withdraw bias, else None
+            open_ground = kind == "fight" and door is None and not self.sheltered and not self.night.inside()
+            policy.withdraw = self._pull(policy) if open_ground and policy._melee_on() else None
             policy.edge_ticks = EDGE_HOLD_TICKS if self.EDGE else 0   # P24-AU, read at the policy's observe
             policy.rules = self._fight_rules()   # P25-A, P25-B, P25-D, P25-F
             policy.edge_marks = self.edge_marks   # P25-X: the refusals across a blocked edge, shared as `unreachable`
@@ -1349,7 +1357,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                        ("finish_lone", self.finish_lone), ("flee_held_stance", self.held_cut),
                        ("point_blank_fight", self.point_blank_fight), ("strain_bound", self.strain_bound),
                        ("group_leave", self.group_leave), ("group_retreat", self.group_retreat),
-                       ("engage_hold", self.engage_hold),
+                       ("engage_hold", self.engage_hold), ("engage_pull", self.engage_pull),
                        ("engage_dispatch", self.engage_dispatch)):
             if v is not None:
                 self.why[key] = v

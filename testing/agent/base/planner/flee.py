@@ -168,6 +168,8 @@ class Flee(Policy):
         self.second_exit = None  # Survive sets it each tick: True on the leave's ticks under LEAVE_DOOR_RACE, so the
                                  # pick reads `one_exit` as the leave's leg did (`door_verdicts`), else None
         self._shelter_note = None  # DOOR_INSIDE: the dropped plan's {shelter, step, ...}, till the choose logs it
+        self.open_run = False    # Survive sets it each tick (Plan 36 Task 3): the `many` run above RETREAT_MAX_N, whose
+                                 # steer takes the room ring's most open heading near its own (`_room_open`)
 
     @property
     def sheltered(self):
@@ -952,6 +954,7 @@ class Flee(Policy):
                 probe = reaches[0]
                 break
         heading = _rotate(v, turn) if turn is not None else (_rotate(v, STEER_TURNS[1]) if h0 is not None else v)
+        heading, opened = self._room_open(heading) if self.open_run else (heading, None)
         near = min(zdist(self.world, z) for z in ts)
         self._aimed = frozenset(self._ids(self._ahead(heading, far)))
         self.why = {"centroid": [cx, cy], "nearest": near, "turn": turn, "probe": probe, "stuck": stuck,
@@ -962,7 +965,20 @@ class Flee(Policy):
             self.why["skip"] = [h0[0], h0[1]]   # fix 2, G2: the carried stuck heading
         if self._cut is not None:
             self.why["cut"], self._cut = self._cut, None
+        if opened is not None:
+            self.why["room_open"] = opened   # Plan 36 Task 3: the ring's heading the run took, degrees
         return Steer(heading[0], heading[1], FLEE_S, self.gait)   # P24-O: a run, never a sprint (P25-C: a walk)
+
+    def _room_open(self, heading):
+        """Plan 36 Task 3 (the spec's § 3.3): `(heading, degrees)` of the room ring's most open heading within 45
+        degrees of the run's `heading` (`World.room_open`, Plan 36 Task 1, degrees from the world's +x), else
+        `(heading, None)` (no ring on the frame, or a World without the read)."""
+        deg = math.degrees(math.atan2(heading[1], heading[0]))
+        opened = getattr(self.world, "room_open", lambda b: None)(deg)   # Task 1's read; the merge drops the getattr
+        if not isinstance(opened, (int, float)) or isinstance(opened, bool):
+            return heading, None
+        r = math.radians(opened)
+        return (math.cos(r), math.sin(r)), opened
 
     def sent(self, cmd, action):
         if cmd.TYPE == "walkTo" and self._chosen in ("step", "exit"):

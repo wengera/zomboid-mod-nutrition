@@ -1115,3 +1115,15 @@ WORK_BAND_LO = 0.4         # tiles: the step back goes while the nearest standin
                            # (`bandLo`)
 WITHDRAW_RESEND_DEG = 30.0   # degrees: the withdraw bias re-sends the running melee only once its heading leaves its
                              # WITHDRAW_RESEND_DEG sector (`maneuvers.melee.WorkInputs.behaviour`)
+# Plan 36 Task 3 (the engagement picker; the spec `2026-11-11-plan-36-the-engagement-design.md` § 3.3; F21,
+# `f_goals_21-20261111-150552`: two bites from 76 to 116 degrees off the body while the leave's hold kept the reflex
+# pressing): the pull to a line and the cone trigger (`group.ThreatGroup._pull`), the withdraw the melee carries
+PULL_SPREAD_DEG = 60.0     # degrees: two or more standing zombies closing within GROUP_ENTRY_R whose bearings spread more
+                           # than this start the pull (the withdraw into the widest gap of their bearings), § 3.3
+PULL_STOP_DEG = 45.0       # degrees: the running pull stops once their spread falls under this (or the nearest stands
+                           # within the reach): the vector dropped and the reflex standing, § 3.3
+CONE_HALF_DEG = 60.0       # degrees: the engagement cone, the pinned target's bearing this far either side; the cone's
+                           # pull stops once its flanker is inside it, § 3.3
+CONE_OFF_DEG = 90.0        # degrees: a standing zombie closing within CONE_TRIGGER_R more than this off the pinned
+                           # target's bearing (30 degrees past the cone's edge) starts the cone's pull, § 3.3
+CONE_TRIGGER_R = 4.0       # tiles: the cone's pull reads flankers this near (before contact), § 3.3

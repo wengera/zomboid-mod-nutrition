@@ -262,7 +262,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         self.threats = None                 # Survive sets it: the held threats the backpedal steps away from
         self.retreat = None                 # Survive sets it (Plan 33 Task 3 fix 3, GROUP_LEAVE's fighting retreat): the
                                             # unit heading away from the closing group's centroid: the pin on the
-                                            # nearest standing zombie (`_retreat_read`), the reflex's withdraw bias
+                                            # nearest standing zombie (`_retreat_read`); the reflex's withdraw bias is
+                                            # `withdraw` (Plan 36 Task 3, `dispatch.FightDispatch._init_dispatch`)
         self._retreat_note = None           # this choose's `retreat_pin` {target, from} (fix 4 (a)), else None
         self.standoff = False               # the stand went STAND_MAX_S without progress: approach and swing
         self.standoff_why = None            # why it fell back: "<state> <reason>" of a stance leg that failed

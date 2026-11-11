@@ -20,10 +20,11 @@ left before it closes, never by running into it.
   LEAVE_DOOR_R (6.0: a long walk turns the back on the group) and whose verdict reads `ok` (`Flee.door_verdicts`), the
   doorway stand resumed there (the Flee's `stand_ok`, P24-AO); with none,
   `retreat` (Angus's fighting retreat, memory `fighting-retreat`): the Fight, never a run, on the nearest standing
-  zombie, the unit heading away from the centroid of the standing zombies within GROUP_ENTRY_R (`retreat`, re-read
-  every line) the reflex's withdraw bias (Plan 35); fix 4 (round three, trial 3, `x_trial-ladder-20261109-042558`:
-  the standing count rose to eight under the retreat and the character died): the retreat for GROUP_LEAVE_N to
-  RETREAT_MAX_N standing within GROUP_ENTRY_R; above it
+  zombie (`retreat`, the unit heading away from the centroid of the standing zombies within GROUP_ENTRY_R, re-read
+  every line, the Fight's pin read), the melee's withdraw the engagement picker's (below, Plan 36); with the melee
+  engaged the door and the spent or held run read as the retreat; fix 4 (round three, trial 3,
+  `x_trial-ladder-20261109-042558`: the standing count rose to eight under the retreat and the character died): the
+  retreat for GROUP_LEAVE_N to RETREAT_MAX_N standing within GROUP_ENTRY_R; above it
   `run`: the threat plan's `many` flee, logged `group_leave` {leg "run", n}, the retreat resumed on the line the count
   falls back to RETREAT_MAX_N (but under RUN_HOLD, below).
   The leave holds while GROUP_LEAVE_N stand within GROUP_ENTRY_R (the retreat, the run) or, on the door's walk, within
@@ -61,6 +62,24 @@ left before it closes, never by running into it.
   keeps the tick's standing count within GROUP_ENTRY_R (`group_n`, `_group_standing`'s read, one read dead or across a
   blocked edge left out); with it at GROUP_LEAVE_N or more the care's commitment and yield are barred but the ride.
   The rule's home is `care_yield.py` (`CareYield._care_commit`, `_care_yields`), logged `care_withheld` there.
+- The engagement picker (Plan 36 Task 3, the spec `2026-11-11-plan-36-the-engagement-design.md` § 3.3; F21,
+  `f_goals_21-20261111-150552`, decision lines 364 to 412: three and four standing with the meet spent, the leave's
+  run held off the engaged melee, `engage_hold` {rule "leave"}, while the reflex pressed at point blank and two bites
+  came from 76 to 116 degrees off the body): where the fight happens, decided before contact, by the withdraw vector
+  the Fight's running melee carries (`_pull`, `Fight.withdraw`, the reflex's withdraw bias; the melee runs throughout:
+  never a flee leg, a steer or a walk), read on every open-ground Fight line (`Threat._decide`):
+  the spread (`_pull_spread`): two or more standing zombies closing within GROUP_ENTRY_R whose bearings spread more
+  than PULL_SPREAD_DEG pull the fight to a line, the vector into the widest gap of their bearings (along the
+  bisector, away from their centroid), until the spread falls under PULL_STOP_DEG or the nearest stands within the
+  reach (then the vector is dropped, the melee re-sent without it, and the reflex stands);
+  the cone (`_pull_cone`): a standing zombie closing within CONE_TRIGGER_R more than CONE_OFF_DEG off the pinned
+  target's bearing sends the vector away from the bisector of the two bearings, until it stands inside the cone (the
+  pin's bearing CONE_HALF_DEG either side) or within the reach;
+  logged `engage_pull` {why "spread" | "cone", spread, n, heading[, flank]} on the threat why. The leave at
+  GROUP_LEAVE_N is this pull: its retreat's withdraw, and with the melee engaged its door and spent or held run read as
+  the retreat (`_leave_leg`, `group_leave` {over}); Plan 35's `engage_hold` {rule "leave"} is deleted. Above
+  RETREAT_MAX_N the `many` run stays, its heading the room ring's most open one where the frame carries the ring
+  (`flee.Flee.open_run`, `World.room_open`).
 
 Plan 35 Task 8 (the deletion; the reflex owns contact) removed the rules that pressed or stepped in contact beside the
 reflex: the leave's first-line shove (its `shove` leg), Plan 33 Task 3's DRAG_GUARD_FIGHT (the guard's shove in its
@@ -70,12 +89,15 @@ retreat's regain).
 """
 import math
 
-from agent.base.planner.policies import (DANGER_R, DISENGAGE_R, DOOR_ABORT_R, DOOR_RACE_R, FLEE_HEALTH_FLOOR,
-                                         GROUP_ENTRY_R, GROUP_LEAVE_N, KEEP_R, LEAVE_DOOR_R, RETREAT_MAX_N,
-                                         STRAIN_SOFT, WALL_R, arm_pain, blocked, on_floor, zdist)
+from agent.base.planner.crawler import is_crawler
+from agent.base.planner.policies import (ATTACK_MARGIN, CONE_HALF_DEG, CONE_OFF_DEG, CONE_TRIGGER_R, DANGER_R,
+                                         DISENGAGE_R, DOOR_ABORT_R, DOOR_RACE_R, FIGHT_REACH, FLEE_HEALTH_FLOOR,
+                                         GROUP_ENTRY_R, GROUP_LEAVE_N, KEEP_R, LEAVE_DOOR_R, PULL_SPREAD_DEG,
+                                         PULL_STOP_DEG, RETREAT_MAX_N, STRAIN_SOFT, WALL_R, arm_pain, blocked,
+                                         on_floor, zdist)
 from agent.base.world import me_floor, me_xy
 
-__all__ = ["ThreatGroup", "LEAVE_PLAN", "back_cover"]
+__all__ = ["ThreatGroup", "LEAVE_PLAN", "back_cover", "spread_gap"]
 
 LEAVE_PLAN = {"door": ("flee", "leave"), "retreat": ("fight", None),
               "run": ("flee", "many")}   # the threat plan of each leave leg (`Threat._threat_plan`)
@@ -129,6 +151,32 @@ def _unit(dx, dy):
     return (1.0, 0.0) if n == 0.0 else (dx / n, dy / n)
 
 
+def _bearing(p, z):
+    """Degrees [0, 360) from point `p` to zombie `z`, 0 the world's +x, 90 its +y."""
+    return math.degrees(math.atan2(z["y"] - p[1], z["x"] - p[0])) % 360.0
+
+
+def _off(a, b):
+    """Degrees [0, 180] between bearings `a` and `b`."""
+    return abs((a - b + 180.0) % 360.0 - 180.0)
+
+
+def _heading(deg):
+    r = math.radians(deg)
+    return (math.cos(r), math.sin(r))
+
+
+def spread_gap(bearings):
+    """`(spread, gap)` of two or more bearings (degrees): `spread` the narrowest arc holding them all (360 less their
+    widest gap), `gap` the bearing at that gap's middle (the arc's bisector turned about: the way away from the group's
+    centroid while the arc is under 180 degrees, and the open side while it is over); the first widest gap in bearing
+    order on a tie."""
+    bs = sorted(b % 360.0 for b in bearings)
+    gaps = [(bs[i + 1] - bs[i], bs[i]) for i in range(len(bs) - 1)] + [(bs[0] + 360.0 - bs[-1], bs[-1])]
+    widest, start = max(gaps, key=lambda g: g[0])
+    return 360.0 - widest, (start + widest / 2.0) % 360.0
+
+
 class ThreatGroup:
     """The threat branch's group rules (the module docstring): `Threat`'s mixin."""
 
@@ -150,10 +198,12 @@ class ThreatGroup:
         leave's outputs too (`_clear_leave`, fix 4: a line the drag guard answers before the leave's row logs no stale
         `group_retreat`); the closing read (`_group_closing`: the standing zombies within GROUP_ENTRY_R each nearer than
         on the line before, `_group_prev` their distances within DISENGAGE_R, kept for the next line); `group_n`, the
-        standing zombies within GROUP_ENTRY_R (Plan 34: LEAVE_CARE's count, the withdraw bias's gate, read every
-        tick)."""
+        standing zombies within GROUP_ENTRY_R (Plan 34: LEAVE_CARE's count and the `many` lapse's, read every tick);
+        the pull's outputs cleared, its last read kept as `_pull_prev` (Plan 36 Task 3: the hysteresis of `_pull`, a
+        tick that fought no open-ground Fight leaving none)."""
         self.group_leave = None
         self._clear_leave()
+        self._pull_prev, self._pull_on, self.pull, self.engage_pull = self._pull_on, None, None, None
         near = self._group_standing(DISENGAGE_R)
         self.group_n = sum(1 for _, _, d in near if d <= GROUP_ENTRY_R)
         prev = self._group_prev
@@ -235,9 +285,12 @@ class ThreatGroup:
           meet spent (`_spent_meet`) at GROUP_LEAVE_N or more, logged {leg "run", n, spent true}; amendment 1
           (RUN_HOLD): once a leave's leg read `run` it stays `run` while that leave holds, whatever the count reads,
           logged {leg "run", n, held true} on the lines the count alone would read the retreat;
-        - else `retreat`, the Fight on the nearest standing zombie, the heading away from the centroid of the standing
-          zombies within GROUP_ENTRY_R (`retreat`, re-read every line) the reflex's withdraw bias, logged
-          `group_retreat` {leg, closing, centroid_away}."""
+        - else `retreat`, the Fight on the nearest standing zombie (`retreat`, the heading away from the centroid of
+          the standing zombies within GROUP_ENTRY_R, re-read every line, is the Fight's pin read, `_retreat_read`),
+          logged `group_retreat` {leg, closing, centroid_away}; the melee's withdraw is the pull's (`_pull`).
+        Plan 36 Task 3 (the spec's § 3.3): with the Fight's melee engaged (`Threat._engage_on`) and no more than
+        RETREAT_MAX_N standing, the door, the spent run and the held run read as the retreat, logged `group_leave`
+        {leg "retreat", over: the leg's own keys}: the leave is the pull, never a leg or a hold over the melee."""
         flee = self.flee
         held_door = flee is not None and flee.plan is not None
         if held_door and self.LEAVE_DOOR_RACE and flee.plan["step"] in ("approach", "open", "enter"):
@@ -254,27 +307,29 @@ class ThreatGroup:
         cy = sum(z["y"] for _, z, _ in group) / len(group)
         away = _unit(mx - cx, my - cy)
         ids = [zid for zid, _, _ in group]
+        n = len(group)
         if door is not None:
-            self.leave_leg = "door"
-            self.group_leave = dict(self.group_leave or {}, leg="door", door=list(door))
-            self.group_retreat = {"leg": "door", "closing": ids, "centroid_away": [away[0], away[1]]}
+            leg, out = "door", {"leg": "door", "door": list(door)}
+        else:
+            spent = self.SPENT_LEAVE and self._spent_meet()   # Plan 34 Task 3c: a spent meet leaves three by the run
+            if n > (GROUP_LEAVE_N - 1 if spent else RETREAT_MAX_N):   # fix 4: the `many` run as Plan 32's ran
+                leg, out = "run", dict({"leg": "run", "n": n}, **({"spent": True} if spent else {}))
+            elif self.RUN_HOLD and self.leave.get("run"):   # RUN_HOLD: no retreat resumes inside a leave that ran
+                leg, out = "run", {"leg": "run", "n": n, "held": True}
+            else:
+                leg, out = "retreat", {"leg": "retreat"}
+        if leg != "retreat" and n <= RETREAT_MAX_N and self._engage_on():
+            leg, out = "retreat", {"leg": "retreat", "over": out}   # Plan 36 Task 3: no leave leg over the engaged
+            # melee: the leave's door, spent run or held run is the pull (`_pull`), never a hold against the leave
+        self.leave_leg = leg
+        self.group_leave = dict(self.group_leave or {}, **out)
+        if leg == "run":
+            if "held" not in out:
+                self.leave["run"] = True   # Plan 34 Task 3c amendment 1 (RUN_HOLD): the run holds for this leave
             return
-        spent = self.SPENT_LEAVE and self._spent_meet()   # Plan 34 Task 3c: a spent meet leaves three by the run
-        if len(group) > (GROUP_LEAVE_N - 1 if spent else RETREAT_MAX_N):   # fix 4: the `many` run as Plan 32's ran
-            self.leave_leg = "run"
-            self.group_leave = dict(self.group_leave or {}, leg="run", n=len(group))
-            if spent:
-                self.group_leave["spent"] = True
-            self.leave["run"] = True   # Plan 34 Task 3c amendment 1 (RUN_HOLD): the run holds for this leave
-            return
-        if self.RUN_HOLD and self.leave.get("run"):   # RUN_HOLD: no retreat resumes inside a leave that ran
-            self.leave_leg = "run"
-            self.group_leave = dict(self.group_leave or {}, leg="run", n=len(group), held=True)
-            return
-        self.leave_leg = "retreat"
-        self.retreat = away
-        self.group_leave = dict(self.group_leave or {}, leg="retreat")
-        self.group_retreat = {"leg": "retreat", "closing": ids, "centroid_away": [away[0], away[1]]}
+        if leg == "retreat":
+            self.retreat = away
+        self.group_retreat = {"leg": leg, "closing": ids, "centroid_away": [away[0], away[1]]}
 
     def _spent_meet(self):
         """Plan 34 Task 3c (SPENT_LEAVE): the meet is spent this tick: the melee the Fight's dispatch would send goes in
@@ -290,6 +345,88 @@ class ThreatGroup:
             return True
         pain = arm_pain(self.world)
         return pain is not None and pain > STRAIN_SOFT
+
+    # ------------------------------------------------------------------------------------------------ the pull
+    def _pull(self, fight):
+        """Plan 36 Task 3 (the module docstring's engagement picker): the withdraw vector `fight`'s melee carries this
+        tick (`pull`, a unit vector), else None; `engage_pull` {why, spread, n, heading[, flank]} its why, `heading`
+        the vector's degrees. The spread's pull first (`_pull_spread`), else the cone's (`_pull_cone`); read on the
+        open-ground Fight's lines (`Threat._decide`), its hysteresis the last such line's read (`_pull_prev`)."""
+        p = me_xy(self.world)
+        standing = [(zid, z, d) for zid, z, d in self._group_standing(GROUP_ENTRY_R) if not is_crawler(z)]
+        reach = self._pull_reach(fight)
+        read = self._pull_spread(p, standing, reach) or self._pull_cone(p, standing, reach, fight)
+        if read is None:
+            self._pull_on, self.pull, self.engage_pull = None, None, None
+            return None
+        heading, why = read
+        self._pull_on = why
+        self.pull = _heading(heading)
+        self.engage_pull = dict(why, heading=heading)
+        return self.pull
+
+    def _pull_reach(self, fight):
+        """The tiles within which the nearest standing zombie ends the spread's pull (the reflex stands and presses):
+        the Fight's attack reach (`reach_r`: the frame's `weapon.reach` plus ATTACK_MARGIN), else the frame's weapon
+        reach plus ATTACK_MARGIN, else FIGHT_REACH."""
+        r = fight.reach_r() if fight is not None else None
+        if r is None:
+            w = (self.world.weapon or {}).get("reach")
+            ok = isinstance(w, (int, float)) and not isinstance(w, bool) and w > 0.0
+            r = w + ATTACK_MARGIN if ok else FIGHT_REACH
+        return r
+
+    def _pull_spread(self, p, standing, reach):
+        """The spread's pull: `(heading, why)` with two or more standing zombies (no crawler) closing within
+        GROUP_ENTRY_R (`_group_closing`) whose bearings spread more than PULL_SPREAD_DEG, the heading the middle of
+        their widest gap (`spread_gap`: along the bisector, away from their centroid); once running (`_pull_prev`), or
+        while a leave holds (`leave`: the leave is this pull), every standing zombie within GROUP_ENTRY_R counts,
+        closing or not (the pull itself opens their distances), the pull holding while their spread reads
+        PULL_STOP_DEG or more; None with the nearest standing within `reach` (the reflex stands) or the spread
+        closed."""
+        if not standing or standing[0][2] <= reach:
+            return None
+        prev = self._pull_prev
+        running = prev is not None and prev["why"] == "spread"
+        if running or self.leave is not None:
+            group = standing
+        else:
+            closing = {zid for zid, _, _ in self._group_closing}
+            group = [e for e in standing if e[0] in closing]
+        if len(group) < 2:
+            return None
+        spread, gap = spread_gap([_bearing(p, z) for _, z, _ in group])
+        if spread < PULL_STOP_DEG if running else spread <= PULL_SPREAD_DEG:
+            return None
+        return gap, {"why": "spread", "spread": spread, "n": len(group)}
+
+    def _pull_cone(self, p, standing, reach, fight):
+        """The cone's pull: `(heading, why)` with a standing zombie (no crawler, not the pin) closing within
+        CONE_TRIGGER_R and beyond `reach` more than CONE_OFF_DEG off the bearing of `fight`'s pinned target (standing,
+        listed): the heading away from the bisector of the two bearings (the withdraw that brings it toward the
+        engagement cone, the pin's bearing CONE_HALF_DEG either side), `flank` its id, `spread` the degrees between
+        them, `n` 2; once running the same flanker holds it while it stands within CONE_TRIGGER_R beyond `reach`
+        more than CONE_HALF_DEG off the pin, closing or not; the nearest such flanker else."""
+        t = self.world.zombies.get(fight.target) if fight is not None and fight.target is not None else None
+        if t is None or t.get("x") is None or t.get("y") is None or on_floor(t) or is_crawler(t):
+            return None
+        bt = _bearing(p, t)
+        prev = self._pull_prev
+        held = prev["flank"] if prev is not None and prev["why"] == "cone" else None
+        closing = {zid for zid, _, _ in self._group_closing}
+        picks = []
+        for zid, z, d in standing:
+            if zid == fight.target or d > CONE_TRIGGER_R or d <= reach:
+                continue
+            bf = _bearing(p, z)
+            off = _off(bf, bt)
+            if off > CONE_HALF_DEG if zid == held else (zid in closing and off > CONE_OFF_DEG):
+                picks.append((zid != held, d, repr(zid), zid, bf, off))
+        if not picks:
+            return None
+        _, _, _, zid, bf, off = min(picks)
+        signed = (bf - bt + 180.0) % 360.0 - 180.0
+        return (bt + signed / 2.0 + 180.0) % 360.0, {"why": "cone", "spread": off, "n": 2, "flank": zid}
 
     def _leave_door(self, flee, ts):
         """`(door, refused)`: the door the leave walks to, the Flee's running plan's, else the nearest door a Flee reads
