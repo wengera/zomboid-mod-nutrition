@@ -9,13 +9,18 @@
 -- argument the melee runs as before, byte for byte (test_lua_footwork.py). Every Java member through PZA.call, every
 -- vanilla constant index-checked; no goto, no integer format of a float, no # on a Java list.
 --
--- melee {..., workR, crawlerR, bandLo, withdrawX, withdrawY, floorHealth, pile} (PZA/1.13): workR the standing zombies
+-- melee {..., workR, crawlerR, bandLo, withdrawX, withdrawY, floorHealth, pile[, backswing]} (PZA/1.13; backswing
+--   PZA/1.15, Plan 36 Task 2a): workR the standing zombies
 --   read for the heading (3.5 tiles), crawlerR a crawler this near repels the heading hard, vetoes a probe point and is
 --   the target with no standing zombie in reach (1.2), bandLo the gap under which the step back goes is the reach less
 --   this (0.4), withdrawX and withdrawY the planner's bias (a vector, absent together), floorHealth the hand-back floor
---   (0 for none), pile true to meet three standing within K.MELEE_CROWD_R in the reflex. check (wrapped): any work field
---   given makes workR, crawlerR, bandLo and floorHealth numbers at or above 0, the withdraw pair numbers or absent
---   together, pile a boolean or absent (bad args otherwise); none given leaves st.work nil. A melee re-sent at the same
+--   (0 for none), pile true to meet three standing within K.MELEE_CROWD_R in the reflex, backswing true to press on
+--   the back step: a press launched while this file's step walks (the auto-walk of kind work: setAutoWalk and
+--   setAutoWalkDirection in input space, M.walkAlong, never a position write) leaves the walk held through the press
+--   instead of stopping it on the press's tick (the melee's K.meleePressWalk; the leaf's moving_back). check
+--   (wrapped): any work field given makes workR, crawlerR, bandLo and floorHealth numbers at or above 0, the withdraw
+--   pair numbers or absent together, pile and backswing booleans or absent (bad args otherwise); none given leaves
+--   st.work nil. A melee re-sent at the same
 --   target (its sent or re-pinned id) while one with work runs keeps the footwork's state (the heading, its cadence, the
 --   nearest's id, the clear count, the pile's step) and the closing history and takes the new work fields.
 -- Each tick with work, after a press in flight and a hit reaction (the melee's rules 1 and 2) and the release read:
@@ -89,7 +94,7 @@ K.WORK_PILE_R = 1.3          -- fix 3: tiles: three standing within this (the ta
                              -- engine's attackers 2 do (the drag-down's approach, x_trial-ladder-20261110-091352)
 
 local WORK_NUMS = { "workR", "crawlerR", "bandLo", "floorHealth" }
-local WORK_KEYS = { "workR", "crawlerR", "bandLo", "floorHealth", "withdrawX", "withdrawY", "pile" }
+local WORK_KEYS = { "workR", "crawlerR", "bandLo", "floorHealth", "withdrawX", "withdrawY", "pile", "backswing" }
 local KEEP = { "hx", "hy", "heading", "turn", "clear", "n", "gap", "crawlerD", "sinceChoose", "nearId", "clearTicks" }
 local RAD = math.pi / 180
 local DEG = 180 / math.pi
@@ -109,8 +114,10 @@ local function workArgs(args)
     if (wx == nil) ~= (wy == nil) then return nil, true end
     if wx ~= nil and (type(wx) ~= "number" or type(wy) ~= "number") then return nil, true end
     if args.pile ~= nil and type(args.pile) ~= "boolean" then return nil, true end
+    if args.backswing ~= nil and type(args.backswing) ~= "boolean" then return nil, true end   -- Plan 36 Task 2a
     return { workR = args.workR, crawlerR = args.crawlerR, bandLo = args.bandLo, floorHealth = args.floorHealth,
              withdrawX = wx or 0, withdrawY = wy or 0, pile = args.pile == true,
+             backswing = args.backswing == true,   -- Plan 36 Task 2a: the press held on the back step
              retreat = wx ~= nil and (wx ~= 0 or wy ~= 0), retreating = false,   -- fix 6: a withdraw vector given
              contact = 0, inContact = false, near = nil, gap = nil, nearId = nil, n = nil, clear = nil,
              stepTicks = 0, pressMark = 0, nearO = nil, held = nil,

@@ -1,4 +1,5 @@
--- PZAgent_StanceMelee.lua — the melee reflex (PZA/1.10, Plan 31 Task 2: the meet, the finish aimed at the head and the
+-- PZAgent_StanceMelee.lua — the melee reflex (PZA/1.15, Plan 36 Task 2a: the press on the back step, the leaf's
+-- moving_back and air; PZA/1.10, Plan 31 Task 2: the meet, the finish aimed at the head and the
 -- spent meet, the spec `2026-11-05-plan-31-the-rebuild-design.md` section 4 items 1, 2 and 2b; first cut PZA/1.8, Plan
 -- 28 Task 7a, the maneuver layer's cut 1). The skill melee owns one zombie to the kill at the client's tick rate: the
 -- facing written from faceR on, the press when the look is on the target and the target's distance at the swing's
@@ -122,9 +123,18 @@
 --   level - 1.3 per panic level + 2 x Strength, truncated, rolled against Rand.Next(100)), read at the press off the
 --   moodles and getPerkLevel(Perks.Strength); a reading, never a decision, and absent when any input is unread (the
 --   combat config's from-behind and default additions are not read).
+--   Plan 36 Task 2a (PZA/1.15, the probe's instrument): every leaf adds moving_back, whether the footwork's step
+--   was left walking through the press (K.meleePressWalk, the block at the end of this file: work's backswing true
+--   and the auto-walk of kind work running at the press; the step moves the player by setAutoWalk and
+--   setAutoWalkDirection in input space, never by a position write; with backswing false or absent the walk is
+--   stopped on the press's own tick, setAutoWalk(false) then DoAttack(0), today's order), and air, a swing or floor
+--   swing whose d_collide_pred at the launch lies beyond reachOf (K.meleePressAir; false for a shove or a stomp).
+--   Every result line counts air_presses and back_presses beside swings (the presses launched with air and with
+--   moving_back, refused ones included, as swings counts them).
 -- The act lines: progress on every step change, on each press leaf and once a second while a step holds, result {step,
---   d, hp, swings, shoves, stomps, floors, knockdowns, hits, spent[, press][, target, repins]}; done {end, kill, why,
---   id, d, the five counts, hits, hp0, hp1, dMin, steps {step: ticks}[, n, ds][, press][, target, repins]}: end kill
+--   d, hp, swings, shoves, stomps, floors, knockdowns, hits, air_presses, back_presses, spent[, press][, target,
+--   repins]}; done {end, kill, why, id, d, the five counts, hits, air_presses, back_presses, hp0, hp1, dMin, steps
+--   {step: ticks}[, n, ds][, press][, target, repins]}: end kill
 --   (the target dead: the re-pinned one once `target` is on the line), handback (why crowd, with the nearest other's
 --   id and d, the count n and the distances ds, or standing, with the other zombie's id and d) or lost (why out of
 --   range, out of reach: K.STOMP_APPROACH_MS of
@@ -490,7 +500,7 @@ end
 -- a press of kind at the target (the shove flag first for a shove or a stomp; a swing or a floor swing needs a weapon),
 -- held while an attack still runs (isAttackStarted: the engine drops a press then, #4292); the step, or failed, reason
 local function press(p, st, kind, d, pred, off, waitStep, dmin, ax, ay)
-    stopWalk(p, st)
+    local back = K.meleePressWalk(p, st)   -- Plan 36 Task 2a: the back step held (backswing), else the stop on this tick
     if st.refuseUntil ~= nil and PZA.now() < st.refuseUntil then return "refused" end   -- the residual: the wait
     if (kind == "swing" or kind == "floor") and weaponOf(p) == nil then return "failed", "no weapon" end
     local _, busy = PZA.call(p, "isAttackStarted")
@@ -504,11 +514,14 @@ local function press(p, st, kind, d, pred, off, waitStep, dmin, ax, ay)
     local bodyOff = F.body_off(p, b or st.faceB)   -- Plan 32 Task 4: the body at the press, before the press's snap
     st.strike = { kind = kind, at = PZA.now(), started = false, ended = false, refused = false, ticks = 0, hp0 = hp,
                   dPress = d, dPred = pred, dMin = dmin or d, off = off, cut = "", ax = ax, ay = ay, knockP = kp,
-                  bodyOff = bodyOff, facing = K.PRESS_FACING, headTicks = st.headTicks }
+                  bodyOff = bodyOff, facing = K.PRESS_FACING, headTicks = st.headTicks, movingBack = back,
+                  air = K.meleePressAir(p, st, kind, pred) }
     st.headTicks = 0   -- Plan 33 Task 1: a press restarts the head step's count
     F.press_enter(p, st, b)
     pcall(PZA.call, p, "DoAttack", 0)
     st[COUNT[kind]] = st[COUNT[kind]] + 1
+    if back then st.backPresses = st.backPresses + 1 end            -- Plan 36 Task 2a: the done line's counts
+    if st.strike.air then st.airPresses = st.airPresses + 1 end
     st.walkBest, st.walkMs = nil, 0   -- a press restarts the walk's bound (fix 1, F6)
     return kind
 end
@@ -541,7 +554,7 @@ local function leafOf(st, s, cut)
     local knocked = K.knockedDown(st.z)
     return { d_press = s.dPress, d_collide_pred = s.dPred, d_min = s.dMin, look_off = s.off, hp0 = s.hp0,
              hp1 = healthOf(st.z), knock = knocked, cut_by = cut, knock_p = s.knockP, body_off = s.bodyOff,
-             facing = s.facing, head_ticks = s.headTicks }, knocked
+             facing = s.facing, head_ticks = s.headTicks, moving_back = s.movingBack, air = s.air }, knocked
 end
 
 -- the ended press's result: its leaf, a swing's or a shove's knock-down (counted, the knock wait armed), the shove flag
@@ -786,6 +799,7 @@ end
 local function counts(st, out)
     out.swings, out.shoves, out.stomps, out.floors = st.swings, st.shoves, st.stomps, st.floors
     out.knockdowns, out.hits = st.knockdowns, st.hits
+    out.air_presses, out.back_presses = st.airPresses, st.backPresses   -- Plan 36 Task 2a (PZA/1.15)
     if st.repins > 0 then out.target, out.repins = st.id, st.repins end   -- Task 15a: the zombie now pressed
     if st.work ~= nil and K.workResult ~= nil then K.workResult(st, out) end   -- Plan 35 Task 1: contact, the work leaf
     return out
@@ -863,6 +877,7 @@ K.types.melee = {
                            floorSwing = fs, headAim = args.headAim == true, unarmed = unarmed, startMs = nil, step = nil, lastP = 0, lastNow = nil,
                            dtS = K.MELEE_UPDATE_S, dMin = nil, hp0 = nil, hist = {}, near = false, loose = false,
                            faced = 0, swings = 0, shoves = 0, stomps = 0, floors = 0, knockdowns = 0, hits = 0,
+                           airPresses = 0, backPresses = 0,
                            nothing = 0, steps = {}, strike = nil, leaf = nil, knocked = false, inHit = false,
                            walk = nil, wx = nil, wy = nil, walkBest = nil, walkMs = 0, weaponReach = nil, minR = nil,
                            rawReach = nil, refusals = 0, refuseRun = nil, refuseUntil = nil,
@@ -1235,4 +1250,30 @@ end
 -- a press's leaf distance beyond the reach (with work only): the press neither counts nor resets the stall
 function K.meleeBeyondReach(p, st, s)
     return st.work ~= nil and s.dMin ~= nil and s.dMin > reachOf(p, st)
+end
+
+-- ---- the press on the back step (Plan 36 Task 2a, PZA/1.15) -----------------------------------------------------
+-- The probe's instrument (the spec 2026-11-11-plan-36-the-engagement-design.md section 3.2: the press rides the back
+-- step): press calls K.meleePressWalk where it stopped the walk, and the leaf's air is K.meleePressAir at the launch.
+
+-- the walk at a press (Plan 36 Task 2a, PZA/1.15; the header's backswing): with work's backswing true and the
+-- footwork's step walking (st.walk "work": the band step, the retreat's step under the planner's withdraw, the pile's
+-- and the crawler's steps, all the auto-walk along the heading, never a position write) the walk is left held through
+-- the press, true (the leaf's moving_back); else the walk is stopped on the press's own tick, false: the stop's tick
+-- is the press's tick (setAutoWalk(false), then DoAttack(0) in the same client tick), today's order and the fallback
+-- should the engine refuse an attack started while walking
+function K.meleePressWalk(p, st)
+    local w = st.work
+    if w ~= nil and w.backswing and st.walk == "work" then return true end
+    stopWalk(p, st)
+    return false
+end
+
+-- a swing into the air (Plan 36 Task 2a: the leaf's air): a swing or a floor swing whose predicted distance at the
+-- collision (d_collide_pred) lies beyond the swing's distance (reachOf) at the launch; false for a shove and a stomp
+-- (no swing) and with the prediction unread
+function K.meleePressAir(p, st, kind, pred)
+    if kind ~= "swing" and kind ~= "floor" then return false end
+    if type(pred) ~= "number" then return false end
+    return pred > reachOf(p, st)
 end

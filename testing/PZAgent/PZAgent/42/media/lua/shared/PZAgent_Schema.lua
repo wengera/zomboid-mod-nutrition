@@ -63,7 +63,7 @@ PZA.schema = {
         unwear = { "itemId" },
         shove = { "targetId" },
         stomp = { "targetId" },
-        melee = { "targetId", "mode", "reach", "shoveR", "releaseR", "faceR", "pressAngle", "pressLo", "floorR", "handbackR", "stall", "floorSwing", "headAim", "workR", "crawlerR", "bandLo", "withdrawX", "withdrawY", "floorHealth", "pile" },
+        melee = { "targetId", "mode", "reach", "shoveR", "releaseR", "faceR", "pressAngle", "pressLo", "floorR", "handbackR", "stall", "floorSwing", "headAim", "workR", "crawlerR", "bandLo", "withdrawX", "withdrawY", "floorHealth", "pile", "backswing" },
         sneak = { "on" },
         probe = { "mode", "targetId", "x", "y", "ticks", "k", "vx", "vy" },
     },

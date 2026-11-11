@@ -88,8 +88,8 @@ def test_the_first_tick_with_a_player_writes_hello_the_first_sight_and_one_flush
     hello = out[0]
     caps = sorted(lua.eval("PZA.schema.actions").keys())   # every action, sleep's skill included since Plan 23 Task 8
     # and the probe's since PZA/1.11 (Plan 32 Task 1)
-    # PZA/1.8 (Plan 28 Task 7a): the mod version the hello reads (1.14 since Plan 36 Task 1)
-    assert hello["proto"] == "PZA/1" and hello["mod"] == "1.14" and hello["user"] == "admin"
+    # PZA/1.8 (Plan 28 Task 7a): the mod version the hello reads (1.15 since Plan 36 Task 2a)
+    assert hello["proto"] == "PZA/1" and hello["mod"] == "1.15" and hello["user"] == "admin"
     assert hello["caps"] == caps and hello["rate"] == 10 and hello["mode"] == "append" and hello["build"] == ""
     assert sorted(list(lua.eval("PZA.skills.types").keys()) + ["rate", "scan"]) == caps
     assert [(e["event"], e["itemId"], e["fullType"]) for e in out[1:]] == [("item_added", 1000, "Base.Bread"),
@@ -589,7 +589,7 @@ def test_with_the_footwork_file_hello_announces_room_and_every_third_frame_carri
     g.getPlayer = lambda: p
     run(g, 24)
     out = lines(fs)
-    assert "room" in out[0]["caps"] and out[0]["mod"] == "1.14"
+    assert "room" in out[0]["caps"] and out[0]["mod"] == "1.15"
     frames = [l for l in out if l["kind"] == "frame"]
     for i in range(1, len(frames)):                                   # the delta frames merged, as the transport does
         frames[i] = pza1.merge_delta(frames[i], frames[i - 1])

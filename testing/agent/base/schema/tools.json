@@ -591,6 +591,11 @@
           "type": "boolean",
           "description": "PZA/1.13: true to meet three standing zombies within 0.9 tiles in the reflex (the shove at the nearest, its knock_p on the leaf, the step along the heading at once, the next press) instead of the crowd hand-back.",
           "default": false
+        },
+        "backswing": {
+          "type": "boolean",
+          "description": "PZA/1.15 (Plan 36 Task 2a): true to press on the back step: a press launched while the footwork's step walks (the band step, the retreat's step under the withdraw, the pile's and the crawler's steps: the auto-walk along the heading) leaves the walk held through the press (the leaf's moving_back), instead of stopping it on the press's own tick (false, the default: today's order); a work argument, needed with workR.",
+          "default": false
         }
       },
       "required": [

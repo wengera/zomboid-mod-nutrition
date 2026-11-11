@@ -976,12 +976,14 @@ def test_the_melee_s_pza1_10_args_and_result():
     assert tuple(pza1.ACTION_ARGS["melee"]) == ("targetId", "mode", "reach", "shoveR", "releaseR", "faceR",
                                                  "pressAngle", "pressLo", "floorR", "handbackR", "stall", "floorSwing",
                                                  "headAim", "workR", "crawlerR", "bandLo", "withdrawX", "withdrawY",
-                                                 "floorHealth", "pile")   # PZA/1.13 (Plan 35 Task 1): the work
+                                                 "floorHealth", "pile",
+                                                 "backswing")   # PZA/1.13 (Plan 35 Task 1): the work; PZA/1.15 (Plan
+    # 36 Task 2a): backswing
     assert pza1.ACTION_ARGS["melee"]["stall"] == "int"
     assert d["args_melee"]["additionalProperties"] is False
     leaf = {"d_press", "d_collide_pred", "d_min", "look_off", "hp0", "hp1", "knock", "cut_by",
-            "knock_p", "body_off", "facing", "head_ticks"}   # Plan 31 Task 15a: a shove's knock_p; Plan 32 Task 4:
-    # the facing's; Plan 33 Task 1: the head step's wait
+            "knock_p", "body_off", "facing", "head_ticks", "moving_back", "air"}   # Plan 31 Task 15a: a shove's
+    # knock_p; Plan 32 Task 4: the facing's; Plan 33 Task 1: the head step's wait; Plan 36 Task 2a: moving_back, air
     assert "head_ticks" in d["result_melee"]["properties"]   # Plan 33 Task 1: a head_stall handback's
     for k in ("result_melee", "result_melee_step"):
         props = d[k]["properties"]

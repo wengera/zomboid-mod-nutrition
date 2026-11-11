@@ -96,7 +96,7 @@ ACTION_ARGS = {
     "unwear": {"itemId": "int"},
     "shove": {"targetId": "int"},
     "stomp": {"targetId": "int"},
-    "melee": {"targetId": "int", "mode": "meleeMode", "reach": "float", "shoveR": "float", "releaseR": "float", "faceR": "float", "pressAngle": "float", "pressLo": "float", "floorR": "float", "handbackR": "float", "stall": "int", "floorSwing": "bool", "headAim": "bool", "workR": "float", "crawlerR": "float", "bandLo": "float", "withdrawX": "float", "withdrawY": "float", "floorHealth": "float", "pile": "bool"},
+    "melee": {"targetId": "int", "mode": "meleeMode", "reach": "float", "shoveR": "float", "releaseR": "float", "faceR": "float", "pressAngle": "float", "pressLo": "float", "floorR": "float", "handbackR": "float", "stall": "int", "floorSwing": "bool", "headAim": "bool", "workR": "float", "crawlerR": "float", "bandLo": "float", "withdrawX": "float", "withdrawY": "float", "floorHealth": "float", "pile": "bool", "backswing": "bool"},
     "sneak": {"on": "bool"},
     "probe": {"mode": "probeMode", "targetId": "int", "x": "float", "y": "float", "ticks": "int", "k": "float", "vx": "float", "vy": "float"},
 }
@@ -505,6 +505,7 @@ class Melee(_Cmd):
     withdrawY: Optional[float] = None  # PZA/1.13: the withdraw bias's y; absent with withdrawX.
     floorHealth: Optional[float] = None  # PZA/1.13: the body's health (0 to 100) at or under which the melee ends handback, why floor; 0 for none; needed with workR.
     pile: bool = False  # PZA/1.13: true to meet three standing zombies within 0.9 tiles in the reflex (the shove at the nearest, its knock_p on the leaf, the step along the heading at once, the next press) instead of the crowd hand-back.
+    backswing: bool = False  # PZA/1.15 (Plan 36 Task 2a): true to press on the back step: a press launched while the footwork's step walks (the band step, the retreat's step under the withdraw, the pile's and the crawler's steps: the auto-walk along the heading) leaves the walk held through the press (the leaf's moving_back), instead of stopping it on the press's own tick (false, the default: today's order); a work argument, needed with workR.
 
 
 @dataclasses.dataclass(frozen=True)

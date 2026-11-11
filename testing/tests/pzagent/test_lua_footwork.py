@@ -787,8 +787,8 @@ def test_the_generated_melee_carries_the_work_fields_and_leaves_them_off_the_wir
         3.5, 1.2, 0.4, 0.0, 1.0, 40.0, True)
 
 
-def test_the_core_announces_1_14(lua, fs):
-    assert lua.eval("PZA.VERSION") == "1.14"   # Plan 36 Task 1: PZA/1.14, me.room
+def test_the_core_announces_1_15(lua, fs):
+    assert lua.eval("PZA.VERSION") == "1.15"   # Plan 36 Task 2a: PZA/1.15, backswing, moving_back and air
 
 
 # ---- the re-send ------------------------------------------------------------------------------------------------------
@@ -1432,3 +1432,144 @@ def test_the_melee_never_holds_a_nil_ring(lua, fs):
     lua.execute("PZA.skills.cur.st.work.sinceChoose, PZA.skills.cur.st.work.roomTicks = PZA.skills.WORK_TICKS, 99")
     run(lua, p, w, 1)
     assert lua.eval("PZA.skills.cur.st.work.room.h[5]") == kept == 3.0
+
+
+# ---- Plan 36 Task 2a (PZA/1.15): the press on the back step (backswing), the leaf's moving_back and air ----------------
+
+def _press_walks(p, w, also=None):
+    """w's on_attack recording the auto-walk at each DoAttack (the fake's motor flag: setAutoWalk's last value)."""
+    seen = []
+
+    def on_attack(wd, shove):
+        seen.append(p.motor["autoWalk"])
+        if also is not None:
+            also(wd, shove)
+    w["on_attack"] = on_attack
+    return seen
+
+
+def _stagger(wd, shove):
+    wd["zspeed"] = 0.0   # the swing staggers the chaser (#4686), as the retreat's own test
+
+
+@pytest.mark.parametrize("over", [{"backswing": "yes"}, {"backswing": 1}])
+def test_a_backswing_that_is_no_boolean_is_bad_args(lua, fs, over):
+    p, z, w = world(lua, zx=11.0)
+    a = dict(ARGS)
+    a.update(WORK)
+    a.update(over)
+    start(lua, p, "melee", aid="m1", **a)
+    assert states(acts(lua, fs)) == [("m1", "rejected", "bad args")]
+
+
+def test_backswing_is_a_work_argument_needing_work_r(lua, fs):
+    """backswing alone (no workR) is a work field given without the footwork's numbers: bad args."""
+    p, z, w = world(lua, zx=11.0)
+    go(lua, p, backswing=True)
+    assert states(acts(lua, fs)) == [("m1", "rejected", "bad args")]
+
+
+def test_backswing_is_kept_on_the_work_state_false_when_absent(lua, fs):
+    p, z, w = world(lua, zx=11.0)
+    gow(lua, p, backswing=True)
+    assert states(acts(lua, fs)) == [("m1", "accepted", "")] and work_of(lua, "backswing") is True
+    gow(lua, p, aid="m2")
+    assert work_of(lua, "backswing") is False
+
+
+def test_backswing_absent_stops_the_walk_on_the_press_s_own_tick_as_before(lua, fs):
+    """A pin of today's order (Plan 36 Task 2a, named so): under the retreat the step walks until the press, and with
+    backswing absent the walk is stopped on the press's own tick (setAutoWalk(false), then DoAttack(0)): the step line
+    before the swing reads work, the auto-walk reads false at DoAttack, the leaf's moving_back false, back_presses 0."""
+    p, z, w = retreat_world(lua)
+    seen = _press_walks(p, w, _stagger)
+    gow(lua, p, withdrawX=-1.0, withdrawY=0.0)
+    run(lua, p, w, 90)
+    seq = step_seq(lua, fs)
+    i = seq.index("swing")
+    assert seq[i - 1] == "work"                                      # the press launched off the back step
+    assert seen and seen[0] is False                                 # the walk stopped on the press's tick
+    assert all(x["moving_back"] is False for x in leaves(lua, fs))
+    assert progress(lua, fs)[-1]["result"]["back_presses"] == 0
+
+
+def test_backswing_keeps_the_back_step_walking_through_the_press(lua, fs):
+    """The same retreat with backswing true: the auto-walk still reads true at DoAttack and through the press's ticks,
+    the leaf's moving_back true and back_presses counted."""
+    p, z, w = retreat_world(lua)
+    seen = _press_walks(p, w, _stagger)
+    gow(lua, p, withdrawX=-1.0, withdrawY=0.0, backswing=True)
+    run(lua, p, w, 90, stop=lambda: len(w["presses"]) >= 1)
+    seq = step_seq(lua, fs)
+    assert seq[-2:] == ["work", "swing"] and seen == [True]
+    run(lua, p, w, 3)
+    assert lua.eval("PZA.skills.cur.st.strike ~= nil") and p.motor["autoWalk"] is True   # held through the press
+    run(lua, p, w, 60)
+    lv = leaves(lua, fs)
+    assert lv and lv[0]["moving_back"] is True and lv[0]["air"] is False
+    r = progress(lua, fs)[-1]["result"]
+    assert r["back_presses"] == sum(1 for x in seen if x) >= 1 and r["air_presses"] == 0
+
+
+def test_backswing_with_no_step_walking_is_no_moving_back(lua, fs):
+    """The falsifier: backswing true, the target static inside the band beyond point blank: the first press comes off
+    the face step with no walk (moving_back false)."""
+    p, z, w = world(lua, zx=10.95, zspeed=0.0, attack_ticks=6)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p, backswing=True)
+    run(lua, p, w, 60)
+    lv = leaves(lua, fs)
+    assert step_seq(lua, fs)[:2] == ["swing", "work"] and lv[0]["moving_back"] is False
+
+
+def test_air_at_its_method_a_swing_beyond_the_reach(lua, fs):
+    """K.meleePressAir tested at its method (no meet path reaches it: swingPress presses a swing only with its
+    predicted distance within the reach): a swing or a floor swing beyond reachOf reads air, within it none, a shove or
+    a stomp never, an unread prediction none."""
+    p, z, w = world(lua, zx=10.95, **LOOK_OFF)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p)                                                       # reach 1.475
+    run(lua, p, w, 1)
+    lua.globals()._p = p
+
+    def air(kind, pred):
+        return lua.eval("PZA.skills.meleePressAir(_p, PZA.skills.cur.st, %r, %s)" % (kind, pred))
+    assert air("swing", 1.6) is True and air("floor", 1.6) is True
+    assert air("swing", 1.475) is False and air("swing", 1.2) is False
+    assert air("shove", 1.6) is False and air("stomp", 1.6) is False and air("swing", "nil") is False
+
+
+def test_a_press_launched_beyond_the_reach_reads_air_and_one_within_none(lua, fs):
+    """The press's own leaf and count: a swing launched through the melee's press with its prediction at 1.6 (beyond
+    the reach 1.475) reads air and air_presses 1; the meet's own presses within the reach read none."""
+    p, z, w = world(lua, zx=10.95, zspeed=0.0, attack_ticks=6, **LOOK_OFF)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p)
+    run(lua, p, w, 1)
+    lua.globals()._p = p
+    lua.execute('PZA.skills.meleeWork.press(_p, PZA.skills.cur.st, "swing", 1.6, 1.6, 0, "face", 1.6)')
+    run(lua, p, w, 10)
+    assert leaves(lua, fs)[0]["air"] is True and progress(lua, fs)[-1]["result"]["air_presses"] == 1
+
+
+def test_the_meet_s_presses_within_the_reach_read_no_air(lua, fs):
+    p, z, w = world(lua, zx=10.95, zspeed=0.0, attack_ticks=6)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p)
+    run(lua, p, w, 40)
+    lv = leaves(lua, fs)
+    assert lv and all(x["air"] is False for x in lv) and progress(lua, fs)[-1]["result"]["air_presses"] == 0
+
+
+def test_the_backswing_fields_are_in_the_schema_and_the_generated_melee():
+    with open(SCHEMA, encoding="utf-8") as fh:
+        defs = json.load(fh)["$defs"]
+    assert defs["args_melee"]["properties"]["backswing"]["default"] is False
+    for res in ("result_melee", "result_melee_step"):
+        props = defs[res]["properties"]
+        assert {"air_presses", "back_presses"} <= set(props)
+        assert {"moving_back", "air"} <= set(props["press"]["properties"])
+    base = dict(targetId=7, mode="strike", reach=1.25, shoveR=0.9, releaseR=2.75, faceR=3.0, pressAngle=41.0,
+                pressLo=0.0, floorR=1.0, handbackR=2.0, stall=3, workR=3.5, crawlerR=1.2, bandLo=0.4, floorHealth=0.0)
+    assert "backswing" not in pza1.Melee(**base).args()
+    assert pza1.Melee(backswing=True, **base).args()["backswing"] is True
