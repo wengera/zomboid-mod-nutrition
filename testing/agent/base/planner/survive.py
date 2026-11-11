@@ -581,9 +581,9 @@ T20_SWITCHES = ("FOOTWORK", "ENGAGE_HOLD", "WITHDRAW")
 # lower-cased: FOOTWORK, the melee's `work` arguments to a build at mod 1.13 or later (`dispatch.FightDispatch
 # ._work_inputs`); ENGAGE_HOLD, the running melee with `work` held against every leg, the Fight's and the threat
 # branch's (`dispatch.FightDispatch._engaged`, `threat.Threat._engage_holds`), logged `engage_hold` {rule}, the crowd
-# gate off, and (fix 8) a `lost` end with a standing zombie within KEEP_R keeps the engagement, its point-blank mark
-# lifted; WITHDRAW, the fighting retreat's heading as the reflex's withdraw bias with GROUP_LEAVE_N or more standing
-# within GROUP_ENTRY_R
+# gate off, and (fixes 8 and 8b) a melee end with a standing zombie within KEEP_R keeps the engagement (no regain leg,
+# no ladder choose after a `lost` end, no `unreachable` flee); WITHDRAW, the fighting retreat's heading as the
+# reflex's withdraw bias with GROUP_LEAVE_N or more standing within GROUP_ENTRY_R
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -770,6 +770,8 @@ class Survive(SneakGait, Threat):
         self.engage_yield = None  # this tick: {rule "bleed"} when the engagement yielded to the bleed's care (Plan 35
                                   # Task 2 fix 2, `CareYield._care_engage_holds`), {rule "many"} above
                                   # RETREAT_MAX_N (fixes 3 and 4, `Threat._group_lapse`), else None
+        self.engage_dispatch = None   # this tick: {from "unreachable", target} when the `unreachable` flee was withheld
+                                      # in contact (Plan 35 Task 2 fix 8b, `Threat._contact_lift`), else None
         self.care_leg = None      # the care's one distance leg (Plan 32 Task 5 (c), `care_yield.CareLeg`), else None
         self.care_commit = None   # this tick: the care commitment's why (Plan 32 Task 5 (c)), else None
         self.bleed_held = False   # this tick: that yield was made by the dressing's hold alone (P26-L2)

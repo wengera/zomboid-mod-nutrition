@@ -1142,9 +1142,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         ladder not read."""
         if self._engaged():
             return self._engage_resend()
-        lost, self._m_lost = self._m_lost, False
-        if lost:   # Plan 35 fix 8: after a `lost` end the engagement keeps, no break or regain leg in the melee's place
-            self._break, self._regain = None, None
+        kept, self._m_kept = self._m_kept, None
+        if kept is not None:   # Plan 35 fixes 8 and 8b: after a melee end in contact, no break or regain leg in the
+            self._break, self._regain = None, None   # melee's place
         cmd = self._retreat_leg(self._ladder())
         if self._break is not None:
             leg = self._break_leg(cmd)
@@ -1156,8 +1156,8 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         self._regain_arm(cmd)
         ladder, self._m_ladder = self._m_ladder, False
         out = self._regain_note(cmd if ladder else self._melee_dispatch(cmd))
-        if lost and out is not None and out.TYPE == "melee" and "melee" in self.why:
-            self.why["melee"]["engage_dispatch"] = {"from": "lost"}   # Plan 35 fix 8
+        if kept is not None and out is not None and out.TYPE == "melee" and "melee" in self.why:
+            self.why["melee"]["engage_dispatch"] = {"from": kept}   # Plan 35 fixes 8 and 8b: the end it follows
         return out
 
     def _retreat_legs(self):

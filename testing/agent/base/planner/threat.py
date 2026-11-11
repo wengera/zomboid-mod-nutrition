@@ -10,6 +10,7 @@ from (a pure move): the hold and spent reads (`hold.Hold`), the engage (`engage.
 """
 from agent.base.planner.care import CARE_STILL_TICKS
 from agent.base.planner.care_yield import CareYield
+from agent.base.planner.crawler import is_crawler
 from agent.base.planner.door_held import ThreatDoorHeld
 from agent.base.planner.doorway import DoorwayStand, stand_ready
 from agent.base.planner.edges import ThreatEdge, crossed
@@ -501,6 +502,24 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         leave's `run` leg's own count), else None."""
         return "many" if self.group_n > RETREAT_MAX_N else None
 
+    def _contact_lift(self):
+        """Plan 35 fix 8b (the controller's ruling; the street-1 trial `x_trial-ladder-20261111-114439`, decision lines
+        306 to 313: the one standing zombie left, 27900, marked unreachable and lunging from 1.11 to 0.49 tiles, the
+        threat plan fled `unreachable` to a shelter and the bite landed under the walk 0.75 s later): under the
+        engagement's dispatch (ENGAGE_HOLD and FOOTWORK on, the build at mod 1.13) no `unreachable` flee is taken with a
+        standing zombie (not a crawler) within KEEP_R: the nearest's mark is lifted, so the Fight pins it and its
+        dispatch sends the melee with `work`, logged `engage_dispatch` {from "unreachable", target} on the threat why
+        (the reflex's stall and re-pin own the unreachable case from inside the engagement). True when it lifted one."""
+        if not (self.ENGAGE_HOLD and self.FOOTWORK and self.world.mod_at_least("1.13")):
+            return False
+        near = next(((zid, d) for zid, z, d in self._group_standing(KEEP_R)
+                     if target_id_ok(zid) and not is_crawler(z)), None)
+        if near is None:
+            return False
+        self.unreachable.pop(near[0], None)
+        self.engage_dispatch = {"from": "unreachable", "target": near[0]}
+        return bool(self._reachable_held())
+
     def _engage_on(self):
         """`_engage_holds`'s read, with no log: ENGAGE_HOLD on, this branch fighting, its Fight engaged, the health above
         FLEE_HEALTH."""
@@ -693,7 +712,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             # tiredness halve every swing; P24-AP within KEEP_R; P27-C; Plan 32 Task 5 (d): only under a real
             # exhaustion; Plan 35 fix 1: not over the engaged melee (the reflex's spent meet)
             return "strain"
-        if not self._reachable_held():
+        if not self._reachable_held() and not self._contact_lift():
             return "unreachable"
         near = min(zdist(self.world, z) for z in held)
         if self.mode == "flee":
@@ -1102,6 +1121,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.care_withheld = None  # Plan 34 (LEAVE_CARE): this tick's care barred under a column
         self.engage_hold = None    # Plan 35 (ENGAGE_HOLD): this tick's threat row held off the engaged melee
         self.engage_yield = None   # Plan 35 fix 2: this tick's care the engagement yielded to (a bleed, nobody in KEEP_R)
+        self.engage_dispatch = None   # Plan 35 fix 8b: this tick's `unreachable` flee withheld in contact
         self._read_bleed()         # P30-F: each part's health sampled, its bleed's rate read by `_dress_waits`
         self._release_edges()   # P25-X: a zombie refused across a blocked edge, read on the player's side, is free
         self._door_held_read()   # P30-C: a zombie behind a door within DOOR_HELD_R, decided before the hold counts
@@ -1372,7 +1392,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                        ("finish_lone", self.finish_lone), ("flee_held_stance", self.held_cut),
                        ("point_blank_fight", self.point_blank_fight), ("strain_bound", self.strain_bound),
                        ("group_leave", self.group_leave), ("group_retreat", self.group_retreat), ("drag_fight", self.drag_fight),
-                       ("side_clear", self.side_clear), ("engage_hold", self.engage_hold)):
+                       ("side_clear", self.side_clear), ("engage_hold", self.engage_hold),
+                       ("engage_dispatch", self.engage_dispatch)):
             if v is not None:
                 self.why[key] = v
         if self.broken is not None:

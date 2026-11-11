@@ -508,31 +508,72 @@ def lost_rig(tmp_path, mod="1.13", zs=LOST_PILE, scan=None):
     return r, f, a
 
 
-def test_a_lost_melee_at_point_blank_keeps_the_engagement(tmp_path):
-    """Plan 35 fix 8 (rules 1 and 2): the melee ends `lost` `no progress` with its reflex on 2 at 0.5 tiles (within
-    POINT_BLANK_R, its line clear): 2 is not marked (nor 1, the planner's pin the reflex left), `_m_ladder` is not set,
-    and the next choose sends the melee with `work` (no regain back leg in its place), logged `engage_dispatch` {from
-    "lost"}."""
+def test_a_lost_melee_at_point_blank_marks_it_and_keeps_the_engagement_on_the_next(tmp_path):
+    """Plan 35 fixes 8 and 8b (rule 1; rule 2's point-blank lift dropped by the controller's ruling on the fix 8
+    report, concern 1): the melee ends `lost` `no progress` with its reflex on 2 at 0.5 tiles: 2 (the stalled zombie,
+    `span_id`) is marked whatever its distance, 1 (the planner's pin the reflex left) is not, `_m_ladder` is not set,
+    and the next choose sends the melee with `work` at 3 (0.8 tiles; no regain back leg in its place), logged
+    `engage_dispatch` {from "lost"}."""
     r, f, a = lost_rig(tmp_path)
     lost(r, f, a, 2)
-    assert not f.marked() and f._m_ladder is False
+    assert f.marked() == {2} and f._m_ladder is False
     b = f.step()
-    assert b.type == "melee" and work_of(b) == dict(WORK_ARGS, withdrawX=-1.0, withdrawY=0.0)
+    assert (b.type, b.args["targetId"]) == ("melee", 3)
+    assert work_of(b) == dict(WORK_ARGS, withdrawX=-1.0, withdrawY=0.0)
     assert f.why["melee"]["engage_dispatch"] == {"from": "lost"} and f.why["melee_end"]["why"] == "no progress"
 
 
-def test_a_lost_melee_across_a_known_fence_marks_it_and_takes_the_next(tmp_path):
-    """Rule 2's line read: the reflex's 2 stands 0.7 tiles north across a known blocked edge (the fence the mark exists
-    for, `fight.py`'s module docstring): 2 is marked, and the engagement keeps on 3 at 0.8 (a melee with `work`, logged
-    {from "lost"})."""
-    from .test_policies import square
-    zs = [zm(1, ME[0] + 2.4, ME[1]), zm(2, ME[0], ME[1] - 0.7), zm(3, ME[0] + 0.8, ME[1])]
-    fence = [square(100, 200, blockN=True), square(100, 199)]
-    r, f, a = lost_rig(tmp_path, zs=zs, scan=fence)
+def test_a_lost_melee_on_the_one_zombie_in_contact_presses_it_again(tmp_path):
+    """Plan 35 fix 8b: the stalled 2 at 0.5 is the only standing zombie within KEEP_R (1 at 3.0): marked, but P27-N's
+    point-blank pin takes it as before (the Lua's stall and re-pin own it): the next melee goes at 2, logged
+    `engage_dispatch` {from "lost"}."""
+    r, f, a = lost_rig(tmp_path, zs=[zm(1, ME[0] + 3.0, ME[1]), zm(2, ME[0] + 0.5, ME[1])])
     lost(r, f, a, 2)
-    assert 2 in f.marked() and f._m_ladder is False
+    assert f.marked() == {2} and f._m_ladder is False
     b = f.step()
-    assert (b.type, b.args["targetId"]) == ("melee", 3) and f.why["melee"]["engage_dispatch"] == {"from": "lost"}
+    assert (b.type, b.args["targetId"]) == ("melee", 2) and f.why["melee"]["engage_dispatch"] == {"from": "lost"}
+
+
+@pytest.mark.parametrize("on", [True, False])
+def test_a_kill_end_in_contact_sends_the_melee_not_the_regain_back_leg(tmp_path, on):
+    """Plan 35 fix 8b (concern 3 of the fix 8 report): the melee ends `kill` on 2 (at 0.5, RETREAT_REGAIN's press
+    armed on it) with 3 standing at 0.8: under the gate the regain phase is cleared and the next choose sends the melee
+    with `work` at 3, logged `engage_dispatch` {from "kill"}; with ENGAGE_HOLD off (the pin of the rule before it), the
+    regain's back leg in the ladder's place (Plan 34 Task 3c's answer)."""
+    r, f, a = lost_rig(tmp_path)
+    if not on:
+        f.rules = f.rules - {"engage_hold"}
+    r.fake.act(a.aid, "done", "melee", result={"end": "kill", "kill": True, "target": 2})
+    r.pump()
+    again(r, f, [LOST_PILE[0], LOST_PILE[2]])
+    b = f.step()
+    if on:
+        assert (b.type, b.args["targetId"]) == ("melee", 3) and f.why["melee"]["engage_dispatch"] == {"from": "kill"}
+    else:
+        assert b.type == "aim" and f.why["retreat_regain"]["phase"] == "back"
+
+
+@pytest.mark.parametrize("mod, on, melee", [("1.13", True, True), ("1.13", False, False), ("1.11", True, False)])
+def test_no_unreachable_flee_from_a_marked_zombie_lunging_in_contact(tmp_path, mod, on, melee):
+    """Plan 35 fix 8b (the street-1 trial `x_trial-ladder-20261111-114439`, decision lines 306 to 313: 27900, the one
+    standing zombie left, marked unreachable and lunging at 1.11 tiles; the threat plan fled `unreachable` to a shelter
+    and the bite landed under the walk): under the gate the mark of the nearest standing zombie within KEEP_R is lifted
+    and the Fight dispatches the melee with `work` at it, logged `engage_dispatch` {from "unreachable", target 1} on
+    the threat why; with ENGAGE_HOLD off, or on a 1.11 build (the pins of the rule before it), the `unreachable` flee
+    as before."""
+    r = rig(tmp_path, mod)
+    sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
+    sv.GROUP_LEAVE, sv.ENGAGE_HOLD = False, on
+    sv.unreachable[1] = r.clock() + P.UNREACHABLE_S
+    r.frame(zombies=[z(1, 101.1)])
+    tick(r, sv)
+    why = threat_why(tmp_path)
+    a = r.acts.history[-1]
+    if melee:
+        assert a.type == "melee" and "workR" in a.args and "flee" not in why
+        assert why["engage_dispatch"] == {"from": "unreachable", "target": 1} and 1 not in sv.unreachable
+    else:
+        assert why.get("flee") == "unreachable" and "engage_dispatch" not in why
 
 
 def test_a_lost_melee_on_a_1_11_build_gives_the_choose_to_the_ladder(tmp_path):

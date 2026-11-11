@@ -80,7 +80,6 @@ from agent.base.planner.crawler import is_crawler
 from agent.base.planner.maneuvers import Melee
 from agent.base.planner.maneuvers.melee import MeleeInputs, WorkInputs
 from agent.base.planner.policies import (FLEE_HEALTH, GROUP_LEAVE_N, KEEP_R, MELEE_BACKOFF_TICKS, MELEE_CROWD_N,
-                                         POINT_BLANK_R,
                                          MELEE_CROWD_R, MELEE_RELEASE_R, SEEK_SKIP_S, STALL_SWINGS, UNREACHABLE_S,
                                          WORK_BAND_LO, WORK_CRAWLER_R, WORK_R, arm_pain, line_to, on_floor,
                                          target_id_ok, zdist)
@@ -120,7 +119,10 @@ class FightDispatch:
         self.melee_off = None               # the end after which no melee goes for the rest of the Fight, else None
         self._m_backoff = {}                # zombie id -> planner ticks left in which no melee goes at it (fix 1, m2)
         self._m_from = None                 # Plan 35 fix 5: the dispatch point's `engage_dispatch` source this choose
-        self._m_lost = False                # Plan 35 fix 8: the next choose follows a `lost` end the engagement keeps
+        self._stalled = {}                  # Plan 35 fix 8b: zombie id -> wall until its reflex stall's mark ends (the
+                                            # P27-N pin leaves it out while another stands within KEEP_R, `pin.py`)
+        self._m_kept = None                 # Plan 35 fixes 8 and 8b: the end (kill, lost, ...) the next choose follows
+                                            # with a standing zombie within KEEP_R: no break or regain leg, the melee
         self.group_n = 0                    # Survive sets it each tick (Plan 35, WITHDRAW): the standing zombies within
                                             # GROUP_ENTRY_R (`group.ThreatGroup._group_read`)
 
@@ -155,10 +157,13 @@ class FightDispatch:
         if getattr(m, "end_why", None) is not None:
             self._m_end["why"] = m.end_why   # PZA/1.10: a handback's or a lost end's why
         self._retire_maneuver()
+        contact = self._pile_met() and self._contact()
+        if contact:
+            self._m_kept = end   # Plan 35 fix 8b: the regain's back leg never in the next melee's place
         if end in LADDER_ENDS:
             self._m_ladder = True
         elif end == "lost":
-            self._lost_end(m)
+            self._lost_end(m, contact)
         elif end == "handback":
             if m.end_why in WORK_ENDS or not self._melee_crowd(m):
                 self._m_ladder = True   # fix 1, M1: no fresh melee on the same geometry; the ladder's press (Plan 35:
@@ -169,7 +174,11 @@ class FightDispatch:
             self._m_backoff[m.target] = MELEE_BACKOFF_TICKS
             self._m_end["backoff"] = MELEE_BACKOFF_TICKS
 
-    def _lost_end(self, m):
+    def _contact(self):
+        """Plan 35 fixes 8 and 8b: a standing zombie (`_standing`, not a crawler) within KEEP_R of the player."""
+        return any(not is_crawler(z) for _, z, _ in self._standing(KEEP_R))
+
+    def _lost_end(self, m, contact):
         """A `lost` end (the module docstring): its target left unreachable by its why (out of reach for SEEK_SKIP_S,
         no progress for UNREACHABLE_S, out of range never), the next choose the ladder's. Plan 35 fix 8 (the
         controller's ruling; the proof round's death, `x_trial-ladder-20261111-112648`, decision lines 365 to 370:
@@ -177,26 +186,19 @@ class FightDispatch:
         `no progress`;
         25246 was marked, and the ladder's choose (`_m_ladder`) sent RETREAT_REGAIN's back leg in its attack's place,
         25201 climbing the fence at 0.49 bit under it 0.8 s later): under the engagement's dispatch (`_pile_met`) the
-        mark goes on the zombie the reflex stalled on (its last `target`, `span_id`), lifted (never written) while it
-        stands within POINT_BLANK_R on a line not read blocked (a stall at point blank is the reflex's miss count; a
-        fence read on the map keeps it); and with a standing zombie (not a crawler) within KEEP_R the next choose is
-        no ladder's: it sends the melee with `work` at the Fight's pin (`_m_lost`, `fight.Fight._choose`), logged
-        `engage_dispatch` {from "lost"}."""
+        mark goes on the zombie the reflex stalled on (its last `target`, `span_id`), for its whole span (fix 8b: the
+        point-blank lift dropped; the reflex's own re-pin at the stall takes another standing zombie); and with a
+        standing zombie (not a crawler) within KEEP_R (`contact`) the next choose is no ladder's: it sends the melee
+        with `work` at the Fight's pin (`_m_kept`, `fight.Fight._choose`), logged `engage_dispatch` {from "lost"}."""
         pile = self._pile_met()
         zid = (getattr(m, "span_id", None) or m.target) if pile else m.target
-        if m.end_why in LOST_UNREACHABLE and not (pile and self._point_blank_clear(zid)):
+        if m.end_why in LOST_UNREACHABLE:
             self._mark_unreachable(zid, LOST_UNREACHABLE[m.end_why])   # fix 1, m1: as the ladder's stomp walk or stall
-        if pile and m.end_why in LOST_UNREACHABLE and any(not is_crawler(z) for _, z, _ in self._standing(KEEP_R)):
-            self._m_lost = True   # Plan 35 fix 8: the engagement kept, no ladder choose
-            return
+            if pile:   # Plan 35 fix 8b: the stall's zombie, left out of P27-N's pin while another stands in contact
+                self._stalled[zid] = self.clock() + LOST_UNREACHABLE[m.end_why]
+        if contact and m.end_why in LOST_UNREACHABLE:
+            return   # Plan 35 fix 8: the engagement kept, no ladder choose
         self._m_ladder = True
-
-    def _point_blank_clear(self, zid):
-        """Plan 35 fix 8: zombie `zid` stands (not `onFloor`) within POINT_BLANK_R on a line not read blocked."""
-        z = self.world.zombies.get(zid)
-        if z is None or z.get("x") is None or z.get("y") is None or on_floor(z):
-            return False
-        return zdist(self.world, z) <= POINT_BLANK_R and line_to(self.world, z) is not False
 
     def _melee_span(self, zid, span):
         """A `done` span at `zid` (strikes, health fell or None): strikes with no health fall count in the
