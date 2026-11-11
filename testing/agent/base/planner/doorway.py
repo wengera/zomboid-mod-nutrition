@@ -257,8 +257,8 @@ class Doorway(Fight):
             zid, z, d = t
             self.target = zid
             self.why = dict(self._base(), target=zid, dist=d)
-            return self._melee_dispatch(self._in_reach_send(zid, z, d))   # Plan 35 fix 7: the melee under
-            # the engagement's dispatch (`_pile_met`), else the stand's own command as before
+            return self._melee_dispatch(self._in_reach_send(zid, z, d))   # Plan 35 fix 7: the melee at the
+            # stand's in-reach command (its own command where the build announces no melee)
         if not self._on_post():
             self.why = dict(self._base(), step="return")
             return WalkTo(*centre(self.plan["post"]), "walk")

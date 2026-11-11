@@ -6,31 +6,22 @@ command at its pin. Its state is the Fight's own (`_init_dispatch`), and `fight.
 
 - The dispatch point (`_melee_mode`): with the `melee` rule on (Survive's MELEE), the build announcing `melee`
   (`World.can`, so no golden's record, whose hello announces none, moves) and no `melee_off`, a ladder command at the
-  pin (its `targetId` the Fight's `target`), the pin listed within MELEE_RELEASE_R: an `aim` leg `enter`, `back` or
-  `stand` within KEEP_R at a standing pin (the fence wait's leg excepted), an `attack` (the swing, or at a fallen pin
-  the floor swing), a `shove` or a `stomp`. Mode `finish` at a fallen pin or for a stomp, else `shove` under a hold
-  or in a shove-and-stomp Fight (`_hold_bars`: `spent`, R2; `shove_only`, but the low fight's full swing when due),
-  else `strike`; in mode `shove` with a weapon held the reflex swings after a shove that knocked nothing down (Plan 31
-  Task 15a, the controller's ruling on review-t15a M1, Angus's stand and fight: a hold or a low fight with a weapon
-  presses on, the spent meet's shove-swing alternation governing; unarmed it cannot swing and shoves again), so the
-  mode bars the ladder's own swing sends only (`no_swing`). Task 7e (ruling P28-H 3, E22: 27 of its 38 melees ran in `shove` mode once the first scratch put
-  `body.armPain` past STRAIN_HARD, and 12 of its 13 bites inside a span came 0.746 to 0.932 s after a shove that
-  knocked nothing down): the arms' pain alone (`arms_hurt`, P24-AP's bar, which `no_swing` keeps for the ladder) no
-  longer selects `shove`, since the melee's swing goes at the reach, where T86 read every swing at a standing zombie
-  lowering it, never at point blank, where P27-L's divided swings lowered nothing. The approach-and-swing Fight (a
-  non-stance one: more than MAX_FIGHT held, the health under the fight line, a trapped character) is dispatched too:
-  its `attack` at the pin is "an attack" (review-t7b's ruling (b): a PZA/1.8 build announcing `melee` announces
-  `aim`, and the Lua takes its own force-aim). The crowd gate (fix 1, review-t7b M1, at the Lua's crowd end of the
-  time, two; Plan 31 Task 15a fix 1, review-t15a I1, at its end since Task 15a): no melee while MELEE_CROWD_N standing
-  zombies, a standing pin counted, are listed within MELEE_CROWD_R of the player (the Lua would end it handback crowd
-  with no press, #4290), the ladder's rules owning that tick; with fewer the melee goes, the Lua re-pinning to the
-  nearer of two and pressing it (#4688: the press is the defence); nor at a target in its backoff (below); nor in the
-  crawler clear's backpedal's place (Plan 34, ruling P34-A fix B: `crawler_clear` on the why,
-  `crawler.FightCrawler._crawler_clear`).
-  Everything above the point stays the ladder's (the pin and its re-pins, P27-N's pin-first, the finish's choice of a
-  fallen zombie other than the pin, the fence wait, the edge route, the reposition, the seek, the pull, the advance's
-  `toward` legs and walks, the approach); the corner Fight (`point_blank`), the door fight (`only`) and the doorway
-  stand (`doorway`) keep the ladder whole in cut 1, and the flee's finish is the threat branch's own.
+  pin (its `targetId` the Fight's `target`; a door fight's pin among `only`), the pin listed within MELEE_RELEASE_R:
+  an `aim` leg of any kind within KEEP_R at a standing pin (the fence wait's leg excepted), an `attack` (the swing, or
+  at a fallen pin the floor swing), a `shove` or a `stomp`; the corner Fight's (`point_blank`), the door fight's
+  (`only`) and the doorway stand's (`doorway`) commands included (Plan 35 fixes 5 and 7). Mode `finish` at a fallen
+  pin or for a stomp, else `shove` under a hold or in a shove-and-stomp Fight (`_hold_bars`: `spent`, R2;
+  `shove_only`, but the low fight's full swing when due), else `strike`; in mode `shove` with a weapon held the reflex
+  swings after a shove that knocked nothing down (Plan 31 Task 15a), so the mode bars the ladder's own swing sends
+  only (`no_swing`). P28-H 3: the arms' pain alone (`arms_hurt`, which `no_swing` keeps for the ladder) selects no
+  `shove`. The approach-and-swing Fight (a non-stance one) is dispatched too. No melee at a target in its backoff
+  (below). Everything above the point stays the ladder's (the pin and its re-pins, P27-N's pin-first, the finish's
+  choice of a fallen zombie other than the pin, the fence wait, the edge route, the reposition, the seek, the pull,
+  the advance's `toward` legs and walks, the approach), and the flee's finish is the threat branch's own. A running
+  walk the Fight sent gives way while the pin stands within KEEP_R on a line not read blocked, the melee sent in its
+  place, and so does the nothing a hit reaction answers (`_walk_melee`, Plan 35 fix 6), logged `engage_dispatch`
+  {from "walk" | "hit_reaction"}; the first send from a corner, a point-blank leg, the door fight or the doorway stand
+  is logged {from "corner" | "point_blank_leg" | "door" | "doorway"}.
 - The inputs (`_melee_inputs`, read at every send and on every `busy`): `reach` the Fight's `reach_r` (the frame's
   `weapon.reach` plus ATTACK_MARGIN), 0 where it reads none (the Lua's `K.reachOf`); `floorSwing` with the
   `floor_finish` rule on (P27-G, the floor swing ahead of the stomp) and the floor swing not barred
@@ -38,10 +29,9 @@ command at its pin. Its state is the Fight's own (`_init_dispatch`), and `fight.
   `closeR` (the `swing_close` rule reads nothing since): the Lua's meet presses at the predicted collision and again
   after a swing that did nothing, with no back step and no time end.
 - `busy` (`_melee_holds`): a running melee holds until its inputs change its behaviour (`Melee.resend_due`: the spent
-  mode, the floor swing, the reach, read afresh on the tick), its target is no longer the pin, P27-N's pin-first would take a marked zombie (`_pin_marked`, the target not among `_pin_free`: fix
-  1, review-t7b M2, so a marked attacker at point blank is pinned on its own tick as on the ladder, whose stance leg
-  gives way within FIGHT_REACH on every tick), or the finish would take another fallen zombie (`_finishable`); its
-  own pin fallen, it holds (the Lua's floor reflexes).
+  mode, the floor swing, the reach, the work's withdraw sector, read afresh on the tick), whatever the pin, P27-N's
+  pin-first and the finish read (the reflex re-pins, presses a marked attacker and finishes; Plan 35 Task 8 deleted
+  those give-ways).
 - The ends (`_observe_maneuver`, every observe, after the kill read): a kill on any send of the maneuver, or of one
   it retired (`_spent_m`), is the Fight's kill (`_read_dead`), once; a `done` span with strikes and no health fall
   counts them in the no-progress streak STALL_SWINGS reads (`_melee_span`); `kill` retires it; `handback` {id, d}
@@ -62,30 +52,29 @@ command at its pin. Its state is the Fight's own (`_init_dispatch`), and `fight.
   choose that dispatches and every observe while it runs, `ladder` (the ladder's command type it replaced), `melee`
   {mode, pain} on every send (P28-H: the frame's `body.armPain`, so a write-up reads the swings under pain), with
   `resend` "inputs" on a re-send and (Plan 35) `withdraw` [vx, vy] on a send carrying the withdraw bias.
-- Plan 35 Task 2 (the footwork, PZA/1.13; the spec's §§ 3.2 and 3.3): with the Fight's `footwork` rule (Survive's
-  FOOTWORK) and the build announcing mod WORK_MOD or later (`World.mod_at_least`: every golden's hello announces 1.11
-  or earlier, so none moves), every melee carries `work` (`_work_inputs`: WORK_R, WORK_CRAWLER_R, WORK_BAND_LO, the
-  floor FLEE_HEALTH, `pile` true; with the `withdraw` rule (WITHDRAW) the fighting retreat's heading, `retreat`, while
-  GROUP_LEAVE_N or more stand within GROUP_ENTRY_R, `group_n`, else none). With the `engage_hold` rule too
-  (ENGAGE_HOLD) the crowd gate and the crawler clear's exemption are off at the dispatch point (the reflex meets the
-  pile and the crawlers), and the running melee with `work` is the engagement (`_engaged`): `_melee_holds` holds it
-  whatever its pin, the pin-first and the finish read, until a re-send is due, and the choose that follows re-sends it
-  and nothing else (`_engage_resend`: no ladder leg supersedes it); the Fight's own give-ways (`fight.Fight.busy`) and
-  the threat branch's flees (`threat.Threat._engage_holds`) answer the hold, logged `engage_hold` {rule}. Its ends:
-  `handback` why `floor` (the body's health at FLEE_HEALTH) gives the next choose to the ladder (the threat branch's
-  health flee reads the health on its own), `clear` (no zombie left to meet) as `lost` out of range (the ladder's, no
-  mark).
+- Plan 35 (the footwork, PZA/1.13; the spec's §§ 3.2 and 3.3; Task 8 removed its switches and the crowd gate): every
+  melee carries `work` (`_work_inputs`: WORK_R, WORK_CRAWLER_R, WORK_BAND_LO, the floor FLEE_HEALTH, `pile` true, so
+  the reflex meets the pile and the crawlers; the fighting retreat's heading, `retreat`, as the withdraw bias while
+  GROUP_LEAVE_N or more stand within GROUP_ENTRY_R, `group_n`, else none), and the running melee with `work` is the
+  engagement (`_engaged`): `_melee_holds` holds it whatever its pin, the pin-first and the finish read, until a re-send
+  is due, and the choose that follows re-sends it and nothing else (`_engage_resend`: no ladder leg supersedes it); the
+  threat branch's rows answer the hold above FLEE_HEALTH (`threat.Threat._engage_holds`, logged `engage_hold` {rule}).
+  Its ends: `handback` why `floor` (the body's health at FLEE_HEALTH) gives the next choose to the ladder (the threat
+  branch's health flee reads the health on its own), `clear` (no zombie left to meet) as `lost` out of range (the
+  ladder's, no mark); an end with a standing zombie (not a crawler) within KEEP_R is followed by the melee at the pin
+  (`_m_kept`, fixes 8 and 8b: a `lost` end's zombie marked and left out of P27-N's pin, `_stalled`, no ladder
+  choose), logged `engage_dispatch` {from: the end}.
 """
 from agent.base.planner.crawler import is_crawler
 from agent.base.planner.maneuvers import Melee
 from agent.base.planner.maneuvers.melee import MeleeInputs, WorkInputs
-from agent.base.planner.policies import (FLEE_HEALTH, GROUP_LEAVE_N, KEEP_R, MELEE_BACKOFF_TICKS, MELEE_CROWD_N,
-                                         MELEE_CROWD_R, MELEE_RELEASE_R, SEEK_SKIP_S, STALL_SWINGS, UNREACHABLE_S,
+from agent.base.planner.policies import (FLEE_HEALTH, GROUP_LEAVE_N, KEEP_R, MELEE_BACKOFF_TICKS,
+                                         MELEE_RELEASE_R, SEEK_SKIP_S, STALL_SWINGS, UNREACHABLE_S,
                                          WORK_BAND_LO, WORK_CRAWLER_R, WORK_R, arm_pain, line_to, on_floor,
                                          target_id_ok, zdist)
 from agent.base.pza1 import Attack
 
-MELEE_LEGS = ("enter", "back", "stand")   # the ladder's stance legs within KEEP_R a melee replaces
+MELEE_LEGS = ("enter", "back", "stand")   # the stance legs a melee replaces logged with no `engage_dispatch`
 MELEE_SENDS = ("attack", "shove", "stomp")   # the ladder's sends at its pin a melee replaces (an attack at a fallen
                                              # pin is the floor swing)
 LADDER_ENDS = ("too far", "no weapon")   # a melee's ends that give the next choose to the ladder (and `lost`)
@@ -96,7 +85,6 @@ BACKOFF_ENDS = ("interrupted", "timeout", "no target")   # ... that leave its ta
                                                          # MELEE_BACKOFF_TICKS (fix 1, review-t7b m2)
 WORK_ENDS = ("floor", "clear")   # Plan 35: a `handback`'s whys under `work` that give the next choose to the ladder,
                                  # no re-pin (the body at the floor; nothing left to meet, as `lost` out of range)
-WORK_MOD = "1.13"   # Plan 35 (PZA/1.13): the hello's least mod version whose melee takes the `work` arguments
 
 # The maneuver registry (Plan 31 Task 8): every maneuver by its logged name, the one table a decider (a variant, the
 # ladder's care branch) reads to start one; the Fight's dispatch above starts its Melee directly.
@@ -122,9 +110,9 @@ class FightDispatch:
         self._stalled = {}                  # Plan 35 fix 8b: zombie id -> wall until its reflex stall's mark ends (the
                                             # P27-N pin leaves it out while another stands within KEEP_R, `pin.py`)
         self._m_kept = None                 # Plan 35 fixes 8 and 8b: the end (kill, lost, ...) the next choose follows
-                                            # with a standing zombie within KEEP_R: no break or regain leg, the melee
-        self.group_n = 0                    # Survive sets it each tick (Plan 35, WITHDRAW): the standing zombies within
-                                            # GROUP_ENTRY_R (`group.ThreatGroup._group_read`)
+                                            # with a standing zombie within KEEP_R: the melee, logged `engage_dispatch`
+        self.group_n = 0                    # Survive sets it each tick (Plan 35): the standing zombies within
+                                            # GROUP_ENTRY_R (`group.ThreatGroup._group_read`), the withdraw bias's gate
 
     def _retire_maneuver(self):
         """The running maneuver is dropped, its sends' ends still read (`_spent_m`)."""
@@ -157,9 +145,9 @@ class FightDispatch:
         if getattr(m, "end_why", None) is not None:
             self._m_end["why"] = m.end_why   # PZA/1.10: a handback's or a lost end's why
         self._retire_maneuver()
-        contact = self._pile_met() and self._contact()
+        contact = self._contact()
         if contact:
-            self._m_kept = end   # Plan 35 fix 8b: the regain's back leg never in the next melee's place
+            self._m_kept = end   # Plan 35 fix 8b: the next melee logs the end it follows
         if end in LADDER_ENDS:
             self._m_ladder = True
         elif end == "lost":
@@ -183,21 +171,18 @@ class FightDispatch:
         no progress for UNREACHABLE_S, out of range never), the next choose the ladder's. Plan 35 fix 8 (the
         controller's ruling; the proof round's death, `x_trial-ladder-20261111-112648`, decision lines 365 to 370:
         a112, sent at 25246 fallen 2.85 tiles off, re-pinned in the reflex to 25245 lunging at 0.50 and ended `lost`
-        `no progress`;
-        25246 was marked, and the ladder's choose (`_m_ladder`) sent RETREAT_REGAIN's back leg in its attack's place,
-        25201 climbing the fence at 0.49 bit under it 0.8 s later): under the engagement's dispatch (`_pile_met`) the
-        mark goes on the zombie the reflex stalled on (its last `target`, `span_id`), for its whole span (fix 8b: the
-        point-blank lift dropped; the reflex's own re-pin at the stall takes another standing zombie); and with a
-        standing zombie (not a crawler) within KEEP_R (`contact`) the next choose is no ladder's: it sends the melee
-        with `work` at the Fight's pin (`_m_kept`, `fight.Fight._choose`), logged `engage_dispatch` {from "lost"}."""
-        pile = self._pile_met()
-        zid = (getattr(m, "span_id", None) or m.target) if pile else m.target
+        `no progress`; 25246 was marked, and the ladder's choose sent a back leg in its attack's place, 25201 climbing
+        the fence at 0.49 bit under it 0.8 s later): the mark goes on the zombie the reflex stalled on (its last
+        `target`, `span_id`), for its whole span (fix 8b; the reflex's own re-pin at the stall takes another standing
+        zombie), the zombie left out of P27-N's pin while another stands in contact (`_stalled`); and with a standing
+        zombie (not a crawler) within KEEP_R (`contact`) the next choose is no ladder's: it sends the melee with `work`
+        at the Fight's pin (`_m_kept`, `fight.Fight._choose`), logged `engage_dispatch` {from "lost"}."""
+        zid = getattr(m, "span_id", None) or m.target
         if m.end_why in LOST_UNREACHABLE:
             self._mark_unreachable(zid, LOST_UNREACHABLE[m.end_why])   # fix 1, m1: as the ladder's stomp walk or stall
-            if pile:   # Plan 35 fix 8b: the stall's zombie, left out of P27-N's pin while another stands in contact
-                self._stalled[zid] = self.clock() + LOST_UNREACHABLE[m.end_why]
-        if contact and m.end_why in LOST_UNREACHABLE:
-            return   # Plan 35 fix 8: the engagement kept, no ladder choose
+            self._stalled[zid] = self.clock() + LOST_UNREACHABLE[m.end_why]
+            if contact:
+                return   # Plan 35 fix 8: the engagement kept, no ladder choose
         self._m_ladder = True
 
     def _melee_span(self, zid, span):
@@ -237,15 +222,6 @@ class FightDispatch:
             return True
         return False
 
-    def _work_on(self):
-        """Plan 35 FOOTWORK: the melee carries `work` (the rule on, the build announcing mod WORK_MOD or later)."""
-        return "footwork" in self.rules and self.world.mod_at_least(WORK_MOD)
-
-    def _pile_met(self):
-        """Plan 35 ENGAGE_HOLD at the dispatch point: the melee carries `work` with `pile` and the hold is on, so the
-        crowd gate and the crawler clear's exemption are off (the reflex meets the pile and the crawlers)."""
-        return "engage_hold" in self.rules and self._work_on()
-
     def _outside_only(self, m):
         """Plan 35 fix 7: the door fight's (`only`) running melee whose reflex re-pinned (its last progress line's
         `target`) to a zombie outside `only`: it is retired, and the next choose sends a melee at the pin among `only`
@@ -258,39 +234,33 @@ class FightDispatch:
     def _walk_meets_pin(self):
         """Plan 35 fix 6 (the arena lone wave's trial `x_trial-ladder-20261110-100118`, decision lines 25 to 42: the
         Fight, out of the stance at three chasers, sent its approach walk a9 at 3648 7.96 tiles off, and `busy` held it
-        16 s, to its `done`, while 3648 and 3651 stood at 0.3 to 0.8 tiles and bit six times: a walk the Fight sent
-        that is not the stance's own holds until it ends, `fight.Fight.busy`'s tail, before this plan as after):
-        under the engagement's dispatch (`_pile_met`) the pin stands (not `onFloor`) within KEEP_R on a line not read
-        blocked, so a running walk gives way and the dispatch sends the melee at the pin in the walk's place."""
-        if not self._pile_met() or not target_id_ok(self.target):
+        16 s, to its `done`, while 3648 and 3651 stood at 0.3 to 0.8 tiles and bit six times): the melee can go
+        (`_melee_on`) and the pin stands (not `onFloor`) within KEEP_R on a line not read blocked, so a running walk
+        gives way and the dispatch sends the melee at the pin in the walk's place."""
+        if not self._melee_on() or not target_id_ok(self.target):
             return False
         z = self.world.zombies.get(self.target)
         if z is None or z.get("x") is None or z.get("y") is None or on_floor(z):
             return False
         return zdist(self.world, z) <= KEEP_R and line_to(self.world, z) is not False
 
+    def _melee_on(self):
+        """The melee can go at all: the `melee` rule on, no `melee_off` end, the build announcing `melee` (`World.can`:
+        a record whose hello announces none, every golden's, keeps the ladder's own sends)."""
+        return "melee" in self.rules and self.melee_off is None and self.world.can("melee")
+
     def _engaged(self):
-        """Plan 35 ENGAGE_HOLD: the engagement, the rule on and this Fight's running `Melee` (its action the Fight's
-        last and not ended) whose last send carried `work` (`Melee.work`); no Python leg supersedes it (the module
-        docstring)."""
+        """Plan 35: the engagement, this Fight's running `Melee` (its action the Fight's last and not ended) whose last
+        send carried `work` (`Melee.work`); no Python leg supersedes it (the module docstring)."""
         m = self.m
-        return ("engage_hold" in self.rules and m is not None and self.last is not None and m.action is self.last
-                and m.work is not None and m.running())
-
-    def _engage_note(self, rule):
-        """Plan 35 ENGAGE_HOLD: the Fight's rule `rule` held off the engagement this tick, logged `engage_hold` {rule}
-        (the first one read on the tick)."""
-        self.why.setdefault("engage_hold", {"rule": rule})
-
-    def _engage_hold(self, rule):
-        """`busy`'s answer where rule `rule` would cut the engagement: logged (`_engage_note`), the melee's own hold
-        (`_melee_holds`: held until a re-send is due)."""
-        self._engage_note(rule)
-        return self._melee_holds()
+        return m is not None and self.last is not None and m.action is self.last and m.work is not None and m.running()
 
     def _melee_holds(self):
-        """`busy` for the running melee (the module docstring); Plan 35: held while engaged (`_engaged`) whatever the
-        pin, until a re-send is due."""
+        """`busy` for the running melee (the module docstring): held whatever the pin, the pin-first and the finish read
+        (Plan 35: the reflex re-pins, finishes and steps), until a re-send is due (`Melee.resend_due`, its inputs read
+        afresh on the tick), or the door fight's melee re-pinned outside `only` (fix 7: retired, a new send at the pin).
+        Task 8 deleted the pin read's give-ways (P27-N's pin-first, the finish of another fallen zombie, a re-pinned
+        target), which every melee's `work` had left to the reflex."""
         m = self.m
         if m is None or m.action is not self.last:
             return False
@@ -300,38 +270,24 @@ class FightDispatch:
         if self._outside_only(m):
             self._retire_maneuver()   # Plan 35 fix 7: the door fight's melee re-pinned outside `only`: a new send
             return False
-        if m.resend_due():
-            return False
-        if self._engaged():
-            return True   # Plan 35 ENGAGE_HOLD: the reflex re-pins, finishes and steps; no pin read cuts it
-        t = self._target(pin=False)
-        if t is None or t[0] != m.target:
-            return False
-        if self._pin_marked() and m.target not in self._pin_free():
-            return False   # fix 1, M2: P27-N's pin-first takes a marked attacker on its own tick, as on the ladder
-        fin = self._finishable()
-        return not fin or fin[0][0] == m.target
+        return not m.resend_due()
 
     def _melee_mode(self, cmd):
         """The melee's mode where the ladder's `cmd` is at the dispatch point (the module docstring), else None. Plan 35
         fix 5 (the controller's ruling; the street-1 trial `x_trial-ladder-20261110-095321`, decision lines 152 to 234:
-        the corner's Fight sent raw attacks and shoves, then, kept by the threat branch after its corner ended, its
-        `point_blank` still set, every back leg, circle and shove back went as an aim, four bites with no melee): under
-        the engagement's dispatch (`_pile_met`) a cornered Fight (`point_blank`) dispatches the melee with `work` too
-        (logged `engage_dispatch` {from "corner"}), and an aim leg of any kind at a standing pin within KEEP_R is a
-        dispatch point (the fence wait's aside), logged {from "point_blank_leg"} when the leg is a corner Fight's or
-        one MELEE_LEGS lacks. Fix 7 (the trial `x_trial-ladder-20261110-104053`, decision lines 315 to 415: the
-        sheltered door fight sent raw attacks, strain shoves and wounded aim legs at 22774 and 22776 at 0.42 to 0.76
-        tiles, every bite on its lines): under `_pile_met` the door fight (`only`: its pin among `only`, never a melee at
-        another) and the doorway stand (`doorway`: `doorway.Doorway`'s own dispatch) dispatch it too, logged
-        {from "door" | "doorway"}."""
+        the corner's Fight sent raw attacks and shoves, then every back leg, circle and shove back as an aim, four
+        bites with no melee): a cornered Fight (`point_blank`) dispatches the melee with `work` too (logged
+        `engage_dispatch` {from "corner"}), and an aim leg of any kind at a standing pin within KEEP_R is a dispatch
+        point (the fence wait's aside), logged {from "point_blank_leg"} when the leg is a corner Fight's or one
+        MELEE_LEGS lacks. Fix 7 (the trial `x_trial-ladder-20261110-104053`, decision lines 315 to 415: the sheltered
+        door fight sent raw attacks, strain shoves and wounded aim legs at 0.42 to 0.76 tiles, every bite on its
+        lines): the door fight (`only`: its pin among `only`, never a melee at another) and the doorway stand
+        (`doorway`: `doorway.Doorway`'s own dispatch) dispatch it too, logged {from "door" | "doorway"}. Task 8: an aim
+        leg at a pin across a line read blocked (P30-C's walk to the post of a closed door, the zombie behind it) is no
+        dispatch point: the melee meets only a zombie it can reach, as the walk's give-way reads (`_walk_meets_pin`)."""
         self._m_from = None
-        pile = self._pile_met()   # Plan 35 ENGAGE_HOLD: the reflex meets the pile and the crawlers
-        if (cmd is None or "melee" not in self.rules or self.melee_off is not None or not self.world.can("melee")
-                or (not pile and (self.point_blank or self.only is not None or self.doorway is not None))):
+        if cmd is None or not self._melee_on():
             return None
-        if "crawler_clear" in self.why and not pile:
-            return None   # Plan 34 fix B: the backpedal from the crawlers is the leg, never a melee in its place
         zid = getattr(cmd, "targetId", None)
         z = self.world.zombies.get(zid) if target_id_ok(zid) and zid == self.target else None
         if z is None or z.get("x") is None or z.get("y") is None or (self.only is not None and zid not in self.only):
@@ -339,39 +295,28 @@ class FightDispatch:
         d = zdist(self.world, z)
         if d > MELEE_RELEASE_R or self._m_backoff.get(zid):
             return None
-        if not pile and self._crowded(zid, z):
-            return None   # the crowd gate (the module docstring): the Lua would end it handback crowd
         if cmd.TYPE == "aim":
-            leg_ok = pile or self.why.get("leg") in MELEE_LEGS   # Plan 35 fix 5: any leg under the engagement
-            if "fence_wait" in self.why or not leg_ok or d > KEEP_R or on_floor(z):
+            if "fence_wait" in self.why or d > KEEP_R or on_floor(z) or line_to(self.world, z) is False:
                 return None
-            if pile and (self.point_blank or self.why.get("leg") not in MELEE_LEGS):
+            if self.point_blank or self.why.get("leg") not in MELEE_LEGS:
                 self._m_from = "point_blank_leg"
         elif cmd.TYPE not in MELEE_SENDS:
             return None
         elif self.point_blank:
-            self._m_from = "corner"   # Plan 35 fix 5 (only under `pile`: the guard above)
-        if self.doorway is not None or self.only is not None:   # Plan 35 fix 7 (only under `pile`: the guard above)
+            self._m_from = "corner"
+        if self.doorway is not None or self.only is not None:
             self._m_from = "doorway" if self.doorway is not None else "door"
         if cmd.TYPE == "stomp":
             return "finish"
         return self._melee_mode_at(z)
 
-    def _crowded(self, zid, z):
-        """The crowd gate (Plan 31 Task 15a fix 1, review-t15a I1): MELEE_CROWD_N standing zombies within
-        MELEE_CROWD_R of the player, pin `zid` (zombie `z`) counted while it stands, the Lua's crowd end mirrored
-        (`PZAgent_StanceMelee.lua`'s `crowdOf`; review-t7b M1's gate at the Lua's old end of two)."""
-        n = len(self._standing(MELEE_CROWD_R, (zid,))) + (0 if on_floor(z) else 1)
-        return n >= MELEE_CROWD_N
-
     def _melee_mode_at(self, z):
         """The melee's mode at pin `z`: finish at a fallen pin, else shove under a hold or in a shove-and-stomp Fight
-        (`_hold_bars`) or for RETREAT_REGAIN's shove-form press (Plan 34 Task 3c, `fight.Fight._regain_shove`: two or
-        more standing within FIGHT_REACH, the knockback opening room), else strike (P28-H 3: the arms' pain alone
-        strikes; the Lua's own spent read takes the shove and the stomp once the arms or the moodles are spent)."""
+        (`_hold_bars`), else strike (P28-H 3: the arms' pain alone strikes; the Lua's own spent read takes the shove and
+        the stomp once the arms or the moodles are spent)."""
         if on_floor(z):
             return "finish"
-        return "shove" if self._hold_bars() or self._regain_shove() else "strike"
+        return "shove" if self._hold_bars() else "strike"
 
     def _melee_inputs(self, mode, z):
         """The send's `MeleeInputs` at pin `z` (the module docstring), read afresh."""
@@ -379,13 +324,11 @@ class FightDispatch:
                            self._work_inputs())
 
     def _work_inputs(self):
-        """Plan 35 FOOTWORK: the send's `WorkInputs` (the module docstring), else None (the rule off, an older
-        build)."""
-        if not self._work_on():
-            return None
+        """Plan 35: the send's `WorkInputs` (the module docstring): the withdraw bias the fighting retreat's heading
+        (`retreat`) while GROUP_LEAVE_N or more stand within GROUP_ENTRY_R (`group_n`), else none."""
         withdraw = None
-        if "withdraw" in self.rules and self.retreat is not None and self.group_n >= GROUP_LEAVE_N:
-            withdraw = (float(self.retreat[0]), float(self.retreat[1]))   # WITHDRAW: the fighting retreat's heading
+        if self.retreat is not None and self.group_n >= GROUP_LEAVE_N:
+            withdraw = (float(self.retreat[0]), float(self.retreat[1]))
         return WorkInputs(WORK_R, WORK_CRAWLER_R, WORK_BAND_LO, withdraw, FLEE_HEALTH, True)
 
     def _melee_dispatch(self, cmd):
@@ -439,8 +382,8 @@ class FightDispatch:
             self.why["melee"]["withdraw"] = list(m.work.withdraw)
 
     def _engage_resend(self):
-        """Plan 35 ENGAGE_HOLD: the choose under the engagement (`busy` gave way only for a re-send, `_melee_holds`):
-        the engaged melee's re-send on its inputs read afresh, else None; nothing else is sent."""
+        """Plan 35: the choose under the engagement (`busy` gave way only for a re-send, `_melee_holds`): the engaged
+        melee's re-send on its inputs read afresh, else None; nothing else is sent."""
         m = self.m
         out = m.step()
         self.why = dict(self.why, maneuver=m.log())

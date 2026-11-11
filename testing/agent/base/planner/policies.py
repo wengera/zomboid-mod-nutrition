@@ -374,11 +374,6 @@ HEAD_AIM = False          # the melee's `headAim` (fix 1, review-t2 F4, the cont
 HANDBACK_R = 2.0          # tiles: the melee's `handbackR`, inside which another standing zombie ends a finish handback
                           # and beyond which none breaks it (F15's two knock-downs were lost to `pair` flees from zombies
                           # beyond it, the spec's section 1); the spec's number
-MELEE_CROWD_N = 3     # standing zombies (a standing pin counted) within MELEE_CROWD_R that end the melee reflex
-                      # handback crowd, the Lua's K.MELEE_CROWD_N copied (Plan 31 Task 15a: three attackers within 0.9
-                      # tiles zero the defence and drag the character down, #4290; with two the press is the defence,
-                      # #4688), read by the Fight's dispatch gate (fix 1, review-t15a I1)
-MELEE_CROWD_R = 0.9   # tiles: that crowd's radius, the Lua's K.MELEE_CROWD_R copied (#4290; fix 1, review-t15a M4)
 SHOVE_SEND_R = 0.9        # tiles: the melee's `shoveR` (Plan 28 Task 7e, ruling P28-H 1), the shove sent inside its
                           # reach, not at its edge: the engine's reach SHOVE_R 1.1 (to the nearest of head, pelvis and
                           # position, #4592) read as a bound, not a target; E22's eight shoves at 1.068 to 1.100 tiles
@@ -1082,18 +1077,8 @@ def __getattr__(name):
 # the side; `group.ThreatGroup`). At the end of the module so that Task 2's constant after KEEP_R moves none of them.
 WALL_R = 1.5          # tiles: a wall, a fence, a door or a solid square this near the player's back keeps the stand
                       # against a closing pair (GROUP_LEAVE: the group cannot close round a back to a wall)
-STUCK_FRAMES = 10     # frames (10 Hz: one second) of `me.moving` false while a steer or a walk runs that read the
-                      # character pinned (DRAG_GUARD_FIGHT: F18's 116 unmoving frames, seq 3512 to 3655)
-SIDE_R = 1.0          # tiles: no run steer passes this near a standing zombie (SIDE_CLEAR: F18's runs into the zombie
-                      # standing at the character's side, the visual pass's shots 37 to 41)
-SIDE_LOOK = 3.0       # tiles of a run steer's leg SIDE_CLEAR reads for a standing zombie (STEER_PROBE's reach)
 GROUP_ENTRY_R = 6.0   # tiles: GROUP_LEAVE counts the closing standing zombies this near (Plan 33 Task 3 fix 1: DANGER_R's
                       # value, its own constant; GROUP_NEAR_R left a half-tile window outside KEEP_R)
-# Plan 33 Task 3 fix 2 (round one, trial 3: a death standing in a pile of three, the guard's shoves sent tick after tick
-# under the hit reactions, never a run; Plan 32's plain `many` run left such a pile and lived)
-DRAG_SHOVES_PER_EPISODE = 1   # shoves DRAG_GUARD_FIGHT sends a stuck episode (one to break the grab), the run after them
-STUCK_FREE_R = 1.0    # tiles the character moves from a stuck episode's start that end it (DRAG_GUARD_FIGHT: a new
-                      # episode may shove again)
 # Plan 33 Task 3 fix 3 (round two, trial 1: the leave at two closing zombies left the pairs Plan 32's composition fought
 # and killed under PAIR_NEAREST, 3 kills against 7 to 11; the controller's ruling 2026-11-09 03:11)
 GROUP_LEAVE_N = 3     # standing zombies closing within GROUP_ENTRY_R that GROUP_LEAVE leaves (DRAG_DOWN_N's count: a pair
@@ -1107,8 +1092,6 @@ LEAVE_DOOR_R = 6.0    # tiles: GROUP_LEAVE walks to a known door whose approach 
 # eight, so the retreat is the leg for GROUP_LEAVE_N to RETREAT_MAX_N standing and the `many` run above it)
 RETREAT_MAX_N = 4     # standing zombies within GROUP_ENTRY_R the fighting retreat backpedals from; above it the leave's
                       # leg is the `many` run (GROUP_LEAVE), the retreat resumed when the count falls back to it
-RETREAT_RESEND_DEG = 30.0   # degrees: a running retreat leg is re-sent once its heading differs from the retreat's by
-                            # more (the group moving round the character), else held (`Fight.busy`)
 # Plan 34 Task 5 (spec section 3.5; F19, `f_goals_19-20261109-060929`: the melee at the first wound was sent off a frame
 # 0.970 s old, the line 1.435 s after the one before, the session's median lag 0.057 s, its GUIDE.md section 2)
 FRAME_STALE_S = 0.5  # seconds: a decision line whose frame is older than this (its `wall` less the frame's `wallMs`)
@@ -1119,30 +1102,13 @@ FRAME_STALE_S = 0.5  # seconds: a decision line whose frame is older than this (
 DOOR_RACE_R = 3.0     # tiles: the leave picks no new door with the nearest standing zombie within DANGER_R this near
                       # (the walk to the door, the open, the enter and the close take about three seconds)
 DOOR_ABORT_R = 1.0    # tiles: a running leave door plan before its close is dropped with a standing zombie this near
-# Plan 34 Task 3 (the column; F19, `f_goals_19-20261109-060929`, GUIDE.md § 4): the retreat at the stance's band
-RETREAT_BACK_R = 1.5   # tiles: under the retreat a strike melee not pressing gives way to the back leg while a standing
-                       # zombie other than its target is this near (RETREAT_MELEE: F19's lines 1536 and 1537, a281 held
-                       # at 0.84 tiles from 12445 while 12454 walked in from behind to 0.49 and bit)
-STRUNG_LINES = 3       # consecutive lines the leave's count reads under GROUP_LEAVE_N before its `strung` end
-                       # (STRUNG_HOLD: F19's episode one, 11 `strung` ends alternating with 15 retreat lines as the count
-                       # within 6 tiles flicked between three and fewer)
-# Plan 34 ruling P34-A fix B (the smoke trial `x_trial-ladder-20261109-105452`, P31-T: the crawler 9174 bit from 0.85
-# tiles while the melee pressed the standing 9128; the crawler's bite reach, #4727-#4730)
-CRAWLER_AVOID_R = 1.2  # tiles: a fallen or crawling zombie this near, other than the finish target (or two whatever the
-                       # target), with a standing one within DANGER_R, is backpedalled from (CRAWLER_CLEAR)
-# Plan 34 Task 3c (ruling P34-I; the trial `x_trial-ladder-20261109-132439`, P31-T, not evidence: decision lines 399 to
-# 459, three standing on the character at 0.5 tiles under the retreat, the band's melee sent ten times in mode `shove`,
-# each superseded by the drag guard's `many` run on the next line, and a back leg almost never went; nine bites from
-# line 432, the drag-down at game minute 622)
-RETREAT_REGAIN_S = 1.5   # wall seconds the retreat's back leg after a point-blank press is held while the nearest
-                         # standing zombie stays within FIGHT_REACH (RETREAT_REGAIN), then the next press
 # Plan 34 Task 3c fix 1 (the trials `x_trial-ladder-20261109-142418`, lines 343 and 358: POINT_BLANK_FIGHT pinned 8836
 # at 2.455 tiles and 8847 at 2.18 over the `health` flee, each walked in on and shoved at, 27 hit runs in the trial; and
 # `x_trial-ladder-20261109-141434`, line 392: 13837 pinned at 2.24 over `many`; P31-T, not evidence)
 POINT_BLANK_OVER_R = 1.5   # tiles: under a `many` or `health` flee reason POINT_BLANK_FIGHT fights only a standing
                            # zombie this near (already on the character); beyond it the flee stands (KEEP_R otherwise)
-# Plan 35 Task 2 (the footwork; the spec's §§ 3.1 to 3.3): the melee's `work` arguments the Fight sends under FOOTWORK
-# to a build announcing mod 1.13 or later (`dispatch.FightDispatch._melee_inputs`, `maneuvers.melee.WorkInputs`)
+# Plan 35 Task 2 (the footwork; the spec's §§ 3.1 to 3.3): the melee's `work` arguments the Fight sends with every
+# melee (`dispatch.FightDispatch._melee_inputs`, `maneuvers.melee.WorkInputs`)
 WORK_R = 3.5               # tiles: the reflex reads the standing zombies this near for the footwork's heading (`workR`)
 WORK_CRAWLER_R = 1.2       # tiles: a crawler this near repels the heading hard and is never stepped onto (`crawlerR`)
 WORK_BAND_LO = 0.4         # tiles: the step back goes while the nearest standing is nearer than the reach less this

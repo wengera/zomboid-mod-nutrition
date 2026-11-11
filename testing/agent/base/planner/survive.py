@@ -358,43 +358,31 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     `crawler_tries`); `T17_SWITCHES` (CRAWLER_FIRST).
     Plan 33 Task 3 (the group's entry and the drag guard; F18, `f_goals_18-20261108-235005`: three standing zombies
     walked in while the finish stalled and the drag-down guard sent five run steers under hit reactions into a zombie at
-    the side, the character unmoving for 116 frames): GROUP_LEAVE, DRAG_GUARD_FIGHT and SIDE_CLEAR
-    (`planner/group.py`'s docstring the record); `T18_SWITCHES`.
+    the side, the character unmoving for 116 frames): GROUP_LEAVE (`planner/group.py`'s docstring the record);
+    `T18_SWITCHES` (Plan 35 Task 8 deleted DRAG_GUARD_FIGHT and SIDE_CLEAR).
     Plan 34 (the column; F19, `f_goals_19-20261109-060929`: under a column of five to eight standing zombies the leave's
     `run` alternated with the care, 21 of 55 lines from game minute 770 to 777 the care's, 8 stops, an unwear and 5 rips,
     none done, each rip superseded as the column closed back to 1.78-2.47 tiles): LEAVE_CARE, no care action but the
     ride with GROUP_LEAVE_N or more standing within GROUP_ENTRY_R (`group_n`, `group.ThreatGroup._group_read`; the
     rule in `care_yield.CareYield._care_commit` and `_care_yields`), logged `care_withheld` {why "group", n, key} on the
-    threat's why; DOOR_INSIDE, LEAVE_DOOR_RACE, RETREAT_GAP, RETREAT_MELEE, STRUNG_HOLD and SHOVE_CLEAR (the spec's
-    §§ 3.2 to 3.4, Tasks 2 to 4; Task 3's three: the retreat's leg by the stance's band, the strike melee's give-way to
-    a standing zombie behind within RETREAT_BACK_R, the leave's `strung` end after STRUNG_LINES lines, `fight.py`'s and
-    `group.py`'s docstrings the record); CRAWLER_CLEAR (ruling P34-A fix B; the smoke trial
-    `x_trial-ladder-20261109-105452`: the character stood over the crawlers 9174 and 9175 while the melee pressed the
-    standing 9128, 13 wounds in 20 s): the stance's backpedal from a fallen or crawling zombie within CRAWLER_AVOID_R
-    while one stands within DANGER_R (`crawler.FightCrawler._crawler_clear`); LEAVE_ENTRY (Task 3b, ruling P34-G; the
-    trial `x_trial-ladder-20261109-123231`: a wall at the back withheld the leave from a closing trio, and three
-    standing at 0.4 to 0.9 tiles, jittering rather than closing, were fought with no leave until the drag-down): the
-    leave entered with a wall at the back and with GROUP_LEAVE_N standing within GROUP_ENTRY_R, the nearest within
-    KEEP_R (`group.ThreatGroup._leave_entry`); Task 3c (ruling P34-I; the trial `x_trial-ladder-20261109-132439`:
-    three standing on the character at 0.5 tiles under the retreat, the band's shove-mode melee and the drag guard's
-    `many` run superseding each other for thirty lines, no back leg, the drag-down at game minute 622):
-    RETREAT_REGAIN, under the retreat a point-blank press (the shove form with two in reach) and then the back leg held
-    until the nearest standing is beyond FIGHT_REACH or RETREAT_REGAIN_S passed (`fight.Fight._regain_back`), logged
-    `retreat_regain`; SPENT_LEAVE, with the meet spent the `run` at GROUP_LEAVE_N (`group.ThreatGroup._leave_leg`);
-    DRAG_DEFER, under the leave's retreat the drag guard's one shove and then the retreat, no run of its own
-    (`group.ThreatGroup._drag_defers`), logged `drag_fight` {deferred}; RUN_HOLD (amendment 1; the trial
-    `x_trial-ladder-20261109-134527`: the leg flicked between the run at five and the retreat at four, the character
-    never running clear), a leave whose leg read `run` keeps it until the leave ends, logged `group_leave` {held};
-    `T19_SWITCHES`.
-    Plan 35 Task 2 (the footwork; the spec's §§ 3.2 and 3.3: the deaths' hits land in held contact while a 2 Hz leg
-    superseded the melee reflex whose press is the defence): FOOTWORK, the melee sent with its `work` arguments
-    (PZA/1.13: the reflex's footwork, the pile met, the floor and clear hand-backs) to a build announcing mod 1.13 or
-    later (`World.mod_at_least`); ENGAGE_HOLD, the running melee with `work` holds against every leg (the Fight's own
-    give-ways and the threat branch's drag guard, leave, strung end, corner, still read, `many` and care rows, while
-    the health reads above FLEE_HEALTH), logged `engage_hold` {rule}, the crowd gate off at the dispatch point;
-    WITHDRAW, the fighting retreat's heading sent as the reflex's withdraw bias with GROUP_LEAVE_N or more standing
-    within GROUP_ENTRY_R, re-sent only past its WITHDRAW_RESEND_DEG sector (`dispatch.py`'s docstring the record);
-    `T20_SWITCHES`. Off, or on a build before 1.13, the planner runs as before.
+    threat's why; DOOR_INSIDE and LEAVE_DOOR_RACE (the spec's § 3.2, Task 2); LEAVE_ENTRY (Task 3b, ruling P34-G; the trial `x_trial-ladder-20261109-123231`: a wall at the back withheld
+    the leave from a closing trio, and three standing at 0.4 to 0.9 tiles, jittering rather than closing, were fought
+    with no leave until the drag-down): the leave entered with a wall at the back and with GROUP_LEAVE_N standing within
+    GROUP_ENTRY_R, the nearest within KEEP_R (`group.ThreatGroup._leave_entry`); Task 3c (ruling P34-I; the trial
+    `x_trial-ladder-20261109-132439`): SPENT_LEAVE, with the meet spent the `run` at GROUP_LEAVE_N
+    (`group.ThreatGroup._leave_leg`); RUN_HOLD (amendment 1; the trial `x_trial-ladder-20261109-134527`: the leg
+    flicked between the run at five and the retreat at four, the character never running clear), a leave whose leg read
+    `run` keeps it until the leave ends, logged `group_leave` {held}; `T19_SWITCHES` (Plan 35 Task 8 deleted
+    RETREAT_GAP, RETREAT_MELEE, STRUNG_HOLD, CRAWLER_CLEAR, RETREAT_REGAIN and DRAG_DEFER, and SHOVE_CLEAR, whose one
+    Python reader was the drag guard's shove: the Lua's shove and stomp wait for a reaction's end with no switch).
+    Plan 35 (the footwork, PZA/1.13; the spec's §§ 3.2 and 3.3: the deaths' hits land in held contact while a 2 Hz leg
+    superseded the melee reflex whose press is the defence; no switch since Task 8, the deletion): the melee always
+    carries its `work` arguments (the reflex's footwork, the pile met, the floor and clear hand-backs); the running melee
+    with `work` holds against every leg (the Fight's own give-ways and the threat branch's drag guard, leave, corner,
+    still read, `many` and care rows, while the health reads above FLEE_HEALTH), logged `engage_hold` {rule}; the
+    fighting retreat's heading is the reflex's withdraw bias with GROUP_LEAVE_N or more standing within GROUP_ENTRY_R,
+    re-sent only past its WITHDRAW_RESEND_DEG sector (`dispatch.py`'s docstring the record). Task 8 deleted the Python
+    legs that fought in contact beside the reflex (`fight.py`'s docstring the record).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -554,36 +542,22 @@ T16_SWITCHES = ("POINT_BLANK_FIGHT", "PAIR_NEAREST", "CARE_COMMIT", "STRAIN_BOUN
 T17_SWITCHES = ("CRAWLER_FIRST",)
 # Plan 33 Task 2 (the crawler first, F18's death) on `Survive`: CRAWLER_FIRST, the Fight's `crawler_first` rule
 # (`crawler.FightCrawler`), added to the Fight's rules by `Survive._fight_rules`
-T18_SWITCHES = ("GROUP_LEAVE", "DRAG_GUARD_FIGHT", "SIDE_CLEAR")
+T18_SWITCHES = ("GROUP_LEAVE",)
 # Plan 33 Task 3 (the group's entry and the drag guard; F18, `f_goals_18-20261108-235005`), all on `threat.Threat`
 # (`planner/group.py`): GROUP_LEAVE, a closing trio left in the open for a known door within LEAVE_DOOR_R, else the
-# fighting retreat, else above RETREAT_MAX_N the `many` run (`ThreatGroup._group_leave`); DRAG_GUARD_FIGHT, the drag-down guard's shove in its run's place
-# under a hit reaction or STUCK_FRAMES unmoving frames (`ThreatGroup._drag_fight`); SIDE_CLEAR, no run steer within
-# SIDE_R of a standing zombie (`ThreatGroup._side_clear`)
-T19_SWITCHES = ("LEAVE_CARE", "DOOR_INSIDE", "LEAVE_DOOR_RACE", "RETREAT_GAP", "RETREAT_MELEE", "STRUNG_HOLD",
-                "SHOVE_CLEAR", "CRAWLER_CLEAR", "LEAVE_ENTRY", "RETREAT_REGAIN", "SPENT_LEAVE", "DRAG_DEFER",
-                "RUN_HOLD")
+# fighting retreat, else above RETREAT_MAX_N the `many` run (`ThreatGroup._group_leave`); Plan 35 Task 8 deleted
+# DRAG_GUARD_FIGHT and SIDE_CLEAR
+T19_SWITCHES = ("LEAVE_CARE", "DOOR_INSIDE", "LEAVE_DOOR_RACE", "LEAVE_ENTRY", "SPENT_LEAVE", "RUN_HOLD")
 # Plan 34 (the column; F19, `f_goals_19-20261109-060929`; the spec's § 3), all on `threat.Threat`: LEAVE_CARE, the care
 # barred under a column of GROUP_LEAVE_N standing within GROUP_ENTRY_R but the ride (`care_yield.CareYield._care_commit`,
 # `_care_yields`); DOOR_INSIDE, the shelter plan's enter read inside and its close sent from inside; LEAVE_DOOR_RACE,
-# the leave's door only with the nearest standing beyond DOOR_RACE_R, a second exit, dropped at DOOR_ABORT_R;
-# RETREAT_GAP, the retreat's leg by the distance's band; RETREAT_MELEE, the strike melee's give-way to the back leg with
-# another standing within RETREAT_BACK_R; STRUNG_HOLD, the `strung` end after STRUNG_LINES lines; SHOVE_CLEAR, the Lua's
-# shove and stomp waiting for the reaction's end; CRAWLER_CLEAR (ruling P34-A fix B, the smoke trial's crawler pile),
-# the backpedal from a fallen or crawling zombie within CRAWLER_AVOID_R with a standing one within DANGER_R. Task 1
-# declares the seven and lands LEAVE_CARE; Tasks 2 to 4 the rest; Task 3 adds CRAWLER_CLEAR; Task 3b (ruling P34-G)
-# LEAVE_ENTRY, the leave's entry with no cover exemption and with the group already on the character; Task 3c (ruling
-# P34-I) RETREAT_REGAIN, the point-blank press then the back leg held to FIGHT_REACH or RETREAT_REGAIN_S, SPENT_LEAVE,
-# the `run` at GROUP_LEAVE_N with the meet spent, and DRAG_DEFER, no guard's run after its shove under the retreat;
-# amendment 1 RUN_HOLD, a leave whose leg read `run` keeps the run until it ends
-T20_SWITCHES = ("FOOTWORK", "ENGAGE_HOLD", "WITHDRAW")
-# Plan 35 Task 2 (the footwork; the spec's §§ 3.2 and 3.3), all on `threat.Threat`, each a Fight rule of its name
-# lower-cased: FOOTWORK, the melee's `work` arguments to a build at mod 1.13 or later (`dispatch.FightDispatch
-# ._work_inputs`); ENGAGE_HOLD, the running melee with `work` held against every leg, the Fight's and the threat
-# branch's (`dispatch.FightDispatch._engaged`, `threat.Threat._engage_holds`), logged `engage_hold` {rule}, the crowd
-# gate off, and (fixes 8 and 8b) a melee end with a standing zombie within KEEP_R keeps the engagement (no regain leg,
-# no ladder choose after a `lost` end, no `unreachable` flee); WITHDRAW, the fighting retreat's heading as the
-# reflex's withdraw bias with GROUP_LEAVE_N or more standing within GROUP_ENTRY_R
+# the leave's door only with the nearest standing beyond DOOR_RACE_R, a second exit, dropped at DOOR_ABORT_R; Task 3b
+# (ruling P34-G) LEAVE_ENTRY, the leave's entry with no cover exemption and with the group already on the character;
+# Task 3c (ruling P34-I) SPENT_LEAVE, the
+# `run` at GROUP_LEAVE_N with the meet spent; amendment 1 RUN_HOLD, a leave whose leg read `run` keeps the run until it
+# ends. Plan 35 Task 8 deleted RETREAT_GAP, RETREAT_MELEE, STRUNG_HOLD, CRAWLER_CLEAR, RETREAT_REGAIN, DRAG_DEFER and
+# SHOVE_CLEAR (its one Python reader the drag guard's shove), and Plan 35 Task 2's T20_SWITCHES (FOOTWORK, ENGAGE_HOLD,
+# WITHDRAW: the engagement is the only behaviour)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -606,7 +580,7 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T3_SWITCHES",
            "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES", "T7_SWITCHES", "T8_SWITCHES", "T9_SWITCHES", "T10_SWITCHES",
            "T11_SWITCHES", "T12_SWITCHES", "T13_SWITCHES", "T14_SWITCHES", "T15_SWITCHES",
-           "T16_SWITCHES", "T17_SWITCHES", "T18_SWITCHES", "T19_SWITCHES", "T20_SWITCHES"]
+           "T16_SWITCHES", "T17_SWITCHES", "T18_SWITCHES", "T19_SWITCHES"]
 
 
 @dataclass
@@ -751,22 +725,14 @@ class Survive(SneakGait, Threat):
         self.leave = None         # the running leave {since, closing} (Plan 33 Task 3, GROUP_LEAVE), else None
         self.retreat = None       # this tick: GROUP_LEAVE's retreat heading (unit away from the group), else None
         self.group_retreat = None   # this tick: GROUP_LEAVE's retreat why {leg, closing, centroid_away}, else None
-        self.leave_leg = None     # this tick: the leave's leg, shove | door | retreat | run
+        self.leave_leg = None     # this tick: the leave's leg, door | retreat | run
         self.group_leave = None   # this tick: GROUP_LEAVE's why (a leave taken, held, ended or withheld), else None
-        self.drag_fight = None    # this tick: DRAG_GUARD_FIGHT's {target, dist, why} shove or {spent, why} run, else None
-        self.side_clear = None    # this tick: {turn, near[, least_bad]} when SIDE_CLEAR turned a run, else None
-        self.drag_episode = None  # DRAG_GUARD_FIGHT's stuck episode {at, shoves} (fix 2), ended at STUCK_FREE_R from `at`
-        self.drag_press = False   # this tick: DRAG_DEFER handed the episode's shove to the Fight as its regain's press
-                                  # (Plan 34 Task 3c, `group.ThreatGroup._drag_defers`)
-        self._still_n0 = None     # the World's frame_n of the first tick reading the character unmoving under a running
-                                  # steer or walk (Plan 33 Task 3: STUCK_FRAMES from it), else None
         self._group_prev = {}     # standing zombie id -> tiles on the last tick, within DISENGAGE_R (the closing read)
         self._group_closing = []  # this tick: (id, zombie, tiles) of the standing within GROUP_NEAR_R nearer than before
         self.group_n = 0          # this tick: the standing zombies within GROUP_ENTRY_R (Plan 34, `_group_read`)
-        self.strung_n = 0         # the consecutive lines the leave's count read under GROUP_LEAVE_N (Plan 34, STRUNG_HOLD)
         self.care_withheld = None   # this tick: LEAVE_CARE's {why "group", n, key} when the care was barred, else None
-        self.engage_hold = None   # this tick: {rule} of the first threat row ENGAGE_HOLD held off the Fight's engaged
-                                  # melee (Plan 35 Task 2, `Threat._engage_holds`), else None
+        self.engage_hold = None   # this tick: {rule} of the first threat row held off the Fight's engaged melee
+                                  # (Plan 35 Task 2, `Threat._engage_holds`), else None
         self.engage_yield = None  # this tick: {rule "bleed"} when the engagement yielded to the bleed's care (Plan 35
                                   # Task 2 fix 2, `CareYield._care_engage_holds`), {rule "many"} above
                                   # RETREAT_MAX_N (fixes 3 and 4, `Threat._group_lapse`), else None

@@ -2,12 +2,7 @@
 in `testing/trials/trials.md`): three trials, three deaths, `x_trial-ladder-20261109-141434`,
 `x_trial-ladder-20261109-142025` and `x_trial-ladder-20261109-142418`.
 
-- RETREAT_REGAIN's press held (`fight.Fight._regain_busy`): the second trial's lines 114 to 118 sent the press at 6883,
-  then at 6854, then at 6855 on three lines, each a retreat re-pin (`_retreat_read`) that cut the running melee, the
-  first with its shove in flight (line 116 `shove`, line 117 a new melee), so no press finished and no back leg went
-  between them; the first trial's lines 265 and 266 the same (13836, then 13802 0.44 s on). The press's own melee now
-  holds by the melee's rule alone (`dispatch.FightDispatch._melee_holds`) until it has pressed once with no press in
-  flight; then the back leg as before (lines 91 to 94 and 107 to 108 of the second trial read the back leg live).
+- RETREAT_REGAIN's press held: Plan 35 Task 8 deleted RETREAT_REGAIN and its tests (named in the task report).
 - SPENT_LEAVE's read (`group.ThreatGroup._spent_meet`): the second trial's lines 119 and 120 read `strain` 47.2 and the
   maneuver's `spent` true (the Lua's spent meet: `PZAgent_StanceMelee.lua`'s `spentOf`, the arms' pain over
   K.MELEE_SPENT_PAIN 10) with `group_leave` {leg "retreat", n 4}: the read took only the holds and the shove-and-stomp
@@ -24,73 +19,12 @@ from agent.base.planner import threat as T
 
 from .test_policies import zombie
 from .test_survive import make, threat_why, tick
-from .test_survive_ak import WEST_V, closing
-from .test_survive_an import accept
-from .test_survive_ap import frame, pressed, progress
+from .test_survive_ak import closing
 
 
 def test_the_constant():
     """POINT_BLANK_OVER_R 1.5, inside KEEP_R."""
     assert P.POINT_BLANK_OVER_R == 1.5 and P.POINT_BLANK_OVER_R < P.KEEP_R
-
-
-# ================================================================ (A) the press once, then the back leg
-ONE_PRESS = ((0.78, 0.0), (3.0, 0.5), (3.5, -0.5))   # the first trial's line 263: 13802 at 0.78, one within reach
-ONE_NEXT = ((0.66, 0.0), (2.9, 0.5), (3.4, -0.5))
-
-
-def test_a_strike_press_that_pressed_once_gives_way_to_the_back_leg(tmp_path):
-    """The first trial's line 263 as a fixture (unspent, one in reach: the press is the strike melee): while its swing
-    is in flight it holds; once its act lines read the press resolved (`face`) the next choose reads `busy` False and
-    sends the back leg on the retreat heading, logged `retreat_regain` {phase "back", near, since 0}."""
-    r, f, a = pressed(tmp_path, spent=(), offs=ONE_PRESS)
-    assert (a.type, a.args["mode"]) == ("melee", "strike") and f.why["retreat_regain"]["phase"] == "press"
-    accept(r, a, "swing")
-    frame(r, f, ONE_NEXT)
-    assert f.busy() is True and f.step() is None
-    progress(r, a, "face")
-    frame(r, f, ONE_NEXT)
-    assert f.busy() is False
-    b = f.step()
-    assert b.type == "aim" and (b.args["vx"], b.args["vy"]) == pytest.approx(WEST_V)
-    g = f.why["retreat_regain"]
-    assert g["phase"] == "back" and g["near"] == pytest.approx(0.66) and g["since"] == pytest.approx(0.0)
-
-
-PRESS_AT_1 = ((0.6, 0.0), (1.4, 0.3), (3.0, 0.5))   # the press at 1 (two in reach: the shove form)
-REPINNED = ((0.9, 0.0), (0.4, 0.1), (3.0, 0.5))     # 2 come 0.49 tiles nearer than 1: the retreat's re-pin reads 2
-
-
-def test_a_press_in_flight_is_not_cut_by_the_retreat_s_re_pin(tmp_path):
-    """The second trial's lines 115 to 117: the press's melee at 1 with its shove in flight, 2 come nearer than 1 by more
-    than PAIR_SWITCH_R (the retreat's re-pin): it holds; its press resolved, the back leg goes, no melee at 2."""
-    r, f, a = pressed(tmp_path, spent=(), offs=PRESS_AT_1)
-    assert (a.type, a.args["targetId"], a.args["mode"]) == ("melee", 1, "shove")
-    accept(r, a, "shove")
-    frame(r, f, REPINNED)
-    assert f.busy() is True and f.step() is None
-    progress(r, a, "face")
-    frame(r, f, REPINNED)
-    assert f.busy() is False
-    b = f.step()
-    assert b.type == "aim" and f.why["retreat_regain"]["phase"] == "back"
-
-
-def test_a_press_not_yet_begun_is_not_cut_by_the_retreat_s_re_pin(tmp_path):
-    """The second trial's lines 117 and 118 (6854's press re-pinned to 6855 0.54 s on, before any press step): the
-    press's melee accepted, no step yet, the re-pin read: it holds (no new press at 2)."""
-    r, f, a = pressed(tmp_path, spent=(), offs=PRESS_AT_1)
-    accept(r, a)
-    frame(r, f, REPINNED)
-    assert f.busy() is True and f.step() is None
-
-
-def test_with_retreat_regain_off_the_re_pin_cuts_the_melee(tmp_path):
-    """A pin (`retreat_regain` off, the rule before it): the re-pin gives the running melee way."""
-    r, f, a = pressed(tmp_path, rule=False, spent=(), offs=PRESS_AT_1)
-    accept(r, a, "shove")
-    frame(r, f, REPINNED)
-    assert f.busy() is False
 
 
 # ================================================================ (B) the spent read is the Lua's

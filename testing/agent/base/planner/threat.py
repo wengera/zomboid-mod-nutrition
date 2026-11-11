@@ -280,12 +280,6 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                               # the back within WALL_R: the `leave` flee to a known door within LEAVE_DOOR_R, the
                               # doorway stand there, else the Fight's fighting retreat (up to RETREAT_MAX_N standing),
                               # else the `many` run (`group.ThreatGroup._group_leave`); off, no such row
-    DRAG_GUARD_FIGHT = True   # the drag-down guard's flee under a hit reaction or STUCK_FRAMES unmoving frames shoves the
-                              # standing zombie in front once a stuck episode (fix 2: DRAG_SHOVES_PER_EPISODE), the run
-                              # after it until moved STUCK_FREE_R (`group.ThreatGroup._drag_fight`); off, the guard's run
-    SIDE_CLEAR = True         # no run steer passes within SIDE_R of a standing zombie over SIDE_LOOK tiles: turned to the
-                              # nearest clear heading, else the least-bad one (fix 2; `group.ThreatGroup._side_clear`);
-                              # off, as sent
     FLEE_HELD_STANCE = True   # ruling P29-H': a flee walk whose observed heading runs at a held zombie is dropped with
                               # its plan, its door marked `walled`, and the fight meets it in the stance
                               # (`flee.Flee._held_ahead`, the Flee's `flee_held_stance` rule); off, the walk runs on
@@ -297,40 +291,14 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                              # from inside (Task 2); off, the enter's `done` and the close as before
     LEAVE_DOOR_RACE = True   # the leave's door only with the nearest standing beyond DOOR_RACE_R and a second exit,
                              # dropped at DOOR_ABORT_R (Task 2); off, any `ok` door within LEAVE_DOOR_R
-    RETREAT_GAP = True       # the retreat's leg by the distance's band, the stand beyond KEEP_R (Task 3; the Fight's
-                             # `retreat_gap` rule, `fight.Fight._retreat_kind`); off, every stance leg a backpedal
-    RETREAT_MELEE = True     # the strike melee's give-way to the back leg with another standing within RETREAT_BACK_R
-                             # (Task 3; the Fight's `retreat_melee` rule, `fight.Fight._retreat_breaks`); off, the melee
-                             # held
-    STRUNG_HOLD = True       # the leave's `strung` end after STRUNG_LINES lines under GROUP_LEAVE_N (Task 3,
-                             # `group.ThreatGroup._group_leave`); off, on the first
-    SHOVE_CLEAR = True       # the Lua's shove and stomp waiting for the reaction's end (Task 4); off, refused `busy`
-    CRAWLER_CLEAR = True     # ruling P34-A fix B: a fallen or crawling zombie within CRAWLER_AVOID_R other than the
-                             # finish target (or two whatever the target), with a standing one within DANGER_R, is
-                             # backpedalled from, no melee nor stomp meanwhile (the Fight's `crawler_clear` rule,
-                             # `crawler.FightCrawler._crawler_clear`); off, the melee and CRAWLER_FIRST as before
     LEAVE_ENTRY = True       # Task 3b (ruling P34-G): the leave's entry with no cover exemption (the back read logged
                              # beside it) and with GROUP_LEAVE_N standing within GROUP_ENTRY_R, the nearest within
                              # KEEP_R, closing or not (`group.ThreatGroup._leave_entry`); off, the cover withholds and
                              # the closing read alone enters
-    RETREAT_REGAIN = True    # Task 3c (ruling P34-I): under the retreat a point-blank press, then the back leg held until
-                             # the nearest standing is beyond FIGHT_REACH or RETREAT_REGAIN_S passed (the Fight's
-                             # `retreat_regain` rule, `fight.Fight._regain_back`); off, the band's melee every line
     SPENT_LEAVE = True       # Task 3c: with the meet spent the retreat's bound is GROUP_LEAVE_N - 1, so GROUP_LEAVE_N
                              # standing take the `run` (`group.ThreatGroup._leave_leg`); off, RETREAT_MAX_N whatever
-    DRAG_DEFER = True        # Task 3c: under the leave's retreat the drag guard's row sends no run after its one shove,
-                             # the line falling through to the retreat (`group.ThreatGroup._drag_defers`); off, the run
     RUN_HOLD = True          # Task 3c amendment 1: a leave whose leg read `run` keeps the run until it ends, the retreat
                              # never resumed inside it (`group.ThreatGroup._leave_leg`); off, the leg by the count
-    # Plan 35 Task 2 (the footwork; the spec's §§ 3.2 and 3.3): in survive.T20_SWITCHES
-    FOOTWORK = True          # the melee's `work` arguments to a build at mod 1.13 or later (the Fight's `footwork`
-                             # rule, `dispatch.FightDispatch._work_inputs`); off, the melee as before
-    ENGAGE_HOLD = True       # the running melee with `work` held against every leg, the Fight's give-ways and the
-                             # threat rows (the Fight's `engage_hold` rule, `_engage_holds`), the crowd gate off; fix 8:
-                             # a `lost` end with a standing zombie within KEEP_R keeps it (no ladder choose); off,
-                             # as before
-    WITHDRAW = True          # the fighting retreat's heading as the reflex's withdraw bias with GROUP_LEAVE_N or more
-                             # standing within GROUP_ENTRY_R (the Fight's `withdraw` rule); off, no bias
 
     def _hold_r(self):
         """The hold radius: DISENGAGE_R while a threat policy runs, ENGAGE_R on a tick the sought fight entered the
@@ -461,7 +429,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
 
     def _many(self, held, n):
         """`_many_read`'s `many`, its `listed` kept for the decision's why (logged `listed`); ruling P29-G: a tick
-        whose `many` the reads before it made and `_many_near` does not, logged `many_near` {n}. Plan 35 ENGAGE_HOLD: a
+        whose `many` the reads before it made and `_many_near` does not, logged `many_near` {n}. Plan 35: a
         `many` read while the Fight's melee is engaged (`_engage_holds`) answers the hold (False), logged `engage_hold`
         {rule "many"}."""
         many, listed = self._many_read(held, n)
@@ -475,11 +443,11 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         return many and not self._engage_holds("many", lapse=True)
 
     def _engage_holds(self, rule, lapse=False):
-        """Plan 35 ENGAGE_HOLD (the spec's § 3.2): True when the threat row `rule` would supersede the Fight's engaged
+        """Plan 35 (the spec's § 3.2): True when the threat row `rule` would supersede the Fight's engaged
         melee (`dispatch.FightDispatch._engaged`: the running melee with `work`, this branch fighting) and the health
         reads above FLEE_HEALTH (the reflex's floor, `floorHealth`: at or under it the reflex hands back `floor` and the
-        rows run as before), the hold logged `engage_hold` {rule} (the first row held on the tick); else False (the rule
-        off, no engagement). Fix 3 (the controller's ruling; the trial `x_trial-ladder-20261110-091352`, decision lines
+        rows run as before), the hold logged `engage_hold` {rule} (the first row held on the tick); else False (no
+        engagement). Fix 3 (the controller's ruling; the trial `x_trial-ladder-20261110-091352`, decision lines
         86 to 111: the leave's run held while the reflex shoved in a pile of four to six, the drag-down at health 54),
         as fix 4 narrowed it (the trial `x_trial-ladder-20261110-094757`, decision line 191: the drag lapse's guard run
         superseded the melee holding three at 0.4 to 1.2 tiles, the first bite 0.6 s later and the body bled to 0): a
@@ -505,12 +473,12 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     def _contact_lift(self):
         """Plan 35 fix 8b (the controller's ruling; the street-1 trial `x_trial-ladder-20261111-114439`, decision lines
         306 to 313: the one standing zombie left, 27900, marked unreachable and lunging from 1.11 to 0.49 tiles, the
-        threat plan fled `unreachable` to a shelter and the bite landed under the walk 0.75 s later): under the
-        engagement's dispatch (ENGAGE_HOLD and FOOTWORK on, the build at mod 1.13) no `unreachable` flee is taken with a
-        standing zombie (not a crawler) within KEEP_R: the nearest's mark is lifted, so the Fight pins it and its
+        threat plan fled `unreachable` to a shelter and the bite landed under the walk 0.75 s later): where the melee
+        can go (MELEE on, the build announcing `melee`) no `unreachable` flee is taken with a standing zombie (not a
+        crawler) within KEEP_R: the nearest's mark is lifted, so the Fight pins it and its
         dispatch sends the melee with `work`, logged `engage_dispatch` {from "unreachable", target} on the threat why
         (the reflex's stall and re-pin own the unreachable case from inside the engagement). True when it lifted one."""
-        if not (self.ENGAGE_HOLD and self.FOOTWORK and self.world.mod_at_least("1.13")):
+        if not (self.MELEE and self.world.can("melee")):
             return False
         near = next(((zid, d) for zid, z, d in self._group_standing(KEEP_R)
                      if target_id_ok(zid) and not is_crawler(z)), None)
@@ -521,10 +489,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         return bool(self._reachable_held())
 
     def _engage_on(self):
-        """`_engage_holds`'s read, with no log: ENGAGE_HOLD on, this branch fighting, its Fight engaged, the health above
-        FLEE_HEALTH."""
+        """`_engage_holds`'s read, with no log: this branch fighting, its Fight engaged, the health above FLEE_HEALTH."""
         f = self.fight
-        return (self.ENGAGE_HOLD and self.mode == "fight" and f is not None and f._engaged()
+        return (self.mode == "fight" and f is not None and f._engaged()
                 and self._health() > FLEE_HEALTH)
 
     def _flee_reason(self, held, n):
@@ -923,10 +890,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
           one-tile front the drag-down guard flees: the stand reads its own `drag` end, at DRAG_DOWN_N - 1 since
           P25-U, the guard's own count, `_stand_drag_n`).
         - The drag-down guard (ruling P24-A (h), `_drag`): `flee` with the group steer (`group` "drag"), ahead of
-          every other row but the doorway's; the Flee steers at a run, or inside walks the exit (P24-A (f), P24-O).
-          Plan 34 Task 3c (DRAG_DEFER, `group.ThreatGroup._drag_defers`): while the leave holds with its leg the
-          retreat, the guard's row after its one shove sends no run: the leave's plan (the Fight's retreat), the
-          guard's shove handed to the Fight as its regain's press (`drag_press`).
+          every other row but the doorway's; the Flee steers at a run, or inside walks the exit (P24-A (f), P24-O);
+          not over the engaged melee (Plan 35, `_engage_holds`).
         - `door`: sheltered (a chosen shelter's plan done, the character inside) with a reachable held threat in its
           doorway or inside it: the door fight (I3). It goes first, before the corner and before the inside hold
           (a decision-order change from 21e3716b, which held first; ruled at fix round 1, the review's M1: a threat
@@ -965,12 +930,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             self.leave = None   # Plan 33 Task 3: a leave ends at the doorway
             return door
         if self._drag(held, inside) and not self._engage_holds("drag"):   # P24-A (h): first, whatever the fight or
-            # the corner; Plan 35 ENGAGE_HOLD: not over the engaged melee (the reflex meets the pile)
+            # the corner; Plan 35: not over the engaged melee (the reflex meets the pile)
             self.cornered, self._corner_fight, self.group_steer, self.door = None, None, "drag", None
-            self._drag_fight()   # Plan 33 Task 3 (DRAG_GUARD_FIGHT): the shove in the run's place, answered in `_decide`
-            if self._drag_defers(inside):   # Plan 34 Task 3c (DRAG_DEFER): after its shove the leave's retreat owns it
-                self.cornered, self._corner_fight, self.group_steer = None, None, None
-                return LEAVE_PLAN[self.leave_leg]
             return "flee", self._flee_reason(held, len(self._danger_near())) or "many"
         self.door = self._door_targets() if self.sheltered else None
         if self.door:
@@ -979,12 +940,12 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             self.cornered, self._corner_fight = None, None
             plan = LEAVE_PLAN[self.leave_leg]   # fix 3: the retreat is the Fight's; fix 4: above RETREAT_MAX_N the run
             if plan[0] != "fight" and self._engage_holds("leave", lapse=self.leave_leg == "run"):
-                return "fight", None   # Plan 35 ENGAGE_HOLD: the leave's shove, door or run not over the engaged melee
+                return "fight", None   # Plan 35: the leave's door or run not over the engaged melee
             return plan
         if self._cornered(held, inside) is not None:
             if not self._engage_holds("cornered"):
                 return "cornered", None
-            self.cornered, self._corner_fight = None, None   # Plan 35 ENGAGE_HOLD: no corner Fight over the
+            self.cornered, self._corner_fight = None, None   # Plan 35: no corner Fight over the
             # engaged melee (the reflex meets the zombie at point blank)
             return "fight", None
         if self.group_steer:
@@ -1119,7 +1080,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         self.finish_block = None   # Task 36 fix 1: this tick's refusal only (`_finish_chaser` sets it)
         self.held_cut = None       # P29-H': this tick's cut flee walk (`flee.Flee.take_held_cut`)
         self.care_withheld = None  # Plan 34 (LEAVE_CARE): this tick's care barred under a column
-        self.engage_hold = None    # Plan 35 (ENGAGE_HOLD): this tick's threat row held off the engaged melee
+        self.engage_hold = None    # Plan 35: this tick's threat row held off the engaged melee
         self.engage_yield = None   # Plan 35 fix 2: this tick's care the engagement yielded to (a bleed, nobody in KEEP_R)
         self.engage_dispatch = None   # Plan 35 fix 8b: this tick's `unreachable` flee withheld in contact
         self._read_bleed()         # P30-F: each part's health sampled, its bleed's rate read by `_dress_waits`
@@ -1143,7 +1104,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             self.sheltered, self.cornered, self.closing = False, None, (0, None)
             self.stuck_heading, self._nearest_seen = None, []
             self._still_rec = None   # P30-E: the still read starts again with the next threat
-            self.leave, self.drag_episode = None, None   # Plan 33 Task 3: the leave and the stuck episode end with it
+            self.leave = None   # Plan 33 Task 3: the leave ends with it
             return
         self._nearest_seen = (self._nearest_seen + [self._nearest_listed()])[-(CARE_STILL_TICKS + 1):]
         if self.flee is not None:   # a shelter or exit step's end read before the hold (the close may have ended),
@@ -1298,9 +1259,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             if self.group_steer == "drag":
                 policy.drop_stuck_leg()   # P24-A fix 2, I1: never a stalled leg held its FLEE_S under the guard
             self.pair_yield = None   # P25-J (3): a flee's yield is the `pair` flee's own finish (`_pair_flee_finish`)
-            ans = (self._drag_shove(policy)   # Plan 33 Task 3 (DRAG_GUARD_FIGHT): the shove in the guard's run
-                   or (self._leave_answer(policy, held) if reason == "leave" else None)   # GROUP_LEAVE's leg
-                   or self._flee_drop() or self._flee_finish(reason))
+            ans = self._flee_drop() or self._flee_finish(reason)
             idle = None if walk or reason != "strain" else self._hold_idle()   # P27-J (a): an idle zombie in reach
             # P27-C2: the hold's walk with no chaser is the rest
             rest = ans is None and (walk or idle is not None) and self._hold_rest()
@@ -1318,8 +1277,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.ride = self.care.riding()   # P24-U: the stance legs held off while a bandage rides
             policy.threats = held
             policy.retreat = self.retreat   # Plan 33 Task 3 fix 3: GROUP_LEAVE's fighting retreat heading, else None
-            policy.group_n = self.group_n   # Plan 35 WITHDRAW: the bias only with GROUP_LEAVE_N standing within reach
-            policy.outside_press = self.drag_press   # Plan 34 Task 3c (DRAG_DEFER): the guard's shove, the regain's press
+            policy.group_n = self.group_n   # Plan 35: the withdraw bias only with GROUP_LEAVE_N standing within reach
             policy.edge_ticks = EDGE_HOLD_TICKS if self.EDGE else 0   # P24-AU, read at the policy's observe
             policy.rules = self._fight_rules()   # P25-A, P25-B, P25-D, P25-F
             policy.edge_marks = self.edge_marks   # P25-X: the refusals across a blocked edge, shared as `unreachable`
@@ -1377,7 +1335,6 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             self.why["group"] = self.group_steer
         if self.avoid and want == "fight":
             self.why["unsought"] = sorted(self.avoid, key=repr)
-        ans = self._side_clear(ans)   # Plan 33 Task 3 (SIDE_CLEAR): no run steer past a standing zombie
         if want == "flee" and pick is not None:
             self.why["doorway_pick"] = pick
             if self.one_exit_refused is not None:
@@ -1391,8 +1348,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                        ("health_near", self.health_near), ("many_near", self.many_near),
                        ("finish_lone", self.finish_lone), ("flee_held_stance", self.held_cut),
                        ("point_blank_fight", self.point_blank_fight), ("strain_bound", self.strain_bound),
-                       ("group_leave", self.group_leave), ("group_retreat", self.group_retreat), ("drag_fight", self.drag_fight),
-                       ("side_clear", self.side_clear), ("engage_hold", self.engage_hold),
+                       ("group_leave", self.group_leave), ("group_retreat", self.group_retreat),
+                       ("engage_hold", self.engage_hold),
                        ("engage_dispatch", self.engage_dispatch)):
             if v is not None:
                 self.why[key] = v
@@ -1495,13 +1452,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                                                ("close_idle", self.CLOSE_IDLE),
                                                ("swing_close", self.SWING_CLOSE),
                                                ("chaser_stance", self.CHASER_STANCE),
-                                               ("pair_nearest", self.PAIR_NEAREST),
-                                               ("retreat_gap", self.RETREAT_GAP),
-                                               ("retreat_melee", self.RETREAT_MELEE),
-                                               ("crawler_clear", self.CRAWLER_CLEAR),
-                                               ("retreat_regain", self.RETREAT_REGAIN),
-                                               ("footwork", self.FOOTWORK), ("engage_hold", self.ENGAGE_HOLD),
-                                               ("withdraw", self.WITHDRAW))
+                                               ("pair_nearest", self.PAIR_NEAREST))
                          if on)
 
     def _flee_rules(self):

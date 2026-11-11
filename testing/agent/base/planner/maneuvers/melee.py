@@ -73,7 +73,7 @@ def withdraw_sector(v):
 
 @dataclasses.dataclass(frozen=True)
 class WorkInputs:
-    """The melee's `work` arguments for one send (PZA/1.13, Plan 35: `fight.Fight._melee_inputs` under FOOTWORK)."""
+    """The melee's `work` arguments for one send (PZA/1.13, Plan 35: `dispatch.FightDispatch._work_inputs`, every send)."""
     work_r: float                              # workR: the standing zombies read for the heading, tiles
     crawler_r: float                           # crawlerR: a crawler's repulsion and veto radius, tiles
     band_lo: float                             # bandLo: the step back under the reach less this, tiles
@@ -140,8 +140,6 @@ class Melee(Maneuver):
         self._kills = []        # the target ids a `done` {kill} read, not yet taken
         self._span = None       # the current send's `done` span, not yet taken
         self.span_id = None     # the zombie that span read (the target, or a re-pin's `target`: Task 15a)
-        self.presses = 0        # the presses its progress lines read, each a step entering STRIKE_STEPS (Plan 34 Task
-                                # 3c: RETREAT_REGAIN's press once, `fight.Fight._regain_busy`)
 
     def resend_due(self):
         """The running melee runs on inputs the current ones change (`MeleeInputs.behaviour`), and its last progress
@@ -152,7 +150,7 @@ class Melee(Maneuver):
 
     def pressing(self):
         """The last progress line's step is a press in flight (STRIKE_STEPS: from its press to its result), which no
-        re-send and no owner's give-way cuts (Plan 34: `fight.Fight._retreat_breaks`, the crawler clear's `busy`)."""
+        re-send cuts."""
         return self._progress.get("step") in STRIKE_STEPS
 
     def step(self):
@@ -205,8 +203,6 @@ class Melee(Maneuver):
     def progressed(self, line):
         res = line.get("result")
         if isinstance(res, dict):
-            if res.get("step") in STRIKE_STEPS and self._progress.get("step") not in STRIKE_STEPS:
-                self.presses += 1   # Plan 34 Task 3c: a press begun (its step from a non-press one)
             self._progress = res
             self.d = res.get("d")
             self._keep_press(res)

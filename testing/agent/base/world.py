@@ -221,7 +221,7 @@ DEQUE_N = 500
 
 def _mod_at_least(hello, version):
     """Whether `hello`'s mod version (two or three dotted numbers, a missing third read as 0: ruling P25-O) is `version`
-    (`"1.13"`, `"1.5.2"`) or later, compared number by number; False with no hello or an unparsable `mod` (the fake
+    (`"1.5.2"`) or later, compared number by number; False with no hello or an unparsable `mod` (the fake
     mod's "fake")."""
     m = re.match(r"(\d+)\.(\d+)(?:\.(\d+))?", str((hello or {}).get("mod") or ""))
     return m is not None and tuple(int(g or 0) for g in m.groups()) >= tuple(int(p) for p in str(version).split("."))
@@ -510,11 +510,6 @@ class World:
         record never ran on a live session); an older or unparsable version reads False. Read off `hello` alone (a
         frozen grade calls it on a stand-in carrying only `hello`: `gates_e.e_item_record`)."""
         return _mod_at_least(self.hello, "1.5.2")
-
-    def mod_at_least(self, version):
-        """Whether the last hello's mod version is `version` (`"1.13"`) or later (`_mod_at_least`). Plan 35 Task 2: the
-        melee's `work` arguments go only to a build at 1.13."""
-        return _mod_at_least(self.hello, version)
 
     def can(self, action_type):
         """Whether the last hello's `caps` announce `action_type`: the planner sends a PZA/1.5 skill (aim, climb,

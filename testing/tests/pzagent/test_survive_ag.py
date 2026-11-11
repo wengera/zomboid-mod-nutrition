@@ -478,29 +478,43 @@ def stand_on(r, sv, ticks, me=(100.0, 200.0), zs=((32308, 100.0 + F14_STILL_D, 2
     return a, threat_why(r.dir)
 
 
-def test_f14_s_melee_standing_out_of_reach_for_6_s_turns_into_the_stance_s_approach(tmp_path):
-    """P30-E: F14's shape: the melee standing at 32308 2.005 tiles off, the character unmoved, the distance steady:
-    at STILL_S (6 s) the read resolves `approach` (alone within DANGER_R, health 60), the stance's leg toward it (the
-    Fight's `toward` leg), logged `still` {target, d, resolved}; before it, the melee stands."""
+STAND_D = 3.0   # beyond KEEP_R: the stance's stand leg faces a zombie this far off, the character unmoved
+
+
+def stance_rig(tmp_path):
+    """A Survive on a PZA/1.7 build (aim, no melee): the stance's own legs, no reflex."""
+    from .fakemod import CAPS_17
+    r = Rig(tmp_path, caps=CAPS_17)
+    sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock, source=Src(None))
+    r.scan(grid(90, 115, 190, 210))
+    return r, sv
+
+
+def test_a_stance_standing_at_a_still_zombie_for_6_s_turns_into_the_approach(tmp_path):
+    """P30-E, rewritten at Plan 35 Task 8 (the F14 shape's melee is the engagement now, which the read never cuts): the
+    stance standing at 32308 3.0 tiles off (beyond KEEP_R), the character unmoved, the distance steady: at STILL_S
+    (6 s) the read resolves `approach` (alone within DANGER_R, health 60), the stance's leg toward it, logged `still`
+    {target, d, resolved}; before it, no `still`."""
     from agent.base.planner.policies import STILL_S
-    r, sv = still_rig(tmp_path, ())
-    n = int(STILL_S / 0.5)
-    a, w = stand_on(r, sv, n)
-    assert "still" not in w and any(x.type == "melee" for x in r.acts.history)
-    a, w = stand_on(r, sv, 1, me=(100.0, 200.0))
-    assert w["still"] == {"target": 32308, "d": F14_STILL_D, "resolved": "approach"}
+    r, sv = stance_rig(tmp_path)
+    zs = ((32308, 100.0 + STAND_D, 200.0, True),)
+    a, w = stand_on(r, sv, int(STILL_S / 0.5), zs=zs)
+    assert "still" not in w and any(x.type == "aim" for x in r.acts.history)
+    a, w = stand_on(r, sv, 1, zs=zs)
+    assert w["still"] == {"target": 32308, "d": STAND_D, "resolved": "approach"}
     assert a is not None and a.type in ("aim", "walkTo") and (a.args.get("vx", 1.0) > 0.0 or a.args.get("x", 0) > 100)
 
 
-def test_the_same_with_a_second_zombie_within_danger_r_turns_into_the_goal_s_walk(tmp_path):
-    """P30-E: a second zombie 5 tiles off (within DANGER_R, the test's own): `goal`: the still zombie left (unreachable
-    for UNREACHABLE_S), the threat branch passing, its why `still` {resolved "goal"} with the held count."""
+def test_a_still_zombie_beside_a_second_within_danger_r_turns_into_the_goal_s_walk(tmp_path):
+    """P30-E, rewritten as the test before it: a second zombie 5 tiles off (within DANGER_R): `goal`: the still zombie
+    left (unreachable for UNREACHABLE_S), the threat branch passing, its why `still` {resolved "goal"} with the held
+    count."""
     from agent.base.planner.policies import STILL_S
-    r, sv = still_rig(tmp_path, ())
-    zs = ((32308, 100.0 + F14_STILL_D, 200.0, True), (2, 100.0, 205.0, False))
+    r, sv = stance_rig(tmp_path)
+    zs = ((32308, 100.0 + STAND_D, 200.0, True), (2, 100.0, 205.0, False))
     a, w = stand_on(r, sv, int(STILL_S / 0.5) + 1, zs=zs)
     row = last(tmp_path)
-    assert w == {"still": {"target": 32308, "d": F14_STILL_D, "resolved": "goal"}, "held": 2}
+    assert w == {"still": {"target": 32308, "d": STAND_D, "resolved": "goal"}, "held": 2}
     assert row["branch"] != "threat" and sv.mode is None and sv.unreachable[32308] > r.clock()
 
 

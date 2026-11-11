@@ -1,21 +1,19 @@
 """Plan 35 Task 2 (the footwork; the spec `docs/superpowers/specs/2026-11-10-plan-35-the-footwork-design.md` §§ 3.2 and
-3.3): the planner holds the engagement. `survive.T20_SWITCHES` on `threat.Threat`, each a Fight rule of its name
-lower-cased:
+3.3): the planner holds the engagement, with no switch since Task 8 (the deletion):
 
-- FOOTWORK (`dispatch.FightDispatch._work_inputs`): the melee carries its `work` arguments (PZA/1.13, Plan 35 Task 1:
-  workR WORK_R, crawlerR WORK_CRAWLER_R, bandLo WORK_BAND_LO, the withdraw bias, floorHealth FLEE_HEALTH, pile true) to
-  a build whose hello announces mod 1.13 or later (`World.mod_at_least`); a 1.11 hello (every golden's) sends none.
-- ENGAGE_HOLD (`dispatch.FightDispatch._engaged`, `threat.Threat._engage_holds`): the running melee with `work` holds
-  against the Fight's give-ways (the crawler clear, RETREAT_MELEE's break, RETREAT_REGAIN's back leg, the pair's
-  re-pin) and the threat branch's rows (the drag guard, the `many` flee, the care's commitment), logged `engage_hold`
-  {rule}; the crowd gate and the crawler clear's exemption are off at the dispatch point; the hand-backs `floor` and
-  `clear` give the next choose to the ladder; under FLEE_HEALTH the rows run as before.
-- WITHDRAW: the fighting retreat's heading (`Fight.retreat`) is the withdraw bias with GROUP_LEAVE_N or more standing
-  within GROUP_ENTRY_R (`Fight.group_n`), re-sent only once it leaves its WITHDRAW_RESEND_DEG sector.
+- the work (`dispatch.FightDispatch._work_inputs`): every melee carries its `work` arguments (PZA/1.13, Plan 35 Task 1:
+  workR WORK_R, crawlerR WORK_CRAWLER_R, bandLo WORK_BAND_LO, the withdraw bias, floorHealth FLEE_HEALTH, pile true),
+  whatever the hello's mod;
+- the hold (`dispatch.FightDispatch._engaged`, `threat.Threat._engage_holds`): the running melee with `work` holds
+  against the Fight's give-ways (the crawler first's, the pair's re-pin) and the threat branch's rows (the drag guard,
+  the `many` flee, the care's commitment), logged `engage_hold` {rule} on the threat rows; the reflex meets the pile
+  and the crawlers; the hand-backs `floor` and `clear` give the next choose to the ladder; under FLEE_HEALTH the rows
+  run as before;
+- the withdraw: the fighting retreat's heading (`Fight.retreat`) is the withdraw bias with GROUP_LEAVE_N or more
+  standing within GROUP_ENTRY_R (`Fight.group_n`), re-sent only once it leaves its WITHDRAW_RESEND_DEG sector.
 
-Every fixture is synthetic (shapes of the Plan 34 trials and the spec's § 1 probe, never a replay), the fake mod; each
-hold is pinned with its switch off to the Plan 33/34 answer it replaces (a test of an earlier rule pinned with the
-later rule's switch off)."""
+Every fixture is synthetic (shapes of the Plan 34 trials and the spec's § 1 probe, never a replay), the fake mod. Task 8
+dropped the switch-off arms (the Plan 33/34 answers the hold replaced) with the rules they pinned."""
 import math
 
 import pytest
@@ -33,7 +31,6 @@ from .test_policies import Rig
 from .test_survive import last, threat_why, tick
 from .test_survive_ak import ME, WEST_V, zm
 from .test_survive_an import SMOKE, SMOKE_ME, accept, sz
-from .test_survive_ap import HALF, PILE, at, progress
 from .test_survive_g import care_frame, hold, part
 from .test_survive_q import z
 
@@ -76,60 +73,27 @@ def work_of(a):
 ONE = [zm(1, ME[0] + 1.8, ME[1])]   # one standing zombie 1.8 tiles east: the stance's enter leg, the melee's place
 
 
-# ================================================================ the switches, the constants, the version read
+# ================================================================ the constants
 def test_the_switches_and_the_constants():
-    """`survive.T20_SWITCHES` after T19 in `__all__`, each on `threat.Threat` (and so `survive.Survive`) on by
-    default and a Fight rule of its name lower-cased, dropped by its own switch alone; the four constants."""
-    assert S.T20_SWITCHES == ("FOOTWORK", "ENGAGE_HOLD", "WITHDRAW") and "T20_SWITCHES" in S.__all__
-    assert all(getattr(T.Threat, n) is True and getattr(S.Survive, n) is True for n in S.T20_SWITCHES)
-    assert {"footwork", "engage_hold", "withdraw"} <= set(F.FIGHT_RULES)
-    on = type("On", (), {n: getattr(S.Survive, n) for n in [r.upper() for r in F.FIGHT_RULES]})()
-    every = T.Threat._fight_rules(on)
-    for name in S.T20_SWITCHES:
-        setattr(on, name, False)
-        assert T.Threat._fight_rules(on) == every - {name.lower()}, name
-        setattr(on, name, True)
+    """Plan 35 Task 8: no T20_SWITCHES, no FOOTWORK, ENGAGE_HOLD or WITHDRAW switch and no Fight rule of their names
+    (the engagement is the only behaviour), `World.mod_at_least` gone; the four constants."""
+    assert not hasattr(S, "T20_SWITCHES") and "T20_SWITCHES" not in S.__all__
+    assert not any(hasattr(T.Threat, n) for n in ("FOOTWORK", "ENGAGE_HOLD", "WITHDRAW"))
+    assert not {"footwork", "engage_hold", "withdraw"} & set(F.FIGHT_RULES)
+    assert not hasattr(World, "mod_at_least")
     assert (P.WORK_R, P.WORK_CRAWLER_R, P.WORK_BAND_LO, P.WITHDRAW_RESEND_DEG) == (3.5, 1.2, 0.4, 30.0)
 
 
-@pytest.mark.parametrize("mod, at_13, at_152", [("1.13", True, True), ("1.13.1", True, True), ("2.0", True, True),
-                                                ("1.11", False, True), ("1.12.9", False, True), ("1.7", False, True),
-                                                ("1.5.1", False, False), ("fake", False, False), (None, False, False)])
-def test_mod_at_least_compares_the_dotted_numbers(mod, at_13, at_152):
-    """`World.mod_at_least`: number by number, a missing third read as 0; False with no hello or an unparsable mod;
-    `item_fields` (1.5.2 or later, ruling P25-O) is its reading at "1.5.2"."""
-    w = World()
-    if mod is not None:
-        w.apply({"kind": "hello", "mod": mod, "caps": []})
-    assert w.mod_at_least("1.13") is at_13 and w.item_fields() is at_152
-
-
-# ================================================================ FOOTWORK: the work arguments
-def test_a_1_11_build_gets_the_melee_with_no_work(tmp_path):
-    """The goldens' builds (a hello at 1.11): the melee as before, no `work` field on the wire, `Melee.work` None, no
-    engagement."""
-    r, f = fight(tmp_path, ONE, mod="1.11")
-    a = f.step()
-    assert a.type == "melee" and work_of(a) == {} and f.m.work is None and f._engaged() is False
-
-
-def test_a_1_13_build_gets_the_seven_work_fields(tmp_path):
-    """A hello at 1.13: the melee carries workR 3.5, crawlerR 1.2, bandLo 0.4, floorHealth 40 and pile true, no
-    withdraw (no retreat); once accepted it is the engagement."""
-    r, f = fight(tmp_path, ONE)
+# ================================================================ the work arguments
+@pytest.mark.parametrize("mod", ["1.13", "1.11"])
+def test_a_1_13_build_gets_the_seven_work_fields(tmp_path, mod):
+    """A hello at 1.13, and (Task 8: no version gate) one at 1.11: the melee carries workR 3.5, crawlerR 1.2, bandLo
+    0.4, floorHealth 40 and pile true, no withdraw (no retreat); once accepted it is the engagement."""
+    r, f = fight(tmp_path, ONE, mod=mod)
     a = f.step()
     assert a.type == "melee" and work_of(a) == WORK_ARGS and "withdraw" not in f.why["melee"]
     accept(r, a, "face")
     assert f._engaged() is True
-
-
-def test_with_footwork_off_a_1_13_build_gets_no_work(tmp_path):
-    """FOOTWORK off (the rule before it): the melee as before on a 1.13 build, so nothing is engaged."""
-    r, f = fight(tmp_path, ONE, off=("footwork",))
-    a = f.step()
-    assert work_of(a) == {}
-    accept(r, a, "face")
-    assert f._engaged() is False
 
 
 def test_the_withdraw_bias_is_the_retreat_heading_with_a_group(tmp_path):
@@ -141,10 +105,9 @@ def test_the_withdraw_bias_is_the_retreat_heading_with_a_group(tmp_path):
     assert f.why["melee"]["withdraw"] == [-1.0, 0.0]
 
 
-@pytest.mark.parametrize("group_n, off", [(2, ()), (3, ("withdraw",))])
-def test_no_withdraw_under_the_group_count_or_with_the_rule_off(tmp_path, group_n, off):
-    """Two standing within GROUP_ENTRY_R, or WITHDRAW off: the retreat's heading is no bias (the reflex's own sum)."""
-    r, f = fight(tmp_path, ONE, retreat=WEST_V, group_n=group_n, off=off)
+def test_no_withdraw_under_the_group_count_or_with_the_rule_off(tmp_path):
+    """Two standing within GROUP_ENTRY_R: the retreat's heading is no bias (the reflex's own sum)."""
+    r, f = fight(tmp_path, ONE, retreat=WEST_V, group_n=2)
     a = f.step()
     assert work_of(a) == WORK_ARGS
 
@@ -180,8 +143,7 @@ def test_the_withdraw_re_sends_only_past_its_sector(tmp_path, turn, resend):
 
 def test_the_re_send_beyond_keep_r_is_the_melee_never_the_ladder_s_stand(tmp_path):
     """The engaged melee's target stepped back to 2.6 tiles (beyond KEEP_R, within MELEE_RELEASE_R), the retreat
-    turned past its sector: the choose is the melee's re-send (`_engage_resend`), where the ladder reads the retreat's
-    stand leg beyond KEEP_R (Plan 34 RETREAT_GAP) and would supersede it."""
+    turned past its sector: the choose is the melee's re-send (`_engage_resend`), never a ladder leg."""
     far = [zm(1, ME[0] + 2.6, ME[1])]
     r, f = fight(tmp_path, ONE, retreat=WEST_V, group_n=3)
     a = f.step()
@@ -203,167 +165,111 @@ def test_no_withdraw_re_send_while_a_press_is_in_flight(tmp_path):
     assert f.busy() is True
 
 
-# ================================================================ ENGAGE_HOLD at the dispatch point
+# ================================================================ the hold at the dispatch point
 CROWD = [zm(1, ME[0] + 0.5, ME[1]), zm(2, ME[0], ME[1] + 0.6), zm(3, ME[0] - 0.8, ME[1])]   # three within 0.9
 
 
-@pytest.mark.parametrize("mod, off, melee", [("1.13", (), True), ("1.13", ("engage_hold",), False),
-                                             ("1.11", (), False)])
-def test_the_crowd_gate_is_off_under_the_engagement(tmp_path, mod, off, melee):
-    """Three standing within MELEE_CROWD_R: on a 1.13 build under ENGAGE_HOLD the melee goes with `pile` (the reflex
-    meets the pile); with the rule off, or on a 1.11 build, the crowd gate as before (the ladder's own send, no
-    melee: Plan 31 Task 15a fix 1's pin)."""
-    r, f = fight(tmp_path, CROWD, mod=mod, target=1, off=off)
+@pytest.mark.parametrize("mod", ["1.13", "1.11"])
+def test_the_crowd_gate_is_off_under_the_engagement(tmp_path, mod):
+    """Three standing within 0.9 tiles (the Lua's K.MELEE_CROWD_R): the melee goes with `pile` (the reflex meets the
+    pile) whatever the hello's mod; Task 8 deleted the crowd gate (`_crowded`)."""
+    r, f = fight(tmp_path, CROWD, mod=mod, target=1)
     a = f.step()
-    assert (a.type == "melee") is melee
-    if melee:
-        assert a.args["pile"] is True
+    assert a.type == "melee" and a.args["pile"] is True
 
 
 def test_the_smoke_frame_s_crawlers_take_the_melee_with_work_not_the_back_leg(tmp_path):
-    """The smoke trial's frame (two crawlers within CRAWLER_AVOID_R beside the standing 9128): under the engagement the
-    crawler clear's back leg is the melee's place (its exemption off: the reflex steps off the crawlers), the melee
-    at 9128 with `work`; with ENGAGE_HOLD off, Plan 34 fix B's back leg (`test_survive_an.py`)."""
+    """The smoke trial's frame (two crawlers within 1.2 tiles beside the standing 9128): the melee at 9128 with `work`
+    (the reflex steps off the crawlers; Task 8 deleted Plan 34 fix B's back leg)."""
     r, f = fight(tmp_path, SMOKE, me=SMOKE_ME)
     a = f.step()
     assert (a.type, a.args["targetId"]) == ("melee", 9128) and work_of(a) == WORK_ARGS
-    (tmp_path / "off").mkdir()
-    r2, f2 = fight(tmp_path / "off", SMOKE, me=SMOKE_ME, off=("engage_hold",))
-    b = f2.step()
-    assert b.type == "aim" and "crawler_clear" in f2.why
 
 
-# ================================================================ ENGAGE_HOLD in the Fight's busy
-@pytest.mark.parametrize("on", [True, False])
-def test_a_crawler_arriving_at_the_engaged_melee_is_held(tmp_path, on):
-    """`test_survive_an.py`'s crawler arriving at 1.1 tiles beside a running strike melee whose last step is `face`:
-    engaged, it holds, logged `engage_hold` {rule "crawler_clear"}, and nothing is sent; with ENGAGE_HOLD off (Plan 34
-    fix B's answer) it gives way and the backpedal goes."""
+# ================================================================ the hold in the Fight's busy
+def test_a_crawler_arriving_at_the_engaged_melee_is_held(tmp_path):
+    """A crawler arriving at 1.1 tiles beside a running strike melee whose last step is `face`: engaged, it holds and
+    nothing is sent (the reflex steps off the crawlers)."""
     first = [sz(2, SMOKE_ME[0] + 1.5, SMOKE_ME[1]), sz(3, SMOKE_ME[0], SMOKE_ME[1] + 1.6, crawler=True)]
-    r, f = fight(tmp_path, first, me=SMOKE_ME, off=() if on else ("engage_hold",))
+    r, f = fight(tmp_path, first, me=SMOKE_ME)
     a = f.step()
     accept(r, a, "face")
     again(r, f, first + [sz(4, SMOKE_ME[0] - 1.1, SMOKE_ME[1], crawler=True)], me=SMOKE_ME)
-    assert f.busy() is on
-    if on:
-        assert f.why["engage_hold"] == {"rule": "crawler_clear"}
-    else:
-        cmd = f.choose()
-        assert cmd.TYPE == "aim" and "crawler_clear" in f.why
+    assert f.busy() is True
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_a_standing_zombie_behind_the_engaged_melee_takes_no_break(tmp_path, on):
-    """Under the retreat (west) a standing zombie comes within RETREAT_BACK_R (1.3 tiles south) of the engaged strike
-    melee at 1: it holds, logged `engage_hold` {rule "retreat_melee"}; with ENGAGE_HOLD off, RETREAT_MELEE's break
-    and its back leg (Plan 34 Task 3's answer)."""
-    r, f = fight(tmp_path, ONE, retreat=WEST_V, group_n=3, off=() if on else ("engage_hold",))
+def test_a_standing_zombie_behind_the_engaged_melee_takes_no_break(tmp_path):
+    """Under the retreat (west) a standing zombie comes 1.3 tiles south of the engaged strike melee at 1: it holds (the
+    reflex steps back between its presses; Task 8 deleted RETREAT_MELEE's break)."""
+    r, f = fight(tmp_path, ONE, retreat=WEST_V, group_n=3)
     a = f.step()
     accept(r, a, "face")
     again(r, f, ONE + [zm(2, ME[0], ME[1] + 1.3)])
-    assert f.busy() is on
-    if on:
-        assert f.why["engage_hold"] == {"rule": "retreat_melee"}
-    else:
-        b = f.step()
-        assert b.type == "aim" and f.why["leg"] == "back" and "retreat_break" in f.why
+    assert f.busy() is True
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_the_regain_s_back_leg_never_cuts_the_engaged_melee(tmp_path, on):
-    """`test_survive_ap.py`'s pile under the retreat: the point-blank press (the shove-mode melee, the meet spent)
-    pressed once and resolved (`face`), the nearest at 0.5: engaged, it holds, logged `engage_hold` {rule
-    "retreat_regain"}; with ENGAGE_HOLD off, RETREAT_REGAIN's back leg in its place (Plan 34 Task 3c's answer)."""
-    r, f = fight(tmp_path, at(PILE), retreat=WEST_V, target=1, group_n=3, off=() if on else ("engage_hold",))
-    f.spent = ("arms",)
-    a = f.step()
-    assert (a.type, a.args["mode"]) == ("melee", "shove") and f.why["retreat_regain"]["phase"] == "press"
-    accept(r, a, "shove")
-    progress(r, a, "face")
-    again(r, f, at(HALF))
-    assert f.busy() is on
-    if on:
-        assert f.why["engage_hold"] == {"rule": "retreat_regain"} and f.step() is None
-    else:
-        b = f.step()
-        assert b.type == "aim" and f.why["retreat_regain"]["phase"] == "back"
-
-
-@pytest.mark.parametrize("on", [True, False])
-def test_the_pair_s_re_pin_never_cuts_the_engaged_melee(tmp_path, on):
+def test_the_pair_s_re_pin_never_cuts_the_engaged_melee(tmp_path):
     """A second standing zombie comes 0.9 tiles off, nearer than the melee's target at 1.8 by more than PAIR_SWITCH_R:
-    engaged, the melee holds whatever its pin (the reflex re-pins); with ENGAGE_HOLD off, the pair's give-way (Plan 32
-    Task 5 (b)'s answer)."""
-    r, f = fight(tmp_path, ONE, off=() if on else ("engage_hold",))
+    engaged, the melee holds whatever its pin (the reflex re-pins)."""
+    r, f = fight(tmp_path, ONE)
     a = f.step()
     accept(r, a, "face")
     again(r, f, ONE + [zm(2, ME[0], ME[1] - 0.9)])
-    assert f.busy() is on
+    assert f.busy() is True
 
 
 # ================================================================ fix 5: the corner Fight and the point-blank legs
-@pytest.mark.parametrize("on", [True, False])
-def test_the_corner_fight_dispatches_the_melee_with_work(tmp_path, on):
+def test_the_corner_fight_dispatches_the_melee_with_work(tmp_path):
     """Plan 35 fix 5 (the street-1 trial `x_trial-ladder-20261110-095321`, decision lines 152 to 161: the corner's
     Fight sent raw attacks and a shove at 32487 and 32488 at 0.45 to 0.66 tiles): two standing at 0.5 tiles corner the
-    character (`cornered`, a `walk` corner); engaged-dispatch on, the corner Fight sends the melee with `work` at its
-    pin, logged `engage_dispatch` {from "corner"}; with ENGAGE_HOLD off, the corner's raw `attack` (P23-AJ 2's answer,
-    the pin)."""
+    character (`cornered`, a `walk` corner): the corner Fight sends the melee with `work` at its pin, logged
+    `engage_dispatch` {from "corner"} (Task 8 deleted the corner's raw `attack`)."""
     r = rig(tmp_path)
     sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
-    sv.GROUP_LEAVE, sv.ENGAGE_HOLD = False, on
+    sv.GROUP_LEAVE = False
     r.frame(zombies=[z(1, 100.5), z(2, 100.0, 200.5)])
     tick(r, sv)
     why = threat_why(tmp_path)
     a = r.acts.history[-1]
     assert why["cornered"] == 1
-    if on:
-        assert a.type == "melee" and work_of(a) == WORK_ARGS and why["melee"]["engage_dispatch"] == {"from": "corner"}
-    else:
-        assert a.type == "attack" and "melee" not in why
+    assert a.type == "melee" and work_of(a) == WORK_ARGS and why["melee"]["engage_dispatch"] == {"from": "corner"}
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_a_point_blank_fight_s_circle_leg_is_the_melee(tmp_path, on):
+def test_a_point_blank_fight_s_circle_leg_is_the_melee(tmp_path):
     """Plan 35 fix 5 (the same trial's lines 178 to 219: the Fight kept from the corner, `point_blank` still set, sent
     its wounded backpedal's circling `back` legs as aims at 0.74 to 1.4 tiles): a Fight with `point_blank` whose ladder
-    answers the circle leg at 1.2 tiles (the arms' pain 40.8, `wounded`): engaged-dispatch on, the melee with `work`,
-    logged `engage_dispatch` {from "point_blank_leg"}; with ENGAGE_HOLD off, the aim as before (the pin)."""
+    answers the circle leg at 1.2 tiles (the arms' pain 40.8, `wounded`): the melee with `work`, logged
+    `engage_dispatch` {from "point_blank_leg"}."""
     r = rig(tmp_path)
     r.frame(x=ME[0], y=ME[1], zombies=[zm(1, ME[0] + 1.2, ME[1])], wounds={"armPain": 40.8})
     f = F.Fight(r.world, r.acts, r.clock)
-    f.rules = f.rules - {"crawler_first"} - (set() if on else {"engage_hold"})
+    f.rules = f.rules - {"crawler_first"}
     f.stance, f.point_blank, f.target = True, True, 1
     a = f.step()
     assert f.why["leg"] == "back" and "circle" in f.why and "wounded" in f.why
-    if on:
-        assert a.type == "melee" and work_of(a) == WORK_ARGS
-        assert f.why["melee"]["engage_dispatch"] == {"from": "point_blank_leg"}
-    else:
-        assert a.type == "aim"
+    assert a.type == "melee" and work_of(a) == WORK_ARGS
+    assert f.why["melee"]["engage_dispatch"] == {"from": "point_blank_leg"}
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_a_leg_melee_legs_lacks_is_a_dispatch_point_under_the_engagement(tmp_path, on):
+def test_a_leg_melee_legs_lacks_is_a_dispatch_point_under_the_engagement(tmp_path):
     """Plan 35 fix 5 (2), tested at the method directly (no planner-level case found sends a leg outside MELEE_LEGS at
     a pin within KEEP_R; P26-7f): `_melee_mode` at an aim whose why reads leg `toward` at a standing pin 2.0 tiles off:
-    engaged-dispatch on, the strike mode, `engage_dispatch` source "point_blank_leg"; off, None (MELEE_LEGS as before,
-    the pin)."""
+    the strike mode, `engage_dispatch` source "point_blank_leg"."""
     from agent.base.pza1 import Aim
-    r, f = fight(tmp_path, [zm(1, ME[0] + 2.0, ME[1])], target=1, off=() if on else ("engage_hold",))
+    r, f = fight(tmp_path, [zm(1, ME[0] + 2.0, ME[1])], target=1)
     f.why = {"leg": "toward", "target": 1}
     mode = f._melee_mode(Aim(1.0, 0.0, P.AIM_LEG_S, targetId=1))
-    assert mode == ("strike" if on else None) and f._m_from == ("point_blank_leg" if on else None)
+    assert mode == "strike" and f._m_from == "point_blank_leg"
 
 
 # ================================================================ fix 6: an approach walk gives way within KEEP_R
 CHASERS = [zm(1, ME[0] + 7.96, ME[1]), zm(2, ME[0] + 9.0, ME[1] + 1.0), zm(3, ME[0] + 9.9, ME[1] - 1.0)]   # line 25
 
 
-def walking(tmp_path, on):
+def walking(tmp_path):
     """The arena trial's line 25 (`x_trial-ladder-20261110-100118`): the Fight out of the stance (three chasers over
     MAX_FIGHT) pinned on 1 at 7.96 tiles sends its approach walk (a9), accepted."""
-    r, f = fight(tmp_path, CHASERS, target=1, off=() if on else ("engage_hold",))
+    r, f = fight(tmp_path, CHASERS, target=1)
     f.stance = False
     a = f.step()
     assert a.type == "walkTo" and f.why["leg"] == "walk"
@@ -371,55 +277,43 @@ def walking(tmp_path, on):
     return r, f, a
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_an_approach_walk_gives_way_to_the_melee_at_a_pin_within_keep_r(tmp_path, on):
+def test_an_approach_walk_gives_way_to_the_melee_at_a_pin_within_keep_r(tmp_path):
     """Plan 35 fix 6 (lines 25 to 42: a9 held 16 s with 3648 and 3651 at 0.3 to 0.8 tiles, six bites): the walk
-    running, the pin come to 0.5 tiles: engaged-dispatch on, `busy` gives way and the melee with `work` goes at the pin;
-    with ENGAGE_HOLD off, the walk held to its end (`busy`'s tail, as before this plan: the pin of the rule before
-    it)."""
-    r, f, a = walking(tmp_path, on)
+    running, the pin come to 0.5 tiles: `busy` gives way and the melee with `work` goes at the pin."""
+    r, f, a = walking(tmp_path)
     again(r, f, [zm(1, ME[0] + 0.5, ME[1]), zm(2, ME[0] + 0.8, ME[1] + 0.3), CHASERS[2]])
-    assert f.busy() is (not on)
-    if on:
-        b = f.step()
-        assert (b.type, b.args["targetId"]) == ("melee", 1) and work_of(b) == WORK_ARGS
+    assert f.busy() is False
+    b = f.step()
+    assert (b.type, b.args["targetId"]) == ("melee", 1) and work_of(b) == WORK_ARGS
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_a_walk_at_a_pin_beyond_reach_within_keep_r_is_the_melee(tmp_path, on):
+def test_a_walk_at_a_pin_beyond_reach_within_keep_r_is_the_melee(tmp_path):
     """The pin at 2.3 tiles (beyond FIGHT_REACH, within KEEP_R) and not chasing (so no chaser stance's leg): the walk
-    gives way and the ladder's next approach walk is the melee in its place, logged `engage_dispatch` {from "walk"};
-    off, the walk held as before."""
-    r, f, a = walking(tmp_path, on)
+    gives way and the ladder's next approach walk is the melee in its place, logged `engage_dispatch` {from "walk"}."""
+    r, f, a = walking(tmp_path)
     again(r, f, [zm(1, ME[0] + 2.3, ME[1], hasTarget=False), CHASERS[1], CHASERS[2]])
-    assert f.busy() is (not on)
-    if on:
-        b = f.step()
-        assert b.type == "melee" and f.why["ladder"] == "attack"
-        assert f.why["melee"]["engage_dispatch"] == {"from": "walk"}
+    assert f.busy() is False
+    b = f.step()
+    assert b.type == "melee" and f.why["ladder"] == "attack"
+    assert f.why["melee"]["engage_dispatch"] == {"from": "walk"}
 
 
 def test_a_walk_at_a_pin_beyond_keep_r_holds(tmp_path):
-    """Engaged-dispatch on, the pin come to 3.0 tiles (beyond KEEP_R): the walk holds as before."""
-    r, f, a = walking(tmp_path, True)
+    """The pin come to 3.0 tiles (beyond KEEP_R): the walk holds as before."""
+    r, f, a = walking(tmp_path)
     again(r, f, [zm(1, ME[0] + 3.0, ME[1]), CHASERS[1], CHASERS[2]])
     assert f.busy() is True
 
 
 # ================================================================ fix 7: the door fight and the doorway stand
-@pytest.mark.parametrize("on", [True, False])
-def test_the_door_fight_dispatches_the_melee_with_work(tmp_path, on):
+def test_the_door_fight_dispatches_the_melee_with_work(tmp_path):
     """Plan 35 fix 7 (the trial `x_trial-ladder-20261110-104053`, decision lines 337 to 357: the sheltered door fight's
     raw attacks at 22774 and 22776 at 0.42 to 0.76 tiles): a Fight with `only` {1} (the door's targets), its pin at 0.6
-    tiles: engaged-dispatch on, the melee with `work`, logged `engage_dispatch` {from "door"}; with ENGAGE_HOLD off, the
-    raw `attack` (the pin of cut 1's exclusion)."""
-    r, f = fight(tmp_path, [zm(1, ME[0] + 0.6, ME[1])], target=1, off=() if on else ("engage_hold",))
+    tiles: the melee with `work`, logged `engage_dispatch` {from "door"}."""
+    r, f = fight(tmp_path, [zm(1, ME[0] + 0.6, ME[1])], target=1)
     f.only = {1}
     a = f.step()
-    if on:
-        assert a.type == "melee" and work_of(a) == WORK_ARGS and f.why["melee"]["engage_dispatch"] == {"from": "door"}
-    else:
-        assert a.type == "attack"
+    assert a.type == "melee" and work_of(a) == WORK_ARGS and f.why["melee"]["engage_dispatch"] == {"from": "door"}
 
 
 def test_the_door_fight_never_sends_the_melee_outside_only(tmp_path):
@@ -443,36 +337,31 @@ def test_the_door_fight_never_sends_the_melee_outside_only(tmp_path):
     assert f._melee_mode(Attack(2)) is None
 
 
-def doorway_fight(tmp_path, on):
+def doorway_fight(tmp_path):
     from agent.base.planner.doorway import Doorway
     r = rig(tmp_path)
     r.frame(x=ME[0], y=ME[1], zombies=[zm(1, ME[0] + 1.4, ME[1])])
     plan = {"building": 1, "doors": [(101, 200, 0)], "door_i": 0, "post": (100, 200, 0), "way": None}
     f = Doorway(r.world, r.acts, r.clock, plan)
-    f.rules = f.rules - {"crawler_first"} - (set() if on else {"engage_hold"})
+    f.rules = f.rules - {"crawler_first"}
     return r, f
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_the_doorway_stand_dispatches_the_melee_with_work(tmp_path, on):
+def test_the_doorway_stand_dispatches_the_melee_with_work(tmp_path):
     """Plan 35 fix 7: the doorway stand (`doorway.Doorway`) with a standing zombie 1.4 tiles off in reach (beyond
-    POINT_BLANK_R: the swing): engaged-dispatch on, the melee with `work` in its swing's place, logged
-    `engage_dispatch` {from "doorway"}, held while it runs and re-sent once its inputs change (the meet spent: mode
-    `shove`); with ENGAGE_HOLD off, the stand's raw `attack` (the pin)."""
-    r, f = doorway_fight(tmp_path, on)
+    POINT_BLANK_R: the swing): the melee with `work` in its swing's place, logged `engage_dispatch` {from "doorway"},
+    held while it runs and re-sent once its inputs change (the meet spent: mode `shove`)."""
+    r, f = doorway_fight(tmp_path)
     a = f.step()
-    if on:
-        assert a.type == "melee" and work_of(a) == WORK_ARGS
-        assert f.why["melee"]["engage_dispatch"] == {"from": "doorway"}
-        accept(r, a, "face")
-        again(r, f, [zm(1, ME[0] + 1.4, ME[1])])
-        assert f.busy() is True
-        f.spent = ("arms",)
-        assert f.busy() is False
-        b = f.step()
-        assert (b.type, b.args["mode"]) == ("melee", "shove") and f.why["melee"]["resend"] == "inputs"
-    else:
-        assert a.type == "attack"
+    assert a.type == "melee" and work_of(a) == WORK_ARGS
+    assert f.why["melee"]["engage_dispatch"] == {"from": "doorway"}
+    accept(r, a, "face")
+    again(r, f, [zm(1, ME[0] + 1.4, ME[1])])
+    assert f.busy() is True
+    f.spent = ("arms",)
+    assert f.busy() is False
+    b = f.step()
+    assert (b.type, b.args["mode"]) == ("melee", "shove") and f.why["melee"]["resend"] == "inputs"
 
 
 # ================================================================ fix 8: a lost melee in KEEP_R keeps the engagement
@@ -504,7 +393,7 @@ def lost_rig(tmp_path, mod="1.13", zs=LOST_PILE, scan=None):
     r.fake.act(a.aid, "progress", "melee", result={"step": "repin", "target": 2})
     r.pump()
     f.observe()
-    f.busy()   # Survive's read of the running melee (RETREAT_REGAIN arms its press on a zombie at point blank)
+    f.busy()   # Survive's read of the running melee
     return r, f, a
 
 
@@ -512,7 +401,7 @@ def test_a_lost_melee_at_point_blank_marks_it_and_keeps_the_engagement_on_the_ne
     """Plan 35 fixes 8 and 8b (rule 1; rule 2's point-blank lift dropped by the controller's ruling on the fix 8
     report, concern 1): the melee ends `lost` `no progress` with its reflex on 2 at 0.5 tiles: 2 (the stalled zombie,
     `span_id`) is marked whatever its distance, 1 (the planner's pin the reflex left) is not, `_m_ladder` is not set,
-    and the next choose sends the melee with `work` at 3 (0.8 tiles; no regain back leg in its place), logged
+    and the next choose sends the melee with `work` at 3 (0.8 tiles), logged
     `engage_dispatch` {from "lost"}."""
     r, f, a = lost_rig(tmp_path)
     lost(r, f, a, 2)
@@ -534,57 +423,35 @@ def test_a_lost_melee_on_the_one_zombie_in_contact_presses_it_again(tmp_path):
     assert (b.type, b.args["targetId"]) == ("melee", 2) and f.why["melee"]["engage_dispatch"] == {"from": "lost"}
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_a_kill_end_in_contact_sends_the_melee_not_the_regain_back_leg(tmp_path, on):
-    """Plan 35 fix 8b (concern 3 of the fix 8 report): the melee ends `kill` on 2 (at 0.5, RETREAT_REGAIN's press
-    armed on it) with 3 standing at 0.8: under the gate the regain phase is cleared and the next choose sends the melee
-    with `work` at 3, logged `engage_dispatch` {from "kill"}; with ENGAGE_HOLD off (the pin of the rule before it), the
-    regain's back leg in the ladder's place (Plan 34 Task 3c's answer)."""
+def test_a_kill_end_in_contact_sends_the_melee_not_the_regain_back_leg(tmp_path):
+    """Plan 35 fix 8b (concern 3 of the fix 8 report): the melee ends `kill` on 2 (at 0.5) with 3 standing at 0.8: the
+    next choose sends the melee with `work` at 3, logged `engage_dispatch` {from "kill"} (Task 8 deleted the regain's
+    back leg the name recalls)."""
     r, f, a = lost_rig(tmp_path)
-    if not on:
-        f.rules = f.rules - {"engage_hold"}
     r.fake.act(a.aid, "done", "melee", result={"end": "kill", "kill": True, "target": 2})
     r.pump()
     again(r, f, [LOST_PILE[0], LOST_PILE[2]])
     b = f.step()
-    if on:
-        assert (b.type, b.args["targetId"]) == ("melee", 3) and f.why["melee"]["engage_dispatch"] == {"from": "kill"}
-    else:
-        assert b.type == "aim" and f.why["retreat_regain"]["phase"] == "back"
+    assert (b.type, b.args["targetId"]) == ("melee", 3) and f.why["melee"]["engage_dispatch"] == {"from": "kill"}
 
 
-@pytest.mark.parametrize("mod, on, melee", [("1.13", True, True), ("1.13", False, False), ("1.11", True, False)])
-def test_no_unreachable_flee_from_a_marked_zombie_lunging_in_contact(tmp_path, mod, on, melee):
+@pytest.mark.parametrize("mod", ["1.13", "1.11"])
+def test_no_unreachable_flee_from_a_marked_zombie_lunging_in_contact(tmp_path, mod):
     """Plan 35 fix 8b (the street-1 trial `x_trial-ladder-20261111-114439`, decision lines 306 to 313: 27900, the one
     standing zombie left, marked unreachable and lunging at 1.11 tiles; the threat plan fled `unreachable` to a shelter
-    and the bite landed under the walk): under the gate the mark of the nearest standing zombie within KEEP_R is lifted
-    and the Fight dispatches the melee with `work` at it, logged `engage_dispatch` {from "unreachable", target 1} on
-    the threat why; with ENGAGE_HOLD off, or on a 1.11 build (the pins of the rule before it), the `unreachable` flee
-    as before."""
+    and the bite landed under the walk): the mark of the nearest standing zombie within KEEP_R is lifted and the Fight
+    dispatches the melee with `work` at it, logged `engage_dispatch` {from "unreachable", target 1} on the threat why,
+    whatever the hello's mod (Task 8: no gate)."""
     r = rig(tmp_path, mod)
     sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
-    sv.GROUP_LEAVE, sv.ENGAGE_HOLD = False, on
+    sv.GROUP_LEAVE = False
     sv.unreachable[1] = r.clock() + P.UNREACHABLE_S
     r.frame(zombies=[z(1, 101.1)])
     tick(r, sv)
     why = threat_why(tmp_path)
     a = r.acts.history[-1]
-    if melee:
-        assert a.type == "melee" and "workR" in a.args and "flee" not in why
-        assert why["engage_dispatch"] == {"from": "unreachable", "target": 1} and 1 not in sv.unreachable
-    else:
-        assert why.get("flee") == "unreachable" and "engage_dispatch" not in why
-
-
-def test_a_lost_melee_on_a_1_11_build_gives_the_choose_to_the_ladder(tmp_path):
-    """The gate false (a hello at 1.11, the goldens' builds): today's lost end, named so as the pin of the rule before
-    fix 8: the melee's own target (the planner's 1) marked unreachable, `_m_ladder` set, the next choose the ladder's
-    (RETREAT_REGAIN's back leg, the trace's a113), no melee."""
-    r, f, a = lost_rig(tmp_path, mod="1.11")
-    lost(r, f, a, 2)
-    assert 1 in f.marked() and f._m_ladder is True
-    b = f.step()
-    assert b.type != "melee" and "engage_dispatch" not in (f.why.get("melee") or {})
+    assert a.type == "melee" and "workR" in a.args and "flee" not in why
+    assert why["engage_dispatch"] == {"from": "unreachable", "target": 1} and 1 not in sv.unreachable
 
 
 def test_a_lost_melee_with_nobody_within_keep_r_gives_the_choose_to_the_ladder(tmp_path):
@@ -619,19 +486,19 @@ def test_the_floor_and_clear_hand_backs_give_the_next_choose_to_the_ladder(tmp_p
     assert f.why["melee_end"]["end"] == "handback" and f.why["melee_end"]["why"] == why
 
 
-# ================================================================ ENGAGE_HOLD in the threat branch
+# ================================================================ the hold in the threat branch
 GROUP = [z(1, 101.8), z(2, 100.0, 202.3), z(3, 100.0, 197.4)]   # the target 1.8 east, two more at 2.3 and 2.6
 
 
-def engaged(tmp_path, on=True, mod="1.13", leave=False, scan=None, **frame):
-    """A Survive (GROUP_LEAVE `leave`, off as `test_survive.make` sets it) on a `rig` announcing `mod`, ENGAGE_HOLD
-    `on`, `scan` squares scanned: its first line fights the one zombie 1.8 tiles east with the melee (accepted, its last
+def engaged(tmp_path, mod="1.13", leave=False, scan=None, **frame):
+    """A Survive (GROUP_LEAVE `leave`, off as `test_survive.make` sets it) on a `rig` announcing `mod`, `scan` squares
+    scanned: its first line fights the one zombie 1.8 tiles east with the melee (accepted, its last
     step `face`); the line after reads `frame`."""
     r = rig(tmp_path, mod)
     if scan:
         r.scan(scan)
     sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
-    sv.GROUP_LEAVE, sv.ENGAGE_HOLD = leave, on
+    sv.GROUP_LEAVE = leave
     r.frame(zombies=[z(1, 101.8)])
     tick(r, sv)
     a = r.acts.history[-1]
@@ -643,61 +510,49 @@ def engaged(tmp_path, on=True, mod="1.13", leave=False, scan=None, **frame):
     return r, sv, a
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_a_many_read_at_the_engaged_melee_is_held(tmp_path, on):
+def test_a_many_read_at_the_engaged_melee_is_held(tmp_path):
     """Three standing within DANGER_R, the nearest the melee's target at 1.8 (beyond POINT_BLANK_OVER_R): engaged, the
     threat branch holds the melee (no send), logged `engage_hold` {rule "many"}; with ENGAGE_HOLD off, the `many` flee
     as before (its run steer superseding the melee)."""
-    r, sv, a = engaged(tmp_path, on, zombies=GROUP)
+    r, sv, a = engaged(tmp_path, zombies=GROUP)
     why = threat_why(tmp_path)
-    if on:
-        assert r.acts.history[-1] is a and why.get("fight") is True and why["engage_hold"] == {"rule": "many"}
-        assert why["holding"] == a.aid
-    else:
-        assert why.get("flee") == "many" and r.acts.history[-1] is not a and "engage_hold" not in why
+    assert r.acts.history[-1] is a and why.get("fight") is True and why["engage_hold"] == {"rule": "many"}
+    assert why["holding"] == a.aid
 
 
 DRAGGED = [z(1, 101.8), z(2, 100.0, 200.6), z(3, 99.3, 200.0)]   # three standing round the player
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_the_drag_guard_at_the_engaged_melee_is_held_for_one_tick(tmp_path, on):
+def test_the_drag_guard_at_the_engaged_melee_is_held_for_one_tick(tmp_path):
     """The frame reads two attackers (the drag guard's DRAG_DOWN_N - 1) on one threat tick only (the count flickers
     frame to frame): engaged, the melee holds (the reflex meets the pile), logged `engage_hold` {rule "drag"}, no
     `engage_yield`; with ENGAGE_HOLD off, the guard's run (`group` "drag", the pin)."""
-    r, sv, a = engaged(tmp_path, on, zombies=DRAGGED, attackers=2)
+    r, sv, a = engaged(tmp_path, zombies=DRAGGED, attackers=2)
     why = threat_why(tmp_path)
     assert "engage_yield" not in why
-    if on:
-        assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "drag"} and "group" not in why
-    else:
-        assert why.get("group") == "drag" and r.acts.history[-1] is not a
+    assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "drag"} and "group" not in why
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_two_attackers_on_two_ticks_keep_the_hold(tmp_path, on):
+def test_two_attackers_on_two_ticks_keep_the_hold(tmp_path):
     """Plan 35 fix 4 (the controller's ruling, reversing fix 3's drag lapse; the trial `x_trial-ladder-20261110-094757`,
     decision line 191: the lapse's guard run superseded the melee holding three at 0.4 to 1.2 tiles, the first bite 0.6
     s later): a pin that two attackers on this threat tick and the one before keep the hold: engaged, the melee holds,
     logged `engage_hold` {rule "drag"}, no `engage_yield`; with ENGAGE_HOLD off, the guard as before (`group` "drag",
     the pin of the rule before Plan 35)."""
-    r, sv, a = engaged(tmp_path, on, zombies=DRAGGED, attackers=2)
+    r, sv, a = engaged(tmp_path, zombies=DRAGGED, attackers=2)
     r.advance(0.5)
     r.frame(zombies=DRAGGED, attackers=2)
     tick(r, sv)
     why = threat_why(tmp_path)
     assert "engage_yield" not in why
-    if on:
-        assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "drag"} and "group" not in why
-    else:
-        assert why.get("group") == "drag" and r.acts.history[-1].type != "melee"
+    assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "drag"} and "group" not in why
 
 
-def care_engaged(tmp_path, on, dist, parts):
+def care_engaged(tmp_path, dist, parts):
     """`engaged`'s two lines with a rag held and `parts` on the second, the melee's target then at `dist` tiles."""
     r = rig(tmp_path)
     sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
-    sv.GROUP_LEAVE, sv.ENGAGE_HOLD = False, on
+    sv.GROUP_LEAVE = False
     hold(r, 11, "Base.RippedSheets")
     r.frame(zombies=[z(1, 101.8)])
     tick(r, sv)
@@ -714,66 +569,55 @@ BLEED = [part(7, bleeding=True, bleedingTime=5.0)]
 SCRATCH = [part(7, wound=True)]   # a wound that does not bleed (a scratch's Dress wanted)
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_a_bleed_with_nobody_within_keep_r_yields_the_engagement_to_the_dressing(tmp_path, on):
+def test_a_bleed_with_nobody_within_keep_r_yields_the_engagement_to_the_dressing(tmp_path):
     """Plan 35 fix 2 (the controller's ruling; Angus's dress first): part 7 bleeding, a rag held, the melee's target
     stepped back to 3.2 tiles (no standing zombie within KEEP_R; beyond CARE_HOLD_R, so the commitment yields rather
     than walks its leg): engaged, the care's commitment answers as before, its Dress's stop superseding the melee,
     logged `engage_yield` {rule "bleed"}; with ENGAGE_HOLD off (the pin of the rule before it) the same yield, no
     `engage_yield`."""
-    r, sv, a = care_engaged(tmp_path, on, 3.2, BLEED)
+    r, sv, a = care_engaged(tmp_path, 3.2, BLEED)
     why = threat_why(tmp_path)
     assert last(tmp_path)["branch"] == "care" and r.acts.history[-1].type == "stop"
     assert why["care_commit"]["phase"] == "yield" and "engage_hold" not in why
-    assert (why.get("engage_yield") == {"rule": "bleed"}) is on
+    assert why.get("engage_yield") == {"rule": "bleed"}
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_a_bleed_at_the_engaged_melee_s_leg_distance_takes_the_commitment_s_leg(tmp_path, on):
+def test_a_bleed_at_the_engaged_melee_s_leg_distance_takes_the_commitment_s_leg(tmp_path):
     """The same with the target at 2.6 (beyond KEEP_R, within CARE_HOLD_R): the commitment's one distance leg as before
     (Plan 32 Task 5 (c)), engaged or not; engaged, logged `engage_yield` {rule "bleed"}."""
-    r, sv, a = care_engaged(tmp_path, on, 2.6, BLEED)
+    r, sv, a = care_engaged(tmp_path, 2.6, BLEED)
     why = threat_why(tmp_path)
     assert why["care_commit"]["phase"] == "leg" and r.acts.history[-1].type == "steer"
-    assert (why.get("engage_yield") == {"rule": "bleed"}) is on
+    assert why.get("engage_yield") == {"rule": "bleed"}
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_a_bleed_with_a_zombie_within_keep_r_keeps_the_fight(tmp_path, on):
+def test_a_bleed_with_a_zombie_within_keep_r_keeps_the_fight(tmp_path):
     """The bleed with the target at 1.5 (within KEEP_R): the Fight's (CARE_COMMIT's rule (a)), engaged or not: the melee
     holds, no care send, no `engage_yield` (the trial `x_trial-ladder-20261110-084643`'s lines 291 to 306)."""
-    r, sv, a = care_engaged(tmp_path, on, 1.5, BLEED)
+    r, sv, a = care_engaged(tmp_path, 1.5, BLEED)
     why = threat_why(tmp_path)
     assert last(tmp_path)["branch"] == "threat" and r.acts.history[-1] is a and "engage_yield" not in why
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_the_bleed_s_yield_within_keep_r_is_held(tmp_path, on):
+def test_the_bleed_s_yield_within_keep_r_is_held(tmp_path):
     """The bleed with the target at 2.2 (within KEEP_R, beyond FIGHT_REACH): P26-D's bleed yield (`_bleed_free`) would
     dress between swings; engaged, a standing zombie within KEEP_R keeps the hold (logged `engage_hold` {rule "care"},
     no `engage_yield`); with ENGAGE_HOLD off, the bleed's yield as before (`care_yield` {why "bleed"}, the pin), the
     melee superseded (in this fixture by the goal's scan: the care sends nothing on that tick)."""
-    r, sv, a = care_engaged(tmp_path, on, 2.2, BLEED)
+    r, sv, a = care_engaged(tmp_path, 2.2, BLEED)
     why = threat_why(tmp_path)
     assert "engage_yield" not in why
-    if on:
-        assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "care"}
-    else:
-        assert why["care_yield"]["why"] == "bleed" and r.acts.history[-1] is not a
+    assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "care"}
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_with_no_bleed_the_care_s_commitment_at_the_engaged_melee_is_held(tmp_path, on):
+def test_with_no_bleed_the_care_s_commitment_at_the_engaged_melee_is_held(tmp_path):
     """A scratch (no part bleeding), the target at 3.2: engaged, the melee holds, logged `engage_hold` {rule "care"},
     no `engage_yield`; with ENGAGE_HOLD off, CARE_COMMIT's yield to the scratch's Dress (Plan 32 Task 5 (c)'s answer,
     the pin) superseding the melee."""
-    r, sv, a = care_engaged(tmp_path, on, 3.2, SCRATCH)
+    r, sv, a = care_engaged(tmp_path, 3.2, SCRATCH)
     why = threat_why(tmp_path)
     assert "engage_yield" not in why
-    if on:
-        assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "care"} and "care_commit" not in why
-    else:
-        assert why["care_commit"]["phase"] == "yield" and r.acts.history[-1] is not a
+    assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "care"} and "care_commit" not in why
 
 
 FIVE = [z(1, 101.8), z(2, 100.0, 202.3), z(3, 100.0, 197.4), z(4, 98.0, 200.0), z(5, 102.0, 202.5)]   # five standing
@@ -782,90 +626,59 @@ FIVE = [z(1, 101.8), z(2, 100.0, 202.3), z(3, 100.0, 197.4), z(4, 98.0, 200.0), 
 FOUR = FIVE[:4]
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_above_retreat_max_n_the_leave_s_run_lapses_the_hold(tmp_path, on):
+def test_above_retreat_max_n_the_leave_s_run_lapses_the_hold(tmp_path):
     """Plan 35 fix 3: GROUP_LEAVE on, five standing within GROUP_ENTRY_R (above RETREAT_MAX_N, the `run` leg's own
     count), the nearest the melee's target at 1.8: the hold lapses and the leave's run goes as before Plan 35 (the
     `many` flee), logged `engage_yield` {rule "many"}; with ENGAGE_HOLD off, the same run (Plan 33 Task 3 fix 4's
     answer, the pin), no `engage_yield`."""
-    r, sv, a = engaged(tmp_path, on, leave=True, zombies=FIVE)
+    r, sv, a = engaged(tmp_path, leave=True, zombies=FIVE)
     why = threat_why(tmp_path)
     assert why["group_leave"]["leg"] == "run" and why.get("flee") == "many" and r.acts.history[-1] is not a
-    assert "engage_hold" not in why and (why.get("engage_yield") == {"rule": "many"}) is on
+    assert "engage_hold" not in why and why.get("engage_yield") == {"rule": "many"}
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_the_leave_s_shove_above_retreat_max_n_stays_held(tmp_path, on):
-    """Five standing within GROUP_ENTRY_R, one of them 0.5 tiles off (within STAND_MIN_R): the new leave's leg is its
-    one shove, which fix 3 leaves held (the lapse reads the run leg only): engaged, the melee holds, logged
-    `engage_hold` {rule "leave"}, no `engage_yield`; with ENGAGE_HOLD off, the leave's shove (Plan 33 Task 3's answer,
-    the pin)."""
-    zs = [z(1, 101.8), z(2, 100.0, 200.5)] + FIVE[2:]
-    r, sv, a = engaged(tmp_path, on, leave=True, zombies=zs)
-    why = threat_why(tmp_path)
-    assert why["group_leave"]["leg"] == "shove" and "engage_yield" not in why
-    if on:
-        assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "leave"}
-    else:
-        assert r.acts.history[-1].type == "shove"
-
-
-@pytest.mark.parametrize("on", [True, False])
-def test_the_spent_leave_s_run_at_four_is_held(tmp_path, on):
+def test_the_spent_leave_s_run_at_four_is_held(tmp_path):
     """Four standing within GROUP_ENTRY_R with the meet spent (the arms' pain 15, over STRAIN_SOFT: SPENT_LEAVE's run
     at GROUP_LEAVE_N), no drag-down read: engaged, the melee holds, logged `engage_hold` {rule "leave"}, no
     `engage_yield`; with ENGAGE_HOLD off, the leave's run (Plan 34 Task 3c's answer, the pin)."""
-    r, sv, a = engaged(tmp_path, on, leave=True, zombies=FOUR, wounds={"armPain": 15.0})
+    r, sv, a = engaged(tmp_path, leave=True, zombies=FOUR, wounds={"armPain": 15.0})
     why = threat_why(tmp_path)
     assert why["group_leave"]["leg"] == "run" and "engage_yield" not in why
-    if on:
-        b = r.acts.history[-1]   # the melee kept (re-sent in mode `shove` for the spent meet), no leg
-        assert b.type == "melee" and b.args["targetId"] == 1 and why["engage_hold"] == {"rule": "leave"}
-    else:
-        assert why.get("flee") == "many" and r.acts.history[-1].type != "melee"
+    b = r.acts.history[-1]   # the melee kept (re-sent in mode `shove` for the spent meet), no leg
+    assert b.type == "melee" and b.args["targetId"] == 1 and why["engage_hold"] == {"rule": "leave"}
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_the_leave_strung_out_at_the_engaged_melee_is_held(tmp_path, on):
+def test_the_leave_strung_out_at_the_engaged_melee_is_held(tmp_path):
     """GROUP_LEAVE on: three standing take the leave (its retreat, the Fight's: the melee re-sent with the withdraw
-    bias); then three lines read two within GROUP_ENTRY_R: engaged, the leave holds (`_strung_holds`, logged
-    `engage_hold` {rule "strung"}, the count not run) and the melee is re-sent without the bias, no leg in its place;
-    with ENGAGE_HOLD off, STRUNG_HOLD's `strung` end on the third (Plan 34's answer)."""
+    bias); then a line reads two within GROUP_ENTRY_R: the leave ends `strung` on it (Task 8 deleted STRUNG_HOLD's
+    held lines) and the engaged melee is re-sent without the bias, no leg in its place."""
     trio = GROUP
-    r, sv, a = engaged(tmp_path, on, leave=True, zombies=trio)
+    r, sv, a = engaged(tmp_path, leave=True, zombies=trio)
     why = threat_why(tmp_path)
     assert why["group_leave"]["leg"] == "retreat" and why.get("fight") is True
     b = r.acts.history[-1]
     assert b.type == "melee" and "withdrawX" in b.args
     accept(r, b, "face")
-    for _ in range(3):
-        r.advance(0.5)
-        r.frame(zombies=trio[:2] + [z(3, 100.0, 210.0)])   # the third 10 tiles off, beyond GROUP_ENTRY_R
-        tick(r, sv)
+    r.advance(0.5)
+    r.frame(zombies=trio[:2] + [z(3, 100.0, 210.0)])   # the third 10 tiles off, beyond GROUP_ENTRY_R
+    tick(r, sv)
     why = threat_why(tmp_path)
-    if on:
-        assert sv.leave is not None and why["engage_hold"] == {"rule": "strung"}
-        c = r.acts.history[-1]   # the melee re-sent with no withdraw (two standing): no leg in its place
-        assert c.type == "melee" and "withdrawX" not in c.args
-    else:
-        assert sv.leave is None and why["group_leave"]["end"] == "strung"
+    assert sv.leave is None and why["group_leave"]["end"] == "strung"
+    c = r.acts.history[-1]   # the melee re-sent with no withdraw (two standing): no leg in its place
+    assert c.type == "melee" and "withdrawX" not in c.args
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_a_corner_at_the_engaged_melee_inside_is_held(tmp_path, on):
+def test_a_corner_at_the_engaged_melee_inside_is_held(tmp_path):
     """On a room square the melee's target closes to 0.8 tiles (within CORNERED_R): engaged, no corner Fight (the
     reflex meets it), logged `engage_hold` {rule "cornered"}; with ENGAGE_HOLD off, the `inside` corner's Fight (P23-AJ
     2's answer) superseding the melee."""
     from .test_policies import grid
-    r, sv, a = engaged(tmp_path, on, scan=grid(96, 104, 196, 204, at={(x, y): {"room": "kitchen", "building": 1}
+    r, sv, a = engaged(tmp_path, scan=grid(96, 104, 196, 204, at={(x, y): {"room": "kitchen", "building": 1}
                                                                       for x in range(96, 105)
                                                                       for y in range(196, 205)}),
                        zombies=[z(1, 100.8)])
     why = threat_why(tmp_path)
-    if on:
-        assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "cornered"} and "cornered" not in why
-    else:
-        assert why.get("cornered") == 1 and r.acts.history[-1] is not a
+    assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "cornered"} and "cornered" not in why
 
 
 def test_no_still_read_over_the_engaged_melee(tmp_path, monkeypatch):
@@ -880,34 +693,26 @@ def test_no_still_read_over_the_engaged_melee(tmp_path, monkeypatch):
 STEPPED = [z(1, 102.6), z(2, 100.0, 204.0)]   # the target stepped back to 2.6 (beyond KEEP_R), a second at 4.0
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_the_pair_flee_at_the_engaged_melee_is_held(tmp_path, on):
+def test_the_pair_flee_at_the_engaged_melee_is_held(tmp_path):
     """Plan 35 fix 1 (the controller's ruling on concern 4): two standing within DANGER_R, the health 55 (under
     FLEE_HEALTH_PAIR, above the floor), the melee's target stepped back to 2.6 (beyond KEEP_R, so POINT_BLANK_FIGHT
     does not keep it): engaged, the melee holds, logged `engage_hold` {rule "pair"}; with ENGAGE_HOLD off, the Plan 23
     `pair` flee as before (the pin of the rule before it) superseding the melee."""
-    r, sv, a = engaged(tmp_path, on, zombies=STEPPED, health=55.0)
+    r, sv, a = engaged(tmp_path, zombies=STEPPED, health=55.0)
     why = threat_why(tmp_path)
-    if on:
-        assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "pair"} and why.get("fight") is True
-    else:
-        assert why.get("flee") == "pair" and r.acts.history[-1] is not a and "engage_hold" not in why
+    assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "pair"} and why.get("fight") is True
 
 
-@pytest.mark.parametrize("on", [True, False])
-def test_the_strain_flee_at_the_engaged_melee_is_held(tmp_path, on):
+def test_the_strain_flee_at_the_engaged_melee_is_held(tmp_path):
     """Plan 35 fix 1: the endurance spent (0.4, under STRAIN_ENDURANCE: the hold and a real exhaustion, two standing
     within DANGER_R), the melee's target stepped back to 2.6 (beyond KEEP_R, no wounded fight): engaged, the melee
     holds, re-sent in mode `shove` (the reflex's spent meet), logged `engage_hold` {rule "strain"}; with ENGAGE_HOLD
     off, the P24-AG `strain` flee as before (the pin of the rule before it) superseding the melee."""
-    r, sv, a = engaged(tmp_path, on, zombies=STEPPED, endurance=0.4)
+    r, sv, a = engaged(tmp_path, zombies=STEPPED, endurance=0.4)
     why = threat_why(tmp_path)
-    if on:
-        b = r.acts.history[-1]   # the same melee re-sent in mode `shove` (the hold's spent meet), no leg
-        assert (b.type, b.args["targetId"], b.args["mode"]) == ("melee", 1, "shove")
-        assert why["engage_hold"] == {"rule": "strain"} and why.get("fight") is True
-    else:
-        assert why.get("flee") == "strain" and r.acts.history[-1] is not a and "engage_hold" not in why
+    b = r.acts.history[-1]   # the same melee re-sent in mode `shove` (the hold's spent meet), no leg
+    assert (b.type, b.args["targetId"], b.args["mode"]) == ("melee", 1, "shove")
+    assert why["engage_hold"] == {"rule": "strain"} and why.get("fight") is True
 
 
 def test_under_the_floor_the_many_flee_runs_as_before(tmp_path):
@@ -917,10 +722,3 @@ def test_under_the_floor_the_many_flee_runs_as_before(tmp_path):
     why = threat_why(tmp_path)
     assert why.get("flee") == "many" and "engage_hold" not in why and r.acts.history[-1] is not a
 
-
-def test_a_1_11_build_s_many_read_flees_as_before(tmp_path):
-    """The goldens' build (a hello at 1.11, ENGAGE_HOLD on): no work, no engagement, the `many` flee as before."""
-    r, sv, a = engaged(tmp_path, mod="1.11", zombies=GROUP)
-    why = threat_why(tmp_path)
-    assert "workR" not in a.args and why.get("flee") == "many" and "engage_hold" not in why
-    assert last(tmp_path)["branch"] == "threat"

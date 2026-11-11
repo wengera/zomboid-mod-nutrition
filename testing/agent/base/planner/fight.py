@@ -156,75 +156,46 @@ one table the gates and the other policies import).
 Survival 24 (survival iteration 22; Plan 28 Task 7b, cut 1 of the maneuver layer; the architecture review
 `arch-review-cerebellum.md` § 3.5; survive.py's docstring the record): the melee maneuver (`dispatch.FightDispatch`,
 its module docstring the rule): with the `melee` rule on (Survive's MELEE) and the build announcing PZA/1.8's `melee`,
-where the ladder (`_ladder`, every rule above) would send an in-reach `aim` leg (`enter`, `back`, `stand` within
-KEEP_R), an `attack`, a `shove`, a `stomp` or a floor swing at its pin within MELEE_RELEASE_R, the Fight starts or
-continues its `Melee` (`m`, `maneuvers.melee`) instead, which Task 7a's Lua skill runs at the client's tick rate:
-mode strike, shove (`_hold_bars`: P28-H dropped the arms' pain from the mode) or finish (a fallen pin), sent once a
-target and re-sent only when its inputs change (PZA/1.10, Plan 31 Task 2: the meet has no back leg and no time end;
-`melee` {mode, pain} on every send, `resend` on one);
-`busy` holds it as it holds a leg, a flee's hand-over supersedes it, its kill is
-read once (`_read_dead`) and a span of strikes with no health fall counts in the no-progress streak. Everything above
-the dispatch point is unchanged, and the corner Fight (`point_blank`), the door fight (`only`), the doorway stand and
-the flee's finish keep the ladder in cut 1; nothing of the ladder is deleted (cut 2 deletes once cut 1 reads no
-worse).
+where the ladder (`_ladder`, every rule above) would send an in-reach `aim` leg within KEEP_R, an `attack`, a
+`shove`, a `stomp` or a floor swing at its pin within MELEE_RELEASE_R, the Fight starts or continues its `Melee` (`m`,
+`maneuvers.melee`) instead, which the Lua reflex runs at the client's tick rate: mode strike, shove (`_hold_bars`) or
+finish (a fallen pin), sent once a target and re-sent only when its inputs change; `busy` holds it as it holds a leg,
+a flee's hand-over supersedes it, its kill is read once (`_read_dead`) and a span of strikes with no health fall
+counts in the no-progress streak.
 Plan 33 Task 2 (the crawler first; F18, `f_goals_18-20261108-235005`: the crawler 13649 lay within 0.4 tiles from
 game minute 608 to the death at 617, the target of no line after 356, while the pair rule pinned the standing ones):
 with the `crawler_first` rule on (Survive's CRAWLER_FIRST), a zombie reading `crawler` or `onFloor` within CRAWLER_R
 while a standing zombie stands within DANGER_R beyond STAND_MIN_R is pinned and stomped (the melee's `finish`) before
 the standing one is met, the pin returning to the nearest standing one when the crawler reads dead, beyond CRAWLER_R, or
 after CRAWLER_TRIES finishes at it ended without a kill (`crawler.FightCrawler`, its module docstring the rule).
-Plan 33 Task 3 fixes 3 and 4 (the fighting retreat, `group.py`'s GROUP_LEAVE; Survive sets `retreat`, the unit heading
-away from the closing group's centroid): the pin on the nearest standing zombie of the group (`_retreat_read`), a ladder
-answer of nothing or a walk replaced by the stance leg (`_retreat_leg`), every stance leg a backpedal on the retreat
-heading (`_stance_leg`, `_back_heading`), held while its heading stays within RETREAT_RESEND_DEG (`_retreat_holds`).
-Plan 34 Task 3 (the retreat at the stance's band; F19, `f_goals_19-20261109-060929`, GUIDE.md § 4), two Fight rules
-on Survive's switches (`survive.T19_SWITCHES`):
-- `retreat_gap` (RETREAT_GAP; episode one, decision lines 274 to 299: 15 retreat lines sent the back leg at 4.49 to
-  5.21 tiles, 11 sends on the back heading alternating with 10 seeks toward 12340, the character moving back and forth
-  under a tile for 13 s): under the retreat the stance leg's kind is the distance's own (`_retreat_kind`: the backpedal
-  within KEEP_R, a running one held to KEEP_R + KEEP_MARGIN, else the stand facing the pin), every approaching kind
-  (`toward`, `seek`, `pull`) read as the stand, the backpedal on the retreat heading; `_retreat_leg` sends that kind
-  (logged `retreat_leg` {kind, in_place_of}), `_retreat_holds` holds a running leg while its kind is the distance's and
-  a back leg's heading within RETREAT_RESEND_DEG. The gap is held at the stance's band, never widened from five tiles,
-  and no step goes toward the column; within reach the melee as before. Off, fix 3's backpedal whatever the distance.
-- `retreat_melee` (RETREAT_MELEE; lines 1536 and 1537: the strike-mode melee a281 held the branch at 0.84 tiles from
-  12445 while 12454 walked in from behind to 0.49 tiles, 173 degrees off the body, and bit): under the retreat a
-  running strike-mode melee whose last progress step is no press in flight (`Melee.pressing`) gives way (`busy` False,
-  `_retreat_breaks`) when a standing zombie other than its target is within RETREAT_BACK_R, and the choose sends the
-  back leg in its place (`_break_leg`, the melee superseded), logged `retreat_break` {other, dist}; the band re-sends
-  the melee on the next line where the pin is in reach. Off, the melee held.
-Plan 34 ruling P34-A fix B (`crawler_clear`, CRAWLER_CLEAR; the smoke trial's crawler pile): with a fallen or crawling
-zombie other than the finish target within CRAWLER_AVOID_R, or two whatever the target, and a standing one within
-DANGER_R, the stance's backpedal away from them before any send at the standing one and before the crawler first's
-stomp (`crawler.FightCrawler._crawler_clear`, its module docstring the rule).
-Plan 34 Task 3c (`retreat_regain`, RETREAT_REGAIN, ruling P34-I; the trial `x_trial-ladder-20261109-132439`, P31-T, not
-evidence: decision lines 399 to 459, three standing on the character at 0.5 tiles under the retreat, the band's melee
-sent ten times in mode `shove`, each superseded by the drag guard's `many` run, the back leg almost never sent, nine
-bites and the drag-down): the retreat's shove-and-step rhythm. Under the retreat, once a standing zombie stands within
-POINT_BLANK_R, the band presses once (`_regain_arm`, `_regain_note`: the melee as the ladder sends it; with two or more
-standing within FIGHT_REACH the shove form, the melee in mode `shove`, else `Shove` at that nearest zombie, since the
-knockback is what opens room), logged `retreat_regain` {phase "press", near, since}; the press done (the melee's one
-press resolved, `Melee.presses`, or ended; the ladder's press ended; the drag guard's shove under DRAG_DEFER,
-`outside_press`), the back leg on the retreat heading in its place (`_regain_back`), logged {phase "back", near, since},
-held (`_regain_busy`) until the nearest standing zombie is beyond FIGHT_REACH or RETREAT_REGAIN_S have passed since it
-went, then the next press. RETREAT_MELEE's break back leg is the regain's. Off, the band's melee as before.
+Plan 33 Task 3 (the fighting retreat, `group.py`'s GROUP_LEAVE; Survive sets `retreat`, the unit heading away from the
+closing group's centroid): the pin on the nearest standing zombie of the group (`_retreat_read`), each retreat line
+logged `retreat` (and `retreat_pin` when it moved the pin); the heading is the reflex's withdraw bias (Plan 35,
+`dispatch.FightDispatch._work_inputs`).
+Plan 35 (the footwork, PZA/1.13; the spec `docs/superpowers/specs/2026-11-10-plan-35-the-footwork-design.md`): one Lua
+reflex owns every physical action in contact. The melee always carries its `work` arguments, every in-reach ladder
+command at a standing pin within KEEP_R is the melee's dispatch point (the corner Fight's, the door fight's and the
+doorway stand's included), and the running melee with `work` is the engagement (`dispatch.FightDispatch._engaged`):
+`busy` holds it and the choose re-sends it, no ladder leg and no threat row cuts it above FLEE_HEALTH. Task 8 (the
+deletion) removed the Python legs that fought in contact beside the reflex and their switches: Plan 33 Task 3's and
+Plan 34's retreat back legs (RETREAT_GAP's `_retreat_leg`, RETREAT_MELEE's break, RETREAT_REGAIN's press and back leg,
+the retreat heading's least-bad turn), the crawler clear's backpedal (CRAWLER_CLEAR), and Plan 35 Task 2's switches
+(FOOTWORK, ENGAGE_HOLD and WITHDRAW are the only behaviour).
 """
 import math
 import time
 
-from agent.base.planner.crawler import CRAWLER_TRIES, FightCrawler, is_crawler
+from agent.base.planner.crawler import CRAWLER_TRIES, FightCrawler
 from agent.base.planner.dispatch import FightDispatch
 from agent.base.planner.door_held import FightDoorHeld
 from agent.base.planner.edges import FightEdge
 from agent.base.planner.finish import FightFinish
-from agent.base.planner.group import SIDE_TURNS, side_dist
 from agent.base.planner.policies import (AIM_LEG_S, AIM_R, CIRCLE_TURN, CORNERED_R, DANGER_R,
                                          DISENGAGE_R, DRAG_DOWN_N, EDGE_HOLD_TICKS, FENCE_BACK_R, FIGHT_MAX_S,
                                          FIGHT_REACH, FINISH_R, GROUP_ENTRY_R, KEEP_MARGIN, KEEP_R, KNOCK_READ_S,
                                          MISSES_TO_APPROACH, NO_TARGET, PAIR_SWITCH_R, POINT_BLANK_R, PREEMPTED, PULL_R,
-                                         Policy, REPIN_MARGIN, REPOSITION_MIN, REPOSITION_R, RETREAT_BACK_R,
-                                         RETREAT_REGAIN_S, RETREAT_RESEND_DEG,
-                                         SEEK_SKIP_S, SEEK_SWITCH_R, SIDE_LOOK, SIDE_R,
+                                         Policy, REPIN_MARGIN, REPOSITION_MIN, REPOSITION_R,
+                                         SEEK_SKIP_S, SEEK_SWITCH_R,
                                          STALL_SWINGS, STAND_MAX_S, STEER_PROBE, STEER_TURNS,
                                          STOOD_STOMPS, STUCK_REASONS,
                                          SWING_SKIP_S, SWING_TYPES, UNREACHABLE_S, _rotate, arm_pain,
@@ -235,7 +206,7 @@ from agent.base.planner.pin import FightPin
 from agent.base.planner.pull import FightPull
 from agent.base.planner.reach import FightReach
 from agent.base.planner.shove import FightShove
-from agent.base.pza1 import Aim, Attack, Shove, WalkTo
+from agent.base.pza1 import Aim, Attack, WalkTo
 from agent.base.world import me_floor, me_xy
 
 __all__ = ["Fight", "FIGHT_RULES", "CRAWLER_TRIES"]
@@ -246,18 +217,13 @@ FIGHT_RULES = ("corner_break", "finish_first", "ride_wait", "fence_wait", "finis
                "point_blank_pin", "busy_retry", "floor_pain", "shove_back",
                "drift_stand", "circle", "approach_walk", "melee",
                "route_cross", "close_idle", "swing_close", "chaser_stance",
-               "pair_nearest", "crawler_first", "retreat_gap", "retreat_melee",
-               "crawler_clear", "retreat_regain",
-               "footwork", "engage_hold", "withdraw")   # survival iterations 13 to 24's
+               "pair_nearest", "crawler_first")   # survival iterations 13 to 24's
                      # Fight rules and Plan 31's (P25-A, P25-B, P25-D, P25-F; P25-J, P25-L; P25-T; P25-X; P26-L1; P27-E;
                      # P27-G, P27-H, P27-J, P27-K2; fix 2's P27-M and P27-N; P28-D, P28-C, P28-B2, P28-B3, P28-E, the
                      # approach walk; the melee, cut 1 of the maneuver layer; P29-A's route, P29-C's close; P30-A's
                      # swing close; Plan 31 Task 15a's chaser stance; Plan 32 Task 5 (b)'s pair; Plan 33 Task 2's
-                     # crawler first; Plan 34 Task 3's retreat gap and retreat melee; P34-A fix B's crawler clear;
-                     # Task 3c's retreat regain; Plan 35 Task 2's footwork, engagement hold and withdraw bias,
-                     # `dispatch.FightDispatch`),
-                     # each on in `rules`
-                     # unless Survive's switch for it is off
+                     # crawler first), each on in `rules` unless Survive's switch for it is off; Plan 35's engagement
+                     # (the melee's `work`, the hold, the withdraw bias) has no switch (Task 8)
 
 
 class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach, FightDispatch, FightDoorHeld,
@@ -295,17 +261,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         self.stance = False                 # Survive sets it each tick: the standing fight applies (P24-G 1)
         self.threats = None                 # Survive sets it: the held threats the backpedal steps away from
         self.retreat = None                 # Survive sets it (Plan 33 Task 3 fix 3, GROUP_LEAVE's fighting retreat): the
-                                            # unit heading away from the closing group's centroid, every stance leg a backpedal on it
-                                            # (fix 4: the pin on the nearest standing zombie, the back leg always sent;
-                                            # Plan 34 RETREAT_GAP: the leg by the stance's band, `_retreat_kind`)
+                                            # unit heading away from the closing group's centroid: the pin on the
+                                            # nearest standing zombie (`_retreat_read`), the reflex's withdraw bias
         self._retreat_note = None           # this choose's `retreat_pin` {target, from} (fix 4 (a)), else None
-        self._break = None                  # this tick's `retreat_break` {other, dist} (Plan 34 RETREAT_MELEE): set by
-                                            # `busy`, the back leg sent by the choose after it, cleared by `observe`
-        self._regain = None                 # Plan 34 RETREAT_REGAIN's phase in hand: {phase "press", at, id, near,
-                                            # since, shove, m, n0, a} or {phase "back", at, a} (`_regain_back`)
-        self._regain_last = None            # the wall the last regain back leg went (a press's `since`), else None
-        self.outside_press = False          # Survive sets it each tick (DRAG_DEFER): the drag guard's shove was this
-                                            # line's press, the regain's back leg next (`group._drag_defers`)
         self.standoff = False               # the stand went STAND_MAX_S without progress: approach and swing
         self.standoff_why = None            # why it fell back: "<state> <reason>" of a stance leg that failed
         self.advance = False                # the stand went STAND_MAX_S without progress: close in the stance (P24-N)
@@ -637,26 +595,13 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         target was knocked out of reach. A `toward` leg (the advance) holds until reach, or until `_advance_switch`
         names another zombie (inside KEEP_R or SEEK_SWITCH_R nearer: Task 18 fix 2), re-pinned. The stance's own walk (a seek's
         or the advance's) gives way as a leg does (`_walk_gives_way`, Task 18 fix 1, the review's blocker); any other
-        walk (the approach and swing's, a reposition) holds until it ends. Plan 34: the crawler clear's give-way first
-        (`crawler.FightCrawler._crawler_clear_busy`), then RETREAT_MELEE's break (`_retreat_breaks`), then
-        RETREAT_REGAIN's press and back leg (`_regain_busy`). Plan 35 ENGAGE_HOLD: while the engagement runs
-        (`dispatch.FightDispatch._engaged`, the melee with `work`) each of those three answers the hold where it would
-        cut the melee, logged `engage_hold` {rule: crawler_clear | retreat_melee | retreat_regain}, and the rules after
-        them (the crawler first's and the pair's give-way, the pin-first, the finish) are not read: the melee holds
-        until a re-send is due (`_melee_holds`)."""
+        walk (the approach and swing's, a reposition) holds until it ends. Plan 35: while the engagement runs
+        (`dispatch.FightDispatch._engaged`, the melee with `work`) no later rule is read (the crawler first's and the
+        pair's give-way, the pin-first, the finish): the melee holds until a re-send is due (`_melee_holds`)."""
         if not super().busy():
             return False
-        self.why.pop("engage_hold", None)   # Plan 35: this tick's hold, if any, logged below
-        clear = self._crawler_clear_busy()   # Plan 34 fix B: the backpedal from the crawlers, its leg held
-        if clear is not None:
-            return clear
-        if self._retreat_breaks():   # Plan 34 RETREAT_MELEE: the strike melee gives way to the back leg
-            return False
-        regain = self._regain_busy()   # Plan 34 Task 3c RETREAT_REGAIN: the press once, the back leg held
-        if regain is not None:
-            return regain
         if self._engaged():
-            return self._melee_holds()   # Plan 35 ENGAGE_HOLD: no re-pin, crawler or finish give-way cuts the reflex
+            return self._melee_holds()   # Plan 35: no re-pin, crawler or finish give-way cuts the reflex
         if self.last.type == "walkTo" and self._walk_meets_pin():
             return False   # Plan 35 fix 6: a walk gives way to the melee at a pin within KEEP_R
         crawl = self._crawler_busy()   # Plan 33 Task 2: a running send at another than the crawler gives way
@@ -668,8 +613,6 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             return False
         if self.last.type == "melee":
             return self._melee_holds()   # survival iteration 22: the running melee (`dispatch.FightDispatch`)
-        if self.last.type == "walkTo" and self._retreat_legs():
-            return False   # Plan 33 Task 3 fix 4 (b): no walk holds under the retreat, the back leg goes
         if self.last.type in ("attack", "walkTo") and self._finish_gives_way():
             return False   # P25-B: a fallen zombie within FINISH_R is stomped before the attack's walk goes on
         if self.last.type == "walkTo" and self._stance_walk is not None and self._stance_walk[0] is self.last:
@@ -683,8 +626,6 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             return False
         if self._fallen_due(t) or self._close_due(t):
             return False   # P27-H, P27-J: the stance gives way to the walk to a fallen target or to point blank
-        if self.retreat is not None:
-            return self._retreat_holds(t)   # Plan 33 Task 3 fix 4 (b)
         if self._fence_leg is not None:   # P25-F: the fence wait's leg holds while the wait calls for it
             read = self._fence_read(t)
             return read is not None and read[0] == self._fence_leg
@@ -743,7 +684,6 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             self._unpin()
 
     def observe(self):
-        self._break = None   # Plan 34 RETREAT_MELEE: a break `busy` read on an earlier tick is never sent late
         self._drop_pin_read()
         self._observe_attackers()   # P27-N
         self._observe_edge()
@@ -1134,245 +1074,18 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
     def _choose(self):
         """The decision ladder's command (`_ladder`), or at its in-reach sends at the pin the melee maneuver's in its
         place (`dispatch.FightDispatch._melee_dispatch`, survival iteration 22), but on the choose after an end that
-        gives it back to the ladder (`_m_ladder`). Plan 34 RETREAT_MELEE: on the choose after `busy` read a break
-        (`_break`), the back leg in the ladder's command's place (`_break_leg`), no melee. Plan 34 Task 3c
-        RETREAT_REGAIN: after a point-blank press the back leg in its place (`_regain_back`), else the press armed before
-        the dispatch (`_regain_arm`: the shove form with two in reach) and noted after it (`_regain_note`). Plan 35
-        ENGAGE_HOLD: under the engagement (`_engaged`) the choose is the melee's re-send alone (`_engage_resend`), the
-        ladder not read."""
+        gives it back to the ladder (`_m_ladder`). Plan 35: under the engagement (`_engaged`) the choose is the melee's
+        re-send alone (`_engage_resend`), the ladder not read; after a melee end in contact (`_m_kept`, fixes 8 and 8b)
+        the melee it dispatches logs `engage_dispatch` {from: that end}."""
         if self._engaged():
             return self._engage_resend()
         kept, self._m_kept = self._m_kept, None
-        if kept is not None:   # Plan 35 fixes 8 and 8b: after a melee end in contact, no break or regain leg in the
-            self._break, self._regain = None, None   # melee's place
-        cmd = self._retreat_leg(self._ladder())
-        if self._break is not None:
-            leg = self._break_leg(cmd)
-            if leg is not cmd:
-                return leg
-        back = self._regain_back(cmd)
-        if back is not cmd:
-            return back
-        self._regain_arm(cmd)
+        cmd = self._ladder()
         ladder, self._m_ladder = self._m_ladder, False
-        out = self._regain_note(cmd if ladder else self._melee_dispatch(cmd))
+        out = cmd if ladder else self._melee_dispatch(cmd)
         if kept is not None and out is not None and out.TYPE == "melee" and "melee" in self.why:
             self.why["melee"]["engage_dispatch"] = {"from": kept}   # Plan 35 fixes 8 and 8b: the end it follows
         return out
-
-    def _retreat_legs(self):
-        """Plan 33 Task 3 fix 4 (b): the retreat's back leg can go: the retreat set, the build announcing `aim`, no
-        stand-off fallback (an aim failed) and no riding bandage (P24-U: an aim would end it)."""
-        return (self.retreat is not None and self.world.can("aim") and not self.standoff and self.ride is None)
-
-    def _retreat_kind(self, d):
-        """Plan 34 RETREAT_GAP (the module docstring): the stance leg's kind under the retreat at a pin `d` tiles off:
-        `back` within KEEP_R (in reach too: the hit reaction's line, fix 4 (b)), or within KEEP_R + KEEP_MARGIN while
-        this Fight's back leg runs (the margin keeps the two from flapping at the line, as `busy`'s own); else `stand`.
-        With the rule off, fix 3's `back` whatever the distance."""
-        if "retreat_gap" not in self.rules or d <= KEEP_R:
-            return "back"
-        running = self.last is not None and self.last.type == "aim" and not self.actions.done(self.last)
-        return "back" if running and self._leg == "back" and d <= KEEP_R + KEEP_MARGIN else "stand"
-
-    def _retreat_leg(self, cmd):
-        """Plan 33 Task 3 fix 4 (b) (round three, trial 3, `x_trial-ladder-20261109-042558`: retreat lines sent
-        nothing under a hit reaction, 102 to 104 and 120 to 122, while the group closed; trial 1,
-        `x_trial-ladder-20261109-040825`, 209 to 212, held a walk toward a far pin): under the retreat a ladder answer
-        of nothing or a walk is the stance leg at the pin (`_stance_leg` of the retreat's kind, `_retreat_kind`: Plan
-        34 RETREAT_GAP's stand beyond KEEP_R, else the back leg on `_back_heading`), logged `retreat_leg` {kind,
-        in_place_of: the walk's type or None} (with RETREAT_GAP off {in_place_of} alone, the back leg); any other
-        command as it is (the melee's sends among them). Not with no pin (or one with no position), no `aim`
-        announced, the stand-off fallback (an aim failed), a riding bandage (P24-U: an aim would end it) or the low
-        fight's exit (P27-K2: the flee next). The stance flag is not read: a Fight out of the stance (more than
-        MAX_FIGHT held) sent its approach walk on the retreat's lines. (A pin is never beyond AIM_R, 12 tiles:
-        `_pinned` drops it past DISENGAGE_R, 10.)"""
-        if not self._retreat_legs() or (cmd is not None and cmd.TYPE != "walkTo") or "low_exit" in self.why:
-            return cmd
-        return self._retreat_send(cmd, self._retreat_kind)
-
-    def _retreat_send(self, cmd, kind_of):
-        """The retreat's stance leg at the pin in `cmd`'s place (`_retreat_leg`, `_break_leg`), its kind `kind_of(d)`,
-        logged `retreat_leg`; `cmd` itself with no pin."""
-        t = self._target(pin=False)
-        if t is None:
-            return cmd
-        why = self.why if self.why.get("target") == t[0] else {"target": t[0], "pinned": True, "dist": t[2]}
-        self.why = dict(why)
-        leg = self._stance_leg(*t, kind=kind_of(t[2]))
-        place = None if cmd is None else cmd.TYPE
-        self.why["retreat_leg"] = ({"kind": self.why["leg"], "in_place_of": place} if "retreat_gap" in self.rules
-                                   else {"in_place_of": place})
-        return leg
-
-    def _retreat_breaks(self):
-        """Plan 34 RETREAT_MELEE (the module docstring; F19's lines 1536 and 1537): under the retreat, this Fight's
-        running strike-mode melee whose last progress step is no press in flight (`Melee.pressing`), with a standing
-        zombie (not a crawler) other than its target within RETREAT_BACK_R: True, the break noted (`_break` {other,
-        dist}, the nearest such) for the choose that follows; else False. Not with the rule off."""
-        if self.retreat is None or "retreat_melee" not in self.rules or self.last is None or self.last.type != "melee":
-            return False
-        m = self.m
-        if m is None or m.action is not self.last or m.mode != "strike" or m.pressing():
-            return False
-        other = next((s for s in self._standing(RETREAT_BACK_R, (m.target,)) if not is_crawler(s[1])), None)
-        if other is None:
-            return False
-        if self._engaged():
-            self._engage_note("retreat_melee")   # Plan 35 ENGAGE_HOLD: the reflex steps back between its presses
-            return False
-        self._break = {"other": other[0], "dist": other[2]}
-        return True
-
-    def _break_leg(self, cmd):
-        """Plan 34 RETREAT_MELEE: the choose after a break sends the back leg on the retreat heading in the ladder's
-        `cmd`'s place (the running melee superseded by it), logged `retreat_break` {other, dist} and `retreat_leg`
-        {kind "back", in_place_of}; `cmd` as it is when the back leg cannot go (`_retreat_legs`) or the crawler clear
-        sent its own leg. The break is read once."""
-        note, self._break = self._break, None
-        if not self._retreat_legs() or "crawler_clear" in self.why:
-            return cmd
-        leg = self._retreat_send(cmd, lambda d: "back")
-        if leg is not cmd:
-            self.why["retreat_break"] = note
-            if "retreat_regain" in self.rules:   # Plan 34 Task 3c: the break's back leg is the regain's, held so
-                self._regain_mark_back(self._standing_near(FIGHT_REACH), None)
-        return leg
-
-    # -------------------------------------------------------------------------- RETREAT_REGAIN (Plan 34 Task 3c)
-    def _regain_on(self):
-        """RETREAT_REGAIN applies on this choose: the rule on, the retreat's back leg able to go (`_retreat_legs`), no
-        crawler clear's leg nor the low fight's exit on it."""
-        return ("retreat_regain" in self.rules and self._retreat_legs() and "crawler_clear" not in self.why
-                and "low_exit" not in self.why)
-
-    def _regain_back(self, cmd):
-        """RETREAT_REGAIN's back leg in the ladder's `cmd`'s place (the module docstring), else `cmd`: once the press in
-        hand is done (`_press_done`: a melee that pressed once and has no press in flight, or ended; a ladder press
-        ended; DRAG_DEFER's `outside_press`, the drag guard's shove) with a standing zombie within FIGHT_REACH, and
-        again while a back leg's window is open (a standing zombie within FIGHT_REACH, RETREAT_REGAIN_S not passed
-        since it went: a leg that gave way, its pin moved or its heading turned, re-sent); the window closed, or the
-        gap regained, the phase ends and the next press is the ladder's. Off the rule, the phase is dropped."""
-        if not self._regain_on():
-            self._regain = None
-            return cmd
-        g, now = self._regain, self.clock()
-        if g is None and self.outside_press:   # DRAG_DEFER: the guard's shove was this line's press
-            self.outside_press = False
-            g = self._regain = {"phase": "press", "at": now, "outside": True}
-        if g is None:
-            return cmd
-        near = self._standing_near(FIGHT_REACH)
-        if g["phase"] == "back":
-            if near is not None and now - g["at"] < RETREAT_REGAIN_S:
-                return self._regain_send(cmd, near, g["at"])
-            self._regain = None
-            return cmd
-        if near is None or not self._press_done(g):
-            self._regain = None   # the gap open, or the press given way unfinished (its pin moved): a new press
-            return cmd
-        return self._regain_send(cmd, near, now, since=now - g["at"])
-
-    def _regain_send(self, cmd, near, at, since=None):
-        """The regain's back leg on the retreat heading in `cmd`'s place (`_retreat_send`), its window from `at`,
-        logged `retreat_regain` {phase "back", near: the nearest standing's tiles, since: from the press, or on a
-        re-send from the back leg}; `cmd` with no pin."""
-        leg = self._retreat_send(cmd, lambda d: "back")
-        if leg is cmd:
-            self._regain = None
-            return cmd
-        self._regain_mark_back(near, self.clock() - at if since is None else since, at)
-        return leg
-
-    def _regain_mark_back(self, near, since, at=None):
-        """The back leg this choose sends is the regain's (its action recorded by `_regain_sent`), logged."""
-        at = self.clock() if at is None else at
-        self._regain, self._regain_last = {"phase": "back", "at": at, "a": None}, at
-        self.why["retreat_regain"] = {"phase": "back", "near": None if near is None else near[2], "since": since}
-
-    def _press_done(self, g):
-        """The press in hand `g` is done: the guard's (`outside`); its melee pressed once since `n0` with no press in
-        flight (`Melee.presses`, `pressing`), or retired, ended or superseded; a ladder press's action ended."""
-        if g.get("outside"):
-            return True
-        m = g.get("m")
-        if m is not None:
-            if m is not self.m or m.over() is not None or not m.running():
-                return True
-            return m.presses > g["n0"] and not m.pressing()
-        return g.get("a") is not None and self.actions.done(g["a"])
-
-    def _regain_arm(self, cmd):
-        """Before the dispatch: with no phase in hand and a standing zombie within POINT_BLANK_R, the press is armed
-        (`_regain` {phase "press", at, id and near: that zombie's, since: from the last back leg, shove: two or more
-        standing within FIGHT_REACH}); the dispatch's melee then goes in mode `shove` when `shove`
-        (`dispatch.FightDispatch._melee_mode_at`)."""
-        if cmd is None or self._regain is not None or not self._regain_on():
-            return
-        near = self._standing_near(POINT_BLANK_R)
-        if near is None:
-            return
-        now = self.clock()
-        self._regain = {"phase": "press", "at": now, "id": near[0], "near": near[2],
-                        "since": None if self._regain_last is None else now - self._regain_last,
-                        "shove": len(self._standing(FIGHT_REACH)) >= 2, "m": None, "n0": 0, "a": None}
-
-    def _regain_shove(self):
-        """The press armed is the shove form (two or more standing within FIGHT_REACH): the melee's mode `shove`."""
-        g = self._regain
-        return g is not None and g["phase"] == "press" and bool(g.get("shove"))
-
-    def _regain_note(self, out):
-        """After the dispatch: the armed press's command `out` noted, logged `retreat_regain` {phase "press", near,
-        since}; with the shove form and no melee (a build without it, or the crowd gate) any command but a shove is the
-        `Shove` at that nearest zombie (the shove allowed at it, `_swing_ok`). A command that presses nothing (an aim
-        leg, None) disarms it."""
-        g = self._regain
-        if g is None or g["phase"] != "press" or g.get("noted"):
-            return out
-        if (g["shove"] and out is not None and out.TYPE not in ("melee", "shove") and g["id"] in self.world.zombies
-                and self._swing_ok("shove", g["id"])):
-            out = Shove(g["id"])
-        if out is None or out.TYPE not in ("melee", "shove", "attack", "stomp"):
-            self._regain = None
-            return out
-        g["noted"] = True
-        self.why["retreat_regain"] = {"phase": "press", "near": g["near"], "since": g["since"]}
-        return out
-
-    def _regain_busy(self):
-        """`busy` under RETREAT_REGAIN, else None (the rest of `busy` decides): the regain's running back leg held
-        (True) while a standing zombie stands within FIGHT_REACH, RETREAT_REGAIN_S have not passed since it went and its
-        heading stays within RETREAT_RESEND_DEG of the retreat's (`_on_retreat_heading`), else it gives way (False:
-        the choose re-sends it in its window or sends the press); the press's running melee gives way (False) once it
-        has pressed once with no press in flight, and until then holds by the melee's own rule alone
-        (`_melee_holds`): fix 1 (the trial `x_trial-ladder-20261109-142025`, lines 114 to 118: the retreat's re-pin
-        cut the press at 6883 with its shove in flight, then 6854's before its first step, three presses on three
-        lines and no back leg between; `x_trial-ladder-20261109-141434`, lines 265 and 266, the same), so no re-pin and
-        no crawler give-way cuts it. A running melee with a standing zombie come within POINT_BLANK_R and no phase in
-        hand arms its press there, a press in flight counted."""
-        if "retreat_regain" not in self.rules or self.retreat is None:
-            return None
-        g, m = self._regain, self.m
-        live = m is not None and self.last is not None and m.action is self.last and self.last.type == "melee"
-        if g is None:
-            near = self._standing_near(POINT_BLANK_R) if live else None
-            if near is not None:
-                self._regain = {"phase": "press", "at": self.clock(), "id": near[0], "near": near[2], "since": None,
-                                "shove": len(self._standing(FIGHT_REACH)) >= 2, "m": m,
-                                "n0": m.presses - (1 if m.pressing() else 0), "a": None, "noted": True}
-            return None
-        if g["phase"] == "back":
-            if g.get("a") is None or g["a"] is not self.last:
-                return None
-            if self._standing_near(FIGHT_REACH) is None or self.clock() - g["at"] >= RETREAT_REGAIN_S:
-                return False
-            return self._on_retreat_heading()
-        if live and g.get("m") is m:
-            if m.presses > g["n0"] and not m.pressing():
-                return self._engage_hold("retreat_regain") if self._engaged() else False   # Plan 35 ENGAGE_HOLD
-            return self._melee_holds()   # fix 1: the press held to its one press, never cut by a re-pin
-        return None
 
     def _ladder(self):
         self._seek_send, self._walk_kind, self._edge_send = False, None, None
@@ -1387,9 +1100,6 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             self.target, self.repositioned = switch[0], False
         self._pin_first()   # P27-N: a zombie at point blank or read attacking takes the pin
         pair = self._pair_pin()   # Plan 32 Task 5 (b): with two within KEEP_R the nearer standing one is the pin
-        clear = self._crawler_clear()   # Plan 34 fix B: the backpedal from the crawlers before any send among them
-        if clear is not None:
-            return clear
         crawl = self._crawler_first()   # Plan 33 Task 2: a crawler within CRAWLER_R stomped before the standing one
         if crawl is not None:
             return crawl
@@ -1539,17 +1249,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
           the group's centroid (`pull_centroid`) to the player, turned by STEER_TURNS to the first heading
           `clear_heading` passes, else standing; the chaser faced while it follows, the group left behind;
         - `stand` (0, 0): the target beyond KEEP_R, faced while it comes.
-        `kind` names the leg instead of the target's distance (P24-AP's wounded backpedal within reach). Under the
-        retreat (Plan 33 Task 3 fix 3) every kind but `enter` is the backpedal; with the `retreat_gap` rule (Plan 34
-        RETREAT_GAP) it is the distance's own (`_retreat_kind`: the backpedal within KEEP_R, the stand beyond), the
-        approaching kinds read as the stand, a named backpedal kept (the wounded one, the break's)."""
+        `kind` names the leg instead of the target's distance (P24-AP's wounded backpedal within reach)."""
         t, named = (zid, z, d), kind is not None
         v, kind = None, kind or stance_leg_kind(d, self.advance, self.seeking(t), self.pulling(t))
-        if self.retreat is not None and kind in ("stand", "back", "toward", "seek", "pull"):
-            if "retreat_gap" not in self.rules:
-                kind = "back"   # Plan 33 Task 3 fix 3: the fighting retreat backpedals whatever the target's distance
-            elif not (named and kind == "back"):
-                kind = self._retreat_kind(d)   # Plan 34 RETREAT_GAP: the stance's band, no step toward the column
         if kind in ("toward", "seek"):
             mx, my = me_xy(self.world)
             u = ((z["x"] - mx) / d, (z["y"] - my) / d)
@@ -1583,63 +1285,11 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
     def _back_heading(self, z):
         """The `back` leg's heading from target `z` (`_stance_leg`): `away_vector` of the held threats (else `z`),
         turned by CIRCLE_TURN from a lone standing zombie within KEEP_R (P28-E, `_circle_turn`), else by STEER_TURNS
-        (`_clear_turn`); None when no heading is clear (the leg then stands). Under the retreat `_retreat_heading`,
-        never None, its least-bad turn logged `retreat_least_bad` {turn, dist}."""
-        if self.retreat is not None:   # Plan 33 Task 3 fix 3: away from the closing group's centroid, GROUP_LEAVE's
-            h, least_bad = self._retreat_heading()
-            if least_bad is not None:
-                self.why["retreat_least_bad"] = least_bad
-            return h
-        ts = [q for q in (self.threats or [z]) if q.get("x") is not None and q.get("y") is not None]
+        (`_clear_turn`); None when no heading is clear (the leg then stands)."""
+        ts =[q for q in (self.threats or [z]) if q.get("x") is not None and q.get("y") is not None]
         away = away_vector(self.world, [(q["x"], q["y"]) for q in ts])
         lone = "circle" in self.rules and away is not None and len(self._standing(KEEP_R)) == 1
         return self._circle_turn(away) if lone else self._clear_turn(away)   # P28-E: the arc from a lone zombie
-
-    def _retreat_heading(self):
-        """Plan 33 Task 3 fix 4 (b): `(heading, None)` with the retreat heading turned by STEER_TURNS to the first
-        clear one (`_clear_turn`); with none clear, `(heading, {turn, dist})` of the least-bad turn as SIDE_CLEAR takes
-        it (`group.ThreatGroup._least_bad`): of the retreat heading and its SIDE_TURNS turns, the one whose nearest
-        standing zombie passed within SIDE_R lies farthest along its first SIDE_LOOK tiles (`side_dist`), the nearest
-        turn on a tie. Read without side effects (`busy` reads it)."""
-        h = self._clear_turn(self.retreat)
-        if h is not None:
-            return h, None
-        zs = [(zid, q) for zid, q, _ in self._standing(SIDE_LOOK + SIDE_R)]
-        best = None
-        for turn in (0,) + SIDE_TURNS:
-            d = side_dist(self.world, _rotate(self.retreat, turn), zs)
-            if best is None or d > best[1]:
-                best = (turn, d)
-        return _rotate(self.retreat, best[0]), {"turn": best[0], "dist": best[1]}
-
-    def _retreat_holds(self, t):
-        """Plan 33 Task 3 fix 4 (b): `busy` for this Fight's running aim under the retreat, the pin `t` its target:
-        held while it is the `back` leg, the pin beyond FIGHT_REACH (within reach it gives way to the swing, the
-        melee's dispatch point; the stance flag is not read: the retreat's leg goes in a Fight out of the stance too),
-        and its heading within RETREAT_RESEND_DEG of the retreat's (`_retreat_heading`); else it gives way and the back
-        leg is sent again on the retreat heading. Plan 34 RETREAT_GAP: held while its kind is the distance's
-        (`_retreat_kind`: a stand leg whose pin came within KEEP_R gives way to the back leg, a back leg whose pin went
-        past KEEP_R + KEEP_MARGIN to the stand), a back leg's heading read as before."""
-        if t[2] <= FIGHT_REACH:
-            return False
-        if "retreat_gap" in self.rules:
-            if self._leg != self._retreat_kind(t[2]):
-                return False
-            if self._leg == "stand":
-                return True
-        elif self._leg != "back":
-            return False
-        return self._on_retreat_heading()
-
-    def _on_retreat_heading(self):
-        """The running aim's heading lies within RETREAT_RESEND_DEG of the retreat's (`_retreat_heading`); a leg with no
-        heading never does."""
-        vx, vy = self.last.args.get("vx") or 0.0, self.last.args.get("vy") or 0.0
-        n = math.hypot(vx, vy)
-        if n == 0.0:
-            return False
-        h = self._retreat_heading()[0]
-        return (vx * h[0] + vy * h[1]) / n >= math.cos(math.radians(RETREAT_RESEND_DEG))
 
     def _circle_turn(self, a):
         """Ruling P28-E (`circle`, Survive's CIRCLE; E20, `e_day_20-20261103-121340`'s candidate, #4576: the stance's
@@ -1670,7 +1320,6 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             self.m.sent(cmd, action)   # survival iteration 22: the maneuver's own send
         else:
             self._retire_maneuver()   # the ladder's command in its place: the Lua supersedes the melee
-        self._regain_sent(cmd, action)   # Plan 34 Task 3c: the regain's press or back leg, its action recorded
         self._crawler_sent(cmd, action)   # Plan 33 Task 2: a finish at the crawler, its end read for the tries
         if cmd.TYPE == "aim":
             self._leg = self.why.get("leg")
@@ -1679,7 +1328,6 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
                 self._back_leg, self._back_left = (action, cmd.targetId), False
             self._fence_leg = self.why["fence_wait"]["leg"] if "fence_wait" in self.why else None   # P25-F
             self._chaser_leg = action if "chaser_stance" in self.why else None   # Plan 31 Task 15a
-            self._clear_leg = action if "crawler_clear" in self.why else None   # Plan 34 fix B
             if self._leg == "pull":
                 self._pulled = cmd.targetId   # P24-AN: kept to DISENGAGE_R from here (`_pull_waits`)
         elif cmd.TYPE == "walkTo":
@@ -1694,18 +1342,3 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             self._shoved = False
             if cmd.targetId != self._streak_id:   # a new target: its streak starts here
                 self._streak_id, self._streak_h, self.no_progress = cmd.targetId, self._target_health(cmd.targetId), 0
-
-    def _regain_sent(self, cmd, action):
-        """RETREAT_REGAIN's bookkeeping of a send: the back leg's aim (`a`); the press's melee (`m`, `n0` its presses
-        then) or ladder press (`a`)."""
-        g = self._regain
-        if g is None or g.get("a") is not None:
-            return
-        if g["phase"] == "back":
-            if cmd.TYPE == "aim":
-                g["a"] = action
-        elif cmd.TYPE == "melee":
-            if g.get("m") is not self.m:
-                g["m"], g["n0"] = self.m, self.m.presses
-        elif g.get("m") is None:
-            g["a"] = action

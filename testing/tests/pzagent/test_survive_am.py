@@ -3,7 +3,8 @@ leave's leg turned `door` with the nearest standing zombie at 0.37 tiles, buildi
 on the west edge of that square; the plan's `enter` walk to (10619.5, 10629.5) ended `done` 0.93 tiles off it with the
 character outside, and line 1602's close shut the door with the character at (10620.37, 10629.18), east of the door's
 edge, 12431 at 0.60 tiles; the bite came 0.334 s later, then the drag-down): two rules behind `threat.Threat`'s
-switches (`survive.T19_SWITCHES`), and fix C of ruling P34-A.
+switches (`survive.T19_SWITCHES`). Fix C of ruling P34-A (the drag guard's waiting shove held under SHOVE_CLEAR) went
+with the guard's shove at Plan 35 Task 8 (its tests named in the task report).
 
 - DOOR_INSIDE (`flee.Flee._at_post`, `_close_refused`, the Flee's `door_inside` rule): every shelter plan's enter is
   read on its `done` against `policies.on_post` (a room square of the plan's building); outside, the enter is walked
@@ -15,9 +16,6 @@ switches (`survive.T19_SWITCHES`), and fix C of ruling P34-A.
   zombie within DOOR_RACE_R (`door_refused` "race") nor a door whose building has no second way out (`door_verdicts`
   with `second_exit` True: `door_refused` "one_exit"), and a running door plan before its close is dropped with a
   standing zombie within DOOR_ABORT_R (`door_dropped` "abort"), the leg re-read on the same line.
-- Fix C (the smoke trial `x_trial-ladder-20261109-105452`: the guard's one shove, accepted and waiting under the Lua's
-  SHOVE_CLEAR, superseded one line later by the run): with SHOVE_CLEAR on, a running shove of the Flee's is held on the
-  spent episode's lines too (`drag_fight` {spent, holding, why "shove_wait"}), the run once it has ended.
 
 The fixtures are synthetic, built from F19's geometry (the GUIDE's numbers), never a replay; the fake mod."""
 import math
@@ -32,7 +30,7 @@ from agent.base.planner.flee import Flee
 from .test_night import CLOSED, OPEN, house
 from .test_policies import Rig, square, zombie
 from .test_survive import threat_why, tick
-from .test_survive_ak import closing, guard, rig, shifted_house
+from .test_survive_ak import closing, shifted_house
 
 DOOR = (10620, 10629, 0)        # F19's door, on the west edge of the outdoor square east of building 12
 INSIDE = (10619, 10629, 0)      # the plan's `inside`: the threshold room square
@@ -325,46 +323,3 @@ def test_door_verdicts_second_exit_overrides_the_stand_s_rule(tmp_path):
     f.stand_ok = True
     assert [v for *_, v in f.door_verdicts(ts)] == ["one_exit"]
     assert [v for *_, v in f.door_verdicts(ts, second_exit=False)] == ["ok"]
-
-
-# ================================================================ fix C: the drag guard holds its waiting shove
-def test_the_spent_episode_s_running_shove_is_held_under_shove_clear(tmp_path):
-    """Fix C (ruling P34-A): the episode's one shove accepted and still running (the Lua's SHOVE_CLEAR wait) on the next
-    guard line: held (no steer), logged `drag_fight` {spent 1, holding its aid, why "shove_wait"}; once it has ended
-    the run goes."""
-    k = guard(("DRAG_GUARD_FIGHT",))
-    zs = k.pop("zombies")
-    r, sv = rig(tmp_path, zs, **k)
-    sv.SHOVE_CLEAR = True
-    tick(r, sv)
-    assert r.cmd() == ("shove", {"targetId": 1})
-    r.fake.answer({"shove": ["accepted"]})
-    r.pump()
-    shove = r.acts.history[-1]
-    r.advance(0.5)
-    r.frame(x=100.5, y=200.5, zombies=zs, attackers=2, hit_reaction="Bite")
-    tick(r, sv)
-    assert [a.type for a in r.acts.history] == ["shove"]
-    assert threat_why(tmp_path)["drag_fight"] == {"spent": 1, "holding": shove.aid, "why": "shove_wait"}
-    r.fake.answer({"shove": [{"state": "done", "result": {"waited": 12}}]})
-    r.pump()
-    r.advance(0.5)
-    r.frame(x=100.5, y=200.5, zombies=zs, attackers=2, hit_reaction="Bite")
-    tick(r, sv)
-    assert r.cmd()[0] == "steer" and r.cmd()[1]["gait"] == "run"
-    assert threat_why(tmp_path)["drag_fight"] == {"spent": 1, "why": "hit"}
-
-
-def test_with_shove_clear_off_the_spent_line_drops_the_running_shove_for_the_run(tmp_path):
-    """Fix C's pin: SHOVE_CLEAR off, the spent line drops the running shove for the guard's run (fix 2 as before)."""
-    k = guard(("DRAG_GUARD_FIGHT",))
-    zs = k.pop("zombies")
-    r, sv = rig(tmp_path, zs, **k)
-    sv.SHOVE_CLEAR = False
-    tick(r, sv)
-    r.fake.answer({"shove": ["accepted"]})
-    r.pump()
-    r.advance(0.5)
-    r.frame(x=100.5, y=200.5, zombies=zs, attackers=2, hit_reaction="Bite")
-    tick(r, sv)
-    assert r.cmd()[0] == "steer" and threat_why(tmp_path)["drag_fight"] == {"spent": 1, "why": "hit"}

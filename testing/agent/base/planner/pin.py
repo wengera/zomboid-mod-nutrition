@@ -84,12 +84,12 @@ class FightPin:
         return self._pin_unstalled(out)
 
     def _pin_unstalled(self, out):
-        """Plan 35 fix 8b (the controller's ruling on the fix 8 report, concern 1): under the engagement's dispatch, a
-        zombie whose reflex stall marked it (`dispatch.FightDispatch._stalled`, its span) is left out of the pin while
-        another standing zombie the marks leave in stands within KEEP_R (the melee goes at that one, the fence case's
-        climber); with none, P27-N's pin takes it as before (the Lua's stall and re-pin own it)."""
+        """Plan 35 fix 8b (the controller's ruling on the fix 8 report, concern 1): a zombie whose reflex stall marked it
+        (`dispatch.FightDispatch._stalled`, its span) is left out of the pin while another standing zombie the marks
+        leave in stands within KEEP_R (the melee goes at that one, the fence case's climber); with none,
+        P27-N's pin takes it as before (the Lua's stall and re-pin own it)."""
         stalled = blocked(getattr(self, "_stalled", {}), self.clock())
-        if not stalled or not any(zid in stalled for zid in out) or not self._pile_met():
+        if not stalled or not any(zid in stalled for zid in out):
             return out
         marks = blocked(self.unreachable, self.clock()) | blocked(self.dead, self.clock())
         if not any(zid not in marks for zid, _, _ in self._standing(KEEP_R)):
