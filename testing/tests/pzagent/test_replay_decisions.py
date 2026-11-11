@@ -16,6 +16,12 @@ from agent.base.planner import fight as F
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
 from agent.base.planner import threat as T
+from .frozen import frozen
+
+# Plan 35 Task 8: the tests below that run their archived selves (`frozen.py`)
+FROZEN_T8 = ('test_the_group_rules_move_the_goldens_at_their_lines',
+             'test_with_the_column_rules_off_the_goldens_are_plan_33_s',
+             'test_the_column_rules_move_the_goldens_at_their_lines')
 
 
 def run_dir(key):
@@ -2480,7 +2486,7 @@ def test_with_the_group_rules_off_the_goldens_are_plan_32_s(key):
 
 
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
-def test_the_group_rules_move_the_goldens_at_their_lines(key):
+def test_the_group_rules_move_the_goldens_at_their_lines(key, request):
     """Named change `Plan 33 Task 3: GROUP_LEAVE, DRAG_GUARD_FIGHT and SIDE_CLEAR on by default`, each switch alone on
     against the goldens before it (`pre_t17_gold`):
     - GROUP_LEAVE (fix 3, re-recorded under `Plan 33 Task 3 fix 3: GROUP_LEAVE at three closing`: GROUP_LEAVE_N 3 closing
@@ -2496,20 +2502,12 @@ def test_the_group_rules_move_the_goldens_at_their_lines(key):
       none, its file unchanged.
     The three together move each golden first at the least of those lines; the acted lines are `ACTED_T17`. Named
     change, Plan 34 Task 1: read against the goldens with the column's rules off (`pre_t19_gold`), which re-recorded the
-    sixth."""
-    base, got = pre_t17_gold(key), pre_t19_gold(key)
-    diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
-    assert (diff[0] if diff else None) == min(FIRST_T17[key].values(), default=None)
-    for switch in S.T18_SWITCHES:
-        alone = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
-                                                             mutate=lambda sv: pre_t17(sv, keep=(switch,))))}
-        moved = [k for k in sorted(set(base) | set(alone)) if base.get(k) != alone.get(k)]
-        first = moved[0] if moved else None
-        assert first == FIRST_T17[key].get(switch), switch
-        if first is not None:
-            assert WHY_T17[switch] in alone[first]["why"] and WHY_T17[switch] not in base[first]["why"], switch
-    acted = [k for k in diff if base[k]["action"] != got[k]["action"] or base[k]["branch"] != got[k]["branch"]]
-    assert acted == ACTED_T17[key]
+    sixth.
+
+    Frozen at Plan 35 Task 8 on a `git archive` of `frozen.T8_FROZEN`, the last build whose pins it held: the seam
+    pinned the goldens of Plan 33 and Plan 34 with switches on that the deletion removed (DRAG_GUARD_FIGHT, SIDE_CLEAR,
+    STRUNG_HOLD, the leave's first-line shove)."""
+    frozen(request, FROZEN_T8, ('testing/artifacts/e_day_5-20261028-201255', 'testing/artifacts/f_goals-20261028-202437', 'testing/artifacts/e_day_2-20261028-124249', 'testing/artifacts/e_day_3-20261028-153631', 'testing/artifacts/e_day_4-20261028-173649'))
 
 
 # ================================================================ Plan 34 Task 1: the column on the goldens
@@ -2546,17 +2544,18 @@ ACTED_T19 = {"e2": [211], "e3": [260, 261, 263, 266, 270, 277, 284], "e4": [467,
 
 
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
-def test_with_the_column_rules_off_the_goldens_are_plan_33_s(key):
+def test_with_the_column_rules_off_the_goldens_are_plan_33_s(key, request):
     """The column's golden movers are `survive.T19_SWITCHES`: with them off (`pre_t19`) each golden is the file as it
-    stood before their re-record byte for byte (its sha256 pinned, `PRE_T19`)."""
-    sha, base, recorded = PRE_T19[key]
-    text = R.golden_text(R.decisions(json.loads(_pre_t19_replayed(key))), base, R.RUNS[key], recorded,
-                         R.SPANS.get(key), R.HELLO_CAPS.get(key))
-    assert hashlib.sha256(text.encode("utf-8")).hexdigest() == sha
+    stood before their re-record byte for byte (its sha256 pinned, `PRE_T19`).
+
+    Frozen at Plan 35 Task 8 on a `git archive` of `frozen.T8_FROZEN`, the last build whose pins it held: the seam
+    pinned the goldens of Plan 33 and Plan 34 with switches on that the deletion removed (DRAG_GUARD_FIGHT, SIDE_CLEAR,
+    STRUNG_HOLD, the leave's first-line shove)."""
+    frozen(request, FROZEN_T8, ('testing/artifacts/e_day_5-20261028-201255', 'testing/artifacts/f_goals-20261028-202437', 'testing/artifacts/e_day_2-20261028-124249', 'testing/artifacts/e_day_3-20261028-153631', 'testing/artifacts/e_day_4-20261028-173649'))
 
 
 @pytest.mark.parametrize("key", sorted(PRE_EDGE_OUT))
-def test_the_column_rules_move_the_goldens_at_their_lines(key):
+def test_the_column_rules_move_the_goldens_at_their_lines(key, request):
     """Named change `Plan 34 Task 1: LEAVE_CARE on by default`, each switch alone on against the goldens before it
     (`pre_t19_gold`):
     - LEAVE_CARE (the care barred under a column of GROUP_LEAVE_N standing within GROUP_ENTRY_R, the ride alone kept)
@@ -2594,21 +2593,9 @@ def test_the_column_rules_move_the_goldens_at_their_lines(key):
       then the attacks within POINT_BLANK_OVER_R on 268 and 270, downstream to 284), lines LEAVE_ENTRY's leave already
       moves, so E3's file is unchanged. The fix's RETREAT_REGAIN press hold and SPENT_LEAVE pain read move no golden
       (five files unchanged).
-    The rules together move each golden first at the least of those lines; the acted lines are `ACTED_T19`."""
-    base, got = pre_t19_gold(key), gold(key)
-    diff = [k for k in sorted(set(base) | set(got)) if base.get(k) != got.get(k)]
-    assert (diff[0] if diff else None) == min(FIRST_T19[key].values(), default=None)
-    for switch in MOVERS_T19:
-        alone = {d["line"]: d for d in R.decisions(R.replay(run_dir(key), caps=R.HELLO_CAPS.get(key),
-                                                             mutate=lambda sv: pre_t19(sv, keep=(switch,))))}
-        moved = [k for k in sorted(set(base) | set(alone)) if base.get(k) != alone.get(k)]
-        first = moved[0] if moved else None
-        assert first == FIRST_T19[key].get(switch), switch
-        if first is not None:
-            assert WHY_T19[switch] in alone[first]["why"] and WHY_T19[switch] not in base[first]["why"], switch
-    acted = [k for k in diff if base[k]["action"] != got[k]["action"] or base[k]["branch"] != got[k]["branch"]]
-    assert acted == ACTED_T19[key]
-    if key == SIXTH:
-        assert diff == [490, 491]
-        assert [got[k]["why"]["care_withheld"] for k in diff] == [{"why": "group", "n": 3, "key": None},
-                                                                  {"why": "group", "n": 4, "key": None}]
+    The rules together move each golden first at the least of those lines; the acted lines are `ACTED_T19`.
+
+    Frozen at Plan 35 Task 8 on a `git archive` of `frozen.T8_FROZEN`, the last build whose pins it held: the seam
+    pinned the goldens of Plan 33 and Plan 34 with switches on that the deletion removed (DRAG_GUARD_FIGHT, SIDE_CLEAR,
+    STRUNG_HOLD, the leave's first-line shove)."""
+    frozen(request, FROZEN_T8, ('testing/artifacts/e_day_5-20261028-201255', 'testing/artifacts/f_goals-20261028-202437', 'testing/artifacts/e_day_2-20261028-124249', 'testing/artifacts/e_day_3-20261028-153631', 'testing/artifacts/e_day_4-20261028-173649'))

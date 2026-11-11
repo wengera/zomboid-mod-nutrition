@@ -24,7 +24,6 @@ import pytest
 
 from agent.base.planner import care as C
 from agent.base.planner import fight as F
-from agent.base.planner import policies as P
 from agent.base.planner import survive as S
 from agent.base.planner import threat as T
 from agent.base.planner.maneuvers import Dress
@@ -33,8 +32,12 @@ from agent.base import replay_decisions as R
 from .fakemod import DEFAULT_FRAME
 from .test_dress import TSHIRT, hello17, hold, unworn_shirt, worn_shirt
 from .test_policies import Rig, all_sends_valid
-from .test_survive import decisions, last, make, threat_why, tick
+from .test_survive import last, make, threat_why, tick
 from .test_survive_g import part
+from .frozen import frozen
+
+# Plan 35 Task 8: the tests below that run their archived selves (`frozen.py`)
+FROZEN_T8 = ('test_trial_12_s_scratch_takes_the_care_s_dress_within_a_game_minute_of_the_first_quiet_line',)
 
 T8 = "x_trial-ladder-20261106-030051"
 T12 = "x_trial-ladder-20261106-031801"
@@ -395,25 +398,21 @@ def test_the_threat_branch_yields_to_the_scratch_s_dress(monkeypatch, tmp_path, 
         assert th.get("care_yield") is None and not any(a.type == "stop" for a in r.acts.history)
 
 
-def test_trial_12_s_scratch_takes_the_care_s_dress_within_a_game_minute_of_the_first_quiet_line():
+def test_trial_12_s_scratch_takes_the_care_s_dress_within_a_game_minute_of_the_first_quiet_line(request):
     """Trial 12 replayed: the record has no care line from the scratch (line 305) to the cap; the replay's first care
     line after it is the scratch Dress's stop of part 9 (`wound`), on line 314, 0.43 game minutes after line 311, the
     first line after the scratch whose nearest zombie read beyond KEEP_R (the lines between read a `many` group). With
     SCRATCH_DRESS off no care line sends anything after the scratch (P28-A's `wound_held` {clean 0}).
     Named change, Plan 32 Task 5 (the coward rules on by default): pinned with `CARE_COMMIT` off, the rule before it
     ((c), a care action wanted taking one walk away, then finished with the threat branch yielding), passed to the
-    replay's own switches (its cache is keyed by them)."""
-    rows, rep = replay(T12, CARE_COMMIT=False)
-    assert not any(r["branch"] == "care" for r in rows[304:])
-    quiet = next(k for k in range(305, len(rows) + 1)
-                 if rows[k - 1]["inputs"].get("nearest") is None or rows[k - 1]["inputs"]["nearest"] > P.KEEP_R)
-    first = next(k for k in range(305, len(rep) + 1) if rep[k - 1]["branch"] == "care" and rep[k - 1]["action"])
-    c = rep[first - 1]["inputs"]["branches"]["care"]
-    assert (quiet, first, rep[first - 1]["action"]["type"]) == (311, 314, "stop")
-    assert c["dress"]["wound"] is True and c["dress"]["part"] == 9
-    assert (rep[first - 1]["inputs"]["hour"] - rows[quiet - 1]["inputs"]["hour"]) * 60 <= 1.0
-    _, off = replay(T12, SCRATCH_DRESS=False, CARE_COMMIT=False)
-    assert not any(r["branch"] == "care" and r["action"] for r in off[304:])
+    replay's own switches (its cache is keyed by them).
+
+    Frozen at Plan 35 Task 8 on a `git archive` of `frozen.T8_FROZEN`, the last build whose pins it held: the trial's
+    ring announces melee, so its replay runs through the engagement since the deletion (the run read from this machine's
+    testing/runs, PZT_RUNS)."""
+    if run_dir(T12) is None:
+        pytest.skip("%s is not on this machine (testing/runs/ is per-machine)" % T12)
+    frozen(request, FROZEN_T8, ())
 
 
 def test_a_running_scratch_dress_gives_way_to_a_chaser_closing_within_care_hold_r(monkeypatch, tmp_path):

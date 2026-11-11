@@ -28,12 +28,21 @@ from agent.base.planner import care as C
 from agent.base.planner import fight as F
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
-from agent.base.planner import threat as T
 
 from .test_policies import Rig, zombie
 from .test_survive import last, make, threat_why, tick
 from .test_survive_ah import scratch, scratch_rig
 from .test_survive_ah import zombie as ah_zombie
+from .frozen import frozen
+
+# Plan 35 Task 8: the tests below that run their archived selves (`frozen.py`)
+FROZEN_T8 = ('test_with_the_four_off_f17_replays_as_recorded',
+             'test_f17_line_145_s_many_steer_at_point_blank_is_the_fight_at_16101',
+             'test_f17_s_flees_at_point_blank_fall_from_43_to_12',
+             'test_f17_s_pair_holds_16232_where_the_record_traded_targets',
+             'test_f17_s_158_strain_lines_fall_to_none',
+             'test_f17_s_rips_are_no_longer_superseded_by_the_threat_branch_beyond_keep_r',
+             'test_f17_with_the_four_on_by_default_flees_on_203_of_its_389_lines')
 
 F17 = os.path.join(R.ARTIFACTS, "f_goals_17-20261108-172833")
 T16 = S.T16_SWITCHES
@@ -105,15 +114,15 @@ def test_the_t16_switches():
     assert all(getattr(S.Survive, k) is True for k in T16)
 
 
-def test_with_the_four_off_f17_replays_as_recorded():
+def test_with_the_four_off_f17_replays_as_recorded(request):
     """The replay's own baseline: with the four off, F17 replays to its record's flee counts (`f_grade.txt`'s `fleeing`
     reasons: strain 158, held 80, unreachable 46, pair 36, many 29, flip 21, health 14, held_inside 4, broken 1) and
-    line 145's steer."""
-    rows = f17(**only())
-    assert flee_counts(rows) == flee_counts(record()) == {"strain": 158, "held": 80, "unreachable": 46, "pair": 36,
-                                                          "many": 29, "flip": 21, "health": 14, "held_inside": 4,
-                                                          "broken": 1}
-    assert rows[144]["action"] == record()[144]["action"] and action(rows[144]) == "steer"
+    line 145's steer.
+
+    Frozen at Plan 35 Task 8 on a `git archive` of `frozen.T8_FROZEN`, the last build whose pins it held: F17's ring
+    announces melee, so its replay runs through the engagement since the deletion (every melee with work, the dispatch
+    at the corner and in contact)."""
+    frozen(request, FROZEN_T8, ('testing/artifacts/f_goals_17-20261108-172833',))
 
 
 def rig(tmp_path, zombies, on=("POINT_BLANK_FIGHT",), **frame):
@@ -129,19 +138,17 @@ def rig(tmp_path, zombies, on=("POINT_BLANK_FIGHT",), **frame):
 
 
 # ================================================================ (a) no flee at point blank
-def test_f17_line_145_s_many_steer_at_point_blank_is_the_fight_at_16101():
+def test_f17_line_145_s_many_steer_at_point_blank_is_the_fight_at_16101(request):
     """(a), F17's first wound: line 144 attacked 16101 at 0.26690008755765005 tiles; line 145's group steer (`group`
     "hold": five held within DISENGAGE_R, one standing within DANGER_R, `many_near` {n 1}) fled `many` at
     0.1848981257193573. With POINT_BLANK_FIGHT alone on line 145 is the fight pinned on 16101, logged
     `point_blank_fight` {target 16101, over "many"}, holding its send in the bite's hit reaction (`hitReaction` "Bite":
-    the engine starts no swing in one); off, the record's steer."""
-    on = f17(**only("POINT_BLANK_FIGHT"))[144]
-    why = threat(on)
-    assert on["branch"] == "threat" and on["action"] is None and why.get("flee") is None and why.get("fight") is True
-    assert why["point_blank_fight"] == {"target": 16101, "dist": 0.1848981257193573, "over": "many"}
-    assert why["target"] == 16101 and why["hitReaction"] == "Bite"
-    off = f17(**only())[144]
-    assert action(off) == "steer" and threat(off)["flee"] == "many"
+    the engine starts no swing in one); off, the record's steer.
+
+    Frozen at Plan 35 Task 8 on a `git archive` of `frozen.T8_FROZEN`, the last build whose pins it held: F17's ring
+    announces melee, so its replay runs through the engagement since the deletion (every melee with work, the dispatch
+    at the corner and in contact)."""
+    frozen(request, FROZEN_T8, ('testing/artifacts/f_goals_17-20261108-172833',))
 
 
 def near_flees(rows):
@@ -149,19 +156,17 @@ def near_flees(rows):
     return [k for k, r in enumerate(rows, 1) if threat(r).get("flee") and (r["inputs"].get("nearest") or 99.0) <= P.KEEP_R]
 
 
-def test_f17_s_flees_at_point_blank_fall_from_43_to_12():
+def test_f17_s_flees_at_point_blank_fall_from_43_to_12(request):
     """(a) over the whole of F17, open loop: with POINT_BLANK_FIGHT alone on the flee lines fall from 389 to 331 (`many`
     29 to 9, `held` 80 to 56, `pair` 36 to 27, `flip` 21 to 17, `health` 14 to 13) and those with the nearest listed
     zombie within KEEP_R from 43 to 12; each of the 12 left reads no standing target a Fight may take within KEEP_R (the
     nearest across a blocked line or marked unreachable, `unreachable` lines 461-462 and 528-533 at 0.51 to 2.26 tiles;
-    the `many` lines 269 and 276; the `health` lines 790 and 805), so none logs `point_blank_fight`."""
-    on, off = f17(**only("POINT_BLANK_FIGHT")), f17(**only())
-    assert len(near_flees(off)) == 43 and sum(flee_counts(off).values()) == 389
-    assert flee_counts(on) == {"strain": 158, "held": 56, "unreachable": 46, "pair": 27, "many": 9, "flip": 17,
-                               "health": 13, "held_inside": 4, "broken": 1}
-    left = near_flees(on)
-    assert left == [269, 276, 461, 462, 528, 529, 530, 531, 532, 533, 790, 805]
-    assert all("point_blank_fight" not in threat(on[k - 1]) for k in left)
+    the `many` lines 269 and 276; the `health` lines 790 and 805), so none logs `point_blank_fight`.
+
+    Frozen at Plan 35 Task 8 on a `git archive` of `frozen.T8_FROZEN`, the last build whose pins it held: F17's ring
+    announces melee, so its replay runs through the engagement since the deletion (every melee with work, the dispatch
+    at the corner and in contact)."""
+    frozen(request, FROZEN_T8, ('testing/artifacts/f_goals_17-20261108-172833',))
 
 
 @pytest.mark.parametrize("health, fought", [(50.0, True), (P.FLEE_HEALTH_FLOOR, True), (19.0, False)])
@@ -267,17 +272,16 @@ def test_with_one_within_keep_r_the_pair_rule_reads_nothing(tmp_path):
     assert "pair_nearest" not in f.why
 
 
-def test_f17_s_pair_holds_16232_where_the_record_traded_targets():
+def test_f17_s_pair_holds_16232_where_the_record_traded_targets(request):
     """(b) on F17's lines 752 to 766 (seq 7423-7512): the record's targets traded between 16230 (fallen from line 751,
     attacked on lines 752, 758, 762 and 766) and 16232 (standing, shoved on 760 and 764) while 16232 bit. With
     PAIR_NEAREST alone on, every threat line from 753 to 766 whose frame lists both within KEEP_R and 16232 standing
-    pins 16232 (`pair_nearest` {target 16232}), and no attack goes at 16230 on them; off, the record's trade."""
-    on, off = f17(**only("PAIR_NEAREST")), f17(**only())
-    lines = [k for k in range(753, 767) if threat(on[k - 1]).get("pair_nearest")]
-    assert lines and all(threat(on[k - 1])["pair_nearest"]["target"] == 16232 for k in lines)
-    assert not any(action(on[k - 1]) == "attack" and on[k - 1]["action"]["args"]["targetId"] == 16230 for k in lines)
-    assert [k for k in range(752, 767) if action(off[k - 1]) == "attack"
-            and off[k - 1]["action"]["args"]["targetId"] == 16230] == [752, 758, 762, 766]
+    pins 16232 (`pair_nearest` {target 16232}), and no attack goes at 16230 on them; off, the record's trade.
+
+    Frozen at Plan 35 Task 8 on a `git archive` of `frozen.T8_FROZEN`, the last build whose pins it held: F17's ring
+    announces melee, so its replay runs through the engagement since the deletion (every melee with work, the dispatch
+    at the corner and in contact)."""
+    frozen(request, FROZEN_T8, ('testing/artifacts/f_goals_17-20261108-172833',))
 
 
 # ================================================================ (d) the strain flee bounded to a real exhaustion
@@ -318,18 +322,15 @@ def test_exactly_one_standing_within_danger_r_is_never_fled_strain(tmp_path):
     assert threat_why(tmp_path / "off").get("flee") == "strain"
 
 
-def test_f17_s_158_strain_lines_fall_to_none():
+def test_f17_s_158_strain_lines_fall_to_none(request):
     """(d) on F17: every one of its 158 `strain` lines (from line 1173) read the endurance hold alone at endurance
     0.6427835822105408 to 0.7410425543785095, the moodle's first level; with STRAIN_BOUND alone on none flees `strain`,
-    each of them logging `strain_bound`; off, the 158."""
-    on, off = f17(**only("STRAIN_BOUND")), f17(**only())
-    lines = [k for k, r in enumerate(off, 1) if threat(r).get("flee") == "strain"]
-    assert len(lines) == 158 and lines[0] == 1173
-    ends = [threat(off[k - 1])["strain"]["endurance"] for k in lines]
-    assert min(ends) == 0.6427835822105408 and max(ends) == 0.7410425543785095
-    assert {threat(off[k - 1])["strain"]["kind"] for k in lines} == {"endurance"}
-    assert flee_counts(on).get("strain") is None
-    assert all("strain_bound" in threat(on[k - 1]) for k in lines if on[k - 1]["branch"] == "threat")
+    each of them logging `strain_bound`; off, the 158.
+
+    Frozen at Plan 35 Task 8 on a `git archive` of `frozen.T8_FROZEN`, the last build whose pins it held: F17's ring
+    announces melee, so its replay runs through the engagement since the deletion (every melee with work, the dispatch
+    at the corner and in contact)."""
+    frozen(request, FROZEN_T8, ('testing/artifacts/f_goals_17-20261108-172833',))
 
 
 # ================================================================ (c) one leg, then finish
@@ -447,34 +448,29 @@ def over_commit(rows):
             and rows[k - 1]["branch"] == "threat" and rows[k - 1]["sent"]]
 
 
-def test_f17_s_rips_are_no_longer_superseded_by_the_threat_branch_beyond_keep_r():
+def test_f17_s_rips_are_no_longer_superseded_by_the_threat_branch_beyond_keep_r(request):
     """(c) on F17, open loop: off, 15 rips sent (the record's: lines 283 to 422), 14 of them followed by a threat-branch
     send, its flee legs and stance legs (the record's 14 failed rips, each superseded). With CARE_COMMIT alone on the
     scratch's Dress (part 1) starts at line 277 and holds the yield: 3 rips go (lines 287, 297 and 407; the replay binds
     the first two to the record's own, whose recorded supersede the Dress answers with its stop again, the open loop's
     limit), and the threat branch sends after a committed yield only on lines 284, 380, 404, 410 and 437, each with the
     nearest listed zombie within KEEP_R (the Dress's own end), and on 159 and 789, the tick after a Dress ended done.
-    No leg is sent: on F17's lines the care's want first reads the nearest standing zombie beyond CARE_HOLD_R."""
-    on, off = f17(**only("CARE_COMMIT")), f17(**only())
-    rips_off = sends_after(off)
-    assert len(rips_off) == 15 and sum(1 for _, _, b in rips_off if b == "threat") == 14
-    assert [k for k, _, _ in sends_after(on)] == [287, 297, 407]
-    assert threat(on[276])["care_commit"] == {"key": ["wound", 1], "near": threat(on[276])["care_commit"]["near"],
-                                              "phase": "yield"} and action(on[276]) == "stop"
-    over = over_commit(on)
-    assert over == [159, 284, 380, 404, 410, 437, 789]
-    assert [k for k in over if on[k - 1]["inputs"]["nearest"] > P.KEEP_R] == [159, 789]
-    assert not any((threat(r).get("care_commit") or {}).get("phase") == "leg" for r in on)
+    No leg is sent: on F17's lines the care's want first reads the nearest standing zombie beyond CARE_HOLD_R.
+
+    Frozen at Plan 35 Task 8 on a `git archive` of `frozen.T8_FROZEN`, the last build whose pins it held: F17's ring
+    announces melee, so its replay runs through the engagement since the deletion (every melee with work, the dispatch
+    at the corner and in contact)."""
+    frozen(request, FROZEN_T8, ('testing/artifacts/f_goals_17-20261108-172833',))
 
 
 # ================================================================ the four together, on by default
-def test_f17_with_the_four_on_by_default_flees_on_203_of_its_389_lines():
+def test_f17_with_the_four_on_by_default_flees_on_203_of_its_389_lines(request):
     """F17 replayed at the defaults (the four on), open loop: its 389 flee lines fall to 203 (`strain` 158 to none,
     `many` 29 to 7, `pair` 36 to 26, `health` 14 to 13, `flip` 21 to 26, `held` 80, `unreachable` 46, `held_inside` 4
     and `broken` 1 as recorded), its flee lines with the nearest listed within KEEP_R 43 to 12, and 3 rips go (lines
-    287, 297 and 407) where the record sent 15."""
-    rows = f17()
-    assert flee_counts(rows) == {"held": 80, "unreachable": 46, "flip": 26, "pair": 26, "health": 13, "many": 7,
-                                 "held_inside": 4, "broken": 1}
-    assert sum(flee_counts(rows).values()) == 203 and len(near_flees(rows)) == 12
-    assert [k for k, _, _ in sends_after(rows)] == [287, 297, 407]
+    287, 297 and 407) where the record sent 15.
+
+    Frozen at Plan 35 Task 8 on a `git archive` of `frozen.T8_FROZEN`, the last build whose pins it held: F17's ring
+    announces melee, so its replay runs through the engagement since the deletion (every melee with work, the dispatch
+    at the corner and in contact)."""
+    frozen(request, FROZEN_T8, ('testing/artifacts/f_goals_17-20261108-172833',))

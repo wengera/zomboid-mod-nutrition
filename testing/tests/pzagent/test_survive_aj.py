@@ -28,6 +28,12 @@ from agent.base.planner import survive as S
 from agent.base.world import World
 
 from .test_policies import Rig, zombie
+from .frozen import frozen
+
+# Plan 35 Task 8: the tests below that run their archived selves (`frozen.py`)
+FROZEN_T8 = ('test_f18_with_crawler_first_off_replays_as_recorded_from_line_356',
+             'test_f18_s_crawler_is_the_target_of_a_finish_from_its_first_line_in_reach',
+             'test_f18_s_finishes_at_the_crawler_and_the_returns_from_line_357')
 
 F18 = os.path.join(R.ARTIFACTS, "f_goals_18-20261108-235005")
 CRAWLER = 13649
@@ -330,13 +336,13 @@ def at_crawler(row):
     return (a.get("args") or {}).get("targetId") == CRAWLER and a.get("type") in ("stomp", "melee")
 
 
-def test_f18_with_crawler_first_off_replays_as_recorded_from_line_356():
+def test_f18_with_crawler_first_off_replays_as_recorded_from_line_356(request):
     """The replay's own baseline: with CRAWLER_FIRST off, every line from 356 to the death (415) sends what the record
-    sent, and none after 356 sends at the crawler."""
-    off, rec = f18(False), record()
-    assert len(off) == len(rec) == 415
-    assert [off[k - 1]["action"] for k in range(356, 416)] == [rec[k - 1]["action"] for k in range(356, 416)]
-    assert not any(at_crawler(rec[k - 1]) for k in range(357, 416))
+    sent, and none after 356 sends at the crawler.
+
+    Frozen at Plan 35 Task 8 on a `git archive` of `frozen.T8_FROZEN`, the last build whose pins it held: F18's ring
+    announces melee, so its replay runs through the engagement since the deletion."""
+    frozen(request, FROZEN_T8, ('testing/artifacts/f_goals_18-20261108-235005',))
 
 
 def holds_crawler(row):
@@ -345,36 +351,27 @@ def holds_crawler(row):
     return bool(th.get("holding")) and (th.get("maneuver") or {}).get("target") == CRAWLER
 
 
-def test_f18_s_crawler_is_the_target_of_a_finish_from_its_first_line_in_reach():
+def test_f18_s_crawler_is_the_target_of_a_finish_from_its_first_line_in_reach(request):
     """With CRAWLER_FIRST on: the first line from 356 whose frame lists 13649 within CRAWLER_R and a standing zombie
     within DANGER_R beyond STAND_MIN_R is 356 itself (13649 at 0.23 tiles, 13648 standing at 4.04, the record holding
     the finish a75 at 13649); it logs `crawler_first` at 13649 and holds that finish, and so does line 357, where the
     record superseded it with a melee at 13651 (standing at 1.13, `pair_nearest`, the last line naming 13649 in the
-    record); line 358 sends the finish at 13649 again (the open-loop replay reads a75 ended by the record's a76)."""
-    on, near, rec = f18(True), _near(), record()
-    first = next(k for k in sorted(near) if near[k][0] is not None and near[k][0] <= P.CRAWLER_R
-                 and near[k][1] is not None and P.STAND_MIN_R < near[k][1][0] <= P.DANGER_R)
-    assert first == 356
-    for k in (356, 357):
-        why = threat(on[k - 1]).get("crawler_first")
-        assert why["target"] == CRAWLER and why["dist"] <= P.CRAWLER_R and holds_crawler(on[k - 1]), k
-    assert why["standing"] == 13651 and why["standing_dist"] == pytest.approx(1.1291330499090764)
-    assert rec[356]["action"]["type"] == "melee" and rec[356]["action"]["args"]["targetId"] == 13651
-    assert on[356]["action"] is None and at_crawler(on[357])
+    record); line 358 sends the finish at 13649 again (the open-loop replay reads a75 ended by the record's a76).
+
+    Frozen at Plan 35 Task 8 on a `git archive` of `frozen.T8_FROZEN`, the last build whose pins it held: F18's ring
+    announces melee, so its replay runs through the engagement since the deletion."""
+    frozen(request, FROZEN_T8, ('testing/artifacts/f_goals_18-20261108-235005',))
 
 
-def test_f18_s_finishes_at_the_crawler_and_the_returns_from_line_357():
+def test_f18_s_finishes_at_the_crawler_and_the_returns_from_line_357(request):
     """From line 357 to the death the record sent nothing at 13649; with CRAWLER_FIRST on, four finishes go at it
     (lines 358, 384, 386 and 395), and the pin returns to the standing one on the lines a standing zombie read within
     STAND_MIN_R (366, 370, 374, 398: `why` "standing") or the crawler beyond CRAWLER_R (385: `why` "beyond"). The
-    drag-down guard's lines (402 to 415) keep their own row (the flee runs ahead of the Fight)."""
-    on, rec = f18(True), record()
-    assert [k for k in range(357, 416) if at_crawler(rec[k - 1])] == []
-    assert [k for k in range(357, 416) if at_crawler(on[k - 1])] == [358, 384, 386, 395]
-    returns = {k: threat(on[k - 1])["crawler_first"]["why"] for k in range(357, 416)
-               if "returned" in (threat(on[k - 1]).get("crawler_first") or {})}
-    assert returns == {366: "standing", 370: "standing", 374: "standing", 385: "beyond", 398: "standing"}
-    assert all(threat(on[k - 1]).get("flee") == "many" for k in range(402, 416))
+    drag-down guard's lines (402 to 415) keep their own row (the flee runs ahead of the Fight).
+
+    Frozen at Plan 35 Task 8 on a `git archive` of `frozen.T8_FROZEN`, the last build whose pins it held: F18's ring
+    announces melee, so its replay runs through the engagement since the deletion."""
+    frozen(request, FROZEN_T8, ('testing/artifacts/f_goals_18-20261108-235005',))
 
 
 # ================================================================ the six goldens
