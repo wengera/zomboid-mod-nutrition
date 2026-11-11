@@ -88,8 +88,8 @@ def test_the_first_tick_with_a_player_writes_hello_the_first_sight_and_one_flush
     hello = out[0]
     caps = sorted(lua.eval("PZA.schema.actions").keys())   # every action, sleep's skill included since Plan 23 Task 8
     # and the probe's since PZA/1.11 (Plan 32 Task 1)
-    # PZA/1.8 (Plan 28 Task 7a): the mod version the hello reads (1.13 since Plan 35 Task 1)
-    assert hello["proto"] == "PZA/1" and hello["mod"] == "1.13" and hello["user"] == "admin"
+    # PZA/1.8 (Plan 28 Task 7a): the mod version the hello reads (1.14 since Plan 36 Task 1)
+    assert hello["proto"] == "PZA/1" and hello["mod"] == "1.14" and hello["user"] == "admin"
     assert hello["caps"] == caps and hello["rate"] == 10 and hello["mode"] == "append" and hello["build"] == ""
     assert sorted(list(lua.eval("PZA.skills.types").keys()) + ["rate", "scan"]) == caps
     assert [(e["event"], e["itemId"], e["fullType"]) for e in out[1:]] == [("item_added", 1000, "Base.Bread"),
@@ -574,3 +574,39 @@ def test_main_passes_the_tick_to_the_poll(lua, fs):
     """)
     run(g, 6)
     assert [lua.eval("PZA_seen[%d]" % i) for i in range(1, 7)] == [2, 3, 4, 5, 6, 7]
+
+
+# ---- PZA/1.14 (Plan 36 Task 1): the hello's room cap, me.room and the cost's roomMs on the wire ------------------------
+
+def test_with_the_footwork_file_hello_announces_room_and_every_third_frame_carries_the_ring_and_its_ms(lua, fs):
+    """PZAgent_StanceWork.lua loaded after the rest (its name's place): hello's caps gain room, and the frames, decoded
+    through pza1 (a schema-invalid line raises), carry me.room on the first and the fourth with cost.roomMs, null on
+    the two between, eight headings each with its stop in roomStop's enum."""
+    load(lua)
+    lua.execute(open(lua_file("client/PZAgent_StanceWork.lua"), encoding="utf-8").read())
+    g = lua.globals()
+    p = make_player()
+    g.getPlayer = lambda: p
+    run(g, 24)
+    out = lines(fs)
+    assert "room" in out[0]["caps"] and out[0]["mod"] == "1.14"
+    frames = [l for l in out if l["kind"] == "frame"]
+    for i in range(1, len(frames)):                                   # the delta frames merged, as the transport does
+        frames[i] = pza1.merge_delta(frames[i], frames[i - 1])
+    assert len(frames) == 4
+    rooms = [f["me"]["room"] for f in frames]
+    assert rooms[1] is None and rooms[2] is None
+    for r in (rooms[0], rooms[3]):
+        assert len(r["h"]) == 8 and all(0.0 <= v <= 3.0 for v in r["h"])
+        assert len(r["stop"]) == 8 and set(r["stop"]) <= {"wall", "hop", "door", "open"}
+    assert rooms[0]["tick"] == frames[0]["tick"] and rooms[3]["tick"] == frames[3]["tick"]
+    ms = [f["cost"]["roomMs"] for f in frames]
+    assert ms[1] == 0 and ms[2] == 0 and all(isinstance(ms[i], (int, float)) and ms[i] >= 0 for i in (0, 3))
+
+
+def test_without_the_footwork_file_hello_has_no_room_cap(lua, fs):
+    g, p = setup(lua, fs, ticks=7)
+    out = lines(fs)
+    assert "room" not in out[0]["caps"]
+    f = [l for l in out if l["kind"] == "frame"][0]
+    assert f["me"]["room"] is None and f["cost"]["roomMs"] == 0

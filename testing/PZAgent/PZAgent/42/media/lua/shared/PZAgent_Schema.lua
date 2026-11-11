@@ -18,17 +18,18 @@ PZA.schema = {
         reply = { "kind", "seq", "tick", "wallMs", "to", "body" },
     },
     groups = {
-        me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn", "loadedWidth", "sneaking", "sneakLevel", "lookAngle", "bodyAngle", "fwdAngle", "twist", "aimAngle" },
+        me = { "x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn", "loadedWidth", "sneaking", "sneakLevel", "lookAngle", "bodyAngle", "fwdAngle", "twist", "aimAngle", "room" },
         stats = { "hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature" },
         body = { "health", "bleeding", "scratched", "bitten", "parts", "armPain", "strain" },
         load = { "weight", "max", "level", "n" },
         weapon = { "type", "cond", "reach", "ammo" },
         action = { "class", "n" },
         act = { "aid", "state", "step" },
-        cost = { "tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped", "pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs", "maxPollMs", "maxStartMs" },
+        cost = { "tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped", "pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs", "maxPollMs", "maxStartMs", "roomMs" },
     },
     records = {
         wornLoc = { "loc", "bite", "scratch", "holes", "cond" },
+        room = { "h", "stop", "tick" },
         part = { "i", "h", "bleeding", "bleedingTime", "bandaged", "bandageLife", "bandageDirty", "deep", "infected", "wound" },
         strain = { "l", "r" },
         zombie = { "id", "x", "y", "dist", "hasTarget", "crawler", "health", "onFloor", "known", "state", "behind", "headX", "headY" },
@@ -129,6 +130,16 @@ local function enc_wornLoc(t)
     return "[" .. v(t.loc) .. "," .. v(t.bite) .. "," .. v(t.scratch) .. "," .. v(t.holes) .. "," .. v(t.cond) .. "]"
 end
 PZA.enc.wornLoc = enc_wornLoc
+
+-- record room: The room ring (PZA/1.14, me.room, Plan 36 Task 1).
+--   h: The clear tiles along each of the eight headings 0, 45, 90, 135, 180, 225, 270 and 315 degrees from the world's +x, in that order (atan2(y, x)'s convention, fwdAngle's in degrees: 90 is the world's +y), 0.0 to 3.0 in 0.5 steps: the farthest step from the player's position reached before the stop (a wall whose square the 1.5 step first enters reads 1.0); a point on the square already reached is clear, a point on a new square crosses the edge from the last square reached.
+--   stop: What stopped each heading, in h's order (roomStop): wall, hop, door or open (3.0 reached clear).
+--   tick: The client tick (the envelope's tick counter) the ring was read on: a ring is reused on the player's square for 3 client ticks, so it may predate its frame's tick.
+local function enc_room(t)
+    if t == nil then return "null" end
+    return "[" .. list(t.h, v) .. "," .. list(t.stop, v) .. "," .. v(t.tick) .. "]"
+end
+PZA.enc.room = enc_room
 
 -- record part: One body part below full health, bandaged or bleeding.
 --   i: The body part index.
@@ -273,9 +284,10 @@ PZA.enc.square = enc_square
 --   fwdAngle: PZA/1.11 (Plan 32 Task 1): getDirectionAngleRadians(), the forward direction's angle in radians as the update left it (the facing the engine's three writers last wrote, the facing jar read's claim 15: the movement facing, the aim facing toward the mouse, a Lua face), lookAngle's convention; dir names it to 45 degrees only. Null in logs written before PZA/1.11.
 --   twist: PZA/1.11 (Plan 32 Task 1): getTwist(), the upper body's twist off the body angle in degrees (the facing jar read's claim 15). Null in logs written before PZA/1.11.
 --   aimAngle: PZA/1.11 (Plan 32 Task 1): the direction in radians of getAimVector(v), the vector the aimed update writes as the forward direction (the mouse's, the facing jar read's claim 7), lookAngle's convention; null when the vector reads zero length (no aim key counts, the force-aim included) and in logs written before PZA/1.11.
+--   room: PZA/1.14 (Plan 36 Task 1): the room ring, the clear tiles around the player along eight headings (PZAgent_StanceWork.lua's one probe read, K.workRoom, which the footwork's heading turns also read), on the first frame and every third frame after it; null on the frames between (a reader keeps the last ring it saw, its tick naming the client tick it was read on), while the build carries no ring (no room cap in hello) and in logs written before PZA/1.14.
 local function enc_me(t)
     if t == nil then return "null" end
-    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "," .. v(t.zombiesSeen) .. "," .. v(t.zombiesListed) .. "," .. v(t.hour) .. "," .. v(t.attackers) .. "," .. v(t.hitReaction) .. "," .. v(t.dragDown) .. "," .. v(t.aiming) .. "," .. v(t.forceAim) .. "," .. list(t.worn, enc_wornLoc) .. "," .. v(t.loadedWidth) .. "," .. v(t.sneaking) .. "," .. v(t.sneakLevel) .. "," .. v(t.lookAngle) .. "," .. v(t.bodyAngle) .. "," .. v(t.fwdAngle) .. "," .. v(t.twist) .. "," .. v(t.aimAngle) .. "]"
+    return "[" .. v(t.x) .. "," .. v(t.y) .. "," .. v(t.z) .. "," .. v(t.dir) .. "," .. v(t.pace) .. "," .. v(t.moving) .. "," .. v(t.running) .. "," .. v(t.sprinting) .. "," .. v(t.forceRun) .. "," .. v(t.forceSprint) .. "," .. v(t.autoWalk) .. "," .. v(t.zombiesSeen) .. "," .. v(t.zombiesListed) .. "," .. v(t.hour) .. "," .. v(t.attackers) .. "," .. v(t.hitReaction) .. "," .. v(t.dragDown) .. "," .. v(t.aiming) .. "," .. v(t.forceAim) .. "," .. list(t.worn, enc_wornLoc) .. "," .. v(t.loadedWidth) .. "," .. v(t.sneaking) .. "," .. v(t.sneakLevel) .. "," .. v(t.lookAngle) .. "," .. v(t.bodyAngle) .. "," .. v(t.fwdAngle) .. "," .. v(t.twist) .. "," .. v(t.aimAngle) .. "," .. enc_room(t.room) .. "]"
 end
 PZA.enc.me = enc_me
 
@@ -367,9 +379,10 @@ PZA.enc.act = enc_act
 --   maxLinkMs: The worst flush since the last frame, in ms.
 --   maxPollMs: The worst command poll since the last frame, in ms.
 --   maxStartMs: The worst command start since the last frame, in ms.
+--   roomMs: PZA/1.14 (Plan 36 Task 1): this frame's me.room read in ms (a single read on the 1 ms clock; 0 for a ring reused within its 3 client ticks on the player's square and on a frame carrying no ring, so a reader of the ring's cost takes the frames whose me.room is set); null in logs written before PZA/1.14.
 local function enc_cost(t)
     if t == nil then return "null" end
-    return "[" .. v(t.tickMs) .. "," .. v(t.actMs) .. "," .. v(t.senseMs) .. "," .. v(t.mapMs) .. "," .. v(t.linkMs) .. "," .. v(t.tickMaxMs) .. "," .. v(t.over5) .. "," .. v(t.dropped) .. "," .. v(t.pollMs) .. "," .. v(t.startMs) .. "," .. v(t.maxActMs) .. "," .. v(t.maxSenseMs) .. "," .. v(t.maxMapMs) .. "," .. v(t.maxLinkMs) .. "," .. v(t.maxPollMs) .. "," .. v(t.maxStartMs) .. "]"
+    return "[" .. v(t.tickMs) .. "," .. v(t.actMs) .. "," .. v(t.senseMs) .. "," .. v(t.mapMs) .. "," .. v(t.linkMs) .. "," .. v(t.tickMaxMs) .. "," .. v(t.over5) .. "," .. v(t.dropped) .. "," .. v(t.pollMs) .. "," .. v(t.startMs) .. "," .. v(t.maxActMs) .. "," .. v(t.maxSenseMs) .. "," .. v(t.maxMapMs) .. "," .. v(t.maxLinkMs) .. "," .. v(t.maxPollMs) .. "," .. v(t.maxStartMs) .. "," .. v(t.roomMs) .. "]"
 end
 PZA.enc.cost = enc_cost
 

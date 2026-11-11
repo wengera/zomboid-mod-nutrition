@@ -20,7 +20,9 @@
 -- tick's L.poll (its ack write included), startMs this tick's command start (Main's scan or rate answer, else K.start),
 -- and the per-phase maxima since the last frame (X4 fix pass, review I8: a burst on a tick that writes no frame is
 -- attributed): maxPollMs, maxStartMs, maxActMs, maxSenseMs and maxMapMs over every tick since the last frame's emit,
--- this one included, and maxLinkMs over the flushes since it (the last frame's own flush included, this tick's not).
+-- this one included, and maxLinkMs over the flushes since it (the last frame's own flush included, this tick's not);
+-- roomMs the frame's me.room read (PZA/1.14, Plan 36 Task 1: Sense's S.roomMs; 0 for a ring reused and on a frame
+-- carrying none, so a reader takes the frames whose me.room is set).
 -- Main loads before Map, Motor, Sense, Skills and SkillsWorld (client files load by name), so it reaches them only at
 -- tick time.
 -- Everything sits inside one pcall; a raise counts in PZA.errors and, once the link is initialised, reports as a
@@ -60,10 +62,12 @@ local function gameMin()
     return (ok and type(m) == "number") and m or 0
 end
 
--- hello's caps: every type this build accepts (K.types: the skills and PZA/1.9's direct sneak), scan and rate, sorted
+-- hello's caps: every type this build accepts (K.types: the skills and PZA/1.9's direct sneak), scan and rate, and
+-- PZA/1.14's frame capability room (the frames carry me.room: the footwork file's ring is loaded), sorted
 local function caps()
     local out = { "rate", "scan" }
     for k in pairs(PZA.skills.types) do out[#out + 1] = k end
+    if PZA.skills.workRoomNow ~= nil then out[#out + 1] = "room" end
     table.sort(out)
     return out
 end
@@ -233,7 +237,7 @@ local function body()
         cur.cost = { tickMs = M.lastBodyMs, actMs = actMs, senseMs = senseMs, mapMs = mapMs, linkMs = M.lastLinkMs,
                      tickMaxMs = M.maxMs, over5 = M.over5, dropped = L.dropped or 0, pollMs = pollMs, startMs = startMs,
                      maxActMs = mx.act, maxSenseMs = mx.sense, maxMapMs = mx.map, maxLinkMs = mx.link,
-                     maxPollMs = mx.poll, maxStartMs = mx.start }
+                     maxPollMs = mx.poll, maxStartMs = mx.start, roomMs = S.roomMs or 0 }
         M.maxMs, M.over5 = 0, 0
         for _, ph in ipairs(M.PHASES) do mx[ph] = 0 end
         PZA.emitFrame(cur)

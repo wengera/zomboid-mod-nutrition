@@ -32,28 +32,38 @@ def load_work(lua):
     lua.execute(open(lua_file("client/PZAgent_StanceWork.lua"), encoding="utf-8").read())
 
 
-def make_square(x, y, solid=False, trans=False, blocked=(), hops=()):
+def make_square(x, y, solid=False, trans=False, blocked=(), hops=(), doors=None, objs=None):
     """A square of the open grid: isSolid, isSolidTrans, isBlockedTo(other) true for an other whose (x, y) is in
-    blocked, has(flag) true for a flag named in hops."""
+    blocked, has(flag) true for a flag named in hops; with doors (a set of (x, y)), getDoorTo(other) a door for an
+    other in it and None otherwise (absent without doors, as a build lacking the member); with objs, getObjects the
+    list of them (Plan 36 Task 1: the room ring's door reads)."""
     sq = J(x=x, y=y)
     sq.isSolid = lambda s: solid
     sq.isSolidTrans = lambda s: trans
     sq.isBlockedTo = lambda s, o: (o.x, o.y) in blocked
     sq.has = lambda s, f: f in hops
+    if doors is not None:
+        sq.getDoorTo = lambda s, o: J(_cls="IsoDoor") if (o.x, o.y) in doors else None
+    if objs is not None:
+        sq.getObjects = lambda s: J(size=lambda s2: len(objs), get=lambda s2, i: objs[i])
     return sq
 
 
-def grid(lua, solid=(), blocked=(), hops=None, missing=()):
+def grid(lua, solid=(), blocked=(), hops=None, missing=(), edges=None, doors=None, objs=None):
     """The cell's squares x 0..20, y 10..30 at z 0, open but those named: solid squares, the player's square (10, 20)
-    blocked to the squares in blocked, hops {(x, y): (flag, ...)}, and the squares in missing absent."""
-    hops = hops or {}
+    blocked to the squares in blocked, hops {(x, y): (flag, ...)}, and the squares in missing absent; Plan 36 Task 1:
+    edges {(x, y): {(x, y), ...}} more squares' blocked neighbours, doors {(x, y): {(x, y), ...}} each square's
+    getDoorTo answers (every square takes the member once doors is given), objs {(x, y): [object, ...]}."""
+    hops, edges, objs = hops or {}, edges or {}, objs or {}
     sq = {}
     for x in range(0, 21):
         for y in range(10, 31):
             if (x, y) in missing:
                 continue
-            sq[(x, y, 0)] = make_square(x, y, solid=(x, y) in solid, blocked=blocked if (x, y) == (10, 20) else (),
-                                        hops=hops.get((x, y), ()))
+            blk = set(blocked if (x, y) == (10, 20) else ()) | set(edges.get((x, y), ()))
+            sq[(x, y, 0)] = make_square(x, y, solid=(x, y) in solid, blocked=blk, hops=hops.get((x, y), ()),
+                                        doors=None if doors is None else set(doors.get((x, y), ())),
+                                        objs=objs.get((x, y)))
     cell = make_cell(squares=sq)
     lua.globals()._cell = cell
     return cell
@@ -296,6 +306,199 @@ def test_the_heading_is_re_chosen_every_work_ticks(lua, fs):
     run(lua, p, w, 2)
     assert len(reads) > first
     assert lua.eval("PZA.skills.WORK_TICKS") == 6
+
+
+# ---- Plan 36 Task 1: the room ring (K.workClearAlong, K.workRoom; me.room, PZA/1.14) --------------------------------
+
+def standing(x, y):
+    """A player standing at (x, y) on floor 0 (the ring's reads: getX, getY, getZ)."""
+    return J(getX=lambda s: x, getY=lambda s: y, getZ=lambda s: 0)
+
+
+def clear_along(lua, p, heading, max_tiles=3.0):
+    return tuple(lua.eval("PZA.skills.workClearAlong")(p, heading, max_tiles))
+
+
+def ring_of(lua, p):
+    r = lua.eval("PZA.skills.workRoom")(p)
+    return list(r.h.values()), list(r.stop.values()), r
+
+
+def ring_world(lua, **kw):
+    """The footwork loaded (world()), the grid built by the test."""
+    return world(lua, squares=False, **kw)
+
+
+def test_a_wall_whose_square_the_1_5_step_enters_reads_1_0_clear_and_wall(lua, fs):
+    """The player at (10.6, 20.5), the square (12, 20) solid: the steps east reach 11.1, 11.6 (square 11) and 12.1
+    (square 12) at 1.5: 1.0 clear, wall."""
+    ring_world(lua)
+    grid(lua, solid={(12, 20)})
+    assert clear_along(lua, standing(10.6, 20.5), 0) == (1.0, "wall")
+
+
+def test_a_wall_on_the_player_s_next_square_reads_0_and_an_unreadable_square_a_wall(lua, fs):
+    ring_world(lua)
+    grid(lua, solid={(11, 20)}, missing={(10, 22)})
+    p = standing(10.6, 20.5)
+    assert clear_along(lua, p, 0) == (0.0, "wall")
+    assert clear_along(lua, p, 90) == (1.0, "wall")              # 21.0, 21.5 (21), 22.0 (22, absent) at 1.5
+
+
+def test_open_to_3_0_reads_3_0_and_open(lua, fs):
+    ring_world(lua)
+    grid(lua)
+    p = standing(10.5, 20.5)
+    for heading in (0, 45, 90, 135, 180, 225, 270, 315):
+        assert clear_along(lua, p, heading) == (3.0, "open")
+    assert clear_along(lua, p, 0, 1.0) == (1.0, "open")
+
+
+@pytest.mark.parametrize("hop, at, heading, want", [
+    ({(12, 20): ("HoppableW",)}, (10.6, 20.5), 0, (1.0, "hop")),      # the x edge east: the eastern square's flag
+    ({(11, 20): ("HoppableW",)}, (11.4, 20.5), 180, (0.0, "hop")),    # going west: the square left is the eastern one
+    ({(10, 22): ("HoppableN",)}, (10.5, 20.6), 90, (1.0, "hop")),     # the y edge south: the southern square's flag
+    ({(12, 20): ("HoppableN",)}, (10.6, 20.5), 0, (3.0, "open")),     # the falsifier: a north edge never crossed east
+])
+def test_a_hoppable_crossed_edge_reads_hop(lua, fs, hop, at, heading, want):
+    ring_world(lua)
+    grid(lua, hops=hop)
+    assert clear_along(lua, standing(*at), heading) == want
+
+
+def test_a_blocked_edge_with_a_door_reads_door_and_without_one_wall(lua, fs):
+    """(11, 20) blocked to (12, 20): getDoorTo answering a door there reads door at 1.0; answering None, wall."""
+    ring_world(lua)
+    grid(lua, edges={(11, 20): {(12, 20)}}, doors={(11, 20): {(12, 20)}})
+    assert clear_along(lua, standing(10.6, 20.5), 0) == (1.0, "door")
+    grid(lua, edges={(11, 20): {(12, 20)}}, doors={})
+    assert clear_along(lua, standing(10.6, 20.5), 0) == (1.0, "wall")
+
+
+def test_without_get_door_to_a_door_object_on_either_square_reads_door(lua, fs):
+    """A build lacking getDoorTo: an IsoDoor among the entered square's objects reads door; a container, wall."""
+    ring_world(lua)
+    grid(lua, edges={(11, 20): {(12, 20)}}, objs={(12, 20): [J(_cls="IsoDoor")]})
+    assert clear_along(lua, standing(10.6, 20.5), 0) == (1.0, "door")
+    grid(lua, edges={(11, 20): {(12, 20)}}, objs={(12, 20): [J(_cls="IsoObject")]})
+    assert clear_along(lua, standing(10.6, 20.5), 0) == (1.0, "wall")
+
+
+def test_an_open_door_is_crossed_clear(lua, fs):
+    """A door that does not block (isBlockedTo false, getDoorTo a door): no stop."""
+    ring_world(lua)
+    grid(lua, doors={(11, 20): {(12, 20)}})
+    assert clear_along(lua, standing(10.6, 20.5), 0) == (3.0, "open")
+
+
+def test_the_ring_reads_the_eight_headings_in_order_from_the_world_s_x(lua, fs):
+    """The ring's h[i] and stop[i] are K.workClearAlong's at K.WORK_ROOM_HEADINGS[i], 0, 45, ..., 315 degrees from
+    the world's +x (atan2(y, x), me.fwdAngle's convention: 90 is +y): east a wall reading 1.0, south a hop (the step at
+    2.5 crossing into (10, 23)) reading 2.0, west a door (the step at 1.0 crossing into (9, 20)) reading 0.5, north
+    open."""
+    ring_world(lua)
+    grid(lua, solid={(12, 20)}, hops={(10, 23): ("HoppableN",)}, edges={(10, 20): {(9, 20)}},
+         doors={(10, 20): {(9, 20)}})
+    p = standing(10.6, 20.5)
+    assert list(lua.eval("PZA.skills.WORK_ROOM_HEADINGS").values()) == [0, 45, 90, 135, 180, 225, 270, 315]
+    h, stop, r = ring_of(lua, p)
+    assert [(h[i], stop[i]) for i in range(8)] == [clear_along(lua, p, 45 * i) for i in range(8)]
+    assert (h[0], stop[0]) == (1.0, "wall") and (h[2], stop[2]) == (2.0, "hop") and (h[4], stop[4]) == (0.5, "door")
+    assert (h[6], stop[6]) == (3.0, "open")
+    assert (r.sx, r.sy, r.z) == (10, 20, 0) and lua.eval("PZA.skills.room.stop[5]") == "door"
+
+
+@pytest.mark.parametrize("vec, index", [((1.0, 0.0), 1), ((0.0, 1.0), 3), ((-1.0, 0.0), 5), ((0.0, -1.0), 7),
+                                        ((0.92, 0.38), 1), ((0.92, -0.38), 1), ((0.7, 0.72), 2), ((-0.7, -0.72), 6)])
+def test_a_heading_maps_to_the_nearest_ring_heading(lua, fs, vec, index):
+    ring_world(lua)
+    assert lua.eval("PZA.skills.workRoomIndex")(*vec) == index
+
+
+def test_the_footwork_turns_off_a_heading_the_ring_reads_short(lua, fs):
+    """The target east inside the band, the ring west reading 0.0 (a wall on (9, 20), the step at 0.5 from (10.4,
+    20.5) entering it): the sum's heading west is not taken (under K.WORK_ROOM_NEED), the step turned; with the wall at
+    (8, 20) the ring reads 1.0 and the step goes west (turn 0)."""
+    p, z, w = ring_world(lua, px=10.4, py=20.5, zx=11.35, zy=20.5, **LOOK_OFF)
+    grid(lua, solid={(9, 20)})
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p)
+    run(lua, p, w, 2)
+    assert work_of(lua, "turn") != 0 and work_of(lua, "clear") is True
+    p, z, w = ring_world(lua, px=10.4, py=20.5, zx=11.35, zy=20.5, **LOOK_OFF)
+    grid(lua, solid={(8, 20)})
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p)
+    run(lua, p, w, 2)
+    assert work_of(lua, "turn") == 0
+
+
+def test_the_melee_s_ring_is_read_again_on_a_new_square_or_after_work_room_ticks(lua, fs):
+    """The ring read at the first choose (K.roomReads 1); a choose forced on the same square one tick on reuses it; a
+    choose on another square reads it again; a choose at K.WORK_ROOM_TICKS of the melee's ticks since the last read
+    reads it again, one tick fewer reuses it."""
+    p, z, w = ring_world(lua, px=10.5, py=20.5, zx=11.45, zy=20.5, **LOOK_OFF)
+    grid(lua)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p)
+    run(lua, p, w, 1)
+    assert lua.eval("PZA.skills.roomReads") == 1 and lua.eval("PZA.skills.WORK_ROOM_TICKS") == 3
+    force = "PZA.skills.cur.st.work.sinceChoose = PZA.skills.WORK_TICKS"
+    lua.execute(force)
+    run(lua, p, w, 1)
+    assert lua.eval("PZA.skills.cur.st.work.sinceChoose") == 0 and lua.eval("PZA.skills.roomReads") == 1
+    w["px"], w["zx"] = 9.6, 10.55                                      # the player on square 9, the gap kept
+    records(lua, [target_rec(w)], {7: z})
+    lua.execute(force)
+    run(lua, p, w, 1)
+    assert lua.eval("PZA.skills.cur.st.work.sinceChoose") == 0 and lua.eval("PZA.skills.roomReads") == 2
+    assert lua.eval("PZA.skills.cur.st.work.room.sx") == 9
+    lua.execute(force + "; PZA.skills.cur.st.work.roomTicks = 1")    # 2 at the choose: reused
+    run(lua, p, w, 1)
+    assert lua.eval("PZA.skills.cur.st.work.sinceChoose") == 0 and lua.eval("PZA.skills.roomReads") == 2
+    lua.execute(force + "; PZA.skills.cur.st.work.roomTicks = 2")    # 3 at the choose: read again
+    run(lua, p, w, 1)
+    assert lua.eval("PZA.skills.cur.st.work.sinceChoose") == 0 and lua.eval("PZA.skills.roomReads") == 3
+
+
+def test_the_frame_s_ring_reuses_the_last_within_work_room_ticks_on_its_square(lua, fs):
+    """K.workRoomNow: the last ring (K.room) on the same square within K.WORK_ROOM_TICKS client ticks (PZA.tick), else a
+    new read stamped with the tick."""
+    ring_world(lua)
+    grid(lua)
+    p = standing(10.5, 20.5)
+    lua.execute("PZA.tick = 100")
+    now = lua.eval("PZA.skills.workRoomNow")
+    r = now(p)
+    assert r.tick == 100 and lua.eval("PZA.skills.roomReads") == 1
+    lua.execute("PZA.tick = 102")
+    assert now(p).tick == 100 and lua.eval("PZA.skills.roomReads") == 1
+    lua.execute("PZA.tick = 103")
+    assert now(p).tick == 103 and lua.eval("PZA.skills.roomReads") == 2
+    assert now(standing(11.5, 20.5)).sx == 11 and lua.eval("PZA.skills.roomReads") == 3
+
+
+def test_the_ring_on_the_open_grid_costs_its_square_and_edge_reads(lua, fs):
+    """The ring's own cost with the position passed (the choose's call), the player at (10.5, 20.5) on the open grid:
+    getGridSquare once a square met (the player's own included), isSolid and isSolidTrans once a square entered, one
+    has per crossed axis and isBlockedTo per edge crossed; each counted, the total pinned."""
+    ring_world(lua)
+    grid(lua)
+    log = []
+    cell = lua.globals()._cell
+    inner = cell.getGridSquare
+    cell.getGridSquare = lambda s, x, y, zz: (lambda sq: None if sq is None else Rec(sq, log, "sq"))(inner(s, x, y, zz))
+    lua.globals()._cell = Rec(cell, log, "cell")
+    lua.eval("PZA.skills.workRoom")(Rec(standing(10.5, 20.5), log, "p"), 10.5, 20.5, 0)
+    count = {}
+    for _, m in log:
+        count[m] = count.get(m, 0) + 1
+    # each cardinal enters 3 squares across 3 edges, one axis each (12 squares, 12 edges, 12 has); each diagonal's
+    # steps (0.3536 a step on each axis from 10.5) cross both axes at once at 1.0 and 2.0, entering 2 squares across 2
+    # edges with two has each (8 squares, 8 edges, 16 has); the player's square read once (getGridSquare only): 21
+    # squares, 20 entered, 20 edges
+    assert count == {"getGridSquare": 21, "isSolid": 20, "isSolidTrans": 20, "has": 28, "isBlockedTo": 20}, count
+    assert len(log) == 109
 
 
 # ---- the crawler as a target ---------------------------------------------------------------------------------------------
@@ -583,8 +786,8 @@ def test_the_generated_melee_carries_the_work_fields_and_leaves_them_off_the_wir
         3.5, 1.2, 0.4, 0.0, 1.0, 40.0, True)
 
 
-def test_the_core_announces_1_13(lua, fs):
-    assert lua.eval("PZA.VERSION") == "1.13"
+def test_the_core_announces_1_14(lua, fs):
+    assert lua.eval("PZA.VERSION") == "1.14"   # Plan 36 Task 1: PZA/1.14, me.room
 
 
 # ---- the re-send ------------------------------------------------------------------------------------------------------
@@ -673,6 +876,9 @@ def test_a_stepping_tick_at_a_re_choose_stays_under_40_java_calls(lua, fs):
     records(lua, recs, objs)
     gow(lua, p)
     run(lua, p, w, 6)                                                 # the 7th tick re-chooses (the 1st chose)
+    step_world(w, p)                                                  # the counted tick's update
+    lua.globals()._p = p                                              # Plan 36 Task 1: the ring read fresh on the
+    lua.execute("local w = PZA.skills.cur.st.work; w.room, w.roomTicks = PZA.skills.workRoom(_p), 0")   # tick's square
     log = []
     bd = p.getBodyDamage(p)
     p.getBodyDamage = lambda s: Rec(bd, log, "bd")
@@ -685,17 +891,17 @@ def test_a_stepping_tick_at_a_re_choose_stays_under_40_java_calls(lua, fs):
     inner = cell.getGridSquare
     cell.getGridSquare = lambda s, x, y, zz: (lambda sq: None if sq is None else Rec(sq, log, "sq"))(inner(s, x, y, zz))
     lua.globals()._cell = Rec(cell, log, "cell")
-    step_world(w, p)
     lua.globals()._clock["ms"] += TICK_MS
     tick(lua, Rec(p, log, "p"))
     assert lua.eval("PZA.skills.cur.st.step") == "work" and lua.eval("PZA.skills.cur.st.work.sinceChoose") == 0
-    # 31: the melee's face tick (the dead check 2, isDead, the two positions 4, the hit read, isOnFloor, isKnockedDown
+    # 25: the melee's face tick (the dead check 2, isDead, the two positions 4, the hit read, isOnFloor, isKnockedDown
     # within the reach, the snap, the look: 12), the stance re-held for the step (nullifyAiming at the meet's release,
-    # setForceAim at the step: 2), the re-choose (getZ, the player's and one probe square 2, the five others' positions
-    # 10, the square's isSolid, isSolidTrans, isBlockedTo and its crossed hop flag 4); none of the five is within the
-    # near read's candidates (the reach + K.MELEE_CROWD_SLACK), the floor off (0); fix 2: the nearest's getRealState
-    # (the attack read, 1): 32
-    assert len(log) == 32 and len(log) < 40, sorted(log)
+    # setForceAim at the step: 2), the re-choose (getZ, the five others' positions 10; Plan 36 Task 1: the squares are
+    # the room ring's, fresh here, read at a choose when due and counted in its own test); none of the five is within
+    # the near read's candidates (the reach + K.MELEE_CROWD_SLACK), the floor off (0); fix 2: the nearest's
+    # getRealState (the attack read, 1): 26
+    assert len(log) == 26 and len(log) < 40, sorted(log)
+    assert lua.eval("PZA.skills.roomReads") == 2                     # the pre-read ring reused at the choose
 
 
 # ---- fix 1: the live shape (x_trial-ladder-20261110-081250 and -081935: the step never went) -------------------------

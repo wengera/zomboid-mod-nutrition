@@ -22,6 +22,10 @@ It reads what the transport gives: keyed full dicts, every delta frame already m
   `scan_dropped`
   (ruling S-32: a scan job the Lua dropped after its one act line, done) adds the scan's aid to `scans_dropped`, which
   `to_json` does not carry (the planner reads it; the line itself is in `events`).
+- `me.room` (PZA/1.14, Plan 36 Task 1): the room ring the frames carry every third frame (`{h, stop, tick}`: the
+  clear tiles along the eight headings 0, 45, ..., 315 degrees from the world's +x in atan2(y, x)'s convention, each
+  heading's stop wall, hop, door or open, the client tick it was read on), kept as the last one carried (`room()`,
+  `room_open()`; a hello clears it; not in `to_json`).
 - `act`: `acts[str(aid)]` the last act line for the aid. `hello`: the last hello line, and a new session: the Lua
   restarts its `scanId` and the server's `damage.watch` record numbers restart with the server, so a hello resets the
   newest scanId seen and `damage_seen_i` (else a relaunched client's scans would all be dropped as older).
@@ -215,6 +219,8 @@ MET_AVOID_DEG = 45.0  # degrees either side of the window's bearing the edge cho
 MET_SHIFTS = 3       # met_near's shifts of a cell's centre to its window's centroid (Task 3 fix 1, I1: a group
                      # straddling the cells' lines is found whole)
 COMPASS = ("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+ROOM_HEADINGS = 8            # the room ring's headings (PZA/1.14, PZAgent_StanceWork.lua's K.WORK_ROOM_HEADINGS)
+ROOM_STEP_DEG = 45.0         # degrees between them, from the world's +x (K.WORK_ROOM_HEADINGS' 0, 45, ..., 315)
 GROUPS = ("me", "stats", "body", "load", "weapon", "action", "act", "cost")
 DEQUE_N = 500
 
@@ -313,6 +319,8 @@ class World:
         self.worn_n = 0              # the frame_n of the last frame that carried me.worn
         self.loaded_width = None     # me.loadedWidth as the last frame that carried one left it (PZA/1.7: the Lua sends
                                      # it on the first frame and when it changes; None until one does, never serialised)
+        self.room_ring = None        # me.room as the last frame that carried one left it (PZA/1.14: every third frame;
+                                     # None until one does and after a hello, never serialised)
         self.act_n = {}              # str(aid) -> the frame_n when its act line was applied
         self.frame_n = 0             # the frames applied (a frame-newer test's counter, never serialised)
         self.killed = set()          # the zombie ids a Fight read dead off its own attack or aim (P24-Q: `kills`)
@@ -355,6 +363,7 @@ class World:
 
     def _hello(self, line):
         self.hello = line
+        self.room_ring = None
         self._sighting, self.first_sight = True, set()
         self._newest_scan = None
         self.damage_seen_i = set()
@@ -382,6 +391,9 @@ class World:
         width = (line.get("me") or {}).get("loadedWidth")
         if isinstance(width, int) and not isinstance(width, bool) and width > 0:
             self.loaded_width = width   # null means unchanged (PZA/1.7), as for me.worn
+        room = (line.get("me") or {}).get("room")
+        if isinstance(room, dict) and isinstance(room.get("h"), (list, tuple)) and len(room["h"]) == ROOM_HEADINGS:
+            self.room_ring = room       # null on the frames between (PZA/1.14: every third frame carries one)
         for z in line.get("zombies") or ():
             self.zombies[z.get("id")] = dict({k: v for k, v in z.items() if k != "id"}, seenWallMs=wall)
         ttl = ZOMBIE_TTL_S * 1000
@@ -515,6 +527,24 @@ class World:
         """Whether the last hello's `caps` announce `action_type`: the planner sends a PZA/1.5 skill (aim, climb,
         bandage, rip, wash, fill) only to a build that takes it (ruling P24-G); no hello, no caps."""
         return action_type in ((self.hello or {}).get("caps") or ())
+
+    def room(self):
+        """The room ring (PZA/1.14, Plan 36 Task 1) as the last frame that carried one left it: `{"h": [8 tiles clear],
+        "stop": [8 of "wall", "hop", "door", "open"], "tick": the client tick it was read on}`, heading i at
+        `ROOM_STEP_DEG * i` degrees from the world's +x in atan2(y, x)'s convention (the frame's `fwdAngle` in degrees:
+        90 is the world's +y; not `bearing_deg`'s compass); None before the first ring, after a hello, and on a build
+        carrying none (no `room` in its caps: `can("room")`)."""
+        return self.room_ring
+
+    def room_open(self, heading_deg):
+        """The clear tiles (0.0 to 3.0) along the ring's heading nearest `heading_deg`, degrees from the world's +x in
+        atan2(y, x)'s convention (`math.degrees(math.atan2(dy, dx))` of an offset; any real, wrapped), a tie halfway
+        between two headings taken by the larger angle (the Lua's `K.workRoomIndex`); None with no ring."""
+        r = self.room_ring
+        if r is None:
+            return None
+        i = int(math.floor((heading_deg % 360.0 + ROOM_STEP_DEG / 2.0) / ROOM_STEP_DEG)) % ROOM_HEADINGS
+        return r["h"][i]
 
     # -- the server's side ----------------------------------------------------------------------------------------
     def merge_server(self, stats, wall_ms):

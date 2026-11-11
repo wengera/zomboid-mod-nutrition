@@ -24,7 +24,8 @@ DEFAULT_FRAME = {
            "dragDown": False, "aiming": False, "forceAim": False, "worn": None, "loadedWidth": None,
            "sneaking": False, "sneakLevel": 0,                                 # PZA/1.9: upright, Sneak 0
            "lookAngle": 0.0, "bodyAngle": 0.0,                                 # PZA/1.10: facing +x
-           "fwdAngle": None, "twist": None, "aimAngle": None},                # PZA/1.11: the ring unread
+           "fwdAngle": None, "twist": None, "aimAngle": None,                 # PZA/1.11: the ring unread
+           "room": None},                                                      # PZA/1.14: no room ring
     "stats": {"hunger": 0.1, "thirst": 0.1, "fatigue": 0.05, "endurance": 1.0, "panic": 0.0, "pain": 0.0,
               "sickness": 0.0, "wetness": 0.0, "temperature": 37.0},
     "body": {"health": 100.0, "bleeding": 0, "scratched": 0, "bitten": 0, "parts": [], "armPain": None,
@@ -36,7 +37,8 @@ DEFAULT_FRAME = {
     "zombies": [],
     "cost": {"tickMs": 0.2, "actMs": 0.05, "senseMs": 0.1, "mapMs": 0.0, "linkMs": 0.05, "tickMaxMs": 0.8,
              "over5": 0, "dropped": 0, "pollMs": 0.0, "startMs": 0.0, "maxActMs": 0.05, "maxSenseMs": 0.1,
-             "maxMapMs": 0.0, "maxLinkMs": 0.05, "maxPollMs": 0.0, "maxStartMs": 0.0},
+             "maxMapMs": 0.0, "maxLinkMs": 0.05, "maxPollMs": 0.0, "maxStartMs": 0.0,
+             "roomMs": 0.0},                                                    # PZA/1.14: no ring read
 }
 
 DEFAULT_SQUARE = {"x": 100, "y": 200, "z": 0, "solid": False, "solidTrans": False, "light": 1.0, "room": None,

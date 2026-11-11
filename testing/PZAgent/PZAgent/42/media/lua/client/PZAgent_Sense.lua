@@ -1103,3 +1103,34 @@ function S.frame(p)
     guarded("zombies:head", zombiesHead, f)
     return f
 end
+
+-- PZA/1.14 (Plan 36 Task 1, the spec `2026-11-11-plan-36-the-engagement-design.md` section 3.1): me.room, the room
+-- ring {h, stop, tick} on the first frame and every S.ROOM_EVERY-th after it: h the clear tiles along the eight
+-- headings 0, 45, ..., 315 degrees from the world's +x (atan2(y, x), fwdAngle's convention in degrees), stop each
+-- one's kind (wall, hop, door or open), tick the client tick the ring was read on. The ring is PZAgent_StanceWork.lua's
+-- (K.workRoomNow: the last ring, the footwork's included, reused on the player's square within K.WORK_ROOM_TICKS
+-- client ticks, else read now), so the frame and the footwork read the one probe read; absent while that file is not
+-- loaded. S.roomMs is the read's time on the 1 ms clock (PZA.now), Main's cost leaf's roomMs (nil on a frame carrying
+-- no ring, which Main writes 0). Under its own guard: a raise costs me.room alone (raise:me:room). Cost a ring frame: the ring's (its block's
+-- header), none when reused but getX, getY and getZ.
+S.ROOM_EVERY = 3
+S.roomN = 0
+S.roomMs = nil
+
+local function meRoom(p, f)
+    local K = PZA.skills
+    if K == nil or K.workRoomNow == nil then return end
+    local t0 = PZA.now()
+    local r = K.workRoomNow(p)
+    S.roomMs = PZA.now() - t0
+    if r ~= nil then f.me.room = { h = r.h, stop = r.stop, tick = r.tick } end
+end
+
+local frameRoomBase = S.frame
+function S.frame(p)
+    local f = frameRoomBase(p)
+    S.roomMs = nil
+    S.roomN = S.roomN + 1
+    if f.me ~= nil and (S.roomN - 1) % S.ROOM_EVERY == 0 then guarded("me:room", meRoom, p, f) end
+    return f
+end

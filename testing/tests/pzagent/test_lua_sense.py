@@ -86,6 +86,7 @@ def test_the_frames_groups_have_exactly_the_schemas_keys(lua):
         if grp == "me":
             want.remove("worn")                                  # PZA/1.6: elided on a frame whose list is unchanged
             want.remove("loadedWidth")                           # PZA/1.7: carried once read and changed, the fake cell has no chunk map
+            want.remove("room")                                  # PZA/1.14: the footwork file's ring, not loaded here
         if grp == "act":
             want.remove("step")                                  # PZA/1.8: the melee's step, nil for another skill
         assert sorted(f[grp].keys()) == sorted(want), grp
@@ -1401,3 +1402,70 @@ def test_without_vector2_aim_angle_is_nil_and_named_missing(lua):
     lua.globals().Vector2 = None
     me = frame(lua, make_player())["me"]
     assert me["aimAngle"] is None and me["fwdAngle"] == 0.0 and "Vector2.new" in missing(lua)
+
+
+# ---- PZA/1.14 (Plan 36 Task 1): the room ring, me.room on every third frame --------------------------------------------
+
+def ring_stub(lua, raises=False):
+    """PZA.skills.workRoomNow stubbed (PZAgent_StanceWork.lua's frame read): a fixed ring stamped with its call count,
+    the calls counted in _ringCalls; raises when asked."""
+    lua.globals()._ringRaises = raises
+    lua.execute("""
+        _ringCalls = 0
+        PZA.skills.workRoomNow = function(p)
+            _ringCalls = _ringCalls + 1
+            if _ringRaises then error("ring") end
+            return { h = { 1.0, 3.0, 2.0, 3.0, 0.5, 3.0, 3.0, 1.5 },
+                     stop = { "wall", "open", "hop", "open", "door", "open", "open", "wall" },
+                     tick = 40 + _ringCalls, sx = 10, sy = 20, z = 0 }
+        end""")
+
+
+def test_me_carries_the_room_ring_on_the_first_frame_and_every_third_after(lua):
+    load(lua)
+    ring_stub(lua)
+    p = make_player()
+    seen = []
+    for _ in range(7):
+        me = frame(lua, p)["me"]
+        r = me["room"]
+        seen.append(None if r is None else (list(r["h"].values()), list(r["stop"].values()), r["tick"]))
+        ms = lua.eval("PZA.sense.roomMs")
+        assert (ms is None) == (r is None) and (ms is None or ms >= 0)
+    h = [1.0, 3.0, 2.0, 3.0, 0.5, 3.0, 3.0, 1.5]
+    stop = ["wall", "open", "hop", "open", "door", "open", "open", "wall"]
+    assert seen == [(h, stop, 41), None, None, (h, stop, 42), None, None, (h, stop, 43)]
+    assert lua.eval("_ringCalls") == 3 and lua.eval("PZA.sense.ROOM_EVERY") == 3 and missing(lua) == []
+
+
+def test_without_the_footwork_file_no_ring_and_nothing_missing(lua):
+    load(lua)
+    me = frame(lua, make_player())["me"]
+    assert me["room"] is None and lua.eval("PZA.sense.roomMs") is None and missing(lua) == []
+
+
+def test_a_raising_ring_read_costs_me_room_alone(lua):
+    load(lua)
+    ring_stub(lua, raises=True)
+    me = frame(lua, make_player())["me"]
+    assert me["room"] is None and me["fwdAngle"] == 0.0 and "raise:me:room" in missing(lua)
+
+
+def test_the_frame_reads_the_footwork_s_ring_off_the_square_grid(lua):
+    """The real read: PZAgent_StanceMelee.lua and PZAgent_StanceWork.lua loaded, the player at (10.5, 20.5) on an open
+    grid but the square (12, 20) solid: the ring's east heading 1.0 wall, the rest open, stamped with PZA.tick."""
+    load(lua)
+    for f in ("client/PZAgent_StanceMelee.lua", "client/PZAgent_StanceWork.lua"):
+        lua.execute(open(lua_file(f), encoding="utf-8").read())
+    sq = {}
+    for x in range(0, 21):
+        for y in range(10, 31):
+            solid = (x, y) == (12, 20)
+            sq[(x, y, 0)] = J(x=x, y=y, isSolid=lambda s, v=solid: v, isSolidTrans=lambda s: False,
+                              isBlockedTo=lambda s, o: False, has=lambda s, f: False)
+    lua.globals()._cell = make_cell(squares=sq)
+    lua.execute("PZA.tick = 7")
+    p = make_player(x=10.5, y=20.5)
+    r = frame(lua, p)["me"]["room"]
+    assert list(r["h"].values()) == [1.0] + [3.0] * 7
+    assert list(r["stop"].values()) == ["wall"] + ["open"] * 7 and r["tick"] == 7

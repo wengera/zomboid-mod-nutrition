@@ -26,14 +26,14 @@ ORDER = {
 }
 # a frame's groups, elidable in a delta
 GROUPS = {
-    "me": ("x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn", "loadedWidth", "sneaking", "sneakLevel", "lookAngle", "bodyAngle", "fwdAngle", "twist", "aimAngle"),
+    "me": ("x", "y", "z", "dir", "pace", "moving", "running", "sprinting", "forceRun", "forceSprint", "autoWalk", "zombiesSeen", "zombiesListed", "hour", "attackers", "hitReaction", "dragDown", "aiming", "forceAim", "worn", "loadedWidth", "sneaking", "sneakLevel", "lookAngle", "bodyAngle", "fwdAngle", "twist", "aimAngle", "room"),
     "stats": ("hunger", "thirst", "fatigue", "endurance", "panic", "pain", "sickness", "wetness", "temperature"),
     "body": ("health", "bleeding", "scratched", "bitten", "parts", "armPain", "strain"),
     "load": ("weight", "max", "level", "n"),
     "weapon": ("type", "cond", "reach", "ammo"),
     "action": ("class", "n"),
     "act": ("aid", "state", "step"),
-    "cost": ("tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped", "pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs", "maxPollMs", "maxStartMs"),
+    "cost": ("tickMs", "actMs", "senseMs", "mapMs", "linkMs", "tickMaxMs", "over5", "dropped", "pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs", "maxPollMs", "maxStartMs", "roomMs"),
 }
 # a group's or record's oldest arity (before its appended fields): a shorter array of it, down to this, decodes with the trailing fields None
 PRIOR = {
@@ -50,6 +50,7 @@ PRIOR = {
 # the positional records
 RECORDS = {
     "wornLoc": ("loc", "bite", "scratch", "holes", "cond"),
+    "room": ("h", "stop", "tick"),
     "part": ("i", "h", "bleeding", "bleedingTime", "bandaged", "bandageLife", "bandageDirty", "deep", "infected", "wound"),
     "strain": ("l", "r"),
     "zombie": ("id", "x", "y", "dist", "hasTarget", "crawler", "health", "onFloor", "known", "state", "behind", "headX", "headY"),
@@ -61,7 +62,8 @@ RECORDS = {
 }
 # each positional field that is not a plain value: ("group" | "rec" | "list" | "vlist", its name)
 SHAPES = {
-    "me": {"worn": ("list", "wornLoc")},
+    "room": {"h": ("vlist", None), "stop": ("vlist", None)},
+    "me": {"worn": ("list", "wornLoc"), "room": ("rec", "room")},
     "body": {"parts": ("list", "part"), "strain": ("rec", "strain")},
     "frame": {"me": ("group", "me"), "stats": ("group", "stats"), "body": ("group", "body"), "load": ("group", "load"), "weapon": ("group", "weapon"), "action": ("group", "action"), "act": ("group", "act"), "zombies": ("list", "zombie"), "cost": ("group", "cost")},
     "container": {"items": ("vlist", None)},

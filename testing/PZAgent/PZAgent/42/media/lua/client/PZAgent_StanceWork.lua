@@ -46,11 +46,12 @@
 --   zombies within workR (the frame's records not onFloor and not crawler, each position read live; the target's this
 --   tick's) weighted 1 / d^2, of the crawlers within crawlerR x 2 (K.crawlersNear) weighted K.WORK_CRAWLER_W / d^2, and
 --   K.WORK_WITHDRAW_W x the withdraw vector; turned by K.WORK_TURNS in order, the first clear one taken. A heading is
---   clear when at each K.WORK_PROBE distance along it the square is the player's own or readable, neither isSolid nor
---   isSolidTrans, not isBlockedTo from the player's square, with no IsoFlagType.HoppableW on the crossed x edge (the
---   eastern square's) nor HoppableN on the crossed y edge (the southern square's): the stance cannot climb (#4289); no
---   crawler lies within crawlerR of the point no farther from it than the player now (fix 5) and no fallen zombie (the frame's onFloor records, the target fallen)
---   within K.WORK_FALLEN_R. Each square's verdict is read once a choose.
+--   clear (Plan 36 Task 1) when the room ring's heading nearest it (K.workRoomIndex, 45 degrees apart) reads at least
+--   K.WORK_ROOM_NEED tiles clear (the ring, the end of this file: the squares readable, neither isSolid nor
+--   isSolidTrans, not isBlockedTo from the square before, no hoppable crossed edge: the stance cannot climb, #4289),
+--   and at each K.WORK_PROBE distance along the heading itself no crawler lies within crawlerR of the point no farther
+--   from it than the player now (fix 5) and no fallen zombie (the frame's onFloor records, the target fallen) within
+--   K.WORK_FALLEN_R. The ring is the work state's, read again at a choose on a new square or after K.WORK_ROOM_TICKS.
 -- The lines: every result line (progress, done, failed) carries contact and the work leaf {heading (degrees, atan2's
 --   convention), turn (degrees), clear, gap, n (the standing zombies in the sum), crawler (the nearest crawler's
 --   distance within crawlerR x 2), held (fixes 2 and 4: point_blank or attack, why the step was last withheld or ended;
@@ -61,8 +62,7 @@
 -- The cost (counted in test_lua_footwork.py): K.meleeCrowd's one read replaces the crowd's (3 a candidate: isDead,
 --   isOnFloor, the distance); the floor reads the frame (2 calls without one); the step keeps its walk (walkAlong sets
 --   it again only past K.MELEE_TURN_DOT) and holds the force-aim (setForceAim once a release); a re-choose adds getZ,
---   the player's square, 2 a standing zombie and 3 a crawler, and per square read once isSolid, isSolidTrans,
---   isBlockedTo and its crossed hop flag.
+--   2 a standing zombie and 3 a crawler, and the ring's read when it is due (the ring's own cost, at its block).
 local K = PZA.skills
 local M = K.meleeWork
 if M == nil or K.types.melee == nil then return end   -- a melee without the footwork's sites: nothing registered
@@ -115,7 +115,8 @@ local function workArgs(args)
              pileWhy = nil, pileShove = false, pileWait = 0, shoveId = nil, shoveFails = 0,
              crawlers = nil, crawlTicks = 0, crawlMark = nil, steppedNow = false, stepFor = nil,
              hx = nil, hy = nil, heading = nil, turn = nil, crawlerD = nil, sinceChoose = K.WORK_TICKS,
-             clearTicks = 0, pinId = nil, pileState = nil, pileTicks = 0, pileMark = 0, piles = 0 }
+             clearTicks = 0, pinId = nil, pileState = nil, pileTicks = 0, pileMark = 0, piles = 0,
+             room = nil, roomTicks = 0 }
 end
 
 -- a re-send at the running melee's target: its footwork state and closing history kept, the new fields taken
@@ -228,56 +229,14 @@ local function aimHeld(p)
     MO.wantAim = true
 end
 
--- whether square (sx, sy) is clear from the player's square (ctx), read once a choose: the player's own square is;
--- else readable, neither solid nor solidTrans, not blocked from the player's square, no hoppable crossed edge
-local function hopOn(sq, name)
-    local flag = IsoFlagType ~= nil and IsoFlagType[name] or nil
-    if flag == nil then return false end
-    local ok, v = PZA.call(sq, "has", flag)
-    return not ok or v == true
-end
-
-local function readSquare(ctx, sx, sy)
-    local psq = ctx.psq
-    if psq == nil then return false end
-    local sq = K.squareAt(sx, sy, ctx.pz)
-    if sq == nil then return false end
-    local okS, solid = PZA.call(sq, "isSolid")
-    if not okS or solid ~= false then return false end
-    local okT, trans = PZA.call(sq, "isSolidTrans")
-    if not okT or trans ~= false then return false end
-    local okB, blocked = PZA.call(psq, "isBlockedTo", sq)
-    if not okB or blocked ~= false then return false end
-    if sx ~= ctx.psx then
-        local east = psq
-        if sx > ctx.psx then east = sq end
-        if hopOn(east, "HoppableW") then return false end
-    end
-    if sy ~= ctx.psy then
-        local south = psq
-        if sy > ctx.psy then south = sq end
-        if hopOn(south, "HoppableN") then return false end
-    end
-    return true
-end
-
-local function squareClear(ctx, sx, sy)
-    if sx == ctx.psx and sy == ctx.psy then return true end
-    local key = tostring(sx) .. ":" .. tostring(sy)
-    local v = ctx.cache[key]
-    if v == nil then
-        v = readSquare(ctx, sx, sy)
-        ctx.cache[key] = v
-    end
-    return v
-end
-
--- whether the unit heading (hx, hy) is clear (the header's rule)
+-- whether the unit heading (hx, hy) is clear (the header's rule): the room ring's nearest heading reads at least
+-- K.WORK_ROOM_NEED tiles clear (Plan 36 Task 1: the ring's one probe read, no square read here), then no crawler and
+-- no fallen zombie at a K.WORK_PROBE point along the heading itself
 local function headingClear(ctx, w, hx, hy)
+    if ctx.ring.h[K.workRoomIndex(hx, hy)] < K.WORK_ROOM_NEED then return false end
     for i = 1, #K.WORK_PROBE do
         local r = K.WORK_PROBE[i]
         local x, y = ctx.px + hx * r, ctx.py + hy * r
-        if not squareClear(ctx, math.floor(x), math.floor(y)) then return false end
         local cs = ctx.crawlers
         if cs ~= nil then   -- fix 5: a crawler vetoes a point within crawlerR of it only when no farther than now
             for j = 1, #cs do
@@ -359,9 +318,7 @@ local function choose(p, st, fallen)
     if len <= 0 then return end
     local bx, by = s.x / len, s.y / len
     local _, pz = PZA.call(p, "getZ")
-    local psx, psy = math.floor(px), math.floor(py)
-    local ctx = { px = px, py = py, pz = pz, psx = psx, psy = psy, psq = K.squareAt(psx, psy, pz), cache = {},
-                  crawlers = cs, fallen = fl }
+    local ctx = { px = px, py = py, ring = K.workRoomFor(p, st, px, py, pz), crawlers = cs, fallen = fl }
     for i = 1, #K.WORK_TURNS do
         local a = K.WORK_TURNS[i] * RAD
         local c, sn = math.cos(a), math.sin(a)
@@ -599,7 +556,7 @@ end
 -- the footwork's tick (the header's): the floor, the gap and contact, clear, the pile; a step or an end, else nil
 function K.workTick(p, st, d, crowd, fallen, now)
     local w = st.work
-    w.sinceChoose = w.sinceChoose + 1
+    w.sinceChoose, w.roomTicks = w.sinceChoose + 1, w.roomTicks + 1
     local fh, fhow, fres = K.workFloor(p, st)
     if fh ~= nil then return fh, fhow, fres end
     if st.nothing >= st.stall then   -- fix 7: the stall re-read every tick (deferred in shove range, K.meleeStall)
@@ -677,4 +634,212 @@ function K.workResult(st, out)
         leaf.heading, leaf.turn, leaf.clear, leaf.n, leaf.step_for = w.heading, w.turn, w.clear, w.n, w.stepFor
     end
     out.work = leaf
+end
+
+-- ---- the room ring (PZA/1.14, Plan 36 Task 1; the spec `2026-11-11-plan-36-the-engagement-design.md` section 3.1) ----
+-- The frames could not see a solid square behind the body (F21's three engagement bites, a solid square 123 to 177
+-- degrees off the body within 2 tiles). The ring is the one probe read the footwork's turns and the frame's me.room
+-- share: for each of K.WORK_ROOM_HEADINGS, degrees from the world's +x in atan2(y, x)'s convention (me.fwdAngle's and
+-- Vector2.getDirection's, in degrees: 90 is the world's +y), the clear tiles along it, 0.0 to K.WORK_ROOM_MAX in
+-- K.WORK_ROOM_STEP steps, and the stop's kind. Walking out from the player's position a step at a time, a point on the
+-- square already reached is clear; a point on a new square crosses the edge from the last square reached, and that
+-- edge stops the heading:
+--   wall: the new square unreadable (absent, not loaded), isSolid or isSolidTrans not false, or isBlockedTo from the
+--     last square not false with no door on the edge (a read that fails reads as wall);
+--   hop: a crossed x edge whose eastern square has IsoFlagType.HoppableW, or a crossed y edge whose southern square has
+--     HoppableN (the flags the Map's hopN and hopW read; the stance cannot climb, #4289; a failed has read reads wall);
+--   door: isBlockedTo not false with a door on the edge, the last square's getDoorTo(new square) (the 42.22.2 jar:
+--     IsoGridSquare.getDoorTo(IsoGridSquare) @0 L3640, the edge element between the two squares that is a door: a
+--     closed door blocks, an open one does not and reads clear); where getDoorTo is absent (PZA.call's index check), a
+--     door object (W.kindOf) on either square;
+--   open: K.WORK_ROOM_MAX reached clear.
+-- The clear tiles are the farthest step reached before the stop (a wall whose square the 1.5 step first enters reads
+-- 1.0). Each square's solid reads and each edge's verdict are read once a ring (its context's caches). The ring is kept
+-- twice: in the melee's work state (K.workRoomFor, at a choose: read again when the player's square changed or after
+-- K.WORK_ROOM_TICKS of the melee's ticks) and in K.room (the last ring read by any caller), which the frame reuses on
+-- the same square within K.WORK_ROOM_TICKS client ticks (K.workRoomNow). The cost (test_lua_footwork.py counts it):
+-- getZ and the two positions when the caller passes none; getGridSquare once a square (the player's own included),
+-- isSolid and isSolidTrans once a square entered (isSolidTrans only when isSolid reads false); per edge crossed into an
+-- open square one has per crossed axis and isBlockedTo; getDoorTo at a blocked edge.
+K.WORK_ROOM_HEADINGS = { 0, 45, 90, 135, 180, 225, 270, 315 }   -- degrees from the world's +x, atan2(y, x)'s
+K.WORK_ROOM_STEP = 0.5       -- tiles between the points read along a heading (the spec's 0.5 steps)
+K.WORK_ROOM_MAX = 3.0        -- tiles: the farthest point read (the spec's 0.0 to 3.0)
+K.WORK_ROOM_TICKS = 3        -- ticks a ring is reused on one square (the spec's refresh)
+K.WORK_ROOM_NEED = 1.0       -- tiles: a turn's heading is clear when its ring heading reads this far (K.WORK_PROBE's
+                             -- farthest point, the distance Plan 35's probe read)
+K.roomReads = 0              -- the rings read so far (the cache's falsifier in test_lua_footwork.py)
+
+local ROOM_SCRATCH = {}
+
+-- the crossed edge's flag kind: hop when the square has flag name, wall when the read fails, nil otherwise (an absent
+-- flag constant reads nil, as Plan 35's probe read it)
+local function hopKind(sq, name)
+    local flag = IsoFlagType ~= nil and IsoFlagType[name] or nil
+    if flag == nil then return nil end
+    local ok, v = PZA.call(sq, "has", flag)
+    if not ok then return "wall" end
+    if v == true then return "hop" end
+    return nil
+end
+
+-- a blocked edge's kind: door when a door sits between squares a and b, else wall
+local function doorKind(a, b)
+    local ok, d = PZA.call(a, "getDoorTo", b)
+    if ok then
+        if d ~= nil then return "door" end
+        return "wall"
+    end
+    local sqs = { a, b }
+    for i = 1, 2 do
+        local objs, n = W.objectsOn(sqs[i], ROOM_SCRATCH)
+        for j = 1, n do
+            if W.kindOf(objs[j]) == "door" then return "door" end
+        end
+    end
+    return "wall"
+end
+
+-- the square (sx, sy) on the ring's floor, read once a ring: {sq} (nil sq: unreadable)
+local function roomSquare(ctx, sx, sy)
+    local key = sx * 100000 + sy
+    local e = ctx.sqs[key]
+    if e ~= nil then return e end
+    e = { sq = K.squareAt(sx, sy, ctx.pz) }
+    ctx.sqs[key] = e
+    return e
+end
+
+-- whether the square read e is open (readable, neither isSolid nor isSolidTrans), read once a ring, only for a square
+-- entered (the player's own and a square left are never read for it)
+local function roomOpen(e)
+    if e.open == nil then
+        e.open = false
+        if e.sq ~= nil then
+            local okS, solid = PZA.call(e.sq, "isSolid")
+            if okS and solid == false then
+                local okT, trans = PZA.call(e.sq, "isSolidTrans")
+                e.open = okT and trans == false
+            end
+        end
+    end
+    return e.open
+end
+
+-- the edge from square (fx, fy) to its neighbour (tx, ty): its stop's kind, or false when it is crossed clear
+local function roomEdge(ctx, fx, fy, tx, ty)
+    local key = (fx * 100000 + fy) * 9 + (tx - fx + 1) * 3 + (ty - fy + 1)
+    local v = ctx.edges[key]
+    if v ~= nil then return v end
+    local f, t = roomSquare(ctx, fx, fy), roomSquare(ctx, tx, ty)
+    local stop = false
+    if f.sq == nil or t.sq == nil or not roomOpen(t) then
+        stop = "wall"
+    else
+        if tx ~= fx then
+            local east = f.sq
+            if tx > fx then east = t.sq end
+            stop = hopKind(east, "HoppableW") or false
+        end
+        if not stop and ty ~= fy then
+            local south = f.sq
+            if ty > fy then south = t.sq end
+            stop = hopKind(south, "HoppableN") or false
+        end
+        if not stop then
+            local okB, blocked = PZA.call(f.sq, "isBlockedTo", t.sq)
+            if not okB or blocked ~= false then stop = doorKind(f.sq, t.sq) end
+        end
+    end
+    ctx.edges[key] = stop
+    return stop
+end
+
+-- a ring's read context at the player's position (px, py) on floor pz: the caches its headings share
+local function roomCtx(px, py, pz)
+    return { px = px, py = py, pz = pz, psx = math.floor(px), psy = math.floor(py), sqs = {}, edges = {} }
+end
+
+-- the player's position and floor, each nil when unread
+local function playerAt(p)
+    local px, py = posOf(p)
+    local _, pz = PZA.call(p, "getZ")
+    return px, py, pz
+end
+
+-- the clear tiles along heading (degrees, the ring's convention) up to maxTiles in K.WORK_ROOM_STEP steps, and the
+-- stop's kind (wall, hop, door or open); ctx a ring's shared read context, else one made here off the player
+function K.workClearAlong(p, heading, maxTiles, ctx)
+    if ctx == nil then
+        local px, py, pz = playerAt(p)
+        if px == nil or py == nil then return 0, "wall" end
+        ctx = roomCtx(px, py, pz)
+    end
+    local a = heading * RAD
+    local hx, hy = math.cos(a), math.sin(a)
+    if math.abs(hx) < 1e-9 then hx = 0 end   -- a cardinal heading exactly on its axis
+    if math.abs(hy) < 1e-9 then hy = 0 end
+    local fx, fy = ctx.psx, ctx.psy
+    local clear = 0
+    local n = math.floor(maxTiles / K.WORK_ROOM_STEP + 1e-9)
+    for i = 1, n do
+        local r = i * K.WORK_ROOM_STEP
+        local sx, sy = math.floor(ctx.px + hx * r), math.floor(ctx.py + hy * r)
+        if sx ~= fx or sy ~= fy then
+            local stop = roomEdge(ctx, fx, fy, sx, sy)
+            if stop then return clear, stop end
+            fx, fy = sx, sy
+        end
+        clear = r
+    end
+    return clear, "open"
+end
+
+-- the ring read now at the player's position (px, py and pz when the caller holds them, else read): {h, stop, tick,
+-- sx, sy, z}, h[i] and stop[i] K.workClearAlong's for K.WORK_ROOM_HEADINGS[i], tick the client tick (PZA.tick) it was
+-- read on, (sx, sy, z) the player's square; nil when the position is unread. Kept in K.room
+function K.workRoom(p, px, py, pz)
+    if px == nil or py == nil then px, py, pz = playerAt(p) end
+    if px == nil or py == nil then return nil end
+    local ctx = roomCtx(px, py, pz)
+    local h, stop = {}, {}
+    for i = 1, #K.WORK_ROOM_HEADINGS do
+        h[i], stop[i] = K.workClearAlong(p, K.WORK_ROOM_HEADINGS[i], K.WORK_ROOM_MAX, ctx)
+    end
+    K.roomReads = K.roomReads + 1
+    local ring = { h = h, stop = stop, tick = PZA.tick or 0, sx = ctx.psx, sy = ctx.psy, z = pz }
+    K.room = ring
+    return ring
+end
+
+-- the ring's index (1 to 8) of the heading nearest the vector (hx, hy)
+function K.workRoomIndex(hx, hy)
+    local deg = math.atan2(hy, hx) * DEG
+    return math.floor(((deg % 360) + 22.5) / 45) % 8 + 1
+end
+
+-- the melee's ring (the footwork's choose): its work state's, read again when the player's square changed or after
+-- K.WORK_ROOM_TICKS of its ticks (w.roomTicks, counted in K.workTick)
+function K.workRoomFor(p, st, px, py, pz)
+    local w = st.work
+    local r = w.room
+    if r == nil or w.roomTicks >= K.WORK_ROOM_TICKS or r.sx ~= math.floor(px) or r.sy ~= math.floor(py)
+       or r.z ~= pz then
+        r = K.workRoom(p, px, py, pz)
+        w.room, w.roomTicks = r, 0
+    end
+    return r
+end
+
+-- the frame's ring (PZAgent_Sense.lua's me.room): K.room when it was read on the player's square within
+-- K.WORK_ROOM_TICKS client ticks, else one read now; nil when the position is unread
+function K.workRoomNow(p)
+    local px, py, pz = playerAt(p)
+    if px == nil or py == nil then return nil end
+    local r = K.room
+    local now = PZA.tick or 0
+    if r ~= nil and now >= r.tick and now - r.tick < K.WORK_ROOM_TICKS and r.sx == math.floor(px)
+       and r.sy == math.floor(py) and r.z == pz then
+        return r
+    end
+    return K.workRoom(p, px, py, pz)
 end

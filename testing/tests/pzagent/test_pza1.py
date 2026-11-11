@@ -52,7 +52,10 @@ def rand_frame(rng, seq=1):
                "sneaking": maybe(rng, b()), "sneakLevel": maybe(rng, rng.randrange(0, 11)),   # PZA/1.9
                "lookAngle": maybe(rng, lua_float(rng, -4, 4)), "bodyAngle": maybe(rng, lua_float(rng, -4, 4)),   # 1.10
                "fwdAngle": maybe(rng, lua_float(rng, -4, 4)), "twist": maybe(rng, lua_float(rng, -90, 90)),      # 1.11
-               "aimAngle": maybe(rng, lua_float(rng, -4, 4))},
+               "aimAngle": maybe(rng, lua_float(rng, -4, 4)),
+               "room": maybe(rng, {"h": [rng.choice([0.0, 0.5, 1.0, 2.5, 3.0]) for _ in range(8)],      # PZA/1.14
+                                   "stop": [rng.choice(["wall", "hop", "door", "open"]) for _ in range(8)],
+                                   "tick": rng.randrange(0, 10 ** 6)}, 0.6)},
         "stats": {k: lua_float(rng, 0, 1) for k in pza1.GROUPS["stats"]},
         "body": {"health": lua_float(rng, 0, 100), "bleeding": rng.randrange(0, 3), "scratched": rng.randrange(0, 3),
                  "bitten": 0, "parts": parts, "armPain": maybe(rng, lua_float(rng, 0, 40)),
@@ -69,7 +72,7 @@ def rand_frame(rng, seq=1):
                  "over5": rng.randrange(0, 4), "dropped": 0, "pollMs": lua_float(rng, 0, 1),
                  "startMs": lua_float(rng, 0, 9), "maxActMs": lua_float(rng, 0, 9), "maxSenseMs": lua_float(rng, 0, 3),
                  "maxMapMs": lua_float(rng, 0, 3), "maxLinkMs": lua_float(rng, 0, 3), "maxPollMs": lua_float(rng, 0, 1),
-                 "maxStartMs": lua_float(rng, 0, 9)},
+                 "maxStartMs": lua_float(rng, 0, 9), "roomMs": maybe(rng, lua_float(rng, 0, 3))},   # PZA/1.14
     }
 
 
@@ -208,7 +211,7 @@ def test_the_constants():
         assert pza1.ORDER[k][0] == "kind"
     assert set(pza1.GROUPS) == {"me", "stats", "body", "load", "weapon", "action", "act", "cost"}
     assert set(pza1.RECORDS) == {"zombie", "part", "square", "container", "portal", "water", "wornLoc", "strain",
-                                 "windowPortal"}   # 1.6, 1.7; windowPortal: 1.11, Plan 32 Task 6
+                                 "windowPortal", "room"}   # 1.6, 1.7; windowPortal: 1.11, Plan 32 Task 6; room: 1.14
     assert pza1.GAITS == ("walk", "run", "sprint")
     assert pza1.ACTION_TYPES[:11] == ("walkTo", "steer", "attack", "interact", "equip", "consume", "drop", "stop", "scan",
                                       "rate", "sleep")                    # PZA/1.5 appends its actions after these
@@ -373,6 +376,7 @@ COST = {
     "maxLinkMs": "The worst flush since the last frame, in ms.",
     "maxPollMs": "The worst command poll since the last frame, in ms.",
     "maxStartMs": "The worst command start since the last frame, in ms.",
+    "roomMs": "PZA/1.14 (Plan 36 Task 1): this frame's me.room read in ms (a single read on the 1 ms clock; 0 for a ring reused within its 3 client ticks on the player's square and on a frame carrying no ring, so a reader of the ring's cost takes the frames whose me.room is set); null in logs written before PZA/1.14.",   # PZA/1.14 (Plan 36 Task 1)
 }
 
 
@@ -403,7 +407,7 @@ def test_the_attack_description_is_one_swing_in_the_schema_the_tools_and_the_mod
 def test_me_and_cost_append_their_new_fields_after_the_prior_prefix():
     assert pza1.GROUPS["me"][11:14] == ("zombiesSeen", "zombiesListed", "hour")
     assert pza1.GROUPS["cost"][8:] == ("pollMs", "startMs", "maxActMs", "maxSenseMs", "maxMapMs", "maxLinkMs",
-                                       "maxPollMs", "maxStartMs")
+                                       "maxPollMs", "maxStartMs", "roomMs")   # roomMs: PZA/1.14
     assert pza1.PRIOR == {"me": 11, "body": 5, "act": 2, "cost": 8, "zombie": 7, "square": 12, "part": 2, "wornLoc": 3,
                           "windowPortal": 3}   # windowPortal: 1.11, Plan 32 Task 6
 
@@ -425,7 +429,8 @@ def test_a_frame_written_before_the_append_decodes_with_the_new_fields_none_and_
         i = pza1.ORDER["frame"].index(g)
         ok[i] = arr[i][:n]
         assert pza1.decode(ok)[g][pza1.GROUPS[g][n]] is None
-    for g, n in (("me", 10), ("me", len(pza1.GROUPS["me"]) + 1), ("cost", 7), ("cost", 17)):   # one past the order
+    for g, n in (("me", 10), ("me", len(pza1.GROUPS["me"]) + 1), ("cost", 7),
+                 ("cost", len(pza1.GROUPS["cost"]) + 1)):                 # one past the order (1.14: roomMs the 17th)
         bad = list(arr)
         i = pza1.ORDER["frame"].index(g)
         bad[i] = (arr[i] + [0] * n)[:n]

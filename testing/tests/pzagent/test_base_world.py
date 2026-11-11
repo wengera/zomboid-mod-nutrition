@@ -1140,3 +1140,52 @@ def test_the_world_keeps_the_angles_and_the_fallen_head_as_the_frame_sent_them()
     del old["lookAngle"], old["bodyAngle"]                       # a frame before PZA/1.10, as a dict without them
     w.apply(frame(1100, [zed(7, 2.5)], me=old))
     assert w.me.get("lookAngle") is None and w.zombies[7].get("headX") is None
+
+
+# -- PZA/1.14 (Plan 36 Task 1): the room ring, me.room ----------------------------------------------------------------
+
+RING = {"h": [1.0, 3.0, 2.0, 3.0, 0.5, 3.0, 3.0, 1.5], "stop": ["wall", "open", "hop", "open", "door", "open", "open",
+                                                              "wall"], "tick": 120}
+ROOM_HELLO = {"kind": "hello", "seq": 1, "tick": 0, "wallMs": 0, "proto": "PZA/1", "mod": "1.14", "build": "42.22.2",
+              "user": "agent", "rate": 10, "caps": ["melee", "room", "walkTo"], "mode": "append"}
+
+
+def test_the_world_keeps_the_last_ring_the_frames_carried_and_a_hello_clears_it():
+    w = World()
+    assert w.room() is None and w.room_open(0.0) is None and w.can("room") is False
+    w.apply(ROOM_HELLO)
+    assert w.can("room") is True
+    w.apply(frame(1000, me=dict(DEFAULT_FRAME["me"], room=RING)))
+    assert w.room() == RING
+    w.apply(frame(1100, me=dict(DEFAULT_FRAME["me"], room=None)))   # the frames between carry none: the last kept
+    assert w.room() == RING and w.me["room"] is None
+    old = dict(DEFAULT_FRAME["me"])                                  # a frame before PZA/1.14
+    w.apply(frame(1200, me=old))
+    assert w.room() == RING and w.me.get("room") is None
+    w.apply(ROOM_HELLO)
+    assert w.room() is None and w.room_open(90.0) is None
+
+
+@pytest.mark.parametrize("heading, want", [(0.0, 1.0), (45.0, 3.0), (90.0, 2.0), (180.0, 0.5), (-45.0, 1.5),
+                                           (315.0, 1.5), (360.0, 1.0), (-180.0, 0.5), (22.4, 1.0), (22.5, 3.0),
+                                           (67.6, 2.0), (157.4, 3.0), (200.0, 0.5), (337.6, 1.0), (721.0, 1.0)])
+def test_room_open_reads_the_heading_nearest_the_angle(heading, want):
+    """Degrees from the world's +x in atan2(y, x)'s convention, wrapped; halfway between two headings the larger."""
+    w = World()
+    w.apply(frame(1000, me=dict(DEFAULT_FRAME["me"], room=RING)))
+    assert w.room_open(heading) == want
+
+
+def test_room_open_of_an_offset_matches_its_atan2_heading():
+    """An offset to the world's +y (south on the map) reads the 90-degree heading, not bearing_deg's compass."""
+    import math
+    w = World()
+    w.apply(frame(1000, me=dict(DEFAULT_FRAME["me"], room=RING)))
+    assert w.room_open(math.degrees(math.atan2(1.0, 0.0))) == RING["h"][2]
+    assert w.room_open(math.degrees(math.atan2(-1.0, -1.0))) == RING["h"][5]
+
+
+def test_a_malformed_ring_is_not_kept():
+    w = World()
+    w.apply(frame(1000, me=dict(DEFAULT_FRAME["me"], room={"h": [1.0], "stop": ["wall"], "tick": 1})))
+    assert w.room() is None

@@ -34,14 +34,14 @@ def lua_schema(lua):
 
 
 def test_the_hello_s_mod_reads_1_11_or_later(lua):
-    """PZA/1.11 stays in the description; the mod reads 1.13 since Plan 35 Task 1 (1.12 was never stamped)."""
-    assert lua.eval("PZA.VERSION") == "1.13"
+    """PZA/1.11 stays in the description; the mod reads 1.14 since Plan 36 Task 1 (1.12 was never stamped)."""
+    assert lua.eval("PZA.VERSION") == "1.14"
     assert "PZA/1.11" in json.load(open(SCHEMA, encoding="utf-8"))["description"]
 
 
 def test_me_appends_the_facing_ring_after_body_angle():
     d = defs()["me"]
-    assert pza1.GROUPS["me"][-5:] == ("lookAngle", "bodyAngle", "fwdAngle", "twist", "aimAngle")
+    assert pza1.GROUPS["me"][23:28] == ("lookAngle", "bodyAngle", "fwdAngle", "twist", "aimAngle")   # 1.14: room after
     assert pza1.PRIOR["me"] == 11 and pza1.GROUPS["me"].count("autoWalk") == 1
     for k, member in (("fwdAngle", "getDirectionAngleRadians()"), ("twist", "getTwist()"),
                       ("aimAngle", "getAimVector")):
@@ -54,7 +54,7 @@ def test_a_1_10_frame_decodes_with_the_three_fields_none():
     f["me"].update(fwdAngle=0.5, twist=-12.5, aimAngle=None)
     arr = json.loads(pza1.encode("frame", f))
     me = pza1.ORDER["frame"].index("me")
-    assert arr[me][-3:] == [0.5, -12.5, None] and pza1.decode(arr) == f
+    assert arr[me][25:28] == [0.5, -12.5, None] and pza1.decode(arr) == f
     arr[me] = arr[me][:25]                                       # a PZA/1.10 me
     m = pza1.decode(arr)["me"]
     assert (m["fwdAngle"], m["twist"], m["aimAngle"]) == (None, None, None)
