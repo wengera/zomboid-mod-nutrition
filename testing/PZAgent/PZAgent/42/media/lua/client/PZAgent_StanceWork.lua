@@ -51,7 +51,9 @@
 --   isSolidTrans, not isBlockedTo from the square before, no hoppable crossed edge: the stance cannot climb, #4289),
 --   and at each K.WORK_PROBE distance along the heading itself no crawler lies within crawlerR of the point no farther
 --   from it than the player now (fix 5) and no fallen zombie (the frame's onFloor records, the target fallen) within
---   K.WORK_FALLEN_R. The ring is the work state's, read again at a choose on a new square or after K.WORK_ROOM_TICKS.
+--   K.WORK_FALLEN_R. The ring is the work state's, read again at a choose on a new square or after K.WORK_TICKS (fix
+--   1's budget ruling: at most one ring a re-choose). A heading the ring cannot index (a non-finite sum) reads closed,
+--   and a non-finite sum is no heading at all (cornered, the leaf's nan_heading).
 -- The lines: every result line (progress, done, failed) carries contact and the work leaf {heading (degrees, atan2's
 --   convention), turn (degrees), clear, gap, n (the standing zombies in the sum), crawler (the nearest crawler's
 --   distance within crawlerR x 2), held (fixes 2 and 4: point_blank or attack, why the step was last withheld or ended;
@@ -233,7 +235,7 @@ end
 -- K.WORK_ROOM_NEED tiles clear (Plan 36 Task 1: the ring's one probe read, no square read here), then no crawler and
 -- no fallen zombie at a K.WORK_PROBE point along the heading itself
 local function headingClear(ctx, w, hx, hy)
-    if ctx.ring.h[K.workRoomIndex(hx, hy)] < K.WORK_ROOM_NEED then return false end
+    if K.workRoomOpen(ctx.ring, hx, hy) < K.WORK_ROOM_NEED then return false end
     for i = 1, #K.WORK_PROBE do
         local r = K.WORK_PROBE[i]
         local x, y = ctx.px + hx * r, ctx.py + hy * r
@@ -314,7 +316,11 @@ local function choose(p, st, fallen)
         s.x, s.y = px - st.zx, py - st.zy
         len = math.sqrt(s.x * s.x + s.y * s.y)
     end
-    w.hx, w.hy, w.heading, w.turn, w.clear = nil, nil, nil, nil, false
+    w.hx, w.hy, w.heading, w.turn, w.clear, w.nanHeading = nil, nil, nil, nil, false, nil
+    if len ~= len or len == math.huge then   -- fix 1: a non-finite sum (NaN or infinite) is no heading: cornered
+        w.nanHeading = true
+        return
+    end
     if len <= 0 then return end
     local bx, by = s.x / len, s.y / len
     local _, pz = PZA.call(p, "getZ")
@@ -632,6 +638,7 @@ function K.workResult(st, out)
     leaf.repin_for = w.repinFor   -- fix 7b: the stall's re-pin, on its own tick's line
     if w.steppedNow then   -- fix 5: the heading, its turn, clear and n of the step this tick, absent on any other
         leaf.heading, leaf.turn, leaf.clear, leaf.n, leaf.step_for = w.heading, w.turn, w.clear, w.n, w.stepFor
+        if w.nanHeading then leaf.nan_heading = true end   -- fix 1: the sum read non-finite
     end
     out.work = leaf
 end
@@ -656,7 +663,7 @@ end
 -- The clear tiles are the farthest step reached before the stop (a wall whose square the 1.5 step first enters reads
 -- 1.0). Each square's solid reads and each edge's verdict are read once a ring (its context's caches). The ring is kept
 -- twice: in the melee's work state (K.workRoomFor, at a choose: read again when the player's square changed or after
--- K.WORK_ROOM_TICKS of the melee's ticks) and in K.room (the last ring read by any caller), which the frame reuses on
+-- K.WORK_TICKS of the melee's ticks, fix 1's budget ruling) and in K.room (the last ring read by any caller), which the frame reuses on
 -- the same square within K.WORK_ROOM_TICKS client ticks (K.workRoomNow). The cost (test_lua_footwork.py counts it):
 -- getZ and the two positions when the caller passes none; getGridSquare once a square (the player's own included),
 -- isSolid and isSolidTrans once a square entered (isSolidTrans only when isSolid reads false); per edge crossed into an
@@ -664,7 +671,8 @@ end
 K.WORK_ROOM_HEADINGS = { 0, 45, 90, 135, 180, 225, 270, 315 }   -- degrees from the world's +x, atan2(y, x)'s
 K.WORK_ROOM_STEP = 0.5       -- tiles between the points read along a heading (the spec's 0.5 steps)
 K.WORK_ROOM_MAX = 3.0        -- tiles: the farthest point read (the spec's 0.0 to 3.0)
-K.WORK_ROOM_TICKS = 3        -- ticks a ring is reused on one square (the spec's refresh)
+K.WORK_ROOM_TICKS = 3        -- client ticks the frame reuses a ring on one square (the spec's refresh); the melee's
+                             -- ring is reused K.WORK_TICKS (fix 1: the controller's budget ruling, one ring a re-choose)
 K.WORK_ROOM_NEED = 1.0       -- tiles: a turn's heading is clear when its ring heading reads this far (K.WORK_PROBE's
                              -- farthest point, the distance Plan 35's probe read)
 K.roomReads = 0              -- the rings read so far (the cache's falsifier in test_lua_footwork.py)
@@ -811,20 +819,52 @@ function K.workRoom(p, px, py, pz)
     return ring
 end
 
--- the ring's index (1 to 8) of the heading nearest the vector (hx, hy)
+-- the ring's index (1 to 8) of the heading nearest the vector (hx, hy), a tie taken by the larger angle; nil for a
+-- non-finite vector. Fix 1 (x_trial-ladder-20261111-175926, the client parked at `__lt not defined for operand` in
+-- headingClear: the away heading from a zombie south-east of the player read atan2 -164.7 degrees): no % on a negative
+-- dividend, since Kahlua's % truncates (the 42.22.2 jar: KahluaThread.primitiveMath @111-@127 L1355-L1356, a - (int)(a /
+-- b) * b) where Lua 5.1's floors, so -164.7 % 360 read -164.7 and the index -3 read nil off the ring
 function K.workRoomIndex(hx, hy)
-    local deg = math.atan2(hy, hx) * DEG
-    return math.floor(((deg % 360) + 22.5) / 45) % 8 + 1
+    local deg = math.atan2(hy, hx) * DEG     -- (-180, 180]
+    if deg ~= deg or deg == math.huge or deg == -math.huge then return nil end
+    if deg < 0 then deg = deg + 360 end
+    local i = math.floor((deg + 22.5) / 45) + 1
+    if i > #K.WORK_ROOM_HEADINGS then i = i - #K.WORK_ROOM_HEADINGS end   -- (337.5, 360) is the 0 heading
+    return i
+end
+
+-- the clear tiles the ring reads along the heading nearest (hx, hy); 0.0 for no ring, a vector it cannot index or an
+-- entry it lacks (fix 1: no ring read is ever compared as nil)
+function K.workRoomOpen(ring, hx, hy)
+    local h = type(ring) == "table" and ring.h or nil
+    if type(h) ~= "table" then return 0.0 end
+    local i = K.workRoomIndex(hx, hy)
+    local v = i ~= nil and h[i] or nil
+    if type(v) ~= "number" or v ~= v then return 0.0 end
+    return v
+end
+
+-- an all-closed ring at the square (sx, sy, z): every heading 0.0, wall (fix 1: what the melee holds with no read)
+local function closedRing(sx, sy, z)
+    local h, stop = {}, {}
+    for i = 1, #K.WORK_ROOM_HEADINGS do h[i], stop[i] = 0.0, "wall" end
+    return { h = h, stop = stop, tick = PZA.tick or 0, sx = sx, sy = sy, z = z }
 end
 
 -- the melee's ring (the footwork's choose): its work state's, read again when the player's square changed or after
--- K.WORK_ROOM_TICKS of its ticks (w.roomTicks, counted in K.workTick)
+-- K.WORK_TICKS of its ticks (w.roomTicks, counted in K.workTick; fix 1's budget ruling: the re-choose cadence, so a
+-- re-choose reads at most one ring); never nil: a read that answers none keeps the last ring, else an all-closed one
 function K.workRoomFor(p, st, px, py, pz)
     local w = st.work
     local r = w.room
-    if r == nil or w.roomTicks >= K.WORK_ROOM_TICKS or r.sx ~= math.floor(px) or r.sy ~= math.floor(py)
-       or r.z ~= pz then
-        r = K.workRoom(p, px, py, pz)
+    if r == nil or w.roomTicks >= K.WORK_TICKS or r.sx ~= math.floor(px) or r.sy ~= math.floor(py) or r.z ~= pz then
+        local fresh = nil
+        if px == px and py == py then fresh = K.workRoom(p, px, py, pz) end
+        if fresh ~= nil then
+            r = fresh
+        elseif r == nil then
+            r = closedRing(math.floor(px), math.floor(py), pz)
+        end
         w.room, w.roomTicks = r, 0
     end
     return r

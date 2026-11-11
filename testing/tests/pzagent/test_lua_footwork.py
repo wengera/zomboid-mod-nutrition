@@ -24,7 +24,8 @@ SCHEMA = os.path.join(ROOT, "testing", "agent", "base", "schema", "pza1.json")
 WORK = {"workR": 3.5, "crawlerR": 1.2, "bandLo": 0.4, "floorHealth": 0.0, "reach": 1.475}   # fix 2: the live reach
 # (the smoke x_trial-ladder-20261110-084643 sent 1.475): the band, reach - bandLo, 1.075; the step goes in [0.9, 1.075)
 BAND_X = 10.95   # the target 0.95 tiles east: inside the band, beyond K.WORK_POINT_BLANK_R
-WORK_LEAF = {"heading", "turn", "clear", "gap", "n", "crawler", "held", "pile", "step_for", "retreat", "stall_held", "repin_for"}   # fix 2: held; fix 3: pile; fix 5: step_for
+WORK_LEAF = {"heading", "turn", "clear", "gap", "n", "crawler", "held", "pile", "step_for", "retreat", "stall_held", "repin_for",
+             "nan_heading"}   # Plan 36 Task 1 fix 1: nan_heading   # fix 2: held; fix 3: pile; fix 5: step_for
 LOOK_OFF = {"look": math.pi, "turn": 0.0, "snap": False}   # the look held away: the meet never presses
 
 
@@ -435,8 +436,8 @@ def test_the_footwork_turns_off_a_heading_the_ring_reads_short(lua, fs):
 
 def test_the_melee_s_ring_is_read_again_on_a_new_square_or_after_work_room_ticks(lua, fs):
     """The ring read at the first choose (K.roomReads 1); a choose forced on the same square one tick on reuses it; a
-    choose on another square reads it again; a choose at K.WORK_ROOM_TICKS of the melee's ticks since the last read
-    reads it again, one tick fewer reuses it."""
+    choose on another square reads it again; a choose at K.WORK_TICKS of the melee's ticks since the last read (fix
+    1's budget ruling: the re-choose cadence) reads it again, one tick fewer reuses it."""
     p, z, w = ring_world(lua, px=10.5, py=20.5, zx=11.45, zy=20.5, **LOOK_OFF)
     grid(lua)
     records(lua, [target_rec(w)], {7: z})
@@ -453,10 +454,10 @@ def test_the_melee_s_ring_is_read_again_on_a_new_square_or_after_work_room_ticks
     run(lua, p, w, 1)
     assert lua.eval("PZA.skills.cur.st.work.sinceChoose") == 0 and lua.eval("PZA.skills.roomReads") == 2
     assert lua.eval("PZA.skills.cur.st.work.room.sx") == 9
-    lua.execute(force + "; PZA.skills.cur.st.work.roomTicks = 1")    # 2 at the choose: reused
+    lua.execute(force + "; PZA.skills.cur.st.work.roomTicks = 4")    # 5 at the choose: reused
     run(lua, p, w, 1)
     assert lua.eval("PZA.skills.cur.st.work.sinceChoose") == 0 and lua.eval("PZA.skills.roomReads") == 2
-    lua.execute(force + "; PZA.skills.cur.st.work.roomTicks = 2")    # 3 at the choose: read again
+    lua.execute(force + "; PZA.skills.cur.st.work.roomTicks = 5")    # 6 (K.WORK_TICKS) at the choose: read again
     run(lua, p, w, 1)
     assert lua.eval("PZA.skills.cur.st.work.sinceChoose") == 0 and lua.eval("PZA.skills.roomReads") == 3
 
@@ -1284,3 +1285,150 @@ def test_at_the_stall_a_crawler_is_no_other_standing_zombie(lua, fs):
     run(lua, p, w, 20)
     assert lua.eval("PZA.skills.cur.st.id") == 7
     assert any((a["result"].get("work") or {}).get("stall_held") is True for a in progress(lua, fs))
+
+
+# ---- Plan 36 Task 1 fix 1: Kahlua's % and the ring index (x_trial-ladder-20261111-175926 parked the client) ----------
+
+def _operand_left(src, i):
+    """The start of the binary operator's left operand ending before src[i] (spaces skipped): a balanced (...) group
+    with its dotted callee, or a dotted name or number."""
+    j = i
+    while j > 0 and src[j - 1] == " ":
+        j -= 1
+    if src[j - 1] == ")":
+        depth, k = 0, j - 1
+        while True:
+            if src[k] == ")":
+                depth += 1
+            elif src[k] == "(":
+                depth -= 1
+                if depth == 0:
+                    break
+            k -= 1
+        j = k
+    while j > 0 and (src[j - 1].isalnum() or src[j - 1] in "_."):
+        j -= 1
+    return j
+
+
+def _operand_right(src, i):
+    """The end of the binary operator's right operand starting after src[i]: a dotted name or number, with a call's
+    balanced (...) when one follows."""
+    j = i
+    while src[j] == " ":
+        j += 1
+    while src[j].isalnum() or src[j] in "_.":
+        j += 1
+    if src[j] == "(":
+        depth = 0
+        while True:
+            if src[j] == "(":
+                depth += 1
+            elif src[j] == ")":
+                depth -= 1
+                if depth == 0:
+                    j += 1
+                    break
+            j += 1
+    return j
+
+
+def kahlua_mod(src):
+    """The Lua source with every code (not comment) binary ` % ` rewritten to _kmod(a, b), Kahlua's truncating modulo
+    (the 42.22.2 jar: KahluaThread.primitiveMath @111-@127 L1355-L1356, a - (int)(a / b) * b), which lupa's Lua 5.1
+    floors instead: a test host that reads % as the client does."""
+    out = []
+    for line in src.split("\n"):
+        code, sep, comment = line.partition("--")
+        while " % " in code:
+            i = code.index(" % ")
+            a, b = _operand_left(code, i), _operand_right(code, i + 3)
+            code = code[:a] + "_kmod(%s, %s)" % (code[a:i], code[i + 3:b].strip()) + code[b:]
+        out.append(code + sep + comment)
+    return "\n".join(out)
+
+
+def kahlua_host(lua):
+    lua.execute("function _kmod(a, b) if b == 0 then return 0 / 0 end local q = a / b "
+                "if q >= 0 then q = math.floor(q) else q = math.ceil(q) end return a - q * b end")
+
+
+def load_work_kahlua(lua):
+    kahlua_host(lua)
+    lua.execute(kahlua_mod(open(lua_file("client/PZAgent_StanceWork.lua"), encoding="utf-8").read()))
+
+
+def test_the_kahlua_host_truncates_as_the_jar_does(lua):
+    kahlua_host(lua)
+    assert lua.eval("_kmod(-164.7, 360)") == pytest.approx(-164.7) and lua.eval("-164.7 % 360") == pytest.approx(195.3)
+    assert lua.eval("_kmod(7, 3)") == 1 and lua.eval("_kmod(-4, 8)") == -4
+    assert kahlua_mod("x = math.floor(((deg % 360) + 22.5) / 45) % 8 + 1 -- 25 % kept") == \
+        "x = _kmod(math.floor(((_kmod(deg, 360)) + 22.5) / 45), 8) + 1 -- 25 % kept"
+
+
+@pytest.mark.parametrize("vec, index", [((1.0, 0.0), 1), ((0.0, 1.0), 3), ((-1.0, 0.0), 5), ((0.0, -1.0), 7),
+                                        ((-0.96, -0.26), 5), ((-0.7, -0.72), 6), ((0.92, -0.38), 1),
+                                        ((0.92, -0.39), 8), ((-1.0, -1e-12), 5)])
+def test_on_the_kahlua_host_every_heading_indexes_the_ring(lua, fs, vec, index):
+    """The trial's away heading (-1.1, -0.3), atan2 -164.7 degrees, indexed -3 on Kahlua's truncating %: every vector
+    indexes 1 to 8 on the client's arithmetic."""
+    melee_world(lua)
+    load_work_kahlua(lua)
+    assert lua.eval("PZA.skills.workRoomIndex")(*vec) == index
+
+
+def test_the_trial_s_geometry_steps_on_the_kahlua_host(lua, fs):
+    """x_trial-ladder-20261111-175926's frames 286 to 289: the character standing, one zombie lunging in south-east
+    of it (+1.10, +0.30 at 1.13 tiles there; here inside the band at 0.95), the ring open on every heading: the first
+    choose's away heading points west-north-west (atan2 below -90) and the step goes, no raise."""
+    p, z, w = melee_world(lua, px=10.2, py=20.9, zx=10.2 + 0.9165, zy=20.9 + 0.25, **LOOK_OFF)
+    load_work_kahlua(lua)
+    grid(lua)
+    p.getZ = lambda s: 0
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p)
+    run(lua, p, w, 2)
+    assert lua.eval("PZA.skills.cur.st.step") == "work" and work_of(lua, "clear") is True
+    assert work_of(lua, "heading") < -90 and work_of(lua, "turn") == 0
+
+
+@pytest.mark.parametrize("ring", ["nil", "{}", "{ h = {} }", "{ h = { 1, 2, 3 } }", "{ h = { 3, 3, 3, 3, 0 / 0, 3, 3, 3 } }"])
+def test_a_ring_entry_it_lacks_reads_closed_never_a_nil_comparison(lua, fs, ring):
+    melee_world(lua)
+    load_work(lua)
+    v = lua.eval("PZA.skills.workRoomOpen(%s, -1, 0)" % ring)
+    assert v == 0.0
+    assert lua.eval("PZA.skills.workRoomOpen(nil, 0 / 0, 1)") == 0.0
+    assert lua.eval("PZA.skills.workRoomIndex(0 / 0, 1)") is None
+
+
+def test_a_non_finite_sum_is_no_heading_and_the_leaf_names_it(lua, fs):
+    """A withdraw vector of NaN (no planner sends one; the guard's own case, tested at the choose): no ring index read,
+    the step cornered, the leaf's nan_heading."""
+    p, z, w = world(lua, zx=BAND_X, **LOOK_OFF)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p, withdrawX=0.0, withdrawY=1.0)
+    lua.execute("PZA.skills.cur.st.work.withdrawY = 0 / 0")
+    run(lua, p, w, 2)
+    assert lua.eval("PZA.skills.cur.st.step") == "cornered" and work_of(lua, "nanHeading") is True
+    leaf = progress(lua, fs)[-1]["result"]["work"]
+    assert leaf.get("nan_heading") is True
+
+
+def test_the_melee_never_holds_a_nil_ring(lua, fs):
+    """A read that answers none (K.workRoom nil): the last ring kept, else an all-closed one (0.0, wall)."""
+    p, z, w = world(lua, zx=BAND_X, **LOOK_OFF)
+    records(lua, [target_rec(w)], {7: z})
+    lua.execute("_realRoom = PZA.skills.workRoom; PZA.skills.workRoom = function() return nil end")
+    gow(lua, p)
+    run(lua, p, w, 1)
+    assert list(lua.eval("PZA.skills.cur.st.work.room.stop").values()) == ["wall"] * 8
+    assert lua.eval("PZA.skills.cur.st.step") == "cornered"
+    lua.execute("PZA.skills.workRoom = _realRoom; PZA.skills.cur.st.work.room = nil")
+    lua.execute("PZA.skills.cur.st.work.sinceChoose = PZA.skills.WORK_TICKS")
+    run(lua, p, w, 1)
+    kept = lua.eval("PZA.skills.cur.st.work.room.h[5]")
+    lua.execute("PZA.skills.workRoom = function() return nil end")
+    lua.execute("PZA.skills.cur.st.work.sinceChoose, PZA.skills.cur.st.work.roomTicks = PZA.skills.WORK_TICKS, 99")
+    run(lua, p, w, 1)
+    assert lua.eval("PZA.skills.cur.st.work.room.h[5]") == kept == 3.0
