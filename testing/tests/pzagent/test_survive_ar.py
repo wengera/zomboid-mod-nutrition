@@ -24,6 +24,7 @@ from agent.base.planner import fight as F
 from agent.base.planner import policies as P
 from agent.base.planner import survive as S
 from agent.base.planner import threat as T
+from agent.base.planner.maneuvers import Melee
 from agent.base.planner.maneuvers.melee import MeleeInputs, WorkInputs, withdraw_sector
 from agent.base.world import World
 
@@ -472,6 +473,86 @@ def test_the_doorway_stand_dispatches_the_melee_with_work(tmp_path, on):
         assert (b.type, b.args["mode"]) == ("melee", "shove") and f.why["melee"]["resend"] == "inputs"
     else:
         assert a.type == "attack"
+
+
+# ================================================================ fix 8: a lost melee in KEEP_R keeps the engagement
+LOST_PILE = [zm(1, ME[0] + 2.4, ME[1]), zm(2, ME[0] + 0.5, ME[1]), zm(3, ME[0], ME[1] + 0.8)]   # 25246, 25245, 25201
+
+
+def lost(r, f, a, target, why="no progress"):
+    """`a` ends `done` `lost` `why` with the reflex's last target `target` (its re-pin), then one observe."""
+    r.fake.act(a.aid, "done", "melee", result={"end": "lost", "why": why, "kill": False, "target": target})
+    r.pump()
+    f.observe()
+
+
+def lost_rig(tmp_path, mod="1.13", zs=LOST_PILE, scan=None):
+    """The proof round's death (`x_trial-ladder-20261111-112648`, decision lines 365 to 366): under the leave's retreat
+    the Fight's melee at 1 (2.4 tiles), its reflex re-pinned to 2 (0.5 tiles, lunging), 3 at 0.8; the melee accepted,
+    its progress line naming the re-pin, `busy` read once as Survive reads it."""
+    r = rig(tmp_path, mod)
+    if scan:
+        r.scan(scan)
+    r.frame(x=ME[0], y=ME[1], zombies=zs)
+    f = F.Fight(r.world, r.acts, r.clock)
+    f.rules = f.rules - {"crawler_first"}
+    f.retreat, f.stance, f.target, f.group_n = WEST_V, True, 1, 3
+    f.m = Melee(r.world, r.acts, r.clock, 1)
+    f.m.inputs = f._melee_inputs("strike", r.world.zombies[1])
+    a = f.send(f.m.step())
+    accept(r, a)
+    r.fake.act(a.aid, "progress", "melee", result={"step": "repin", "target": 2})
+    r.pump()
+    f.observe()
+    f.busy()   # Survive's read of the running melee (RETREAT_REGAIN arms its press on a zombie at point blank)
+    return r, f, a
+
+
+def test_a_lost_melee_at_point_blank_keeps_the_engagement(tmp_path):
+    """Plan 35 fix 8 (rules 1 and 2): the melee ends `lost` `no progress` with its reflex on 2 at 0.5 tiles (within
+    POINT_BLANK_R, its line clear): 2 is not marked (nor 1, the planner's pin the reflex left), `_m_ladder` is not set,
+    and the next choose sends the melee with `work` (no regain back leg in its place), logged `engage_dispatch` {from
+    "lost"}."""
+    r, f, a = lost_rig(tmp_path)
+    lost(r, f, a, 2)
+    assert not f.marked() and f._m_ladder is False
+    b = f.step()
+    assert b.type == "melee" and work_of(b) == dict(WORK_ARGS, withdrawX=-1.0, withdrawY=0.0)
+    assert f.why["melee"]["engage_dispatch"] == {"from": "lost"} and f.why["melee_end"]["why"] == "no progress"
+
+
+def test_a_lost_melee_across_a_known_fence_marks_it_and_takes_the_next(tmp_path):
+    """Rule 2's line read: the reflex's 2 stands 0.7 tiles north across a known blocked edge (the fence the mark exists
+    for, `fight.py`'s module docstring): 2 is marked, and the engagement keeps on 3 at 0.8 (a melee with `work`, logged
+    {from "lost"})."""
+    from .test_policies import square
+    zs = [zm(1, ME[0] + 2.4, ME[1]), zm(2, ME[0], ME[1] - 0.7), zm(3, ME[0] + 0.8, ME[1])]
+    fence = [square(100, 200, blockN=True), square(100, 199)]
+    r, f, a = lost_rig(tmp_path, zs=zs, scan=fence)
+    lost(r, f, a, 2)
+    assert 2 in f.marked() and f._m_ladder is False
+    b = f.step()
+    assert (b.type, b.args["targetId"]) == ("melee", 3) and f.why["melee"]["engage_dispatch"] == {"from": "lost"}
+
+
+def test_a_lost_melee_on_a_1_11_build_gives_the_choose_to_the_ladder(tmp_path):
+    """The gate false (a hello at 1.11, the goldens' builds): today's lost end, named so as the pin of the rule before
+    fix 8: the melee's own target (the planner's 1) marked unreachable, `_m_ladder` set, the next choose the ladder's
+    (RETREAT_REGAIN's back leg, the trace's a113), no melee."""
+    r, f, a = lost_rig(tmp_path, mod="1.11")
+    lost(r, f, a, 2)
+    assert 1 in f.marked() and f._m_ladder is True
+    b = f.step()
+    assert b.type != "melee" and "engage_dispatch" not in (f.why.get("melee") or {})
+
+
+def test_a_lost_melee_with_nobody_within_keep_r_gives_the_choose_to_the_ladder(tmp_path):
+    """Rule 3: `lost` `no progress` with no standing zombie within KEEP_R (the reflex's 2 at 2.6, the rest beyond):
+    the mark as today (on the reflex's 2, beyond POINT_BLANK_R) and `_m_ladder` set."""
+    zs = [zm(1, ME[0] + 2.7, ME[1]), zm(2, ME[0] + 2.6, ME[1] + 0.3), zm(3, ME[0] - 4.0, ME[1])]
+    r, f, a = lost_rig(tmp_path, zs=zs)
+    lost(r, f, a, 2)
+    assert 2 in f.marked() and f._m_ladder is True
 
 
 # ================================================================ the hand-backs

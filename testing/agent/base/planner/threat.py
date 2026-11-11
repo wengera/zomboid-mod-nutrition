@@ -325,7 +325,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
     FOOTWORK = True          # the melee's `work` arguments to a build at mod 1.13 or later (the Fight's `footwork`
                              # rule, `dispatch.FightDispatch._work_inputs`); off, the melee as before
     ENGAGE_HOLD = True       # the running melee with `work` held against every leg, the Fight's give-ways and the
-                             # threat rows (the Fight's `engage_hold` rule, `_engage_holds`), the crowd gate off; off,
+                             # threat rows (the Fight's `engage_hold` rule, `_engage_holds`), the crowd gate off; fix 8:
+                             # a `lost` end with a standing zombie within KEEP_R keeps it (no ladder choose); off,
                              # as before
     WITHDRAW = True          # the fighting retreat's heading as the reflex's withdraw bias with GROUP_LEAVE_N or more
                              # standing within GROUP_ENTRY_R (the Fight's `withdraw` rule); off, no bias

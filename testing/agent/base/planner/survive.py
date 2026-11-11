@@ -581,7 +581,8 @@ T20_SWITCHES = ("FOOTWORK", "ENGAGE_HOLD", "WITHDRAW")
 # lower-cased: FOOTWORK, the melee's `work` arguments to a build at mod 1.13 or later (`dispatch.FightDispatch
 # ._work_inputs`); ENGAGE_HOLD, the running melee with `work` held against every leg, the Fight's and the threat
 # branch's (`dispatch.FightDispatch._engaged`, `threat.Threat._engage_holds`), logged `engage_hold` {rule}, the crowd
-# gate off; WITHDRAW, the fighting retreat's heading as the reflex's withdraw bias with GROUP_LEAVE_N or more standing
+# gate off, and (fix 8) a `lost` end with a standing zombie within KEEP_R keeps the engagement, its point-blank mark
+# lifted; WITHDRAW, the fighting retreat's heading as the reflex's withdraw bias with GROUP_LEAVE_N or more standing
 # within GROUP_ENTRY_R
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args

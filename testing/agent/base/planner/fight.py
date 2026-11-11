@@ -1142,6 +1142,9 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
         ladder not read."""
         if self._engaged():
             return self._engage_resend()
+        lost, self._m_lost = self._m_lost, False
+        if lost:   # Plan 35 fix 8: after a `lost` end the engagement keeps, no break or regain leg in the melee's place
+            self._break, self._regain = None, None
         cmd = self._retreat_leg(self._ladder())
         if self._break is not None:
             leg = self._break_leg(cmd)
@@ -1152,7 +1155,10 @@ class Fight(FightPull, FightFinish, FightShove, FightEdge, FightPin, FightReach,
             return back
         self._regain_arm(cmd)
         ladder, self._m_ladder = self._m_ladder, False
-        return self._regain_note(cmd if ladder else self._melee_dispatch(cmd))
+        out = self._regain_note(cmd if ladder else self._melee_dispatch(cmd))
+        if lost and out is not None and out.TYPE == "melee" and "melee" in self.why:
+            self.why["melee"]["engage_dispatch"] = {"from": "lost"}   # Plan 35 fix 8
+        return out
 
     def _retreat_legs(self):
         """Plan 33 Task 3 fix 4 (b): the retreat's back leg can go: the retreat set, the build announcing `aim`, no
