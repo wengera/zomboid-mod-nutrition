@@ -83,7 +83,7 @@ def types(r):
 
 # ================================================================ the switch
 def test_the_switch_is_on_by_default_in_t21():
-    assert S.T21_SWITCHES == ("ACTION_CLOCK",) and "T21_SWITCHES" in S.__all__
+    assert S.T21_SWITCHES == ("ACTION_CLOCK", "BACKSWING") and "T21_SWITCHES" in S.__all__
     assert S.Survive.ACTION_CLOCK is True
 
 

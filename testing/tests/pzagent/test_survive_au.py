@@ -1,5 +1,5 @@
 """Plan 36 Task 2a addendum (the press on the back step; the spec `2026-11-11-plan-36-the-engagement-design.md`
-§ 3.2): `survive.T21_SWITCHES`, the one switch BACKSWING on `threat.Threat`, on by default: every melee sent with work
+§ 3.2): `survive.T21_SWITCHES`, the switch BACKSWING beside Task 4's ACTION_CLOCK (merged at the controller's cherry-pick) on `threat.Threat`, on by default: every melee sent with work
 carries backswing true (the Fight's `backswing`, set each tick beside its withdraw; `dispatch.FightDispatch.
 _work_inputs`, `maneuvers.melee.WorkInputs.backswing`), so the reflex keeps its step's walk held through a press
 (PZAgent_StanceMelee.lua's K.meleePressWalk). Off, or on a bare Fight, the melee goes as before (backswing false is
@@ -15,7 +15,7 @@ from .test_survive_q import z
 
 
 def test_the_switch_is_declared_on_by_default_and_recorded_by_the_trial_loop(tmp_path):
-    assert S.T21_SWITCHES == ("BACKSWING",) and "T21_SWITCHES" in S.__all__
+    assert S.T21_SWITCHES == ("ACTION_CLOCK", "BACKSWING") and "T21_SWITCHES" in S.__all__
     assert T.Threat.BACKSWING is True
     r = rig(tmp_path)
     sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
