@@ -232,41 +232,74 @@ def test_the_leave_s_retreat_is_the_pull_when_the_trio_stands_in_a_line(tmp_path
 
 
 # ================================================================ above RETREAT_MAX_N: the run on the ring's heading
-def five_run(tmp_path, room_open):
-    """`survive`'s engaged melee with GROUP_LEAVE on, the World's `room_open` replaced by `room_open` (None: the World's
-    own, which Task 1 adds; absent here); then five standing (above RETREAT_MAX_N): the leave's run, the `many` flee's
-    steer. Returns (the threat why, the steer, the bearings `room_open` was asked for)."""
+def ring(h):
+    """A room ring as `World.room` returns it (Plan 36 Task 1): the eight headings' clear tiles `h`, each stop a wall."""
+    return {"h": list(h), "stop": ["wall"] * 8, "tick": 1}
+
+
+@pytest.mark.parametrize("h, run, out", [
+    ((0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0), (1.0, 0.0), 45.0),    # open at 45, walled at 0: a +x run turns to 45
+    ((0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0), (1.0, 0.0), 45.0),    # a tie at 45 and 315 (both 45 off): the first
+    ((1.0, 2.5, 2.5, 0.0, 0.0, 0.0, 0.0, 0.0), heading(80), 90.0),   # a tie at 45 and 90: the nearer the run's 80
+    ((0.0, 0.0, 0.0, 3.0, 3.0, 3.0, 0.0, 0.0), (1.0, 0.0), None),    # every candidate (315, 0, 45) walled: kept
+    ((3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), (1.0, 0.0), 0.0),     # the run's own heading the most open
+])
+def test_room_open_takes_the_most_open_ring_heading_within_45_degrees(h, run, out):
+    """Fix 2 (`flee.Flee._room_open` on `World.room`, the ring Task 1 landed): of the ring headings within
+    ROOM_OPEN_DEG of the run's, the largest clear tiles, a tie to the nearest the run's heading (then the first);
+    every candidate at 0.0 keeps the run's heading."""
+    from types import SimpleNamespace
+    from agent.base.planner.flee import Flee
+    fake = SimpleNamespace(world=SimpleNamespace(room=lambda: ring(h)))
+    v, deg = Flee._room_open(fake, run)
+    if out is None:
+        assert (v, deg) == (run, None)
+    else:
+        assert deg == pytest.approx(out) and v == pytest.approx(heading(out), abs=1e-12)
+
+
+def test_room_open_with_no_ring_keeps_the_heading():
+    """No ring on the frame (`World.room` None): the run's heading kept."""
+    from types import SimpleNamespace
+    from agent.base.planner.flee import Flee
+    fake = SimpleNamespace(world=SimpleNamespace(room=lambda: None))
+    assert Flee._room_open(fake, (0.6, 0.8)) == ((0.6, 0.8), None)
+
+
+def five_run(tmp_path, h):
+    """`survive`'s engaged melee with GROUP_LEAVE on, the World's `room` read replaced by a ring of `h` (None: no
+    ring); then five standing (above RETREAT_MAX_N): the leave's run, the `many` flee's steer. Returns (the threat
+    why, the steer)."""
     tmp_path.mkdir(parents=True, exist_ok=True)
     r, sv, a = survive(tmp_path, z(1, 101.8), leave=True)
-    asked = []
-    if room_open is not None:
-        def read(b):
-            asked.append(b)
-            return room_open(b)
-        r.world.room_open = read
+    if h is not None:
+        r.world.room = lambda: ring(h)
     why, s = line(tmp_path, r, sv, FIVE)
     assert why["group_leave"]["leg"] == "run" and why.get("flee") == "many" and s.type == "steer"
-    return why, s, asked
+    return why, s
 
 
 def test_the_many_run_takes_the_room_ring_s_open_heading(tmp_path):
-    """Five standing: the run's steer is asked of `room_open` at its own heading (degrees) and takes the ring's
-    answer (90: due +y), logged `room_open` 90 on the why; `engage_yield` {rule "many"} as Plan 35's lapse."""
-    base, s0, _ = five_run(tmp_path / "base", None)
-    why, s, asked = five_run(tmp_path / "ring", lambda b: 90.0)
-    assert len(asked) == 1 and asked[0] == pytest.approx(math.degrees(math.atan2(s0.args["vy"], s0.args["vx"])),
-                                                         abs=1e-3)
-    assert (s.args["vx"], s.args["vy"]) == pytest.approx((0.0, 1.0), abs=1e-6) and why["room_open"] == 90.0
+    """Five standing: the run's steer takes the most open ring heading within 45 degrees of its own (the ring open 3.0
+    only at the heading nearest it, every other 0.0), logged `room_open` with its degrees; `engage_yield` {rule
+    "many"} as Plan 35's lapse."""
+    base, s0 = five_run(tmp_path / "base", None)
+    deg = math.degrees(math.atan2(s0.args["vy"], s0.args["vx"])) % 360.0
+    i = int(math.floor((deg + 22.5) / 45.0)) % 8
+    h = [0.0] * 8
+    h[i] = 3.0
+    why, s = five_run(tmp_path / "ring", h)
+    assert why["room_open"] == pytest.approx(45.0 * i)
+    assert (s.args["vx"], s.args["vy"]) == pytest.approx(heading(45.0 * i), abs=1e-6)
     assert why.get("engage_yield") == {"rule": "many"}
 
 
-def test_the_many_run_keeps_its_heading_when_room_open_reads_none(tmp_path):
-    """`room_open` returning None (no ring on the frame): the run's steer is the one with no read at all, no
-    `room_open` logged."""
-    base, s0, _ = five_run(tmp_path / "base", None)
-    why, s, asked = five_run(tmp_path / "none", lambda b: None)
-    assert len(asked) == 1 and "room_open" not in why
-    assert (s.args["vx"], s.args["vy"]) == (s0.args["vx"], s0.args["vy"])
+@pytest.mark.parametrize("h", [None, [0.0] * 8])
+def test_the_many_run_keeps_its_heading_with_no_ring_or_no_open_heading(tmp_path, h):
+    """No ring on the frame, or a ring walled all round: the run's steer is the one with no ring, no `room_open`."""
+    base, s0 = five_run(tmp_path / "base", None)
+    why, s = five_run(tmp_path / "read", h)
+    assert "room_open" not in why and (s.args["vx"], s.args["vy"]) == (s0.args["vx"], s0.args["vy"])
 
 
 def test_work_of_a_pulled_melee_keeps_the_five_work_fields(tmp_path):

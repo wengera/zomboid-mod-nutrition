@@ -1127,5 +1127,7 @@ CONE_HALF_DEG = 60.0       # degrees: the engagement cone, the pinned target's b
 CONE_OFF_DEG = 90.0        # degrees: a standing zombie closing within CONE_TRIGGER_R more than this off the pinned
                            # target's bearing (30 degrees past the cone's edge) starts the cone's pull, § 3.3
 CONE_TRIGGER_R = 4.0       # tiles: the cone's pull reads flankers this near (before contact), § 3.3
-RETREAT_HOLD_R = 1.0       # tiles: Task 3 fix 1b, the armed fighting retreat's withdraw holds while three stand within
+ROOM_OPEN_DEG = 45.0       # degrees: the `many` run above RETREAT_MAX_N takes the room ring's most open heading within
+                           # this of its own (`flee.Flee._room_open`), § 3.3
+RETREAT_HOLD_R = 1.0      # tiles: Task 3 fix 1b, the armed fighting retreat's withdraw holds while three stand within
                            # GROUP_ENTRY_R plus this, closing or not (a column keeping pace reads flat distances)

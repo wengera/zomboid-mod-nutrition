@@ -107,8 +107,9 @@ import math
 import time
 
 from agent.base.planner.policies import (AHEAD_CONE, AHEAD_R, DANGER_R, DISENGAGE_R, DOOR_CLEAR_R, DOOR_WALK_S,
-                                         FLEE_GAIT, FLEE_HEAD_R, FLEE_S, NEAR_R, PREEMPTED, SHELTER_FLEE_R, STEER_PROBE,
-                                         STEER_TURNS, STEP_PROBE, STUCK_MOVE, STUCK_NEAR_R, STUCK_SKIP_DEG,
+                                         FLEE_GAIT, FLEE_HEAD_R, FLEE_S, NEAR_R, PREEMPTED, ROOM_OPEN_DEG,
+                                         SHELTER_FLEE_R, STEER_PROBE, STEER_TURNS, STEP_PROBE, STUCK_MOVE,
+                                         STUCK_NEAR_R, STUCK_SKIP_DEG,
                                          WALK_STALL_S, WIDE_TURNS, WINDOW_STALL_S, Policy, _night, _rotate,
                                          away_vector, centre,
                                          clear_heading, exit_plan, in_building, in_corridor, line_to, on_floor, on_post,
@@ -116,7 +117,7 @@ from agent.base.planner.policies import (AHEAD_CONE, AHEAD_R, DANGER_R, DISENGAG
                                          running, stand_post, target_id_ok, zdist)
 from agent.base.planner.windows import note_window_end, window_cmd
 from agent.base.pza1 import Climb, Interact, Steer, Stop, WalkTo
-from agent.base.world import me_floor, me_xy
+from agent.base.world import ROOM_STEP_DEG, me_floor, me_xy
 
 __all__ = ["Flee", "FLEE_RULES"]
 
@@ -970,15 +971,25 @@ class Flee(Policy):
         return Steer(heading[0], heading[1], FLEE_S, self.gait)   # P24-O: a run, never a sprint (P25-C: a walk)
 
     def _room_open(self, heading):
-        """Plan 36 Task 3 (the spec's § 3.3): `(heading, degrees)` of the room ring's most open heading within 45
-        degrees of the run's `heading` (`World.room_open`, Plan 36 Task 1, degrees from the world's +x), else
-        `(heading, None)` (no ring on the frame, or a World without the read)."""
-        deg = math.degrees(math.atan2(heading[1], heading[0]))
-        opened = getattr(self.world, "room_open", lambda b: None)(deg)   # Task 1's read; the merge drops the getattr
-        if not isinstance(opened, (int, float)) or isinstance(opened, bool):
+        """Plan 36 Task 3 (the spec's § 3.3; fix 2, on the ring as Task 1 landed it): `(heading, degrees)` of the room
+        ring's most open heading within ROOM_OPEN_DEG of the run's `heading` (`World.room`: heading i at
+        ROOM_STEP_DEG * i degrees from the world's +x in atan2's convention; the largest clear tiles `h`, a tie to the
+        heading nearest the run's), else `(heading, None)`: no ring on the frame, or every candidate reading 0.0 tiles clear."""
+        ring = self.world.room()
+        if ring is None:
             return heading, None
-        r = math.radians(opened)
-        return (math.cos(r), math.sin(r)), opened
+        deg = math.degrees(math.atan2(heading[1], heading[0]))
+        picks = []
+        for i, clear in enumerate(ring["h"]):
+            at = ROOM_STEP_DEG * i
+            off = abs((at - deg + 180.0) % 360.0 - 180.0)
+            if off <= ROOM_OPEN_DEG + 1e-9 and isinstance(clear, (int, float)) and not isinstance(clear, bool):
+                picks.append((-clear, off, i, at))
+        if not picks or min(picks)[0] >= 0.0:
+            return heading, None
+        at = min(picks)[3]
+        r = math.radians(at)
+        return (math.cos(r), math.sin(r)), at
 
     def sent(self, cmd, action):
         if cmd.TYPE == "walkTo" and self._chosen in ("step", "exit"):
