@@ -72,10 +72,13 @@ left before it closes, never by running into it.
   than PULL_SPREAD_DEG pull the fight to a line, the vector into the widest gap of their bearings (along the
   bisector, away from their centroid), until the spread falls under PULL_STOP_DEG or the nearest stands within the
   reach (then the vector is dropped, the melee re-sent without it, and the reflex stands);
+  the retreat (`_pull_retreat`, fix 1, Angus's fighting retreat): GROUP_LEAVE_N or more standing zombies closing within
+  GROUP_ENTRY_R send the vector away from their centroid whatever their spread (a column included) and whatever the
+  reach, where the spread's pull does not answer;
   the cone (`_pull_cone`): a standing zombie closing within CONE_TRIGGER_R more than CONE_OFF_DEG off the pinned
   target's bearing sends the vector away from the bisector of the two bearings, until it stands inside the cone (the
   pin's bearing CONE_HALF_DEG either side) or within the reach;
-  logged `engage_pull` {why "spread" | "cone", spread, n, heading[, flank]} on the threat why. The leave at
+  logged `engage_pull` {why "spread" | "retreat" | "cone", spread, n, heading[, flank]} on the threat why. The leave at
   GROUP_LEAVE_N is this pull: its retreat's withdraw, and with the melee engaged its door and spent or held run read as
   the retreat (`_leave_leg`, `group_leave` {over}); Plan 35's `engage_hold` {rule "leave"} is deleted. Above
   RETREAT_MAX_N the `many` run stays, its heading the room ring's most open one where the frame carries the ring
@@ -355,7 +358,8 @@ class ThreatGroup:
         p = me_xy(self.world)
         standing = [(zid, z, d) for zid, z, d in self._group_standing(GROUP_ENTRY_R) if not is_crawler(z)]
         reach = self._pull_reach(fight)
-        read = self._pull_spread(p, standing, reach) or self._pull_cone(p, standing, reach, fight)
+        read = (self._pull_spread(p, standing, reach) or self._pull_retreat(p, standing)
+                or self._pull_cone(p, standing, reach, fight))
         if read is None:
             self._pull_on, self.pull, self.engage_pull = None, None, None
             return None
@@ -399,6 +403,23 @@ class ThreatGroup:
         if spread < PULL_STOP_DEG if running else spread <= PULL_SPREAD_DEG:
             return None
         return gap, {"why": "spread", "spread": spread, "n": len(group)}
+
+    def _pull_retreat(self, p, standing):
+        """Plan 36 Task 3 fix 1 (the controller's ruling; Angus's fighting retreat, memory `fighting-retreat`: with
+        three on you, back-pedal in the stance while swinging): `(heading, why)` with GROUP_LEAVE_N or more standing
+        zombies (no crawler) closing within GROUP_ENTRY_R whatever their spread (a column included) and whatever the
+        reach, the heading away from their centroid, logged {why "retreat", spread, n}; None under GROUP_LEAVE_N
+        closing (the spread's pull, read first, answers a wide pair or trio)."""
+        closing = {zid for zid, _, _ in self._group_closing}
+        group = [z for zid, z, _ in standing if zid in closing]
+        if len(group) < GROUP_LEAVE_N:
+            return None
+        cx = sum(z["x"] for z in group) / len(group)
+        cy = sum(z["y"] for z in group) / len(group)
+        away = _unit(p[0] - cx, p[1] - cy)
+        spread, _ = spread_gap([_bearing(p, z) for z in group])
+        heading = math.degrees(math.atan2(away[1], away[0])) % 360.0
+        return heading, {"why": "retreat", "spread": spread, "n": len(group)}
 
     def _pull_cone(self, p, standing, reach, fight):
         """The cone's pull: `(heading, why)` with a standing zombie (no crawler, not the pin) closing within

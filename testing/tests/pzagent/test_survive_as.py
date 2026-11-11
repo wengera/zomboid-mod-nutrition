@@ -136,11 +136,11 @@ def test_the_spread_under_pull_stop_deg_drops_the_vector(tmp_path):
 
 
 def test_the_nearest_within_the_reach_drops_the_vector(tmp_path):
-    """The pull running, 1 closes to 1.4 tiles (within the reach, 1.55): the vector is dropped, the melee re-sent
-    without it (the reflex presses)."""
+    """The pull running, 1 closes to 1.4 tiles (within the reach, 1.55) while 2 and 3 hold at 5.0 (one closing, so no
+    fighting retreat, fix 1): the vector is dropped, the melee re-sent without it (the reflex presses)."""
     r, sv, a, why, b = spread_rig(tmp_path)
     accept(r, b, "face")
-    why, c = line(tmp_path, r, sv, three(1.4, 4.5))
+    why, c = line(tmp_path, r, sv, three(1.4, 5.0))
     assert "engage_pull" not in why and c.type == "melee" and "withdrawX" not in c.args
 
 
@@ -275,3 +275,31 @@ def test_work_of_a_pulled_melee_keeps_the_five_work_fields(tmp_path):
     w = work_of(b)
     assert {k: w[k] for k in ("workR", "crawlerR", "bandLo", "floorHealth", "pile")} == {
         "workR": 3.5, "crawlerR": 1.2, "bandLo": 0.4, "floorHealth": 40.0, "pile": True}
+
+
+# ================================================================ fix 1: the fighting retreat at three closing
+def column(d1, d2, d3):
+    """A column east of ME: 1 at `d1` tiles (bearing 0), 2 at `d2` (bearing 5) and 3 at `d3` (bearing -5)."""
+    return [zp(1, 0.0, d1), zp(2, 5.0, d2), zp(3, -5.0, d3)]
+
+
+def test_three_closing_in_a_column_send_the_withdraw_away_from_their_centroid(tmp_path):
+    """Fix 1 (the controller's ruling, Angus's fighting retreat): three standing closing in a column (the spread 10
+    degrees, under PULL_STOP_DEG), the far two at 5 tiles: the engaged melee is re-sent with the withdraw away from
+    their centroid (due west), logged `engage_pull` {why "retreat", n 3}."""
+    r, sv, a = survive(tmp_path, zp(1, 0.0, 2.3))
+    line(tmp_path, r, sv, column(2.1, 5.5, 5.5))
+    why, b = line(tmp_path, r, sv, column(1.9, 5.0, 5.0))
+    assert b is not a and b.type == "melee" and b.args["targetId"] == 1
+    assert withdraw(b) == pytest.approx((-1.0, 0.0), abs=1e-9)
+    pull = why["engage_pull"]
+    assert (pull["why"], pull["n"]) == ("retreat", 3) and pull["spread"] == pytest.approx(10.0)
+    assert pull["heading"] == pytest.approx(180.0)
+
+
+def test_two_closing_in_a_column_send_none(tmp_path):
+    """Two standing closing in a column (the spread 5 degrees): under GROUP_LEAVE_N closing, no withdraw."""
+    r, sv, a = survive(tmp_path, zp(1, 0.0, 2.3))
+    line(tmp_path, r, sv, column(2.1, 5.5, 5.5)[:2])
+    why, b = line(tmp_path, r, sv, column(1.9, 5.0, 5.0)[:2])
+    assert "engage_pull" not in why and b is a
