@@ -932,3 +932,44 @@ def test_a_window_smashed_or_cleared_changes_the_fingerprint(lua):
     st["removed"] = True
     f2 = lua.eval("PZA.map.fingerprint(...)", sq, None, 11, 20, 0)
     assert len({f0, f1, f2}) == 3
+
+# ---- Plan 36 Task 1 fix 2: the square written by the Lua and decoded by pza1, field for field, beside the ring ------
+
+def test_a_square_with_every_field_set_round_trips_through_the_writer_and_pza1_beside_the_room_ring(lua, fs):
+    """PZAgent_StanceMelee.lua and PZAgent_StanceWork.lua loaded beside the map (the build's load order) and a room ring
+    read off the same cell first (its square and edge caches, ruled out as a shared read context): a scanned square
+    with a door, a window, a container, a floor item, both edges blocked and something-to, both hops and its room and
+    building is queued as a full map line whose pza1 decode equals the Lua record field for field (water is
+    test_a_square_with_a_water_object_carries_its_water_record_and_one_without_nil's)."""
+    load(lua, init=True)
+    for f in ("client/PZAgent_StanceMelee.lua", "client/PZAgent_StanceWork.lua"):
+        lua.execute(open(lua_file(f), encoding="utf-8").read())
+    st = {"open": False, "blockN": True, "blockW": True, "edgeN": True, "edgeW": True, "hopN": True, "hopW": True,
+          "light": 0.75}
+    sq = full_square(11, 20, door=True, window=True, box=True, floor=True, state=st)
+    cell = make_cell_of({(11, 20, 0): sq, (11, 19, 0): full_square(11, 19), (10, 20, 0): full_square(10, 20)})
+    lua.globals()._cell = cell
+    p = make_player(x=11.5, y=20.5)
+    ring = lua.eval("PZA.skills.workRoom")(p)
+    assert ring is not None and lua.eval("PZA.skills.roomReads") == 1
+    rec = lua.eval("PZA.map.square(...)", sq, lua.table(), cell)
+    lua.eval("PZA.map.scanStart(...)", p, 0)
+    step_parts(lua, p)
+    lua.execute("PZA.link.flush()")
+    (m,) = map_lines(fs)
+    (got,) = m["squares"]
+
+    def py(v):
+        if hasattr(v, "keys") and not isinstance(v, dict):
+            keys = list(v.keys())
+            if keys and all(isinstance(k, int) for k in keys):
+                return [py(v[k]) for k in sorted(keys)]
+            return {k: py(v[k]) for k in keys}
+        return v
+    want = {k: py(rec[k]) for k in pza1.RECORDS["square"]}
+    want["window"] = {k: want["window"].get(k) for k in pza1.RECORDS["windowPortal"]}   # nil fields absent in Lua
+    assert got == want
+    assert got["door"] == {"open": False, "locked": False, "barricaded": False} and got["window"]["locked"] is False
+    assert (got["room"], got["building"], got["light"]) == ("kitchen", 7, 0.75)
+    assert (got["blockN"], got["blockW"], got["edgeN"], got["edgeW"], got["hopN"], got["hopW"]) == (True,) * 6
+    assert got["containers"] == [{"type": "fridge", "n": 1, "items": ["Base.Milk"]}] and got["floor"] == ["Base.Plank"]

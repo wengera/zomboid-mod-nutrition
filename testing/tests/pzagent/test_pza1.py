@@ -997,3 +997,32 @@ def test_the_melee_s_pza1_10_args_and_result():
                                                "hp1": 0.5, "knock": False, "cut_by": ""}},
             "snapshot": {"me": {"x": 1.0, "y": 2.0, "z": 0, "health": 100.0}, "nearest": None}}
     assert pza1.decode(json.loads(pza1.encode("act", body))) == body
+
+# ---- Plan 36 Task 1 fix 2: a committed PZA/1.13 map line decodes with its door and its hop -------------------------
+
+# testing/artifacts/f_goals_21-20261111-150552/state.log lines 48 and 70 (PZAgent 1.13, Plan 35's F21), copied verbatim
+F21_DOOR_LINE = ('["map",48,30,1794427641173,"delta",0,1,1,[[10722,10191,0,false,false,0,"livingroom",11,'
+                 '[false,true,false],null,[],[],true,true,true,true,false,false,null]],[]]')
+F21_HOP_LINE = ('["map",70,42,1794427641368,"delta",0,1,1,[[10716,10193,0,false,false,0,null,null,null,null,[],[],'
+                'false,true,false,true,false,true,null]],[]]')
+
+
+def test_a_committed_1_13_map_line_decodes_its_door_and_its_hop_under_the_current_tables():
+    """The regression guard: a schema change that shifts the square's encoding (a field moved, dropped or inserted
+    before water) misreads these two lines of a committed artifact."""
+    log = os.path.join(ROOT, "testing", "artifacts", "f_goals_21-20261111-150552", "state.log")
+    with open(log, encoding="utf-8") as fh:
+        lines = fh.read().split("\n")
+    assert lines[47] == F21_DOOR_LINE and lines[69] == F21_HOP_LINE
+    (door,) = pza1.decode(json.loads(F21_DOOR_LINE))["squares"]
+    assert (door["x"], door["y"], door["room"], door["building"]) == (10722, 10191, "livingroom", 11)
+    assert door["door"] == {"open": False, "locked": True, "barricaded": False} and door["window"] is None
+    assert (door["blockN"], door["blockW"], door["edgeN"], door["edgeW"]) == (True, True, True, True)
+    assert (door["hopN"], door["hopW"], door["water"]) == (False, False, None)
+    (hop,) = pza1.decode(json.loads(F21_HOP_LINE))["squares"]
+    assert (hop["x"], hop["y"], hop["door"], hop["building"]) == (10716, 10193, None, None)
+    assert (hop["blockN"], hop["blockW"], hop["edgeN"], hop["edgeW"]) == (False, True, False, True)
+    assert (hop["hopN"], hop["hopW"]) == (False, True)
+    assert pza1.RECORDS["square"] == ("x", "y", "z", "solid", "solidTrans", "light", "room", "building", "door",
+                                      "window", "containers", "floor", "blockN", "blockW", "edgeN", "edgeW", "hopN",
+                                      "hopW", "water")
