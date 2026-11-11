@@ -303,3 +303,20 @@ def test_two_closing_in_a_column_send_none(tmp_path):
     line(tmp_path, r, sv, column(2.1, 5.5, 5.5)[:2])
     why, b = line(tmp_path, r, sv, column(1.9, 5.0, 5.0)[:2])
     assert "engage_pull" not in why and b is a
+
+
+def test_the_retreat_holds_while_three_stand_within_the_hold_radius_and_drops_under_three(tmp_path):
+    """Fix 1b (the hysteresis): the column closing arms the retreat; the next line, the same three at flat distances
+    (none closing), keeps it, logged {why "retreat", held true}, no re-send (the same withdraw); a line with only two
+    within GROUP_ENTRY_R + RETREAT_HOLD_R (the third at 8 tiles) drops it, the melee re-sent without the withdraw."""
+    assert P.RETREAT_HOLD_R == 1.0
+    r, sv, a = survive(tmp_path, zp(1, 0.0, 2.3))
+    line(tmp_path, r, sv, column(2.1, 5.5, 5.5))
+    why, b = line(tmp_path, r, sv, column(1.9, 5.0, 5.0))
+    assert why["engage_pull"]["why"] == "retreat" and "held" not in why["engage_pull"]
+    accept(r, b, "face")
+    why, c = line(tmp_path, r, sv, column(1.9, 5.0, 5.0))
+    assert why["engage_pull"]["why"] == "retreat" and why["engage_pull"]["held"] is True
+    assert why["engage_pull"]["n"] == 3 and c is b and sv.pull == pytest.approx((-1.0, 0.0), abs=1e-9)
+    why, d = line(tmp_path, r, sv, column(1.9, 5.0, 8.0))
+    assert "engage_pull" not in why and d is not b and d.type == "melee" and "withdrawX" not in d.args
