@@ -46,7 +46,8 @@
 --       (below), a swing or shove's knock-down (isKnockedDown) counted and the knock wait armed, the no-progress run
 --       (stall reached: done lost, why no progress). Plan 35 Task 1 fix 7, with work (a trial reading, the run
 --       x_trial-ladder-20261111-112648's a112): the stall is deferred while the target stands within shoveR, the leaf
---       reading stall_held, and beyond it re-pins to another standing zombie within workR before ending lost; a press
+--       reading stall_held, and beyond it ends lost; fix 7b: another standing zombie within workR is re-pinned to first,
+--       whatever the stalled target's distance; a press
 --       whose d_min exceeded the reach neither counts nor resets the run (K.meleeStall, the block at the end of this
 --       file). A press isAttackStarted reads false on the tick after it was
 --       refused (fix 1, F3: pressedAttack sets attackStarted at the press, review-t2): its leaf cut_by refused, no
@@ -715,7 +716,9 @@ local function crowdOf(p, st, crowd, d, fallen)
         table.sort(ds)
         return "done", "handback", { why = "crowd", id = crowd[1].id, d = crowd[1].d, n = n, ds = ds }
     end
-    if not fallen and crowd[1].d < d - K.MELEE_REPIN_SLACK then return repin(p, st, crowd[1]) end
+    if not fallen and crowd[1].d < d - K.MELEE_REPIN_SLACK and not K.meleeStalled(st, crowd[1].id) then   -- fix 7b
+        return repin(p, st, crowd[1])
+    end
     return nil
 end
 
@@ -1199,17 +1202,34 @@ end
 -- tick. And a press whose d_min (the distance at the press) exceeded the reach lowered nothing because the target was
 -- out of reach, not blocked: it neither counts in st.nothing nor resets it, as a refused press. Without work both
 -- answer as before.
+-- Fix 7b (the same death's second reading: the stalled 25245 lunged at 0.50 across a fence the map had not read while
+-- 25201 climbed over from 1.17 to 0.49 and bit): the re-pin to another standing zombie within workR (not fallen, not
+-- crawling: isCrawling read on each candidate) comes first, whatever the stalled target's distance, the leaf's
+-- repin_for stall on its line; the shove-range hold only with nobody else.
 function K.meleeStall(p, st, d)
     st.stallHeld = false
     if st.work ~= nil then
+        local near = standingNear(p, st, st.work.workR)
+        if near ~= nil then
+            for i = 1, #near do
+                local _, crawl = PZA.call(near[i].o, "isCrawling")
+                if crawl ~= true then
+                    st.work.repinFor, st.work.stallId = "stall", st.id   -- the stalled one never re-pinned back
+                    return repin(p, st, near[i])
+                end
+            end
+        end
         if d <= st.shoveR and not K.onFloor(st.z) then
             st.stallHeld = true
             return nil
         end
-        local near = standingNear(p, st, st.work.workR)
-        if near ~= nil then return repin(p, st, near[1]) end
     end
     return "done", "lost", { why = "no progress" }
+end
+
+-- whether zombie id is the one a stall re-pinned away from (fix 7b): never re-pinned back to by the crowd's re-pin
+function K.meleeStalled(st, id)
+    return st.work ~= nil and st.work.stallId ~= nil and st.work.stallId == id
 end
 
 -- a press's leaf distance beyond the reach (with work only): the press neither counts nor resets the stall

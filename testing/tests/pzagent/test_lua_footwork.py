@@ -24,7 +24,7 @@ SCHEMA = os.path.join(ROOT, "testing", "agent", "base", "schema", "pza1.json")
 WORK = {"workR": 3.5, "crawlerR": 1.2, "bandLo": 0.4, "floorHealth": 0.0, "reach": 1.475}   # fix 2: the live reach
 # (the smoke x_trial-ladder-20261110-084643 sent 1.475): the band, reach - bandLo, 1.075; the step goes in [0.9, 1.075)
 BAND_X = 10.95   # the target 0.95 tiles east: inside the band, beyond K.WORK_POINT_BLANK_R
-WORK_LEAF = {"heading", "turn", "clear", "gap", "n", "crawler", "held", "pile", "step_for", "retreat", "stall_held"}   # fix 2: held; fix 3: pile; fix 5: step_for
+WORK_LEAF = {"heading", "turn", "clear", "gap", "n", "crawler", "held", "pile", "step_for", "retreat", "stall_held", "repin_for"}   # fix 2: held; fix 3: pile; fix 5: step_for
 LOOK_OFF = {"look": math.pi, "turn": 0.0, "snap": False}   # the look held away: the meet never presses
 
 
@@ -1048,3 +1048,33 @@ def test_a_press_within_reach_that_lowered_nothing_counts(lua, fs):
     run(lua, p, w, 12, stop=lambda: len(w["presses"]) >= 1 and lua.eval("PZA.skills.cur.st.strike") is None)
     lf = leaves(lua, fs)
     assert lf and lf[0]["d_min"] <= 1.0 and lua.eval("PZA.skills.cur.st.nothing") == 1
+
+
+def test_at_the_stall_in_shove_range_another_standing_zombie_is_re_pinned_first(lua, fs):
+    """Fix 7b (a112's second reading: the stalled target lunging at 0.50 across an unmapped fence while 25201 climbed
+    over and bit): the stalled target at 0.7 (inside shoveR) and another standing zombie at 2.5: the re-pin to it,
+    never stall_held, and the re-pin's line reads repin_for stall."""
+    p, z, w = world(lua, zx=10.7, attack_ticks=6)
+    o8 = make_zombie(8, 10.0, 22.5)
+    records(lua, [target_rec(w), {"id": 8, "dist": 2.5, "x": 10.0, "y": 22.5}], {7: z, 8: o8})
+    gow(lua, p)
+    run(lua, p, w, 150, stop=lambda: lua.eval("PZA.skills.cur.st.id") == 8)
+    assert lua.eval("PZA.skills.cur") is not None and lua.eval("PZA.skills.cur.st.id") == 8
+    assert all((a["result"].get("work") or {}).get("stall_held") is not True for a in progress(lua, fs))
+    rp = [a for a in progress(lua, fs) if a["result"]["step"] == "repin"]
+    assert rp and rp[-1]["result"]["work"].get("repin_for") == "stall"
+    run(lua, p, w, 30)                                                # the stalled 7 at 0.7 is never re-pinned back
+    assert lua.eval("PZA.skills.cur.st.id") == 8
+
+
+def test_at_the_stall_a_crawler_is_no_other_standing_zombie(lua, fs):
+    """The stalled target at 0.7 and only a crawler (isCrawling) at 2.5 standing-read: no re-pin, the hold."""
+    p, z, w = world(lua, zx=10.7, attack_ticks=6)
+    c = make_zombie(8, 10.0, 22.5)
+    c.isCrawling = lambda s: True
+    records(lua, [target_rec(w), {"id": 8, "dist": 2.5, "x": 10.0, "y": 22.5}], {7: z, 8: c})
+    gow(lua, p)
+    run(lua, p, w, 150, stop=lambda: lua.eval("PZA.skills.cur.st.nothing") >= 3)
+    run(lua, p, w, 20)
+    assert lua.eval("PZA.skills.cur.st.id") == 7
+    assert any((a["result"].get("work") or {}).get("stall_held") is True for a in progress(lua, fs))

@@ -150,7 +150,7 @@ def.tick = function(p, st)
     local w = st.work
     if w == nil then return baseTick(p, st) end
     if st.startMs == nil and not PZA.field(p, "getZ") then return "failed", "not loaded" end
-    w.inContact, w.steppedNow = false, false
+    w.inContact, w.steppedNow, w.repinFor = false, false, nil
     local a, b, c = baseTick(p, st)
     if w.inContact and st.strike == nil then w.contact = w.contact + 1 end
     return a, b, c
@@ -464,7 +464,9 @@ local function pileTick(p, st, d, fallen, standing)
     end
     if why == nil or fallen or not standing then return nil end
     local near = w.near
-    if near ~= nil and near[1].d < d - K.MELEE_REPIN_SLACK then return M.repin(p, st, near[1]) end
+    if near ~= nil and near[1].d < d - K.MELEE_REPIN_SLACK and near[1].id ~= w.stallId then   -- fix 7b
+        return M.repin(p, st, near[1])
+    end
     if d > st.shoveR or (w.shoveId == st.id and w.shoveFails >= 2) then   -- the step first, then the meet's press
         w.pileState, w.pileTicks, w.piles = "step", 0, w.piles + 1
         return pileTick(p, st, d, fallen, standing)
@@ -582,7 +584,7 @@ local function retreatTick(p, st, d, standing, g, gid)
     w.retreating = true
     if g <= M.reachOf(p, st) then
         local near = w.near
-        if gid ~= st.id and near ~= nil and near[1].id == gid then return M.repin(p, st, near[1]) end
+        if gid ~= st.id and near ~= nil and near[1].id == gid and gid ~= w.stallId then return M.repin(p, st, near[1]) end
         if standing then
             local v = M.closingOf(st, st.px, st.py, st.zx, st.zy, d)
             if g <= M.minRangeOf(p, st) or (v ~= nil and v > K.MELEE_CLOSING_V) then return nil end
@@ -670,6 +672,7 @@ function K.workResult(st, out)
     local leaf = { gap = w.gap, crawler = w.crawlerD, held = w.held, pile = w.pileWhy }
     if w.retreating then leaf.retreat = true end   -- fix 6: the retreat's mode running
     if st.stallHeld then leaf.stall_held = true end   -- fix 7: the stall deferred in shove range
+    leaf.repin_for = w.repinFor   -- fix 7b: the stall's re-pin, on its own tick's line
     if w.steppedNow then   -- fix 5: the heading, its turn, clear and n of the step this tick, absent on any other
         leaf.heading, leaf.turn, leaf.clear, leaf.n, leaf.step_for = w.heading, w.turn, w.clear, w.n, w.stepFor
     end
