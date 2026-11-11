@@ -92,7 +92,7 @@ def test_the_driver_refuses_arguments_before_main():
 def test_the_refusal_names_why():
     r = XT.parse_argv(["--variant", "ladder", "--fixture", "agent", "--make-fixture", "a", "--waves", "lone"], ME)
     assert r.startswith("x_trial.py takes only --variant <name> --fixture <name> [--minutes N] [--no-llm] "
-                        "[--goals scripted|hold] [--waves lone|none|pair|street] [--teleport X,Y] "
+                        "[--goals scripted|hold] [--waves crawler|flank|lone|none|pair|street|trio] [--teleport X,Y] "
                         "[--make-fixture <name>] [--detached]; refused: ")
     assert "spawned zombies into the fixture" in r
     assert "(missing --fixture)" in XT.parse_argv(["--variant", "ladder"], ME)
@@ -244,7 +244,7 @@ def test_the_none_plan_runs_the_evidence_fixture_with_the_model_and_refuses_an_u
                               "detached": False}
     assert XT.parse_argv(base + ["--no-llm", "--make-fixture", "agent-x", "--minutes", "1"], ME) is None
     r = XT.parse_argv(["--variant", "ladder", "--fixture", "agent", "--waves", "nope"], ME)
-    assert r.startswith("x_trial.py takes only ") and r.endswith("(--waves takes one of lone, none, pair, street)")
+    assert r.startswith("x_trial.py takes only ") and r.endswith("(--waves takes one of crawler, flank, lone, none, pair, street, trio)")
     assert os.path.isfile(os.path.join(REPO, "testing", "fixtures", "agent", "fixture.json"))   # the evidence fixture
 
 
@@ -1248,3 +1248,86 @@ def test_the_hold_trial_writes_goals_hold_in_trial_json_and_keeps_the_no_llm_bou
     assert r.out["stop"]["reason"] == "day_cap" and r.out["finished"] is True and r.out.get("error") is None
     assert trial["wall_bound_s"] == 15 + 140 + 2 + 35 + 6 + 75        # the no-model bound, as --no-llm's
     assert TR.wall_bound(r.args) == TR.wall_bound(XT.flags(argv[:-4] + ["--minutes", "0.5"]))
+
+
+# ---------------------------------------------------------------- Plan 36 Task 5a: the trio, flank and crawler waves
+def test_the_existing_waves_keep_their_tuples_and_a_three_tuple_reads_no_delay_and_no_crawler():
+    """The pin: lone, pair, street and none are unchanged by the delay and crawler elements."""
+    assert TR.WAVE_PLANS["lone"] == {"period_s": 60.0, "spawns": ((1, 8.0, 0.0),)}
+    assert TR.WAVE_PLANS["pair"] == {"period_s": 90.0, "spawns": ((1, 8.0, -35.0), (1, 8.0, 35.0))}
+    assert TR.WAVE_PLANS["street"] == {"period_s": None, "spawns": ()}
+    assert TR.WAVE_PLANS["none"] == {"period_s": None, "spawns": ()}
+    w, sent = _waves("pair")
+    w.begin(0.0)
+    rows = w.step(0.0)
+    assert all("delayS" not in r and "crawler" not in r for r in rows) and w.delayed == []
+    assert all("-crawler" not in c for c, _ in sent)
+
+
+def test_trio_fires_three_at_8_tiles_at_minus_60_0_and_60_every_90_s():
+    assert TR.WAVE_PLANS["trio"] == {"period_s": 90.0, "spawns": ((1, 8.0, -60.0), (1, 8.0, 0.0), (1, 8.0, 60.0))}
+    w, sent = _waves("trio")
+    w.begin(0.0)
+    assert len(w.step(0.0)) == 3
+    assert [r["bearing"] for r in w.rows] == [-60.0, 0.0, 60.0] and [r["dist"] for r in w.rows] == [8.0] * 3
+    assert [c for c, _ in sent] == ["createhorde2 -x 104 -y 193 -z 0 -count 1 -radius 1",
+                                    "createhorde2 -x 108 -y 200 -z 0 -count 1 -radius 1",
+                                    "createhorde2 -x 104 -y 206 -z 0 -count 1 -radius 1"]
+    assert w.step(89.0) == [] and len(w.step(90.0)) == 3
+    assert max(b for _, _, b in TR.WAVE_PLANS["trio"]["spawns"]) - min(b for _, _, b in TR.WAVE_PLANS["trio"]["spawns"]) > 60
+
+
+def test_flank_sends_the_second_spawn_ten_seconds_after_the_first_on_a_fake_clock():
+    assert TR.WAVE_PLANS["flank"] == {"period_s": 90.0, "spawns": ((1, 8.0, 0.0), (1, 8.0, 120.0, 10.0))}
+    w, sent = _waves("flank")
+    w.begin(1000.0)
+    rows = w.step(1000.0)
+    assert [r["spawn"] for r in rows] == [0] and sent == [("createhorde2 -x 108 -y 200 -z 0 -count 1 -radius 1", "wave_0_0")]
+    assert len(w.delayed) == 1
+    assert w.step(1005.0) == [] and w.step(1009.9) == [] and len(sent) == 1
+    rows = w.step(1010.0)
+    assert [r["spawn"] for r in rows] == [1] and rows[0]["t"] == 10.0 and rows[0]["delayS"] == 10.0
+    assert sent[1] == ("createhorde2 -x 96 -y 206 -z 0 -count 1 -radius 1", "wave_0_1") and w.delayed == []
+    assert w.step(1011.0) == [] and len(sent) == 2
+    assert [r["wave"] for r in w.step(1090.0)] == [1] and [r["wave"] for r in w.step(1100.0)] == [1]
+    assert [t for _, t in sent] == ["wave_0_0", "wave_0_1", "wave_1_0", "wave_1_1"]
+
+
+def test_flank_sends_the_delayed_spawn_at_the_position_of_its_own_send():
+    pos = [100.0, 200.0, 0]
+    sent = []
+    w = TR.Waves("flank", lambda cmd, tag: sent.append(cmd) or {"ok": True}, lambda: tuple(pos))
+    w.begin(0.0)
+    w.step(0.0)
+    pos[0] = 150.0
+    w.step(10.0)
+    assert sent[1] == "createhorde2 -x 146 -y 206 -z 0 -count 1 -radius 1"
+
+
+def test_a_delayed_spawn_confirms_and_re_sends_with_no_delay():
+    seen = {}
+    w, sent = _confirming("flank", seen)
+    w.begin(0.0)
+    w.step(0.0)
+    rows = w.step(10.0)       # the delayed spawn goes first, then spawn 0's confirmation (due at 8 s, nothing listed)
+    assert sent == ["wave_0_0", "wave_0_1", "wave_0_0_resend"] and [r["spawn"] for r in rows] == [1, 0]
+    assert rows[1]["resend_of"] == 0 and "delayS" not in rows[1]
+
+
+def test_crawler_sends_a_standing_zombie_and_a_crawler_with_the_crawler_flag():
+    assert TR.WAVE_PLANS["crawler"] == {"period_s": 90.0, "spawns": ((1, 8.0, 0.0), (1, 5.0, 90.0, 0.0, True))}
+    w, sent = _waves("crawler")
+    w.begin(0.0)
+    rows = w.step(0.0)
+    assert len(rows) == 2 and w.delayed == []
+    assert [c for c, _ in sent] == ["createhorde2 -x 108 -y 200 -z 0 -count 1 -radius 1",
+                                    "createhorde2 -x 100 -y 205 -z 0 -count 1 -radius 1 -crawler true"]
+    assert "crawler" not in rows[0] and rows[1]["crawler"] is True and rows[1]["dist"] == 5.0
+    assert w.record()["spawns"] == [[1, 8.0, 0.0], [1, 5.0, 90.0, 0.0, True]]
+
+
+def test_the_new_waves_parse_and_the_unknown_one_is_still_refused():
+    for name in ("trio", "flank", "crawler"):
+        assert XT.parse_argv(["--variant", "ladder", "--fixture", "agent", "--waves", name], ME) is None
+    r = XT.parse_argv(["--variant", "ladder", "--fixture", "agent", "--make-fixture", "a", "--waves", "flank"], ME)
+    assert "spawned zombies into the fixture" in r

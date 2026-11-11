@@ -164,15 +164,23 @@ TELEPORT_NEAR = 2.0                  # tiles: a frame this near the square reads
 # CreateHorde2Command (capability CreateHorde): -x -y -z -count -radius, addZombiesInOutfit at the square; -z is the
 # character's floor off its last frame (an upstairs character's wave spawns on its floor), 0 when the frame has none
 CREATEHORDE2_CMD = "createhorde2 -x {x} -y {y} -z {z} -count {count} -radius {radius}"
+# `-crawler true` (CreateHorde2Command's own pair: the next token read as a boolean, true unless "false"; read off the
+# jar at 42.22.2, its slot is addZombiesInOutfit's first boolean, the crawler flag), appended for a crawler spawn
+CRAWLER_ARG = " -crawler true"
 WAVE_RADIUS = 1
 
 # ---------------------------------------------------------------- the wave plans
-# spawns: (count, distance in tiles, bearing in degrees from the world's +x axis toward +y); the first wave fires at
-# the loop's first frame, then one every period_s
+# spawns: (count, distance in tiles, bearing in degrees from the world's +x axis toward +y[, delay_s[, crawler]]); the
+# first wave fires at the loop's first frame, then one every period_s; delay_s (default 0.0) is the spawn's send that
+# many seconds after its wave's first send, crawler (default False) adds CRAWLER_ARG to its command
 WAVE_PLANS = {
     "lone": {"period_s": 60.0, "spawns": ((1, 8.0, 0.0),)},
     "pair": {"period_s": 90.0, "spawns": ((1, 8.0, -35.0), (1, 8.0, 35.0))},     # 70 degrees apart
     "street": {"period_s": None, "spawns": ()},
+    # Plan 36 Task 5a: the engagement's arena waves
+    "trio": {"period_s": 90.0, "spawns": ((1, 8.0, -60.0), (1, 8.0, 0.0), (1, 8.0, 60.0))},   # 120 degrees across
+    "flank": {"period_s": 90.0, "spawns": ((1, 8.0, 0.0), (1, 8.0, 120.0, 10.0))},     # the second 10 s after the first
+    "crawler": {"period_s": 90.0, "spawns": ((1, 8.0, 0.0), (1, 5.0, 90.0, 0.0, True))},   # a standing one and a crawler
     # Plan 33 Task 4: no spawns, the fixture's own zombies (the evidence fixture `agent` with the model: the trial
     # on the fixture where the evidence session ran); `Waves.start` starts no thread without spawns
     "none": {"period_s": None, "spawns": ()},
@@ -527,6 +535,7 @@ class Waves:
         self.rcon, self.position, self.clock = rcon, position, clock
         self.poll_s, self.join_s = poll_s, join_s
         self.listed, self.confirm_s, self.confirm_r = listed, confirm_s, confirm_r
+        self.delayed = []        # {wave, spawn, due, late_s, missed}: a spawn with a delay_s, sent at its `due`
         self.pending = []        # {wave, spawn, due, before, need, at, resend}: a send waiting for its confirmation
         self.confirms = []
         self.by_wave = {}        # wave -> {wave, sent, resent, listed_ids, confirmed}
@@ -550,7 +559,7 @@ class Waves:
         if self.t0 is None or not self.spawns or self.period_s is None:
             return []
         with self._lock:                                  # two callers would each re-send the one due confirmation
-            added = self.confirm(now)
+            added = self.send_delayed(now) + self.confirm(now)
             k = int((now - self.t0) // self.period_s)        # the latest wave boundary at or before now
             if k < self.next_i:
                 return added
@@ -586,22 +595,45 @@ class Waves:
                 added += self.fire(p["wave"], now, resend={p["spawn"]: short})
         return added
 
-    def fire(self, i, now, late_s=0.0, missed=0, resend=None):
+    def send_delayed(self, now):
+        """The delayed spawns due at `now` (a wave's `delay_s` spawns, queued by `fire`), each sent at the character's
+        position then; the rows added."""
+        due = [d for d in self.delayed if now >= d["due"]]
+        added = []
+        for d in due:
+            self.delayed.remove(d)
+            added += self.fire(d["wave"], now, d["late_s"], d["missed"], only=d["spawn"], delayed=True)
+        return added
+
+    def fire(self, i, now, late_s=0.0, missed=0, resend=None, only=None, delayed=False):
         """Wave `i`'s spawns at the square off the character's last frame (`resend` {spawn: count}: only those spawns, at
-        that count and each its own distance and bearing, the rows marked `resend_of`); one pending confirmation per
-        spawn sent, when `listed` is set."""
+        that count and each its own distance and bearing and no delay, the rows marked `resend_of`); a spawn with a
+        `delay_s` is queued in `delayed` and sent by `send_delayed` that long after (`only`, `delayed`: that spawn's
+        own send); one pending confirmation per spawn sent, when `listed` is set."""
         pos = self.position()
         before = frozenset(self.listed()) if self.listed is not None else None
         added = []
         w = self.by_wave.setdefault(i, {"wave": i, "sent": 0, "resent": 0, "listed_ids": [], "confirmed": False})
-        for j, (count, dist, bearing) in enumerate(self.spawns):
+        for j, spawn in enumerate(self.spawns):
+            count, dist, bearing = spawn[:3]
+            delay_s = spawn[3] if len(spawn) > 3 else 0.0
+            crawler = bool(spawn[4]) if len(spawn) > 4 else False
+            if only is not None and j != only:
+                continue
             if resend is not None:
                 if j not in resend:
                     continue
                 count = resend[j]
+            elif delay_s > 0.0 and not delayed:
+                self.delayed.append({"wave": i, "spawn": j, "due": now + delay_s, "late_s": late_s, "missed": missed})
+                continue
             row = {"wave": i, "spawn": j, "t": round(now - self.t0, 3), "lateS": round(late_s, 3), "missed": missed,
                    "count": count, "dist": dist, "bearing": bearing, "from": list(pos) if pos else None, "at": None,
                    "cmd": None, "ack": None}
+            if delay_s > 0.0:
+                row["delayS"] = delay_s
+            if crawler:
+                row["crawler"] = True
             if resend is not None:
                 row["resend_of"] = i
             if pos is None:
@@ -610,7 +642,8 @@ class Waves:
                 x, y = wave_square(pos, dist, bearing)
                 z = int(pos[2]) if len(pos) > 2 and DS._num(pos[2]) is not None else 0     # the character's floor
                 row["at"] = [x, y, z]
-                row["cmd"] = CREATEHORDE2_CMD.format(x=x, y=y, z=z, count=int(count), radius=WAVE_RADIUS)
+                row["cmd"] = CREATEHORDE2_CMD.format(x=x, y=y, z=z, count=int(count), radius=WAVE_RADIUS) + (
+                    CRAWLER_ARG if crawler else "")
                 row["ack"] = self.rcon(row["cmd"], "wave_%d_%d%s" % (i, j, "" if resend is None else "_resend"))
                 w["resent" if resend is not None else "sent"] += int(count)
                 if before is not None:
