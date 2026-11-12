@@ -93,9 +93,9 @@ def test_the_work_inputs_carry_the_crawler_buffer_and_the_pile_under_every_dispo
 
 # ================================================================ hunt
 def test_two_standing_are_hunted_with_no_withdraw(tmp_path):
-    """One standing at 1.8 tiles, then a second at 3 tiles: the first line enters `hunt` (logged `disposition` {from
-    null, to hunt, why count, dwell null}) and the melee carries `disposition` hunt and no withdraw; the second line no
-    change, no re-send."""
+    """One standing at 1.8 tiles, then a second at 3 tiles (not closing: no spread pull, fix 1): the first line enters
+    `hunt` (logged `disposition` {from null, to hunt, why count, dwell null}) and the melee carries `disposition` hunt
+    and no withdraw; the second line no change, no re-send."""
     r, sv, a = survive(tmp_path, zp(1, 0.0, 1.8))
     assert a.args["disposition"] == "hunt" and "withdrawX" not in a.args
     assert sv.disposition == "hunt"
@@ -146,6 +146,39 @@ def test_hold_is_kept_under_the_dwell_when_the_count_flickers_to_two(tmp_path):
     out = lines(tmp_path, r, sv, [two] * 5)
     tos = [w.get("disposition", {}).get("to") for w, _ in out]
     assert tos[:4] == [None] * 4 and tos[4] == "hunt" and sv.disposition == "hunt"
+
+
+def test_a_pair_closing_at_a_wide_spread_is_pulled_to_a_line_under_hunt(tmp_path):
+    """Fix 1 (the controller's ruling, Plan 36's pair behaviour): under `hunt` two standing closing within
+    GROUP_ENTRY_R at bearings 0 and 90 (the spread 90, over PULL_SPREAD_DEG), the nearest beyond the reach: the melee
+    is re-sent with the withdraw along the bisector turned about (225 degrees), `disposition` hunt, logged
+    `engage_pull` {why "spread", n 2}."""
+    r, sv, a = survive(tmp_path, zp(1, 0.0, 2.3))
+    line(tmp_path, r, sv, [zp(1, 0.0, 2.1), zp(2, 90.0, 5.5)])
+    why, b = line(tmp_path, r, sv, [zp(1, 0.0, 1.9), zp(2, 90.0, 5.0)])
+    assert sv.disposition == "hunt" and b.type == "melee" and b.args["disposition"] == "hunt"
+    assert (why["engage_pull"]["why"], why["engage_pull"]["n"]) == ("spread", 2)
+    assert why["engage_pull"]["heading"] == pytest.approx(225.0)
+    assert (b.args["withdrawX"], b.args["withdrawY"]) == pytest.approx(
+        (math.cos(math.radians(225.0)), math.sin(math.radians(225.0))), abs=1e-9)
+
+
+def column_three(k):
+    """Line k's column east of ME: 1 at bearing 0, 2 and 3 at bearings +5 and -5, each nearer a line."""
+    return [zp(1, 0.0, 2.4 - 0.1 * k), zp(2, 5.0, 5.5 - 0.25 * k), zp(3, -5.0, 5.5 - 0.25 * k)]
+
+
+def test_a_column_of_three_gets_no_retreat_under_hunt_and_the_retreat_under_hold(tmp_path):
+    """Fix 1: three standing closing in a column (the spread 10, no spread or cone pull): inside the dwell `hunt`
+    sends no withdraw (the retreat is `hold`'s alone); at `hold` the melee carries the retreat's heading away from
+    their centroid (due west), logged `engage_pull` {why "retreat", n 3}, as before."""
+    r, sv, a = survive(tmp_path, zp(1, 0.0, 2.4))
+    out = lines(tmp_path, r, sv, [column_three(k) for k in range(1, 5)])
+    assert all("engage_pull" not in w for w, _ in out[:3]) and sv.disposition == "hold"
+    why, b = out[3]
+    assert why["disposition"]["to"] == "hold" and b.args["disposition"] == "hold"
+    assert (why["engage_pull"]["why"], why["engage_pull"]["n"]) == ("retreat", 3)
+    assert (b.args["withdrawX"], b.args["withdrawY"]) == pytest.approx((-1.0, 0.0), abs=1e-6)
 
 
 # ================================================================ string

@@ -33,8 +33,8 @@ the standing count within GROUP_ENTRY_R (`group_n`, one read dead or across a bl
   away from the bisector until it stands inside the cone (CONE_HALF_DEG) or within the reach; the retreat
   (`_pull_retreat`, Angus's fighting retreat), the vector away from the standing centroid: under the `hold`
   disposition whenever the spread and the cone read none (the standing within GROUP_ENTRY_R + RETREAT_HOLD_R, closing or
-  not: the hold's dwell is the selector's), else with GROUP_LEAVE_N or more closing, read after the spread and before
-  the cone. Every heading is clamped to the room ring's open headings within PULL_ROOM_TURN_DEG reading PULL_ROOM_NEED
+  not: the hold's dwell is the selector's), never under `hunt` (its pulls the spread's and the cone's alone, Task 3 fix
+  1), and with the selector not running at GROUP_LEAVE_N or more closing, read after the spread and before the cone. Every heading is clamped to the room ring's open headings within PULL_ROOM_TURN_DEG reading PULL_ROOM_NEED
   tiles (`_pull_room`, logged {room {from}}), the vector dropped with none ({room "closed"}); logged `engage_pull` {why
   "spread" | "retreat" | "cone", spread, n, heading[, flank]} on the threat why.
 
@@ -269,16 +269,21 @@ class ThreatGroup:
         self.group_retreat = {"leg": leg, "closing": ids, "centroid_away": [away[0], away[1]]}
 
     # ------------------------------------------------------------------------------------------------ the pull
-    def _pull(self, fight, hold=False):
+    def _pull(self, fight, disposition=None):
         """Plan 36 Task 3 (the module docstring's engagement picker): the withdraw vector `fight`'s melee carries this
         tick (`pull`, a unit vector), else None; `engage_pull` {why, spread, n, heading[, flank]} its why, `heading`
-        the vector's degrees. The spread's pull first (`_pull_spread`), then the retreat's and the cone's: under the
-        `hold` disposition (`hold`, Plan 37 Task 3) the cone before the retreat, which always reads; read on the
-        Fight's lines the picker reads (`Threat._decide`), its hysteresis the last such line's read (`_pull_prev`)."""
+        the vector's degrees; read on the Fight's lines the picker reads (`Threat._decide`), the spread's and the cone's
+        hysteresis the last such line's read (`_pull_prev`). By the selector's `disposition` (Plan 37 Task 3 and its fix
+        1): `hunt` the spread's pull (`_pull_spread`), else the cone's (`_pull_cone`), never the retreat (Plan 36's
+        pair behaviour; the retreat is `hold`'s alone); `hold` the spread's, else the cone's, else the retreat's, which
+        always reads there (`_pull_retreat` with `hold`); None (the selector not running) Plan 36's order, the spread's,
+        then the retreat's at GROUP_LEAVE_N closing, then the cone's."""
         p = me_xy(self.world)
         standing = [(zid, z, d) for zid, z, d in self._group_standing(GROUP_ENTRY_R) if not is_crawler(z)]
         reach = self._pull_reach(fight)
-        if hold:
+        if disposition == "hunt":
+            read = self._pull_spread(p, standing, reach) or self._pull_cone(p, standing, reach, fight)
+        elif disposition == "hold":
             read = (self._pull_spread(p, standing, reach) or self._pull_cone(p, standing, reach, fight)
                     or self._pull_retreat(p, standing, hold=True))
         else:

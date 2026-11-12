@@ -35,8 +35,9 @@ the leave row, the engagement picker's pull, no `disposition` on the wire).
   `many`, `leave` reason `leave`), or the rows below for `health` (the health flee, the low fight).
 - The inputs (`_disposition_inputs`, `Threat._decide`'s Fight where the engagement picker reads, `Threat._pull_ok`):
   the Fight's `disposition` (the wire's name; a pending `break` sends the one it left), its `withdraw` (`hold` the
-  picker's pull, `ThreatGroup._pull` with `hold`; `string` the string heading; `hunt` none: the Lua's hunt retreats
-  whenever a withdraw is given) and its `release` (a pending `break`).
+  picker's pull, `ThreatGroup._pull` with `hold`; `string` the string heading; `hunt`, fix 1 (the controller's
+  ruling), the picker's spread and cone pulls as Plan 36 sent them, never the retreat: the Lua's hunt retreats along
+  a given withdraw, Plan 36's pair behaviour) and its `release` (a pending `break`).
 - The string heading (`_string_heading`): of the headings every STRING_STEP_DEG within STRING_TURN_DEG either side of
   the way away from the standing centroid, the longest open line over STRING_LOOK_R (`World.open_line`), ties to the
   nearest straight away, then clamped to the room ring as the pull is (`ThreatGroup._pull_room`); logged
@@ -305,14 +306,14 @@ class Disposer:
             policy.release, d = True, rp["from"]
         policy.disposition = d
         if d == "hold":
-            policy.withdraw = self._pull(policy, hold=True)
+            policy.withdraw = self._pull(policy, "hold")
             self._hold_heading = (None if policy.withdraw is None
                                   else math.degrees(math.atan2(policy.withdraw[1], policy.withdraw[0])) % 360.0)
         elif d == "string":
             vec, why = self._string_read if self._string_read is not None else self._string_heading()
             self.string_why, policy.withdraw = why, vec
         else:
-            policy.withdraw = None
+            policy.withdraw = self._pull(policy, "hunt")   # fix 1: Plan 36's spread and cone pulls, no retreat
 
     # ---------------------------------------------------------------------------------------------------- the string
     def _string_heading(self):

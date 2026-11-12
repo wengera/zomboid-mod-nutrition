@@ -44,13 +44,15 @@ def zp(zid, deg, d):
     return z(zid, ME[0] + d * math.cos(math.radians(deg)), ME[1] + d * math.sin(math.radians(deg)))
 
 
-def survive(tmp_path, first, leave=False):
-    """A Survive (GROUP_LEAVE `leave`) on a `rig` announcing PZA/1.13 with `melee`: its first line fights `first` (one
-    standing zombie within KEEP_R) with the melee, accepted, its last step `face`."""
+def survive(tmp_path, first, leave=False, disposition=False):
+    """A Survive (GROUP_LEAVE `leave`, DISPOSITION `disposition`) on a `rig` announcing PZA/1.13 with `melee`: its first
+    line fights `first` (one standing zombie within KEEP_R) with the melee, accepted, its last step `face`. Plan 37
+    Task 3 fix 1: the spread's and the cone's cases read the live path (the selector's `hunt` sends the picker's
+    spread and cone pulls as Plan 36 did); the rest pin Plan 36's picker with the switch off."""
     r = rig(tmp_path)
     sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
     sv.GROUP_LEAVE = leave
-    sv.DISPOSITION = False   # Plan 37 Task 3: the picker as Plan 36 sent it
+    sv.DISPOSITION = disposition
     r.frame(zombies=[first])
     tick(r, sv)
     a = r.acts.history[-1]
@@ -99,8 +101,9 @@ def test_spread_gap(bearings, spread, gap):
 # ================================================================ the spread
 def spread_rig(tmp_path):
     """The engaged melee at 1 (2.3 tiles east); then 1 closes to 2.1 and to 1.9 (beyond the reach, 1.2 + ATTACK_MARGIN)
-    while 2 and 3 come in at bearings -70 and +70 from 5.5 to 5.0 tiles: the third line reads all three closing."""
-    r, sv, a = survive(tmp_path, zp(1, 0.0, 2.3))
+    while 2 and 3 come in at bearings -70 and +70 from 5.5 to 5.0 tiles: the third line reads all three closing. On the
+    live path (fix 1): the three lines inside DISPOSITION_DWELL_S read `hunt`, its pull the spread's."""
+    r, sv, a = survive(tmp_path, zp(1, 0.0, 2.3), disposition=True)
     line(tmp_path, r, sv, three(2.1, 5.5))
     why, b = line(tmp_path, r, sv, three(1.9, 5.0))
     return r, sv, a, why, b
@@ -171,8 +174,8 @@ def test_two_standing_at_a_wide_spread_but_not_closing_send_no_pull(tmp_path):
 # ================================================================ the cone
 def cone_rig(tmp_path):
     """The engaged melee at 1 (2.0 tiles east, steady); 2 closes from 3.8 to 3.3 tiles at bearing 120 (120 degrees off
-    the pin, more than CONE_OFF_DEG; within CONE_TRIGGER_R)."""
-    r, sv, a = survive(tmp_path, zp(1, 0.0, 2.0))
+    the pin, more than CONE_OFF_DEG; within CONE_TRIGGER_R). On the live path (fix 1): `hunt`, its pull the cone's."""
+    r, sv, a = survive(tmp_path, zp(1, 0.0, 2.0), disposition=True)
     line(tmp_path, r, sv, [zp(1, 0.0, 2.0), zp(2, 120.0, 3.8)])
     why, b = line(tmp_path, r, sv, [zp(1, 0.0, 2.0), zp(2, 120.0, 3.3)])
     return r, sv, a, why, b
