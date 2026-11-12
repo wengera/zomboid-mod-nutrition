@@ -557,10 +557,12 @@ def test_two_attackers_on_two_ticks_keep_the_hold(tmp_path):
 
 def care_engaged(tmp_path, dist, parts, clock=True):
     """`engaged`'s two lines with a rag held and `parts` on the second, the melee's target then at `dist` tiles
-    (ACTION_CLOCK `clock`: Plan 36 Task 4's pins read the rules before it with it off)."""
+    (ACTION_CLOCK `clock`: Plan 36 Task 4's pins read the rules before it with it off). Named change, Plan 37 Task 3
+    fix 6: DISPOSITION off here (the bleed's engage exemption, Plan 35 fix 2, is off under a fight disposition)."""
     r = rig(tmp_path)
     sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
     sv.GROUP_LEAVE = False
+    sv.DISPOSITION = False
     sv.ACTION_CLOCK = clock
     hold(r, 11, "Base.RippedSheets")
     r.frame(zombies=[z(1, 101.8)])

@@ -73,7 +73,7 @@ def test_the_constants_and_the_switch():
     assert (P.STRING_TURN_DEG, P.STRING_STEP_DEG, P.STRING_LOOK_R, P.RELEASE_WAIT_S, P.SPRINT_READS) == (
         120.0, 15.0, 10.0, 2.5, 3)
     assert S.T22_SWITCHES == ("DISPOSITION", "ENGAGED_RIDE") and "T22_SWITCHES" in S.__all__   # fix 3's ride
-    assert T.Threat.DISPOSITION is True and T.Threat.ENGAGED_RIDE is True
+    assert T.Threat.DISPOSITION is True and T.Threat.ENGAGED_RIDE is False   # fix 6: the gate's, by default
     assert not hasattr(P, "RETREAT_MAX_N") and not hasattr(T.Threat, "_group_lapse")
     assert not any(hasattr(T.Threat, n) for n in ("SPENT_LEAVE", "RUN_HOLD"))
     assert S.T18_SWITCHES == () and T.Threat.GROUP_LEAVE is True   # the leave's seam, out of the tuples
@@ -437,8 +437,10 @@ SHIRT = 20
 
 
 def ride_rig(tmp_path, worn=False):
-    """`hold_rig`'s engaged melee with a cotton T-shirt held (`worn`: worn) and part 4 bleeding on the next line."""
+    """`hold_rig`'s engaged melee with a cotton T-shirt held (`worn`: worn) and part 4 bleeding on the next line;
+    ENGAGED_RIDE on (fix 6 turned it off by default: these cases read the ride's on arm)."""
     r, sv = hold_rig(tmp_path)
+    sv.ENGAGED_RIDE = True
     r.event("item_added", itemId=SHIRT, fullType="Base.Tshirt_White", weight=0.2, use="clothing", rip="cotton",
             worn=worn)
     accept(r, melee_of(r), "work")
@@ -539,3 +541,48 @@ def test_a_string_melee_lost_out_of_range_is_re_sent_never_walked(tmp_path):
     why, b = line(tmp_path, r, sv, zs)
     assert b.type == "melee" and b.args["disposition"] == "string" and b.args["targetId"] == 2
     assert not any(a.type in ("walkTo", "aim") for a in r.acts.history)
+
+
+# ================================================================ fix 6: the care starts through the release
+def far_string(tmp_path, d):
+    """`string_rig`'s string with a cotton T-shirt held and its melee accepted; then every zombie moved to `d` tiles
+    east (2.5 s on: the tracks restart, the clock reads WALK_TPS for a chaser) with part 4 bleeding: the line."""
+    r, sv = string_rig(tmp_path)
+    r.event("item_added", itemId=SHIRT, fullType="Base.Tshirt_White", weight=0.2, use="clothing", rip="cotton")
+    accept(r, melee_of(r), "work")
+    zs = [zp(i, b, d + 0.1 * k) for k, (i, b) in enumerate(((1, 0.0), (10, 10.0), (11, -10.0), (12, 20.0),
+                                                              (13, -20.0), (14, 30.0)))]
+    r.advance(2.0)
+    return r, sv, zs, line(tmp_path, r, sv, zs, wounds=BLEED)
+
+
+def test_under_string_a_bleed_releases_the_melee_then_the_rip_starts(tmp_path):
+    """Fix 6 (the horde8 trial `x_trial-ladder-20261112-070655`, decision lines 41 to 63: the bleed yield took the
+    care over the string): under `string` with the nearest at 9.5 tiles walking (ttc 6.07 s, above the rip's 5.634)
+    and part 4 bleeding: the melee is re-sent with `release` true (`care_hold` {why "release"}), no care command; on
+    the reflex's `released safe` hand-back the next line yields to the care, logged `care_start` {under string,
+    action rip, released "released"}, and the rip goes standing (no keepMoving), with no stop and no steer."""
+    r, sv, zs, (why, b) = far_string(tmp_path, 9.5)
+    assert b.type == "melee" and b.args["release"] is True and b.args["disposition"] == "string"
+    assert why["care_hold"] == {"why": "release", "action": "rip"}
+    accept(r, b, "work")
+    r.fake.act(b.aid, "done", "melee", result={"end": "handback", "why": "released", "safe": True})
+    r.pump()
+    r.advance(0.5)
+    r.frame(zombies=zs, wounds=BLEED)
+    tick(r, sv)
+    from .test_survive import last
+    d = last(tmp_path)
+    th = d["inputs"]["branches"]["threat"]
+    assert th["care_start"] == {"under": "string", "action": "rip", "released": "released"}
+    assert d["branch"] == "care" and d["action"]["type"] == "rip" and "keepMoving" not in d["action"]["args"]
+    assert not any(a.type in ("stop", "steer") for a in r.acts.history)
+
+
+def test_under_string_a_bleed_the_clock_refuses_holds_the_care(tmp_path):
+    """Fix 6: the same with the nearest at 6 tiles (ttc 3.66 s): no release, no care command, no clock leg; logged
+    `care_hold` {why "clock", action rip}."""
+    r, sv, zs, (why, b) = far_string(tmp_path, 6.0)
+    assert why["care_hold"] == {"why": "clock", "action": "rip"}
+    assert not any(a.type in ("stop", "steer", "rip", "unwear", "bandage") for a in r.acts.history)
+    assert not any(a.type == "melee" and a.args.get("release") for a in r.acts.history)

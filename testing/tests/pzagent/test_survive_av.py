@@ -186,11 +186,13 @@ def test_the_trial_s_clump_enters_the_string():
 
 def test_the_trial_s_bleed_finds_nothing_to_rip_and_says_so():
     """Fix 3 (3), the reading: from the line the scratch first bleeds (176, game minute 601) every cotton garment the
-    character holds is worn (the mini skirt, the boob tube; an unwear stops on a walk), so no rip can ride the engaged
-    melee: each line logs `care_ride` {cmd null, why "worn"} under the running disposition, and no care command goes."""
+    character holds is worn (the mini skirt, the boob tube; an unwear stops on a walk), so nothing can ride the engaged
+    melee. Re-pinned at fix 6 (ENGAGED_RIDE off by default; the care starts through the release when the clock allows):
+    under the clump every line logs `care_hold` {why "clock", action "unwear"} (the care's next action, the worn
+    garment's unwear), and no care command goes."""
     rows, ticks = trial()
-    rides = [threat(r).get("care_ride") for k, r in enumerate(rows, 1) if 176 <= k <= 201]
-    assert rides and all(c is not None and c["cmd"] is None and c["why"] == "worn" for c in rides)
+    holds = [threat(r).get("care_hold") for k, r in enumerate(rows, 1) if 176 <= k <= 201]
+    assert holds and all(c == {"why": "clock", "action": "unwear"} for c in holds), holds
     assert all(ticks[k - 1][1] in (None, "melee") for k in range(176, 202))
 
 
@@ -216,3 +218,25 @@ def test_the_strung_out_group_keeps_the_string_and_no_walk_goes():
     assert ds[8]["to"] == "string"
     assert all(d["from"] != "string" for k, d in ds.items() if 8 < k <= 14), ds
     assert all(ticks[k - 1][1] in (None, "melee") for k in range(8, 15)), [ticks[k - 1][1] for k in range(8, 15)]
+
+
+# ================================================================ Task 3 fix 6: round one's third horde8 trial
+# `x_trial-ladder-20261112-070655` (P31-T, not evidence; at 2b28c29b): replayed from this machine's run folder as above
+# (skipped where absent), open loop to line 50. The record's 1-based lines (the controller's trace one lower): 36 the
+# hold-to-string `crowd` entry; 41 the bleed yield's clock steer for the unwear, then 43 a stop and 44 the unwear.
+TRIAL_6 = "x_trial-ladder-20261112-070655"
+
+
+@functools.lru_cache(maxsize=1)
+def trial_6():
+    return trial_replay(TRIAL_6, 50)
+
+
+def test_the_string_holds_through_the_bleed_with_no_care_supersede():
+    """Fix 6: lines 36 to 46: the string entered at 36 is kept, and nothing but melees (or nothing) is sent: no steer,
+    stop or unwear; the bleed's lines log `care_hold` (the clock refusing the unwear at the group's distance)."""
+    rows, ticks = trial_6()
+    ds = {k: threat(r)["disposition"] for k, r in enumerate(rows, 1) if "disposition" in threat(r)}
+    assert ds[36]["to"] == "string" and all(d["from"] != "string" for k, d in ds.items() if 36 < k <= 46), ds
+    assert all(ticks[k - 1][1] in (None, "melee") for k in range(36, 47)), [ticks[k - 1][1] for k in range(36, 47)]
+    assert any("care_hold" in threat(rows[k - 1]) for k in range(41, 47))

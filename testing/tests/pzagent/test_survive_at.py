@@ -49,10 +49,13 @@ def frame(r, zs, moving=False, parts=PARTS):
 
 def survive(tmp_path, shirt=True, rag=False, clock=True):
     """A Survive (the ladder, ACTION_CLOCK `clock`) on a `rig` announcing PZA/1.13 with `melee`, holding the unworn
-    cotton T-shirt (`shirt`) and a clean rag (`rag`)."""
+    cotton T-shirt (`shirt`) and a clean rag (`rag`). Named change, Plan 37 Task 3 fix 6 (a unit test of an earlier
+    rule whose fixture the disposition's care gate reaches, pinned with its switch off): DISPOSITION off here, the
+    clock's legs and yields as Plan 36 sent them; `test_disposition.py` reads the gate."""
     r = rig(tmp_path)
     sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
     sv.ACTION_CLOCK = clock
+    sv.DISPOSITION = False
     if shirt:
         r.event("item_added", itemId=SHIRT, fullType="Base.Tshirt_White", weight=0.2, use="clothing", rip="cotton")
     if rag:

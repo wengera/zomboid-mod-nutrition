@@ -1193,6 +1193,21 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
                 self.why = {"clock": self.clock_now, "held": len(held)}
                 self._disposition_whys()
                 return hold
+        self.care.no_stop = False
+        if self._fight_disposed():   # Plan 37 Task 3 fix 6: no care supersedes the engaged melee, no care leg
+            if self._care_gate():
+                self.care_yield = self._yield_near()
+                self.why = {"care": True, "care_start": self.care_start, "held": len(held)}
+                self._disposition_whys()
+                return None
+            self.care_yield = None
+            ans = self._clock_threat(held, breach, self._decide(held, breach))
+            if self.clock_now is not None:
+                self.why = dict(self.why or {}, clock=self.clock_now)
+            if self.care_hold is not None:
+                self.why = dict(self.why or {}, care_hold=self.care_hold)
+            self._disposition_whys()
+            return ans
         commit = self._care_commit(held)   # Plan 32 Task 5 (c): one leg, then the care's action finished
         if commit is not None and commit[0] == "leg":
             self.care_yield = None

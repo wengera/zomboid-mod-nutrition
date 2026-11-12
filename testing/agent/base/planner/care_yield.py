@@ -297,8 +297,9 @@ class CareYield(ClockGate):
         (`care.Care.bleeding_n`, P24-AR's count) with no standing zombie within KEEP_R (rule (a)'s read, `standing`)
         yields it, False, logged `engage_yield` {rule "bleed"}: the dressing goes over the melee, which the ladder
         re-sends once a zombie stands in reach."""
-        if (self._engage_on() and self.care.bleeding_n() > 0
-                and not standing(self.world, KEEP_R, self._skipped())):
+        fought = getattr(self, "_fight_disposed", None)
+        if (self._engage_on() and self.care.bleeding_n() > 0 and not (fought is not None and fought())
+                and not standing(self.world, KEEP_R, self._skipped())):   # Plan 37 Task 3 fix 6: never under a fight
             self.engage_yield = {"rule": "bleed"}
             return False
         return self._engage_holds("care")

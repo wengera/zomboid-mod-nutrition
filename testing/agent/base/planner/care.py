@@ -372,6 +372,8 @@ class Care(Policy):
         self._read = set()   # the aids whose end observe() has read
         self.ride = None     # the last bandage sent with keepMoving (P24-U), tracked by its own act lines
         self.ride_stopped_at = -math.inf   # the wall of the last ride the engine stopped (RIDE_RETRY_S)
+        self.no_stop = False    # Survive sets it each tick (Plan 37 Task 3 fix 6): under a fight disposition the Dress
+                                # sends no `stop` (its action starts at the pick, after the melee's release)
         self.ride_now = False   # Survive sets it on a tick the threat yields to a ride: the bleeding step rides
         self.wear_at = {}    # item id -> world minute its wear was sent (WEAR_RETRY_MIN)
         self.wearing = None  # the candidate wear awaiting its exclusive-location check: {item, before, frame0, loc,
@@ -845,6 +847,8 @@ class Care(Policy):
             d.skip = self.skip   # fix 1, review-t15a M5
         if d is None:
             return None, False
+        if self.no_stop and d.phase in ("stop", "still"):
+            d.phase = "pick"   # Plan 37 Task 3 fix 6: the melee released, the action starts with no stop
         cmd = d.step()
         if d.over() is not None:
             self._dress_ended(d)

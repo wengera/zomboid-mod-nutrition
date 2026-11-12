@@ -286,6 +286,9 @@ class ClockGate:
             why = self._clock_why(kind, waited=self._clock_waited(key))
             self.clock_leg = None
             return owner, cmd, why
+        fought = getattr(self, "_fight_disposed", None)
+        if fought is not None and fought():   # Plan 37 Task 3 fix 6: the string is the gain-distance leg
+            return owner, None, self._clock_why(kind, refused=True, held="disposition")
         out = self._clock_refuse(kind, key, ride=kind == "rip" and owner is getattr(self, "care", None))
         if kind == "rip" and owner is getattr(self, "care", None) and out[0] is self.clock_leg and out[1] is None:
             ride = self._clock_ride_rip()

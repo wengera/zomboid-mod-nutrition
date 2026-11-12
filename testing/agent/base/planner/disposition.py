@@ -56,6 +56,14 @@ the leave row, the engagement picker's pull, no `disposition` on the wire).
   riding rip asks the action clock as a start, with no ride exemption: it goes only when the smallest time to contact
   exceeds the rip's duration plus ACTION_MARGIN_S (`ActionClock.allows`), logged `clock` {action rip, ride "melee"[,
   refused true]}, else `care_ride` {why "clock"}.
+  Fix 6 (the horde8 trial `x_trial-ladder-20261112-070655`: Plan 35 fix 2's bleed yield took the care chain over the
+  string, a clock steer, a stop, an unwear, a rip and four refused bandages with seven to ten standing within 6 tiles):
+  under a fight disposition (`_fight_disposed`) no care supersedes the engaged melee and no care leg goes: the care
+  commitment, its yields and the bleed's engage exemption are not read (`Threat._threat`, `care_yield`), the clock's
+  refused-action steer is not sent (`ClockGate._clock_gate`); the care's next action starts only when the clock allows
+  it as a start, the melee released first (`_care_gate`, `care_pending`), logged `care_start` {under, action,
+  released} or `care_hold` {why "clock" | "release", action}, the Dress sending no stop (`care.Care.no_stop`).
+  ENGAGED_RIDE is off by default since.
 - The row (`_disposition_plan`, `Threat._threat_plan`'s open-ground row in contact: off a room square, a standing
   zombie within GROUP_ENTRY_R): `hunt`, `hold`, `string` are the Fight (`("fight", None)`), whatever the flee reasons
   read; `break` keeps the Fight while the release it asked is pending, then the Flee (`cornered` and `sprinter` reason
@@ -103,9 +111,11 @@ class Disposer:
     """The disposition selector (the module docstring): `Threat`'s mixin."""
 
     DISPOSITION = True   # Plan 37 Task 3 (survive.T22_SWITCHES): the selector; off, the Plan 36 branch
-    ENGAGED_RIDE = True  # fix 3 (survive.T22_SWITCHES): a bleeding part under `hold` or `string` rides the engaged
-                         # melee (`_engaged_ride`); off, the care waits for the clock's stop as before. Needs the
-                         # Lua's side slot to admit the melee as its leg (PZAgent_Tend.lua's K.RIDES)
+    ENGAGED_RIDE = False  # fix 3 (survive.T22_SWITCHES): a bleeding part under `hold` or `string` rides the engaged
+                          # melee (`_engaged_ride`, the Lua's K.RIDES.melee). Off by default since fix 6 (the
+                          # controller's ruling: under a fight disposition every care action starts through the
+                          # melee's release when the clock allows it, `_care_gate`; while a rip rides the melee the
+                          # reflex presses nothing); on, the ride is read before the gate
 
     def _init_disposition(self):
         self.disposition = None          # the running disposition (DISPOSITIONS), else None
@@ -123,6 +133,9 @@ class Disposer:
         self._hold_heading = None        # the hold's last withdraw heading, degrees, else None
         self._string_from = None         # fix 3: the running string's entry why (CLUMP_ENTRIES keep no clump exit)
         self.care_ride = None            # fix 3: this tick's ride over the engaged melee {under, cmd}, else None
+        self.care_pending = None         # fix 6: the care start's release {asked, kind, end, waited}, else None
+        self.care_start = None           # fix 6: this tick's care start {under, action, released}, else None
+        self.care_hold = None            # fix 6: this tick's care held under the disposition {why, action}, else None
 
     # ---------------------------------------------------------------------------------------------------- the gate
     def _disposing(self):
@@ -131,9 +144,15 @@ class Disposer:
         return (self.DISPOSITION and self.MELEE and self.world.can("melee") and self._armed()
                 and not self.sheltered)
 
+    def _fight_disposed(self):
+        """Fix 6: a fight disposition holds (`hunt`, `hold` or `string`, the selector running): no care supersedes the
+        engaged melee and no care leg goes (`_care_gate`)."""
+        return self.disposition in WIRE and self._disposing()
+
     def _disposition_end(self):
         """The threat ended (no held zombie) or the gate closed: no disposition, its clocks cleared."""
         self.disposition, self.disposition_since, self.break_reason, self.release_pending = None, None, None, None
+        self.care_pending = None
         self._disp_since, self._pin_n, self._sprint, self._hold_heading = {}, None, (None, None, 0), None
 
     # ---------------------------------------------------------------------------------------------------- the read
@@ -141,13 +160,16 @@ class Disposer:
         """The tick's facts, the condition clocks and the release's hand-back, then `select` (the module docstring);
         no disposition where the gate reads False or nothing is held."""
         self.disposition_why, self.release_why, self.string_why, self._string_read = None, None, None, None
-        self._disp_facts = None
+        self._disp_facts, self.care_start, self.care_hold = None, None, None
         if not held or not self._disposing():
             self._disposition_end()
             return
         self._disp_facts = self._facts()
         self._release_read()
+        self._care_release_read()
         self.select(held)
+        if self.disposition not in WIRE:
+            self.care_pending = None
 
     def _facts(self):
         standing = [(zid, z, d) for zid, z, d in self._group_standing(GROUP_ENTRY_R + RETREAT_HOLD_R)
@@ -311,6 +333,63 @@ class Disposer:
         if rp["end"] is not None:
             rp["waited"] = round(now - rp["asked"], 3)
 
+    def _care_release_read(self):
+        """Fix 6: a care start's pending release ends as the break's does (`_release_read`'s reads)."""
+        cp = self.care_pending
+        if cp is None or cp["end"] is not None:
+            return
+        f = self.fight
+        end = f._m_end if f is not None else None
+        now = self.clock()
+        if end is not None:
+            cp["end"] = end.get("why") or end.get("end")
+        elif f is None or f.m is None or not f.m.running():
+            cp["end"] = "gone"
+        elif now - cp["asked"] >= RELEASE_WAIT_S:
+            cp["end"] = "bound"
+        if cp["end"] is not None:
+            cp["waited"] = round(now - cp["asked"], 3)
+
+    def _care_gate(self):
+        """Fix 6 (the horde8 trial `x_trial-ladder-20261112-070655`, decision lines 41 to 63: Plan 35 fix 2's bleed yield
+        took the care chain over the string, the clock's gain-distance steer, a stop, an unwear, a rip and four refused
+        bandages with seven to ten standing within 6 tiles, the character caught standing): under a fight disposition
+        True when the threat branch yields this tick to the care's action, else False. The care's next timed action
+        (`care.Care.next_kind`: unwear, rip or bandage) starts only when the clock allows it as a start, no ride
+        exemption (`ActionClock.allows`), else held, logged `care_hold` {why "clock", action}; allowed with the melee
+        engaged, the melee is released first (`care_pending`: the re-send's `release`, `_disposition_inputs`), the
+        yield on the line its end reads (`released`, `floor`, any end, or RELEASE_WAIT_S), logged `care_start` {under,
+        action, released}; allowed with no melee running, the yield at once (`released` null). The Dress sends no stop
+        (`care.Care.no_stop`)."""
+        care = self.care
+        if not self.world.can("bandage") or (care.bleeding_n() <= 0 and care.dressing() is None):
+            self.care_pending = None
+            return False
+        kind = care.next_kind()
+        if kind is None:
+            return False
+        if self._clock_on():
+            ck = self.action_clock
+            allowed = ck.allows(kind)
+            if self.clock_now is None:   # the ride's own read (fix 4) stands on its line
+                self.clock_now = self._clock_why(kind, start=True, **({} if allowed else {"refused": True}))
+        else:
+            allowed = not self._group_standing(KEEP_R)
+        if not allowed:
+            self.care_pending, self.care_hold = None, {"why": "clock", "action": kind}
+            return False
+        f = self.fight
+        if f is not None and f._engaged():
+            if self.care_pending is None:
+                self.care_pending = {"asked": self.clock(), "kind": kind, "end": None}
+            if self.care_pending["end"] is None:
+                self.care_hold = {"why": "release", "action": kind}
+                return False
+        cp, self.care_pending = self.care_pending, None
+        self.care_start = {"under": self.disposition, "action": kind, "released": None if cp is None else cp["end"]}
+        care.no_stop = True
+        return True
+
     # ---------------------------------------------------------------------------------------------------- the row
     def _disposition_plan(self, inside):
         """`Threat._threat_plan`'s row in contact (the module docstring): `(kind, reason)`, else None (the rows below
@@ -337,7 +416,8 @@ class Disposer:
         return "flee", BREAK_FLEE[self.break_reason]
 
     def _disposition_inputs(self, policy, kind, door):
-        """The Fight's `disposition`, `withdraw` and `release` this tick (the module docstring); where the selector
+        """The Fight's `disposition`, `withdraw` and `release` this tick (the module docstring; fix 6: the care start's
+    release too); where the selector
         holds none, the engagement picker's pull as Plan 36 sent it."""
         policy.disposition, policy.release = None, False
         if not (self._pull_ok(kind, door) and policy._melee_on()):
@@ -353,6 +433,8 @@ class Disposer:
                 policy.withdraw = None   # the health floor's low fight: no disposition, no release
                 return
             policy.release, d = True, rp["from"]
+        if self.care_pending is not None and self.care_pending["end"] is None:
+            policy.release = True   # fix 6: the care's start asked the hand-back
         policy.disposition = d
         if d == "hold":
             policy.withdraw = self._pull(policy, "hold")
