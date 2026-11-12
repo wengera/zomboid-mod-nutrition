@@ -1192,7 +1192,13 @@ STRING_RUN_HOLD_S = 4.0    # seconds: fix 10 (the horde10 trials `x_trial-ladder
 STRING_RELEASE_R = 8.0     # tiles: under `string` the melee is sent at a pin this near (the Lua's K.STRING_RELEASE_R,
                            # its release radius under the string), so the walk away starts before contact
 SPRINT_READS = 3           # decision lines in a row the sprinter's gap shrinks before the `break`, § 3.2
-STRING_TURN_DEG = 120.0    # degrees: the string heading is read this far either side of straight away, § 3.5
+STRING_HEADING_HOLD_S = 3.0   # seconds: fix 11 (the town trial `x_trial-ladder-20261112-082228`: the string's withdraw
+                              # flipped eight times in ten seconds, into one of three groups): the string heading held
+                              # this long unless a zombie enters its cone within STRING_RUN_R, the ring closes it, or a
+                              # new pick's first contact is STRING_HEADING_GAIN farther
+STRING_HEADING_GAIN = 3.0     # tiles: fix 11, a new string heading's first contact this much farther replaces the held
+STRING_RUN_R = 4.0            # tiles: fix 11, a standing zombie inside the held heading's cone this near re-picks it
+                              # (the Lua's K.STRING_RUN_R, the string's run radius)
 STRING_STEP_DEG = 15.0     # degrees between the string heading's candidates, § 3.5
 STRING_LOOK_R = 10.0       # tiles: the string heading's and the break steer's open line along the map, § 3.5
 RELEASE_WAIT_S = 2.5       # seconds: a release asked and not handed back this long is taken by the Flee anyway (the

@@ -53,10 +53,13 @@ the leave row, the engagement picker's pull, no `disposition` on the wire).
   picker's pull, `ThreatGroup._pull` with `hold`; `string` the string heading; `hunt`, fix 1 (the controller's
   ruling), the picker's spread and cone pulls as Plan 36 sent them, never the retreat: the Lua's hunt retreats along
   a given withdraw, Plan 36's pair behaviour) and its `release` (a pending `break`).
-- The string heading (`_string_heading`): of the headings every STRING_STEP_DEG within STRING_TURN_DEG either side of
-  the way away from the standing centroid, the longest open line over STRING_LOOK_R (`World.open_line`), ties to the
-  nearest straight away, then clamped to the room ring as the pull is (`ThreatGroup._pull_room`); logged
-  `string_heading` {deg, open, room}.
+- The string heading (`_string_heading`, fix 11): of the headings every STRING_STEP_DEG over the whole circle, the one
+  whose first contact (the nearest listed standing zombie within AHEAD_CONE of it, any distance) is farthest, none
+  ahead the best, ties to the longest open line over STRING_LOOK_R (`World.open_line`), then to the nearest to the way
+  away from the standing centroid within STRING_ENTRY_R; clamped to the room ring as the pull is
+  (`ThreatGroup._pull_room`); held STRING_HEADING_HOLD_S unless a zombie enters its cone within STRING_RUN_R, the ring
+  closes it, or a new pick's contact is STRING_HEADING_GAIN farther; logged `string_heading` {deg, contact, open,
+  room, held}. No sneak posture goes over the engaged melee under a fight disposition (`sneak.SneakGait`).
 - The release (`_release_read`): the `break` transition with the melee engaged asks the release (the re-send's
   `release` true); the Fight is kept until the melee ends (its `released` or `floor` hand-back, or any other end), or
   RELEASE_WAIT_S passes; the hand-over logged `release` {asked, waited, end} on the line the Flee takes it.
@@ -69,8 +72,9 @@ from agent.base.planner.crawler import is_crawler
 from agent.base.planner.policies import (BREAK_CORNERED_S, DISPOSITION_DWELL_S, FLEE_HEALTH, GROUP_ENTRY_R,
                                          GROUP_LEAVE_N, HOLD_ENTRY_R, KEEP_R, PULL_ROOM_NEED, RELEASE_WAIT_S,
                                          RETREAT_HOLD_R, SPRINT_READS, SPRINTER_V, STRING_ENTRY_R, STRING_LOOK_R,
-                                         STRING_N, STRING_RELEASE_R, STRING_RUN_HOLD_S, STRING_STEP_DEG,
-                                         STRING_TURN_DEG, blocked, on_floor, target_id_ok, zdist)
+                                         STRING_HEADING_GAIN, STRING_HEADING_HOLD_S, STRING_N, STRING_RELEASE_R,
+                                         STRING_RUN_HOLD_S, STRING_RUN_R, STRING_STEP_DEG, AHEAD_CONE, blocked,
+                                         on_floor, target_id_ok, zdist)
 from agent.base.pza1 import Rip
 from agent.base.world import me_xy
 
@@ -109,6 +113,7 @@ class Disposer:
         self._disp_since = {}            # condition name -> the wall it first read true (the condition clocks)
         self._sprint = (None, None, 0)   # (the leader's id, its tiles on the last read, the shrinking reads in a row)
         self.care_ride = None            # fix 3: this tick's ride over the engaged melee {under, cmd}, else None
+        self._held_heading = None        # fix 11: the held string heading {deg, at}, else None
         self._run_at = None              # fix 10: the wall of the last line whose melee leaf read string_state run
         self._after_string = False       # fix 10: the running `hunt` follows a string's exit (the hunt's hold reads it)
         self.hunt_hold = None            # fix 10: this tick's hunt hold {why "coming", target, d}, else None
@@ -133,7 +138,7 @@ class Disposer:
         self.disposition, self.disposition_since, self.break_reason, self.release_pending = None, None, None, None
         self.care_pending = None
         self._disp_since, self._sprint = {}, (None, None, 0)
-        self._run_at, self._after_string = None, False
+        self._run_at, self._after_string, self._held_heading = None, False, None
 
     # ---------------------------------------------------------------------------------------------------- the read
     def _disposition_read(self, held):
@@ -260,6 +265,7 @@ class Disposer:
                                 "dwell": None if dwell is None else round(dwell, 3)}
         self.disposition, self.disposition_since = want, now
         self._after_string = cur == "string" and want == "hunt"   # fix 10: the hunt's hold after a string's exit
+        self._held_heading = None   # fix 11: a new disposition reads its heading afresh
         if want != "break":
             self.break_reason, self.release_pending = None, None
             return
@@ -500,28 +506,68 @@ class Disposer:
             policy.target, policy.repositioned = min(near)[2], False
 
     # ---------------------------------------------------------------------------------------------------- the string
+    def _contact(self, deg, standing):
+        """Fix 11: the tiles to the first contact along heading `deg`: the nearest of `standing` ((zombie, tiles) of every
+        listed standing zombie) whose bearing lies within AHEAD_CONE of it, None with none (no contact ahead)."""
+        p = me_xy(self.world)
+        best = None
+        for z, d in standing:
+            b = math.degrees(math.atan2(z["y"] - p[1], z["x"] - p[0]))
+            if abs((b - deg + 180.0) % 360.0 - 180.0) <= AHEAD_CONE and (best is None or d < best):
+                best = d
+        return best
+
     def _string_heading(self):
-        """`(unit vector or None, why)`: the string heading (the module docstring), why {deg, open, room} (`room` the
-        ring's clamped degrees, None with no ring, "closed" with no open ring heading: then no vector); `(None, None)`
-        with no standing zombie within GROUP_ENTRY_R."""
+        """`(unit vector or None, why)`: the string heading, why {deg, contact, open, room, held} (`contact` the first
+        contact's tiles, None with none ahead; `room` the ring's clamped degrees, None with no ring, "closed" with no
+        open ring heading: then no vector); `(None, None)` with no standing zombie within STRING_ENTRY_R.
+        Fix 11 (the town trial `x_trial-ladder-20261112-082228`: the heading flipped eight times in ten seconds and
+        pointed into one of three groups; Angus: sprint away to create distance, never into them): the candidates are
+        the headings every STRING_STEP_DEG over the whole circle, each scored by its first contact (`_contact`, every
+        listed standing zombie, any distance): the farthest wins (none ahead the best), ties to the longest open line
+        over STRING_LOOK_R (`World.open_line`), then to the nearest to the way away from the standing centroid within
+        STRING_ENTRY_R; then the ring clamp (`ThreatGroup._pull_room`). The pick is held STRING_HEADING_HOLD_S: a new
+        read within the hold replaces it only when a standing zombie stands inside the held heading's cone within
+        STRING_RUN_R, the ring reads it closed, or the new pick's first contact is STRING_HEADING_GAIN farther."""
         p = me_xy(self.world)
         group = [z for _, z, _ in self._group_standing(STRING_ENTRY_R) if not is_crawler(z)]   # the string's group
         if not group:
             return None, None
+        dead = blocked(self.dead, self.clock())
+        standing = [(z, zdist(self.world, z)) for zid, z in self.world.zombies.items()
+                    if zid not in dead and not on_floor(z) and not is_crawler(z) and z.get("x") is not None]
         cx = sum(z["x"] for z in group) / len(group)
         cy = sum(z["y"] for z in group) / len(group)
         dx, dy = p[0] - cx, p[1] - cy
-        base = 0.0 if dx == 0.0 and dy == 0.0 else math.degrees(math.atan2(dy, dx))
-        k_max = int(round(STRING_TURN_DEG / STRING_STEP_DEG))
+        away = 0.0 if dx == 0.0 and dy == 0.0 else math.degrees(math.atan2(dy, dx)) % 360.0
         best = None
-        for k in range(-k_max, k_max + 1):
-            deg = (base + k * STRING_STEP_DEG) % 360.0
-            rank = (-self.world.open_line(deg, STRING_LOOK_R), abs(k), k, deg)
+        for k in range(int(round(360.0 / STRING_STEP_DEG))):
+            deg = k * STRING_STEP_DEG
+            c = self._contact(deg, standing)
+            off = abs((deg - away + 180.0) % 360.0 - 180.0)
+            rank = (-(math.inf if c is None else c), -self.world.open_line(deg, STRING_LOOK_R), off, deg)
             if best is None or rank < best:
                 best = rank
-        open_, deg = -best[0], best[3]
+        deg, contact = best[3], self._contact(best[3], standing)
+        held = self._held_heading
+        if held is not None and self.clock() - held["at"] < STRING_HEADING_HOLD_S:
+            hc = self._contact(held["deg"], standing)
+            entered = hc is not None and hc <= STRING_RUN_R
+            closed = self._pull_room(held["deg"]) == "closed"
+            gain = (math.inf if contact is None else contact) - (math.inf if hc is None else hc)
+            if not (entered or closed or gain >= STRING_HEADING_GAIN):
+                deg, contact = held["deg"], hc
+                held = True
+            else:
+                held = None
+        else:
+            held = None
+        if held is None:
+            self._held_heading = {"deg": deg, "at": self.clock()}
+        open_ = self.world.open_line(deg, STRING_LOOK_R)
         room = self._pull_room(deg)
-        why = {"deg": deg, "open": open_, "room": room}
+        why = {"deg": deg, "contact": None if contact is None else round(contact, 3), "open": open_, "room": room,
+               "held": held is True}
         if room == "closed":
             return None, why
         return _heading(deg if room is None else room), why

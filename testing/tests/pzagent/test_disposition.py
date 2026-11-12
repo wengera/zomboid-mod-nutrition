@@ -71,8 +71,9 @@ def test_the_constants_and_the_switch():
         2.0, 5, 2.0, 1.0)   # fix 2: the run from 1.0 tiles a second
     assert (P.STRING_ENTRY_R, P.STRING_RELEASE_R, P.SPRINTER_V, P.HOLD_ENTRY_R) == (10.0, 8.0, 1.6, 3.5)
     assert not any(hasattr(P, n) for n in ("STRING_MIN_GAP", "STRING_PIN_S"))   # fix 9: the gap rules deleted
-    assert (P.STRING_TURN_DEG, P.STRING_STEP_DEG, P.STRING_LOOK_R, P.RELEASE_WAIT_S, P.SPRINT_READS) == (
-        120.0, 15.0, 10.0, 2.5, 3)
+    assert (P.STRING_STEP_DEG, P.STRING_LOOK_R, P.RELEASE_WAIT_S, P.SPRINT_READS) == (15.0, 10.0, 2.5, 3)
+    assert (P.STRING_HEADING_HOLD_S, P.STRING_HEADING_GAIN, P.STRING_RUN_R) == (3.0, 3.0, 4.0)   # fix 11
+    assert not hasattr(P, "STRING_TURN_DEG")   # fix 11: the whole circle
     assert S.T22_SWITCHES == ("DISPOSITION", "ENGAGED_RIDE") and "T22_SWITCHES" in S.__all__   # fix 3's ride
     assert T.Threat.DISPOSITION is True and T.Threat.ENGAGED_RIDE is True   # fix 7: on again
     assert not hasattr(P, "RETREAT_MAX_N") and not hasattr(T.Threat, "_group_lapse")
@@ -289,7 +290,7 @@ def lane_rig(tmp_path, room=None):
 
 def test_the_string_heading_takes_the_lane_s_open_end_over_the_way_straight_away(tmp_path):
     """The group east, the way straight away (west) walled at the lane's west edge: of the headings within
-    STRING_TURN_DEG either side, the lane's ends (90 and 270 degrees, STRING_LOOK_R open) win, the tie to the nearer
+    the circle (fix 11: no zombie ahead on either end, the open line the tie-break), the lane's ends (90 and 270 degrees, STRING_LOOK_R open) win, the tie to the nearer
     to straight away, then the lower turn: 90 degrees (the world's +y)."""
     r, sv = lane_rig(tmp_path)
     assert r.world.open_line(180.0, P.STRING_LOOK_R) < 1.0
@@ -717,3 +718,67 @@ def test_the_hunt_after_a_string_exit_waits_for_a_coming_leader(tmp_path):
         seen.append(why.get("hunt_hold"))
     assert all(h is not None and h["why"] == "coming" and h["target"] == 1 for h in seen[1:]), seen
     assert not any(a.type == "walkTo" for a in r.acts.history[n:])
+
+
+# ================================================================ fix 11: the string heading clear of every zombie ahead
+def heading_rig(tmp_path, zs):
+    """A Survive on the open fake ground (no map: every open line reads STRING_LOOK_R) over one frame of `zs`."""
+    r = rig(tmp_path)
+    sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
+    r.frame(zombies=zs)
+    return r, sv
+
+
+def groups(d, ids=0):
+    """Three groups of three standing at bearings 0, 90 and 200 degrees, `d` tiles off ME."""
+    out = []
+    for g, b in enumerate((0.0, 90.0, 200.0)):
+        out += [zp(100 + ids + 3 * g + i, b + o, d + 0.3 * i) for i, o in enumerate((-4.0, 0.0, 4.0))]
+    return out
+
+
+def test_three_groups_pick_the_clear_quarter_not_the_centroid_s_opposite(tmp_path):
+    """Fix 11 (the town trial `x_trial-ladder-20261112-082228`: the heading flipped eight times in ten seconds and
+    pointed into one of three groups): groups at bearings 0, 90 and 200 at 8 tiles: the heading lies between 270 and
+    330 (no zombie ahead within AHEAD_CONE), logged `string_heading` {contact null, held false}."""
+    r, sv = heading_rig(tmp_path, groups(8.0))
+    vec, why = sv._string_heading()
+    assert 270.0 <= why["deg"] <= 330.0 and why["contact"] is None and why["held"] is False, why
+
+
+def test_the_pick_holds_three_seconds_while_the_groups_advance(tmp_path):
+    """Fix 11: the pick held for STRING_HEADING_HOLD_S while the three groups advance a tile (no zombie enters its
+    cone, the ring never closes it, no pick STRING_HEADING_GAIN better): the same degrees, `held` true; past the hold
+    a fresh read."""
+    r, sv = heading_rig(tmp_path, groups(8.0))
+    _, first = sv._string_heading()
+    for k in range(5):
+        r.advance(0.5)
+        r.frame(zombies=groups(8.0 - 0.2 * (k + 1)))
+        _, why = sv._string_heading()
+        assert why["deg"] == first["deg"] and why["held"] is True, (k, why)
+    r.advance(0.6)
+    r.frame(zombies=groups(7.0))
+    _, why = sv._string_heading()
+    assert why["held"] is False
+
+
+def test_a_zombie_entering_the_held_cone_within_four_tiles_re_picks(tmp_path):
+    """Fix 11: within the hold a standing zombie enters the held heading's cone 3 tiles off (inside STRING_RUN_R): a
+    new pick, away from it."""
+    r, sv = heading_rig(tmp_path, groups(8.0))
+    _, first = sv._string_heading()
+    r.advance(0.5)
+    r.frame(zombies=groups(8.0) + [zp(200, first["deg"], 3.0)])
+    _, why = sv._string_heading()
+    assert why["held"] is False and abs((why["deg"] - first["deg"] + 180.0) % 360.0 - 180.0) > P.AHEAD_CONE
+
+
+def test_the_arena_s_tied_open_lines_pick_by_the_contact_not_the_centroid(tmp_path):
+    """Fix 11: on the open ground every open line ties at STRING_LOOK_R; a group east at 3 to 4 tiles and a lone
+    zombie at bearing 200 at 9 tiles: the centroid's opposite (about 190 degrees) runs at the lone one; the pick is a
+    heading with no zombie ahead."""
+    zs = [zp(1, 0.0, 3.0), zp(2, 15.0, 3.5), zp(3, -15.0, 4.0), zp(4, 200.0, 9.0)]
+    r, sv = heading_rig(tmp_path, zs)
+    vec, why = sv._string_heading()
+    assert why["contact"] is None and abs((why["deg"] - 200.0 + 180.0) % 360.0 - 180.0) > P.AHEAD_CONE, why

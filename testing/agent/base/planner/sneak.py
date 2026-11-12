@@ -52,6 +52,10 @@ class SneakGait:
         docstring), for the Decision `d`."""
         if not self.SNEAK or not self.world.can("sneak"):
             return None, 0
+        f = getattr(self, "fight", None)
+        fought = getattr(self, "_fight_disposed", None)
+        if fought is not None and fought() and f is not None and f._engaged():
+            return None, 0   # Plan 37 Task 3 fix 11: no posture over the engaged melee under a fight disposition
         near = self._within(SNEAK_R)
         flee = self.mode == "flee" or (self.flee is not None and d.owner is self.flee)
         if flee or any(chasing(z) for z in near) or (d.cmd is not None and d.cmd.TYPE in PRESSES):

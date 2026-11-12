@@ -99,7 +99,7 @@ def test_the_count_crossing_string_n_sends_the_melee_with_string_and_a_heading()
     assert th["disposition"]["why"] in ("count", "coming")
     assert t == "melee" and a.args["disposition"] == "string"
     assert isinstance(a.args.get("withdrawX"), float) and isinstance(a.args.get("withdrawY"), float)
-    assert set(th["string_heading"]) == {"deg", "open", "room"}
+    assert set(th["string_heading"]) == {"deg", "contact", "open", "room", "held"}   # fix 11
     later = [ticks[j - 1][2] for j in range(k, UPTO + 1) if ticks[j - 1][1] == "melee"]
     assert all(b.args["disposition"] == "string" for b in later)
 
@@ -302,3 +302,26 @@ def test_the_string_holds_while_the_group_is_off_the_list_and_no_walk_goes_back(
     into = [k for k, d in ds if d["to"] == "string"]
     assert into and not [k for k, d in ds if k > into[0] and d["from"] == "string" and d["why"] == "count"], ds
     assert all(ticks[k - 1][1] != "walkTo" for k in range(2, 22)), [ticks[k - 1][1] for k in range(2, 22)]
+
+
+# ================================================================ Task 3 fix 11: round one's town trial
+# `x_trial-ladder-20261112-082228` (P31-T, not evidence; at 4071aaab): replayed from this machine's run folder as above
+# (skipped where absent), open loop to line 41 (the controller's 0-based 17 to 40 are lines 18 to 41).
+TRIAL_11 = "x_trial-ladder-20261112-082228"
+
+
+@functools.lru_cache(maxsize=1)
+def trial_11():
+    return trial_replay(TRIAL_11, 41)
+
+
+def test_the_town_s_string_heading_holds_at_two_headings_at_most():
+    """Fix 11: lines 18 to 41, where the record's withdraw flipped eight times (SW, S, N, NW, NE, E, NE, E): the
+    replay's string melee sends carry at most two distinct withdraw headings."""
+    rows, ticks = trial_11()
+    heads = set()
+    for k in range(18, 42):
+        a = ticks[k - 1][2]
+        if a is not None and a.type == "melee" and a.args.get("disposition") == "string" and a.args.get("withdrawX") is not None:
+            heads.add(round(math.degrees(math.atan2(a.args["withdrawY"], a.args["withdrawX"])) % 360.0))
+    assert len(heads) <= 2, heads
