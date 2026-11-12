@@ -182,12 +182,18 @@ K.RELEASE_MAX_TICKS = 90     -- ticks after the first that read release before i
 -- or never; staggerIn the step in on a staggered target; knockdown the pile's chosen knock-down (rule (c): off under
 -- string, fix 1: the probe's shoves cost the walk its gain; the step out, (a) and (b), runs under every disposition and
 -- the string's walk resumes after it); string the string's walk and turn (K.workString); releaseR
--- the release radius the check sends in place of the planner's. The crawler buffer and the nearest attacker's facing
--- read no flag: on under every disposition (test_lua_footwork.py)
+-- the release radius the check sends in place of the planner's; contact (fix 6, the horde8 trial
+-- x_trial-ladder-20261112-071337, a trial reading: the string walked with the leader at 0.19 to 0.33 tiles, the
+-- second inside K.STRING_GAP, and the drag-down followed) the disposition whose table the tick runs while the nearest
+-- standing zombie stands inside the reach plus K.STRING_TURN_R (string: hold's, the press at the nearest, the pile's
+-- step out and its chosen knock-down, the fighting retreat; a zombie inside the reach is never walked away from),
+-- the string's walk or run resuming once the nearest stands beyond it. The tick's table is w.dispT (K.workTick). The
+-- crawler buffer and the nearest attacker's facing read no flag: on under every disposition (test_lua_footwork.py)
 K.DISPOSITIONS = {
     hunt = { retreat = "given", staggerIn = true, knockdown = true, string = false },
     hold = { retreat = "always", staggerIn = true, knockdown = true, string = false },
-    string = { retreat = "never", staggerIn = false, knockdown = false, string = true, releaseR = K.STRING_RELEASE_R },
+    string = { retreat = "never", staggerIn = false, knockdown = false, string = true, releaseR = K.STRING_RELEASE_R,
+               contact = "hold" },   -- fix 6: inside the reach plus K.STRING_TURN_R the hold's table
 }
 
 local WORK_NUMS = { "workR", "crawlerR", "bandLo", "floorHealth" }
@@ -674,7 +680,7 @@ local function pileTick(p, st, d, fallen, standing)
         return pileTick(p, st, d, fallen, standing)
     end
     if fallen or not standing or #pb ~= 1 or pb[1].d > st.shoveR then return nil end
-    if not K.DISPOSITIONS[w.disposition].knockdown then return nil end   -- Plan 37 Task 2 fix 1: off under string
+    if not (w.dispT or K.DISPOSITIONS[w.disposition]).knockdown then return nil end   -- fix 1: off in the string's walk
     local inReach = standingWithin(st, d, standing, M.reachOf(p, st))   -- a Lua table
     if #inReach < 2 then return nil end   -- (c): against several only
     if pb[1].id ~= st.id then
@@ -879,7 +885,7 @@ end
 
 -- whether the disposition runs the retreat (K.DISPOSITIONS' retreat: given, always or never)
 local function retreatOn(w)
-    local mode = K.DISPOSITIONS[w.disposition].retreat
+    local mode = (w.dispT or K.DISPOSITIONS[w.disposition]).retreat   -- fix 6: the tick's table
     return mode == "always" or (mode == "given" and w.retreat)
 end
 
@@ -933,6 +939,15 @@ function K.workTick(p, st, d, crowd, fallen, now)
     if near ~= nil and (g == nil or near[1].d < g) then g, gid, w.nearO = near[1].d, near[1].id, near[1].o end
     if g == nil then w.nearO = nil end
     w.gap = g
+    local disp = K.DISPOSITIONS[w.disposition]
+    w.stringContact = false
+    if disp.contact ~= nil and g ~= nil and g < M.reachOf(p, st) + K.STRING_TURN_R then   -- fix 6: the contact table
+        w.stringContact, disp = true, K.DISPOSITIONS[disp.contact]
+        if w.turnPending ~= nil then   -- the planned turn's leaf carried to its press's line
+            if presses(st) ~= w.turnMark then w.turnPending = nil else w.turnFor = w.turnPending end
+        end
+    end
+    w.dispT = disp
     if gid ~= w.nearId then w.nearId, w.sinceChoose = gid, K.WORK_TICKS end
     w.inContact = g ~= nil and g < K.WORK_CONTACT_R
     local pb = standingWithin(st, d, standing, K.WORK_POINT_BLANK_R)   -- a Lua table
@@ -962,7 +977,6 @@ function K.workTick(p, st, d, crowd, fallen, now)
     if cstep ~= nil then return cstep end
     local as = attackerTick(p, st, d, standing, g)   -- 3: the nearest attacker
     if as ~= nil then return as end
-    local disp = K.DISPOSITIONS[w.disposition]
     if disp.staggerIn then
         local ss = staggerIn(p, st, standing, g, gid)   -- 4: the stagger in
         if ss ~= nil then return ss end
@@ -1397,9 +1411,11 @@ function K.workString(p, st, d, standing, fallen)
         local gap2 = nil
         if second ~= nil then gap2 = second.d end
         w.turnFor = { leader = leader.id, gap2 = gap2 }
+        w.turnPending, w.turnMark = w.turnFor, presses(st)   -- fix 6: carried into the contact table's press
         return nil
     end
     if w.sinceChoose >= K.WORK_TICKS then stringChoose(p, st, zs, leader, fallen) end
+    w.turnPending = nil   -- fix 6: the walk again, no turn pending
     w.steppedNow, w.stepFor, w.held = true, "string", nil
     w.lh, w.lt, w.lc, w.ln = w.heading, w.turn, w.clear, w.n
     if not w.clear then   -- no clear heading: the walk stopped, the meet presses

@@ -2016,23 +2016,26 @@ def test_under_hunt_the_same_group_takes_no_string_walk(lua, fs):
 
 
 def test_under_string_the_leader_at_the_turn_with_the_second_far_turns_and_presses(lua, fs):
-    """The reach 1.475: the leader 7 at reach + 0.4 closing at 1.5, the second 20 at 3.0 north: no walk; the meet
-    presses the leader, turn_for {leader 7, gap2 3.0} on the press's line."""
-    p, z, w, recs = group_world(lua, 10.0 + 1.875, [(10.0, 23.0)], zspeed=1.5)
-    gow(lua, p, disposition="string")
-    grun(lua, p, w, recs, 60, stop=lambda: w["presses"])
+    """The reach 1.25 (the fake bat's): the leader 7 at 2.3 (beyond the contact radius, reach + K.STRING_TURN_R)
+    closing at 2.4 (faster than the fake's back step, 2.0), its
+    landing inside it, the second 20 at 3.0 north: the planned turn (the walk stopped), and the press at the leader
+    once it closes in carries turn_for {leader 7, gap2 3.0}. Re-pinned under Plan 37 Task 2 fix 6 (the leader was at
+    reach + 0.4, now inside the contact radius, where the hold's table presses with no turn)."""
+    p, z, w, recs = group_world(lua, 10.0 + 2.3, [(10.0, 23.0)], zspeed=2.4)
+    gow(lua, p, disposition="string", reach=1.25)   # the fake bat's own reach: the meet presses where the hold's window opens
+    grun(lua, p, w, recs, 180, stop=lambda: w["presses"])
     pr = progress(lua, fs)
     sw = [a for a in pr if a["result"]["step"] == "swing"]
     assert w["presses"] and sw
     tf = sw[0]["result"]["work"]["turn_for"]
-    assert tf["leader"] == 7 and tf["gap2"] == pytest.approx(3.0)
-    assert "string" not in [lf.get("step_for") for lf in leaves_of(lua, fs)] and w["px"] == 10.0
+    assert tf["leader"] == 7 and tf["gap2"] == pytest.approx(3.0, abs=0.15)
 
 
-def test_under_string_the_leader_at_the_reach_with_the_second_near_keeps_walking(lua, fs):
-    """The leader 7 at the reach 1.475 and the second 20 at 1.5 north (inside K.STRING_GAP): the walk goes on, away
-    from the two (south-west), no press, no turn_for."""
-    p, z, w, recs = group_world(lua, 10.0 + 1.475, [(10.0, 21.5)])
+def test_under_string_a_closing_leader_beyond_contact_with_the_second_near_keeps_walking(lua, fs):
+    """The leader 7 at 2.2 (beyond reach + 0.5) closing at 1.0 (its landing inside the turn radius) and the second 20
+    at 2.25 north (inside K.STRING_GAP): no turn, the walk goes on, no press, no turn_for. Re-pinned under fix 6 (was
+    the leader at the reach with the second at 1.5, now the contact table's)."""
+    p, z, w, recs = group_world(lua, 10.0 + 2.2, [(10.0, 22.25)], zspeed=1.0)
     gow(lua, p, disposition="string")
     grun(lua, p, w, recs, 5)
     lv = leaves_of(lua, fs)
@@ -2192,16 +2195,17 @@ def test_the_string_run_v_is_1_0(lua, fs):
     assert lua.eval("PZA.skills.STRING_RUN_V") == 1.0
 
 
-def test_under_string_no_chosen_knock_down_the_walk_goes(lua, fs):
+def test_under_string_in_contact_the_chosen_knock_down_shoves(lua, fs):
     """One standing at 0.8 (the target, inside point blank and the shove range) and a second within the reach (1.2
-    north), pile true: under string no shove is sent and the tick is the string's walk."""
+    north), pile true: inside the contact radius the string runs the hold's table, so the chosen knock-down shoves
+    (shove_for knockdown) and no walk goes. Re-pinned under fix 6 (fix 1 read no shove here: its knockdown flag
+    now holds only in the string's walk, beyond the reach, where rule (c) never applies)."""
     p, z, w = pile_world(lua, (1.2,), tx=10.8)
     gow(lua, p, pile=True, disposition="string")
     run(lua, p, w, 6)
-    assert [x for x in w["presses"] if x["shove"]] == []
     pr = progress(lua, fs)
-    assert pr[0]["result"]["step"] == "work" and pr[0]["result"]["work"]["step_for"] == "string"
-    assert all(a["result"]["work"].get("shove_for") is None for a in pr)
+    assert pr[0]["result"]["step"] == "shove" and pr[0]["result"]["work"].get("shove_for") == "knockdown"
+    assert "string" not in [a["result"]["work"].get("step_for") for a in pr]
 
 
 def test_under_hold_the_same_geometry_shoves_as_before(lua, fs):
@@ -2215,14 +2219,19 @@ def test_under_hold_the_same_geometry_shoves_as_before(lua, fs):
 
 def test_under_string_the_step_out_runs_then_the_walk_resumes(lua, fs):
     """Two at point blank (0.5 east and 0.5 north), pile true, under string: the step out first (rule (b), step_for
-    pile_out), no shove, and after its K.WORK_STEP_TICKS the string's walk."""
+    pile_out), the hold's table while the nearest stands inside the contact radius, and the string's walk once the
+    nearest stands beyond it (fix 6: was after the step out at once)."""
     p, z, w = pile_world(lua, (0.5,), tx=10.5, attackers=0)
     gow(lua, p, pile=True, disposition="string")
     run(lua, p, w, 1)
     assert progress(lua, fs)[0]["result"]["work"]["step_for"] == "pile_out"
-    run(lua, p, w, lua.eval("PZA.skills.WORK_STEP_TICKS") + 12)
-    assert [x for x in w["presses"] if x["shove"]] == []
-    assert work_of(lua, "stepFor") == "string" and work_of(lua, "pileState") != "step"
+    run(lua, p, w, lua.eval("PZA.skills.WORK_STEP_TICKS"))
+    assert work_of(lua, "stepFor") != "string" and lua.eval("PZA.skills.cur.st.work.stringContact") is True
+    w["zx"] = w["px"] + 2.2   # the other gone, the target beyond the contact radius
+    w["zy"] = w["py"]
+    records(lua, [target_rec(w)], {7: z})
+    run(lua, p, w, 2)
+    assert work_of(lua, "stepFor") == "string"
 
 
 # ---- Plan 37 Task 2 fix 3: a fallen zombie at the feet is a crawler to the reflex (x_trial-ladder-20261112-065221) ----
@@ -2399,3 +2408,36 @@ def test_under_string_the_gait_falls_back_to_walk_once_the_nearest_passes_4_0(lu
     grun(lua, p, w, recs, 2)
     assert work_of(lua, "stepFor") == "string" and _wants_run(lua) is False
     assert ("setForceRun", False) in p.sets
+
+
+# ---- Plan 37 Task 2 fix 6: inside the reach the string fights by the hold's table (x_trial-ladder-20261112-071337) ----
+
+def test_under_string_the_leader_at_0_3_with_the_second_at_1_0_presses_and_never_walks(lua, fs):
+    """The leader at 0.3 and the second at 1.0 (inside the reach, beyond point blank), pile true: the hold's chosen
+    knock-down shoves the leader; no string walk. (Two inside point blank take the hold's step out first, rule (b).)"""
+    p, z, w = pile_world(lua, (1.0,), tx=10.3)
+    gow(lua, p, pile=True, disposition="string")
+    run(lua, p, w, 6, stop=lambda: w["presses"])
+    assert w["presses"]
+    assert "string" not in [(a["result"].get("work") or {}).get("step_for") for a in progress(lua, fs)]
+    assert lua.eval("PZA.skills.cur.st.walk") != "string"
+
+
+def test_under_string_the_leader_at_0_3_with_the_second_at_3_0_presses_and_never_walks(lua, fs):
+    p, z, w, recs = group_world(lua, 10.3, [(10.0, 23.0)])
+    gow(lua, p, pile=True, disposition="string")
+    grun(lua, p, w, recs, 6, stop=lambda: w["presses"])
+    assert w["presses"]
+    assert "string" not in [lf.get("step_for") for lf in leaves_of(lua, fs)]
+    assert lua.eval("PZA.skills.cur.st.walk") != "string" and lua.eval("PZA.skills.cur.st.work.stringContact") is True
+
+
+def test_under_string_the_walk_resumes_once_the_nearest_passes_the_contact_radius(lua, fs):
+    p, z, w, recs = group_world(lua, 11.5, [], **LOOK_OFF)
+    gow(lua, p, disposition="string")
+    grun(lua, p, w, recs, 2)
+    assert lua.eval("PZA.skills.cur.st.work.stringContact") is True and work_of(lua, "stepFor") != "string"
+    w["zx"] = w["px"] + 2.1
+    recs()
+    grun(lua, p, w, recs, 2)
+    assert lua.eval("PZA.skills.cur.st.work.stringContact") is False and work_of(lua, "stepFor") == "string"
