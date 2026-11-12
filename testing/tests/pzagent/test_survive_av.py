@@ -137,13 +137,12 @@ def test_a_release_asked_at_the_health_floor_is_followed_by_the_flee_only_after_
 TRIAL = "x_trial-ladder-20261112-061307"
 
 
-@functools.lru_cache(maxsize=1)
-def trial():
-    """(rows, ticks) of the trial's replay to line 205 (`_replay`'s shape), skipped where the run is absent."""
-    root = os.path.join(runs_root() or "", TRIAL)
+def trial_replay(run, upto):
+    """(rows, ticks) of trial `run`'s replay to line `upto` (`_replay`'s shape), skipped where the run is absent."""
+    root = os.path.join(runs_root() or "", run)
     logs = glob.glob(os.path.join(root, "clients", "admin", "Lua", "pzagent", "*", "state.log"))
     if not logs:
-        pytest.skip("%s is not on this machine (testing/runs/ is per-machine)" % TRIAL)
+        pytest.skip("%s is not on this machine (testing/runs/ is per-machine)" % run)
     ticks = []
 
     def mutate(sv):
@@ -158,8 +157,13 @@ def trial():
     with tempfile.TemporaryDirectory() as d:
         shutil.copy(logs[0], os.path.join(d, "state.log"))
         shutil.copy(os.path.join(root, "decision.log"), os.path.join(d, "decision.log"))
-        rows = R.replay(d, mutate=mutate, upto=205)
+        rows = R.replay(d, mutate=mutate, upto=upto)
     return rows, ticks
+
+
+@functools.lru_cache(maxsize=1)
+def trial():
+    return trial_replay(TRIAL, 205)
 
 
 def test_the_trial_s_contact_lines_send_no_steer():
@@ -188,3 +192,27 @@ def test_the_trial_s_bleed_finds_nothing_to_rip_and_says_so():
     rides = [threat(r).get("care_ride") for k, r in enumerate(rows, 1) if 176 <= k <= 201]
     assert rides and all(c is not None and c["cmd"] is None and c["why"] == "worn" for c in rides)
     assert all(ticks[k - 1][1] in (None, "melee") for k in range(176, 202))
+
+
+# ================================================================ Task 3 fix 5: round one's second horde8 trial
+# `x_trial-ladder-20261112-065221` (P31-T, not evidence; at da73a5be): replayed from this machine's run folder as above
+# (skipped where absent), open loop to line 20. The record's lines (1-based decision.log lines; the controller's brief
+# reads them one lower): 8 the string at range (`coming`), 11 the Fight's `walkTo` after the string melee's `lost` out
+# of range at 6.65 tiles, 14 `string -> hold why count` with two within GROUP_ENTRY_R and more within 10 tiles.
+TRIAL_5 = "x_trial-ladder-20261112-065221"
+
+
+@functools.lru_cache(maxsize=1)
+def trial_5():
+    return trial_replay(TRIAL_5, 20)
+
+
+def test_the_strung_out_group_keeps_the_string_and_no_walk_goes():
+    """Fix 5: the string entered at line 8 is kept through line 14 (more than GROUP_LEAVE_N standing within
+    STRING_ENTRY_R), and no `walkTo`, `aim` or `steer` is sent on lines 8 to 14 (line 11's walk is the melee or
+    nothing)."""
+    rows, ticks = trial_5()
+    ds = {k: threat(r)["disposition"] for k, r in enumerate(rows, 1) if "disposition" in threat(r)}
+    assert ds[8]["to"] == "string"
+    assert all(d["from"] != "string" for k, d in ds.items() if 8 < k <= 14), ds
+    assert all(ticks[k - 1][1] in (None, "melee") for k in range(8, 15)), [ticks[k - 1][1] for k in range(8, 15)]

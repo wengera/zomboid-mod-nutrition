@@ -494,3 +494,48 @@ def test_a_bleed_with_only_a_worn_garment_waits_logged_worn(tmp_path):
     m = melee_of(r)
     why, a = line(tmp_path, r, sv, closing_three(4), wounds=BLEED)
     assert a.type == "melee" and why["care_ride"] == {"under": "hold", "cmd": None, "why": "worn"}
+
+
+# ================================================================ fix 5: the string's exit by the standing count at range
+def strung(n_near, n_far):
+    """`n_near` standing at 4 to 5 tiles east and `n_far` at 7 to 9.5 (within STRING_ENTRY_R, beyond GROUP_ENTRY_R),
+    none closing (the same squares every line); the first line's 1 moved out to 9.8."""
+    near = [zp(20 + i, b, 4.0 + 0.3 * i) for i, b in enumerate((0.0, 25.0, -25.0)[:n_near])]
+    far = [zp(30 + i, b, 7.0 + 0.5 * i) for i, b in enumerate((10.0, -10.0, 35.0, -35.0, 50.0, -50.0)[:n_far])]
+    gone = [zp(10 + i, 180.0, 14.0) for i in range(8)]   # string_rig's group moved away (still listed: ZOMBIE_TTL_S)
+    return [zp(1, 0.0, 9.8)] + near + far + gone
+
+
+def test_a_strung_out_group_keeps_the_string_past_the_dwell(tmp_path):
+    """Fix 5 (the horde8 trial `x_trial-ladder-20261112-065221`, decision line 14: `string -> hold why count` with two
+    within GROUP_ENTRY_R and five more within 10 tiles): in `string`, two standing within 6 tiles and six more within
+    10 (none closing): the string holds through 4 s of lines (more than GROUP_LEAVE_N stand within STRING_ENTRY_R)."""
+    r, sv = string_rig(tmp_path)
+    out = lines(tmp_path, r, sv, [strung(2, 6)] * 8)
+    assert all("disposition" not in w for w, _ in out) and sv.disposition == "string"
+
+
+def test_three_within_string_entry_r_leave_the_string_to_hold(tmp_path):
+    """Fix 5: in `string`, three standing within STRING_ENTRY_R (one within 6, two beyond) and the rest gone beyond
+    12 tiles: `hold` (why count) once they have read so for DISPOSITION_DWELL_S."""
+    r, sv = string_rig(tmp_path)
+    out = lines(tmp_path, r, sv, [strung(1, 1)] * 6)   # 1 at 9.8, one at 4, one at 7: three within STRING_ENTRY_R
+    tos = [w.get("disposition", {}).get("to") for w, _ in out]
+    k = tos.index("hold")
+    assert out[k][0]["disposition"]["why"] == "count" and k == 4 and all(t is None for t in tos[:k])
+
+
+def test_a_string_melee_lost_out_of_range_is_re_sent_never_walked(tmp_path):
+    """Fix 5 (the same trial, decision line 11: the string's melee ended `lost` out of range at 6.6 tiles and the
+    Fight's approach `walkTo` went): in `string`, the melee ends `lost` out of range with the nearest standing at 4.5
+    tiles (within STRING_RELEASE_R): the next send is the melee at it, `disposition` string, no walk, aim or seek."""
+    r, sv = string_rig(tmp_path)
+    m = melee_of(r)
+    r.fake.act(m.aid, "accepted", "melee")
+    r.fake.act(m.aid, "done", "melee", result={"end": "lost", "why": "out of range"})
+    r.pump()
+    zs = ([zp(1, 0.0, 6.6), zp(2, 20.0, 4.5)] + [zp(10 + i, b, 5.5) for i, b in enumerate((40.0, -40.0, 60.0))]
+          + [zp(13, 0.0, 12.0), zp(14, 0.0, 12.0)])   # string_rig's 13 and 14 moved away (still listed)
+    why, b = line(tmp_path, r, sv, zs)
+    assert b.type == "melee" and b.args["disposition"] == "string" and b.args["targetId"] == 2
+    assert not any(a.type in ("walkTo", "aim") for a in r.acts.history)

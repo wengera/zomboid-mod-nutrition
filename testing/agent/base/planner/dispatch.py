@@ -195,18 +195,22 @@ class FightDispatch:
     def _pin_nearest(self):
         """Plan 37 Task 3 fix 3 (the horde8 trial `x_trial-ladder-20261112-061307`, lines 153 and 157: the melee ended
         in contact and the next line fled): the Fight's pin moved to the nearest standing zombie (not a crawler) within
-        KEEP_R that the Fight may target and has not marked (a `lost` end's own mark, `_lost_end`, stands); with none such
+        KEEP_R (STRING_RELEASE_R under `string`, fix 5: `_contact_r`) that the Fight may target and has not marked (a `lost` end's own mark, `_lost_end`, stands); with none such
         the pin stays (the threat branch's contract lifts a mark, `disposition.Disposer._contract`); never one beyond
         KEEP_R."""
         blocked = self.blocked()
-        near = [(d, repr(zid), zid) for zid, z, d in self._standing(KEEP_R) if target_id_ok(zid) and not is_crawler(z)
+        near = [(d, repr(zid), zid) for zid, z, d in self._standing(self._contact_r()) if target_id_ok(zid)
+                and not is_crawler(z)
                 and (self.only is None or zid in self.only) and zid not in blocked]
         if near:
             self.target, self.repositioned = min(near)[2], False
 
     def _contact(self):
-        """Plan 35 fixes 8 and 8b: a standing zombie (`_standing`, not a crawler) within KEEP_R of the player."""
-        return any(not is_crawler(z) for _, z, _ in self._standing(KEEP_R))
+        """Plan 35 fixes 8 and 8b: a standing zombie (`_standing`, not a crawler) within KEEP_R of the player; Plan 37
+        Task 3 fix 5 (the horde8 trial `x_trial-ladder-20261112-065221`, decision line 11: the string's melee ended
+        `lost` out of range at 6.6 tiles and the ladder's approach walk went): within STRING_RELEASE_R under `string`
+        (`_contact_r`), so no end there gives the next choose to the ladder's walk, aim or seek."""
+        return any(not is_crawler(z) for _, z, _ in self._standing(self._contact_r()))
 
     def _lost_end(self, m):
         """A `lost` end's marks (the module docstring): its target left unreachable by its why (out of reach for

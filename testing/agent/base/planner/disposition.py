@@ -34,8 +34,9 @@ the leave row, the engagement picker's pull, no `disposition` on the wire).
   STRING_ENTRY_R (`coming`, the group read coming), and either count's jump to STRING_N takes no dwell; no string is
   entered with the nearest standing inside STRING_MIN_GAP (five there go to `hold`, why `clump`); a running string
   whose nearest stays inside STRING_MIN_GAP, or whose leaf reads `pinned`, for STRING_PIN_S goes to `hold` (`clump`);
-  its exit to `hold` on the count reads the coming group too (at most GROUP_LEAVE_N within GROUP_ENTRY_R and under
-  STRING_N coming, for DISPOSITION_DWELL_S);
+  its exit to `hold` on the count reads the standing group (fix 5: at most GROUP_LEAVE_N standing, not crawlers, within
+  STRING_ENTRY_R for DISPOSITION_DWELL_S, whatever stands within GROUP_ENTRY_R: a strung-out group is the string
+  working; never the closing count, which a lunging or idling zombie leaves);
   the sprinter's break reads SPRINTER_V (STRING_RUN_V, now 1.0, is the walk's run latch); under `string` the melee is
   sent at a pin within STRING_RELEASE_R (`dispatch.FightDispatch._release_r`, `_contact_r`) and the row answers with
   nobody yet within GROUP_ENTRY_R, the heading read off the standing within STRING_ENTRY_R.
@@ -155,7 +156,8 @@ class Disposer:
         near = [e for e in standing if e[2] <= GROUP_ENTRY_R]
         closing = [e for e in self._group_closing if not is_crawler(e[1])]
         coming = sum(1 for e in self._string_closing if not is_crawler(e[1]))   # fix 2: within STRING_ENTRY_R
-        nearest = min((d for _, z, d in self._group_standing(STRING_ENTRY_R) if not is_crawler(z)), default=None)
+        ranged = [d for _, z, d in self._group_standing(STRING_ENTRY_R) if not is_crawler(z)]   # standing, not fallen
+        nearest = min(ranged, default=None)
         entry = (len(closing) >= GROUP_LEAVE_N
                  or (len(near) >= GROUP_LEAVE_N and near[0][2] <= KEEP_R))
         f = self.fight
@@ -168,7 +170,7 @@ class Disposer:
             speed = _own_speed(clock.tracks.get(leader[0]))
         return {"n": n, "n_hold": len(standing), "entry": entry, "health": self._health(), "ring": self.world.room(),
                 "pinned": leaf.get("pinned") is True, "leader": leader, "speed": speed, "coming": coming,
-                "nearest": nearest, "clump": nearest is not None and nearest < STRING_MIN_GAP}
+                "nearest": nearest, "clump": nearest is not None and nearest < STRING_MIN_GAP, "n_range": len(ranged)}
 
     def _for(self, key, cond):
         """Seconds condition `key` has read true without a break (0.0 when false, the clock cleared)."""
@@ -197,7 +199,7 @@ class Disposer:
             cornered = why is None or why.get("room") == "closed" or why.get("open", 0.0) < PULL_ROOM_NEED
         return {"pinned": self._for("pinned", self._pin_n is not None and f["n"] >= self._pin_n),
                 "hold_low": self._for("hold_low", f["n_hold"] < GROUP_LEAVE_N),
-                "string_low": self._for("string_low", f["n"] <= GROUP_LEAVE_N and f["coming"] < STRING_N),
+                "string_low": self._for("string_low", f["n_range"] <= GROUP_LEAVE_N),   # fix 5: the strung-out group
                 "cornered": self._for("cornered", cornered),
                 "clump": self._for("clump", self.disposition == "string" and f["clump"]),
                 "crowd": self._for("crowd", f["n"] >= STRING_N),
