@@ -25,6 +25,12 @@ F15 = os.path.join(REPO, "testing", "artifacts", "f_goals_16-20261105-164332")
 TRIALS = os.path.join(REPO, "testing", "trials", "trials.md")
 
 
+def _trial_head():
+    """The committed log's header and separator as a scored run widens them (`widen_head`: the committed log holds the
+    columns of the era before the last named change until a scoring call writes it)."""
+    return TS.widen_head(TS.read_log(TRIALS)[0])
+
+
 @pytest.fixture(scope="module")
 def f15():
     """F15 read whole (`clipped=False`): the by-hand values below were taken over the whole log, 59 dead frames
@@ -116,14 +122,15 @@ def test_f15_the_row_reads_every_cell_in_the_logs_column_order(f15):
     the care@3+ cell 0 (Plan 34 Task 5: by hand, F15's twelve care sends of a stop, rip, unwear or bandage, lines 187
     to 970, read none to one standing zombie within 6 tiles on the frame at or before each), and the contact
     cells 24.9 s (249 of its 5423 frames at 0.1 s: pinned at the reader's value, Plan 35 Task 3) and 0 (no melee under
-    `work`)."""
-    head, _ = TS.read_log(TRIALS)
+    `work`), then Plan 36 Task 5b's eight: `-` for the press, cone, clock, pull, room and steps cells (F15 predates
+    their keys) and `0 (0.0 s)` for the crawler cell (it has frames and no melee step with a crawler near)."""
+    head = _trial_head()
     header = TS.parse_row(head[-2])
     assert tuple(header) == TS.COLUMNS
     cs = TS.cells(f15, "seen one / two")
     assert len(cs) == len(TS.COLUMNS)
     assert cs == ["f_goals_16-20261105-164332", "-", "-", "-", "142", "0", "6 / 8", "-", "-", "-", "-", "0",
-                  "24.9", "0", "39.3 / 138.5 (away 41.1)",
+                  "24.9", "0", "-", "-", "-", "-", "0 (0.0 s)", "-", "-", "-", "39.3 / 138.5 (away 41.1)",
                   "17.3 / 138.5", "0 / 6", "1 / 26 (19 superseded)", "death@702", "0", "seen one / two"]
 
 
@@ -317,7 +324,8 @@ def test_the_labels_are_loud_string_and_flee_retreat_an_unknown_word_marked_and_
     s = {"hits": {}, "flee": fl, "toward": TS.toward_minutes(L), "dressed": TS.dressed([]),
          "melees": TS.melees_superseded({}, []), "goal_wait": None, "standing": None, "away": TS.away_minutes(L),
          "legs": TS.leg_minutes(rows), "labels": TS.label_histogram(rows), "kills_events": None,
-         "kills_matched": None, "contact": TS.contact_seconds([], []), "engaged": TS.engagements([])}
+         "kills_matched": None, "contact": TS.contact_seconds([], []), "engaged": TS.engagements([]),
+         **_blank_score()}
     d = "\n".join(TS.detail(s))
     assert "'wander?': 1" in d and "1 lines' play targets resolved to nothing" in d
 
@@ -452,7 +460,7 @@ def log(tmp_path):
     """The real log's header through its separator, without the trials' rows: the rows grow with every trial
     run, and these tests read only their own."""
     p = str(tmp_path / "trials.md")
-    TS.write_log(p, TS.read_log(TRIALS)[0], [])
+    TS.write_log(p, _trial_head(), [])
     return p
 
 
@@ -460,7 +468,7 @@ def test_a_run_folder_scores_from_its_client_tree_and_its_trial_json(tmp_path):
     run = _write_run(str(tmp_path / "x_trial-20261106-101010"), kill=True)
     cs = TS.cells(TS.score(run))
     assert cs == ["x_trial-20261106-101010", "ladder", "abcdef01", "arena-east", "5", "1 (matched 0)", "0 / 0",
-                  "0.00", "-", "-", "-", "0", "0.0", "0", "3.0 / 3.0 (away 0.0)", "0.0 / 3.0", "0 / 0", "0 / 0 (0 superseded)", "cap",
+                  "0.00", "-", "-", "-", "0", "0.0", "0", "-", "-", "-", "-", "0 (0.0 s)", "-", "-", "-", "3.0 / 3.0 (away 0.0)", "0.0 / 3.0", "0 / 0", "0 / 0 (0 superseded)", "cap",
                   "90", ""]
 
 
@@ -476,7 +484,7 @@ def test_dry_writes_nothing_and_a_run_appends_then_replaces_its_own_row_keeping_
     assert TS.main([run, "--log", log]) == 0                       # rescored with no --seen: kept, not duplicated
     _, rows = TS.read_log(log)
     assert len(rows) == 1 and TS.parse_row(rows[0])[-1] == "saw one / saw two / saw | three"
-    assert open(log, encoding="utf-8").read().startswith("\n".join(TS.read_log(TRIALS)[0]))
+    assert open(log, encoding="utf-8").read().startswith("\n".join(_trial_head()))
 
 
 def test_rescore_all_rebuilds_each_row_keeping_seen_keeps_a_gone_folders_row_and_never_adds_a_new_folder(tmp_path, log):
@@ -678,7 +686,7 @@ def _section_log(path):
     """A log with two rows, a blank line, a `## Round two ranking` section with blank lines inside it and a table row
     in it, ending in a newline."""
     row = lambda tid, seen="": TS.format_row([tid] + ["-"] * (len(TS.COLUMNS) - 2) + [seen])
-    head = TS.read_log(TRIALS)[0]
+    head = _trial_head()
     tail = ["", "## Round two ranking (2026-11-06)", "", "| arm | kills |", "|---|---|", "| ladder | 17 |", "",
             "Best by kills: the ladder.", ""]
     TS.write_log(path, head, [row("x_trial-a-20261106-000001", "kept"), row("x_trial-b-20261106-000002")], tail)
@@ -727,9 +735,9 @@ def test_rescore_all_keeps_a_trailing_section_and_a_folder_with_no_row_is_left_o
 
 # ================================================================ Plan 32 Task 4: the body columns
 def test_the_body_columns_follow_hits_per_kill():
-    """Named change, Plan 35 Task 3: the row is 21 cells with the two contact cells (19 before them)."""
+    """Named change, Plan 36 Task 5b: the row is 29 cells with the eight engagement cells (21 before them)."""
     i = TS.COLUMNS.index("hits per kill")
-    assert TS.COLUMNS[i + 1:i + 3] == ("body med", "body p90") and len(TS.COLUMNS) == 21
+    assert TS.COLUMNS[i + 1:i + 3] == ("body med", "body p90") and len(TS.COLUMNS) == 29
 
 
 def test_the_body_columns_read_grade_x2_s_presses(tmp_path):
@@ -765,7 +773,7 @@ def test_rescore_all_widens_the_header_and_a_gone_folders_row_by_the_two_body_ce
     h, rows, t = TS.read_log_parts(p)
     assert TS.parse_row(h[-2]) == list(TS.COLUMNS) and h[-1] == "|" + "---|" * len(TS.COLUMNS)
     assert h[:-2] == head[:-2] and t == ["", "## After", ""]
-    assert TS.parse_row(rows[0]) == gone[:8] + ["-"] * 6 + gone[8:]
+    assert TS.parse_row(rows[0]) == gone[:8] + ["-"] * 14 + gone[8:]
 
 
 def test_a_scored_run_widens_an_old_log_s_header_and_keeps_its_old_rows_seen(tmp_path):
@@ -817,7 +825,7 @@ def test_rescore_all_widens_a_body_era_log_by_the_head_ticks_cell(tmp_path):
     h, rows, t = TS.read_log_parts(p)
     assert TS.parse_row(h[-2]) == list(TS.COLUMNS) and h[-1] == "|" + "---|" * len(TS.COLUMNS)
     assert h[:-2] == head[:-2] and t == ["", "## After", ""]
-    assert TS.parse_row(rows[0]) == gone[:10] + ["-"] * 4 + gone[10:]
+    assert TS.parse_row(rows[0]) == gone[:10] + ["-"] * 12 + gone[10:]
 
 
 # ================================================================ Plan 34 Task 5: the care@3+ column
@@ -879,7 +887,7 @@ def test_rescore_all_widens_a_head_era_log_by_the_care_cell(tmp_path):
     h, rows, t = TS.read_log_parts(p)
     assert TS.parse_row(h[-2]) == list(TS.COLUMNS) and h[-1] == "|" + "---|" * len(TS.COLUMNS)
     assert h[:-2] == head[:-2] and t == ["", "## After", ""]
-    assert TS.parse_row(rows[0]) == gone[:11] + ["-"] * 3 + gone[11:]
+    assert TS.parse_row(rows[0]) == gone[:11] + ["-"] * 11 + gone[11:]
 
 
 def test_widen_takes_a_row_of_each_earlier_width_to_the_full_row():
@@ -903,8 +911,8 @@ def _cf(seq, nearest=0.8, step=None, reaction="", zombies=None):
 
 def test_the_contact_columns_follow_care_and_precede_min_fleeing():
     i = TS.COLUMNS.index("care@3+")
-    assert TS.COLUMNS[i + 1:i + 3] == ("contact s", "engagements") and TS.COLUMNS[i + 3] == "min fleeing"
-    assert TS.CONTACT_COLUMNS == ("contact s", "engagements") and len(TS.COLUMNS) == 21
+    assert TS.COLUMNS[i + 1:i + 3] == ("contact s", "engagements") and TS.COLUMNS[i + 3] == "air %"
+    assert TS.CONTACT_COLUMNS == ("contact s", "engagements") and len(TS.COLUMNS) == 29
 
 
 def test_contact_seconds_sum_the_frames_inside_a_tile_with_no_press_in_flight_and_no_hit_reaction():
@@ -962,7 +970,8 @@ def test_the_round_summary_reads_the_arms_rows_from_the_stamp_on_and_appends_onc
     TS.write_log(p, ["# T", "", TS.format_row(TS.COLUMNS), "|" + "---|" * len(TS.COLUMNS)], rows,
                  ["", "## After", ""])
     want = ("> round: foot agent since 20261110-000000: 3 trials, 2 deaths (67 %), kills median 6, "
-            "contact s median 4.0, hits per kill median 0.25")
+            "contact s median 4.0, hits per kill median 0.25, air % median -, cone bites median -, "
+            "clock <0 median -")
     assert TS.main(["--round", "foot", "agent", "20261110-000000", "--log", p]) == 0
     assert want in capsys.readouterr().out
     h, r, t = TS.read_log_parts(p)
@@ -995,4 +1004,254 @@ def test_rescore_all_widens_a_care_era_log_by_the_two_contact_cells(tmp_path):
     h, rows, _ = TS.read_log_parts(p)
     assert TS.parse_row(h[-2]) == list(TS.COLUMNS)
     i = TS.COLUMNS.index("contact s")
-    assert TS.parse_row(rows[0]) == gone[:i] + ["-", "-"] + gone[i:]
+    assert TS.parse_row(rows[0]) == gone[:i] + ["-"] * 10 + gone[i:]
+
+
+# ================================================================ Plan 36 Task 5b: the engagement's cells
+def _al(aid, state, wall, result=None, seq=None):
+    """A melee act line."""
+    ln = {"kind": "act", "type": "melee", "aid": aid, "state": state, "wallMs": wall, "result": result or {}}
+    if seq is not None:
+        ln["seq"] = seq
+    return ln
+
+
+def _leaf(d, hp0=1.0, air=False, back=False, **kw):
+    return dict({"d_press": d, "hp0": hp0, "d_collide_pred": d, "air": air, "moving_back": back}, **kw)
+
+
+def test_the_engagement_columns_follow_engagements_and_precede_min_fleeing():
+    i = TS.COLUMNS.index("engagements")
+    assert TS.COLUMNS[i + 1:i + 9] == TS.ENGAGE_COLUMNS == ("air %", "back %", "cone bites", "clock <0", "crawler@1",
+                                                            "pull", "room", "steps")
+    assert TS.COLUMNS[i + 9] == "min fleeing" and len(TS.COLUMNS) == 29 and len(TS.CONTACT_ERA_COLUMNS) == 21
+
+
+def test_rescore_all_widens_a_contact_era_log_by_the_eight_engagement_cells(tmp_path):
+    cols = list(TS.CONTACT_ERA_COLUMNS)
+    head = ["# Trials", "", TS.format_row(cols), "|" + "---|" * len(cols)]
+    gone = ["c%d" % k for k in range(len(cols))]
+    p = str(tmp_path / "trials.md")
+    TS.write_log(p, head, [TS.format_row(gone)], [""])
+    runs = str(tmp_path / "runs")
+    os.makedirs(runs)
+    assert TS.main(["--rescore-all", "--log", p, "--runs", runs]) == 0
+    h, rows, _ = TS.read_log_parts(p)
+    assert TS.parse_row(h[-2]) == list(TS.COLUMNS)
+    i = TS.COLUMNS.index("air %")
+    assert TS.parse_row(rows[0]) == gone[:i] + ["-"] * 8 + gone[i:]
+
+
+def test_air_and_back_count_each_press_leaf_once_though_the_heartbeat_re_reads_it():
+    """Mutation caught: counting a leaf per line it rides (the once-a-second heartbeat re-reads leaf 1 with a moving
+    hp1: 3 lines, 1 press), or keying the leaf by its whole dict (hp1 changed: 3 presses)."""
+    lines = [_al("a1", "progress", 1, {"press": _leaf(1.5, air=True, hp1=1.0), "air_presses": 1}),
+             _al("a1", "progress", 2, {"press": _leaf(1.5, air=True, hp1=0.9), "air_presses": 1}),
+             _al("a1", "progress", 3, {"press": _leaf(1.5, air=True, hp1=0.8), "air_presses": 1}),
+             _al("a1", "progress", 4, {"press": _leaf(1.2, hp0=0.9, back=True), "air_presses": 1}),
+             _al("a2", "progress", 5, {"press": _leaf(1.5, air=True)}),      # another melee, the same numbers
+             _al("a2", "done", 6, {"press": _leaf(0.7, hp0=0.5, air=True), "air_presses": 4})]
+    r = TS.press_readings(lines)
+    assert (r["leaves"], r["air"], r["back_leaves"], r["back"]) == (4, 3, 4, 1)
+    assert r["done_air"] == 5                       # the melees' own counts (1 and 4): the cell prints them beside
+    assert TS.engage_cells(dict(_blank_score(), presses=r))[0] == "75 (3/4; done 5)"
+
+
+def test_back_under_a_retreat_reads_the_work_leaf_on_the_line_or_the_melee_s_line_before_it():
+    """Mutation caught: the window off by one either way. Leaf A rides the line after a retreat line (inside), leaf B
+    rides a line whose own work reads retreat (inside), leaf C follows two lines past it (outside), leaf D is another
+    melee's first line (outside: the window is per melee)."""
+    lines = [_al("a1", "progress", 1, {"work": {"retreat": True}}),
+             _al("a1", "progress", 2, {"press": _leaf(1.0, back=True), "work": {}}),                    # A
+             _al("a1", "progress", 3, {"press": _leaf(1.1, back=True), "work": {"retreat": True}}),     # B
+             _al("a1", "progress", 4, {"work": {}}),
+             _al("a1", "progress", 5, {"press": _leaf(1.2, back=True), "work": {}}),                    # C
+             _al("a2", "progress", 6, {"press": _leaf(1.3, back=False), "work": {}})]                   # D
+    r = TS.press_readings(lines)
+    assert (r["retreat_leaves"], r["retreat_back"], r["back_leaves"], r["back"]) == (2, 2, 4, 3)
+    assert TS.engage_cells(dict(_blank_score(), presses=r))[1] == "75 (3/4, retreat 2/2)"
+
+
+def test_air_and_back_cells_are_dashes_on_a_run_whose_leaves_carry_neither_key():
+    lines = [_al("a1", "progress", 1, {"press": {"d_press": 1.0, "hp0": 1.0}})]
+    r = TS.press_readings(lines)
+    assert r["read"] is False and TS.engage_cells(dict(_blank_score(), presses=r))[:2] == ["-", "-"]
+    assert TS.press_readings([])["read"] is False
+
+
+def _bf(seq, body, zombies, reaction="", x=0.0, y=0.0):
+    return {"kind": "frame", "seq": seq, "wallMs": 100.0 * seq,
+            "me": {"x": x, "y": y, "bodyAngle": body, "hitReaction": reaction}, "zombies": zombies}
+
+
+def _z(zid, x, y, **kw):
+    return dict({"id": zid, "x": x, "y": y, "dist": math.hypot(x, y), "crawler": False, "onFloor": False,
+                 "health": 1.0}, **kw)
+
+
+def test_cone_bites_count_the_onsets_whose_nearest_standing_zombie_is_more_than_90_degrees_off_the_body():
+    """Body 0 is east (atan2(dy, dx), 0 east, 90 south). Zombie ahead (inside), behind (outside), exactly 90 degrees
+    (inside: strictly more), 92.9 degrees (outside), and a crawler ahead nearer than the standing zombie behind (the
+    crawler is no nearest: outside). Mutations caught: a bite inside the cone counted outside, `>=` for `>`, the sign
+    of the bearing's y flipped (zombie at (0, 1) read 270 degrees: also fails the 92.9 one), the nearest taken over
+    crawlers."""
+    cases = [([_z(1, 1.0, 0.0)], False), ([_z(1, -1.0, 0.0)], True), ([_z(1, 0.0, 1.0)], False),
+             ([_z(1, -0.05, 1.0)], True), ([_z(1, 0.0, -1.0)], False),
+             ([_z(1, 0.3, 0.0, crawler=True), _z(2, -1.0, 0.0)], True)]
+    fr = []
+    for k, (zs, _) in enumerate(cases):
+        fr += [_bf(4 * k + 1, 0.0, zs), _bf(4 * k + 2, 0.0, zs, "Bite"), _bf(4 * k + 3, 0.0, zs, "Bite"),
+               _bf(4 * k + 4, 0.0, zs)]
+    c = TS.cone_bites(fr)
+    assert c == {"read": True, "bites": 6, "outside": 3}
+    assert TS.engage_cells(dict(_blank_score(), cone=c))[2] == "3/6"
+    # one bite, run split by a type change (two onsets): the body 180 degrees off the zombie ahead
+    fr = [_bf(1, math.pi, [_z(1, 1.0, 0.0)]), _bf(2, math.pi, [_z(1, 1.0, 0.0)], "Bite"),
+          _bf(3, math.pi, [_z(1, 1.0, 0.0)], "CrawlerBite"), _bf(4, math.pi, [_z(1, 1.0, 0.0)])]
+    assert TS.cone_bites(fr) == {"read": True, "bites": 2, "outside": 2}
+
+
+def test_cone_bites_are_a_dash_without_a_body_angle_and_an_onset_with_no_standing_zombie_is_unread():
+    fr = [{"kind": "frame", "seq": 1, "wallMs": 100.0, "me": {"x": 0.0, "y": 0.0, "hitReaction": "Bite"},
+           "zombies": [_z(1, -1.0, 0.0)]}]
+    assert TS.cone_bites(fr) == {"read": False}
+    assert TS.engage_cells(dict(_blank_score(), cone={"read": False}))[2] == "-"
+    fr = [_bf(1, 0.0, []), _bf(2, 0.0, [], "Bite"), _bf(3, 0.0, [_z(1, 1.0, 0.0, crawler=True)], "Bite")]
+    assert TS.cone_bites(fr) == {"read": True, "bites": 0, "outside": 0}
+
+
+def _cl(ttc, need=3.0, sent=True, branch="threat", **kw):
+    return {"sent": sent, "inputs": {"branches": {branch: {"clock": dict({"action": "loot", "ttc": ttc, "need": need},
+                                                                         **kw)}}}}
+
+
+def test_clock_under_counts_only_a_sent_action_started_with_ttc_strictly_under_need():
+    """Mutations caught: `<=` for `<` (the ttc == need line), counting a refused line (sent false, ttc under need: the
+    clock did its job) or a cut line (sent true: the threat's own send, not a start), the waited sum read per line."""
+    rows = [_cl(5.0), _cl(3.0), _cl(2.9, branch="goal"), _cl(1.0, sent=False, running="a1"),
+            _cl(1.0, cut=True, running="a2", target=7), _cl(4.0, waited=1.5), {"sent": True, "inputs": {}}]
+    c = TS.clock_gate(rows)
+    assert (c["lines"], c["ok"], c["held"], c["cut"], c["under"], c["under_lines"]) == (6, 4, 1, 1, 1, [2])
+    assert c["waited"] == pytest.approx(1.5)
+    assert TS.engage_cells(dict(_blank_score(), clock_gate=c))[3] == "1 (6: 4 ok, 1 held, 1 cut)"
+    assert TS.clock_gate([_cl(3.0)])["under"] == 0
+
+
+def test_clock_cell_is_a_dash_without_a_clock_line():
+    c = TS.clock_gate([{"sent": True, "inputs": {"branches": {"threat": {"held": 1}}}}])
+    assert c["read"] is False and TS.engage_cells(dict(_blank_score(), clock_gate=c))[3] == "-"
+
+
+def test_crawler_at_one_counts_a_crawler_inside_a_tile_while_a_standing_target_is_pressed_on():
+    """Mutations caught: a crawler counted on a floor step, at exactly a tile (strictly inside), a dead one, one with
+    the crawler itself the melee's target (re-pinned: `result.target`), no standing target; seconds from the frame
+    spacing (0.1 s)."""
+    crawler, stand = _z(5, 0.5, 0.0, crawler=True), _z(6, 1.2, 0.0)
+    far, dead = _z(5, 1.0, 0.0, crawler=True), _z(5, 0.4, 0.0, crawler=True, health=0)
+
+    def fr(seq, step, zs, aid="a1"):
+        return {"kind": "frame", "seq": seq, "wallMs": 100.0 * seq, "me": {}, "zombies": zs,
+                "act": {"aid": aid, "state": "progress", "step": step}}
+
+    frames = [fr(1, "swing", [crawler, stand]), fr(2, "shove", [crawler, stand]), fr(3, "stomp", [crawler, stand]),
+              fr(4, "floor", [crawler, stand]), fr(5, None, [crawler, stand]), fr(6, "swing", [far, stand]),
+              fr(7, "swing", [dead, stand]), fr(8, "swing", [crawler]), fr(9, "swing", [crawler, stand], aid="a2"),
+              fr(10, "swing", [crawler, stand], aid="a2"), fr(11, "swing", [crawler, stand], aid="a2")]
+    lines = [_al("a2", "progress", 850.0, {"target": 5}), _al("a2", "progress", 1050.0, {"target": 6})]
+    c = TS.crawler_close(frames, lines)
+    # frames 1-3 (swing, shove, stomp) count; a2's frame 9 targets the crawler (id 5): not; frames 10 and 11 re-pinned
+    # to the standing 6 at wall 1050: frame 10 (wall 1000) still on 5, frame 11 (1100) on 6: counts
+    assert c["frames"] == 4 and c["seconds"] == pytest.approx(0.4)
+    assert TS.engage_cells(dict(_blank_score(), crawler=c, frames=11))[4] == "4 (0.4 s)"
+    assert TS.engage_cells(dict(_blank_score(), crawler=c, frames=0))[4] == "-"
+
+
+def _pl(why, **kw):
+    return {"inputs": {"branches": {"threat": {"engage_pull": dict({"why": why, "n": 2}, **kw)}}}}
+
+
+def test_pull_counts_the_engage_pull_lines_by_why_and_the_held_ones():
+    """Mutations caught: counting held ones under another why, one why's count read for another, a line without the
+    key counted."""
+    rows = [_pl("spread"), _pl("retreat", held=True), _pl("retreat", held=True), _pl("retreat"), _pl("cone"),
+            _pl("spread"), {"inputs": {"branches": {"threat": {}}}}]
+    p = TS.pull_counts(rows)
+    assert p["by"] == {"spread": 2, "retreat": 3, "cone": 1} and p["held"] == {"retreat": 2}
+    assert TS.engage_cells(dict(_blank_score(), pulls=p))[5] == "s2 r3(h2) c1"
+    q = TS.pull_counts([{"inputs": {"branches": {"threat": {}}}}])
+    assert q["read"] is False and TS.engage_cells(dict(_blank_score(), pulls=q))[5] == "-"
+
+
+def test_room_counts_the_frames_the_stop_kinds_over_every_heading_and_the_room_ms_p50_and_max():
+    """Mutations caught: counting headings as frames, a stop kind miscounted, the median over frames with no
+    `roomMs`, a frame without `me.room` counted."""
+    def fr(stops, ms=None):
+        f = {"kind": "frame", "me": {"room": {"h": [1] * len(stops), "stop": stops, "tick": 1}}}
+        if ms is not None:
+            f["cost"] = {"roomMs": ms}
+        return f
+
+    frames = [fr(["open", "wall", "wall", "hop"], 1), fr(["open", "door"], 5), fr(["wall"], 3), fr(["open"]),
+              {"kind": "frame", "me": {}}]
+    r = TS.room_readings(frames)
+    assert r["frames"] == 4 and r["stops"] == {"open": 3, "wall": 3, "hop": 1, "door": 1}
+    assert (r["ms_p50"], r["ms_max"]) == (3, 5)
+    assert TS.engage_cells(dict(_blank_score(), room=r))[6] == "4 (o3 w3 h1 d1) 3/5ms"
+    z = TS.room_readings([{"kind": "frame", "me": {}}])
+    assert z["read"] is False and TS.engage_cells(dict(_blank_score(), room=z))[6] == "-"
+
+
+def test_steps_count_each_work_reason_as_runs_not_lines_and_read_absent_as_a_dash():
+    """Mutation caught: a value counted per line it rides (the heartbeat re-reads `step_for` pile_out on three lines:
+    one run), a run restarting after another value counted once."""
+    lines = [_al("a1", "progress", 1, {"work": {"step_for": "pile_out"}}),
+             _al("a1", "progress", 2, {"work": {"step_for": "pile_out", "shove_for": "knockdown"}}),
+             _al("a1", "progress", 3, {"work": {"step_for": "pile_out", "shove_for": "knockdown"}}),
+             _al("a1", "progress", 4, {"work": {"step_for": "stagger_in", "nan_heading": True}}),
+             _al("a1", "progress", 5, {"work": {"step_for": "pile_out"}}),
+             _al("a2", "progress", 6, {"work": {"step_for": "pile_out"}})]
+    s = TS.step_reasons(lines)
+    assert s["by"] == {"step_for": {"pile_out": 3, "stagger_in": 1}, "shove_for": {"knockdown": 1}}
+    assert s["nan_heading"] == 1
+    assert TS.engage_cells(dict(_blank_score(), steps=s))[7] == \
+        "step_for pile_out=3 stagger_in=1; shove_for knockdown=1; nan_heading 1"
+    n = TS.step_reasons([_al("a1", "progress", 1, {"work": {"gap": 1.0}})])
+    assert n["read"] is False and TS.engage_cells(dict(_blank_score(), steps=n))[7] == "-"
+
+
+def _blank_score():
+    """A score's engagement readings all unread, frames present."""
+    return {"presses": {"read": False}, "cone": {"read": False}, "clock_gate": TS.clock_gate([]),
+            "crawler": {"frames": 0, "seconds": 0.0}, "pulls": TS.pull_counts([]), "room": TS.room_readings([]),
+            "steps": TS.step_reasons([]), "frames": 1}
+
+
+def test_a_run_without_any_engagement_key_reads_dashes_in_all_but_the_crawler_and_cone_cells(tmp_path):
+    s = TS.score(_care_run(str(tmp_path / "x_trial-20261110-222222"), 1))
+    cs = TS.cells(s)
+    i = TS.COLUMNS.index("air %")
+    assert len(cs) == len(TS.COLUMNS)
+    assert [cs[i + k] for k in (0, 1, 3, 5, 6, 7)] == ["-"] * 6
+    assert len([ln for ln in TS.detail(s) if ln.startswith(("presses (", "cone bites (", "clock gate (", "room ("))]) == 4
+
+
+def test_the_round_summary_carries_the_air_cone_and_clock_medians(tmp_path, capsys):
+    """Mutations caught: the median read off the wrong column, a `-` cell counted as 0, the clock cell's lead number
+    (the count under the margin) read as its denominator."""
+    def row(tid, air, cone, clock):
+        cs = ["-"] * len(TS.COLUMNS)
+        for k, v in (("trial", tid), ("variant", "foot"), ("fixture", "agent"), ("kills", "5"), ("end", "cap"),
+                     ("air %", air), ("cone bites", cone), ("clock <0", clock), ("seen", "")):
+            cs[TS.COLUMNS.index(k)] = v
+        return TS.format_row(cs)
+
+    p = str(tmp_path / "trials.md")
+    rows = [row("x_trial-foot-20261110-100000", "10 (1/10)", "1/4", "0 (16: 5 ok, 9 held, 2 cut)"),
+            row("x_trial-foot-20261110-110000", "30 (3/10)", "3/6", "2 (9: 5 ok, 3 held, 1 cut)"),
+            row("x_trial-foot-20261110-120000", "-", "-", "-"),
+            row("x_trial-foot-20261110-130000", "20 (2/10)", "2/2", "0 (4: 4 ok, 0 held, 0 cut)")]
+    TS.write_log(p, ["# T", "", TS.format_row(TS.COLUMNS), "|" + "---|" * len(TS.COLUMNS)], rows, [""])
+    assert TS.main(["--round", "foot", "agent", "20261110-000000", "--log", p, "--dry"]) == 0
+    out = capsys.readouterr().out
+    assert "air % median 20, cone bites median 2, clock <0 median 0" in out
+    assert "4 trials, 0 deaths (0 %), kills median 5" in out

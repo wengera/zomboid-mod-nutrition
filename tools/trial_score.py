@@ -106,6 +106,16 @@ median <c>, hits per kill median <h>`, a `-` cell left out of its median. A log 
 way (`widen` takes a row of any earlier width: the body, head_ticks, care@3+ cells and this pair, each where its change
 put it).
 
+The engagement (Plan 36 Task 5b, a named change of the row: eight cells after `engagements`, ENGAGE_COLUMNS, each `-`
+where the run's logs lack the key it reads): `air %` and `back %` (`press_readings`: the melee press leaves, each
+counted once by `press_leaves`, reading `air` and `moving_back`; `back` also over the leaves launched under a retreat),
+`cone bites` (`cone_bites`: the reaction onsets with the nearest standing zombie more than 90 degrees off `me.bodyAngle`),
+`clock <0` (`clock_gate`: a sent action started with `ttc` under `need`, 0 when the clock holds, beside the clocks ok,
+held and cut), `crawler@1` (`crawler_close`), `pull` (`pull_counts`, the `engage_pull` whys), `room` (`room_readings`)
+and `steps` (`step_reasons`, the work leaf's reasons as runs: read defensively, since Task 2 Phase B names them).
+`--round` adds the medians of `air %`, `cone bites` and `clock <0` (the cells' leading numbers). A log written before
+them is widened the same way (`widen` takes a row of the CONTACT_ERA_COLUMNS width).
+
 The clocks: a decision line's game minute is its `inputs.hour` x 60 (a float; the line's `gameMin` is whole minutes,
 too coarse for a 2 Hz line), a frame's its `me.hour` x 60, each unwrapped past midnight; a line stands from its own
 wall to the next line's (the log's last line stands for nothing). Stdlib plus the agent base; read-only over the run.
@@ -127,6 +137,7 @@ from agent.base import gates_e as E  # noqa: E402
 from agent.base.grades import e18 as G18  # noqa: E402
 from agent.base.grades import e19 as G19  # noqa: E402
 from agent.base.grades import e21 as G21  # noqa: E402
+from agent.base.grades import x1 as GX1  # noqa: E402
 from agent.base.grades import x2 as GX2  # noqa: E402
 from agent.base.grades import x3 as GX3  # noqa: E402
 from agent.base.grades import x4 as GX4  # noqa: E402
@@ -138,16 +149,20 @@ RUN_GLOB = "x_trial-*"
 TRIAL_JSON = "trial.json"
 DECISION_LOG = "decision.log"
 COLUMNS = ("trial", "variant", "commit", "fixture", "min", "kills", "hits (runs / union)", "hits per kill",
-           "body med", "body p90", "head_ticks max", "care@3+", "contact s", "engagements", "min fleeing", "min toward target", "dressed <1 min", "melees superseded", "end",
+           "body med", "body p90", "head_ticks max", "care@3+", "contact s", "engagements", "air %", "back %", "cone bites",
+           "clock <0", "crawler@1", "pull", "room", "steps", "min fleeing", "min toward target", "dressed <1 min", "melees superseded", "end",
            "health", "seen")
 BODY_COLUMNS = ("body med", "body p90")   # Plan 32 Task 4's named change: the two cells a row before it lacks
 HEAD_COLUMNS = ("head_ticks max",)        # Plan 33 Task 4's named change: the cell a row before it lacks
 CARE_COLUMNS = ("care@3+",)               # Plan 34 Task 5's named change: the cell a row before it lacks
 CONTACT_COLUMNS = ("contact s", "engagements")   # Plan 35 Task 3's named change: the two cells a row before it lacks
-OLD_COLUMNS = tuple(c for c in COLUMNS if c not in BODY_COLUMNS + HEAD_COLUMNS + CARE_COLUMNS + CONTACT_COLUMNS)   # before Plan 32 Task 4
-BODY_ERA_COLUMNS = tuple(c for c in COLUMNS if c not in HEAD_COLUMNS + CARE_COLUMNS + CONTACT_COLUMNS)    # a row of Plan 32 Task 4 on
-HEAD_ERA_COLUMNS = tuple(c for c in COLUMNS if c not in CARE_COLUMNS + CONTACT_COLUMNS)                  # a row of Plan 33 Task 4 on
-CARE_ERA_COLUMNS = tuple(c for c in COLUMNS if c not in CONTACT_COLUMNS)                  # a row of Plan 34 Task 5 on
+ENGAGE_COLUMNS = ("air %", "back %", "cone bites", "clock <0", "crawler@1", "pull", "room", "steps")   # Plan 36 Task 5b
+OLD_COLUMNS = tuple(c for c in COLUMNS if c not in BODY_COLUMNS + HEAD_COLUMNS + CARE_COLUMNS + CONTACT_COLUMNS
+                    + ENGAGE_COLUMNS)   # before Plan 32 Task 4
+BODY_ERA_COLUMNS = tuple(c for c in COLUMNS if c not in HEAD_COLUMNS + CARE_COLUMNS + CONTACT_COLUMNS + ENGAGE_COLUMNS)    # a row of Plan 32 Task 4 on
+HEAD_ERA_COLUMNS = tuple(c for c in COLUMNS if c not in CARE_COLUMNS + CONTACT_COLUMNS + ENGAGE_COLUMNS)                  # a row of Plan 33 Task 4 on
+CARE_ERA_COLUMNS = tuple(c for c in COLUMNS if c not in CONTACT_COLUMNS + ENGAGE_COLUMNS)   # a row of Plan 34 Task 5 on
+CONTACT_ERA_COLUMNS = tuple(c for c in COLUMNS if c not in ENGAGE_COLUMNS)   # a row of Plan 35 Task 3 on
 DASH = "-"
 SEEN_JOIN = " / "
 # The readings' own numbers.
@@ -689,12 +704,7 @@ def contact_seconds(frames, lines):
     wall to the next frame's (at most FRAME_CAP_S; the last frame for the interval before it), and per melee span
     (`e19._spans`, accepted to terminal) `{aid, seconds}` of the contact frames whose wall falls in it."""
     walls = [E._n(f.get("wallMs")) for f in frames]
-    dur = []
-    for i, w in enumerate(walls):
-        nxt = walls[i + 1] if i + 1 < len(walls) else None
-        d = (nxt - w) if nxt is not None and w is not None else (w - walls[i - 1] if i and w is not None and
-                                                                  walls[i - 1] is not None else 0.0)
-        dur.append(min(max(d, 0.0), FRAME_CAP_S * 1000.0) / 1000.0)
+    dur = _durations(frames)
     hot = [i for i, f in enumerate(frames) if walls[i] is not None and _in_contact(f)]
     eng = [{"aid": s["aid"], "seconds": sum(dur[i] for i in hot if s["accept"] <= walls[i] <= s["end"])}
            for s in G19._spans(lines)]
@@ -765,6 +775,261 @@ def landed_hits(frames, lines, kills):
             "per_kill_union": G21._per(union, k), "rows": sorted(rows, key=lambda r: r["wallMs"])}
 
 
+# ---------------------------------------------------------------- Plan 36 Task 5b: the engagement's readings
+def press_leaves(lines):
+    """[{aid, leaf, retreat}] of the melee press leaves (`result.press` on a melee act line), each once: a leaf stays on
+    the lines after its press (the once-a-second heartbeat re-reads it with a moving `hp1`), so it is keyed by its melee
+    and its launch's numbers (`d_press`, `hp0`, `d_collide_pred`), a leaf with none by its line's `seq`. `retreat` is
+    true when the line carrying it, or the melee's act line before it, has a work leaf (`result.work`) reading
+    `retreat` true (the planner's withdraw under way: the previous line, since a press line's own work is often
+    cleared)."""
+    out, seen = [], set()
+    for aid, lns in GX1._melee_lines(lines).items():
+        prev = False
+        for ln in lns:
+            res = E._d(ln.get("result"))
+            own = bool(E._d(res.get("work")).get("retreat"))
+            leaf = res.get("press")
+            if isinstance(leaf, dict):
+                key = (aid, leaf.get("d_press"), leaf.get("hp0"), leaf.get("d_collide_pred"))
+                if key[1:] == (None, None, None):
+                    key = (aid, ln.get("seq"))
+                if key not in seen:
+                    seen.add(key)
+                    out.append({"aid": aid, "leaf": leaf, "retreat": own or prev})
+            prev = own
+    return out
+
+
+def press_readings(lines):
+    """{read, air, leaves, done_air, back, back_leaves, retreat_back, retreat_leaves}: the air and the back readings.
+    `air` the leaves reading `air` true over `leaves`, the leaves carrying an `air` key (a shove's and a stomp's leaf
+    reads air false, so the share is over every press, not the swings and floor swings alone: the leaf carries no
+    kind); `done_air` the melees' last `air_presses` count summed (the Lua's own count, printed beside only when it
+    disagrees). `back` the leaves reading `moving_back` true over `back_leaves`, the leaves carrying that key, and
+    `retreat_back` over `retreat_leaves` the same over the leaves launched under a retreat (`press_leaves`). `read`
+    False with no leaf carrying either key (a run before PZA/1.15's Lua)."""
+    ls = press_leaves(lines)
+    has = lambda k: [p for p in ls if p["leaf"].get(k) is not None]
+    air, back = has("air"), has("moving_back")
+    rb = [p for p in back if p["retreat"]]
+    done = {}
+    for aid, lns in GX1._melee_lines(lines).items():
+        for ln in lns:
+            n = E._n(E._d(ln.get("result")).get("air_presses"))
+            if n is not None:
+                done[aid] = max(done.get(aid, 0), n)
+    return {"read": bool(air or back), "air": sum(1 for p in air if p["leaf"]["air"] is True), "leaves": len(air),
+            "done_air": sum(done.values()), "back": sum(1 for p in back if p["leaf"]["moving_back"] is True),
+            "back_leaves": len(back), "retreat_back": sum(1 for p in rb if p["leaf"]["moving_back"] is True),
+            "retreat_leaves": len(rb)}
+
+
+CONE_DEG = 90.0   # degrees: a bite from a zombie this far off the body's heading came from outside the front half
+
+
+def cone_bites(frames):
+    """{read, bites, outside}: over the reaction onsets (`reaction_segments`' first frames: a frame where
+    `me.hitReaction` turns non-empty, a type change inside a run an onset too) that have a standing zombie
+    (`_standing`) listed and a `me.bodyAngle`, the ones whose nearest standing zombie lies more than CONE_DEG off the
+    body: |wrap(bodyAngle - atan2(zy - y, zx - x))| from the frame's own `x`, `y` of both, the convention of
+    `grades.x2` (radians, atan2 against world x and y, `bodyAngle` the engine's body: T105's hand count of F21's four
+    bites read it so). `bites` the onsets read, `outside` those beyond the cone; `read` False with no frame carrying
+    `me.bodyAngle`."""
+    if not any(E._n(E._d(f.get("me")).get("bodyAngle")) is not None for f in frames):
+        return {"read": False}
+    n = out = 0
+    for a, _ in reaction_segments(frames):
+        f = frames[a]
+        me, body = E._d(f.get("me")), E._n(E._d(f.get("me")).get("bodyAngle"))
+        px, py = E._n(me.get("x")), E._n(me.get("y"))
+        zs = [(math.hypot(E._n(z.get("x")) - px, E._n(z.get("y")) - py), z) for z in (E._d(q) for q in E._l(f.get("zombies")))
+              if _standing(z) and E._n(z.get("x")) is not None and E._n(z.get("y")) is not None] \
+            if px is not None and py is not None else []
+        if body is None or not zs:
+            continue
+        z = min(zs, key=lambda t: t[0])[1]
+        n += 1
+        if abs(GX2.wrap_deg(body - math.atan2(E._n(z.get("y")) - py, E._n(z.get("x")) - px))) > CONE_DEG:
+            out += 1
+    return {"read": True, "bites": n, "outside": out}
+
+
+def clock_gate(rows):
+    """{read, lines, ok, held, cut, waited, under, under_lines}: the Task 4 clock's why (`clock {action, ttc, need[,
+    waited][, running][, cut]}`) on any branch of the decision lines' `inputs.branches`, each read once. A `clock` with
+    `cut` true is `cut` (the threat cut the timed action under way); else on a line that sent (`sent` true) it is `ok`
+    (an action started), else `held` (refused: no send). `waited` the sum of the clocks' `waited`, and `under` the `ok`
+    clocks with `ttc` strictly under `need` (an action started under the margin: the criterion reads 0; a `ttc` equal
+    to `need` is inside it), `under_lines` their line indices. `read` False with no clock."""
+    n = ok = held = cut = under = 0
+    waited, idx = 0.0, []
+    for i, r in enumerate(rows):
+        for w in E._d(E._d(r.get("inputs")).get("branches")).values():
+            c = E._d(w).get("clock")
+            if not isinstance(c, dict):
+                continue
+            n += 1
+            waited += E._n(c.get("waited")) or 0.0
+            if c.get("cut"):
+                cut += 1
+            elif r.get("sent") is True:
+                ok += 1
+                ttc, need = E._n(c.get("ttc")), E._n(c.get("need"))
+                if ttc is not None and need is not None and ttc < need:
+                    under += 1
+                    idx.append(i)
+            else:
+                held += 1
+    return {"read": n > 0, "lines": n, "ok": ok, "held": held, "cut": cut, "waited": waited, "under": under,
+            "under_lines": idx}
+
+
+CRAWLER_R = 1.0                                  # tiles: a crawler this near a swinging character
+CRAWLER_STEPS = ("swing", "shove", "stomp")      # the act steps that are a press at a standing target
+
+
+def _durations(frames):
+    """Each frame's standing seconds: from its wall to the next frame's (the last for the interval before it), at most
+    FRAME_CAP_S."""
+    walls = [E._n(f.get("wallMs")) for f in frames]
+    dur = []
+    for i, w in enumerate(walls):
+        nxt = walls[i + 1] if i + 1 < len(walls) else None
+        d = (nxt - w) if nxt is not None and w is not None else (w - walls[i - 1] if i and w is not None and
+                                                                  walls[i - 1] is not None else 0.0)
+        dur.append(min(max(d, 0.0), FRAME_CAP_S * 1000.0) / 1000.0)
+    return dur
+
+
+def crawler_close(frames, lines):
+    """{frames, seconds}: the frames (and their standing seconds, `_durations`) with a living crawler within CRAWLER_R
+    tiles while the frame's act step is in CRAWLER_STEPS (a swing, a shove or a stomp, not a floor swing: the floor
+    swing is the crawler's own press) at a standing target. The target is the melee's `result.target` on its latest act
+    line at or before the frame (the re-pin; the frame's `act` carries no target), else the nearest standing zombie
+    listed; the frame counts only when that target is standing (`_standing`, so not the crawler itself) and is not the
+    crawler counted."""
+    tgt = {}
+    for aid, lns in GX1._melee_lines(lines).items():
+        tgt[aid] = [(E._n(ln.get("wallMs")), E._d(ln.get("result"))["target"]) for ln in lns
+                    if E._d(ln.get("result")).get("target") is not None and E._n(ln.get("wallMs")) is not None]
+    dur = _durations(frames)
+    n, secs = 0, 0.0
+    for f, d in zip(frames, dur):
+        act = E._d(f.get("act"))
+        if act.get("step") not in CRAWLER_STEPS:
+            continue
+        zs = [E._d(z) for z in E._l(f.get("zombies"))]
+        crawlers = [z for z in zs if z.get("crawler") and (E._n(z.get("health")) is None or E._n(z.get("health")) > 0)
+                    and E._n(z.get("dist")) is not None and E._n(z.get("dist")) < CRAWLER_R]
+        if not crawlers:
+            continue
+        w = E._n(f.get("wallMs"))
+        known = [t for tw, t in tgt.get(act.get("aid"), []) if w is not None and tw <= w]
+        target = next((z for z in zs if known and z.get("id") == known[-1]), None)
+        if target is None:
+            std = [z for z in zs if _standing(z) and E._n(z.get("dist")) is not None]
+            target = min(std, key=lambda z: E._n(z.get("dist"))) if std else None
+        if target is not None and _standing(target):
+            n += 1
+            secs += d
+    return {"frames": n, "seconds": secs}
+
+
+PULL_LETTERS = {"spread": "s", "retreat": "r", "cone": "c"}
+
+
+def pull_counts(rows):
+    """{read, by, held}: the decision lines carrying an `engage_pull` (the pull's why, on any branch's why) by its `why`
+    (`spread`, `retreat`, `cone`; any other word kept), and `held` those whose pull reads `held` true, by the same
+    word. `read` False with no such line."""
+    by, held = {}, {}
+    for r in rows:
+        for w in E._d(E._d(r.get("inputs")).get("branches")).values():
+            p = E._d(w).get("engage_pull")
+            if not isinstance(p, dict):
+                continue
+            k = str(p.get("why"))
+            by[k] = by.get(k, 0) + 1
+            if p.get("held") is True:
+                held[k] = held.get(k, 0) + 1
+    return {"read": bool(by), "by": by, "held": held}
+
+
+def room_readings(frames):
+    """{read, frames, stops, ms_p50, ms_max}: the frames carrying `me.room` (the room probe's ring: `h` the headings'
+    distances, `stop` each heading's stop kind), the stop kinds over every heading of those frames counted (`open`,
+    `wall`, `hop`, `door`, any other kept), and the median and the largest `cost.roomMs` over the frames carrying it.
+    `read` False with no frame carrying `me.room`."""
+    stops, ms, n = {}, [], 0
+    for f in frames:
+        room = E._d(f.get("me")).get("room")
+        if not isinstance(room, dict):
+            continue
+        n += 1
+        for k in E._l(room.get("stop")):
+            stops[k] = stops.get(k, 0) + 1
+        v = E._n(E._d(f.get("cost")).get("roomMs"))
+        if v is not None:
+            ms.append(v)
+    return {"read": n > 0, "frames": n, "stops": stops, "ms_p50": statistics.median(ms) if ms else None,
+            "ms_max": max(ms) if ms else None}
+
+
+STEP_KEYS = ("step_for", "shove_for", "repin_for")   # the work leaf's reasons (Plan 36 Task 2 Phase B; each read where present)
+
+
+def step_reasons(lines):
+    """{read, by, nan_heading}: the work leaf's (`result.work`) `step_for`, `shove_for` and `repin_for` values counted
+    as runs (a value standing on consecutive lines of one melee counts once: the heartbeat re-reads it), `by`
+    {key: {value: runs}}, and the lines whose work leaf reads `nan_heading` truthy. `read` False with none present
+    (a run before the keys land)."""
+    by, nan = {}, 0
+    for lns in GX1._melee_lines(lines).values():
+        prev = {}
+        for ln in lns:
+            w = E._d(E._d(ln.get("result")).get("work"))
+            for k in STEP_KEYS:
+                v = w.get(k)
+                if v is not None and v != prev.get(k):
+                    by.setdefault(k, {})
+                    by[k][str(v)] = by[k].get(str(v), 0) + 1
+                prev[k] = v
+            if w.get("nan_heading"):
+                nan += 1
+    return {"read": bool(by) or nan > 0, "by": by, "nan_heading": nan}
+
+
+def engage_cells(s):
+    """The eight engagement cells in ENGAGE_COLUMNS order, `-` for a reading the run's logs do not carry."""
+    pr, cb, ck, cr = s["presses"], s["cone"], s["clock_gate"], s["crawler"]
+    pl, rm, st = s["pulls"], s["room"], s["steps"]
+    pct = lambda a, n: "%.0f" % (100.0 * a / n) if n else DASH
+    air = back = DASH
+    if pr["read"]:
+        if pr["leaves"]:
+            air = "%s (%d/%d%s)" % (pct(pr["air"], pr["leaves"]), pr["air"], pr["leaves"],
+                                    "; done %d" % pr["done_air"] if pr["done_air"] != pr["air"] else "")
+        if pr["back_leaves"]:
+            back = "%s (%d/%d, retreat %s)" % (pct(pr["back"], pr["back_leaves"]), pr["back"], pr["back_leaves"],
+                                               "%d/%d" % (pr["retreat_back"], pr["retreat_leaves"])
+                                               if pr["retreat_leaves"] else DASH)
+    cone = "%d/%d" % (cb["outside"], cb["bites"]) if cb["read"] else DASH
+    clock = "%d (%d: %d ok, %d held, %d cut)" % (ck["under"], ck["lines"], ck["ok"], ck["held"], ck["cut"]) \
+        if ck["read"] else DASH
+    craw = "%d (%.1f s)" % (cr["frames"], cr["seconds"]) if s["frames"] else DASH
+    pull = " ".join("%s%d%s" % (PULL_LETTERS.get(k, k + " "), v, "(h%d)" % pl["held"][k] if pl["held"].get(k) else "")
+                    for k, v in sorted(pl["by"].items(), key=lambda kv: (list(PULL_LETTERS).index(kv[0]) if kv[0] in PULL_LETTERS else 9, kv[0]))) \
+        if pl["read"] else DASH
+    room = "%d (%s) %s/%sms" % (rm["frames"], " ".join("%s%d" % (k[0], rm["stops"][k]) for k in ("open", "wall", "hop",
+                                "door") if k in rm["stops"]), _median_text([rm["ms_p50"]] if rm["ms_p50"] is not None
+                                else []), _median_text([rm["ms_max"]] if rm["ms_max"] is not None else [])) \
+        if rm["read"] else DASH
+    steps = "; ".join(["%s %s" % (k, " ".join("%s=%d" % kv for kv in sorted(v.items()))) for k, v in st["by"].items()]
+                      + (["nan_heading %d" % st["nan_heading"]] if st["nan_heading"] else [])) if st["read"] else DASH
+    return [air, back, cone, clock, craw, pull, room, steps]
+
+
 # ---------------------------------------------------------------- the score
 def end_cell(out):
     """`death@<game minute>` off the record's `stop`, `cap` on the day cap, `crash` on a crash stop (CRASH_STOPS) or a
@@ -809,6 +1074,9 @@ def score(run, clipped=True):
             "facing": GX2.e_facing_body(out, rows, lines, frames), "head_ticks": GX3.e_head_ticks(out, lines),
             "care_at_group": GX4.e_care_at_group(rows if rows else None, lines),
             "contact": contact_seconds(frames, lines), "engaged": engagements(lines),
+            "presses": press_readings(lines), "cone": cone_bites(frames), "clock_gate": clock_gate(rows),
+            "crawler": crawler_close(frames, lines), "pulls": pull_counts(rows), "room": room_readings(frames),
+            "steps": step_reasons(lines),
             "flee": flee_minutes(rows), "away": away_minutes(L), "legs": leg_minutes(rows), "gap": retreat_gap(rows),
             "labels": label_histogram(rows), "toward": toward_minutes(L), "dressed": dressed(frames),
             "melees": melees_superseded(out, lines), "goal_wait": G21.e_goal_wait(L if rows else None),
@@ -869,6 +1137,7 @@ def cells(s, seen=""):
             hits, per, _num(body.get("median")), _num(body.get("p90")), _num(head.get("max")),
             _num(care.get("lines") if care.get("read") else None),
             "%.1f" % ct["seconds"] if s["frames"] else DASH, str(en["count"]) if s["frames"] else DASH,
+            *engage_cells(s),
             "%.1f / %.1f (away %s)" % (fl["minutes"], fl["total_minutes"], away) if rows else DASH,
             "%.1f / %.1f" % (tw["minutes"], tw["total_minutes"]) if rows else DASH,
             "%s / %s" % (dr["dressed"], dr["wounds"]) if s["frames"] else DASH, sup, s["end"],
@@ -924,6 +1193,7 @@ def detail(s):
         head_line(s.get("head_ticks")),
         care_line(s.get("care_at_group")),
         contact_line(s["contact"], s["engaged"]),
+    ] + engage_detail(s) + [
         gap_line(s.get("gap")),
     ] + ([clock_line(s["clock"])] if s.get("clock") else [])
 
@@ -959,6 +1229,30 @@ def head_line(h):
         return "head ticks (grade_x3.head_ticks): no melee line"
     return "head ticks (grade_x3.head_ticks): %s values read, max %s, %s head_stall handbacks, by melee %s" % (
         h.get("leaves"), _num(h.get("max")), h.get("over_cap"), h.get("by_melee"))
+
+
+def engage_detail(s):
+    """The detail's lines for the engagement's readings (`press_readings`, `cone_bites`, `clock_gate`,
+    `crawler_close`, `pull_counts`, `room_readings`, `step_reasons`)."""
+    pr, cb, ck, cr, pl, rm, st = (s["presses"], s["cone"], s["clock_gate"], s["crawler"], s["pulls"], s["room"],
+                                  s["steps"])
+    return [
+        "presses (press_readings): %d leaves carry air, %d read it (the done lines' air_presses sum %d); %d of %d "
+        "moving_back, %d of %d of those launched under a retreat" % (
+            pr.get("leaves", 0), pr.get("air", 0), pr.get("done_air", 0), pr.get("back", 0), pr.get("back_leaves", 0),
+            pr.get("retreat_back", 0), pr.get("retreat_leaves", 0)),
+        "cone bites (cone_bites): %s of %s reaction onsets with the nearest standing zombie more than %.0f degrees "
+        "off the body" % (cb.get("outside", "-"), cb.get("bites", "-"), CONE_DEG),
+        "clock gate (clock_gate): %s clocks, %s ok, %s held, %s cut, %.2f s waited; %s started under the margin at "
+        "decision lines %s" % (ck["lines"], ck["ok"], ck["held"], ck["cut"], ck["waited"], ck["under"],
+                               ck["under_lines"]),
+        "crawler at 1 (crawler_close): %d frames, %.2f s with a crawler inside %.1f tiles on a swing, shove or stomp at "
+        "a standing target" % (cr["frames"], cr["seconds"], CRAWLER_R),
+        "pull (pull_counts): by why %s, held %s" % (pl["by"], pl["held"]),
+        "room (room_readings): %d frames, stop kinds %s, roomMs p50 %s max %s" % (
+            rm["frames"], rm["stops"], _num(rm["ms_p50"]), _num(rm["ms_max"])),
+        "steps (step_reasons): runs by work-leaf key %s, nan_heading lines %d" % (st["by"], st["nan_heading"]),
+    ]
 
 
 def contact_line(c, en):
@@ -1031,7 +1325,7 @@ def write_log(path, head, rows, tail=None):
         fh.write("\n".join(head + rows + tail) if tail is not None else "\n".join(head + rows) + "\n")
 
 
-ERA_COLUMNS = (OLD_COLUMNS, BODY_ERA_COLUMNS, HEAD_ERA_COLUMNS, CARE_ERA_COLUMNS)   # the earlier rows' columns, oldest first
+ERA_COLUMNS = (OLD_COLUMNS, BODY_ERA_COLUMNS, HEAD_ERA_COLUMNS, CARE_ERA_COLUMNS, CONTACT_ERA_COLUMNS)   # the earlier rows' columns, oldest first
 
 
 def widen(cells):
@@ -1039,7 +1333,9 @@ def widen(cells):
     cells as `-` after `hits per kill`, it or a row written before Plan 33 Task 4 (BODY_ERA_COLUMNS' count) the
     head_ticks cell as `-` after `body p90`, and any of them or a row written before Plan 34 Task 5 (HEAD_ERA_COLUMNS'
     count) the care@3+ cell as `-` after `head_ticks max`, and any of them or a row written before Plan 35 Task 3
-    (CARE_ERA_COLUMNS' count) the two contact cells as `-` after `care@3+`; any other row as it stands."""
+    (CARE_ERA_COLUMNS' count) the two contact cells as `-` after `care@3+`, and any of them or a row written before Plan 36
+    Task 5b (CONTACT_ERA_COLUMNS' count) the eight engagement cells as `-` after `engagements`; any other row as it
+    stands."""
     if len(cells) == len(OLD_COLUMNS):
         i = COLUMNS.index(BODY_COLUMNS[0])
         cells = cells[:i] + [DASH] * len(BODY_COLUMNS) + cells[i:]
@@ -1052,6 +1348,9 @@ def widen(cells):
     if len(cells) == len(CARE_ERA_COLUMNS):
         i = COLUMNS.index(CONTACT_COLUMNS[0])
         cells = cells[:i] + [DASH] * len(CONTACT_COLUMNS) + cells[i:]
+    if len(cells) == len(CONTACT_ERA_COLUMNS):
+        i = COLUMNS.index(ENGAGE_COLUMNS[0])
+        cells = cells[:i] + [DASH] * len(ENGAGE_COLUMNS) + cells[i:]
     return cells
 
 
@@ -1146,7 +1445,8 @@ def round_summary(log, variant, fixture, since):
     """The `> round:` line of the arm `variant` on `fixture` over the log's rows from `since` (a `YYYYMMDD-HHMMSS`
     stamp) on: the rows whose run id ends in a stamp at or after it, whose variant cell's first word (before any ` [`)
     is `variant` and whose fixture cell (before any ` / `) is `fixture`; a death is an `end` cell opening `death`."""
-    ix = {c: COLUMNS.index(c) for c in ("variant", "fixture", "kills", "hits per kill", "contact s", "end")}
+    ix = {c: COLUMNS.index(c) for c in ("variant", "fixture", "kills", "hits per kill", "contact s", "end", "air %",
+                                        "cone bites", "clock <0")}
     rs = []
     for ln in widen_rows(read_log_parts(log)[1]):
         p = parse_row(ln)
@@ -1157,9 +1457,10 @@ def round_summary(log, variant, fixture, since):
     deaths = sum(1 for p in rs if p[ix["end"]].startswith("death"))
     num = lambda k: [v for v in (_lead_number(p[ix[k]]) for p in rs) if v is not None]
     return "%s%s %s since %s: %d trials, %d deaths (%s %%), kills median %s, contact s median %s, hits per kill " \
-           "median %s" % (ROUND_PREFIX, variant, fixture, since, len(rs), deaths,
-                          "%.0f" % (100.0 * deaths / len(rs)) if rs else DASH, _median_text(num("kills")),
-                          _median_text(num("contact s"), "%.1f"), _median_text(num("hits per kill")))
+           "median %s, air %% median %s, cone bites median %s, clock <0 median %s" % (
+               ROUND_PREFIX, variant, fixture, since, len(rs), deaths, "%.0f" % (100.0 * deaths / len(rs)) if rs else DASH,
+               _median_text(num("kills")), _median_text(num("contact s"), "%.1f"), _median_text(num("hits per kill")),
+               _median_text(num("air %")), _median_text(num("cone bites")), _median_text(num("clock <0")))
 
 
 def put_round(path, line):
