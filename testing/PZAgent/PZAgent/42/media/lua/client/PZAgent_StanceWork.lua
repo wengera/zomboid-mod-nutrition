@@ -161,6 +161,11 @@ K.STRING_GAP = 2.5           -- tiles: the string turns to press the leader only
                              -- beyond this (the spec's section 3.2: the second well behind)
 K.STRING_TURN_R = 0.5        -- tiles beyond the reach within which the leader's distance at the next landing turns the
                              -- walk (the spec's section 3.3: the turn lands the press as the leader arrives)
+K.STRING_RUN_R = 4.0         -- tiles: under string the run while any standing zombie stands within this, the walk
+                             -- beyond (Plan 37 Task 2 fix 5, the horde8 trial x_trial-ladder-20261112-070655, a trial
+                             -- reading: frames 240 to 324 the walk let the eight close from 7.7 to 1.17 tiles in 8 s at
+                             -- 1.3 to 1.6 tiles a second, frames 519 to 611 the care's run opened 2.6 to 6 tiles in
+                             -- 5 s; beyond it the walk strings them out and keeps a rip ridable)
 K.STRING_RUN_V = 1.0         -- tiles a second: the leader closing faster takes the run (Plan 37 Task 2 fix 1, the
                              -- string probe x_trial-ladder-20261112-055128, a trial reading: its leaders walked at
                              -- about 1.4 and the gap never grew at a walk; the walk's 2.09 outpaces only the slow
@@ -1275,10 +1280,12 @@ end
 --     near read, which reads workR under string, K.workNearR), else the standing target; none standing: nil, the
 --     finish or the meet goes on. A leader other than the target is re-pinned to (M.repin, repin_for string) every
 --     K.WORK_TICKS ticks, and at once at a turn, never back to a stalled zombie (fix 7b's stallId).
---   the gait: the run (MO.want run) while the leader's closing speed (the melee's closingOf over K.MELEE_SAMPLES, the
---     target's history) exceeds K.STRING_RUN_V, the walk once a read is at or under it, the last read kept while the
---     history is short (a re-pin restarts it); the run's latch written false on a change to the walk and on any tick
---     with no string walk (the def.tick wrapper above).
+--   the gait (fix 5): the run (MO.want run) while any standing zombie stands within K.STRING_RUN_R (the target while
+--     it stands, the near read within workR, else M.standingNear within K.STRING_RUN_R: not dead, not on the floor, so
+--     no crawler), and as a second trigger while the leader's closing speed (the melee's closingOf over
+--     K.MELEE_SAMPLES, the target's history) exceeds K.STRING_RUN_V (a fast closer beyond K.STRING_RUN_R; the last
+--     read kept while the history is short, a re-pin restarting it); else the walk; the run's latch written false on
+--     a change to the walk and on any tick with no string walk (the def.tick wrapper above).
 --   the turn: the leader's distance at the next landing (K.workLanding) within the reach plus K.STRING_TURN_R and
 --     the second-nearest standing within workR beyond K.STRING_GAP, or none: the walk stopped, the walk gait, the
 --     stance taken beyond faceR (M.holdStance; inside faceR the meet's own release and face), turn_for {leader, gap2}
@@ -1381,6 +1388,8 @@ function K.workString(p, st, d, standing, fallen)
         local v = M.closingOf(st, st.px, st.py, st.zx, st.zy, d)
         if v ~= nil then w.run = v > K.STRING_RUN_V end
     end
+    local near = leader.d < K.STRING_RUN_R   -- fix 5: any standing within K.STRING_RUN_R (the leader the nearest read)
+    if not near and K.STRING_RUN_R > w.workR then near = M.standingNear(p, st, K.STRING_RUN_R) ~= nil end
     if turn then
         M.stopWalk(p, st)
         K.workStringGait(p, w, false)
@@ -1399,7 +1408,7 @@ function K.workString(p, st, d, standing, fallen)
         return nil
     end
     M.loosen(p, st)
-    K.workStringGait(p, w, w.run)
+    K.workStringGait(p, w, w.run or near)
     w.stringWalked = true
     M.walkAlong(p, st, "string", w.hx, w.hy)
     return "work"

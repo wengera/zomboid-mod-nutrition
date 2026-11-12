@@ -2352,3 +2352,50 @@ def test_under_hold_the_sent_release_r_ends_the_melee_at_2_8(lua, fs):
     records(lua, [target_rec(w)], {7: z})
     run(lua, p, w, 1)
     assert _ended_why(lua, fs) == ("done", "out of range")
+
+
+# ---- Plan 37 Task 2 fix 5: the string runs within K.STRING_RUN_R of any standing zombie (x_trial-ladder-20261112-070655)
+
+def _wants_run(lua):
+    return lua.eval("PZA.motor.wantRun")
+
+
+def test_under_string_the_nearest_standing_at_3_0_wants_the_run(lua, fs):
+    p, z, w, recs = group_world(lua, 13.0, [])
+    gow(lua, p, disposition="string")
+    grun(lua, p, w, recs, 3)
+    assert work_of(lua, "stepFor") == "string" and _wants_run(lua) is True
+
+
+def test_under_string_a_standing_zombie_beyond_work_r_inside_4_0_wants_the_run(lua, fs):
+    """The target at 6.0 and 20 at 3.8 north (beyond workR's 3.5, so no leader re-pin; the wide read sees it)."""
+    p, z, w, recs = group_world(lua, 16.0, [(10.0, 23.8)])
+    gow(lua, p, disposition="string")
+    grun(lua, p, w, recs, 3)
+    assert lua.eval("PZA.skills.cur.st.id") == 7 and _wants_run(lua) is True
+
+
+def test_under_string_the_nearest_at_5_0_and_no_fast_closer_walks(lua, fs):
+    p, z, w, recs = group_world(lua, 15.0, [])
+    gow(lua, p, disposition="string")
+    grun(lua, p, w, recs, 6)
+    assert work_of(lua, "stepFor") == "string" and _wants_run(lua) is False
+
+
+def test_under_string_a_fast_closer_at_6_0_latches_the_run(lua, fs):
+    p, z, w, recs = group_world(lua, 16.0, [], zspeed=1.4)
+    gow(lua, p, disposition="string")
+    grun(lua, p, w, recs, 6)
+    assert _wants_run(lua) is True
+
+
+def test_under_string_the_gait_falls_back_to_walk_once_the_nearest_passes_4_0(lua, fs):
+    p, z, w, recs = group_world(lua, 13.5, [])
+    gow(lua, p, disposition="string")
+    grun(lua, p, w, recs, 2)
+    assert _wants_run(lua) is True
+    w["zx"] = w["px"] + 4.2
+    recs()
+    grun(lua, p, w, recs, 2)
+    assert work_of(lua, "stepFor") == "string" and _wants_run(lua) is False
+    assert ("setForceRun", False) in p.sets
