@@ -102,7 +102,8 @@ def test_no_rip_starts_with_the_nearest_at_one_tile_lunging(tmp_path):
 def test_the_gain_distance_leg_goes_when_the_clock_refuses_the_rip(tmp_path):
     """The nearest at 4.0 tiles walking: (4.0 - 0.7) / 1.45 = 2.28 s against the rip's 4.134 + 1.5: refused. The
     care branch's line sends the gain-distance leg, a steer at a run straight away (east: no ring on the frame, the
-    first clear turn), logged `clock` {action rip, refused, leg "sent"}; the next line holds it, nothing else sent."""
+    first clear turn), logged `clock` {action rip, refused, leg "sent"}. Fix 2 (PZA/1.15's side slot admits the rip
+    with keepMoving): on the next line, with the leg running, the rip rides it (`test_the_refused_rip_rides_the_leg`)."""
     r, sv = survive(tmp_path)
     line = step(tmp_path, r, sv, four_west(4.0))
     assert line["branch"] == "care" and line["action"]["type"] == "steer"
@@ -111,10 +112,61 @@ def test_the_gain_distance_leg_goes_when_the_clock_refuses_the_rip(tmp_path):
     ck = care_why(tmp_path)["clock"]
     assert ck["action"] == "rip" and ck["refused"] is True and ck["leg"] == "sent"
     assert ck["ttc"] == pytest.approx(3.3 / 1.45, abs=1e-3) and ck["need"] == pytest.approx(4.134 + 1.5)
+
+
+# ================================================================ fix 2: the rip rides the leg
+def _riding_rip(tmp_path):
+    """F21's shape at 4.0 tiles walking: the leg, accepted; the next line's riding rip, accepted. (r, sv, rip)."""
+    r, sv = survive(tmp_path)
+    step(tmp_path, r, sv, four_west(4.0))
     accept(r, r.acts.history[-1])
-    line = step(tmp_path, r, sv, four_west(4.6))
-    assert line["action"] is None and care_why(tmp_path)["clock"]["leg"] == r.acts.history[-1].aid
-    assert types(r) == ["steer"]
+    step(tmp_path, r, sv, four_west(4.6), moving=True)
+    rip = r.acts.history[-1]
+    accept(r, rip)
+    return r, sv, rip
+
+
+def test_the_refused_rip_rides_the_leg(tmp_path):
+    """Plan 36 Task 4 fix 2 (the Tend side slot's contract, task-2-report.md Phase B 7c): with the leg running and the
+    clock still refusing the rip (4.6 tiles walking: 2.69 s against 5.634), the care's line sends the rip of the held
+    T-shirt with keepMoving (no stop), logged `clock` {action rip, ride true, refused, dress: the Dress's log with
+    `rip_ride`}; the
+    leg is not superseded on the wire (no stop, no second steer)."""
+    r, sv, rip = _riding_rip(tmp_path)
+    line = last(tmp_path)
+    assert line["branch"] == "care" and line["action"] == {"type": "rip", "args": {"itemId": SHIRT, "keepMoving": True}}
+    ck = care_why(tmp_path)["clock"]
+    assert ck["action"] == "rip" and ck["ride"] is True and ck["refused"] is True
+    assert ck["dress"]["rip_ride"] is True and sv.care.dress.phase == "sent"
+    assert types(r) == ["steer", "rip"]
+    line = step(tmp_path, r, sv, four_west(5.0), moving=True)
+    assert line["action"] is None and r.acts.history[-1] is rip   # the riding rip runs to its end
+
+
+def test_the_rip_done_while_walking_is_followed_by_the_bandage_once_the_clock_allows(tmp_path):
+    """The riding rip ends done walking (`walking` true, one clean rag): the bandage waits while the clock refuses it
+    (9.0 tiles: 5.72 s against 6.944, the leg held) and goes standing (no keepMoving) once it allows (11.5 tiles)."""
+    r, sv, rip = _riding_rip(tmp_path)
+    r.fake.act(rip.aid, "done", "rip", result={"rags": 1, "dirty": 0, "walking": True})
+    r.event("item_removed", itemId=SHIRT, fullType="Base.Tshirt_White")
+    r.event("item_added", itemId=RAG, fullType="Base.RippedSheets", weight=0.1, use="bandage")
+    line = step(tmp_path, r, sv, four_west(9.0), moving=True, dt=JUMP)
+    assert line["action"] is None or line["action"]["type"] == "steer"
+    assert "bandage" not in types(r)
+    line = step(tmp_path, r, sv, four_west(11.5), moving=True, dt=JUMP)
+    assert line["action"]["type"] == "bandage" and "keepMoving" not in line["action"]["args"]
+    assert line["action"]["args"]["itemId"] == RAG
+
+
+def test_a_riding_rip_under_the_margin_is_cut_into_the_melee_and_no_bandage_rides(tmp_path):
+    """The riding rip running, the nearest closing to 1.2 tiles (0.34 s): the clock's cut, the melee at it (`clock`
+    {action rip, cut}), never a steer re-aim nor a riding bandage."""
+    r, sv, rip = _riding_rip(tmp_path)
+    line = step(tmp_path, r, sv, four_west(1.2), dt=JUMP)
+    assert line["branch"] == "threat" and line["action"]["type"] == "melee"
+    assert threat_why(tmp_path)["clock"]["cut"] is True and threat_why(tmp_path)["clock"]["action"] == "rip"
+    assert types(r) == ["steer", "rip", "melee"]
+    assert not any(a.type == "bandage" for a in r.acts.history)
 
 
 def test_the_leg_takes_the_room_ring_s_most_open_heading_within_room_open_deg(tmp_path):

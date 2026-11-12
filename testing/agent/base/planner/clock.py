@@ -24,7 +24,10 @@ door interaction with two zombies thumping at 0.3 tiles (P31-T, not evidence).
   branch and the command), steer legs of CLOCK_LEG_S at a run along the room ring's most open heading within
   ROOM_OPEN_DEG of straight away from the nearest listed zombie (`policies.room_open_heading`; no ring, the first
   clear turn of STEER_TURNS, else straight away), re-aimed while the clock refuses, at most CLOCK_EPISODE_S; logged `clock
-  {action, ttc, need, waited, refused true, leg}`. Then the action goes at the first tick the clock allows; past
+  {action, ttc, need, waited, refused true, leg}`. Fix 2 (PZA/1.15: the Tend side slot admits a `rip` with
+  keepMoving, #4735): a refused care rip rides that leg once it runs (`Dress.ride_rip`: the rip sent with keepMoving
+  beside the steer, in place of the stop), logged `clock {action rip, ride true, ..}`; the running riding rip is held
+  and cut by the clock as any timed action; an unwear and a bandage still wait for the stop. Then the action goes at the first tick the clock allows; past
   CLOCK_EPISODE_S the action waits (`spent`) and the threat branch decides. A threat command refused with a standing
   zombie within KEEP_R, or once its episode is spent, is the melee instead (`clock_fight`: the Fight at that zombie,
   `Threat._threat_plan`'s first row).
@@ -37,10 +40,9 @@ door interaction with two zombies thumping at 0.3 tiles (P31-T, not evidence).
   wanted or running whenever no standing zombie is within KEEP_R (the Fight's, rule (a)) and no cut or spent episode
   stands, and the clock decides each step at the care branch; Plan 34's column bar (LEAVE_CARE) and the yields'
   distance rules (CARE_R, CARE_HOLD_R, the closing read) are the clock's now, the ride (P24-U's keepMoving bandage) the
-  one yield kept beside it. The rip cannot ride the walk on this harness: `RipClothing` carries
-  `CanBeDoneWhileWalking` (#4735), but the Lua's side slot rides a `bandage` with keepMoving alone
-  (`PZAgent_Tend.lua`'s K.RIDES note), so a rip sent over a leg supersedes the leg; the rip goes at the stop the clock
-  allows, as the unwear (a shirt stops on a walk) and the bandage do.
+  one yield kept beside it. The rip rides the walk (fix 2: `RipClothing` carries `CanBeDoneWhileWalking`, #4735, and
+  PZA/1.15's side slot, `PZAgent_Tend.lua` K.RIDE_TYPES, admits it with keepMoving); the unwear (a shirt stops on a
+  walk) and the bandage go at the stop the clock allows.
 """
 import math
 
@@ -281,7 +283,18 @@ class ClockGate:
             why = self._clock_why(kind, waited=self._clock_waited(key))
             self.clock_leg = None
             return owner, cmd, why
-        return self._clock_refuse(kind, key)
+        out = self._clock_refuse(kind, key)
+        if kind == "rip" and owner is getattr(self, "care", None) and out[0] is self.clock_leg and out[1] is None:
+            ride = self._clock_ride_rip()
+            if ride is not None:   # fix 2: the refused rip rides the running leg (the Tend side slot, PZA/1.15)
+                return owner, ride, dict(out[2], ride=True, dress=self.care.dressing().log())
+        return out
+
+    def _clock_ride_rip(self):
+        """Plan 36 Task 4 fix 2 (the module docstring): the care's running Dress's riding rip (`Dress.ride_rip`)
+        while the clock's gain-distance leg runs, else None (no Dress, its pick no rip, or its own command running)."""
+        d = self.care.dressing() if self.clock_leg is not None and self.clock_leg.busy() else None
+        return None if d is None else d.ride_rip()
 
     def _clock_refuse(self, kind, key):
         """The refused action's episode (the module docstring): `(leg, Steer)` re-aiming, `(leg, None)` while its leg

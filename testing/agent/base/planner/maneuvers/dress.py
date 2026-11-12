@@ -107,16 +107,17 @@ class Dress(Maneuver):
         self.moved = 0          # still-waits that timed out and motion refusals (DRESS_MOVED)
         self.fail = None        # why it failed: "nothing", "moving" or "sends"
         self._since = 0         # `World.frame_n` when the current wait began
+        self.rip_ride = False   # Plan 36 Task 4 fix 2: a rip was sent riding the caller's leg (`ride_rip`)
         self.skip = ()          # the zombie ids its owner read dead this tick, left out of the KEEP_R end (the ladder's
                                 # care sets it before each observe: fix 1, review-t15a M5); a variant's, none
         self._log()
 
     # -- the contract ---------------------------------------------------------------------------------------------
     def running(self):
-        """Its current action runs: a riding bandage until its own end (the caller's legs sent since take the slot),
-        else the base's rule."""
+        """Its current action runs: a riding bandage or rip (Plan 36 Task 4 fix 2, `ride_rip`) until its own end (the
+        caller's legs sent since take the slot), else the base's rule."""
         a = self.action
-        if a is not None and a.type == "bandage" and a.args.get("keepMoving") is True:
+        if a is not None and a.type in ("bandage", "rip") and a.args.get("keepMoving") is True:
             return not self.actions.done(a)
         return super().running()
 
@@ -211,6 +212,23 @@ class Dress(Maneuver):
                 return None   # "sent": its command's end not yet read
         return None
 
+    def ride_rip(self):
+        """Plan 36 Task 4 fix 2 (the action clock; PZA/1.15's side slot, `PZAgent_Tend.lua` K.RIDE_TYPES, admits a
+        `rip` with keepMoving; RipClothing carries `CanBeDoneWhileWalking`, #4735): the rip of the garment this Dress
+        would tear next (`_choice` reading `rip`), sent with keepMoving to ride the caller's running leg in place of
+        the stop, when no command of its own runs and no stop was sent; else None (an unwear, a dressing, nothing:
+        those wait for the stop). Its ends are read as any send's: done goes to `rag`, failed stopped (the engine took
+        it off the queue) back to the stop with the garment kept (MOVED)."""
+        self.observe()
+        self.cmd = None
+        if self._end is not None or (self.action is not None and self.running()) or self.phase not in ("stop", "pick"):
+            return None
+        got = self._choice()
+        if got is None or got[0] != "rip":
+            return None
+        self.rip_ride = True
+        return self._out(pza1.Rip(got[1], keepMoving=True))
+
     # -- the steps ------------------------------------------------------------------------------------------------
     def _pick(self):
         """The pick's command (`care.dress_pick`), else the end failed "nothing"; a ride that finds no dressing held
@@ -286,6 +304,8 @@ class Dress(Maneuver):
     def _log(self):
         self.why = {"part": self.part, "phase": self.phase, "sends": self.n, "item": self.item, "kind": self.kind,
                     "ride": self.ride, "lost": self.lost, "moved": self.moved}
+        if self.rip_ride:
+            self.why["rip_ride"] = True   # Plan 36 Task 4 fix 2: its rip rode the caller's leg
         if self.wound:
             self.why["wound"] = True   # Plan 31 Task 15a: a scratch's Dress
         if self.fail is not None:
