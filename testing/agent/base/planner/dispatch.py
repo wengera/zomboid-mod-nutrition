@@ -73,7 +73,7 @@ from agent.base.planner.crawler import is_crawler
 from agent.base.planner.maneuvers import Melee
 from agent.base.planner.maneuvers.melee import MeleeInputs, WorkInputs
 from agent.base.planner.policies import (FLEE_HEALTH, KEEP_R, MELEE_BACKOFF_TICKS,
-                                         MELEE_RELEASE_R, SEEK_SKIP_S, STALL_SWINGS, UNREACHABLE_S,
+                                         MELEE_RELEASE_R, SEEK_SKIP_S, STALL_SWINGS, STRING_RELEASE_R, UNREACHABLE_S,
                                          WORK_BAND_LO, WORK_CRAWLER_R, WORK_R, arm_pain, line_to, on_floor,
                                          target_id_ok, zdist)
 from agent.base.pza1 import Attack
@@ -266,7 +266,18 @@ class FightDispatch:
         z = self.world.zombies.get(self.target)
         if z is None or z.get("x") is None or z.get("y") is None or on_floor(z):
             return False
-        return zdist(self.world, z) <= KEEP_R and line_to(self.world, z) is not False
+        return zdist(self.world, z) <= self._contact_r() and line_to(self.world, z) is not False
+
+    def _contact_r(self):
+        """Plan 37 Task 3 fix 2: the tiles within which a standing pin takes the melee in a walk's or a stance leg's
+        place: STRING_RELEASE_R under the `string` disposition (the walk away is the reflex's, begun before contact),
+        else KEEP_R."""
+        return STRING_RELEASE_R if self.disposition == "string" else KEEP_R
+
+    def _release_r(self):
+        """The tiles within which a pin is sent the melee at all: STRING_RELEASE_R under `string` (fix 2), else
+        MELEE_RELEASE_R."""
+        return STRING_RELEASE_R if self.disposition == "string" else MELEE_RELEASE_R
 
     def _melee_on(self):
         """The melee can go at all: the `melee` rule on, no `melee_off` end, the build announcing `melee` (`World.can`:
@@ -318,10 +329,11 @@ class FightDispatch:
         if z is None or z.get("x") is None or z.get("y") is None or (self.only is not None and zid not in self.only):
             return None
         d = zdist(self.world, z)
-        if d > MELEE_RELEASE_R or self._m_backoff.get(zid):
+        if d > self._release_r() or self._m_backoff.get(zid):
             return None
         if cmd.TYPE == "aim":
-            if "fence_wait" in self.why or self.why.get("door_step") == "post" or d > KEEP_R or on_floor(z):
+            if ("fence_wait" in self.why or self.why.get("door_step") == "post" or d > self._contact_r()
+                    or on_floor(z)):
                 return None
             if self.point_blank or self.why.get("leg") not in MELEE_LEGS:
                 self._m_from = "point_blank_leg"

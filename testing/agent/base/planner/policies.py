@@ -1169,9 +1169,18 @@ STRING_N = 5               # standing zombies within GROUP_ENTRY_R that enter `s
 STRING_PIN_S = 3.0         # seconds: `hold` with the reflex's work leaf reading `pinned` this long, the count not
                            # falling, enters `string`, § 3.2
 BREAK_CORNERED_S = 2.0     # seconds: `string` with no open heading (the map's line nor the ring) this long is `break`
-STRING_RUN_V = 1.6         # tiles a second: a leader faster than this (its own recent speed off the clock's tracks)
+STRING_RUN_V = 1.0         # tiles a second: the string's walk turns to a run for a leader faster than this (Task 3
+                           # fix 2, the string probe `x_trial-ladder-20261112-055128`: a walk at 2.1 outpaces only the
+                           # slow shambler at 0.55, the fast shambler's 1.45 needs the run), the Lua's K.STRING_RUN_V
+SPRINTER_V = 1.6           # tiles a second: a leader faster than this (its own recent speed off the clock's tracks)
                            # closing on SPRINT_READS reads in a row is `break` (a sprinter cannot be strung): the
-                           # lunge's p90 1.58 (LUNGE_TPS's reading), the Lua's K.STRING_RUN_V, § 3.2
+                           # lunge's p90 1.58 (LUNGE_TPS's reading), STRING_RUN_V's value before fix 2, § 3.2
+STRING_ENTRY_R = 10.0      # tiles: fix 2, the string's count entry reads the standing zombies closing this near (the
+                           # group read coming, not arrived; within DISENGAGE_R, whose distances the closing read keeps)
+STRING_MIN_GAP = 1.5       # tiles: fix 2, no string is entered with the nearest standing zombie this near (inside the
+                           # clump the answer is `hold`); a string whose nearest stays inside it STRING_PIN_S is `hold`
+STRING_RELEASE_R = 8.0     # tiles: under `string` the melee is sent at a pin this near (the Lua's K.STRING_RELEASE_R,
+                           # its release radius under the string), so the walk away starts before contact
 SPRINT_READS = 3           # decision lines in a row the sprinter's gap shrinks before the `break`, § 3.2
 STRING_TURN_DEG = 120.0    # degrees: the string heading is read this far either side of straight away, § 3.5
 STRING_STEP_DEG = 15.0     # degrees between the string heading's candidates, § 3.5

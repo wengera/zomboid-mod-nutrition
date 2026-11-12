@@ -68,7 +68,8 @@ def test_the_constants_and_the_switch():
     """The spec's §§ 3.2 and 3.5 values, the switch on by default in T22_SWITCHES, the deleted names gone (GROUP_LEAVE
     kept as `Threat`'s seam onto the rules before Plan 33, out of T18_SWITCHES)."""
     assert (P.DISPOSITION_DWELL_S, P.STRING_N, P.STRING_PIN_S, P.BREAK_CORNERED_S, P.STRING_RUN_V) == (
-        2.0, 5, 3.0, 2.0, 1.6)
+        2.0, 5, 3.0, 2.0, 1.0)   # fix 2: the run from 1.0 tiles a second
+    assert (P.STRING_ENTRY_R, P.STRING_MIN_GAP, P.STRING_RELEASE_R, P.SPRINTER_V) == (10.0, 1.5, 8.0, 1.6)
     assert (P.STRING_TURN_DEG, P.STRING_STEP_DEG, P.STRING_LOOK_R, P.RELEASE_WAIT_S, P.SPRINT_READS) == (
         120.0, 15.0, 10.0, 2.5, 3)
     assert S.T22_SWITCHES == ("DISPOSITION",) and "T22_SWITCHES" in S.__all__ and T.Threat.DISPOSITION is True
@@ -183,15 +184,17 @@ def test_a_column_of_three_gets_no_retreat_under_hunt_and_the_retreat_under_hold
 
 # ================================================================ string
 def test_string_is_entered_at_five_and_logged_once(tmp_path):
-    """Five standing within GROUP_ENTRY_R (STRING_N): after the dwell `string`, logged once; the melee re-sent with
-    `disposition` string and the string heading (logged `string_heading` {deg, open, room}), away from the group
-    (west) on open ground."""
+    """Five standing within GROUP_ENTRY_R (STRING_N), the nearest beyond STRING_MIN_GAP: `string` on the first line
+    that reads them (fix 2: the count's jump takes no dwell), logged once; the melee re-sent with `disposition`
+    string and the string heading (logged `string_heading` {deg, open, room}), away from the group (west) on open
+    ground."""
     r, sv, a = survive(tmp_path, zp(1, 0.0, 2.4))
     out = lines(tmp_path, r, sv, [group(5, 4.0)] * 5)
     whys = [w.get("disposition") for w, _ in out]
     changed = [d for d in whys if d is not None]
-    assert changed == [{"from": "hunt", "to": "string", "why": "count", "dwell": 2.0}]
+    assert changed == [{"from": "hunt", "to": "string", "why": "count", "dwell": 0.5}]
     k = whys.index(changed[0])
+    assert k == 0
     why, b = out[k]
     assert b.type == "melee" and b.args["disposition"] == "string"
     assert why["string_heading"]["room"] is None and why["string_heading"]["open"] == P.STRING_LOOK_R
@@ -325,3 +328,40 @@ def test_with_the_switch_off_the_melee_carries_no_disposition(tmp_path):
     a = r.acts.history[-1]
     assert a.type == "melee" and "disposition" not in a.args and "release" not in a.args
     assert "disposition" not in threat_why(tmp_path) and sv.disposition is None
+
+
+# ================================================================ fix 2: the string at range, never inside the clump
+def test_eight_coming_enter_the_string_at_once_from_hunt_with_its_heading(tmp_path):
+    """Fix 2 (the string probe `x_trial-ladder-20261112-055128`: the string entered after the dwell with four already
+    within 1.6 tiles): one zombie met at 2.4 tiles (`hunt`, the melee); then eight standing listed at 9 to 10.5 tiles
+    east and the first stepped back to 7; the next line all eight closing to 8 to 10 tiles (within STRING_ENTRY_R, none within
+    GROUP_ENTRY_R): `string` at once, 1.0 s into `hunt` (no dwell on the count's jump, why "coming"), the melee sent
+    at the pin 7 tiles off (within STRING_RELEASE_R) with `disposition` string and the string heading (west)."""
+    r, sv, a = survive(tmp_path, zp(1, 0.0, 2.4))
+    assert sv.disposition == "hunt"
+    fan = (0.0, 20.0, -20.0, 35.0, -35.0, 10.0, -10.0, 45.0)
+    line(tmp_path, r, sv, [zp(1, 0.0, 7.0)] + [zp(10 + i, b, 10.5 - 0.2 * i) for i, b in enumerate(fan)])
+    why, b = line(tmp_path, r, sv, [zp(1, 0.0, 7.0)] + [zp(10 + i, b, 10.0 - 0.25 * i) for i, b in enumerate(fan)])
+    assert why["disposition"] == {"from": "hunt", "to": "string", "why": "coming", "dwell": 1.0}
+    assert sv.group_n == 0 and why["string_heading"]["deg"] == pytest.approx(180.0, abs=20.0)
+    assert b.type == "melee" and b.args["disposition"] == "string" and b.args["withdrawX"] < -0.9
+
+
+def test_five_within_six_with_the_nearest_at_1_2_hold_and_never_string(tmp_path):
+    """Fix 2: five standing within GROUP_ENTRY_R with the nearest at 1.2 tiles (inside STRING_MIN_GAP, the clump): no
+    `string` on any line; `hold` after the dwell (why entry)."""
+    r, sv, a = survive(tmp_path, zp(1, 0.0, 1.2))
+    out = lines(tmp_path, r, sv, [[zp(1, 0.0, 1.2)] + group(4, 4.0)] * 6)
+    tos = [w.get("disposition", {}).get("to") for w, _ in out]
+    assert "string" not in tos and sv.disposition == "hold"
+    assert next(w["disposition"] for w, _ in out if "disposition" in w)["why"] == "entry"
+
+
+def test_a_string_whose_nearest_stays_inside_the_gap_goes_to_hold(tmp_path):
+    """Fix 2: in `string`, the nearest standing at 1.0 tiles (inside STRING_MIN_GAP) for STRING_PIN_S: `hold`, why
+    "clump"; the lines under it keep the string."""
+    r, sv = string_rig(tmp_path)
+    out = lines(tmp_path, r, sv, [[zp(1, 0.0, 1.0)] + group(5, 4.0)[1:]] * 8)
+    tos = [w.get("disposition", {}).get("to") for w, _ in out]
+    k = tos.index("hold")
+    assert out[k][0]["disposition"]["why"] == "clump" and k == 6 and all(t is None for t in tos[:k])

@@ -81,16 +81,17 @@ def test_no_steer_walk_or_aim_goes_while_a_standing_zombie_stands_within_keep_r(
 
 
 def test_the_count_crossing_string_n_sends_the_melee_with_string_and_a_heading():
-    """The selector's `string` on the window (the count within GROUP_ENTRY_R at STRING_N or more), logged once on its
-    line as `disposition` {from hold, to string}, its melee carrying `disposition` string and the withdraw heading
-    (`string_heading` {deg, open, room} on the why)."""
+    """The selector's `string` on the window (the count at STRING_N or more: Task 3 fix 2, the standing closing within
+    STRING_ENTRY_R or standing within GROUP_ENTRY_R, the jump taking no dwell), logged once on its line as
+    `disposition` {to string}, its melee carrying `disposition` string and the withdraw heading (`string_heading`
+    {deg, open, room} on the why)."""
     rows, ticks = replayed()
     changes = [(k, threat(r)["disposition"]) for k, r in enumerate(rows, 1) if k in SPAN and "disposition" in threat(r)]
     tos = [d["to"] for _, d in changes]
     assert "string" in tos and "break" not in tos
     k = next(k for k, d in changes if d["to"] == "string")
     th, (_, t, a) = threat(rows[k - 1]), ticks[k - 1]
-    assert th["disposition"]["why"] == "count" and th["disposition"]["dwell"] >= P.DISPOSITION_DWELL_S
+    assert th["disposition"]["why"] in ("count", "coming")
     assert t == "melee" and a.args["disposition"] == "string"
     assert isinstance(a.args.get("withdrawX"), float) and isinstance(a.args.get("withdrawY"), float)
     assert set(th["string_heading"]) == {"deg", "open", "room"}
@@ -99,9 +100,13 @@ def test_the_count_crossing_string_n_sends_the_melee_with_string_and_a_heading()
 
 
 def test_every_change_after_the_first_waits_the_dwell():
+    """Every change on the replay waits DISPOSITION_DWELL_S but the health floor's and (Task 3 fix 2) the string's
+    entry on the count's jump."""
     rows, _ = replayed()
     ds = [threat(r)["disposition"] for r in rows if "disposition" in threat(r)]
-    assert all(d["dwell"] is None or d["dwell"] >= P.DISPOSITION_DWELL_S for d in ds if d["why"] != "health")
+    jump = [d for d in ds if d["to"] == "string" and d["why"] in ("count", "coming")]
+    assert jump and all(d["dwell"] is None or d["dwell"] >= P.DISPOSITION_DWELL_S for d in ds
+                        if d["why"] != "health" and d not in jump)
 
 
 def test_a_release_asked_at_the_health_floor_is_followed_by_the_flee_only_after_the_hand_back_or_the_bound():

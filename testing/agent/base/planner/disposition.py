@@ -29,6 +29,16 @@ the leave row, the engagement picker's pull, no `disposition` on the wire).
   Any: the health at or under FLEE_HEALTH (the reflex's `floor`) `break` (`health`), the one change the dwell never
   holds. Every other change waits until the running disposition has held DISPOSITION_DWELL_S. A change is logged
   `disposition` {from, to, why, dwell} on the threat why of its line only.
+  Fix 2 (the string probe `x_trial-ladder-20261112-055128`: the string entered after the dwell, inside the clump, and
+  the character dragged down 21 s in): the string's count entry also reads the standing zombies closing within
+  STRING_ENTRY_R (`coming`, the group read coming), and either count's jump to STRING_N takes no dwell; no string is
+  entered with the nearest standing inside STRING_MIN_GAP (five there go to `hold`, why `clump`); a running string
+  whose nearest stays inside STRING_MIN_GAP, or whose leaf reads `pinned`, for STRING_PIN_S goes to `hold` (`clump`);
+  its exit to `hold` on the count reads the coming group too (at most GROUP_LEAVE_N within GROUP_ENTRY_R and under
+  STRING_N coming, for DISPOSITION_DWELL_S);
+  the sprinter's break reads SPRINTER_V (STRING_RUN_V, now 1.0, is the walk's run latch); under `string` the melee is
+  sent at a pin within STRING_RELEASE_R (`dispatch.FightDispatch._release_r`, `_contact_r`) and the row answers with
+  nobody yet within GROUP_ENTRY_R, the heading read off the standing within STRING_ENTRY_R.
 - The row (`_disposition_plan`, `Threat._threat_plan`'s open-ground row in contact: off a room square, a standing
   zombie within GROUP_ENTRY_R): `hunt`, `hold`, `string` are the Fight (`("fight", None)`), whatever the flee reasons
   read; `break` keeps the Fight while the release it asked is pending, then the Flee (`cornered` and `sprinter` reason
@@ -52,7 +62,8 @@ from agent.base.planner.clock import _own_speed
 from agent.base.planner.crawler import is_crawler
 from agent.base.planner.policies import (BREAK_CORNERED_S, DISPOSITION_DWELL_S, FLEE_HEALTH, GROUP_ENTRY_R,
                                          GROUP_LEAVE_N, KEEP_R, PULL_ROOM_NEED, RELEASE_WAIT_S, RETREAT_HOLD_R,
-                                         SPRINT_READS, STRING_LOOK_R, STRING_N, STRING_PIN_S, STRING_RUN_V,
+                                         SPRINT_READS, SPRINTER_V, STRING_ENTRY_R, STRING_LOOK_R, STRING_MIN_GAP,
+                                         STRING_N, STRING_PIN_S,
                                          STRING_STEP_DEG, STRING_TURN_DEG)
 from agent.base.world import ROOM_HEADINGS, ROOM_STEP_DEG, me_xy
 
@@ -120,6 +131,8 @@ class Disposer:
         n = self.group_n
         near = [e for e in standing if e[2] <= GROUP_ENTRY_R]
         closing = [e for e in self._group_closing if not is_crawler(e[1])]
+        coming = sum(1 for e in self._string_closing if not is_crawler(e[1]))   # fix 2: within STRING_ENTRY_R
+        nearest = min((d for _, z, d in self._group_standing(STRING_ENTRY_R) if not is_crawler(z)), default=None)
         entry = (len(closing) >= GROUP_LEAVE_N
                  or (len(near) >= GROUP_LEAVE_N and near[0][2] <= KEEP_R))
         f = self.fight
@@ -131,7 +144,8 @@ class Disposer:
         if leader is not None and clock is not None:
             speed = _own_speed(clock.tracks.get(leader[0]))
         return {"n": n, "n_hold": len(standing), "entry": entry, "health": self._health(), "ring": self.world.room(),
-                "pinned": leaf.get("pinned") is True, "leader": leader, "speed": speed}
+                "pinned": leaf.get("pinned") is True, "leader": leader, "speed": speed, "coming": coming,
+                "nearest": nearest, "clump": nearest is not None and nearest < STRING_MIN_GAP}
 
     def _for(self, key, cond):
         """Seconds condition `key` has read true without a break (0.0 when false, the clock cleared)."""
@@ -151,7 +165,7 @@ class Disposer:
         if lead is None:
             self._sprint = (None, None, 0)
         else:
-            shrink = lead[0] == zid and d0 is not None and lead[2] < d0 and speed is not None and speed > STRING_RUN_V
+            shrink = lead[0] == zid and d0 is not None and lead[2] < d0 and speed is not None and speed > SPRINTER_V
             self._sprint = (lead[0], lead[2], k + 1 if shrink else 0)
         cornered = False
         if self.disposition == "string":
@@ -160,8 +174,9 @@ class Disposer:
             cornered = why is None or why.get("room") == "closed" or why.get("open", 0.0) < PULL_ROOM_NEED
         return {"pinned": self._for("pinned", self._pin_n is not None and f["n"] >= self._pin_n),
                 "hold_low": self._for("hold_low", f["n_hold"] < GROUP_LEAVE_N),
-                "string_low": self._for("string_low", f["n"] <= GROUP_LEAVE_N),
+                "string_low": self._for("string_low", f["n"] <= GROUP_LEAVE_N and f["coming"] < STRING_N),
                 "cornered": self._for("cornered", cornered),
+                "clump": self._for("clump", self.disposition == "string" and f["clump"]),
                 "calm": self._for("calm", f["n"] <= GROUP_LEAVE_N and f["health"] > FLEE_HEALTH)}
 
     # ---------------------------------------------------------------------------------------------------- the table
@@ -176,7 +191,8 @@ class Disposer:
             return cur
         now = self.clock()
         dwell = None if cur is None else now - self.disposition_since
-        if dwell is not None and why != "health" and dwell < DISPOSITION_DWELL_S:
+        jump = want == "string" and why in ("coming", "count")   # fix 2: the count's jump to STRING_N, no dwell
+        if dwell is not None and why != "health" and not jump and dwell < DISPOSITION_DWELL_S:
             return cur
         self._change(cur, want, why, dwell, now)
         return want
@@ -195,22 +211,26 @@ class Disposer:
                 return "break", "cornered"
             if self._sprint[2] >= SPRINT_READS:
                 return "break", "sprinter"
+            if t["clump"] >= STRING_PIN_S or t["pinned"] >= STRING_PIN_S:
+                return "hold", "clump"   # fix 2: the string's nearest kept inside STRING_MIN_GAP, or the leaf pinned
             if t["string_low"] >= DISPOSITION_DWELL_S:
                 return "hold", "count"
             return None, None
-        if n >= STRING_N:
-            return "string", "count"
-        if cur == "hold":
-            if t["pinned"] >= STRING_PIN_S:
+        if not f["clump"]:   # fix 2: no string entered inside the clump (the answer there is `hold`, below)
+            if f["coming"] >= STRING_N:
+                return "string", "coming"   # fix 2: the group read coming, no dwell (`select`)
+            if n >= STRING_N:
+                return "string", "count"
+            if cur == "hold" and t["pinned"] >= STRING_PIN_S:
                 return "string", "pinned"
-            if self._walled(f["ring"]):
+            if cur == "hold" and self._walled(f["ring"]):
                 return "string", "walled"
         if f["entry"] and self._leave_door_open():
             return "break", "leave"
         if cur == "hold":
             return ("hunt", "count") if t["hold_low"] >= DISPOSITION_DWELL_S else (None, None)
-        if f["entry"]:
-            return "hold", "entry"
+        if f["entry"] or (f["clump"] and n >= STRING_N):
+            return "hold", "entry" if f["entry"] else "clump"
         return (None, None) if cur == "hunt" else ("hunt", "count")
 
     def _walled(self, ring):
@@ -269,7 +289,7 @@ class Disposer:
         d = self.disposition
         if d is None or inside or not self._disposing():
             return None
-        if self.group_n < 1 and d != "break":
+        if self.group_n < 1 and d not in ("break", "string"):   # fix 2: the string runs before contact
             return None
         if d != "break":
             if not self._reachable_held() and not self._contact_lift():
@@ -321,7 +341,7 @@ class Disposer:
         ring's clamped degrees, None with no ring, "closed" with no open ring heading: then no vector); `(None, None)`
         with no standing zombie within GROUP_ENTRY_R."""
         p = me_xy(self.world)
-        group = [z for _, z, _ in self._group_standing(GROUP_ENTRY_R) if not is_crawler(z)]
+        group = [z for _, z, _ in self._group_standing(STRING_ENTRY_R) if not is_crawler(z)]   # fix 2: the group coming
         if not group:
             return None, None
         cx = sum(z["x"] for z in group) / len(group)
