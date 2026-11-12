@@ -305,7 +305,7 @@ K.types.rip = {
         if K.itemById(p, st.id) == nil then
             local rags, dirty = ripYield(p, st)
             local out = { rags = rags, dirty = dirty }
-            if st.ride then out.walking = true end
+            if st.ride then out.walking, out.ride = true, st.rideLeg end   -- fix 2: ride, the leg's type
             return "done", out
         end
         if st.ride and K.rideLost(p, st) then return "failed", "stopped" end
@@ -525,8 +525,19 @@ for _, name in ipairs({ "fill", "consume", "wash", "rip" }) do K.markOnEnd(name)
 -- RipClothing (#4735: ISHandcraftAction clears stopOnWalk for a recipe tagged CanBeDoneWhileWalking, which
 -- RipClothing carries; set again for awkward hands, which the stopped end reads). Wash and fill never ride:
 -- ISWashClothing and ISTakeWaterAction keep ISBaseTimedAction's stopOnWalk true, and both need the source adjacent.
+-- Plan 37 Task 2 fix 2 (PZA/1.16; the planner dresses a bleeding part inside a fighting retreat, Task 3 fix 3): a rip
+-- with keepMoving rides beside a running melee too (K.RIDES.melee, the rip alone: a bandage's ISApplyBandage stops on
+-- aim, ISBaseTimedAction's stopOnAim, and the melee holds the stance, so a bandage sent then supersedes the melee as
+-- before). The handcraft keeps stopOnAim false (lua:shared/Entity/TimedActions/ISHandcraftAction.lua:399) and, for
+-- RipClothing, stopOnWalk false (#4735), so the stance and the footwork's auto-walks leave it running; its stopOnRun
+-- is true (:415), so the slot holds the walk (holdWalk) over the string's run. The melee's press would stop it: the
+-- swing state's enter calls StopAllActionQueue (the 42.22.2 jar: SwipeStatePlayer.enter @309 L215), so while the rip
+-- rides beside a melee and its handcraft has not left the queue (K.rideHolds) the melee's press is deferred (its step
+-- the press's wait step, the walk and the facing kept: PZAgent_StanceMelee.lua's press); it presses again once the rip
+-- ends or leaves the queue. A melee re-sent while the rip rides takes it along, as a new walkTo or steer does; a melee
+-- that ends done hands the rip over to K.cur (recordEnd); the rip's done line names the leg it rode beside (ride).
 K.side = nil
-K.RIDES = { walkTo = true, steer = true }
+K.RIDES = { walkTo = true, steer = true, melee = { rip = true } }   -- a leg type: true (every RIDE_TYPES) or the types
 K.RIDE_TYPES = { bandage = true, rip = true }   -- Plan 36 Task 2b: the commands the side slot admits with keepMoving
 K.RIDE_SETTLE_MS = 3000
 K.RIDE_AIM_MS = 250
@@ -609,6 +620,19 @@ local function sideTick(p, side)
     end
 end
 
+-- whether a side of type sideType rides beside a leg of type legType (K.RIDES)
+local function ridesOn(legType, sideType)
+    local r = K.RIDES[legType]
+    return r == true or (type(r) == "table" and r[sideType] == true)
+end
+
+-- whether the melee's press waits for the side (Plan 37 Task 2 fix 2, the block above K.RIDES): a rip riding beside
+-- the running melee whose handcraft has not left the queue
+function K.rideHolds()
+    local side, cur = K.side, K.cur
+    return side ~= nil and side.type == "rip" and cur ~= nil and cur.type == "melee" and side.st.goneAt == nil
+end
+
 -- a rejected ride: the act line, a caught raise counted
 local function rideReject(p, aid, reason, err, typ)
     if err ~= nil then K.caught(err) end
@@ -627,7 +651,7 @@ local function startRide(cmd, p, leg)
     if not ok then return rideReject(p, aid, reason or "bad args", nil, typ) end
     if leg.type == "aim" then return rideReject(p, aid, "aiming", nil, typ) end
     if K.side ~= nil then sideEnd(p, "failed", "superseded") end
-    st.ride = true
+    st.ride, st.rideLeg = true, leg.type   -- fix 2: the leg it rides beside, the done line's ride
     K.side = { aid = aid, type = typ, def = def, st = st, state = "accepted", lastProgress = PZA.now() }
     K.emitAct(p, aid, typ, "accepted")
 end
@@ -642,14 +666,17 @@ end
 local startTend = K.start
 function K.start(cmd, p)
     local leg = K.cur
-    if rideAsked(cmd) and leg ~= nil and (K.RIDES[leg.type] or leg.type == "aim") then
+    if rideAsked(cmd) and leg ~= nil and (ridesOn(leg.type, cmd.type) or leg.type == "aim") then
         startRide(cmd, p, leg)
         return
     end
     startTend(cmd, p)
     local cur = K.cur
     if K.side == nil or cur == leg then return end
-    if cur ~= nil and K.RIDES[cur.type] then return end
+    if cur ~= nil and ridesOn(cur.type, K.side.type) then   -- a new leg it rides beside takes the side along
+        K.side.st.rideLeg = cur.type
+        return
+    end
     sideEnd(p, "failed", "superseded")
 end
 
@@ -719,6 +746,15 @@ end
 local steerTick = K.types.steer.tick
 K.types.steer.tick = function(p, st)
     return recordEnd(st, steerTick(p, st))
+end
+
+-- Plan 37 Task 2 fix 2: the melee's end recorded too (a kill hands a riding rip over to K.cur); the melee loads first
+-- ("pzagent_stancemelee" and "pzagent_stancework" before "pzagent_tend", #0850)
+if K.types.melee ~= nil then
+    local meleeTick = K.types.melee.tick
+    K.types.melee.tick = function(p, st)
+        return recordEnd(st, meleeTick(p, st))
+    end
 end
 
 -- ---- wear {itemId} (PZA/1.6, Task 9 fix 9, review-t18 ruling 5; jar-reads-2 section 10) ------------------------------

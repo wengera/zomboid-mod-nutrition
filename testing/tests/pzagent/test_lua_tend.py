@@ -942,7 +942,7 @@ def test_a_rip_with_keep_moving_rides_beside_a_running_walk_and_ends_done_walkin
     tick(lua, p)
     a = [x for x in acts(lua, fs) if x["aid"] == "r1"]
     assert (a[0]["state"], a[-1]["state"]) == ("accepted", "done")
-    assert a[-1]["result"] == {"rags": 1, "dirty": 0, "walking": True}
+    assert a[-1]["result"] == {"rags": 1, "dirty": 0, "walking": True, "ride": "walkTo"}   # Plan 37 fix 2: ride
     assert lua.eval("PZA.skills.side") is None and lua.eval("PZA.skills.cur.type") == "walkTo"
 
 
@@ -984,3 +984,90 @@ def test_a_rip_with_keep_moving_and_no_leg_runs_standing_as_before(lua, fs):
     p.held.remove(shirt)
     tick(lua, p)
     assert acts(lua, fs)[-1]["result"] == {"rags": 0, "dirty": 0}
+
+
+# ---- Plan 37 Task 2 fix 2 (PZA/1.16): the rip rides the running melee (K.RIDES.melee) ---------------------------------
+
+def melee_running(lua, zx=12.0, **kw):
+    """A work melee running (test_lua_footwork.py's world: the target 7 at zx east, the frame's records holding it),
+    ticked twice; the player a make_mover player, its held items the rip's."""
+    from .test_lua_footwork import LOOK_OFF, gow, records, target_rec, world
+    look = {} if kw.pop("look_on", False) else LOOK_OFF
+    p, z, w = world(lua, zx=zx, **dict(look, **kw))
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p, aid="m1", disposition="hold")
+    return p, z, w
+
+
+def mrun(lua, p, w, n):
+    from .test_lua_melee import run
+    run(lua, p, w, n)
+
+
+def test_a_keep_moving_rip_rides_beside_a_running_work_melee(lua, fs):
+    """The rip with keepMoving while a work melee runs: the side slot takes it, the melee stays current and keeps
+    ticking (its lines go on, no failed superseded), the handcraft is queued; the shirt gone: done {rags, dirty,
+    walking true, ride melee}, the melee still running."""
+    g = lua.globals()
+    p, z, w = melee_running(lua)
+    shirt = cotton(p)
+    mrun(lua, p, w, 2)
+    start(lua, p, "rip", aid="r1", itemId=70, keepMoving=True)
+    assert lua.eval("PZA.skills.cur.type") == "melee" and lua.eval("PZA.skills.side.type") == "rip"
+    mrun(lua, p, w, 70)
+    assert queue_types(g) == ["ISHandcraftAction"] and lua.eval("PZA.skills.cur.type") == "melee"
+    m1 = [x for x in acts(lua, fs) if x["aid"] == "m1"]
+    assert ("m1", "failed", "superseded") not in states(m1) and len(m1) >= 3
+    p.held.remove(shirt)
+    tend_item(p, "Base.RippedSheets", 71)
+    g._queue.queue[:] = []
+    mrun(lua, p, w, 1)
+    r1 = [x for x in acts(lua, fs) if x["aid"] == "r1"]
+    assert (r1[0]["state"], r1[-1]["state"]) == ("accepted", "done")
+    assert r1[-1]["result"] == {"rags": 1, "dirty": 0, "walking": True, "ride": "melee"}
+    assert lua.eval("PZA.skills.side") is None and lua.eval("PZA.skills.cur.type") == "melee"
+    assert lua.eval("PZA.skills.cur.aid") == "m1"
+
+
+def test_a_keep_moving_bandage_sent_while_the_melee_runs_supersedes_it_as_before(lua, fs):
+    """The bandage does not ride the melee (ISApplyBandage stops on aim): it starts as before, the melee superseded."""
+    p, z, w = melee_running(lua)
+    body17(p, {TORSO: {"bleeding": True, "bleeding_time": 5.0}})
+    tend_item(p, "Base.Bandage", 50, isCanBandage=True)
+    mrun(lua, p, w, 2)
+    start(lua, p, "bandage", aid="b1", itemId=50, part=TORSO, keepMoving=True)
+    assert ("m1", "failed", "superseded") in states(acts(lua, fs))
+    assert lua.eval("PZA.skills.cur.type") == "bandage" and lua.eval("PZA.skills.side") is None
+
+
+def test_the_melee_s_press_waits_while_the_rip_rides_and_presses_after(lua, fs):
+    """The target inside the band with the look on (the meet presses within two ticks unridden): while the rip's
+    handcraft is queued no press goes (a swing would stop it, SwipeStatePlayer.enter's StopAllActionQueue); once the
+    handcraft leaves the queue the press goes."""
+    g = lua.globals()
+    p, z, w = melee_running(lua, zx=10.95, look_on=True, attack_ticks=6)
+    cotton(p)
+    start(lua, p, "rip", aid="r1", itemId=70, keepMoving=True)
+    mrun(lua, p, w, 20)
+    assert w["presses"] == [] and lua.eval("PZA.skills.cur.st.rideWaits") > 0
+    g._queue.queue[:] = []
+    mrun(lua, p, w, 4)
+    assert w["presses"]
+
+
+def test_a_melee_re_sent_while_the_rip_rides_takes_it_along_and_a_kill_hands_it_over(lua, fs):
+    from .test_lua_footwork import WORK
+    from .test_lua_melee import go
+    p, z, w = melee_running(lua)
+    shirt = cotton(p)
+    start(lua, p, "rip", aid="r1", itemId=70, keepMoving=True)
+    mrun(lua, p, w, 2)
+    go(lua, p, aid="m2", **dict(WORK, disposition="string"))
+    assert lua.eval("PZA.skills.cur.aid") == "m2" and lua.eval("PZA.skills.side.aid") == "r1"
+    mrun(lua, p, w, 2)
+    w["zdead"] = True
+    mrun(lua, p, w, 1)
+    assert lua.eval("PZA.skills.cur.aid") == "r1" and lua.eval("PZA.skills.side") is None
+    p.held.remove(shirt)
+    mrun(lua, p, w, 1)
+    assert states(acts(lua, fs))[-1] == ("r1", "done", "")

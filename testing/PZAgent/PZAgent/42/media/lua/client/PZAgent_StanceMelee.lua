@@ -516,8 +516,13 @@ local function standingNear(p, st, r)
 end
 
 -- a press of kind at the target (the shove flag first for a shove or a stomp; a swing or a floor swing needs a weapon),
--- held while an attack still runs (isAttackStarted: the engine drops a press then, #4292); the step, or failed, reason
+-- held while an attack still runs (isAttackStarted: the engine drops a press then, #4292) and (Plan 37 Task 2 fix 2)
+-- while a rip rides beside the melee (K.rideHolds); the step, or failed, reason
 local function press(p, st, kind, d, pred, off, waitStep, dmin, ax, ay)
+    if K.rideHolds ~= nil and K.rideHolds() then   -- Plan 37 Task 2 fix 2: a riding rip (PZAgent_Tend.lua's K.RIDES)
+        st.rideWaits = (st.rideWaits or 0) + 1      -- the press would stop it (StopAllActionQueue): the wait, the walk kept
+        return waitStep
+    end
     local back = K.meleePressWalk(p, st)   -- Plan 36 Task 2a: the back step held (backswing), else the stop on this tick
     if st.refuseUntil ~= nil and PZA.now() < st.refuseUntil then return "refused" end   -- the residual: the wait
     if (kind == "swing" or kind == "floor") and weaponOf(p) == nil then return "failed", "no weapon" end

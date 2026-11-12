@@ -604,7 +604,8 @@ def test_bandage_rip_and_wash_are_actions_with_their_args_results_and_reasons():
     assert {"no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water"} <= pza1.REASONS
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
     assert set(d["result_bandage"]["properties"]) == {"part", "dirty", "life", "moved", "walking"}   # moved 1.5.2, walking 1.5.3
-    assert set(d["result_rip"]["properties"]) == {"rags", "dirty", "walking"}   # Plan 36 Task 2b: the ride
+    assert set(d["result_rip"]["properties"]) == {"rags", "dirty", "walking", "ride"}   # Plan 36 Task 2b: the ride;
+    # Plan 37 Task 2 fix 2: ride, the leg the rip rode beside
     assert set(d["result_wash"]["properties"]) == {"water", "moved"}
 
 
