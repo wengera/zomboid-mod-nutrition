@@ -88,7 +88,7 @@ ACTION_ARGS = {
     "aim": {"vx": "float", "vy": "float", "seconds": "float", "targetId": "int", "bearing": "float"},
     "climb": {"x": "int", "y": "int"},
     "bandage": {"itemId": "int", "part": "int", "keepMoving": "bool"},
-    "rip": {"itemId": "int"},
+    "rip": {"itemId": "int", "keepMoving": "bool"},
     "wash": {"itemId": "int", "x": "int", "y": "int"},
     "fill": {"itemId": "int", "x": "int", "y": "int"},
     "wear": {"itemId": "int"},
@@ -423,6 +423,7 @@ class Rip(_Cmd):
     """Rip a held, unworn cotton garment into rags with no tool (vanilla's RipClothing craft): refused worn, needs tool (denim, leather) or not cotton."""
     TYPE: ClassVar[str] = "rip"
     itemId: int  # The garment's id.
+    keepMoving: bool = False  # PZA/1.15 (Plan 36 Task 2b): true to rip while the running walkTo or steer keeps moving (the handcraft does not stop on a walk for RipClothing, #4735): the rip rides beside the leg in the side slot as a keepMoving bandage does (rejected aiming under an aim; standing as before with no leg running), its done result reading walking, failed stopped when the engine took it off the queue.
 
 
 @dataclasses.dataclass(frozen=True)

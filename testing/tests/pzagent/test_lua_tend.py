@@ -919,3 +919,68 @@ def test_keep_moving_refuses_a_leg_part_even_when_no_leg_runs(lua, fs):
     tend_item(p, "Base.Bandage", 50, isCanBandage=True)
     start(lua, p, "bandage", aid="s", itemId=50, part=UPPER_LEG_L, keepMoving=True)
     assert states(acts(lua, fs))[-1] == ("s", "rejected", "leg part")
+
+
+# ---- Plan 36 Task 2b (item 7c, PZA/1.15): the side slot admits a rip with keepMoving (RipClothing walks, #4735) ------
+
+def test_a_rip_with_keep_moving_rides_beside_a_running_walk_and_ends_done_walking(lua, fs):
+    """The rip with keepMoving while a walkTo runs: the side slot takes it, the path walk is cleared (K.rideBegin),
+    the handcraft queued alone, the leg drives on; the shirt gone: done {rags, dirty, walking true}, the leg running."""
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    shirt = cotton(p)
+    walking(lua, p)
+    start(lua, p, "rip", aid="r1", itemId=70, keepMoving=True)
+    assert lua.eval("PZA.skills.cur.type") == "walkTo" and lua.eval("PZA.skills.side.aid") == "r1"
+    assert lua.eval("PZA.skills.side.type") == "rip"
+    tick(lua, p)
+    assert queue_types(g) == ["ISHandcraftAction"] and ("setAutoWalk", True) in p.sets
+    p.held.remove(shirt)
+    tend_item(p, "Base.RippedSheets", 71)
+    g._queue.queue[:] = []
+    tick(lua, p)
+    a = [x for x in acts(lua, fs) if x["aid"] == "r1"]
+    assert (a[0]["state"], a[-1]["state"]) == ("accepted", "done")
+    assert a[-1]["result"] == {"rags": 1, "dirty": 0, "walking": True}
+    assert lua.eval("PZA.skills.side") is None and lua.eval("PZA.skills.cur.type") == "walkTo"
+
+
+def test_a_riding_rip_the_engine_took_off_the_queue_ends_stopped(lua, fs):
+    load(lua)
+    g = lua.globals()
+    p = make_player()
+    cotton(p)
+    walking(lua, p)
+    start(lua, p, "rip", aid="r1", itemId=70, keepMoving=True)
+    tick(lua, p)
+    g._queue.queue[:] = []                                            # the handcraft stopped, the shirt still held
+    tick(lua, p)
+    g._clock["ms"] += 3001
+    tick(lua, p)
+    assert [x for x in states(acts(lua, fs)) if x[0] == "r1"][-1] == ("r1", "failed", "stopped")
+    assert lua.eval("PZA.skills.cur.type") == "walkTo"
+
+
+def test_a_rip_with_keep_moving_under_an_aim_is_rejected_aiming_and_a_bad_keep_moving_bad_args(lua, fs):
+    load(lua)
+    p = make_player()
+    cotton(p)
+    start(lua, p, "aim", aid="s", vx=0.0, vy=-1.0, seconds=5.0)
+    tick(lua, p)
+    start(lua, p, "rip", aid="r1", itemId=70, keepMoving=True)
+    assert states(acts(lua, fs))[-1] == ("r1", "rejected", "aiming")
+    start(lua, p, "rip", aid="r2", itemId=70, keepMoving="yes")
+    assert states(acts(lua, fs))[-1] == ("r2", "rejected", "bad args")
+
+
+def test_a_rip_with_keep_moving_and_no_leg_runs_standing_as_before(lua, fs):
+    load(lua)
+    p = make_player()
+    shirt = cotton(p)
+    start(lua, p, "rip", aid="r1", itemId=70, keepMoving=True)
+    assert lua.eval("PZA.skills.cur.type") == "rip" and lua.eval("PZA.skills.side") is None
+    tick(lua, p)
+    p.held.remove(shirt)
+    tick(lua, p)
+    assert acts(lua, fs)[-1]["result"] == {"rags": 0, "dirty": 0}

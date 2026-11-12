@@ -336,6 +336,11 @@
         "itemId": {
           "type": "integer",
           "description": "The garment's id."
+        },
+        "keepMoving": {
+          "type": "boolean",
+          "description": "PZA/1.15 (Plan 36 Task 2b): true to rip while the running walkTo or steer keeps moving (the handcraft does not stop on a walk for RipClothing, #4735): the rip rides beside the leg in the side slot as a keepMoving bandage does (rejected aiming under an aim; standing as before with no leg running), its done result reading walking, failed stopped when the engine took it off the queue.",
+          "default": false
         }
       },
       "required": [

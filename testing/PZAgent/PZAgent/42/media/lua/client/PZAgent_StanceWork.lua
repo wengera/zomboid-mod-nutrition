@@ -23,26 +23,50 @@
 --   st.work nil. A melee re-sent at the same
 --   target (its sent or re-pinned id) while one with work runs keeps the footwork's state (the heading, its cadence, the
 --   nearest's id, the clear count, the pile's step) and the closing history and takes the new work fields.
--- Each tick with work, after a press in flight and a hit reaction (the melee's rules 1 and 2) and the release read:
---   the tick (K.workTick, before the crowd): the floor hand-back (done handback, why floor: the body's health, the last
---   frame's body.health else getBodyDamage():getOverallBodyHealth(), at or under floorHealth when floorHealth is above
---   0; read under a hit reaction too); the gap (the nearest standing zombie: the target while it stands, else the
+-- Each tick with work, after a press in flight and a hit reaction (the melee's rules 1 and 2) and the release read,
+-- the tick (K.workTick, before the crowd), in order (Plan 36 Task 2b: the contact cadence and the crawler buffer, the
+-- spec 2026-11-11-plan-36-the-engagement-design.md sections 3.2 and 3.5; the probe's ruling task-2-ruling.md: the
+-- engine starts and lands an attack while the stance walks backward, so the press rides the moving back step):
+--   the floor hand-back (done handback, why floor: the body's health, the last frame's body.health else
+--   getBodyDamage():getOverallBodyHealth(), at or under floorHealth when floorHealth is above 0; read under a hit
+--   reaction too); the stall (fix 7); the gap (the nearest standing zombie: the target while it stands, else the
 --   nearest of K.meleeCrowd's read within the larger of the reach, K.MELEE_CROWD_R and K.WORK_CONTACT_R), a change of
 --   its id re-choosing the heading at once; contact (the tick's nearest standing inside K.WORK_CONTACT_R, counted when
 --   no press is in flight at the tick's end); clear (done handback, why clear: K.WORK_CLEAR_TICKS ticks in a row with
---   the target a crawler beyond crawlerR, no standing zombie within releaseR and no other crawler within crawlerR); the
---   pile (pile true; fix 3: triggered by the engine's attackers count at 2 or more, or K.MELEE_CROWD_N standing
---   within K.WORK_PILE_R, the target counted while it stands; re-pinned to the nearest: the shove at it within shoveR,
---   its leaf's knock_p, skipped after two in a row at it that knocked nothing down; at its result the step `pile`
---   along the heading for K.WORK_STEP_TICKS ticks, ungated, the body snapped on the target; then the meet's next
---   press; again while the trigger holds; pileTick below). The crowd hand-back is kept for pile false.
---   the crawler (fix 5, K.workTick before the pile, crawlerTick below): a crawler within crawlerR with the target
---   standing and no standing zombie inside MinRange is the target (the re-pin; finished as fallen, the finish's stomp;
---   after it a standing zombie breaks the stomp only inside MinRange); with one inside MinRange the step goes for
---   K.WORK_STEP_TICKS ungated, step_for crawler, a press between two.
---   the retreat (fix 6, after the crawler, retreatTick below): with a withdraw vector given, the step along the biased
---   heading is the default (step_for retreat, the leaf's retreat true), the press only with the nearest standing
---   zombie within the reach and closing or inside MinRange; the pile and the band step do not run under it.
+--   the target a crawler beyond crawlerR, no standing zombie within releaseR and no other crawler within crawlerR);
+--   1. the pile (pile true, pileTick below; Plan 36 Task 2b items 5 and 7b, replacing Plan 35 fix 3's trigger and
+--      its shove-first loop): (a) a shove's result (any shove of the melee, the press's count moved) is always
+--      followed by the step out, never by a re-pin and another shove; (b) two or more standing inside
+--      K.WORK_POINT_BLANK_R (the target counted while it stands) take the step out before any shove (the point-blank
+--      hold yields to it); the step out goes along the room ring's most open heading within 90 degrees of the way
+--      away from their centroid (outHeading), K.WORK_STEP_TICKS ticks, step_for pile_out, the body held on the
+--      nearest; then the meet's next press, waited K.WORK_STEP_TICKS at most; no heading reading K.WORK_ROOM_NEED:
+--      the meet presses (cornered). (c) The chosen knock-down: one standing inside point blank and two or more within
+--      the reach (the target counted): the nearest re-pinned to, then shoved (shove_for knockdown on the line),
+--      then (a). The crowd hand-back is kept for pile false.
+--   2. the crawler buffer (crawlerTick below; Plan 36 Task 2b item 7, replacing Plan 35 fix 5's stomp-first): a
+--      crawler within K.CRAWLER_BUFFER_R with the target standing ends the standing position: one step perpendicular
+--      to the crawler's bearing toward the ring's more open side (bufferHeading) for K.WORK_STEP_TICKS ticks before
+--      the next press (step_for crawler_buffer), one such step a press; the crawler is the target (the re-pin, the
+--      finish's stomp) only inside K.CRAWLER_BITE_R with nothing standing within K.MELEE_CROWD_R.
+--   3. the nearest attacker's facing (attackerTick; item 6): the gap inside K.WORK_POINT_BLANK_R, the reflex re-pins
+--      to the zombie inside it whose getRealState reads attack (read only with the engine's attackers count above 0;
+--      the target first), else to the nearest standing one when it is nearer than the target by
+--      K.MELEE_REPIN_SLACK; repin_for attacker.
+--   4. the stagger in (staggerIn; item 4): the standing target the nearest, beyond the reach by under
+--      K.WORK_STAGGER_R and reading staggerback or hitreaction: one step toward it (the walk kind in, never held
+--      through a press) for K.WORK_STEP_TICKS ticks at most, step_for stagger_in, one a press; the press, then the
+--      step back.
+--   5. the retreat (fix 6, retreatTick below; item 4): with a withdraw vector given, the back step along the biased
+--      heading (step_for retreat, the leaf's retreat true) goes only while the predicted distance at the next swing's
+--      landing (K.workLanding: the gap less the target's closing speed and plus the player's own speed away, times the
+--      swing's flight time) stays within the reach less K.WORK_EDGE_SLACK; past it the step is withheld (held reach) and the meet closes or
+--      waits; the press goes at whoever stands nearest inside the reach beyond MinRange on every press window, the
+--      window opening K.WORK_RIDE_TICKS ticks of the step after each press's result (the swing rides the back step:
+--      with backswing the walk is held through the press; inside MinRange the meet's protective shove, then (1a) the
+--      step); the band step does not run under it.
+--   6. the band step (pressStep; fix 1): armed at a press's result, while the nearest standing is inside the reach
+--      less bandLo and its landing distance within the reach, unless held point_blank or attack (fixes 2 and 4).
 --   the idle (K.footwork, where the meet would stand or face): the gap under the reach less bandLo the step `work`
 --   along the heading (the stance's
 --   force-aim held, the auto-walk in input space, the facing the meet's own snap this tick), `cornered` with no clear
@@ -61,11 +85,12 @@
 --   and a non-finite sum is no heading at all (cornered, the leaf's nan_heading).
 -- The lines: every result line (progress, done, failed) carries contact and the work leaf {heading (degrees, atan2's
 --   convention), turn (degrees), clear, gap, n (the standing zombies in the sum), crawler (the nearest crawler's
---   distance within crawlerR x 2), held (fixes 2 and 4: point_blank or attack, why the step was last withheld or ended;
---   absent once one goes), pile (fix 3), step_for (fix 5: crawler, pile or gap)}, a value not read absent; since fix 5
---   heading, turn, clear, n and step_for only on a tick that stepped, crawler read every tick; the steps work,
---   cornered and pile in the done line's
---   steps.
+--   distance within crawlerR x 2), held (fixes 2 and 4: point_blank or attack; Plan 36 Task 2b: reach; why the step was
+--   last withheld or ended; absent once one goes), pile (Plan 36 Task 2b: pile_out or shove, what started the last
+--   step out), step_for (gap, retreat, and since Plan 36 Task 2b pile_out, crawler_buffer or stagger_in; turn and n
+--   only for a step along the repulsion heading), repin_for (stall, and since Plan 36 Task 2b attacker), shove_for
+--   (Plan 36 Task 2b: knockdown, on its press's line)}, a value not read absent; heading, turn, clear, n and step_for
+--   only on a tick that stepped, crawler read every tick; the steps work and cornered in the done line's steps.
 -- The cost (counted in test_lua_footwork.py): K.meleeCrowd's one read replaces the crowd's (3 a candidate: isDead,
 --   isOnFloor, the distance); the floor reads the frame (2 calls without one); the step keeps its walk (walkAlong sets
 --   it again only past K.MELEE_TURN_DOT) and holds the force-aim (setForceAim once a release); a re-choose adds getZ,
@@ -90,8 +115,18 @@ K.WORK_STEP_TICKS = 30       -- fix 1: the most ticks of the step after a press'
                              -- second, a judgment: the struck zombie's stagger, #4686, is the step's window)
 K.WORK_POINT_BLANK_R = 0.9   -- fix 2: tiles: no step with the nearest standing zombie inside this (K.MELEE_CROWD_R's
                              -- radius, the pile's: #4290); there the press is the defence (#4372, #4688)
-K.WORK_PILE_R = 1.3          -- fix 3: tiles: three standing within this (the target counted) trigger the pile, as the
-                             -- engine's attackers 2 do (the drag-down's approach, x_trial-ladder-20261110-091352)
+K.WORK_PILE_R = 1.3          -- fix 3: tiles: the near read's radius with pile (K.meleeCrowd; since Plan 36 Task 2b
+                             -- no trigger of its own: the pile is two inside K.WORK_POINT_BLANK_R)
+K.CRAWLER_BUFFER_R = 2.0     -- Plan 36 Task 2b (the spec's section 3.5): tiles: a crawler this near ends the standing
+                             -- position (the buffer step)
+K.CRAWLER_BITE_R = 0.9       -- tiles: a crawler inside this is stomped first when nothing stands within
+                             -- K.MELEE_CROWD_R (a judgment: the CrawlerBite read at 0.85 in x_trial-ladder-20261109-
+                             -- 105452, under the crowd radius)
+K.WORK_STAGGER_R = 1.0       -- tiles beyond the reach a staggered target is stepped in to (a judgment: one step's gain)
+K.WORK_EDGE_SLACK = 0.1      -- tiles: the retreat's back step stops this short of the reach (a tolerance: a dead band
+                             -- between the back step and the meet's close walk beyond the reach, no flapping)
+K.WORK_RIDE_TICKS = 6        -- the retreat's back step after a press's result before the next press window (K.WORK_TICKS'
+                             -- 0.1 s, a judgment: the press rides a step already walking)
 
 local WORK_NUMS = { "workR", "crawlerR", "bandLo", "floorHealth" }
 local WORK_KEYS = { "workR", "crawlerR", "bandLo", "floorHealth", "withdrawX", "withdrawY", "pile", "backswing" }
@@ -121,7 +156,9 @@ local function workArgs(args)
              retreat = wx ~= nil and (wx ~= 0 or wy ~= 0), retreating = false,   -- fix 6: a withdraw vector given
              contact = 0, inContact = false, near = nil, gap = nil, nearId = nil, n = nil, clear = nil,
              stepTicks = 0, pressMark = 0, nearO = nil, held = nil,
-             pileWhy = nil, pileShove = false, pileWait = 0, shoveId = nil, shoveFails = 0,
+             pileWhy = nil, pileWait = 0, shoveMark = 0, shoveFor = nil, outHx = nil, outHy = nil,
+             bufHx = nil, bufHy = nil, inTicks = 0, inMark = nil, rideMark = 0, rideTicks = 0, reachHold = false,
+             tc = nil, tcMark = nil, lh = nil, lt = nil, lc = nil, ln = nil,
              crawlers = nil, crawlTicks = 0, crawlMark = nil, steppedNow = false, stepFor = nil,
              hx = nil, hy = nil, heading = nil, turn = nil, crawlerD = nil, sinceChoose = K.WORK_TICKS,
              clearTicks = 0, pinId = nil, pileState = nil, pileTicks = 0, pileMark = 0, piles = 0,
@@ -160,7 +197,7 @@ def.tick = function(p, st)
     local w = st.work
     if w == nil then return baseTick(p, st) end
     if st.startMs == nil and not PZA.field(p, "getZ") then return "failed", "not loaded" end
-    w.inContact, w.steppedNow, w.repinFor = false, false, nil
+    w.inContact, w.steppedNow, w.repinFor, w.shoveFor = false, false, nil, nil
     local a, b, c = baseTick(p, st)
     if w.inContact and st.strike == nil then w.contact = w.contact + 1 end
     return a, b, c
@@ -349,6 +386,7 @@ local function stepAlong(p, st, kind, fallen, why)
     local w = st.work
     if w.sinceChoose >= K.WORK_TICKS then choose(p, st, fallen) end
     w.steppedNow, w.stepFor, w.held = true, why, nil   -- fix 5: the leaf's step_for, its heading this tick's
+    w.lh, w.lt, w.lc, w.ln = w.heading, w.turn, w.clear, w.n
     if not w.clear then
         M.stopWalk(p, st)
         return "cornered"
@@ -363,10 +401,60 @@ local function presses(st)
     return st.swings + st.shoves + st.stomps + st.floors
 end
 
--- fix 3 (x_trial-ladder-20261110-091352, the drag-down death at frame 1420: two to four standing at 0.47 to 1.3 tiles
--- for 70 frames with the engine's attackers 1 to 2, a30 and a31 shoving nine times with no knock-down, the pile met
--- only at frame 1395, three within K.MELEE_CROWD_R one frame before the drag): the engine's attackers count, the last
--- frame's me.attackers, else getSurroundingAttackingZombies live; 0 unread
+-- Plan 36 Task 2b: a step along the unit heading (hx, hy) chosen by its rule (the pile's step out, the crawler buffer),
+-- the body held on (fx, fy) when given: the stance's force-aim held, the auto-walk of kind work (held through a press
+-- with backswing); the leaf's heading this tick's, no turn and no n
+local function stepTo(p, st, hx, hy, why, fx, fy)
+    local w = st.work
+    w.steppedNow, w.stepFor, w.held = true, why, nil
+    w.lh, w.lt, w.lc, w.ln = math.atan2(hy, hx) * DEG, nil, true, nil
+    if fx ~= nil and fy ~= nil then K.FACING.hold(p, st, K.FACING.bearing(st.px, st.py, fx, fy)) end
+    aimHeld(p)
+    M.walkAlong(p, st, "work", hx, hy)
+    return "work"
+end
+
+-- the room ring's most open heading within 90 degrees of the unit (ax, ay), ties to the nearest it, reading at least
+-- K.WORK_ROOM_NEED: hx, hy, else nil
+local function openToward(p, st, ax, ay)
+    local _, pz = PZA.call(p, "getZ")
+    local ring = K.workRoomFor(p, st, st.px, st.py, pz)
+    local bx, by, bh, bc = nil, nil, nil, nil
+    for i = 1, #K.WORK_ROOM_HEADINGS do
+        local a = K.WORK_ROOM_HEADINGS[i] * RAD
+        local hx, hy = math.cos(a), math.sin(a)
+        local c = hx * ax + hy * ay
+        local h = K.workRoomOpen(ring, hx, hy)
+        if c >= 0 and h >= K.WORK_ROOM_NEED and (bh == nil or h > bh or (h == bh and c > bc)) then
+            bx, by, bh, bc = hx, hy, h, c
+        end
+    end
+    return bx, by
+end
+
+-- the predicted distance at the next swing's landing of a zombie at gap g (Plan 36 Task 2b item 4): g less the
+-- target's closing speed (the melee's closingOf; 0 for another zombie, whose history is not kept), times the swing's
+-- flight time (one update plus K.MELEE_HIT_FRAC / CombatSpeed, read once a press: w.tc); under backswing (the walk
+-- held through the press, so the player keeps moving through the flight) plus the player's own speed away times the
+-- flight time: while the step walks st.backV (K.meleeTrack), kept as w.walkV, which a standing tick reads, so the
+-- step starts only where it may go on (no step-and-stop at the edge). Without backswing the press stops the walk on
+-- its tick and the player's own speed is no term
+function K.workLanding(p, st, g, gid)
+    local w = st.work
+    if w.tc == nil then w.tc = st.dtS + K.MELEE_HIT_FRAC / M.combatSpeed(p) end
+    local v = 0
+    if gid == st.id then v = M.closingOf(st, st.px, st.py, st.zx, st.zy, g) or 0 end
+    local back = 0
+    if w.backswing then
+        if st.walk == "work" and (st.backV or 0) > 0 then w.walkV = st.backV end
+        back = w.walkV or 0
+    end
+    return g - v * w.tc + back * w.tc
+end
+
+-- fix 3 (x_trial-ladder-20261110-091352, the drag-down death at frame 1420): the engine's attackers count, the last
+-- frame's me.attackers, else getSurroundingAttackingZombies live; 0 unread (since Plan 36 Task 2b the attacker's
+-- facing's gate, attackerTick)
 local function attackersOf(p)
     local S = PZA.sense
     local f = S ~= nil and S.last or nil
@@ -377,73 +465,77 @@ local function attackersOf(p)
     return 0
 end
 
--- the pile's trigger now, or nil: attackers (the engine counts 2 or more attacking), else near (K.MELEE_CROWD_N
--- standing within K.WORK_PILE_R, the target counted while it stands: the drag-down's approach, not its radius, #4290)
-local function pileTrigger(p, st, standing)
-    if attackersOf(p) >= 2 then return "attackers" end
-    local n = 0
-    if standing then n = 1 end
+-- the standing zombies within r ({id, d, o[, x, y]} each, nearest first), the target first counted while it stands
+-- (its position this tick's), the rest from K.meleeCrowd's read (w.near)
+local function standingWithin(st, d, standing, r)
+    local out = {}
+    if standing and d < r then out[1] = { id = st.id, d = d, o = st.z, x = st.zx, y = st.zy } end
     local near = st.work.near
     if near ~= nil then
         for i = 1, #near do
-            if near[i].d < K.WORK_PILE_R then n = n + 1 end
+            if near[i].d < r then out[#out + 1] = near[i] end
         end
     end
-    if n >= K.MELEE_CROWD_N then return "near" end
-    return nil
+    if #out > 1 then table.sort(out, function(a, b) return a.d < b.d end) end
+    return out
 end
 
--- the pile (pile true; fix 3): on the trigger the shove at the nearest standing zombie (re-pinned to it first; within
--- shoveR, and not after two shoves in a row at it that knocked nothing down), at its result the step `pile` along the
--- clearest heading for K.WORK_STEP_TICKS ticks with the body snapped on the target, ungated (the move at point
--- blank: no point-blank or attack hold), `cornered` with no clear heading (the meet presses next); then the
--- meet's next press (the swing once the gap passes MinRange), waited K.WORK_STEP_TICKS at most; again while the
--- trigger holds. nil to go on
+-- the step out's heading (7b): the ring's most open within 90 degrees of the way away from the centroid of zs (each
+-- {x, y} or {o}); nil with none, or with nothing to step from
+local function outHeading(p, st, zs)
+    local cx, cy, n = 0, 0, 0
+    for i = 1, #zs do
+        local x, y = zs[i].x, zs[i].y
+        if x == nil and zs[i].o ~= nil then x, y = posOf(zs[i].o) end
+        if x ~= nil and y ~= nil then cx, cy, n = cx + x, cy + y, n + 1 end
+    end
+    if n == 0 then return nil end
+    local ax, ay = st.px - cx / n, st.py - cy / n
+    local len = math.sqrt(ax * ax + ay * ay)
+    if len ~= len or len <= 0 then return nil end
+    return openToward(p, st, ax / len, ay / len)
+end
+
+-- the pile (the header's tick, 1): the step out, then the meet's press; a step or a press, else nil to go on
 local function pileTick(p, st, d, fallen, standing)
     local w = st.work
-    local why = pileTrigger(p, st, standing)
-    if why ~= nil then w.pileWhy = why end
     if w.pileState == "step" then
-        if w.pileShove then   -- the shove's result, read on the step's first tick
-            w.pileShove = false
-            if st.knocked then
-                w.shoveFails = 0
-            elseif w.shoveId == st.id then
-                w.shoveFails = w.shoveFails + 1
-            else
-                w.shoveId, w.shoveFails = st.id, 1
-            end
-        end
         if w.pileTicks < K.WORK_STEP_TICKS then
             w.pileTicks = w.pileTicks + 1
-            K.FACING.hold(p, st, K.FACING.bearing(st.px, st.py, st.zx, st.zy))
-            local step = stepAlong(p, st, "pile", fallen, "pile")
-            if step == "cornered" then w.pileTicks = K.WORK_STEP_TICKS end
-            return step
+            local fx, fy = st.zx, st.zy
+            if w.nearO ~= nil and w.nearId ~= st.id then fx, fy = posOf(w.nearO) end
+            return stepTo(p, st, w.outHx, w.outHy, "pile_out", fx, fy)
         end
         w.pileState, w.pileMark, w.pileWait = "press", presses(st), 0
         return nil
     end
     if w.pileState == "press" then
         w.pileWait = w.pileWait + 1
-        if presses(st) > w.pileMark or why == nil or w.pileWait >= K.WORK_STEP_TICKS then
-            w.pileState = nil
-        else
-            return nil
-        end
+        if presses(st) == w.pileMark and w.pileWait < K.WORK_STEP_TICKS then return nil end
+        w.pileState = nil
     end
-    if why == nil or fallen or not standing then return nil end
-    local near = w.near
-    if near ~= nil and near[1].d < d - K.MELEE_REPIN_SLACK and near[1].id ~= w.stallId then   -- fix 7b
-        return M.repin(p, st, near[1])
-    end
-    if d > st.shoveR or (w.shoveId == st.id and w.shoveFails >= 2) then   -- the step first, then the meet's press
-        w.pileState, w.pileTicks, w.piles = "step", 0, w.piles + 1
+    local pb = standingWithin(st, d, standing, K.WORK_POINT_BLANK_R)
+    local why = nil
+    if st.shoves ~= w.shoveMark then w.shoveMark, why = st.shoves, "shove" end   -- (a): a shove's result
+    if why == nil and #pb >= 2 then why = "pile_out" end                       -- (b): two at point blank
+    if why ~= nil then
+        local zs = pb
+        if #zs == 0 then zs = { { x = st.zx, y = st.zy } } end
+        w.outHx, w.outHy = outHeading(p, st, zs)
+        if w.outHx == nil then return nil end   -- no way out: the meet presses (cornered)
+        w.pileState, w.pileTicks, w.piles, w.pileWhy = "step", 0, w.piles + 1, why
         return pileTick(p, st, d, fallen, standing)
+    end
+    if fallen or not standing or #pb ~= 1 or pb[1].d > st.shoveR then return nil end
+    local inReach = standingWithin(st, d, standing, M.reachOf(p, st))   -- a Lua table
+    if #inReach < 2 then return nil end   -- (c): against several only
+    if pb[1].id ~= st.id then
+        if pb[1].id == w.stallId then return nil end
+        return M.repin(p, st, pb[1])
     end
     local off = M.lookOff(p, st.px, st.py, st.zx, st.zy)
     local step, pwhy = M.press(p, st, "shove", d, d, off, "face", d)
-    if step == "shove" then w.pileState, w.pileTicks, w.piles, w.pileShove = "step", 0, w.piles + 1, true end
+    if step == "shove" then w.shoveFor = "knockdown" end
     return step, pwhy
 end
 
@@ -476,7 +568,8 @@ local function pressStep(p, st, standing, g)
         if st.refusals == 0 then w.stepTicks = K.WORK_STEP_TICKS end
     end
     if w.stepTicks <= 0 then return nil end
-    if not standing or g == nil or g >= M.reachOf(p, st) - w.bandLo then
+    if not standing or g == nil or g >= M.reachOf(p, st) - w.bandLo
+       or K.workLanding(p, st, g, w.nearId) > M.reachOf(p, st) then   -- Plan 36 Task 2b item 4: the next landing
         w.stepTicks = 0
         return nil
     end
@@ -497,38 +590,105 @@ local function pressStep(p, st, standing, g)
     return step
 end
 
--- fix 5 (x_trial-ladder-20261110-103609, a56 and a57: the crawler 29707 lay at 0.16 to 0.18 tiles for frames 2747
--- to 2772, never the target, the target standing in the reach; every probe point lay within crawlerR of it, so every
--- heading read cornered; it bit first at frame 2807 at 1.02 and fourteen reactions chained to the drag-down; the
--- leaf's crawler, read at the last choose, read 0.1718 on every line): the crawlers within crawlerR x 2 read every
--- tick (w.crawlers, the leaf's crawler); with one within crawlerR and the target standing, the crawler is the target
--- (the re-pin, the finish's stomp) when no standing zombie is inside the weapon's MinRange (the shove range), else the
--- step along the heading goes for K.WORK_STEP_TICKS ungated (step_for crawler, the body snapped on the target), the
--- meet's press between two such steps; nothing once no crawler is within crawlerR
+-- fix 5 (x_trial-ladder-20261110-103609, a56 and a57: the crawler 29707 lay at 0.16 to 0.18 tiles, never the target,
+-- and bit first at 1.02): the crawlers within crawlerR x 2 read every tick (w.crawlers, the leaf's crawler). Plan 36
+-- Task 2b (item 7, the spec's section 3.5; fix 5's stomp-first inside the shove range re-read: the buffer first unless
+-- the crawler is already inside its bite reach): the header's tick, 2
+
+-- the buffer step's heading: perpendicular to the crawler c's bearing, the side the ring reads more open (ties to the
+-- side away from the target), reading at least K.WORK_ROOM_NEED; nil otherwise
+local function bufferHeading(p, st, c)
+    local ux, uy = c.x - st.px, c.y - st.py
+    local len = math.sqrt(ux * ux + uy * uy)
+    if len ~= len or len <= 0 then return nil end
+    ux, uy = ux / len, uy / len
+    local _, pz = PZA.call(p, "getZ")
+    local ring = K.workRoomFor(p, st, st.px, st.py, pz)
+    local ax, ay, bx, by = -uy, ux, uy, -ux
+    local ha, hb = K.workRoomOpen(ring, ax, ay), K.workRoomOpen(ring, bx, by)
+    local pickB = hb > ha
+    if ha == hb then
+        local tx, ty = st.px - st.zx, st.py - st.zy
+        pickB = bx * tx + by * ty > ax * tx + ay * ty
+    end
+    if pickB then ax, ay, ha = bx, by, hb end
+    if ha < K.WORK_ROOM_NEED then return nil end
+    return ax, ay
+end
+
 local function crawlerTick(p, st, standing, g)
     local w = st.work
     local cs = K.crawlersNear(p, st, w.crawlerR * 2)
     w.crawlers = cs
     w.crawlerD = nil
     if cs ~= nil then w.crawlerD = cs[1].d end
-    if cs == nil or cs[1].d >= w.crawlerR or not standing then
+    if cs == nil or cs[1].d >= K.CRAWLER_BUFFER_R or not standing then
         w.crawlTicks = 0
         return cs, nil
     end
-    if g == nil or g > M.minRangeOf(p, st) then   -- the stomp first: none standing inside the shove range
-        local step = M.repin(p, st, cs[1])
-        w.pinId, w.nearId, w.sinceChoose, w.crawlTicks = cs[1].id, nil, K.WORK_TICKS, 0
+    local c = cs[1]
+    if c.d < K.CRAWLER_BITE_R and (g == nil or g >= K.MELEE_CROWD_R) then   -- inside its bite, nothing standing near
+        local step = M.repin(p, st, c)
+        w.pinId, w.nearId, w.sinceChoose, w.crawlTicks = c.id, nil, K.WORK_TICKS, 0
         return cs, step
     end
     if w.crawlTicks <= 0 then
-        if w.crawlMark == presses(st) then return cs, nil end   -- a step ran out: the meet's press before the next
-        w.crawlTicks, w.crawlMark = K.WORK_STEP_TICKS, presses(st)
+        if w.crawlMark == presses(st) then return cs, nil end   -- one buffer step a press
+        local hx, hy = bufferHeading(p, st, c)
+        if hx == nil then return cs, nil end
+        w.crawlTicks, w.crawlMark, w.bufHx, w.bufHy = K.WORK_STEP_TICKS, presses(st), hx, hy
     end
     w.crawlTicks = w.crawlTicks - 1
+    return cs, stepTo(p, st, w.bufHx, w.bufHy, "crawler_buffer", st.zx, st.zy)
+end
+
+-- the nearest attacker's facing (the header's tick, 3; item 6): a re-pin, else nil
+local function attackerTick(p, st, d, standing, g)
+    local w = st.work
+    if g == nil or g >= K.WORK_POINT_BLANK_R then return nil end
+    local pb = standingWithin(st, d, standing, K.WORK_POINT_BLANK_R)
+    if #pb == 0 then return nil end
+    local pick, attacking = nil, false
+    if attackersOf(p) > 0 then
+        for i = 1, #pb do
+            local ok, state = PZA.call(pb[i].o, "getRealState")
+            if ok and type(state) == "string" and string.find(state, "attack") ~= nil then
+                pick, attacking = pb[i], true
+                if pb[i].id == st.id then return nil end   -- the target attacking: kept
+                break
+            end
+        end
+    end
+    if pick == nil then pick = pb[1] end
+    if pick.id == st.id or pick.id == w.stallId then return nil end
+    if not attacking and standing and pick.d >= d - K.MELEE_REPIN_SLACK then return nil end
+    w.repinFor = "attacker"
+    return M.repin(p, st, pick)
+end
+
+-- the stagger in (the header's tick, 4; item 4): a step, else nil
+local function staggerIn(p, st, standing, g, gid)
+    local w = st.work
+    local reach = M.reachOf(p, st)
+    if not standing or gid ~= st.id or g == nil or g <= reach or g > reach + K.WORK_STAGGER_R then
+        w.inTicks = 0
+        return nil
+    end
+    if w.inTicks <= 0 then
+        if w.inMark == presses(st) then return nil end   -- one step in a press
+        local ok, state = PZA.call(st.z, "getRealState")
+        if not ok or type(state) ~= "string" then return nil end
+        if string.find(state, "stagger") == nil and string.find(state, "hitreact") == nil then return nil end
+        w.inTicks, w.inMark = K.WORK_STEP_TICKS, presses(st)
+    end
+    w.inTicks = w.inTicks - 1
+    local ex, ey = st.zx - st.px, st.zy - st.py
+    w.steppedNow, w.stepFor, w.held = true, "stagger_in", nil
+    w.lh, w.lt, w.lc, w.ln = math.atan2(ey, ex) * DEG, nil, true, nil
     K.FACING.hold(p, st, K.FACING.bearing(st.px, st.py, st.zx, st.zy))
-    local step = stepAlong(p, st, "work", false, "crawler")
-    if step == "cornered" then w.crawlTicks = 0 end
-    return cs, step
+    aimHeld(p)
+    M.walkAlong(p, st, "in", ex, ey)
+    return "work"
 end
 
 -- fix 6 (the controller's ruling, Angus's fighting retreat; x_trial-ladder-20261110-104702: four standing at 1.0 to
@@ -549,17 +709,25 @@ end
 
 local function retreatTick(p, st, d, standing, g, gid)
     local w = st.work
-    w.retreating = false
+    w.retreating, w.reachHold = false, false
     if not w.retreat or g == nil then return nil end
     w.retreating = true
-    if g <= M.reachOf(p, st) then
+    local pc = presses(st)
+    if pc ~= w.rideMark then w.rideMark, w.rideTicks = pc, K.WORK_RIDE_TICKS end   -- a press's result: the step rides
+    local reach = M.reachOf(p, st)
+    local hold = K.workLanding(p, st, g, gid) > reach - K.WORK_EDGE_SLACK   -- item 4: no back step past the next landing
+    w.reachHold = hold   -- the idle's (K.footwork) hold too, on a press window the meet leaves unpressed
+    if hold then w.held = "reach" end
+    if g <= reach and w.rideTicks <= 0 then   -- the press window: at whoever stands nearest inside the reach
         local near = w.near
         if gid ~= st.id and near ~= nil and near[1].id == gid and gid ~= w.stallId then return M.repin(p, st, near[1]) end
-        if standing then
-            local v = M.closingOf(st, st.px, st.py, st.zx, st.zy, d)
-            if g <= M.minRangeOf(p, st) or (v ~= nil and v > K.MELEE_CLOSING_V) then return nil end
-        end
+        if standing then return nil end   -- the meet's swing on the back step (inside MinRange its protective shove)
     end
+    if hold then
+        M.stopWalk(p, st)
+        return nil
+    end
+    w.rideTicks = w.rideTicks - 1
     retreatSnap(p, st, gid)
     local step = stepAlong(p, st, "work", false, "retreat")
     if step == "cornered" then return nil end   -- the meet presses; its idle reads cornered
@@ -601,16 +769,22 @@ function K.workTick(p, st, d, crowd, fallen, now)
     else
         w.clearTicks = 0
     end
-    local cs, cstep = crawlerTick(p, st, standing, g)   -- fix 5: the crawler is the first concern
-    if cstep ~= nil then return cstep end
-    local rs, rhow, rres = retreatTick(p, st, d, standing, g, gid)   -- fix 6: the fighting retreat
-    if rs ~= nil then return rs, rhow, rres end
-    if w.retreating then return nil end   -- the press due: the meet's (the swing, the protective shove)
-    if w.pile then
+    local pc = presses(st)
+    if pc ~= w.tcMark then w.tcMark, w.tc = pc, nil end   -- the flight time read again once a press
+    if w.pile then   -- 1: the pile
         local ps, phow, pres = pileTick(p, st, d, fallen, standing)
         if ps ~= nil then return ps, phow, pres end
     end
-    return pressStep(p, st, standing, g)
+    local cs, cstep = crawlerTick(p, st, standing, g)   -- 2: the crawler buffer
+    if cstep ~= nil then return cstep end
+    local as = attackerTick(p, st, d, standing, g)   -- 3: the nearest attacker
+    if as ~= nil then return as end
+    local ss = staggerIn(p, st, standing, g, gid)   -- 4: the stagger in
+    if ss ~= nil then return ss end
+    local rs, rhow, rres = retreatTick(p, st, d, standing, g, gid)   -- 5: the fighting retreat
+    if rs ~= nil then return rs, rhow, rres end
+    if w.retreating then return nil end   -- the press due, or the step withheld: the meet's
+    return pressStep(p, st, standing, g)   -- 6: the band step
 end
 
 -- the idle (the meet would stand or face): the step inside the band, else the meet's own (the crawler target is
@@ -618,11 +792,16 @@ end
 function K.footwork(p, st, d, px, py, zx, zy, now)
     local w = st.work
     if w.retreating then   -- fix 6: the meet pressed nothing: the retreat's step (cornered with no clear heading)
+        if w.reachHold then   -- Plan 36 Task 2b: the step withheld past the next landing: the hold
+            M.stopWalk(p, st)
+            if st.near then return "face" end
+            return "stand"
+        end
         retreatSnap(p, st, w.nearId)
         return stepAlong(p, st, "work", false, "retreat")
     end
     local reach = M.reachOf(p, st)
-    if w.gap ~= nil and w.gap < reach - w.bandLo then
+    if w.gap ~= nil and w.gap < reach - w.bandLo and K.workLanding(p, st, w.gap, w.nearId) <= reach then
         local held = stepHeld(w, w.gap)   -- fixes 2 and 4: no step at point blank or into an attack
         if held == nil then
             w.held = nil
@@ -643,8 +822,9 @@ function K.workResult(st, out)
     if w.retreating then leaf.retreat = true end   -- fix 6: the retreat's mode running
     if st.stallHeld then leaf.stall_held = true end   -- fix 7: the stall deferred in shove range
     leaf.repin_for = w.repinFor   -- fix 7b: the stall's re-pin, on its own tick's line
+    leaf.shove_for = w.shoveFor   -- Plan 36 Task 2b: the chosen knock-down, on its press's line
     if w.steppedNow then   -- fix 5: the heading, its turn, clear and n of the step this tick, absent on any other
-        leaf.heading, leaf.turn, leaf.clear, leaf.n, leaf.step_for = w.heading, w.turn, w.clear, w.n, w.stepFor
+        leaf.heading, leaf.turn, leaf.clear, leaf.n, leaf.step_for = w.lh, w.lt, w.lc, w.ln, w.stepFor
         if w.nanHeading then leaf.nan_heading = true end   -- fix 1: the sum read non-finite
     end
     out.work = leaf

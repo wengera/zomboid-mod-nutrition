@@ -234,7 +234,12 @@ K.types.bandage = {
 -- ISEntityUI.HandcraftStart queues the handcraft), each piece index-checked (not loaded) and the call under pcall
 -- (not valid); a handcraft not in the queue after it (ISTimedActionQueue.hasActionType(p, "ISHandcraftAction") false,
 -- the logic refused) is not valid, and hasActionType absent not loaded (PZA/1.5.1: fails closed). Done once the item is gone by id, {rags (the new items whose full type names
--- RippedSheets), dirty (those naming Dirty)}; interrupted after RIP_MS.
+-- RippedSheets), dirty (those naming Dirty)}; interrupted after RIP_MS. Plan 36 Task 2b (item 7c, PZA/1.15):
+-- keepMoving (a boolean, absent: false; else bad args) asks for the rip to ride beside the moving leg as a bandage
+-- does (the ride, at the file's end): the handcraft does not stop on a walk for RipClothing (#4735); a riding rip
+-- clears only the leg's queued path walk (K.rideBegin) where a standing one clears the queue, ends failed stopped
+-- when its ISHandcraftAction has left the queue for RIDE_SETTLE_MS without the item gone (K.rideLost), and its done
+-- result adds walking true.
 K.RIP_MS = 20000
 
 -- the reason the item cannot be ripped without a tool, or nil: its class the inventory record's rip (W.ripOf,
@@ -255,7 +260,7 @@ local function ripStart(p, st)
     local _, recipe = PZA.call(getScriptManager(), "getCraftRecipe", "RipClothing")
     local okN, num0 = PZA.call(p, "getPlayerNum")
     if recipe == nil or not okN then return "not loaded" end
-    clearQueue(p)
+    if st.ride then K.rideBegin(p) else clearQueue(p) end   -- Plan 36 Task 2b: a riding rip keeps the leg's walk
     st.before = idSet(p)
     if not pcall(M.OnNewCraft, st.item, recipe, num0, false) then return "not valid" end
     local Q = ISTimedActionQueue
@@ -285,7 +290,10 @@ K.types.rip = {
         if it == nil then return false, why end
         local no = ripRefusal(it)
         if no ~= nil then return false, no end
-        return true, "", { id = args.itemId, item = it, queuedAt = nil, before = nil }
+        local keep = args.keepMoving
+        if keep ~= nil and type(keep) ~= "boolean" then return false, "bad args" end   -- Plan 36 Task 2b: the ride
+        return true, "", { id = args.itemId, item = it, queuedAt = nil, before = nil, keep = keep == true, ride = false,
+                           goneAt = nil, rideAction = "ISHandcraftAction" }
     end,
     tick = function(p, st)
         if isDead(p) then return "failed", "dead" end
@@ -296,8 +304,11 @@ K.types.rip = {
         end
         if K.itemById(p, st.id) == nil then
             local rags, dirty = ripYield(p, st)
-            return "done", { rags = rags, dirty = dirty }
+            local out = { rags = rags, dirty = dirty }
+            if st.ride then out.walking = true end
+            return "done", out
         end
+        if st.ride and K.rideLost(p, st) then return "failed", "stopped" end
         if PZA.now() - st.queuedAt > K.RIP_MS then return "failed", "interrupted" end
         return nil
     end,
@@ -505,11 +516,18 @@ for _, name in ipairs({ "fill", "consume", "wash", "rip" }) do K.markOnEnd(name)
 --   The bandage ends done with walking true; failed stopped when neither its ISApplyBandage nor its transfer has been
 --     in the vanilla queue for RIDE_SETTLE_MS without the done reading (the engine stopped it: a run, an aim), the
 --     settle covering the server's sync after vanilla's perform; interrupted after BANDAGE_MS.
--- rip, wash and fill never ride: the handcraft stops on a walk unless its recipe reads CanWalk (lua:shared/Entity/
--- TimedActions/ISHandcraftAction.lua:405; RipClothing names no CanWalk key), ISWashClothing and ISTakeWaterAction keep
--- ISBaseTimedAction's stopOnWalk true, and both need the source adjacent.
+-- Plan 36 Task 2b (item 7c, PZA/1.15; the slot's contract for the planner): a rip with keepMoving true rides as the
+-- bandage does, by the same rules: accepted into K.side while K.cur is a walkTo or a steer (its own check first: none
+-- held, worn, needs tool, not cotton, bad args), rejected aiming while K.cur is an aim, started standing as before
+-- with no leg running; a side already riding (a bandage or a rip) ends failed superseded; it ends done {rags, dirty,
+-- walking true}, failed stopped (its ISHandcraftAction out of the queue for RIDE_SETTLE_MS, the item not gone),
+-- interrupted after RIP_MS, and with the leg as a bandage's side does. The handcraft does not stop on a walk for
+-- RipClothing (#4735: ISHandcraftAction clears stopOnWalk for a recipe tagged CanBeDoneWhileWalking, which
+-- RipClothing carries; set again for awkward hands, which the stopped end reads). Wash and fill never ride:
+-- ISWashClothing and ISTakeWaterAction keep ISBaseTimedAction's stopOnWalk true, and both need the source adjacent.
 K.side = nil
 K.RIDES = { walkTo = true, steer = true }
+K.RIDE_TYPES = { bandage = true, rip = true }   -- Plan 36 Task 2b: the commands the side slot admits with keepMoving
 K.RIDE_SETTLE_MS = 3000
 K.RIDE_AIM_MS = 250
 
@@ -541,7 +559,7 @@ end
 -- whether the riding bandage has been out of the vanilla queue for RIDE_SETTLE_MS (the engine stopped it); false when
 -- the queue cannot say
 function K.rideLost(p, st)
-    local inQ = queued(p, "ISApplyBandage")
+    local inQ = queued(p, st.rideAction or "ISApplyBandage")   -- Plan 36 Task 2b: a rip's ISHandcraftAction
     if inQ == nil then return false end
     if inQ or (st.moved and queued(p, "ISInventoryTransferAction")) then
         st.goneAt = nil
@@ -592,32 +610,33 @@ local function sideTick(p, side)
 end
 
 -- a rejected ride: the act line, a caught raise counted
-local function rideReject(p, aid, reason, err)
+local function rideReject(p, aid, reason, err, typ)
     if err ~= nil then K.caught(err) end
-    K.emitAct(p, aid, "bandage", "rejected", reason)
+    K.emitAct(p, aid, typ or "bandage", "rejected", reason)
 end
 
 -- a bandage with keepMoving while K.cur is a leg (or an aim): checked as the runner checks a command, then K.side
 local function startRide(cmd, p, leg)
-    local aid = cmd.aid
+    local aid, typ = cmd.aid, cmd.type
     local readable, dead = pcall(isDead, p)
-    if not readable then return rideReject(p, aid, "interrupted", dead) end
-    if dead then return rideReject(p, aid, "dead") end
-    local def = K.types.bandage
+    if not readable then return rideReject(p, aid, "interrupted", dead, typ) end
+    if dead then return rideReject(p, aid, "dead", nil, typ) end
+    local def = K.types[typ]
     local ran, ok, reason, st = pcall(def.check, cmd.args, p)
-    if not ran then return rideReject(p, aid, "bad args", ok) end
-    if not ok then return rideReject(p, aid, reason or "bad args") end
-    if leg.type == "aim" then return rideReject(p, aid, "aiming") end
+    if not ran then return rideReject(p, aid, "bad args", ok, typ) end
+    if not ok then return rideReject(p, aid, reason or "bad args", nil, typ) end
+    if leg.type == "aim" then return rideReject(p, aid, "aiming", nil, typ) end
     if K.side ~= nil then sideEnd(p, "failed", "superseded") end
     st.ride = true
-    K.side = { aid = aid, type = "bandage", def = def, st = st, state = "accepted", lastProgress = PZA.now() }
-    K.emitAct(p, aid, "bandage", "accepted")
+    K.side = { aid = aid, type = typ, def = def, st = st, state = "accepted", lastProgress = PZA.now() }
+    K.emitAct(p, aid, typ, "accepted")
 end
 
--- a well-formed bandage command asking keepMoving true (an empty aid or a bad keepMoving goes to the runner)
+-- a well-formed bandage or rip command (K.RIDE_TYPES) asking keepMoving true (an empty aid or a bad keepMoving goes
+-- to the runner)
 local function rideAsked(cmd)
-    return type(cmd) == "table" and cmd.type == "bandage" and type(cmd.aid) == "string" and cmd.aid ~= ""
-        and type(cmd.args) == "table" and cmd.args.keepMoving == true
+    return type(cmd) == "table" and K.RIDE_TYPES[cmd.type] == true and K.types[cmd.type] ~= nil
+        and type(cmd.aid) == "string" and cmd.aid ~= "" and type(cmd.args) == "table" and cmd.args.keepMoving == true
 end
 
 local startTend = K.start

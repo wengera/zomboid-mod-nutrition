@@ -598,13 +598,13 @@ def test_the_e5_and_f2_logs_decode_through_the_file_transport_with_the_1_5_field
 def test_bandage_rip_and_wash_are_actions_with_their_args_results_and_reasons():
     assert pza1.ACTION_TYPES[13:16] == ("bandage", "rip", "wash")
     assert pza1.ACTION_ARGS["bandage"] == {"itemId": "int", "part": "int", "keepMoving": "bool"}   # 1.5.3
-    assert pza1.ACTION_ARGS["rip"] == {"itemId": "int"}
+    assert pza1.ACTION_ARGS["rip"] == {"itemId": "int", "keepMoving": "bool"}   # Plan 36 Task 2b: the ride
     assert pza1.ACTION_ARGS["wash"] == {"itemId": "int", "x": "int", "y": "int"}
     assert pza1.Bandage(50).args() == {"itemId": 50, "part": -1} and pza1.Wash(80, 11, 20).TYPE == "wash"
     assert {"no wound", "worn", "not cotton", "needs tool", "not dirty", "no source", "no water"} <= pza1.REASONS
     d = json.load(open(SCHEMA, encoding="utf-8"))["$defs"]
     assert set(d["result_bandage"]["properties"]) == {"part", "dirty", "life", "moved", "walking"}   # moved 1.5.2, walking 1.5.3
-    assert set(d["result_rip"]["properties"]) == {"rags", "dirty"}
+    assert set(d["result_rip"]["properties"]) == {"rags", "dirty", "walking"}   # Plan 36 Task 2b: the ride
     assert set(d["result_wash"]["properties"]) == {"water", "moved"}
 
 

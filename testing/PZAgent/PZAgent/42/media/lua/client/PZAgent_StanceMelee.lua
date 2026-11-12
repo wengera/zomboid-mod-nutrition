@@ -134,6 +134,12 @@
 --   player's own speed away from the target times the flight time (K.meleeBackAway). Every result line counts
 --   air_presses (the leaves reading air) and back_presses (the presses launched with moving_back, refused ones
 --   included, as swings counts them) beside swings.
+-- Plan 36 Task 2b (the contact cadence): with work the tick's order is the hit step (rule 1), the press in flight
+--   (rule 2, the walk held through it under backswing), the release read, then the footwork's tick (K.workTick, before
+--   rule 3's crowd, PZAgent_StanceWork.lua's header its order: the pile's step out and the chosen knock-down, the
+--   crawler buffer, the nearest attacker's re-pin, the stagger in, the retreat keyed to the next landing, the band
+--   step), then the crowd, the finish and the meet's press. After a crawler pin a standing zombie breaks the stomp
+--   only within K.MELEE_CROWD_R (K.meleeWorkStanding).
 -- The act lines: progress on every step change, on each press leaf and once a second while a step holds, result {step,
 --   d, hp, swings, shoves, stomps, floors, knockdowns, hits, air_presses, back_presses, spent[, press][, target,
 --   repins]}; done {end, kill, why, id, d, the five counts, hits, air_presses, back_presses, hp0, hp1, dMin, steps
@@ -1165,7 +1171,8 @@ end
 -- K.meleeWork exports the melee's own reads and moves the footwork reuses.
 K.meleeWork = { standingNear = standingNear, walkAlong = walkAlong, stopWalk = stopWalk, press = press, repin = repin,
                 reachOf = reachOf, lookOff = lookOff, minRangeOf = minRangeOf,   -- fix 5: the shove range
-                closingOf = closingOf }   -- fix 6: the retreat's press test
+                closingOf = closingOf,   -- fix 6: the retreat's press test
+                combatSpeed = combatSpeed }   -- Plan 36 Task 2b: the next landing's flight time
 
 -- reflex's crowd: the standing zombies within K.MELEE_CROWD_R, nearest first, or nil. With work, one read within the
 -- larger of the reach, K.MELEE_CROWD_R and K.WORK_CONTACT_R kept as st.work.near for the footwork's gap, and the crowd
@@ -1201,10 +1208,12 @@ function K.meleeWorkTick(p, st, d, crowd, fallen, now)
 end
 
 -- the finish's standing zombie with work: the re-pin to the nearest within handbackR (the spec's item 6), except after
--- a crawler pin, when only one inside MinRange breaks the stomp (fix 5; no flapping between the crawler and a walker)
+-- a crawler pin, when only one within K.MELEE_CROWD_R breaks the stomp (Plan 36 Task 2b; fix 5 read MinRange; no
+-- flapping between the crawler and a walker)
 function K.meleeWorkStanding(p, st, near)
     local w = st.work
-    if w.pinId ~= nil and w.pinId == st.id and near[1].d > minRangeOf(p, st) then return nil end   -- fix 5: MinRange
+    if w.pinId ~= nil and w.pinId == st.id and near[1].d >= K.MELEE_CROWD_R then return nil end   -- Plan 36 Task 2b:
+    -- the crawler's stomp broken only by a standing zombie within K.MELEE_CROWD_R (fix 5 read MinRange)
     return repin(p, st, near[1])
 end
 
