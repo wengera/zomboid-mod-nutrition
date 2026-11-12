@@ -137,7 +137,7 @@ def test_the_base_sentence_names_the_planner_s_head_at_the_copy_once():
     assert ("the base at `%s` (the planner: Plan 37's head at the copy, re-based before the "
             "boot)" % BASE_COMMIT) in first
     assert first.count(BASE_COMMIT) == 1 and F.__doc__.count(BASE_COMMIT) == 1 and first.count("re-based") == 1
-    for c in ("f_goals_22.py", "Plan 37 Task 6a", "PZA/1.15", "`mod` `1.15`", "ACTION_CLOCK", "BACKSWING", "K.HEAD_LOOK_FLOOR", "K.HEAD_MAX_TICKS", "head_stall", "head_ticks", "K.IDLE_SNAP",
+    for c in ("f_goals_22.py", "Plan 37 Task 6a", "PZA/1.16", "`mod` `1.16`", "DISPOSITION", "ENGAGED_RIDE", "ACTION_CLOCK", "BACKSWING", "K.HEAD_LOOK_FLOOR", "K.HEAD_MAX_TICKS", "head_stall", "head_ticks", "K.IDLE_SNAP",
               "CRAWLER_FIRST", "GROUP_LEAVE", "DRAG_GUARD_FIGHT", "SIDE_CLEAR",
               "LEAVE_CARE", "DOOR_INSIDE", "LEAVE_DOOR_RACE", "RETREAT_GAP", "RETREAT_MELEE", "STRUNG_HOLD",
               "SHOVE_CLEAR", "CRAWLER_CLEAR", "LEAVE_ENTRY", "RETREAT_REGAIN", "SPENT_LEAVE", "DRAG_DEFER",
