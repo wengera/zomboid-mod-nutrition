@@ -1182,6 +1182,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         if ride is not None:
             self.care_yield = None
             self.why = {"care_ride": self.care_ride, "fight": True, "held": len(held)}
+            if self.clock_now is not None:
+                self.why["clock"] = self.clock_now   # fix 4: the start the clock allowed
             self._disposition_whys()
             return ride
         if self._clock_on():   # Plan 36 Task 4: a running timed action is cut by the clock only (`clock.py`)

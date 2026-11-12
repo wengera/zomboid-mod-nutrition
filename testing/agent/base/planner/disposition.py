@@ -50,7 +50,11 @@ the leave row, the engagement picker's pull, no `disposition` on the wire).
   `string` with the melee engaged sends the rip of a held unworn cotton garment with keepMoving over the melee (the
   side slot, `policies.rides_on` reading the melee as its leg, no melee re-send and no clock hold while it rides), or
   under GROUP_LEAVE_N the riding bandage of a part above the legs, logged `care_ride` {under, cmd[, why]} (why `worn`,
-  `nothing`, `stop` or `count` when nothing goes).
+  `nothing`, `stop` or `count` when nothing goes). Fix 4 (Task 2 Lua fix 2: while a rip rides the melee the reflex
+  presses nothing, `SwipeStatePlayer.enter` stopping the action queue, and the string's run is suppressed): the
+  riding rip asks the action clock as a start, with no ride exemption: it goes only when the smallest time to contact
+  exceeds the rip's duration plus ACTION_MARGIN_S (`ActionClock.allows`), logged `clock` {action rip, ride "melee"[,
+  refused true]}, else `care_ride` {why "clock"}.
 - The row (`_disposition_plan`, `Threat._threat_plan`'s open-ground row in contact: off a room square, a standing
   zombie within GROUP_ENTRY_R): `hunt`, `hold`, `string` are the Fight (`("fight", None)`), whatever the flee reasons
   read; `break` keeps the Fight while the release it asked is pending, then the Flee (`cornered` and `sprinter` reason
@@ -402,7 +406,13 @@ class Disposer:
         if C.dressing_pick(items, 0.0, dirty_ok=True) is None:
             iid = C.rip_pick(self.world, care.held_out) if self.world.can("rip") else None
             cmd = Rip(iid, keepMoving=True) if iid is not None else None
-            if cmd is None:   # nothing unworn to tear: an unwear stops on a walk, so it waits for the clock's stop
+            if cmd is not None and self._clock_on():   # fix 4: the riding rip asks the clock as a start (no ride
+                ck = self.action_clock                   # exemption: the reflex presses nothing while it rides)
+                allowed = ck.allows("rip")
+                self.clock_now = self._clock_why("rip", ride="melee", **({} if allowed else {"refused": True}))
+                if not allowed:
+                    cmd, why = None, "clock"
+            elif cmd is None:   # nothing unworn to tear: an unwear stops on a walk, so it waits for the clock's stop
                 worn = any(it.get("rip") == "cotton" and it.get("worn") is True for it in self.world.inventory.values())
                 why = "worn" if worn else "nothing"
         elif self.group_n < GROUP_LEAVE_N and self.world.can("bandage"):

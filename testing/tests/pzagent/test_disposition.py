@@ -445,26 +445,46 @@ def ride_rig(tmp_path, worn=False):
     return r, sv
 
 
-def test_a_bleed_under_hold_sends_the_rip_riding_the_engaged_melee(tmp_path):
-    """Fix 3 (the same trial: part 9 bled from 98 to 42 under the engaged melee, no care sent until the count fell):
-    under `hold` with the melee engaged, a part bleeding and an unworn cotton T-shirt held: the rip goes with
-    keepMoving within two lines (the side slot rides the melee), logged `care_ride` {under hold, cmd rip}; the melee
-    still runs (the Python's ride model: `policies.rides_on` over the melee) and no re-send follows on the next line."""
+def ride_line(tmp_path, r, sv, zs):
+    """One line over `zs` with part 4 bleeding, 2.5 s on (past CLOCK_SPEED_S: the zombies' tracks restart, so the
+    clock reads their state's floors, WALK_TPS for a chaser)."""
+    r.advance(2.0)
+    return line(tmp_path, r, sv, zs, wounds=BLEED)
+
+
+def three_at(d):
+    """Three standing chasers east of ME, the nearest at `d` tiles."""
+    return [zp(1, 0.0, d), zp(2, 30.0, d + 0.3), zp(3, -30.0, d + 0.5)]
+
+
+@pytest.mark.parametrize("d", [0.9, 6.0])
+def test_a_riding_rip_under_hold_waits_for_the_clock(tmp_path, d):
+    """Fix 4 (Task 2 Lua fix 2: while a rip rides the melee the reflex presses nothing): under `hold` with the melee
+    engaged, part 4 bleeding and an unworn cotton T-shirt held, the nearest at 0.9 tiles (ttc about 0.1 s) or at 6
+    tiles walking (ttc (6 - 0.7) / 1.45 = 3.66 s against the rip's 4.134 + 1.5): no rip; logged `care_ride` {why
+    "clock"} and `clock` {action rip, ride "melee", refused true}."""
+    r, sv = ride_rig(tmp_path)
+    why, a = ride_line(tmp_path, r, sv, three_at(d))
+    assert a.type != "rip" and not any(x.type == "rip" for x in r.acts.history)
+    assert why["care_ride"] == {"under": "hold", "cmd": None, "why": "clock"}
+    assert why["clock"]["action"] == "rip" and why["clock"]["ride"] == "melee" and why["clock"]["refused"] is True
+
+
+def test_a_riding_rip_under_hold_goes_when_the_clock_allows(tmp_path):
+    """Fix 4: the nearest at 9.5 tiles walking (ttc (9.5 - 0.7) / 1.45 = 6.07 s, above 5.634; 12 tiles lies beyond
+    the hold radius, DISENGAGE_R, where the threat and its disposition end): the rip goes with keepMoving riding the
+    melee, logged `care_ride` {under hold, cmd rip} and `clock` {action rip, ride "melee"}; the melee still runs (the
+    Python's ride model) and the next line sends nothing over it."""
     r, sv = ride_rig(tmp_path)
     m = melee_of(r)
-    sent = []
-    for k in range(2):
-        why, a = line(tmp_path, r, sv, closing_three(4), wounds=BLEED)
-        sent.append(a)
-        if a.type == "rip":
-            break
-    rip = sent[-1]
+    why, rip = ride_line(tmp_path, r, sv, three_at(9.5))
     assert rip.type == "rip" and rip.args["itemId"] == SHIRT and rip.args["keepMoving"] is True
     assert why["care_ride"] == {"under": "hold", "cmd": "rip"}
+    assert why["clock"]["ride"] == "melee" and "refused" not in why["clock"]
     assert sv.fight._engaged() and melee_of(r) is m
     accept(r, rip)
-    why, c = line(tmp_path, r, sv, closing_three(4), wounds=BLEED)
-    assert c is rip and sv.fight._engaged() and "clock" not in why
+    why, c = line(tmp_path, r, sv, three_at(9.5), wounds=BLEED)
+    assert c is rip and sv.fight._engaged()
 
 
 def test_a_bleed_with_only_a_worn_garment_waits_logged_worn(tmp_path):
