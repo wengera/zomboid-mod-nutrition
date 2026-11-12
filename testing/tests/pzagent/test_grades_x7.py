@@ -527,3 +527,16 @@ def test_f_grade_19_on_f22_reproduces_the_committed_f_grade_txt_under_its_new_li
     got = json.loads(text[i:])
     _check_f22(got)
     assert to_x6(got) == json.loads(want[j:])
+
+
+# ================================================================ the first artifact graded through grade_x7: F23
+F23 = os.path.join(TESTING, "artifacts", "f_goals_23-20261112-093508")
+
+
+def test_f_grade_19_on_f23_reproduces_the_committed_f_grade_txt_byte_for_byte():
+    """Ruling P26-Q: `f_grade_19.py` on the committed F23 artifact (Plan 37's evidence session, the first graded through
+    `grade_x7`: the restarts, disposition, string, safe_release and speeds readings over grade_x6's) reproduces its committed
+    `f_grade.txt` byte for byte (CRLF folded), so a drift in any live name read through the grade chain fails here."""
+    p = _path(F23, "f_goals_23.json")
+    want = open(os.path.join(F23, "f_grade.txt"), "rb").read().replace(b"\r\n", b"\n")
+    assert _script("f_grade_19.py", p) == want
