@@ -1805,3 +1805,64 @@ def test_the_buffer_step_takes_the_ring_s_open_side(lua, fs):
     gow(lua, p)
     run(lua, p, w, 2)
     assert work_of(lua, "stepFor") == "crawler_buffer" and w["walk"][0] > 0.99
+
+
+# ---- Plan 36 Task 2 fix 1 (x_trial-ladder-20261111-202744: the -debug client parked at 86.7 s in stepTo,
+# "missing argument #1 to 'atan2'": a same-target re-send arrived during the pile's step out; keepState copied the
+# step's state and count but not its heading) -----------------------------------------------------------------------
+
+def _no_raise(lua, fs):
+    fails = [a for a in acts(lua, fs) if a["state"] == "failed" and a["reason"] != "superseded"]   # a re-send's
+    assert fails == [] and lua.eval("PZA.skills.errors or 0") == 0, fails
+
+
+def test_a_same_target_re_send_during_the_step_out_keeps_its_heading(lua, fs):
+    """The run's shape: the pile's step out running (three at point blank, the withdraw east), the planner re-sends
+    the melee at the same target with the withdraw turned north (resend inputs): the step out goes on along its own
+    heading, no raise (before the fix the next tick's stepTo read a nil heading and the runner failed it)."""
+    p, z, w = pile_world(lua, (0.5, 0.5), tx=10.5, attackers=2)
+    gow(lua, p, pile=True, withdrawX=1.0, withdrawY=0.0)
+    run(lua, p, w, 3)
+    assert work_of(lua, "pileState") == "step"
+    hx = work_of(lua, "outHx")
+    gow(lua, p, aid="m2", pile=True, withdrawX=0.0, withdrawY=1.0)
+    run(lua, p, w, 3)
+    _no_raise(lua, fs)
+    assert work_of(lua, "outHx") == hx and step_seq(lua, fs, "m2")[0] == "work"
+
+
+@pytest.mark.parametrize("hx, hy", [("nil", "nil"), ("0 / 0", "1"), ("1", "nil"), ("1 / 0", "0")])
+def test_step_to_with_no_finite_heading_steps_nowhere_and_names_it(lua, fs, hx, hy):
+    """stepTo's own guard: the pile's step state forced onto a nil or non-finite heading: no step (the step ends into
+    the press window), no raise, the leaf's nan_heading."""
+    p, z, w = pile_world(lua, (0.5, 0.5), tx=10.5, attackers=2, **LOOK_OFF)
+    gow(lua, p, pile=True)
+    run(lua, p, w, 1)
+    lua.execute("local w = PZA.skills.cur.st.work; w.pileState, w.pileTicks, w.outHx, w.outHy = 'step', 0, %s, %s"
+                % (hx, hy))
+    run(lua, p, w, 1)
+    _no_raise(lua, fs)
+    assert work_of(lua, "pileState") != "step"
+    assert any((a["result"].get("work") or {}).get("nan_heading") for a in progress(lua, fs))
+
+
+def test_a_crawler_buffer_with_no_open_side_stomps_a_biting_crawler(lua, fs):
+    """Fix 1: the crawler at 0.5 north (inside its bite) and the standing target at 0.6, every side walled: no buffer
+    heading, so the crawler is stomped (the re-pin), whatever stands near; no raise."""
+    p, z, w, cpos, recs = crawler_world(lua, 10.6, 10.0, 20.5, squares=False, **LOOK_OFF)
+    grid(lua, solid={(x, y) for x in range(8, 13) for y in range(18, 23) if (x, y) != (10, 20)})
+    gow(lua, p)
+    run(lua, p, w, 2)
+    _no_raise(lua, fs)
+    assert lua.eval("PZA.skills.cur.st.id") == 8
+
+
+def test_a_crawler_buffer_with_no_open_side_beyond_the_bite_yields(lua, fs):
+    """The crawler at 1.6 (beyond its bite), every side walled: no buffer step, the next rule (no raise, no re-pin)."""
+    p, z, w, cpos, recs = crawler_world(lua, 11.3, 10.0, 21.6, squares=False, **LOOK_OFF)
+    grid(lua, solid={(x, y) for x in range(8, 13) for y in range(18, 23) if (x, y) != (10, 20)})
+    gow(lua, p)
+    run(lua, p, w, 2)
+    _no_raise(lua, fs)
+    assert lua.eval("PZA.skills.cur.st.id") == 7
+    assert "crawler_buffer" not in [(a["result"].get("work") or {}).get("step_for") for a in progress(lua, fs)]

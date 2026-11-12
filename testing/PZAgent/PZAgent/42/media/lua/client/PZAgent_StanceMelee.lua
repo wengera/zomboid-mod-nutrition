@@ -381,7 +381,7 @@ end
 -- or a heading turned past MELEE_TURN_DOT, so a straight walk makes no Vector2 after its first tick
 local function walkAlong(p, st, kind, vx, vy)
     local n = math.sqrt(vx * vx + vy * vy)
-    if n <= 0 then
+    if n ~= n or n == math.huge or n <= 0 then   -- Plan 36 Task 2 fix 1: a nil-free but non-finite vector walks nowhere
         stopWalk(p, st)
         return
     end
@@ -1212,8 +1212,9 @@ end
 -- flapping between the crawler and a walker)
 function K.meleeWorkStanding(p, st, near)
     local w = st.work
-    if w.pinId ~= nil and w.pinId == st.id and near[1].d >= K.MELEE_CROWD_R then return nil end   -- Plan 36 Task 2b:
-    -- the crawler's stomp broken only by a standing zombie within K.MELEE_CROWD_R (fix 5 read MinRange)
+    if w.pinId ~= nil and w.pinId == st.id and (near[1].d >= K.MELEE_CROWD_R or w.noSideStomp == st.id) then
+        return nil   -- Plan 36 Task 2 fix 1: a stomp held for a crawler with no open side to step to; Plan 36 Task 2b:
+    end          -- the crawler's stomp broken only by a standing zombie within K.MELEE_CROWD_R (fix 5 read MinRange)
     return repin(p, st, near[1])
 end
 

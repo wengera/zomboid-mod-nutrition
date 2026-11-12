@@ -172,7 +172,10 @@ local function keepState(work, st, args)
     local o = cur.st
     if args.targetId ~= o.id and args.targetId ~= o.argId then return end
     for i = 1, #KEEP do work[KEEP[i]] = o.work[KEEP[i]] end
-    if o.work.pileState == "step" then work.pileState, work.pileTicks = "step", o.work.pileTicks end
+    if o.work.pileState == "step" then   -- fix 1 (x_trial-ladder-20261111-202744): the step out's heading kept too
+        work.pileState, work.pileTicks = "step", o.work.pileTicks
+        work.outHx, work.outHy = o.work.outHx, o.work.outHy
+    end
     if args.targetId == o.id then
         work.pinId = o.work.pinId
         st.hist, st.near = o.hist, o.near
@@ -197,7 +200,7 @@ def.tick = function(p, st)
     local w = st.work
     if w == nil then return baseTick(p, st) end
     if st.startMs == nil and not PZA.field(p, "getZ") then return "failed", "not loaded" end
-    w.inContact, w.steppedNow, w.repinFor, w.shoveFor = false, false, nil, nil
+    w.inContact, w.steppedNow, w.repinFor, w.shoveFor, w.stepNan = false, false, nil, nil, nil
     local a, b, c = baseTick(p, st)
     if w.inContact and st.strike == nil then w.contact = w.contact + 1 end
     return a, b, c
@@ -401,11 +404,21 @@ local function presses(st)
     return st.swings + st.shoves + st.stomps + st.floors
 end
 
+-- whether v is a finite number (not nil, not NaN, not infinite)
+local function finite(v)
+    return type(v) == "number" and v == v and v ~= math.huge and v ~= -math.huge
+end
+
 -- Plan 36 Task 2b: a step along the unit heading (hx, hy) chosen by its rule (the pile's step out, the crawler buffer),
 -- the body held on (fx, fy) when given: the stance's force-aim held, the auto-walk of kind work (held through a press
--- with backswing); the leaf's heading this tick's, no turn and no n
+-- with backswing); the leaf's heading this tick's, no turn and no n. Fix 1: a heading not finite (nil, NaN or
+-- infinite) is no step: nil, the leaf's nan_heading on this tick's line (w.stepNan), the caller's next rule
 local function stepTo(p, st, hx, hy, why, fx, fy)
     local w = st.work
+    if not finite(hx) or not finite(hy) or (hx == 0 and hy == 0) then
+        w.stepNan = true
+        return nil
+    end
     w.steppedNow, w.stepFor, w.held = true, why, nil
     w.lh, w.lt, w.lc, w.ln = math.atan2(hy, hx) * DEG, nil, true, nil
     if fx ~= nil and fy ~= nil then K.FACING.hold(p, st, K.FACING.bearing(st.px, st.py, fx, fy)) end
@@ -504,7 +517,9 @@ local function pileTick(p, st, d, fallen, standing)
             w.pileTicks = w.pileTicks + 1
             local fx, fy = st.zx, st.zy
             if w.nearO ~= nil and w.nearId ~= st.id then fx, fy = posOf(w.nearO) end
-            return stepTo(p, st, w.outHx, w.outHy, "pile_out", fx, fy)
+            local step = stepTo(p, st, w.outHx, w.outHy, "pile_out", fx, fy)
+            if step ~= nil then return step end
+            w.pileTicks = K.WORK_STEP_TICKS   -- fix 1: no finite heading: the step ends into the press window
         end
         w.pileState, w.pileMark, w.pileWait = "press", presses(st), 0
         return nil
@@ -616,6 +631,18 @@ local function bufferHeading(p, st, c)
     return ax, ay
 end
 
+-- fix 1: the buffer with no open side: the crawler inside its bite reach is stomped (the re-pin, whatever stands
+-- near: no step can take the character off it; w.noSideStomp holds the pin against the attacker's re-pin and the
+-- finish's standing re-pin until the next press or another target), else nil (the next rule)
+local function crawlerNoSide(p, st, c)
+    if c.d >= K.CRAWLER_BITE_R then return nil end
+    local w = st.work
+    local step = M.repin(p, st, c)
+    w.pinId, w.nearId, w.sinceChoose, w.crawlTicks = c.id, nil, K.WORK_TICKS, 0
+    w.noSideStomp, w.noSideMark = c.id, presses(st)
+    return step
+end
+
 local function crawlerTick(p, st, standing, g)
     local w = st.work
     local cs = K.crawlersNear(p, st, w.crawlerR * 2)
@@ -635,17 +662,22 @@ local function crawlerTick(p, st, standing, g)
     if w.crawlTicks <= 0 then
         if w.crawlMark == presses(st) then return cs, nil end   -- one buffer step a press
         local hx, hy = bufferHeading(p, st, c)
-        if hx == nil then return cs, nil end
+        if hx == nil then return cs, crawlerNoSide(p, st, c) end   -- fix 1: no open side
         w.crawlTicks, w.crawlMark, w.bufHx, w.bufHy = K.WORK_STEP_TICKS, presses(st), hx, hy
     end
     w.crawlTicks = w.crawlTicks - 1
-    return cs, stepTo(p, st, w.bufHx, w.bufHy, "crawler_buffer", st.zx, st.zy)
+    local step = stepTo(p, st, w.bufHx, w.bufHy, "crawler_buffer", st.zx, st.zy)
+    if step == nil then   -- fix 1: no finite heading: the buffer ends, as with no open side
+        w.crawlTicks = 0
+        return cs, crawlerNoSide(p, st, c)
+    end
+    return cs, step
 end
 
 -- the nearest attacker's facing (the header's tick, 3; item 6): a re-pin, else nil
 local function attackerTick(p, st, d, standing, g)
     local w = st.work
-    if g == nil or g >= K.WORK_POINT_BLANK_R then return nil end
+    if g == nil or g >= K.WORK_POINT_BLANK_R or w.noSideStomp == st.id then return nil end   -- fix 1: the held stomp
     local pb = standingWithin(st, d, standing, K.WORK_POINT_BLANK_R)
     if #pb == 0 then return nil end
     local pick, attacking = nil, false
@@ -681,8 +713,12 @@ local function staggerIn(p, st, standing, g, gid)
         if string.find(state, "stagger") == nil and string.find(state, "hitreact") == nil then return nil end
         w.inTicks, w.inMark = K.WORK_STEP_TICKS, presses(st)
     end
-    w.inTicks = w.inTicks - 1
     local ex, ey = st.zx - st.px, st.zy - st.py
+    if not finite(ex) or not finite(ey) or (ex == 0 and ey == 0) then   -- fix 1: no finite heading, no step in
+        w.inTicks, w.stepNan = 0, true
+        return nil
+    end
+    w.inTicks = w.inTicks - 1
     w.steppedNow, w.stepFor, w.held = true, "stagger_in", nil
     w.lh, w.lt, w.lc, w.ln = math.atan2(ey, ex) * DEG, nil, true, nil
     K.FACING.hold(p, st, K.FACING.bearing(st.px, st.py, st.zx, st.zy))
@@ -771,6 +807,7 @@ function K.workTick(p, st, d, crowd, fallen, now)
     end
     local pc = presses(st)
     if pc ~= w.tcMark then w.tcMark, w.tc = pc, nil end   -- the flight time read again once a press
+    if w.noSideStomp ~= nil and (w.noSideStomp ~= st.id or pc ~= w.noSideMark) then w.noSideStomp = nil end   -- fix 1
     if w.pile then   -- 1: the pile
         local ps, phow, pres = pileTick(p, st, d, fallen, standing)
         if ps ~= nil then return ps, phow, pres end
@@ -826,6 +863,9 @@ function K.workResult(st, out)
     if w.steppedNow then   -- fix 5: the heading, its turn, clear and n of the step this tick, absent on any other
         leaf.heading, leaf.turn, leaf.clear, leaf.n, leaf.step_for = w.lh, w.lt, w.lc, w.ln, w.stepFor
         if w.nanHeading then leaf.nan_heading = true end   -- fix 1: the sum read non-finite
+    end
+    if w.stepNan then   -- Plan 36 Task 2 fix 1: a step rule's heading read non-finite (stepTo's guard), this tick's
+        leaf.nan_heading = true
     end
     out.work = leaf
 end
