@@ -141,6 +141,7 @@ from agent.base.grades import x1 as GX1  # noqa: E402
 from agent.base.grades import x2 as GX2  # noqa: E402
 from agent.base.grades import x3 as GX3  # noqa: E402
 from agent.base.grades import x4 as GX4  # noqa: E402
+from agent.base.planner.clock import action_kind  # noqa: E402
 from agent.base.planner.maneuvers.melee import STRIKE_STEPS  # noqa: E402
 
 LOG = os.path.join(REPO, "testing", "trials", "trials.md")
@@ -856,16 +857,22 @@ def cone_bites(frames):
 
 
 def clock_gate(rows):
-    """{read, lines, ok, held, cut, waited, under, under_lines}: the Task 4 clock's why (`clock {action, ttc, need[,
-    waited][, running][, cut]}`) on any branch of the decision lines' `inputs.branches`, each read once. A `clock` with
-    `cut` true is `cut` (the threat cut the timed action under way); else on a line that sent (`sent` true) it is `ok`
-    (an action started), else `held` (refused: no send). `waited` the sum of the clocks' `waited`, and `under` the `ok`
-    clocks with `ttc` strictly under `need` (an action started under the margin: the criterion reads 0; a `ttc` equal
-    to `need` is inside it), `under_lines` their line indices. `read` False with no clock."""
-    n = ok = held = cut = under = 0
+    """{read, lines, ok, held, cut, ride, waited, under, under_lines}: the Task 4 clock's why (`clock {action, ttc, need[,
+    waited][, running][, cut][, refused][, ride]}`) on any branch of the decision lines' `inputs.branches`, each read
+    once. A clock with `cut` true is `cut` (the threat cut the timed action under way); one with `ride` true is `ride`
+    (the riding rip, sent under the margin by design); one with `refused` true, or on a line that sent nothing, is
+    `held` (the clock's refusal and its gain-distance leg: the steer or walkTo sent on a refusal's line is the leg, no
+    start); any other on a line that sent is `ok`. `under` the `ok` clocks whose sent action is the clock's own action
+    (`planner/clock.py` `action_kind` of the sent type and args equals `clock.action`, a care `stop` standing for its
+    Dress step) with `ttc` strictly under `need`: an action started under the margin, the criterion reading 0; a `ttc`
+    equal to `need` is inside it. `waited` sums the clocks' `waited`; `under_lines` the line indices. `read` False with
+    no clock."""
+    n = ok = held = cut = ride = under = 0
     waited, idx = 0.0, []
     for i, r in enumerate(rows):
-        for w in E._d(E._d(r.get("inputs")).get("branches")).values():
+        act = E._d(r.get("action"))
+        kind = action_kind(act.get("type"), E._d(act.get("args")))
+        for br, w in E._d(E._d(r.get("inputs")).get("branches")).items():
             c = E._d(w).get("clock")
             if not isinstance(c, dict):
                 continue
@@ -873,16 +880,19 @@ def clock_gate(rows):
             waited += E._n(c.get("waited")) or 0.0
             if c.get("cut"):
                 cut += 1
-            elif r.get("sent") is True:
+            elif c.get("ride"):
+                ride += 1
+            elif c.get("refused") or r.get("sent") is not True:
+                held += 1
+            else:
                 ok += 1
                 ttc, need = E._n(c.get("ttc")), E._n(c.get("need"))
-                if ttc is not None and need is not None and ttc < need:
+                own = kind == c.get("action") or (act.get("type") == "stop" and br == "care")
+                if own and ttc is not None and need is not None and ttc < need:
                     under += 1
                     idx.append(i)
-            else:
-                held += 1
-    return {"read": n > 0, "lines": n, "ok": ok, "held": held, "cut": cut, "waited": waited, "under": under,
-            "under_lines": idx}
+    return {"read": n > 0, "lines": n, "ok": ok, "held": held, "cut": cut, "ride": ride, "waited": waited,
+            "under": under, "under_lines": idx}
 
 
 CRAWLER_R = 1.0                                  # tiles: a crawler this near a swinging character
@@ -1015,7 +1025,8 @@ def engage_cells(s):
                                                "%d/%d" % (pr["retreat_back"], pr["retreat_leaves"])
                                                if pr["retreat_leaves"] else DASH)
     cone = "%d/%d" % (cb["outside"], cb["bites"]) if cb["read"] else DASH
-    clock = "%d (%d: %d ok, %d held, %d cut)" % (ck["under"], ck["lines"], ck["ok"], ck["held"], ck["cut"]) \
+    clock = "%d (%d: %d ok, %d held, %d cut%s)" % (ck["under"], ck["lines"], ck["ok"], ck["held"], ck["cut"],
+                                                 ", %d ride" % ck["ride"] if ck["ride"] else "") \
         if ck["read"] else DASH
     craw = "%d (%.1f s)" % (cr["frames"], cr["seconds"]) if s["frames"] else DASH
     pull = " ".join("%s%d%s" % (PULL_LETTERS.get(k, k + " "), v, "(h%d)" % pl["held"][k] if pl["held"].get(k) else "")
@@ -1243,8 +1254,8 @@ def engage_detail(s):
             pr.get("retreat_back", 0), pr.get("retreat_leaves", 0)),
         "cone bites (cone_bites): %s of %s reaction onsets with the nearest standing zombie more than %.0f degrees "
         "off the body" % (cb.get("outside", "-"), cb.get("bites", "-"), CONE_DEG),
-        "clock gate (clock_gate): %s clocks, %s ok, %s held, %s cut, %.2f s waited; %s started under the margin at "
-        "decision lines %s" % (ck["lines"], ck["ok"], ck["held"], ck["cut"], ck["waited"], ck["under"],
+        "clock gate (clock_gate): %s clocks, %s ok, %s held, %s cut, %s riding, %.2f s waited; %s started under the margin at "
+        "decision lines %s" % (ck["lines"], ck["ok"], ck["held"], ck["cut"], ck["ride"], ck["waited"], ck["under"],
                                ck["under_lines"]),
         "crawler at 1 (crawler_close): %d frames, %.2f s with a crawler inside %.1f tiles on a swing, shove or stomp at "
         "a standing target" % (cr["frames"], cr["seconds"], CRAWLER_R),

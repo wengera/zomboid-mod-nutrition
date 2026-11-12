@@ -1120,8 +1120,8 @@ def test_cone_bites_are_a_dash_without_a_body_angle_and_an_onset_with_no_standin
     assert TS.cone_bites(fr) == {"read": True, "bites": 0, "outside": 0}
 
 
-def _cl(ttc, need=3.0, sent=True, branch="threat", **kw):
-    return {"sent": sent, "inputs": {"branches": {branch: {"clock": dict({"action": "loot", "ttc": ttc, "need": need},
+def _cl(ttc, need=3.0, sent=True, branch="threat", act=None, **kw):
+    return {"sent": sent, "action": act or {"type": "interact", "args": {"kind": "loot"}}, "inputs": {"branches": {branch: {"clock": dict({"action": "loot", "ttc": ttc, "need": need},
                                                                          **kw)}}}}
 
 
@@ -1135,6 +1135,22 @@ def test_clock_under_counts_only_a_sent_action_started_with_ttc_strictly_under_n
     assert c["waited"] == pytest.approx(1.5)
     assert TS.engage_cells(dict(_blank_score(), clock_gate=c))[3] == "1 (6: 4 ok, 1 held, 1 cut)"
     assert TS.clock_gate([_cl(3.0)])["under"] == 0
+
+
+def test_clock_under_never_counts_a_refusals_leg_a_riding_rip_or_another_action_sent_on_the_line():
+    """Fix 1 (on trial 205858: 14 read, one real). Mutations caught: counting every sent line under the margin, the
+    refusal's gain-distance leg (a steer sent on the line where the clock refused a loot, `refused` true), the riding
+    rip (`ride` true, a stop sent by the care under the margin by design), an action of another kind sent on an allowed
+    line (a walkTo beside a loot clock), and missing a care `stop` or a loot sent under the margin."""
+    steer = {"type": "steer", "args": {"vx": 1.0, "vy": 0.0}}
+    rows = [_cl(1.0, act=steer, refused=True, leg="sent"),                       # the leg: 0
+            _cl(1.0, act={"type": "rip", "args": {}}, branch="care", action="rip", ride=True),   # riding: 0
+            _cl(1.0, act={"type": "walkTo", "args": {}}),                         # another kind: 0
+            _cl(1.0),                                                             # a loot started under: 1
+            _cl(1.0, act={"type": "stop", "args": {}}, branch="care", action="rip")]   # the care's Dress step: 1
+    c = TS.clock_gate(rows)
+    assert (c["under"], c["ride"], c["held"], c["ok"]) == (2, 1, 1, 3) and c["under_lines"] == [3, 4]
+    assert TS.engage_cells(dict(_blank_score(), clock_gate=c))[3] == "2 (5: 3 ok, 1 held, 0 cut, 1 ride)"
 
 
 def test_clock_cell_is_a_dash_without_a_clock_line():
