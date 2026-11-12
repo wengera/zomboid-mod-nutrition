@@ -108,7 +108,8 @@ def test_the_gain_distance_leg_goes_when_the_clock_refuses_the_rip(tmp_path):
     line = step(tmp_path, r, sv, four_west(4.0))
     assert line["branch"] == "care" and line["action"]["type"] == "steer"
     args = line["action"]["args"]
-    assert (args["vx"], args["vy"], args["gait"], args["seconds"]) == (1.0, 0.0, "run", P.CLOCK_LEG_S)
+    assert (args["vx"], args["vy"], args["gait"]) == (1.0, 0.0, "run")
+    assert args["seconds"] == pytest.approx(P.ACTION_S["rip"] + P.ACTION_MARGIN_S)   # fix 2b: the rip will ride it
     ck = care_why(tmp_path)["clock"]
     assert ck["action"] == "rip" and ck["refused"] is True and ck["leg"] == "sent"
     assert ck["ttc"] == pytest.approx(3.3 / 1.45, abs=1e-3) and ck["need"] == pytest.approx(4.134 + 1.5)
@@ -141,6 +142,21 @@ def test_the_refused_rip_rides_the_leg(tmp_path):
     assert types(r) == ["steer", "rip"]
     line = step(tmp_path, r, sv, four_west(5.0), moving=True)
     assert line["action"] is None and r.acts.history[-1] is rip   # the riding rip runs to its end
+
+
+def test_the_leg_runs_for_the_riding_rip_s_duration_and_a_leg_with_no_ride_keeps_clock_leg_s(tmp_path):
+    """Fix 2b: the leg a rip will ride runs the rip's 4.134 s plus ACTION_MARGIN_S (5.634 s, logged `seconds` on the
+    `clock` why), longer than the rip, so the riding rip never finishes standing; a refused bandage's leg (no ride)
+    keeps CLOCK_LEG_S."""
+    r, sv, rip = _riding_rip(tmp_path)
+    leg = r.acts.history[0]
+    assert leg.type == "steer" and leg.args["seconds"] == pytest.approx(5.634)
+    assert leg.args["seconds"] > P.ACTION_S["rip"] and rip.args["keepMoving"] is True
+    (tmp_path / "b").mkdir()
+    r2, sv2 = survive(tmp_path / "b", shirt=False, rag=True)
+    line = step(tmp_path / "b", r2, sv2, four_west(9.0))
+    assert line["action"]["type"] == "steer" and line["action"]["args"]["seconds"] == P.CLOCK_LEG_S
+    assert care_why(tmp_path / "b")["clock"]["seconds"] == P.CLOCK_LEG_S
 
 
 def test_the_rip_done_while_walking_is_followed_by_the_bandage_once_the_clock_allows(tmp_path):

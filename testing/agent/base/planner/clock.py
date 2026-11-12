@@ -283,7 +283,7 @@ class ClockGate:
             why = self._clock_why(kind, waited=self._clock_waited(key))
             self.clock_leg = None
             return owner, cmd, why
-        out = self._clock_refuse(kind, key)
+        out = self._clock_refuse(kind, key, ride=kind == "rip" and owner is getattr(self, "care", None))
         if kind == "rip" and owner is getattr(self, "care", None) and out[0] is self.clock_leg and out[1] is None:
             ride = self._clock_ride_rip()
             if ride is not None:   # fix 2: the refused rip rides the running leg (the Tend side slot, PZA/1.15)
@@ -296,9 +296,11 @@ class ClockGate:
         d = self.care.dressing() if self.clock_leg is not None and self.clock_leg.busy() else None
         return None if d is None else d.ride_rip()
 
-    def _clock_refuse(self, kind, key):
+    def _clock_refuse(self, kind, key, ride=False):
         """The refused action's episode (the module docstring): `(leg, Steer)` re-aiming, `(leg, None)` while its leg
-        runs, `(None, None)` once spent (the action waits); each with its `clock` why."""
+        runs, `(None, None)` once spent (the action waits); each with its `clock` why. Fix 2b: a leg the action will
+        ride (`ride`: the care's rip, `_clock_ride_rip`) runs for that action's duration plus ACTION_MARGIN_S
+        (`ActionClock.need`), so the riding rip never outlasts it and finishes standing; any other leg CLOCK_LEG_S."""
         leg = self.clock_leg
         if leg is None or leg.key != key:
             leg = self.clock_leg = ClockLeg(self.world, self.actions, self.clock, key)
@@ -312,10 +314,11 @@ class ClockGate:
         if heading is None:
             return None, None, self._clock_why(kind, waited=waited, refused=True, leg=None)
         (vx, vy), opened = heading
-        why = self._clock_why(kind, waited=waited, refused=True, leg="sent", heading=[vx, vy])
+        seconds = round(self.action_clock.need(kind), 3) if ride else CLOCK_LEG_S
+        why = self._clock_why(kind, waited=waited, refused=True, leg="sent", heading=[vx, vy], seconds=seconds)
         if opened is not None:
             why["room_open"] = opened
-        return leg, Steer(vx, vy, CLOCK_LEG_S, FLEE_GAIT), why
+        return leg, Steer(vx, vy, seconds, FLEE_GAIT), why
 
     def _clock_threat(self, held, breach, ans):
         """The threat branch's own timed command (`ans` from `Threat._decide`: the flee's or the doorway's door
