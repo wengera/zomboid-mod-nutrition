@@ -79,6 +79,9 @@ left before it closes, never by running into it.
   the cone (`_pull_cone`): a standing zombie closing within CONE_TRIGGER_R more than CONE_OFF_DEG off the pinned
   target's bearing sends the vector away from the bisector of the two bearings, until it stands inside the cone (the
   pin's bearing CONE_HALF_DEG either side) or within the reach;
+  fix 3: with the room ring on the frame (`World.room`) every pull's heading is clamped to the nearest ring heading
+  within PULL_ROOM_TURN_DEG reading PULL_ROOM_NEED tiles clear (`_pull_room`, logged {room {from}} when it moved),
+  the vector dropped with none (logged {room "closed"}); so the pull runs for the corner Fight too (`Threat._pull_ok`);
   logged `engage_pull` {why "spread" | "retreat" | "cone", spread, n, heading[, flank]} on the threat why. The leave at
   GROUP_LEAVE_N is this pull: its retreat's withdraw, and with the melee engaged its door and spent or held run read as
   the retreat (`_leave_leg`, `group_leave` {over}); Plan 35's `engage_hold` {rule "leave"} is deleted. Above
@@ -96,10 +99,10 @@ import math
 from agent.base.planner.crawler import is_crawler
 from agent.base.planner.policies import (ATTACK_MARGIN, CONE_HALF_DEG, CONE_OFF_DEG, CONE_TRIGGER_R, DANGER_R,
                                          DISENGAGE_R, DOOR_ABORT_R, DOOR_RACE_R, FIGHT_REACH, FLEE_HEALTH_FLOOR,
-                                         GROUP_ENTRY_R, GROUP_LEAVE_N, KEEP_R, LEAVE_DOOR_R, PULL_SPREAD_DEG,
-                                         PULL_STOP_DEG, RETREAT_HOLD_R, RETREAT_MAX_N, STRAIN_SOFT, WALL_R, arm_pain, blocked,
-                                         on_floor, zdist)
-from agent.base.world import me_floor, me_xy
+                                         GROUP_ENTRY_R, GROUP_LEAVE_N, KEEP_R, LEAVE_DOOR_R, PULL_ROOM_NEED,
+                                         PULL_ROOM_TURN_DEG, PULL_SPREAD_DEG, PULL_STOP_DEG, RETREAT_HOLD_R,
+                                         RETREAT_MAX_N, STRAIN_SOFT, WALL_R, arm_pain, blocked, on_floor, zdist)
+from agent.base.world import ROOM_STEP_DEG, me_floor, me_xy
 
 __all__ = ["ThreatGroup", "LEAVE_PLAN", "back_cover", "spread_gap"]
 
@@ -366,9 +369,32 @@ class ThreatGroup:
             return None
         heading, why = read
         self._pull_on = why
-        self.pull = _heading(heading)
+        room = self._pull_room(heading)
+        if room == "closed":   # fix 3: no open heading within PULL_ROOM_TURN_DEG: the vector dropped, the reflex stands
+            self.pull, self.engage_pull = None, dict(why, heading=heading, room="closed")
+            return None
         self.engage_pull = dict(why, heading=heading)
+        if room is not None and room != heading:
+            self.engage_pull.update(heading=room, room={"from": heading})
+        self.pull = _heading(heading if room is None else room)
         return self.pull
+
+    def _pull_room(self, heading):
+        """Plan 36 Task 3 fix 3: the pull's `heading` clamped to the room ring (`World.room`, Plan 36 Task 1: heading i
+        at ROOM_STEP_DEG * i degrees from the world's +x): of the ring headings within PULL_ROOM_TURN_DEG of it reading
+        at least PULL_ROOM_NEED tiles clear, the nearest to it (a tie to the clearer, then the first), its degrees;
+        "closed" with none; None with no ring (an old frame: the heading unclamped)."""
+        ring = self.world.room()
+        if ring is None:
+            return None
+        picks = []
+        for i, clear in enumerate(ring["h"]):
+            at = ROOM_STEP_DEG * i
+            off = _off(at, heading)
+            if (isinstance(clear, (int, float)) and not isinstance(clear, bool) and clear >= PULL_ROOM_NEED
+                    and off <= PULL_ROOM_TURN_DEG + 1e-9):
+                picks.append((off, -clear, i, at))
+        return "closed" if not picks else min(picks)[3]
 
     def _pull_reach(self, fight):
         """The tiles within which the nearest standing zombie ends the spread's pull (the reflex stands and presses):

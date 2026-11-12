@@ -353,3 +353,71 @@ def test_the_retreat_holds_while_three_stand_within_the_hold_radius_and_drops_un
     assert why["engage_pull"]["n"] == 3 and c is b and sv.pull == pytest.approx((-1.0, 0.0), abs=1e-9)
     why, d = line(tmp_path, r, sv, column(1.9, 5.0, 8.0))
     assert "engage_pull" not in why and d is not b and d.type == "melee" and "withdrawX" not in d.args
+
+
+# ================================================================ fix 3: the corner Fight's pull along the ring
+def kitchen_survive(tmp_path, h):
+    """`survive` on room squares (a kitchen round ME), GROUP_LEAVE off, the World's `room` read a ring of `h` (None:
+    no ring); the engaged melee at 1 (1.8 tiles east); then three standing close in from the east on two lines (1 to
+    0.9, 2 and 3 to 1.6 at bearings +-20): the corner's lines (`engage_hold` {rule "cornered"} or the Fight on a room
+    square), the fighting retreat's three closing. Returns (the last threat why, the last action)."""
+    from .test_policies import grid
+    r = rig(tmp_path)
+    r.scan(grid(96, 104, 196, 204, at={(x, y): {"room": "kitchen", "building": 1}
+                                       for x in range(96, 105) for y in range(196, 205)}))
+    if h is not None:
+        r.world.room = lambda: ring(h)
+    sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
+    sv.GROUP_LEAVE = False
+    r.frame(zombies=[z(1, 101.8)])
+    tick(r, sv)
+    a = r.acts.history[-1]
+    assert a.type == "melee"
+    accept(r, a, "face")
+    line(tmp_path, r, sv, [zp(1, 0.0, 1.2), zp(2, 20.0, 2.0), zp(3, -20.0, 2.0)])
+    return line(tmp_path, r, sv, [zp(1, 0.0, 0.9), zp(2, 20.0, 1.6), zp(3, -20.0, 1.6)])
+
+
+def test_the_corner_fight_s_pull_is_clamped_to_the_ring_s_open_heading(tmp_path):
+    """Fix 3: on room squares three standing close in from the east (the retreat's vector due west, 180): the ring
+    reads only north (90) open within 90 degrees of it: the melee is sent with the withdraw clamped north, logged
+    `engage_pull` {why "retreat", heading 90, room {from 180}}."""
+    why, b = kitchen_survive(tmp_path, (0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+    pull = why["engage_pull"]
+    assert pull["why"] == "retreat" and pull["heading"] == pytest.approx(90.0)
+    assert pull["room"]["from"] == pytest.approx(180.0, abs=1e-6)
+    assert b.type == "melee" and withdraw(b) == pytest.approx((0.0, 1.0), abs=1e-9)
+
+
+def test_the_corner_fight_s_pull_with_no_open_heading_sends_no_withdraw(tmp_path):
+    """Fix 3: the same, the ring open only east (0, 180 degrees off the vector): no heading within 90 degrees is open:
+    the vector is dropped (the reflex stands), logged `engage_pull` {why "retreat", room "closed"}."""
+    why, b = kitchen_survive(tmp_path, (3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+    assert why["engage_pull"]["why"] == "retreat" and why["engage_pull"]["room"] == "closed"
+    assert sv_pull_none(b)
+
+
+def sv_pull_none(b):
+    return b.type == "melee" and "withdrawX" not in b.args
+
+
+def test_the_corner_fight_with_no_ring_sends_no_pull(tmp_path):
+    """Fix 3: an old frame (no ring) on room squares: the corner Fight as before, no `engage_pull`, no withdraw."""
+    why, b = kitchen_survive(tmp_path, None)
+    assert "engage_pull" not in why and sv_pull_none(b)
+
+
+def test_the_door_fight_and_the_sheltered_fight_take_no_pull(tmp_path):
+    """Fix 3 (`Threat._pull_ok`, read at the method: the door fight and the doorway's chokepoint keep their
+    exclusion): a door fight's line (`door` set) and a sheltered one read no pull, ring or none; the corner and the
+    room square's Fight only with a ring; the open-ground Fight always."""
+    from types import SimpleNamespace
+    for room, inside in ((None, False), (ring([3.0] * 8), False), (ring([3.0] * 8), True), (None, True)):
+        sv = SimpleNamespace(world=SimpleNamespace(room=lambda room=room: room), sheltered=False,
+                             night=SimpleNamespace(inside=lambda inside=inside: inside))
+        ok = lambda kind, door=None: T.Threat._pull_ok(sv, kind, door)
+        assert ok("door", [(1, None)]) is False and ok("fight", [(1, None)]) is False
+        assert ok("cornered") is (room is not None)
+        assert ok("fight") is ((not inside) or room is not None)
+        sv.sheltered = True
+        assert ok("fight") is False and ok("cornered") is False

@@ -500,6 +500,20 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         return (self.mode == "fight" and f is not None and f._engaged()
                 and self._health() > FLEE_HEALTH)
 
+    def _pull_ok(self, kind, door):
+        """Plan 36 Task 3: the engagement picker reads this Fight's line: never the door fight (`door`) or a sheltered
+        one (a doorway is a chosen chokepoint; the doorway stand has its own row); the open-ground Fight (kind
+        `fight` off a room square); fix 3 (the trial `x_trial-ladder-20261111-190803`: 79 `engage_hold` {rule
+        "cornered"} lines with four or five held and no pull, the three bites under that hold) the corner Fight (kind
+        `cornered`, or a `fight` on a room square, the held corner's) where the frame carries the room ring
+        (`World.room`), its withdraw clamped to the ring's open headings (`group.ThreatGroup._pull_room`); with no
+        ring the corner Fight sends none, as before the ring."""
+        if door is not None or self.sheltered or kind not in ("fight", "cornered"):
+            return False
+        if kind == "fight" and not self.night.inside():
+            return True
+        return self.world.room() is not None
+
     def _flee_reason(self, held, n):
         """Why the threat branch flees, by the hysteresis in the module docstring (`_hysteresis`); None when it fights.
         A fight that would walk toward its target with another zombie listed behind it (`_behind_walk`, ruling P24-A
@@ -1306,11 +1320,9 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             policy.ride = self.care.riding()   # P24-U: the stance legs held off while a bandage rides
             policy.threats = held
             policy.retreat = self.retreat   # Plan 33 Task 3 fix 3: GROUP_LEAVE's fighting retreat heading, else None
-            # Plan 36 Task 3: the engagement picker's withdraw on the open-ground Fight (no corner, no door fight, off
-            # a room square, not sheltered) whose melee can go (`_melee_on`: no golden's hello announces `melee`), the
-            # melee's withdraw bias, else None
-            open_ground = kind == "fight" and door is None and not self.sheltered and not self.night.inside()
-            policy.withdraw = self._pull(policy) if open_ground and policy._melee_on() else None
+            # Plan 36 Task 3: the engagement picker's withdraw (`_pull_ok`) whose melee can go (`_melee_on`: no
+            # golden's hello announces `melee`), the melee's withdraw bias, else None
+            policy.withdraw = self._pull(policy) if self._pull_ok(kind, door) and policy._melee_on() else None
             policy.backswing = self.BACKSWING   # Plan 36 Task 2a addendum (T21_SWITCHES): the work's backswing
             policy.edge_ticks = EDGE_HOLD_TICKS if self.EDGE else 0   # P24-AU, read at the policy's observe
             policy.rules = self._fight_rules()   # P25-A, P25-B, P25-D, P25-F

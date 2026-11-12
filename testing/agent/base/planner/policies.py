@@ -1129,7 +1129,10 @@ CONE_OFF_DEG = 90.0        # degrees: a standing zombie closing within CONE_TRIG
 CONE_TRIGGER_R = 4.0       # tiles: the cone's pull reads flankers this near (before contact), § 3.3
 ROOM_OPEN_DEG = 45.0       # degrees: the `many` run above RETREAT_MAX_N takes the room ring's most open heading within
                            # this of its own (`flee.Flee._room_open`), § 3.3
-RETREAT_HOLD_R = 1.0      # tiles: Task 3 fix 1b, the armed fighting retreat's withdraw holds while three stand within
+PULL_ROOM_NEED = 1.0       # tiles: Task 3 fix 3, a room-ring heading this clear takes the pull's withdraw (clamped
+                           # to the nearest such within PULL_ROOM_TURN_DEG); none: the vector dropped
+PULL_ROOM_TURN_DEG = 90.0  # degrees: the pull's clamp looks this far either side of its heading for an open one
+RETREAT_HOLD_R = 1.0       # tiles: Task 3 fix 1b, the armed fighting retreat's withdraw holds while three stand within
                            # GROUP_ENTRY_R plus this, closing or not (a column keeping pace reads flat distances)
 # Plan 36 Task 4 (the action clock, `planner/clock.py`; the spec's § 3.4; F21, `f_goals_21-20261111-150552`, decision
 # lines 427 to 494: seven rips, every one superseded by the next steer, while three parts bled from 68 to 13 health).
