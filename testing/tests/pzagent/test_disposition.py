@@ -731,7 +731,7 @@ def test_three_groups_pick_the_clear_quarter_not_the_centroid_s_opposite(tmp_pat
 def test_the_pick_holds_three_seconds_while_the_groups_advance(tmp_path):
     """Fix 11: the pick held for STRING_HEADING_HOLD_S while the three groups advance a tile (no zombie enters its
     cone, the ring never closes it, no pick STRING_HEADING_GAIN better): the same degrees, `held` true; past the hold
-    a fresh read."""
+    a re-evaluation that keeps it (fix 13: no pick beats it by the gain), `kept` true."""
     r, sv = heading_rig(tmp_path, groups(8.0))
     _, first = sv._string_heading()
     for k in range(5):
@@ -742,7 +742,7 @@ def test_the_pick_holds_three_seconds_while_the_groups_advance(tmp_path):
     r.advance(0.6)
     r.frame(zombies=groups(7.0))
     _, why = sv._string_heading()
-    assert why["held"] is False
+    assert why["held"] is True and why.get("kept") is True and why["deg"] == first["deg"]   # fix 13: re-read, kept
 
 
 def test_a_zombie_entering_the_held_cone_within_four_tiles_re_picks(tmp_path):
@@ -764,3 +764,68 @@ def test_the_arena_s_tied_open_lines_pick_by_the_contact_not_the_centroid(tmp_pa
     r, sv = heading_rig(tmp_path, zs)
     vec, why = sv._string_heading()
     assert why["contact"] is None and abs((why["deg"] - 200.0 + 180.0) % 360.0 - 180.0) > P.AHEAD_CONE, why
+
+
+
+# ================================================================ fix 13: a held heading changes only on the gain or a closed ring
+def lane(tmp_path, north, south, room=None):
+    """`lane_rig`'s north-south lane (walls on both sides of x 100), five standing at the north end (+y) from `north`
+    tiles and five at the south end from `south`, each a half tile apart; `room` the ring, else none."""
+    r, sv = lane_rig(tmp_path, room=room)
+    r.frame(x=100.5, y=200.5, zombies=lane_zs(north, south))
+    if room is not None:
+        r.world.room_ring = {"h": list(room), "stop": ["open"] * 8, "tick": 1}
+    return r, sv
+
+
+def lane_zs(north, south):
+    return ([z(300 + i, 100.5, 200.5 + north + 0.5 * i) for i in range(5)]
+            + [z(310 + i, 100.5, 200.5 - south - 0.5 * i) for i in range(5)])
+
+
+def lane_line(r, sv, north, south, room=None):
+    r.advance(0.5)
+    r.frame(x=100.5, y=200.5, zombies=lane_zs(north, south))
+    if room is not None:
+        r.world.room_ring = {"h": list(room), "stop": ["open"] * 8, "tick": 1}
+    return sv._string_heading()[1]
+
+
+def test_the_lane_picks_the_farther_end_and_keeps_it_while_both_close(tmp_path):
+    """Fix 13 (the pocket trial `x_trial-ladder-20261112-085247`: the pick flipped between the lane's two ends every line
+    or two until the drag-down): five at each end, the north's first contact at 6 and the south's at 5 (the lane's
+    walls the other headings' contacts): north (90 degrees) picked; the south's nearest closing to 3 and the north's
+    to 4 over the hold and past it: north kept (no pick beats it by STRING_HEADING_GAIN), `kept` true past the hold."""
+    r, sv = lane(tmp_path, 6.0, 5.0)
+    first = sv._string_heading()[1]
+    assert first["deg"] == 90.0 and first["contact"] == pytest.approx(6.0)
+    whys = [lane_line(r, sv, 6.0 - 0.25 * k, 5.0 - 0.25 * k) for k in range(1, 9)]
+    assert all(w["deg"] == 90.0 and w["held"] is True for w in whys), whys
+    assert whys[-1].get("kept") is True
+
+
+def test_the_south_closing_to_one_keeps_the_north(tmp_path):
+    """Fix 13: the south's contact falls to 1 with the north's at 6: north kept."""
+    r, sv = lane(tmp_path, 6.0, 5.0)
+    sv._string_heading()
+    whys = [lane_line(r, sv, 6.0, 5.0 - 0.5 * k) for k in range(1, 9)]
+    assert all(w["deg"] == 90.0 for w in whys), whys
+
+
+def test_the_north_contact_at_two_with_the_south_at_5_5_flips(tmp_path):
+    """Fix 13: past the hold the north's contact falls to 2 with the south's at 5.5: the gain met (3.5), south (270)."""
+    r, sv = lane(tmp_path, 6.0, 5.5)
+    sv._string_heading()
+    r.advance(3.0)
+    why = lane_line(r, sv, 2.0, 5.5)
+    assert why["deg"] == 270.0 and why["held"] is False, why
+
+
+def test_the_ring_closing_the_held_north_flips_at_once(tmp_path):
+    """Fix 13: within the hold the ring reads the north (90) and its neighbours closed: the best pick at once, south."""
+    open_all = (3.0,) * 8
+    r, sv = lane(tmp_path, 6.0, 5.0, room=open_all)
+    assert sv._string_heading()[1]["deg"] == 90.0
+    shut = (0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 3.0, 3.0)   # 0 to 180 closed: no open heading within 90 of north
+    why = lane_line(r, sv, 6.0, 5.0, room=shut)
+    assert why["deg"] == 270.0 and why["held"] is False, why

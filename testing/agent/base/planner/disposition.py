@@ -523,9 +523,14 @@ class Disposer:
         the headings every STRING_STEP_DEG over the whole circle, each scored by its first contact (`_contact`, every
         listed standing zombie, any distance): the farthest wins (none ahead the best), ties to the longest open line
         over STRING_LOOK_R (`World.open_line`), then to the nearest to the way away from the standing centroid within
-        STRING_ENTRY_R; then the ring clamp (`ThreatGroup._pull_room`). The pick is held STRING_HEADING_HOLD_S: a new
-        read within the hold replaces it only when a standing zombie stands inside the held heading's cone within
-        STRING_RUN_R, the ring reads it closed, or the new pick's first contact is STRING_HEADING_GAIN farther."""
+        STRING_ENTRY_R; then the ring clamp (`ThreatGroup._pull_room`). Fix 13 (the pocket trial
+        `x_trial-ladder-20261112-085247`: in the two-tile lane the pick flipped between the ends every line or two
+        until the drag-down): a heading's first contact is also the wall its open line reads short of STRING_LOOK_R
+        (the lane's walls are contacts as its zombies are); the pick, once made, is held: within STRING_HEADING_HOLD_S
+        it is not re-read but for a standing zombie entering its cone within STRING_RUN_R; after the hold, or on that
+        entry, the pick is re-evaluated and changes only when the new pick's first contact beats the held heading's
+        current one by STRING_HEADING_GAIN, else it is kept and fought through (logged `kept` true); the one change
+        without the gain is the ring reading the held heading closed (then the best pick, whatever its contact)."""
         p = me_xy(self.world)
         group = [z for _, z, _ in self._group_standing(STRING_ENTRY_R) if not is_crawler(z)]   # the string's group
         if not group:
@@ -537,34 +542,54 @@ class Disposer:
         cy = sum(z["y"] for z in group) / len(group)
         dx, dy = p[0] - cx, p[1] - cy
         away = 0.0 if dx == 0.0 and dy == 0.0 else math.degrees(math.atan2(dy, dx)) % 360.0
+        def score(deg):
+            """(first contact tiles, None for none ahead; open line): the nearer of the zombie in its cone and the wall
+            its open line reads short of STRING_LOOK_R (fix 13)."""
+            c, o = self._contact(deg, standing), self.world.open_line(deg, STRING_LOOK_R)
+            if o < STRING_LOOK_R:
+                c = o if c is None else min(c, o)
+            return c, o
+
         best = None
         for k in range(int(round(360.0 / STRING_STEP_DEG))):
             deg = k * STRING_STEP_DEG
-            c = self._contact(deg, standing)
+            c, o = score(deg)
             off = abs((deg - away + 180.0) % 360.0 - 180.0)
-            rank = (-(math.inf if c is None else c), -self.world.open_line(deg, STRING_LOOK_R), off, deg)
+            shut = self._pull_room(deg) == "closed"   # fix 13: a heading the ring reads closed ranks last
+            rank = (shut, -(math.inf if c is None else c), -o, off, deg)
             if best is None or rank < best:
                 best = rank
-        deg, contact = best[3], self._contact(best[3], standing)
-        held = self._held_heading
-        if held is not None and self.clock() - held["at"] < STRING_HEADING_HOLD_S:
-            hc = self._contact(held["deg"], standing)
-            entered = hc is not None and hc <= STRING_RUN_R
-            closed = self._pull_room(held["deg"]) == "closed"
-            gain = (math.inf if contact is None else contact) - (math.inf if hc is None else hc)
-            if not (entered or closed or gain >= STRING_HEADING_GAIN):
-                deg, contact = held["deg"], hc
-                held = True
+        deg = best[4]
+        contact = score(deg)[0]
+        held, kept, changed = self._held_heading, False, None
+        if held is not None and (self._pull_room(held["deg"]) == "closed"   # fix 13: a closed ring (or the map's wall
+                                 or self.world.open_line(held["deg"], STRING_LOOK_R) < PULL_ROOM_NEED):   # at the feet)
+            changed, held = {"from": held["deg"], "why": "closed"}, None   # the one change without the gain
+        elif held is not None:
+            hc = score(held["deg"])[0]
+            hz = self._contact(held["deg"], standing)   # a zombie, never the wall, enters the held cone
+            entered = hz is not None and hz <= STRING_RUN_R
+            within = self.clock() - held["at"] < STRING_HEADING_HOLD_S
+            # the gain: the new pick's first contact, its wall included, against the zombie ahead on the held heading
+            # (its own wall is the one being walked toward, fought through)
+            gain = (math.inf if contact is None else contact) - (math.inf if hz is None else hz)
+            if (within and not entered) or not gain >= STRING_HEADING_GAIN or deg == held["deg"]:   # nan: kept
+                kept = not within or entered   # a re-evaluation that kept it
+                deg, contact, held = held["deg"], hc, True
             else:
+                changed = {"from": held["deg"], "why": "gain", "gain": None if math.isinf(gain) else round(gain, 3),
+                           "held_contact": None if hz is None else round(hz, 3)}
                 held = None
-        else:
-            held = None
         if held is None:
             self._held_heading = {"deg": deg, "at": self.clock()}
         open_ = self.world.open_line(deg, STRING_LOOK_R)
         room = self._pull_room(deg)
         why = {"deg": deg, "contact": None if contact is None else round(contact, 3), "open": open_, "room": room,
                "held": held is True}
+        if kept:
+            why["kept"] = True
+        if changed is not None:
+            why["changed"] = changed   # fix 13: why a held heading changed (the gain or a closed ring)
         if room == "closed":
             return None, why
         return _heading(deg if room is None else room), why

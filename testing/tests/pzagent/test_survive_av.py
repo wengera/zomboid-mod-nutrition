@@ -325,3 +325,29 @@ def test_the_town_s_string_heading_holds_at_two_headings_at_most():
         if a is not None and a.type == "melee" and a.args.get("disposition") == "string" and a.args.get("withdrawX") is not None:
             heads.add(round(math.degrees(math.atan2(a.args["withdrawY"], a.args["withdrawX"])) % 360.0))
     assert len(heads) <= 2, heads
+
+
+
+# ================================================================ Task 3 fix 13: round one's pocket trial
+# `x_trial-ladder-20261112-085247` (P31-T, not evidence; at 49a71482): the agent fixture, F22's lane, five at each
+# end; replayed from this machine's run folder as above (skipped where absent), open loop to line 131 (the
+# controller's 0-based 79 to 130 are lines 80 to 131).
+TRIAL_13 = "x_trial-ladder-20261112-085247"
+
+
+@functools.lru_cache(maxsize=1)
+def trial_13():
+    return trial_replay(TRIAL_13, 131)
+
+
+def test_the_lane_s_string_heading_changes_only_on_the_gain_or_a_closed_ring():
+    """Fix 13: lines 80 to 131, where the record's heading changed nine times: every change of a held heading on the replay carries its reason, a closed ring or a first contact
+    STRING_HEADING_GAIN farther than the held heading's zombie, and the replay changes fewer times than the record.
+    (The controller's criterion, at most three distinct headings, is not met on this open-loop replay: the recorded
+    zombies close on whichever end the replay holds; the report names the count.)"""
+    rows, _ = trial_13()
+    shs = [threat(r)["string_heading"] for k, r in enumerate(rows, 1) if 80 <= k <= 131 and threat(r).get("string_heading")]
+    changes = [sh["changed"] for sh in shs if sh.get("changed")]
+    assert all(c["why"] == "closed" or c["gain"] is None or c["gain"] >= P.STRING_HEADING_GAIN for c in changes), changes
+    flips = sum(1 for a, b in zip(shs, shs[1:]) if a["deg"] != b["deg"])
+    assert flips < 9, flips
