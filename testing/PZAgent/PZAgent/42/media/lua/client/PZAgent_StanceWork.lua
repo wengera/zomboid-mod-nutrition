@@ -867,6 +867,7 @@ local function attackerTick(p, st, d, standing, g)
     if pick == nil then pick = pb[1] end
     if pick.id == st.id or pick.id == w.stallId then return nil end
     if not attacking and standing and pick.d >= d - K.MELEE_REPIN_SLACK then return nil end
+    if not attacking and K.workCommitted(p, st, d, standing) then return nil end   -- fix 9: the commit
     w.repinFor = "attacker"
     return M.repin(p, st, pick)
 end
@@ -935,7 +936,8 @@ local function retreatTick(p, st, d, standing, g, gid)
     if hold then w.held = "reach" end
     if g <= reach and w.rideTicks <= 0 then   -- the press window: at whoever stands nearest inside the reach
         local near = w.near
-        if gid ~= st.id and near ~= nil and near[1].id == gid and gid ~= w.stallId then return M.repin(p, st, near[1]) end
+        if gid ~= st.id and near ~= nil and near[1].id == gid and gid ~= w.stallId
+           and not K.workCommitted(p, st, d, standing) then return M.repin(p, st, near[1]) end   -- fix 9: the commit
         if standing then return nil end   -- the meet's swing on the back step (inside MinRange its protective shove)
     end
     if hold then
@@ -948,6 +950,58 @@ local function retreatTick(p, st, d, standing, g, gid)
     if step == "cornered" then return nil end   -- the meet presses; its idle reads cornered
     return step
 end
+
+-- Plan 37 Task 2 fix 9 (the horde10 trial x_trial-ladder-20261112-080956, a trial reading: the contact state fought a
+-- 3.41-health leader at 0.6 to 0.9 tiles for 15 s while the rest arrived, then re-pinned among three, and the
+-- drag-down came with five inside 1.5). The break-off: in the string's contact, once a second standing zombie stands
+-- within K.STRING_GAP of the character (the leader counted: the target while it stands, else the nearest standing),
+-- the leader inside the shove range is
+-- knocked down (knockDown: the re-pin to it, then the chosen shove, shove_for knockdown) and, at that press's result
+-- or at once with the leader beyond the shove range, the contact is left (w.contactBlocked) for the string's own
+-- states (the run, string_state run, break_off true on its line); the block lifts when the string reads its leader
+-- isolated again (K.workString). With the target down the nearest standing is the leader the rule reads.
+-- The commit (fix 9's (A) finding, the same trial's a9: after the leader's knock-down the reflex re-pinned seven times
+-- among 17014, 17029 and 17033 in 110 lines, so no target took its damage): in the string's contact a standing target
+-- inside the reach is kept against a nearer zombie that is not attacking (attackerTick) and against the retreat's
+-- press-window re-pin to the nearest (retreatTick); the attacker's own re-pin stays (never off).
+-- the break-off's read at the contact (K.workTick): armed when a second stands within K.STRING_GAP; its knock-down
+-- pressed (the presses' count moved) or the leader (g, the nearest standing) beyond the shove range: the contact left
+local function breakRead(st, d, standing, g)
+    local w = st.work
+    if not w.breakOff then
+        local ss = standingWithin(st, d, standing, K.STRING_GAP)   -- a Lua table
+        if #ss < 2 then return end
+        w.breakOff, w.breakMark = true, presses(st)
+    end
+    local ld = g   -- the leader: the target while it stands, else the nearest standing
+    if standing then ld = d end
+    if presses(st) ~= w.breakMark or ld > st.shoveR then
+        w.breakOff, w.contactBlocked, w.breakNow = false, true, true
+    end
+end
+
+-- the break-off's knock-down (the tick's 3b, after the crawler buffer and the nearest attacker's facing): the leader
+-- re-pinned to and shoved; with none to press (a stalled one) the contact left; a step, else nil
+local function breakStep(p, st, d, standing)
+    local w = st.work
+    if not w.breakOff or not w.stringContact then return nil end
+    local ss = standingWithin(st, d, standing, K.STRING_GAP)   -- a Lua table
+    local c = ss[1]
+    if standing and d <= st.shoveR then c = { id = st.id, d = d, o = st.z } end   -- the leader fought, kept
+    if c ~= nil then
+        local ks, kwhy = knockDown(p, st, d, c)
+        if ks ~= nil then return ks, kwhy end
+    end
+    w.breakOff, w.contactBlocked, w.breakNow = false, true, true
+    return nil
+end
+
+-- whether the string's contact commits to the standing target inside the reach (fix 9's commit rule)
+local function committed(p, st, d, standing)
+    return st.work.stringContact and standing and d <= M.reachOf(p, st)
+end
+
+K.workCommitted = committed
 
 -- the footwork's tick (the header's): the floor, the gap and contact, clear, the pile; a step or an end, else nil
 function K.workTick(p, st, d, crowd, fallen, now)
@@ -974,11 +1028,14 @@ function K.workTick(p, st, d, crowd, fallen, now)
     w.gap = g
     local disp = K.DISPOSITIONS[w.disposition]
     w.stringContact = false
-    if disp.contact ~= nil and g ~= nil and g < M.reachOf(p, st) + K.STRING_TURN_R then   -- fix 6: the contact table
-        w.stringContact, disp = true, K.DISPOSITIONS[disp.contact]
-        w.stringState = "contact"   -- fix 8: the leaf's string_state
-        if w.turnPending ~= nil then   -- the planned turn's leaf carried to its press's line
-            if presses(st) ~= w.turnMark then w.turnPending = nil else w.turnFor = w.turnPending end
+    if disp.contact ~= nil and g ~= nil and g < M.reachOf(p, st) + K.STRING_TURN_R and not w.contactBlocked then
+        breakRead(st, d, standing, g)   -- fix 9: the second arrived: the knock-down (after the attacker), then the run
+        if not w.contactBlocked then
+            w.stringContact, disp = true, K.DISPOSITIONS[disp.contact]   -- fix 6: the contact table
+            w.stringState = "contact"   -- fix 8: the leaf's string_state
+            if w.turnPending ~= nil then   -- the planned turn's leaf carried to its press's line
+                if presses(st) ~= w.turnMark then w.turnPending = nil else w.turnFor = w.turnPending end
+            end
         end
     end
     w.dispT = disp
@@ -1011,6 +1068,8 @@ function K.workTick(p, st, d, crowd, fallen, now)
     if cstep ~= nil then return cstep end
     local as = attackerTick(p, st, d, standing, g)   -- 3: the nearest attacker
     if as ~= nil then return as end
+    local bs, bhow, bres = breakStep(p, st, d, standing)   -- 3b: the string's break-off (fix 9)
+    if bs ~= nil then return bs, bhow, bres end
     if disp.staggerIn then
         local ss = staggerIn(p, st, standing, g, gid)   -- 4: the stagger in
         if ss ~= nil then return ss end
@@ -1065,6 +1124,9 @@ function K.workResult(st, out)
     local leaf = { gap = w.gap, crawler = w.crawlerD, held = w.held, pile = w.pileWhy,
                    disposition = w.disposition, pinned = w.pinned, turn_for = w.turnFor }   -- Plan 37 Task 2
     if K.DISPOSITIONS[w.disposition].string then leaf.string_state = w.stringState end   -- fix 8
+    if w.breakNow then   -- fix 9: the first line after the contact broke off (a tick may write no line)
+        leaf.break_off, w.breakNow = true, nil
+    end
     if w.retreating then leaf.retreat = true end   -- fix 6: the retreat's mode running
     if st.stallHeld then leaf.stall_held = true end   -- fix 7: the stall deferred in shove range
     leaf.repin_for = w.repinFor   -- fix 7b: the stall's re-pin, on its own tick's line
@@ -1504,6 +1566,7 @@ function K.workString(p, st, d, standing, fallen)
     local first, next2 = all[1] or leader, all[2]
     local isolated = next2 == nil or next2.d - first.d >= K.STRING_GAP
     if not isolated then w.waitLatch = false end
+    if isolated then w.contactBlocked = false end   -- fix 9: a leader arriving isolated may be fought again
     if isolated and (w.waitLatch or first.d >= K.STRING_RUN_R) and waitAllowed(p, st, first) then
         w.waitLatch, w.stringState = true, "wait"
         return stringWait(p, st, first, next2)

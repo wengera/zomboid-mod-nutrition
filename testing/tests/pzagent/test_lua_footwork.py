@@ -26,7 +26,7 @@ WORK = {"workR": 3.5, "crawlerR": 1.2, "bandLo": 0.4, "floorHealth": 0.0, "reach
 BAND_X = 10.95   # the target 0.95 tiles east: inside the band, beyond K.WORK_POINT_BLANK_R
 WORK_LEAF = {"heading", "turn", "clear", "gap", "n", "crawler", "held", "pile", "step_for", "retreat", "stall_held", "repin_for",
              "nan_heading", "shove_for", "disposition", "pinned",
-             "turn_for", "string_state"}   # Plan 36 Task 1 fix 1: nan_heading; Task 2b: shove_for   # fix 2: held; fix 3: pile; fix 5: step_for
+             "turn_for", "string_state", "break_off"}   # Plan 36 Task 1 fix 1: nan_heading; Task 2b: shove_for   # fix 2: held; fix 3: pile; fix 5: step_for
 # Plan 37 Task 2 (PZA/1.16): disposition, pinned and turn_for; fix 8: string_state
 LOOK_OFF = {"look": math.pi, "turn": 0.0, "snap": False}   # the look held away: the meet never presses
 
@@ -2219,19 +2219,18 @@ def test_under_hold_the_same_geometry_shoves_as_before(lua, fs):
 
 def test_under_string_the_step_out_runs_then_the_walk_resumes(lua, fs):
     """Two at point blank (0.5 east and 0.5 north), pile true, under string: the step out first (rule (b), step_for
-    pile_out), the hold's table while the nearest stands inside the contact radius, and the string's walk once the
-    nearest stands beyond it (fix 6: was after the step out at once)."""
+    pile_out); after it the two stand within K.STRING_GAP, so the contact breaks off (fix 9: the leader beyond the
+    shove range, the run at once, break_off on its line). Re-pinned under fix 9 (fix 6 read the hold's table after the
+    step out until the nearest left the contact radius)."""
     p, z, w = pile_world(lua, (0.5,), tx=10.5, attackers=0)
     gow(lua, p, pile=True, disposition="string")
     run(lua, p, w, 1)
     assert progress(lua, fs)[0]["result"]["work"]["step_for"] == "pile_out"
-    run(lua, p, w, lua.eval("PZA.skills.WORK_STEP_TICKS"))
-    assert work_of(lua, "stepFor") != "string" and lua.eval("PZA.skills.cur.st.work.stringContact") is True
-    w["zx"] = w["px"] + 2.2   # the other gone, the target beyond the contact radius
-    w["zy"] = w["py"]
-    records(lua, [target_rec(w)], {7: z})
-    run(lua, p, w, 2)
-    assert work_of(lua, "stepFor") == "string"
+    run(lua, p, w, lua.eval("PZA.skills.WORK_STEP_TICKS") + 3)
+    assert work_of(lua, "stepFor") == "string" and lua.eval("PZA.skills.cur.st.work.contactBlocked") is True
+    run(lua, p, w, 70, stop=lambda: any(lf.get("break_off") for lf in leaves_of(lua, fs)))   # the next line carries it
+    lf = [x for x in leaves_of(lua, fs) if x.get("break_off")]
+    assert lf and lf[0]["string_state"] == "run"
 
 
 # ---- Plan 37 Task 2 fix 3: a fallen zombie at the feet is a crawler to the reflex (x_trial-ladder-20261112-065221) ----
@@ -2561,3 +2560,64 @@ def test_the_wait_never_stands_in_a_pocket_with_the_leader_down_its_open_side(lu
     gow(lua, p, disposition="string")
     run(lua, p, w, 2)
     assert "wait" not in _state(lua, fs)
+
+
+# ---- Plan 37 Task 2 fix 9: the contact breaks off when the second arrives (x_trial-ladder-20261112-080956) ----------
+
+def test_in_contact_the_second_at_2_2_knocks_the_leader_down_then_runs(lua, fs):
+    p, z, w, recs = group_world(lua, 10.8, [(10.0, 22.2)])
+    gow(lua, p, disposition="string")
+    grun(lua, p, w, recs, 1)
+    pr = progress(lua, fs)
+    assert pr[-1]["result"]["step"] == "shove" and pr[-1]["result"]["work"].get("shove_for") == "knockdown"
+    assert w["presses"][0]["shove"] is True and lua.eval("PZA.skills.cur.st.id") == 7
+    grun(lua, p, w, recs, 10, stop=lambda: any(lf.get("break_off") for lf in leaves_of(lua, fs)))
+    lf = [x for x in leaves_of(lua, fs) if x.get("break_off")]
+    assert lf and lf[0]["string_state"] == "run" and lua.eval("PZA.motor.wantRun") is True
+    assert len([x for x in w["presses"] if x["shove"]]) == 1
+
+
+def test_in_contact_the_second_at_3_5_the_fight_goes_on(lua, fs):
+    p, z, w, recs = group_world(lua, 10.8, [(10.0, 23.5)])
+    gow(lua, p, disposition="string")
+    grun(lua, p, w, recs, 4)
+    assert lua.eval("PZA.skills.cur.st.work.contactBlocked") is not True
+    assert all(lf.get("shove_for") is None and not lf.get("break_off") for lf in leaves_of(lua, fs))
+    assert leaves_of(lua, fs)[-1]["string_state"] == "contact"
+
+
+def test_with_the_leader_fallen_and_the_second_at_2_2_the_run_goes_at_once(lua, fs):
+    p, z, w, recs = group_world(lua, 11.0, [(10.0, 22.2)])
+    w["floor"] = True
+    gow(lua, p, disposition="string")
+    grun(lua, p, w, recs, 3)
+    assert leaves_of(lua, fs)[-1]["string_state"] == "run" and work_of(lua, "stepFor") == "string"
+    assert w["presses"] == []
+
+
+def test_in_contact_the_fought_leader_is_kept_against_a_nearer_one_not_attacking(lua, fs):
+    """Fix 9's (A) finding (a9: seven re-pins among three zombies in 110 lines, no target taking its damage): the
+    target 7 at 0.85 in the reach and 8 at 0.7 not attacking (nearer by more than K.MELEE_REPIN_SLACK): no re-pin, the
+    break-off's knock-down at the leader fought."""
+    p, z, w = world(lua, zx=10.85, attack_ticks=6)
+    o8 = make_zombie(8, 10.0, 20.7)
+    sense(lua, [z, o8])
+    records(lua, [target_rec(w), {"id": 8, "dist": 0.7, "x": 10.0, "y": 20.7}], {7: z, 8: o8}, attackers=0)
+    gow(lua, p, disposition="string")
+    run(lua, p, w, 1)
+    assert lua.eval("PZA.skills.cur.st.id") == 7 and lua.eval("PZA.skills.cur.st.repins") == 0
+    assert w["presses"] and w["presses"][0]["shove"] is True
+
+
+def test_in_contact_the_commit_holds_the_target_against_the_retreat_s_re_pin(lua, fs):
+    """At its method (no break-off: the commit read with stringContact set): a standing target inside the reach is
+    committed; beyond the reach or knocked down it is not."""
+    p, z, w = world(lua, zx=11.0)
+    gow(lua, p, disposition="string")
+    lua.execute("PZA.skills.cur.st.work.stringContact = true")
+    cm = lua.eval("PZA.skills.workCommitted")
+    st = lua.eval("PZA.skills.cur.st")
+    assert cm(None, st, 1.0, True) is True
+    assert cm(None, st, 1.6, True) is False and cm(None, st, 1.0, False) is False
+    lua.execute("PZA.skills.cur.st.work.stringContact = false")
+    assert cm(None, st, 1.0, True) is False
