@@ -166,6 +166,10 @@ K.STRING_RUN_R = 4.0         -- tiles: under string the run while any standing z
                              -- reading: frames 240 to 324 the walk let the eight close from 7.7 to 1.17 tiles in 8 s at
                              -- 1.3 to 1.6 tiles a second, frames 519 to 611 the care's run opened 2.6 to 6 tiles in
                              -- 5 s; beyond it the walk strings them out and keeps a rip ridable)
+K.STRING_READ_R = 12.0       -- tiles: the string's states read the standing zombies this far (fix 8: the nearest and the
+                             -- second-nearest; beyond workR off the frame's records, a judgment past K.STRING_RELEASE_R)
+K.STRING_WAIT_OPEN = 3       -- ring headings: the wait never stands on a square the ring reads open along this many or
+                             -- fewer (closed on three sides) with the leader coming down an open one (fix 8, a judgment)
 K.STRING_RUN_V = 1.0         -- tiles a second: the leader closing faster takes the run (Plan 37 Task 2 fix 1, the
                              -- string probe x_trial-ladder-20261112-055128, a trial reading: its leaders walked at
                              -- about 1.4 and the gap never grew at a walk; the walk's 2.09 outpaces only the slow
@@ -972,6 +976,7 @@ function K.workTick(p, st, d, crowd, fallen, now)
     w.stringContact = false
     if disp.contact ~= nil and g ~= nil and g < M.reachOf(p, st) + K.STRING_TURN_R then   -- fix 6: the contact table
         w.stringContact, disp = true, K.DISPOSITIONS[disp.contact]
+        w.stringState = "contact"   -- fix 8: the leaf's string_state
         if w.turnPending ~= nil then   -- the planned turn's leaf carried to its press's line
             if presses(st) ~= w.turnMark then w.turnPending = nil else w.turnFor = w.turnPending end
         end
@@ -1059,6 +1064,7 @@ function K.workResult(st, out)
     out.contact = w.contact
     local leaf = { gap = w.gap, crawler = w.crawlerD, held = w.held, pile = w.pileWhy,
                    disposition = w.disposition, pinned = w.pinned, turn_for = w.turnFor }   -- Plan 37 Task 2
+    if K.DISPOSITIONS[w.disposition].string then leaf.string_state = w.stringState end   -- fix 8
     if w.retreating then leaf.retreat = true end   -- fix 6: the retreat's mode running
     if st.stallHeld then leaf.stall_held = true end   -- fix 7: the stall deferred in shove range
     leaf.repin_for = w.repinFor   -- fix 7b: the stall's re-pin, on its own tick's line
@@ -1412,6 +1418,80 @@ end
 
 -- the string (the block's rule): a step (the walk's work, a re-pin), else nil (the turn, no clear heading, or nothing
 -- standing: w.stringing tells the first two)
+-- Plan 37 Task 2 fix 8 (the horde10 trial x_trial-ladder-20261112-080105, a trial reading: the run outpaced the group,
+-- the planned turn never fired at a walk against a walking leader, and the character turned with two leaders lunging in
+-- together): the string's states, w.stringState, the leaf's string_state: contact (fix 6, K.workTick: the hold's table);
+-- wait, the leader isolated (the second-nearest standing beyond the nearest by K.STRING_GAP or more, or none), entered
+-- with the nearest beyond K.STRING_RUN_R and held while the leader stays isolated (through a contact too: w.waitLatch):
+-- the walk stopped, the stance held facing the leader (re-pinned as the target), step stand, the planned turn's
+-- turn_for {leader, gap2} latched for the contact table's press (fix 6's carry); never with a crawler or fallen zombie
+-- inside K.CRAWLER_BITE_R (fix 3's buffer step first), nor on a square the ring reads open along K.STRING_WAIT_OPEN
+-- headings or fewer with the leader down an open one (the walk goes on); run, the nearest within K.STRING_RUN_R (fix 5);
+-- walk otherwise (the group not yet strung out). The nearest and the second are read to K.STRING_READ_R: the target
+-- while it stands and the melee's near read (live), beyond them the frame's standing records by their dist
+
+-- the standing zombies to K.STRING_READ_R ({id, d, o[, x, y]} each, nearest first): the target while it stands, the near
+-- read, then the frame's records not on the floor and not crawling (by the frame's dist, the object from S.zobj)
+local function standingFar(st, d, standing)
+    local w = st.work
+    local out = standingWithin(st, d, standing, w.workR)
+    local seen = { [st.id] = true }
+    for i = 1, #out do seen[out[i].id] = true end
+    local S = PZA.sense
+    local f = S ~= nil and S.last or nil
+    local recs = f ~= nil and f.zombies or nil
+    local objs = S ~= nil and S.zobj or nil
+    if recs ~= nil then
+        for i = 1, #recs do
+            local rec = recs[i]
+            if not seen[rec.id] and rec.onFloor ~= true and rec.crawler ~= true and type(rec.dist) == "number"
+               and rec.dist >= w.workR and rec.dist < K.STRING_READ_R then
+                out[#out + 1] = { id = rec.id, d = rec.dist, o = objs ~= nil and objs[rec.id] or nil, x = rec.x, y = rec.y }
+            end
+        end
+    end
+    if standing and d >= w.workR then out[#out + 1] = { id = st.id, d = d, o = st.z, x = st.zx, y = st.zy } end
+    if #out > 1 then table.sort(out, function(a, b) return a.d < b.d end) end
+    return out
+end
+
+-- whether the wait may stand (the block's exceptions): no crawler or fallen zombie inside K.CRAWLER_BITE_R, and not a
+-- square the ring reads open along K.STRING_WAIT_OPEN headings or fewer with the leader c down an open one
+local function waitAllowed(p, st, c)
+    local w = st.work
+    local cs = w.crawlers
+    if cs ~= nil and cs[1].d < K.CRAWLER_BITE_R then return false end
+    local _, pz = PZA.call(p, "getZ")
+    local ring = K.workRoomFor(p, st, st.px, st.py, pz)
+    local open = 0
+    for i = 1, #K.WORK_ROOM_HEADINGS do
+        if K.workRoomOpen(ring, math.cos(K.WORK_ROOM_HEADINGS[i] * RAD), math.sin(K.WORK_ROOM_HEADINGS[i] * RAD))
+           >= K.WORK_ROOM_NEED then open = open + 1 end
+    end
+    if open > K.STRING_WAIT_OPEN then return true end
+    local x, y = c.x, c.y
+    if x == nil and c.o ~= nil then x, y = posOf(c.o) end
+    if x == nil or y == nil then return true end
+    return K.workRoomOpen(ring, x - st.px, y - st.py) < K.WORK_ROOM_NEED
+end
+
+-- the wait (the block's state): the leader c re-pinned as the target, the walk stopped, the stance held facing it,
+-- the turn latched; the step
+local function stringWait(p, st, c, second)
+    local w = st.work
+    if c.id ~= st.id and c.o ~= nil and c.id ~= w.stallId then
+        w.stringTicks, w.repinFor = 0, "string"
+        return M.repin(p, st, c)
+    end
+    M.stopWalk(p, st)
+    K.workStringGait(p, w, false)
+    M.holdStance(p, st)
+    local gap2 = nil
+    if second ~= nil then gap2 = second.d end
+    if w.turnPending == nil then w.turnPending, w.turnMark = { leader = c.id, gap2 = gap2 }, presses(st) end
+    return "stand"
+end
+
 function K.workString(p, st, d, standing, fallen)
     local w = st.work
     local zs = standingWithin(st, d, standing, w.workR)
@@ -1420,6 +1500,16 @@ function K.workString(p, st, d, standing, fallen)
     if leader == nil then return nil end
     w.stringing = true
     w.stringTicks = w.stringTicks + 1
+    local all = standingFar(st, d, standing)   -- fix 8: the states' read
+    local first, next2 = all[1] or leader, all[2]
+    local isolated = next2 == nil or next2.d - first.d >= K.STRING_GAP
+    if not isolated then w.waitLatch = false end
+    if isolated and (w.waitLatch or first.d >= K.STRING_RUN_R) and waitAllowed(p, st, first) then
+        w.waitLatch, w.stringState = true, "wait"
+        return stringWait(p, st, first, next2)
+    end
+    w.waitLatch = false
+    w.stringState = first.d < K.STRING_RUN_R and "run" or "walk"
     local second = zs[2]
     local turn = K.workLanding(p, st, leader.d, leader.id) <= M.reachOf(p, st) + K.STRING_TURN_R
                  and (second == nil or second.d > K.STRING_GAP)
@@ -1431,8 +1521,7 @@ function K.workString(p, st, d, standing, fallen)
         local v = M.closingOf(st, st.px, st.py, st.zx, st.zy, d)
         if v ~= nil then w.run = v > K.STRING_RUN_V end
     end
-    local near = leader.d < K.STRING_RUN_R   -- fix 5: any standing within K.STRING_RUN_R (the leader the nearest read)
-    if not near and K.STRING_RUN_R > w.workR then near = M.standingNear(p, st, K.STRING_RUN_R) ~= nil end
+    local near = w.stringState == "run"   -- fix 5: any standing within K.STRING_RUN_R (fix 8: the states' read)
     if turn then
         M.stopWalk(p, st)
         K.workStringGait(p, w, false)

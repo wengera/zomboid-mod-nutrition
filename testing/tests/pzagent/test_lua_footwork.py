@@ -26,8 +26,8 @@ WORK = {"workR": 3.5, "crawlerR": 1.2, "bandLo": 0.4, "floorHealth": 0.0, "reach
 BAND_X = 10.95   # the target 0.95 tiles east: inside the band, beyond K.WORK_POINT_BLANK_R
 WORK_LEAF = {"heading", "turn", "clear", "gap", "n", "crawler", "held", "pile", "step_for", "retreat", "stall_held", "repin_for",
              "nan_heading", "shove_for", "disposition", "pinned",
-             "turn_for"}   # Plan 36 Task 1 fix 1: nan_heading; Task 2b: shove_for   # fix 2: held; fix 3: pile; fix 5: step_for
-# Plan 37 Task 2 (PZA/1.16): disposition, pinned and turn_for
+             "turn_for", "string_state"}   # Plan 36 Task 1 fix 1: nan_heading; Task 2b: shove_for   # fix 2: held; fix 3: pile; fix 5: step_for
+# Plan 37 Task 2 (PZA/1.16): disposition, pinned and turn_for; fix 8: string_state
 LOOK_OFF = {"look": math.pi, "turn": 0.0, "snap": False}   # the look held away: the meet never presses
 
 
@@ -2047,11 +2047,11 @@ def test_under_string_a_closing_leader_beyond_contact_with_the_second_near_keeps
 def test_under_string_a_leader_closing_at_1_8_latches_the_run(lua, fs):
     """The leader 7 at 5.0 closing at 1.8 tiles a second (above K.STRING_RUN_V, 1.0 since fix 1): the run wanted on
     the walk; the falsifier, closing at 0.7: the walk."""
-    p, z, w, recs = group_world(lua, 15.0, [], zspeed=1.8)
+    p, z, w, recs = group_world(lua, 15.0, [(16.0, 20.0)], zspeed=1.8)   # fix 8: a second behind, no wait
     gow(lua, p, disposition="string")
     grun(lua, p, w, recs, 10)
     assert work_of(lua, "stepFor") == "string" and lua.eval("PZA.motor.wantRun") is True
-    p2, z2, w2, recs2 = group_world(lua, 15.0, [], zspeed=0.7)
+    p2, z2, w2, recs2 = group_world(lua, 15.0, [(16.0, 20.0)], zspeed=0.7)
     gow(lua, p2, aid="m2", disposition="string")
     grun(lua, p2, w2, recs2, 10)
     assert work_of(lua, "stepFor") == "string" and lua.eval("PZA.motor.wantRun") is False
@@ -2385,21 +2385,21 @@ def test_under_string_a_standing_zombie_beyond_work_r_inside_4_0_wants_the_run(l
 
 
 def test_under_string_the_nearest_at_5_0_and_no_fast_closer_walks(lua, fs):
-    p, z, w, recs = group_world(lua, 15.0, [])
+    p, z, w, recs = group_world(lua, 15.0, [(16.0, 20.0)])   # fix 8: a second behind, no wait
     gow(lua, p, disposition="string")
     grun(lua, p, w, recs, 6)
     assert work_of(lua, "stepFor") == "string" and _wants_run(lua) is False
 
 
 def test_under_string_a_fast_closer_at_6_0_latches_the_run(lua, fs):
-    p, z, w, recs = group_world(lua, 16.0, [], zspeed=1.4)
+    p, z, w, recs = group_world(lua, 16.0, [(17.0, 20.0)], zspeed=1.4)   # fix 8: a second behind, no wait
     gow(lua, p, disposition="string")
     grun(lua, p, w, recs, 6)
     assert _wants_run(lua) is True
 
 
 def test_under_string_the_gait_falls_back_to_walk_once_the_nearest_passes_4_0(lua, fs):
-    p, z, w, recs = group_world(lua, 13.5, [])
+    p, z, w, recs = group_world(lua, 13.5, [(15.0, 20.0)])   # fix 8: a second behind, no wait
     gow(lua, p, disposition="string")
     grun(lua, p, w, recs, 2)
     assert _wants_run(lua) is True
@@ -2492,3 +2492,72 @@ def test_under_the_string_s_walk_state_the_knock_down_stays_off(lua, fs):
     world(lua, zx=11.0)
     assert lua.eval("PZA.skills.DISPOSITIONS.string.knockdown") is False
     assert lua.eval("PZA.skills.DISPOSITIONS[PZA.skills.DISPOSITIONS.string.contact].knockdown") is True
+
+
+# ---- Plan 37 Task 2 fix 8: the string waits for an isolated leader (x_trial-ladder-20261112-080105) ----------------
+
+def _state(lua, fs):
+    return [lf.get("string_state") for lf in leaves_of(lua, fs)]
+
+
+def test_under_string_the_nearest_at_6_with_the_second_at_9_5_waits(lua, fs):
+    """The leader isolated (the second 3.5 behind it): no walk, the stance held, the facing on the leader, step stand,
+    string_state wait."""
+    p, z, w, recs = group_world(lua, 16.0, [(19.5, 20.0)])
+    gow(lua, p, disposition="string")
+    grun(lua, p, w, recs, 5)
+    assert _state(lua, fs)[-1] == "wait" and lua.eval("PZA.skills.cur.st.step") == "stand"
+    assert w["px"] == 10.0 and lua.eval("PZA.skills.stance.held") is True
+    assert w["face_to"] == pytest.approx(0.0, abs=1e-6)   # east, on the leader
+
+
+def test_under_string_the_nearest_at_6_with_the_second_at_7_5_walks(lua, fs):
+    p, z, w, recs = group_world(lua, 16.0, [(17.5, 20.0)])
+    gow(lua, p, disposition="string")
+    grun(lua, p, w, recs, 5)
+    assert _state(lua, fs)[-1] == "walk" and work_of(lua, "stepFor") == "string" and w["px"] < 10.0
+
+
+def test_under_string_the_nearest_at_3_runs(lua, fs):
+    p, z, w, recs = group_world(lua, 13.0, [(14.0, 20.0)])
+    gow(lua, p, disposition="string")
+    grun(lua, p, w, recs, 3)
+    assert _state(lua, fs)[-1] == "run" and lua.eval("PZA.motor.wantRun") is True
+
+
+def test_under_string_no_second_standing_waits(lua, fs):
+    p, z, w, recs = group_world(lua, 16.0, [])
+    gow(lua, p, disposition="string")
+    grun(lua, p, w, recs, 3)
+    assert _state(lua, fs)[-1] == "wait" and w["px"] == 10.0
+
+
+def test_the_waited_leader_arriving_is_pressed_with_turn_for(lua, fs):
+    """The leader alone at 6.0 closing at 2.4 (the reach 1.25, the fake bat's): the wait holds through 4.0 (the leader
+    still isolated), the contact table presses it as it arrives, turn_for {leader 7} on the press's line."""
+    p, z, w, recs = group_world(lua, 16.0, [], zspeed=2.4)
+    gow(lua, p, disposition="string", reach=1.25)
+    grun(lua, p, w, recs, 200, stop=lambda: w["presses"])
+    assert w["presses"] and "run" not in _state(lua, fs) and "walk" not in _state(lua, fs)
+    sw = [a for a in progress(lua, fs) if a["result"]["step"] in ("swing", "shove")]
+    assert sw and sw[0]["result"]["work"]["turn_for"]["leader"] == 7
+
+
+def test_a_fallen_zombie_at_the_feet_under_the_wait_takes_the_buffer_step_first(lua, fs):
+    p, z, w = world(lua, zx=16.0, attack_ticks=6)
+    o = fallen_zombie(30, 10.0, 20.7)
+    records(lua, [target_rec(w), {"id": 30, "dist": 0.7, "onFloor": True, "x": 10.0, "y": 20.7}], {7: z, 30: o})
+    gow(lua, p, disposition="string")
+    run(lua, p, w, 2)
+    assert work_of(lua, "stepFor") == "crawler_buffer"
+
+
+def test_the_wait_never_stands_in_a_pocket_with_the_leader_down_its_open_side(lua, fs):
+    """The player's square open only to the east (the ring's 0 heading; every other neighbour solid) and the isolated
+    leader coming from the east: no wait, the walk's state."""
+    p, z, w = world(lua, zx=16.0, squares=False)
+    grid(lua, solid={(9, 19), (9, 20), (9, 21), (10, 19), (10, 21), (11, 19), (11, 21)})
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p, disposition="string")
+    run(lua, p, w, 2)
+    assert "wait" not in _state(lua, fs)
