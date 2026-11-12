@@ -643,24 +643,6 @@ def test_a_count_flickering_4_5_within_ten_keeps_the_string(tmp_path):
 
 
 # ================================================================ fix 10: the exit by the whole list, never after a run
-def test_eleven_seen_with_six_listed_keeps_the_string(tmp_path):
-    """Fix 10 (the horde10 trial `x_trial-ladder-20261112-080105`, frame 300: 6 of 11 zombies listed, 2 within 10
-    tiles): in `string`, the frame reads `zombiesSeen` 11 and `zombiesListed` 6, two listed within 10 tiles and four
-    beyond, the rest aged out: no exit over 4 s (zombies beyond the list are there)."""
-    r, sv = string_rig(tmp_path)
-    zs = [zp(1, 0.0, 6.0), zp(10, 30.0, 8.0)] + [zp(20 + i, 180.0, 11.0) for i in range(4)]
-    r.advance(10.5)
-    from .fakemod import DEFAULT_FRAME
-    me = dict(DEFAULT_FRAME["me"], zombiesSeen=11, zombiesListed=6)
-    for k in range(9):
-        r.advance(0.5)
-        r.fake.frame(me=me, zombies=zs)
-        r.pump()
-        tick(r, sv)
-        assert "disposition" not in threat_why(tmp_path), k
-    assert sv.disposition == "string"
-
-
 def run_leaf(r, at):
     m = melee_of(r)
     r.fake.act(m.aid, "progress", "melee", result={"step": "work", "work": {"string_state": at, "disposition": "string"}})
@@ -685,8 +667,8 @@ def test_a_run_leaf_2_s_old_keeps_the_string_whatever_the_count(tmp_path):
 
 
 def test_four_listed_for_the_dwell_with_none_seen_beyond_leave(tmp_path):
-    """Fix 10: in `string`, at most GROUP_LEAVE_N listed (three, and seen: `zombiesSeen` 3 equal to
-    `zombiesListed`) for the dwell, no run leaf: the string leaves."""
+    """Fix 10 as fix 12 left it: in `string`, at most GROUP_LEAVE_N listed (three) for the dwell, no run leaf: the
+    string leaves (the frame's `zombiesSeen` is no longer read)."""
     r, sv = string_rig(tmp_path)
     three = [zp(1, 0.0, 6.0), zp(10, 30.0, 7.0), zp(11, -30.0, 8.0)]
     forget(tmp_path, r, sv, three)

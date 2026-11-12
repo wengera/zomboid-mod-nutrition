@@ -17,8 +17,8 @@ the leave row, the engagement picker's pull, no `disposition` on the wire).
   `string` whenever STRING_N or more stand within STRING_ENTRY_R, entered at once from none, `hunt` or `hold` (why
   `count`, no dwell: the count's jump is an event); left only to `hold` (GROUP_LEAVE_N or more within HOLD_ENTRY_R)
   or `hunt` once at most GROUP_LEAVE_N standing zombies have been listed, whatever their distance, for
-  DISPOSITION_DWELL_S, with the frame's `zombiesSeen` no more than its `zombiesListed` and no line within
-  STRING_RUN_HOLD_S reading the melee leaf's `string_state` run (fix 10: a run carries the group off the list), or to
+  DISPOSITION_DWELL_S, with no line within STRING_RUN_HOLD_S reading the melee leaf's `string_state` run (fix 10: a
+  run carries the group off the list; fix 12 dropped the `zombiesSeen` guard, the cell's list on a populated map), or to
   `break` on
   the health floor, `cornered` (no open heading, the ring closed round the string heading or its open line under
   PULL_ROOM_NEED, for BREAK_CORNERED_S) or `sprinter` (the leader above SPRINTER_V with its gap shrinking on
@@ -171,14 +171,11 @@ class Disposer:
         m = f.m if f is not None and f._engaged() else None
         if m is not None and ((m._progress.get("work") or {}).get("string_state")) == "run":
             self._run_at = self.clock()   # fix 10: the run just opened the gap; the group is coming
-        me = self.world.me or {}
-        seen, listed = me.get("zombiesSeen"), me.get("zombiesListed")
-        beyond = (isinstance(seen, int) and isinstance(listed, int) and not isinstance(seen, bool)
-                  and seen > listed)   # fix 10: zombies the frame does not list (beyond its sense radius)
         dead = blocked(self.dead, self.clock())
         n_list = sum(1 for zid, z in self.world.zombies.items()   # fix 10: every listed standing zombie
                      if not on_floor(z) and not is_crawler(z) and z.get("x") is not None and zid not in dead)
-        return {"n_list": n_list, "beyond": beyond, "n": self.group_n, "n_on": len(on), "entry": entry, "health": self._health(), "leader": leader,
+        return {"n_list": n_list, "n": self.group_n, "n_on": len(on), "entry": entry, "health": self._health(),
+                "leader": leader,
                 "speed": speed, "n_range": len(standing),
                 "n_hold": sum(1 for e in standing if e[2] <= HOLD_ENTRY_R + RETREAT_HOLD_R)}
 
@@ -208,8 +205,8 @@ class Disposer:
             why = self._string_read[1]
             cornered = why is None or why.get("room") == "closed" or why.get("open", 0.0) < PULL_ROOM_NEED
         return {"hold_low": self._for("hold_low", f["n_hold"] < GROUP_LEAVE_N),
-                "string_low": self._for("string_low", f["n_list"] <= GROUP_LEAVE_N and not f["beyond"]
-                                        and not self._run_recent()),   # fix 10: the whole list, never after a run
+                "string_low": self._for("string_low", f["n_list"] <= GROUP_LEAVE_N
+                                        and not self._run_recent()),   # fixes 10, 12: the whole list, never after a run
                 "cornered": self._for("cornered", cornered),
                 "calm": self._for("calm", f["n"] <= GROUP_LEAVE_N and f["health"] > FLEE_HEALTH)}
 
