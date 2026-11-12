@@ -1186,6 +1186,9 @@ HOLD_ENTRY_R = KEEP_R + 1.0   # tiles: fix 8 (the horde8 trial `x_trial-ladder-2
                               # three closing within 6 with only the leader in reach), the `hold` disposition's count:
                               # GROUP_LEAVE_N standing within this (Angus's "three on you"), closing or on; under it
                               # `hunt` whatever stands farther; its exit under GROUP_LEAVE_N within it + RETREAT_HOLD_R
+STRING_RUN_HOLD_S = 4.0    # seconds: fix 10 (the horde10 trials `x_trial-ladder-20261112-080105` and -081859: the
+                           # string's run carried the group off the frame's list and the count exit fired 3.5 s in):
+                           # no string exit within this of a line whose engaged melee's leaf read `string_state` run
 STRING_RELEASE_R = 8.0     # tiles: under `string` the melee is sent at a pin this near (the Lua's K.STRING_RELEASE_R,
                            # its release radius under the string), so the walk away starts before contact
 SPRINT_READS = 3           # decision lines in a row the sprinter's gap shrinks before the `break`, § 3.2

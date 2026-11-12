@@ -212,16 +212,28 @@ def string_rig(tmp_path):
     return r, sv
 
 
+def forget(tmp_path, r, sv, zs):
+    """Fix 10: one line over `zs` ZOMBIE_TTL_S and more on, so every zombie the frames stopped listing has aged out
+    of the World's list (the string's exit reads the whole list); the line's (why, action)."""
+    r.advance(10.5)
+    return line(tmp_path, r, sv, zs)
+
+
 def test_string_holds_at_four_and_leaves_to_hold_after_the_dwell_at_three(tmp_path):
     """In `string`: four standing (inside the hysteresis band) hold it whatever the time; three for under
     DISPOSITION_DWELL_S hold it; three for the dwell leave the string (why count), to `hunt` (fix 8: under three
-    within HOLD_ENTRY_R, the first line's 1 at 2.4 alone there)."""
+    within HOLD_ENTRY_R, the first line's 1 at 2.4 alone there). Fix 10: the counts are the whole list's, so the
+    frames list only these and the rest age out (`forget`)."""
     r, sv = string_rig(tmp_path)
-    lines(tmp_path, r, sv, [group(3, 4.0)] * 6)   # with the first line's 1, still listed at 2.4 tiles: four
-    assert sv.disposition == "string" and sv.group_n == 4
-    out = lines(tmp_path, r, sv, [group(2, 4.0)] * 5)
+    four = group(3, 4.0)[:3] + [zp(1, 0.0, 2.4)]
+    forget(tmp_path, r, sv, four)
+    lines(tmp_path, r, sv, [four] * 6)
+    assert sv.disposition == "string"
+    three = group(2, 4.0)[:2] + [zp(1, 0.0, 2.4)]
+    first, _ = forget(tmp_path, r, sv, three)   # the fourth aged out: three listed from this line
+    out = lines(tmp_path, r, sv, [three] * 5)
     tos = [w.get("disposition", {}).get("to") for w, _ in out]
-    assert tos[:4] == [None] * 4 and tos[4] == "hunt" and sv.disposition == "hunt"
+    assert "disposition" not in first and tos[:3] == [None] * 3 and tos[3] == "hunt" and sv.disposition == "hunt"
 
 
 # ================================================================ break
@@ -445,14 +457,16 @@ def test_a_strung_out_group_keeps_the_string_past_the_dwell(tmp_path):
 
 
 def test_three_within_string_entry_r_leave_the_string_to_hold(tmp_path):
-    """Fix 5: in `string`, three standing within STRING_ENTRY_R (one within 6, two beyond) and the rest gone beyond
-    12 tiles: the string leaves (why count) once they have read so for DISPOSITION_DWELL_S, to `hunt` (fix 8: none
-    within HOLD_ENTRY_R)."""
+    """Fix 5: in `string`, three standing listed (one within 6, two beyond) and the rest no longer listed: the string
+    leaves (why count) once they have read so for DISPOSITION_DWELL_S, to `hunt` (fix 8: none within
+    HOLD_ENTRY_R). Fix 10: the rest aged out of the list (`forget`), the count the whole list's."""
     r, sv = string_rig(tmp_path)
-    out = lines(tmp_path, r, sv, [strung(1, 1)] * 6)   # 1 at 9.8, one at 4, one at 7: three within STRING_ENTRY_R
+    three = [z for z in strung(1, 1) if z["id"] in (1, 20, 30)]   # 1 at 9.8, one at 4, one at 7
+    forget(tmp_path, r, sv, three)
+    out = lines(tmp_path, r, sv, [three] * 6)
     tos = [w.get("disposition", {}).get("to") for w, _ in out]
     k = tos.index("hunt")
-    assert out[k][0]["disposition"]["why"] == "count" and k == 4 and all(t is None for t in tos[:k])
+    assert out[k][0]["disposition"]["why"] == "count" and k == 3 and all(t is None for t in tos[:k])
 
 
 def test_a_string_melee_lost_out_of_range_is_re_sent_never_walked(tmp_path):
@@ -554,11 +568,11 @@ def test_three_closing_within_3_tiles_read_hold(tmp_path):
 
 
 def test_the_string_s_exit_with_two_within_3_5_and_one_at_6_reads_hunt(tmp_path):
-    """Fix 8: in `string`, two standing within HOLD_ENTRY_R and one at 6 tiles (the rest gone beyond 12): the string
-    leaves after the dwell to `hunt` (under three within 3.5)."""
+    """Fix 8: in `string`, two standing within HOLD_ENTRY_R and one at 6 tiles, the rest no longer listed (fix 10:
+    aged out, `forget`): the string leaves after the dwell to `hunt` (under three within 3.5)."""
     r, sv = string_rig(tmp_path)
-    zs = ([zp(1, 0.0, 2.0), zp(10, 40.0, 3.0), zp(11, -40.0, 6.0)]
-          + [zp(12 + i, 180.0, 14.0) for i in range(6)])
+    zs = [zp(1, 0.0, 2.0), zp(10, 40.0, 3.0), zp(11, -40.0, 6.0)]
+    forget(tmp_path, r, sv, zs)
     out = lines(tmp_path, r, sv, [zs] * 6)
     ds = [w["disposition"] for w, _ in out if "disposition" in w]
     assert ds and ds[0]["from"] == "string" and ds[0]["to"] == "hunt"
@@ -597,8 +611,9 @@ def test_eight_within_ten_with_four_inside_1_5_read_string_and_keep_it(tmp_path)
 
 
 def test_the_count_falling_to_three_within_ten_leaves_the_string_by_the_hold_s_count(tmp_path):
-    """Fix 9: in `string`, three standing within STRING_ENTRY_R for DISPOSITION_DWELL_S: the string leaves on the
-    dwell's line, to `hold` with the three within HOLD_ENTRY_R, to `hunt` with them beyond it."""
+    """Fix 9: in `string`, three standing listed for DISPOSITION_DWELL_S (fix 10: the whole list, the rest aged out,
+    `forget`): the string leaves on the dwell's line, to `hold` with the three within HOLD_ENTRY_R, to `hunt` with them
+    beyond it."""
     for near, want in ((True, "hold"), (False, "hunt")):
         d = tmp_path / want
         d.mkdir()
@@ -606,11 +621,11 @@ def test_the_count_falling_to_three_within_ten_leaves_the_string_by_the_hold_s_c
         lines(d, r, sv, [eight() + [zp(1, 0.0, 9.5)]] * 2)
         assert sv.disposition == "string"
         three = [zp(60 + i, b, (1.2 if near else 5.0) + 0.3 * i) for i, b in enumerate((0.0, 60.0, -60.0))]
-        gone = [dict(z, x=z["x"] + 20.0) for z in eight() + [zp(1, 0.0, 9.5)]]   # still listed, 20 tiles east
-        out = lines(d, r, sv, [three + gone] * 6)
+        forget(d, r, sv, three)
+        out = lines(d, r, sv, [three] * 6)
         tos = [w.get("disposition", {}).get("to") for w, _ in out]
         k = next(i for i, t in enumerate(tos) if t is not None)
-        assert tos[k] == want and out[k][0]["disposition"]["why"] == "count" and k == 4, (want, tos)
+        assert tos[k] == want and out[k][0]["disposition"]["why"] == "count" and k == 3, (want, tos)
 
 
 def test_a_count_flickering_4_5_within_ten_keeps_the_string(tmp_path):
@@ -624,3 +639,81 @@ def test_a_count_flickering_4_5_within_ten_keeps_the_string(tmp_path):
     five = four + [zp(74, -80.0, 6.0)]
     out = lines(tmp_path, r, sv, [gone + (four if k % 2 == 0 else five) for k in range(10)])
     assert all("disposition" not in w for w, _ in out) and sv.disposition == "string"
+
+
+# ================================================================ fix 10: the exit by the whole list, never after a run
+def test_eleven_seen_with_six_listed_keeps_the_string(tmp_path):
+    """Fix 10 (the horde10 trial `x_trial-ladder-20261112-080105`, frame 300: 6 of 11 zombies listed, 2 within 10
+    tiles): in `string`, the frame reads `zombiesSeen` 11 and `zombiesListed` 6, two listed within 10 tiles and four
+    beyond, the rest aged out: no exit over 4 s (zombies beyond the list are there)."""
+    r, sv = string_rig(tmp_path)
+    zs = [zp(1, 0.0, 6.0), zp(10, 30.0, 8.0)] + [zp(20 + i, 180.0, 11.0) for i in range(4)]
+    r.advance(10.5)
+    from .fakemod import DEFAULT_FRAME
+    me = dict(DEFAULT_FRAME["me"], zombiesSeen=11, zombiesListed=6)
+    for k in range(9):
+        r.advance(0.5)
+        r.fake.frame(me=me, zombies=zs)
+        r.pump()
+        tick(r, sv)
+        assert "disposition" not in threat_why(tmp_path), k
+    assert sv.disposition == "string"
+
+
+def run_leaf(r, at):
+    m = melee_of(r)
+    r.fake.act(m.aid, "progress", "melee", result={"step": "work", "work": {"string_state": at, "disposition": "string"}})
+    r.pump()
+
+
+def test_a_run_leaf_2_s_old_keeps_the_string_whatever_the_count(tmp_path):
+    """Fix 10: in `string`, the engaged melee's leaf reads `string_state` run, then three standing listed for the
+    dwell: no exit within STRING_RUN_HOLD_S of the run line (4 s); after it the exit's dwell runs and the string
+    leaves."""
+    r, sv = string_rig(tmp_path)
+    accept(r, melee_of(r), "work")
+    three = [zp(1, 0.0, 6.0), zp(10, 30.0, 7.0), zp(11, -30.0, 8.0)]
+    forget(tmp_path, r, sv, three)
+    run_leaf(r, "run")
+    line(tmp_path, r, sv, three)
+    run_leaf(r, "walk")
+    out = lines(tmp_path, r, sv, [three] * 12)
+    tos = [w.get("disposition", {}).get("to") for w, _ in out]
+    k = next(i for i, t in enumerate(tos) if t is not None)
+    assert k >= 8 - 1 and tos[k] == "hunt", tos   # 4 s after the run line, then the 2 s dwell from it at the most
+
+
+def test_four_listed_for_the_dwell_with_none_seen_beyond_leave(tmp_path):
+    """Fix 10: in `string`, at most GROUP_LEAVE_N listed (three, and seen: `zombiesSeen` 3 equal to
+    `zombiesListed`) for the dwell, no run leaf: the string leaves."""
+    r, sv = string_rig(tmp_path)
+    three = [zp(1, 0.0, 6.0), zp(10, 30.0, 7.0), zp(11, -30.0, 8.0)]
+    forget(tmp_path, r, sv, three)
+    from .fakemod import DEFAULT_FRAME
+    me = dict(DEFAULT_FRAME["me"], zombiesSeen=3, zombiesListed=3)
+    out = []
+    for k in range(6):
+        r.advance(0.5)
+        r.fake.frame(me=me, zombies=three)
+        r.pump()
+        tick(r, sv)
+        out.append(threat_why(tmp_path).get("disposition"))
+    assert any(d is not None and d["from"] == "string" for d in out), out
+
+
+def test_the_hunt_after_a_string_exit_waits_for_a_coming_leader(tmp_path):
+    """Fix 10 (the horde10 trial `x_trial-ladder-20261112-081859`, decision line 15: after the string's exit `hunt`
+    walked back toward the group): the string's exit to `hunt` with one standing closing at 6 tiles: no `walkTo` and
+    no seek toward it (`hold_ground`: the stance waits), logged `hunt_hold` {why "coming"}."""
+    r, sv = string_rig(tmp_path)
+    one = [zp(1, 0.0, 7.0)]
+    forget(tmp_path, r, sv, one)
+    out = lines(tmp_path, r, sv, [one] * 5)
+    assert sv.disposition == "hunt"
+    n = len(r.acts.history)
+    seen = []
+    for k in range(4):
+        why, _ = line(tmp_path, r, sv, [zp(1, 0.0, 6.0 - 0.3 * k)])
+        seen.append(why.get("hunt_hold"))
+    assert all(h is not None and h["why"] == "coming" and h["target"] == 1 for h in seen[1:]), seen
+    assert not any(a.type == "walkTo" for a in r.acts.history[n:])

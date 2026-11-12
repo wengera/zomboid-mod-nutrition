@@ -165,6 +165,8 @@ class ThreatGroup:
         prev = self._group_prev
         self._group_closing = [(zid, z, d) for zid, z, d in near
                                if d <= GROUP_ENTRY_R and zid in prev and d < prev[zid]]
+        self._group_coming = [(zid, z, d) for zid, z, d in near   # Plan 37 Task 3 fix 10: closing within
+                              if zid in prev and d < prev[zid]]           # DISENGAGE_R (the hunt's hold reads it)
         self._group_prev = {zid: d for zid, _, d in near}
 
     # ------------------------------------------------------------------------------------------------ the leave

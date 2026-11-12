@@ -755,6 +755,7 @@ class Survive(SneakGait, Threat):
         self.group_leave = None   # this tick: the leave's why (a leave taken, held, ended or withheld), else None
         self._group_prev = {}     # standing zombie id -> tiles on the last tick, within DISENGAGE_R (the closing read)
         self._group_closing = []  # this tick: (id, zombie, tiles) of the standing within GROUP_NEAR_R nearer than before
+        self._group_coming = []   # this tick: the same within DISENGAGE_R (Plan 37 Task 3 fix 10, the hunt's hold)
         self.group_n = 0          # this tick: the standing zombies within GROUP_ENTRY_R (Plan 34, `_group_read`)
         self.pull = None          # this tick: the engagement picker's withdraw (Plan 36 Task 3, `_pull`), else None
         self.engage_pull = None   # this tick: its why {why, spread, n, heading[, flank]}, else None

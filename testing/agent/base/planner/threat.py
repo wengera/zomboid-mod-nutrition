@@ -1253,7 +1253,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         why, whichever row answered."""
         for key, v in (("disposition", self.disposition_why), ("release", self.release_why),
                        ("string_heading", self.string_why), ("care_ride", self.care_ride),
-                       ("care_start", self.care_start)):
+                       ("care_start", self.care_start), ("hunt_hold", self.hunt_hold)):
             if v is not None:
                 self.why = dict(self.why or {}, **{key: v})
 

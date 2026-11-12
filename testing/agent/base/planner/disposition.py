@@ -16,14 +16,18 @@ the leave row, the engagement picker's pull, no `disposition` on the wire).
 - The table (`select`, `_want`; every threshold a `policies.py` constant):
   `string` whenever STRING_N or more stand within STRING_ENTRY_R, entered at once from none, `hunt` or `hold` (why
   `count`, no dwell: the count's jump is an event); left only to `hold` (GROUP_LEAVE_N or more within HOLD_ENTRY_R)
-  or `hunt` once at most GROUP_LEAVE_N have stood within STRING_ENTRY_R for DISPOSITION_DWELL_S, or to `break` on
+  or `hunt` once at most GROUP_LEAVE_N standing zombies have been listed, whatever their distance, for
+  DISPOSITION_DWELL_S, with the frame's `zombiesSeen` no more than its `zombiesListed` and no line within
+  STRING_RUN_HOLD_S reading the melee leaf's `string_state` run (fix 10: a run carries the group off the list), or to
+  `break` on
   the health floor, `cornered` (no open heading, the ring closed round the string heading or its open line under
   PULL_ROOM_NEED, for BREAK_CORNERED_S) or `sprinter` (the leader above SPRINTER_V with its gap shrinking on
   SPRINT_READS reads in a row).
   Below STRING_N: `hold` on the hold's entry (three on you), left to `hunt` under GROUP_LEAVE_N within HOLD_ENTRY_R +
   RETREAT_HOLD_R for the dwell; `hunt` otherwise; the hold's entry with a leave door read `break` (`leave`).
   `break`: at most GROUP_LEAVE_N within GROUP_ENTRY_R with the health above FLEE_HEALTH for the dwell, then `hold` or
-  `hunt` by the hold's count.
+  `hunt` by the hold's count. Fix 10: a `hunt` that followed a string's exit seeks no zombie while one stands closing
+  beyond KEEP_R within STRING_ENTRY_R (`hold_ground`, the stance waits for the leader), logged `hunt_hold`.
   Any: the health at or under FLEE_HEALTH (the reflex's `floor`) `break` (`health`), no dwell. Every other change
   but the string's entry waits until the running disposition has held DISPOSITION_DWELL_S. A change is logged
   `disposition` {from, to, why, dwell} on the threat why of its line only.
@@ -65,8 +69,8 @@ from agent.base.planner.crawler import is_crawler
 from agent.base.planner.policies import (BREAK_CORNERED_S, DISPOSITION_DWELL_S, FLEE_HEALTH, GROUP_ENTRY_R,
                                          GROUP_LEAVE_N, HOLD_ENTRY_R, KEEP_R, PULL_ROOM_NEED, RELEASE_WAIT_S,
                                          RETREAT_HOLD_R, SPRINT_READS, SPRINTER_V, STRING_ENTRY_R, STRING_LOOK_R,
-                                         STRING_N, STRING_RELEASE_R, STRING_STEP_DEG, STRING_TURN_DEG, target_id_ok,
-                                         zdist)
+                                         STRING_N, STRING_RELEASE_R, STRING_RUN_HOLD_S, STRING_STEP_DEG,
+                                         STRING_TURN_DEG, blocked, on_floor, target_id_ok, zdist)
 from agent.base.pza1 import Rip
 from agent.base.world import me_xy
 
@@ -105,6 +109,9 @@ class Disposer:
         self._disp_since = {}            # condition name -> the wall it first read true (the condition clocks)
         self._sprint = (None, None, 0)   # (the leader's id, its tiles on the last read, the shrinking reads in a row)
         self.care_ride = None            # fix 3: this tick's ride over the engaged melee {under, cmd}, else None
+        self._run_at = None              # fix 10: the wall of the last line whose melee leaf read string_state run
+        self._after_string = False       # fix 10: the running `hunt` follows a string's exit (the hunt's hold reads it)
+        self.hunt_hold = None            # fix 10: this tick's hunt hold {why "coming", target, d}, else None
         self.care_pending = None         # fix 6: the care start's release {asked, kind, end, waited}, else None
         self.care_start = None           # fix 6: this tick's care start {under, action, released}, else None
         self.care_hold = None            # fix 6: this tick's care held under the disposition {why, action}, else None
@@ -126,6 +133,7 @@ class Disposer:
         self.disposition, self.disposition_since, self.break_reason, self.release_pending = None, None, None, None
         self.care_pending = None
         self._disp_since, self._sprint = {}, (None, None, 0)
+        self._run_at, self._after_string = None, False
 
     # ---------------------------------------------------------------------------------------------------- the read
     def _disposition_read(self, held):
@@ -154,9 +162,24 @@ class Disposer:
         clock = getattr(self, "action_clock", None)
         if leader is not None and clock is not None:
             speed = _own_speed(clock.tracks.get(leader[0]))
-        return {"n": self.group_n, "n_on": len(on), "entry": entry, "health": self._health(), "leader": leader,
+        f = self.fight
+        m = f.m if f is not None and f._engaged() else None
+        if m is not None and ((m._progress.get("work") or {}).get("string_state")) == "run":
+            self._run_at = self.clock()   # fix 10: the run just opened the gap; the group is coming
+        me = self.world.me or {}
+        seen, listed = me.get("zombiesSeen"), me.get("zombiesListed")
+        beyond = (isinstance(seen, int) and isinstance(listed, int) and not isinstance(seen, bool)
+                  and seen > listed)   # fix 10: zombies the frame does not list (beyond its sense radius)
+        dead = blocked(self.dead, self.clock())
+        n_list = sum(1 for zid, z in self.world.zombies.items()   # fix 10: every listed standing zombie
+                     if not on_floor(z) and not is_crawler(z) and z.get("x") is not None and zid not in dead)
+        return {"n_list": n_list, "beyond": beyond, "n": self.group_n, "n_on": len(on), "entry": entry, "health": self._health(), "leader": leader,
                 "speed": speed, "n_range": len(standing),
                 "n_hold": sum(1 for e in standing if e[2] <= HOLD_ENTRY_R + RETREAT_HOLD_R)}
+
+    def _run_recent(self):
+        """Fix 10: a line within STRING_RUN_HOLD_S read the engaged melee's leaf `string_state` run."""
+        return self._run_at is not None and self.clock() - self._run_at < STRING_RUN_HOLD_S
 
     def _for(self, key, cond):
         """Seconds condition `key` has read true without a break (0.0 when false, the clock cleared)."""
@@ -180,7 +203,8 @@ class Disposer:
             why = self._string_read[1]
             cornered = why is None or why.get("room") == "closed" or why.get("open", 0.0) < PULL_ROOM_NEED
         return {"hold_low": self._for("hold_low", f["n_hold"] < GROUP_LEAVE_N),
-                "string_low": self._for("string_low", f["n_range"] <= GROUP_LEAVE_N),
+                "string_low": self._for("string_low", f["n_list"] <= GROUP_LEAVE_N and not f["beyond"]
+                                        and not self._run_recent()),   # fix 10: the whole list, never after a run
                 "cornered": self._for("cornered", cornered),
                 "calm": self._for("calm", f["n"] <= GROUP_LEAVE_N and f["health"] > FLEE_HEALTH)}
 
@@ -235,6 +259,7 @@ class Disposer:
         self.disposition_why = {"from": cur, "to": want, "why": why,
                                 "dwell": None if dwell is None else round(dwell, 3)}
         self.disposition, self.disposition_since = want, now
+        self._after_string = cur == "string" and want == "hunt"   # fix 10: the hunt's hold after a string's exit
         if want != "break":
             self.break_reason, self.release_pending = None, None
             return
@@ -379,6 +404,7 @@ class Disposer:
             self.string_why, policy.withdraw = why, vec
         else:
             policy.withdraw = self._pull(policy, "hunt")   # fix 1: Plan 36's spread and cone pulls, no retreat
+            self._hunt_hold(policy)
 
     # ---------------------------------------------------------------------------------------------------- the contract
     def _contract(self, plan, inside):
@@ -440,6 +466,22 @@ class Disposer:
             return None
         self.care_start = {"under": self.disposition, "action": "rip", "ride": "melee"}
         return care, cmd
+
+    def _hunt_hold(self, policy):
+        """Fix 10 (the horde10 trial `x_trial-ladder-20261112-081859`, decision line 15: after the string's exit `hunt`
+        walked back toward the group): under a `hunt` that followed a string's exit, while a standing zombie (not a
+        crawler) stands beyond KEEP_R within STRING_ENTRY_R closing (the leader coming), the Fight seeks none
+        (`hold_ground`: the stance waits for it, an aim leg, no walk), logged `hunt_hold` {why "coming", target, d}."""
+        self.hunt_hold = None
+        if not self._after_string:
+            return
+        coming = [(d, repr(zid), zid) for zid, z, d in self._group_coming
+                  if not is_crawler(z) and KEEP_R < d <= STRING_ENTRY_R]
+        if not coming:
+            return
+        d, _, zid = min(coming)
+        policy.hold_ground = True
+        self.hunt_hold = {"why": "coming", "target": zid, "d": round(d, 3)}
 
     def _pin_in_reach(self, policy, d):
         """Fix 8 (the same trial, lines 24 and 25: a `hold` melee re-sent at a pin 6.6 tiles off ended `too far` and an

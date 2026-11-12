@@ -250,11 +250,12 @@ def trial_8():
 
 
 def test_the_strung_group_s_leader_is_hunted_and_no_hold_melee_goes_beyond_reach():
-    """Fix 8: lines 21 to 31: the string leaves to `hunt` (under three within HOLD_ENTRY_R), never `hold`; no melee
+    """Fix 8: lines 21 to 31: the string never leaves to `hold` (fix 8's leave was to `hunt`; since fix 10 the exit
+    reads the whole list, so the string may hold through them); no melee
     goes under `hold`, and none at a pin beyond MELEE_RELEASE_R (the approach's aim or nothing in their place)."""
     rows, ticks = trial_8()
     ds = [threat(r)["disposition"] for k, r in enumerate(rows, 1) if 21 <= k <= 31 and "disposition" in threat(r)]
-    assert ds and all(d["to"] != "hold" for d in ds) and any(d["from"] == "string" and d["to"] == "hunt" for d in ds)
+    assert all(d["to"] != "hold" for d in ds), ds   # fix 10: the string's exit reads the whole list (it may hold)
     melees = [ticks[k - 1][2] for k in range(21, 32) if ticks[k - 1][1] == "melee"]
     assert all(m.args.get("disposition") != "hold" for m in melees)
 
@@ -278,3 +279,26 @@ def test_the_trial_s_group_reads_one_entry_into_string_and_no_exit():
     into = [k for k, d in ds if d["to"] == "string"]
     assert len(into) == 1 and ds[[k for k, _ in ds].index(into[0])][1]["why"] == "count"
     assert all(k <= into[0] for k, d in ds), ds
+
+
+# ================================================================ Task 3 fix 10: round one's horde10 trials
+# `x_trial-ladder-20261112-081859` (P31-T, not evidence; at a2e1ebd9): replayed from this machine's run folder as above
+# (skipped where absent), open loop to line 21 (the controller's 0-based 1 to 20): the record's string exit at line 9
+# (its 8) with the group run off the list, and `hunt`'s walkTo back toward it at line 15 (its 14).
+TRIAL_10 = "x_trial-ladder-20261112-081859"
+
+
+@functools.lru_cache(maxsize=1)
+def trial_10():
+    return trial_replay(TRIAL_10, 21)
+
+
+def test_the_string_holds_while_the_group_is_off_the_list_and_no_walk_goes_back():
+    """Fix 10: lines 2 to 21: once entered the string takes no count exit through line 21 (the exit reads the whole
+    list and the frame's `zombiesSeen` beyond it, never within STRING_RUN_HOLD_S of a run; the open-loop replay reads
+    the sprinter's `break` at line 20, a different exit), and no `walkTo` goes."""
+    rows, ticks = trial_10()
+    ds = [(k, threat(r)["disposition"]) for k, r in enumerate(rows, 1) if k <= 21 and "disposition" in threat(r)]
+    into = [k for k, d in ds if d["to"] == "string"]
+    assert into and not [k for k, d in ds if k > into[0] and d["from"] == "string" and d["why"] == "count"], ds
+    assert all(ticks[k - 1][1] != "walkTo" for k in range(2, 22)), [ticks[k - 1][1] for k in range(2, 22)]
