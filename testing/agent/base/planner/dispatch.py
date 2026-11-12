@@ -186,9 +186,23 @@ class FightDispatch:
         ladder takes the ends it took before (`ladder`)."""
         if contact and not (end == "handback" and why in HANDED_BACK) and end != "no weapon":
             self._m_kept = end
+            if end in ("lost", "too far") and self.disposition is not None:   # Plan 37 Task 3 fix 3: under a
+                self._pin_nearest()   # fight disposition the re-dispatch goes at the nearest standing
             return
         if ladder:
             self._m_ladder = True
+
+    def _pin_nearest(self):
+        """Plan 37 Task 3 fix 3 (the horde8 trial `x_trial-ladder-20261112-061307`, lines 153 and 157: the melee ended
+        in contact and the next line fled): the Fight's pin moved to the nearest standing zombie (not a crawler) within
+        KEEP_R that the Fight may target and has not marked (a `lost` end's own mark, `_lost_end`, stands); with none such
+        the pin stays (the threat branch's contract lifts a mark, `disposition.Disposer._contract`); never one beyond
+        KEEP_R."""
+        blocked = self.blocked()
+        near = [(d, repr(zid), zid) for zid, z, d in self._standing(KEEP_R) if target_id_ok(zid) and not is_crawler(z)
+                and (self.only is None or zid in self.only) and zid not in blocked]
+        if near:
+            self.target, self.repositioned = min(near)[2], False
 
     def _contact(self):
         """Plan 35 fixes 8 and 8b: a standing zombie (`_standing`, not a crawler) within KEEP_R of the player."""
@@ -305,6 +319,8 @@ class FightDispatch:
         if self._outside_only(m):
             self._retire_maneuver()   # Plan 35 fix 7: the door fight's melee re-pinned outside `only`: a new send
             return False
+        if self.actions.current is not m.action:
+            return True   # Plan 37 Task 3 fix 3: a keepMoving rip or bandage rides it: no re-send ends the ride
         return not m.resend_due()
 
     def _melee_mode(self, cmd):

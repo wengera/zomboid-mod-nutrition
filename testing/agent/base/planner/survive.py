@@ -577,12 +577,13 @@ T21_SWITCHES = ("ACTION_CLOCK", "BACKSWING")
 # sent with work carries backswing true (the Fight's `backswing`, set each tick; `dispatch.FightDispatch._work_inputs`),
 # so a press launched while the reflex's step walks keeps the walk held through it; off, the walk stopped on the
 # press's tick as before. The probe's off arm is the head before this switch, its on arm the head with it
-T22_SWITCHES = ("DISPOSITION",)
+T22_SWITCHES = ("DISPOSITION", "ENGAGED_RIDE")
 # Plan 37 Task 3 (the disposition; the spec `2026-11-12-plan-37-the-disposition-design.md` §§ 3.2, 3.4 and 3.5; F22,
 # `f_goals_22-20261111-215108`) on `disposition.Disposer`, the mixin `threat.Threat` derives from: DISPOSITION, the
 # selector picks hunt, hold, string or break on events with a dwell and owns the open-ground rows in contact, the melee
 # carrying the disposition, its withdraw and the release; off, the Plan 36 branch (the leave's row, the picker's pull,
-# no disposition on the wire)
+# no disposition on the wire). Fix 3: ENGAGED_RIDE, a bleeding part under `hold` or `string` rides the engaged melee
+# (the rip with keepMoving, the riding bandage under GROUP_LEAVE_N; `Disposer._engaged_ride`)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")

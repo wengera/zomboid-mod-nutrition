@@ -39,6 +39,18 @@ the leave row, the engagement picker's pull, no `disposition` on the wire).
   the sprinter's break reads SPRINTER_V (STRING_RUN_V, now 1.0, is the walk's run latch); under `string` the melee is
   sent at a pin within STRING_RELEASE_R (`dispatch.FightDispatch._release_r`, `_contact_r`) and the row answers with
   nobody yet within GROUP_ENTRY_R, the heading read off the standing within STRING_ENTRY_R.
+  Fix 3 (the horde8 trial `x_trial-ladder-20261112-061307`: six game minutes of `hold` inside a clump of four to
+  seven, the string barred by STRING_MIN_GAP; two `many` steers in contact; a scratch bled 98 to 42 undressed under
+  the engaged melee): `hold` with STRING_N within GROUP_ENTRY_R for STRING_PIN_S (`crowd`), or the leaf `pinned` for
+  STRING_PIN_S (`pinned`), enters `string` whatever the gap (STRING_MIN_GAP bars only the entries at range), and such
+  a string takes no clump exit; the contract (`_contract`, `Threat._threat_plan`): under `hunt`, `hold` or `string`
+  off a room square no `flee` plan goes with a standing zombie within KEEP_R, the Fight at the nearest such in its
+  place (`engage_dispatch` {from, target}), and a melee that ended `lost` or `too far` in contact re-pins the nearest
+  (`dispatch.FightDispatch._pin_nearest`); the ride (`_engaged_ride`, ENGAGED_RIDE): a bleeding part under `hold` or
+  `string` with the melee engaged sends the rip of a held unworn cotton garment with keepMoving over the melee (the
+  side slot, `policies.rides_on` reading the melee as its leg, no melee re-send and no clock hold while it rides), or
+  under GROUP_LEAVE_N the riding bandage of a part above the legs, logged `care_ride` {under, cmd[, why]} (why `worn`,
+  `nothing`, `stop` or `count` when nothing goes).
 - The row (`_disposition_plan`, `Threat._threat_plan`'s open-ground row in contact: off a room square, a standing
   zombie within GROUP_ENTRY_R): `hunt`, `hold`, `string` are the Fight (`("fight", None)`), whatever the flee reasons
   read; `break` keeps the Fight while the release it asked is pending, then the Flee (`cornered` and `sprinter` reason
@@ -58,19 +70,21 @@ the leave row, the engagement picker's pull, no `disposition` on the wire).
 """
 import math
 
+from agent.base.planner import care as C
 from agent.base.planner.clock import _own_speed
 from agent.base.planner.crawler import is_crawler
 from agent.base.planner.policies import (BREAK_CORNERED_S, DISPOSITION_DWELL_S, FLEE_HEALTH, GROUP_ENTRY_R,
                                          GROUP_LEAVE_N, KEEP_R, PULL_ROOM_NEED, RELEASE_WAIT_S, RETREAT_HOLD_R,
                                          SPRINT_READS, SPRINTER_V, STRING_ENTRY_R, STRING_LOOK_R, STRING_MIN_GAP,
-                                         STRING_N, STRING_PIN_S,
-                                         STRING_STEP_DEG, STRING_TURN_DEG)
+                                         STRING_N, STRING_PIN_S, STRING_STEP_DEG, STRING_TURN_DEG, target_id_ok)
+from agent.base.pza1 import Rip
 from agent.base.world import ROOM_HEADINGS, ROOM_STEP_DEG, me_xy
 
 __all__ = ["Disposer", "DISPOSITIONS", "WIRE", "BREAK_FLEE"]
 
 DISPOSITIONS = ("hunt", "hold", "string", "break")   # the selector's names (`break` is the Flee's, never on the wire)
 WIRE = ("hunt", "hold", "string")                     # the melee's `disposition` enum (pza1.MELEE_DISPOSITIONS)
+CLUMP_ENTRIES = ("crowd", "pinned")   # fix 3: the string's entries inside the clump, which take no clump exit
 BREAK_FLEE = {"cornered": "many", "sprinter": "many", "leave": "leave"}   # a break's reason -> the Flee's reason
                                                                           # (`health` decided by the rows below)
 
@@ -84,6 +98,9 @@ class Disposer:
     """The disposition selector (the module docstring): `Threat`'s mixin."""
 
     DISPOSITION = True   # Plan 37 Task 3 (survive.T22_SWITCHES): the selector; off, the Plan 36 branch
+    ENGAGED_RIDE = True  # fix 3 (survive.T22_SWITCHES): a bleeding part under `hold` or `string` rides the engaged
+                         # melee (`_engaged_ride`); off, the care waits for the clock's stop as before. Needs the
+                         # Lua's side slot to admit the melee as its leg (PZAgent_Tend.lua's K.RIDES)
 
     def _init_disposition(self):
         self.disposition = None          # the running disposition (DISPOSITIONS), else None
@@ -99,6 +116,8 @@ class Disposer:
         self._pin_n = None               # the standing count when the leaf first read `pinned`, else None
         self._sprint = (None, None, 0)   # (the leader's id, its tiles on the last read, the shrinking reads in a row)
         self._hold_heading = None        # the hold's last withdraw heading, degrees, else None
+        self._string_from = None         # fix 3: the running string's entry why (CLUMP_ENTRIES keep no clump exit)
+        self.care_ride = None            # fix 3: this tick's ride over the engaged melee {under, cmd}, else None
 
     # ---------------------------------------------------------------------------------------------------- the gate
     def _disposing(self):
@@ -177,6 +196,7 @@ class Disposer:
                 "string_low": self._for("string_low", f["n"] <= GROUP_LEAVE_N and f["coming"] < STRING_N),
                 "cornered": self._for("cornered", cornered),
                 "clump": self._for("clump", self.disposition == "string" and f["clump"]),
+                "crowd": self._for("crowd", f["n"] >= STRING_N),
                 "calm": self._for("calm", f["n"] <= GROUP_LEAVE_N and f["health"] > FLEE_HEALTH)}
 
     # ---------------------------------------------------------------------------------------------------- the table
@@ -211,18 +231,20 @@ class Disposer:
                 return "break", "cornered"
             if self._sprint[2] >= SPRINT_READS:
                 return "break", "sprinter"
-            if t["clump"] >= STRING_PIN_S or t["pinned"] >= STRING_PIN_S:
-                return "hold", "clump"   # fix 2: the string's nearest kept inside STRING_MIN_GAP, or the leaf pinned
+            if self._string_from not in CLUMP_ENTRIES and (t["clump"] >= STRING_PIN_S or t["pinned"] >= STRING_PIN_S):
+                return "hold", "clump"   # fix 2: a string entered at range whose nearest stays inside STRING_MIN_GAP
             if t["string_low"] >= DISPOSITION_DWELL_S:
                 return "hold", "count"
             return None, None
-        if not f["clump"]:   # fix 2: no string entered inside the clump (the answer there is `hold`, below)
+        if cur == "hold" and t["crowd"] >= STRING_PIN_S:
+            return "string", "crowd"   # fix 3: STRING_N within GROUP_ENTRY_R held STRING_PIN_S, whatever the gap
+        if cur == "hold" and t["pinned"] >= STRING_PIN_S:
+            return "string", "pinned"   # fix 3: whatever the gap (the pinned leaf is the clump itself)
+        if not f["clump"]:   # fix 2: no string entered at range inside the clump (the answer there is `hold`, below)
             if f["coming"] >= STRING_N:
                 return "string", "coming"   # fix 2: the group read coming, no dwell (`select`)
             if n >= STRING_N:
                 return "string", "count"
-            if cur == "hold" and t["pinned"] >= STRING_PIN_S:
-                return "string", "pinned"
             if cur == "hold" and self._walled(f["ring"]):
                 return "string", "walled"
         if f["entry"] and self._leave_door_open():
@@ -254,6 +276,7 @@ class Disposer:
         self.disposition_why = {"from": cur, "to": want, "why": why,
                                 "dwell": None if dwell is None else round(dwell, 3)}
         self.disposition, self.disposition_since = want, now
+        self._string_from = why if want == "string" else None
         if want != "break":
             self.break_reason, self.release_pending = None, None
             return
@@ -334,6 +357,64 @@ class Disposer:
             self.string_why, policy.withdraw = why, vec
         else:
             policy.withdraw = self._pull(policy, "hunt")   # fix 1: Plan 36's spread and cone pulls, no retreat
+
+    # ---------------------------------------------------------------------------------------------------- the contract
+    def _contract(self, plan, inside):
+        """Fix 3 (the horde8 trial `x_trial-ladder-20261112-061307`, decision lines 153 and 157: the drag guard's `many`
+        steer in contact between two melees): under `hunt`, `hold` or `string` off a room square, a `flee` plan with a
+        standing zombie (not a crawler) within KEEP_R is the Fight at the nearest such zombie instead (its mark lifted,
+        pinned as the point-blank fight is, logged `engage_dispatch` {from: the flee's reason, target}); any other plan
+        unchanged. No non-melee command goes in contact under a fight disposition."""
+        if (plan is None or plan[0] != "flee" or inside or self.disposition not in WIRE
+                or not self._disposing()):
+            return plan
+        near = [(d, repr(zid), zid) for zid, z, d in self._group_standing(KEEP_R) if not is_crawler(z)
+                and target_id_ok(zid)]
+        if not near:
+            return plan
+        d, _, zid = min(near)
+        self.unreachable.pop(zid, None)
+        self.engage_dispatch = {"from": plan[1] or "flee", "target": zid}
+        self.point_blank_fight = {"target": zid, "dist": d, "over": plan[1]}
+        self.group_steer, self.cornered, self._corner_fight = None, None, None
+        if self.mode == "fight" and self.fight is not None:
+            self.fight.target = zid
+        return "fight", None
+
+    # ---------------------------------------------------------------------------------------------------- the ride
+    def _engaged_ride(self):
+        """Fix 3 (the same trial: a scratch at game minute 601 bled the character from 98 to 42 under the engaged
+        melee, every line's care refused by the clock's contact read with no why, until the care chain at 605):
+        `(care, command)` when a part bleeds under `hold` or `string` with the melee engaged: with no dressing held the
+        rip of a held cotton garment riding the melee (`Rip` with keepMoving, PZA/1.15's side slot), with one held and
+        under GROUP_LEAVE_N standing within GROUP_ENTRY_R the riding bandage of the worst part above the legs; logged
+        `care_ride` {under, cmd}; else None (a ride already running, nothing to send: the clock's stop dresses it)."""
+        self.care_ride = None
+        if not (self.ENGAGED_RIDE and self.disposition in ("hold", "string") and self._disposing()):
+            return None
+        f, care = self.fight, self.care
+        if f is None or not f._engaged() or care.bleeding_n() <= 0 or self.night.inside():
+            return None
+        if self.actions.current is not f.m.action:
+            return None   # a ride already rides it
+        items = care._items()
+        cmd, why = None, None
+        if C.dressing_pick(items, 0.0, dirty_ok=True) is None:
+            iid = C.rip_pick(self.world, care.held_out) if self.world.can("rip") else None
+            cmd = Rip(iid, keepMoving=True) if iid is not None else None
+            if cmd is None:   # nothing unworn to tear: an unwear stops on a walk, so it waits for the clock's stop
+                worn = any(it.get("rip") == "cotton" and it.get("worn") is True for it in self.world.inventory.values())
+                why = "worn" if worn else "nothing"
+        elif self.group_n < GROUP_LEAVE_N and self.world.can("bandage"):
+            cmd = care._wound(items, care._bleeding(), ride=True)[0]
+            cmd = cmd if cmd is not None and cmd.TYPE == "bandage" and cmd.keepMoving else None
+            why = None if cmd is not None else "stop"   # a leg part: the bandage at the clock's stop
+        else:
+            why = "count"   # a dressing held under GROUP_LEAVE_N or more: the bandage waits for the count or the stop
+        self.care_ride = {"under": self.disposition, "cmd": None if cmd is None else cmd.TYPE}
+        if why is not None:
+            self.care_ride["why"] = why
+        return None if cmd is None else (care, cmd)
 
     # ---------------------------------------------------------------------------------------------------- the string
     def _string_heading(self):

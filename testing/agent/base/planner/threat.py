@@ -886,6 +886,11 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         return "near" if sum(1 for z in held if zdist(self.world, z) <= GROUP_NEAR_R) >= GROUP_R_N else None
 
     def _threat_plan(self, held, breach):
+        """The threat branch's decision (`_threat_rows`), then the contract under a fight disposition (Plan 37 Task 3
+        fix 3, `disposition.Disposer._contract`: no flee in contact under `hunt`, `hold` or `string`)."""
+        return self._contract(self._threat_rows(held, breach), self.night.inside())
+
+    def _threat_rows(self, held, breach):
         """The threat branch's one decision (ruling P23-AJ), `(kind, reason)`, the machines only executing it:
         - The doorway stand (ruling P24-AO, `_doorway`): `doorway` while the Flee's stand plan reads `stand`, then
           `flee` (reason `doorway`) while the stand's close, or its way out after an end under a group (P25-W), runs,
@@ -1173,6 +1178,12 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
             if self.avoid:   # Task 18 fix 1: the zombies within ENGAGE_R no engage reaches, logged as the goal runs
                 self.why = {"unsought": sorted(self.avoid, key=repr)}
             return None
+        ride = self._engaged_ride()   # Plan 37 Task 3 fix 3: the rip riding the engaged melee, first
+        if ride is not None:
+            self.care_yield = None
+            self.why = {"care_ride": self.care_ride, "fight": True, "held": len(held)}
+            self._disposition_whys()
+            return ride
         if self._clock_on():   # Plan 36 Task 4: a running timed action is cut by the clock only (`clock.py`)
             hold = self._clock_hold()
             if hold is not None:
@@ -1224,7 +1235,7 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         """Plan 37 Task 3: this tick's `disposition` change, `release` hand-over and `string_heading` on the threat
         why, whichever row answered."""
         for key, v in (("disposition", self.disposition_why), ("release", self.release_why),
-                       ("string_heading", self.string_why)):
+                       ("string_heading", self.string_why), ("care_ride", self.care_ride)):
             if v is not None:
                 self.why = dict(self.why or {}, **{key: v})
 

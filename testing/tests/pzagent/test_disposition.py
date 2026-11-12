@@ -72,7 +72,8 @@ def test_the_constants_and_the_switch():
     assert (P.STRING_ENTRY_R, P.STRING_MIN_GAP, P.STRING_RELEASE_R, P.SPRINTER_V) == (10.0, 1.5, 8.0, 1.6)
     assert (P.STRING_TURN_DEG, P.STRING_STEP_DEG, P.STRING_LOOK_R, P.RELEASE_WAIT_S, P.SPRINT_READS) == (
         120.0, 15.0, 10.0, 2.5, 3)
-    assert S.T22_SWITCHES == ("DISPOSITION",) and "T22_SWITCHES" in S.__all__ and T.Threat.DISPOSITION is True
+    assert S.T22_SWITCHES == ("DISPOSITION", "ENGAGED_RIDE") and "T22_SWITCHES" in S.__all__   # fix 3's ride
+    assert T.Threat.DISPOSITION is True and T.Threat.ENGAGED_RIDE is True
     assert not hasattr(P, "RETREAT_MAX_N") and not hasattr(T.Threat, "_group_lapse")
     assert not any(hasattr(T.Threat, n) for n in ("SPENT_LEAVE", "RUN_HOLD"))
     assert S.T18_SWITCHES == () and T.Threat.GROUP_LEAVE is True   # the leave's seam, out of the tuples
@@ -349,7 +350,8 @@ def test_eight_coming_enter_the_string_at_once_from_hunt_with_its_heading(tmp_pa
 
 def test_five_within_six_with_the_nearest_at_1_2_hold_and_never_string(tmp_path):
     """Fix 2: five standing within GROUP_ENTRY_R with the nearest at 1.2 tiles (inside STRING_MIN_GAP, the clump): no
-    `string` on any line; `hold` after the dwell (why entry)."""
+    `string` entered at range on any line; `hold` after the dwell (why entry). (Fix 3's clump entry comes once `hold`
+    has held its dwell: `test_a_hold_inside_a_crowd_strings_after_string_pin_s`.)"""
     r, sv, a = survive(tmp_path, zp(1, 0.0, 1.2))
     out = lines(tmp_path, r, sv, [[zp(1, 0.0, 1.2)] + group(4, 4.0)] * 6)
     tos = [w.get("disposition", {}).get("to") for w, _ in out]
@@ -365,3 +367,110 @@ def test_a_string_whose_nearest_stays_inside_the_gap_goes_to_hold(tmp_path):
     tos = [w.get("disposition", {}).get("to") for w, _ in out]
     k = tos.index("hold")
     assert out[k][0]["disposition"]["why"] == "clump" and k == 6 and all(t is None for t in tos[:k])
+
+
+# ================================================================ fix 3: the clump entry, the contract, the ride
+from agent.base.pza1 import Rip  # noqa: E402
+
+from .test_survive_g import part  # noqa: E402
+
+CLUMP = [zp(1, 0.0, 1.0), zp(2, 60.0, 1.1), zp(3, -60.0, 1.2), zp(4, 120.0, 1.3), zp(5, -120.0, 1.4)]
+
+
+def test_a_hold_inside_a_crowd_strings_after_string_pin_s(tmp_path):
+    """Fix 3 (the horde8 trial `x_trial-ladder-20261112-061307`: six game minutes of `hold` inside four to seven at
+    0.5 to 0.9 tiles, the string barred by STRING_MIN_GAP): five standing within GROUP_ENTRY_R, the nearest at 1.0
+    (inside the gap): `hold` first (no string at range), then, once STRING_N have stood STRING_PIN_S and the hold its
+    dwell, `string` (why crowd) whatever the gap, its melee carrying `disposition` string."""
+    r, sv, a = survive(tmp_path, zp(1, 0.0, 1.0))
+    out = lines(tmp_path, r, sv, [CLUMP] * 12)
+    ds = [w["disposition"] for w, _ in out if "disposition" in w]
+    assert [d["to"] for d in ds] == ["hold", "string"] and ds[1]["why"] == "crowd"
+    k = next(i for i, (w, _) in enumerate(out) if w.get("disposition", {}).get("to") == "string")
+    assert out[k][1].type == "melee" and out[k][1].args["disposition"] == "string"
+    assert all(w.get("disposition", {}).get("to") != "hold" for w, _ in out[k + 1:])   # no clump exit for it
+
+
+def test_a_pinned_hold_strings_whatever_the_gap(tmp_path):
+    """Fix 3: three standing (under STRING_N), the nearest at 1.0, the leaf `pinned` for STRING_PIN_S: `string`, why
+    pinned (fix 2's gap no longer bars the entries from inside the clump)."""
+    r, sv, a = survive(tmp_path, zp(1, 0.0, 1.0))
+    zs = CLUMP[:3]
+    for k in range(14):
+        m = melee_of(r)
+        r.fake.act(m.aid, "progress", "melee", result={"step": "work", "work": {"pinned": True, "n": 3}})
+        r.pump()
+        why, _ = line(tmp_path, r, sv, zs)
+        if sv.disposition == "string":
+            break
+    assert sv.disposition == "string" and why["disposition"]["why"] == "pinned"
+
+
+def test_a_flee_row_in_contact_under_a_fight_disposition_is_the_melee_at_the_nearest(tmp_path):
+    """Fix 3 (the same trial, lines 153 and 157: the melee ended in contact and the drag guard, reading no engaged
+    melee, steered `many`): in `hold`, the melee ended (lost), the frame reading two attackers (the guard's count)
+    with three standing within KEEP_R: no steer; the melee at the nearest standing, logged `engage_dispatch` {from
+    "many", target 1}."""
+    r, sv = hold_rig(tmp_path)
+    m = melee_of(r)
+    r.fake.act(m.aid, "done", "melee", result={"end": "lost", "why": "out of range"})
+    r.pump()
+    zs = [zp(1, 0.0, 0.7), zp(2, 120.0, 0.9), zp(3, -120.0, 1.1)]
+    why, b = line(tmp_path, r, sv, zs, attackers=2)
+    assert b.type == "melee" and b.args["targetId"] == 1
+    assert why["engage_dispatch"] == {"from": "many", "target": 1} and "flee" not in why
+
+
+def test_a_lost_melee_in_contact_re_pins_the_nearest_standing(tmp_path):
+    """Fix 3 (`dispatch.FightDispatch._pin_nearest`): the melee at 1 ends `lost` in contact while 2 stands nearer
+    (0.6 tiles): the next melee goes at 2, never at a zombie beyond KEEP_R."""
+    r, sv = hold_rig(tmp_path)
+    m = melee_of(r)
+    r.fake.act(m.aid, "done", "melee", result={"end": "lost", "why": "no progress"})
+    r.pump()
+    why, b = line(tmp_path, r, sv, [zp(1, 0.0, 2.2), zp(2, 90.0, 0.6), zp(3, -70.0, 4.0)])
+    assert b.type == "melee" and b.args["targetId"] == 2
+
+
+BLEED = {"parts": [part(4, bleeding=True, bleedingTime=5.0)], "bleeding": 1}   # an upper-body part bleeding
+SHIRT = 20
+
+
+def ride_rig(tmp_path, worn=False):
+    """`hold_rig`'s engaged melee with a cotton T-shirt held (`worn`: worn) and part 4 bleeding on the next line."""
+    r, sv = hold_rig(tmp_path)
+    r.event("item_added", itemId=SHIRT, fullType="Base.Tshirt_White", weight=0.2, use="clothing", rip="cotton",
+            worn=worn)
+    accept(r, melee_of(r), "work")
+    return r, sv
+
+
+def test_a_bleed_under_hold_sends_the_rip_riding_the_engaged_melee(tmp_path):
+    """Fix 3 (the same trial: part 9 bled from 98 to 42 under the engaged melee, no care sent until the count fell):
+    under `hold` with the melee engaged, a part bleeding and an unworn cotton T-shirt held: the rip goes with
+    keepMoving within two lines (the side slot rides the melee), logged `care_ride` {under hold, cmd rip}; the melee
+    still runs (the Python's ride model: `policies.rides_on` over the melee) and no re-send follows on the next line."""
+    r, sv = ride_rig(tmp_path)
+    m = melee_of(r)
+    sent = []
+    for k in range(2):
+        why, a = line(tmp_path, r, sv, closing_three(4), wounds=BLEED)
+        sent.append(a)
+        if a.type == "rip":
+            break
+    rip = sent[-1]
+    assert rip.type == "rip" and rip.args["itemId"] == SHIRT and rip.args["keepMoving"] is True
+    assert why["care_ride"] == {"under": "hold", "cmd": "rip"}
+    assert sv.fight._engaged() and melee_of(r) is m
+    accept(r, rip)
+    why, c = line(tmp_path, r, sv, closing_three(4), wounds=BLEED)
+    assert c is rip and sv.fight._engaged() and "clock" not in why
+
+
+def test_a_bleed_with_only_a_worn_garment_waits_logged_worn(tmp_path):
+    """Fix 3: the trial's own inventory (the cotton garments all worn: an unwear stops on a walk): no command over
+    the engaged melee, logged `care_ride` {under hold, cmd null, why worn}."""
+    r, sv = ride_rig(tmp_path, worn=True)
+    m = melee_of(r)
+    why, a = line(tmp_path, r, sv, closing_three(4), wounds=BLEED)
+    assert a.type == "melee" and why["care_ride"] == {"under": "hold", "cmd": None, "why": "worn"}

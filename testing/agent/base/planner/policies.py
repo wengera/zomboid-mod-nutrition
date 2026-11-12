@@ -680,16 +680,22 @@ def seek_allowed(world, t, hold_ground):
     return not world.fence_on_line((mx, my), (t[1]["x"], t[1]["y"]))
 
 
+RIDE_LEGS = RIDE_TYPES + ("melee",)   # Plan 37 Task 3 fix 3: the engaged melee is a leg a keepMoving rip or
+                                      # bandage rides (`disposition.Disposer._engaged_ride`)
+RIDERS = ("bandage", "rip")   # the commands that ride a leg with keepMoving (PZA/1.15's side slot, K.RIDE_TYPES)
+
+
 def rides_on(actions, a):
-    """Leg `a` (a walkTo or a steer, not yet terminal) is kept running by the Lua under the bandages sent after it,
-    every one of them with `keepMoving` (PZA/1.5.3, ruling P24-R: a riding bandage leaves the leg its slot; a new leg
-    takes the ride along, any other send ends both): Task 12 fix 1, P24-U."""
-    if a.type not in RIDE_TYPES or actions.done(a):
+    """Leg `a` (a walkTo, a steer or, Plan 37 Task 3 fix 3, the engaged melee; not yet terminal) is kept running by
+    the Lua under the bandages and rips sent after it, every one of them with `keepMoving` (PZA/1.5.3, ruling P24-R: a
+    riding bandage leaves the leg its slot; a new leg takes the ride along, any other send ends both; PZA/1.15 the
+    rip rides as the bandage does): Task 12 fix 1, P24-U."""
+    if a.type not in RIDE_LEGS or actions.done(a):
         return False
     for b in reversed(actions.history):
         if b is a:
             return True
-        if b.type != "bandage" or b.args.get("keepMoving") is not True:
+        if b.type not in RIDERS or b.args.get("keepMoving") is not True:
             return False
     return False
 

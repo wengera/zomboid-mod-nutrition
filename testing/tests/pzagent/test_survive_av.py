@@ -11,14 +11,19 @@ reads 0 on these lines), the count crossing STRING_N sending the melee with `dis
 release asked at the health floor (a mutation of the replay's health read) followed by the Flee only after the
 hand-back or RELEASE_WAIT_S."""
 import functools
+import glob
 import json
 import math
 import os
+import shutil
+import tempfile
 
 import pytest
 
 from agent.base import replay_decisions as R
 from agent.base.planner import policies as P
+
+from .frozen import runs_root
 
 F22 = os.path.join(R.ARTIFACTS, "f_goals_22-20261111-215108")
 UPTO = 790
@@ -123,3 +128,63 @@ def test_a_release_asked_at_the_health_floor_is_followed_by_the_flee_only_after_
     assert rel["end"] == "bound" and rel["waited"] >= P.RELEASE_WAIT_S
     assert all(ticks[j - 1][1] in (None, "melee") for j in range(k, hand))
     assert ticks[hand - 1][1] not in (None, "melee") and threat(rows[hand - 1]).get("flee") is not None
+
+
+# ================================================================ Task 3 fix 3: round one's horde8 trial
+# `x_trial-ladder-20261112-061307` (P31-T, not evidence; at 91b18c57): replayed from this machine's run folder
+# (`testing/runs/` is per-machine and gitignored, so skipped where absent; `test_survive_ah.py`'s style: the admin state
+# log and the decision log copied to a temporary artifact folder), open loop to line 205.
+TRIAL = "x_trial-ladder-20261112-061307"
+
+
+@functools.lru_cache(maxsize=1)
+def trial():
+    """(rows, ticks) of the trial's replay to line 205 (`_replay`'s shape), skipped where the run is absent."""
+    root = os.path.join(runs_root() or "", TRIAL)
+    logs = glob.glob(os.path.join(root, "clients", "admin", "Lua", "pzagent", "*", "state.log"))
+    if not logs:
+        pytest.skip("%s is not on this machine (testing/runs/ is per-machine)" % TRIAL)
+    ticks = []
+
+    def mutate(sv):
+        tick = sv.tick
+
+        def wrapped(world, actions):
+            near = _standing_near(sv)
+            a = tick(world, actions)
+            ticks.append((near, a.type if a is not None else None, a))
+            return a
+        sv.tick = wrapped
+    with tempfile.TemporaryDirectory() as d:
+        shutil.copy(logs[0], os.path.join(d, "state.log"))
+        shutil.copy(os.path.join(root, "decision.log"), os.path.join(d, "decision.log"))
+        rows = R.replay(d, mutate=mutate, upto=205)
+    return rows, ticks
+
+
+def test_the_trial_s_contact_lines_send_no_steer():
+    """Fix 3 (2), the contract: lines 145 to 201 (the clump, game minutes 597 to 604), where the trial sent the drag
+    guard's `many` steers at lines 153 and 157 between melees: every command the replay sends with a standing zombie
+    within KEEP_R is a melee; 153 and 157 send no steer."""
+    rows, ticks = trial()
+    sent = [(k, near, t) for k, (near, t, _) in enumerate(ticks, 1) if 145 <= k <= 201 and t is not None]
+    assert sent and all(t == "melee" for k, near, t in sent if near > 0), sent
+    assert ticks[152][1] != "steer" and ticks[156][1] != "steer"
+
+
+def test_the_trial_s_clump_enters_the_string():
+    """Fix 3 (1): the hold inside the clump (the nearest never beyond STRING_MIN_GAP) enters `string` on the window,
+    why `crowd` or `pinned`."""
+    rows, _ = trial()
+    ds = [threat(r)["disposition"] for k, r in enumerate(rows, 1) if 140 <= k <= 201 and "disposition" in threat(r)]
+    assert any(d["to"] == "string" and d["why"] in ("crowd", "pinned") for d in ds), ds
+
+
+def test_the_trial_s_bleed_finds_nothing_to_rip_and_says_so():
+    """Fix 3 (3), the reading: from the line the scratch first bleeds (176, game minute 601) every cotton garment the
+    character holds is worn (the mini skirt, the boob tube; an unwear stops on a walk), so no rip can ride the engaged
+    melee: each line logs `care_ride` {cmd null, why "worn"} under the running disposition, and no care command goes."""
+    rows, ticks = trial()
+    rides = [threat(r).get("care_ride") for k, r in enumerate(rows, 1) if 176 <= k <= 201]
+    assert rides and all(c is not None and c["cmd"] is None and c["why"] == "worn" for c in rides)
+    assert all(ticks[k - 1][1] in (None, "melee") for k in range(176, 202))

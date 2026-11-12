@@ -90,8 +90,11 @@ def test_the_switch_is_on_by_default_in_t21():
 # ================================================================ F21's shape
 def test_no_rip_starts_with_the_nearest_at_one_tile_lunging(tmp_path):
     """F21's shape with the nearest at 1.0 tile lunging (0.19 s to contact): no care step goes (no stop, unwear or
-    rip); the threat branch answers with the melee (a standing zombie within KEEP_R: the Fight's, rule (a))."""
+    rip); the threat branch answers with the melee (a standing zombie within KEEP_R: the Fight's, rule (a)). Pinned with
+    ENGAGED_RIDE off (a named change, Plan 37 Task 3 fix 3: under `hold` the rip rides the engaged melee with
+    keepMoving, `test_disposition.py`)."""
     r, sv = survive(tmp_path)
+    sv.ENGAGED_RIDE = False
     for _ in range(3):
         line = step(tmp_path, r, sv, four_west(1.0, state="lunge"))
         assert line["branch"] == "threat"

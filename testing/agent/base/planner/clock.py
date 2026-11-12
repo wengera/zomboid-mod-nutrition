@@ -241,6 +241,9 @@ class ClockGate:
         a = self.actions.current
         if a is None:
             return None
+        f = getattr(self, "fight", None)
+        if a.args.get("keepMoving") is True and f is not None and f._engaged():
+            return None   # Plan 37 Task 3 fix 3: a rip riding the engaged melee, whose leg the melee is
         kind = action_kind(a.type, a.args)
         return None if kind is None else (a, kind)
 
