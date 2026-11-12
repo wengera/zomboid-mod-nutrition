@@ -63,7 +63,9 @@ the leave row, the engagement picker's pull, no `disposition` on the wire).
   refused-action steer is not sent (`ClockGate._clock_gate`); the care's next action starts only when the clock allows
   it as a start, the melee released first (`_care_gate`, `care_pending`), logged `care_start` {under, action,
   released} or `care_hold` {why "clock" | "release", action}, the Dress sending no stop (`care.Care.no_stop`).
-  ENGAGED_RIDE is off by default since.
+  Fix 7 (the controller's ruling on fix 6): ENGAGED_RIDE on by default again: the clock-allowed rip rides the
+  engaged melee with keepMoving, no release (`_engaged_ride`, `care_start` {under, action rip, ride "melee"}); the
+  unwear and the bandage, which cannot ride, start through the release.
 - The row (`_disposition_plan`, `Threat._threat_plan`'s open-ground row in contact: off a room square, a standing
   zombie within GROUP_ENTRY_R): `hunt`, `hold`, `string` are the Fight (`("fight", None)`), whatever the flee reasons
   read; `break` keeps the Fight while the release it asked is pending, then the Flee (`cornered` and `sprinter` reason
@@ -111,11 +113,10 @@ class Disposer:
     """The disposition selector (the module docstring): `Threat`'s mixin."""
 
     DISPOSITION = True   # Plan 37 Task 3 (survive.T22_SWITCHES): the selector; off, the Plan 36 branch
-    ENGAGED_RIDE = False  # fix 3 (survive.T22_SWITCHES): a bleeding part under `hold` or `string` rides the engaged
-                          # melee (`_engaged_ride`, the Lua's K.RIDES.melee). Off by default since fix 6 (the
-                          # controller's ruling: under a fight disposition every care action starts through the
-                          # melee's release when the clock allows it, `_care_gate`; while a rip rides the melee the
-                          # reflex presses nothing); on, the ride is read before the gate
+    ENGAGED_RIDE = True  # fix 3 (survive.T22_SWITCHES), on again at fix 7 (the controller's ruling): under a fight
+                         # disposition the clock-allowed rip rides the engaged melee (`_engaged_ride`, the Lua's
+                         # K.RIDES.melee = {rip}); off, the rip starts through the release as the unwear and the
+                         # bandage do (`_care_gate`, fix 6)
 
     def _init_disposition(self):
         self.disposition = None          # the running disposition (DISPOSITIONS), else None
@@ -368,6 +369,11 @@ class Disposer:
         kind = care.next_kind()
         if kind is None:
             return False
+        f = self.fight
+        if kind == "rip" and self.ENGAGED_RIDE and f is not None and f._engaged():
+            refused = (self.care_ride or {}).get("why") == "clock"   # fix 7: the rip rides the melee (`_engaged_ride`)
+            self.care_hold = {"why": "clock" if refused else "ride", "action": kind}
+            return False
         if self._clock_on():
             ck = self.action_clock
             allowed = ck.allows(kind)
@@ -471,44 +477,41 @@ class Disposer:
 
     # ---------------------------------------------------------------------------------------------------- the ride
     def _engaged_ride(self):
-        """Fix 3 (the same trial: a scratch at game minute 601 bled the character from 98 to 42 under the engaged
-        melee, every line's care refused by the clock's contact read with no why, until the care chain at 605):
-        `(care, command)` when a part bleeds under `hold` or `string` with the melee engaged: with no dressing held the
-        rip of a held cotton garment riding the melee (`Rip` with keepMoving, PZA/1.15's side slot), with one held and
-        under GROUP_LEAVE_N standing within GROUP_ENTRY_R the riding bandage of the worst part above the legs; logged
-        `care_ride` {under, cmd}; else None (a ride already running, nothing to send: the clock's stop dresses it)."""
+        """Fix 3, as fixes 4 and 7 left it (the controller's ruling: the clock-allowed rip rides the melee; Task 2 fix 2's
+        `K.RIDES.melee = {rip}`, the walk going on at a walk and the press deferred while the rip is queued):
+        `(care, Rip)` when a part bleeds under a fight disposition (`hunt`, `hold` or `string`) with the melee engaged,
+        no dressing held and an unworn cotton garment held (`care.rip_pick`): the rip with keepMoving riding the melee,
+        once the clock allows it as a start (fix 4: no ride exemption), logged `care_ride` {under, cmd rip}, `care_start`
+        {under, action rip, ride "melee"} and `clock` {action rip, ride "melee"}; refused, `care_ride` {why "clock"};
+        nothing unworn to tear, `care_ride` {why "worn" | "nothing"}. A dressing held is no ride: the bandage cannot ride
+        the melee, so it starts through the release (`_care_gate`, fix 6), as the unwear does. Else None."""
         self.care_ride = None
-        if not (self.ENGAGED_RIDE and self.disposition in ("hold", "string") and self._disposing()):
+        if not (self.ENGAGED_RIDE and self.disposition in WIRE and self._disposing()):
             return None
         f, care = self.fight, self.care
         if f is None or not f._engaged() or care.bleeding_n() <= 0 or self.night.inside():
             return None
         if self.actions.current is not f.m.action:
             return None   # a ride already rides it
-        items = care._items()
-        cmd, why = None, None
-        if C.dressing_pick(items, 0.0, dirty_ok=True) is None:
-            iid = C.rip_pick(self.world, care.held_out) if self.world.can("rip") else None
-            cmd = Rip(iid, keepMoving=True) if iid is not None else None
-            if cmd is not None and self._clock_on():   # fix 4: the riding rip asks the clock as a start (no ride
-                ck = self.action_clock                   # exemption: the reflex presses nothing while it rides)
-                allowed = ck.allows("rip")
-                self.clock_now = self._clock_why("rip", ride="melee", **({} if allowed else {"refused": True}))
-                if not allowed:
-                    cmd, why = None, "clock"
-            elif cmd is None:   # nothing unworn to tear: an unwear stops on a walk, so it waits for the clock's stop
-                worn = any(it.get("rip") == "cotton" and it.get("worn") is True for it in self.world.inventory.values())
-                why = "worn" if worn else "nothing"
-        elif self.group_n < GROUP_LEAVE_N and self.world.can("bandage"):
-            cmd = care._wound(items, care._bleeding(), ride=True)[0]
-            cmd = cmd if cmd is not None and cmd.TYPE == "bandage" and cmd.keepMoving else None
-            why = None if cmd is not None else "stop"   # a leg part: the bandage at the clock's stop
-        else:
-            why = "count"   # a dressing held under GROUP_LEAVE_N or more: the bandage waits for the count or the stop
+        if C.dressing_pick(care._items(), 0.0, dirty_ok=True) is not None:
+            return None   # the bandage: the release, then the action (`_care_gate`)
+        iid = C.rip_pick(self.world, care.held_out) if self.world.can("rip") else None
+        cmd, why = (Rip(iid, keepMoving=True) if iid is not None else None), None
+        if cmd is not None and self._clock_on():   # fix 4: the riding rip asks the clock as a start
+            allowed = self.action_clock.allows("rip")
+            self.clock_now = self._clock_why("rip", ride="melee", **({} if allowed else {"refused": True}))
+            if not allowed:
+                cmd, why = None, "clock"
+        elif cmd is None:   # nothing unworn to tear: the unwear stops on a walk, so it starts through the release
+            worn = any(it.get("rip") == "cotton" and it.get("worn") is True for it in self.world.inventory.values())
+            why = "worn" if worn else "nothing"
         self.care_ride = {"under": self.disposition, "cmd": None if cmd is None else cmd.TYPE}
         if why is not None:
             self.care_ride["why"] = why
-        return None if cmd is None else (care, cmd)
+        if cmd is None:
+            return None
+        self.care_start = {"under": self.disposition, "action": "rip", "ride": "melee"}
+        return care, cmd
 
     # ---------------------------------------------------------------------------------------------------- the string
     def _string_heading(self):

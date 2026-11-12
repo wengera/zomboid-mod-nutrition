@@ -1252,7 +1252,8 @@ class Threat(Hold, Engage, ThreatPull, CareYield, DoorwayStand, ThreatFinish, Th
         """Plan 37 Task 3: this tick's `disposition` change, `release` hand-over and `string_heading` on the threat
         why, whichever row answered."""
         for key, v in (("disposition", self.disposition_why), ("release", self.release_why),
-                       ("string_heading", self.string_why), ("care_ride", self.care_ride)):
+                       ("string_heading", self.string_why), ("care_ride", self.care_ride),
+                       ("care_start", self.care_start)):
             if v is not None:
                 self.why = dict(self.why or {}, **{key: v})
 
