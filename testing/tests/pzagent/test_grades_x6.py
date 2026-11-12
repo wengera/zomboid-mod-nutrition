@@ -730,3 +730,17 @@ def test_on_f20_grade_x6_keeps_every_grade_x5_key():
     assert {k: g[k] for k in G.NEW if k != "cone_bites"} == F20_X6
     assert (g["cone_bites"]["bites"], g["cone_bites"]["outside"]) == (1, 0)
     json.dumps(g, allow_nan=False)
+
+
+# ================================================================ the first artifact graded through grade_x6: F22
+F22 = os.path.join(TESTING, "artifacts", "f_goals_22-20261111-215108")
+
+
+def test_f_grade_18_on_f22_reproduces_the_committed_f_grade_txt_byte_for_byte():
+    """Ruling P26-Q: `f_grade_18.py` on the committed F22 artifact (Plan 36's evidence session, the first graded through
+    `grade_x6`: the cadence, steps, engage_pull, cone_bites, clock, crawler, room and rip_ride readings over grade_x5's)
+    reproduces its committed `f_grade.txt` byte for byte (CRLF folded), so a drift in any live name read through the grade
+    chain fails here."""
+    p = _path(F22, "f_goals_22.json")
+    want = open(os.path.join(F22, "f_grade.txt"), "rb").read().replace(b"\r\n", b"\n")
+    assert _script("f_grade_18.py", p) == want
