@@ -191,9 +191,9 @@ WAVE_PLANS = {
     # F22's shape: a group that grows while the fight is on (three, then four at 10 s and four at 20 s)
     "town": {"period_s": None, "spawns": ((3, 8.0, 0.0), (4, 10.0, 90.0, 10.0, False, 2),
                                           (4, 10.0, 200.0, 20.0, False, 2))},
-    # the two open ends of F22's death lane: the ring at seq 8235 reads headings 90 to 135 and 225 to 270 open, every
-    # other closed (testing/artifacts/f_goals_22-20261111-215108/state.log)
-    "pocket": {"period_s": None, "spawns": ((5, 10.0, 110.0, 0.0, False, 2), (5, 10.0, 250.0, 5.0, False, 2))},
+    # the two open ends of F22's death lane (north-south: the ring at the lane square x 10691, y 10097 reads 90 and 270
+    # open to 3 tiles, every other heading a wall within 2.5, read on the controller's boot x_trial-ladder-20261112-041235)
+    "pocket": {"period_s": None, "spawns": ((5, 10.0, 90.0, 0.0, False, 2), (5, 10.0, 270.0, 5.0, False, 2))},
 }
 
 

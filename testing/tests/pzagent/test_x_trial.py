@@ -1340,7 +1340,7 @@ def test_the_crowd_waves_are_named_with_their_radius_two_spawns():
     assert TR.WAVE_PLANS["town"] == {"period_s": None, "spawns": (
         (3, 8.0, 0.0), (4, 10.0, 90.0, 10.0, False, 2), (4, 10.0, 200.0, 20.0, False, 2))}
     assert TR.WAVE_PLANS["pocket"] == {"period_s": None, "spawns": (
-        (5, 10.0, 110.0, 0.0, False, 2), (5, 10.0, 250.0, 5.0, False, 2))}
+        (5, 10.0, 90.0, 0.0, False, 2), (5, 10.0, 270.0, 5.0, False, 2))}
 
 
 def test_a_six_element_spawn_reaches_radius_two_and_a_five_element_one_reads_radius_one(monkeypatch):
