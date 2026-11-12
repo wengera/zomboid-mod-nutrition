@@ -926,6 +926,32 @@ class World:
             return False
         return not any(self.blocked(p, q, trans=trans) for p, q in zip(sqs, sqs[1:]))
 
+    OPEN_STEP = 0.5   # tiles: `open_line`'s step along its heading (under a square, so each step's square neighbours
+                      # the last one's)
+
+    def open_line(self, heading_deg, tiles):
+        """Plan 37 Task 3 (the string heading and the break steer, the spec's § 3.5): the tiles clear along the heading
+        `heading_deg` (degrees from the world's +x in atan2(y, x)'s convention, as the room ring's) from the player's
+        position, read over the map's known squares in OPEN_STEP steps out to `tiles`: a step is blocked where its
+        square is known and `solid` or `solidTrans`, or where the move from the last step's square crosses a blocked
+        edge (`blocked` with `unknown_open`: an unknown square is open, a diagonal's unknown corner too); the last
+        clear step's distance (0.0 when the first step is blocked), `tiles` when none is."""
+        z = me_floor(self)
+        px, py = me_xy(self)
+        r = math.radians(heading_deg)
+        ux, uy = math.cos(r), math.sin(r)
+        prev = (int(math.floor(px)), int(math.floor(py)), z)
+        steps = int(math.floor(tiles / self.OPEN_STEP + 1e-9))
+        for k in range(1, steps + 1):
+            d = k * self.OPEN_STEP
+            sq = (int(math.floor(px + d * ux)), int(math.floor(py + d * uy)), z)
+            if sq != prev:
+                if (sq in self.map and self._solid(sq, trans=True)) or self.blocked(prev, sq, unknown_open=True,
+                                                                                    trans=True):
+                    return (k - 1) * self.OPEN_STEP
+                prev = sq
+        return float(tiles)
+
     def reachable_adjacent(self, target_xy, z, trans=False):
         """The target square's 8 neighbours that are mapped, not solid, and whose step to the target is not blocked,
         nearest the player first (by the neighbour's centre, ties by x, y). With `trans` (ruling P24-AS, Task 32 fix 1,

@@ -1086,12 +1086,6 @@ GROUP_LEAVE_N = 3     # standing zombies closing within GROUP_ENTRY_R that GROUP
 # Plan 33 Task 3 fix 3 addenda (round two, trial 2 and Angus's fighting retreat, memory `fighting-retreat`): the leave is a
 # fighting retreat, never a run; a known door is walked to only when this near (a long walk turns the back on the group)
 LEAVE_DOOR_R = 6.0    # tiles: GROUP_LEAVE walks to a known door whose approach square is this near, else the retreat
-# Plan 33 Task 3 fix 4 (round three, trial 3, `x_trial-ladder-20261109-042558`: on street-1 the retreat's standing
-# count within GROUP_ENTRY_R rose to eight and the character died under the drag guard's runs, where Plan 32's `many`
-# run before the group closed read 9 to 11 kills; the controller's ruling 2026-11-09 04:45: a backpedal does not outpace
-# eight, so the retreat is the leg for GROUP_LEAVE_N to RETREAT_MAX_N standing and the `many` run above it)
-RETREAT_MAX_N = 4     # standing zombies within GROUP_ENTRY_R the fighting retreat backpedals from; above it the leave's
-                      # leg is the `many` run (GROUP_LEAVE), the retreat resumed when the count falls back to it
 # Plan 34 Task 5 (spec section 3.5; F19, `f_goals_19-20261109-060929`: the melee at the first wound was sent off a frame
 # 0.970 s old, the line 1.435 s after the one before, the session's median lag 0.057 s, its GUIDE.md section 2)
 FRAME_STALE_S = 0.5  # seconds: a decision line whose frame is older than this (its `wall` less the frame's `wallMs`)
@@ -1127,13 +1121,14 @@ CONE_HALF_DEG = 60.0       # degrees: the engagement cone, the pinned target's b
 CONE_OFF_DEG = 90.0        # degrees: a standing zombie closing within CONE_TRIGGER_R more than this off the pinned
                            # target's bearing (30 degrees past the cone's edge) starts the cone's pull, § 3.3
 CONE_TRIGGER_R = 4.0       # tiles: the cone's pull reads flankers this near (before contact), § 3.3
-ROOM_OPEN_DEG = 45.0       # degrees: the `many` run above RETREAT_MAX_N takes the room ring's most open heading within
-                           # this of its own (`flee.Flee._room_open`), § 3.3
+ROOM_OPEN_DEG = 45.0       # degrees: the clock's gain-distance leg takes the room ring's most open heading within this
+                           # of straight away (`room_open_heading`'s default arc), § 3.3
 PULL_ROOM_NEED = 1.0       # tiles: Task 3 fix 3, a room-ring heading this clear takes the pull's withdraw (clamped
                            # to the nearest such within PULL_ROOM_TURN_DEG); none: the vector dropped
 PULL_ROOM_TURN_DEG = 90.0  # degrees: the pull's clamp looks this far either side of its heading for an open one
-RETREAT_HOLD_R = 1.0       # tiles: Task 3 fix 1b, the armed fighting retreat's withdraw holds while three stand within
-                           # GROUP_ENTRY_R plus this, closing or not (a column keeping pace reads flat distances)
+RETREAT_HOLD_R = 1.0       # tiles: Task 3 fix 1b, the fighting retreat holds while three stand within GROUP_ENTRY_R
+                           # plus this, closing or not (a column keeping pace reads flat distances); Plan 37 Task 3:
+                           # the `hold` disposition's exit radius (`disposition.Disposer`) and its retreat's group
 # Plan 36 Task 4 (the action clock, `planner/clock.py`; the spec's § 3.4; F21, `f_goals_21-20261111-150552`, decision
 # lines 427 to 494: seven rips, every one superseded by the next steer, while three parts bled from 68 to 13 health).
 # The speeds: tiles a second off consecutive frames within 0.3 s, read offline by the controller (the ledger's line of
@@ -1164,23 +1159,48 @@ ACTION_S = {"rip": 4.134, "unwear": 1.078, "bandage": 5.444, "loot": 1.679, "doo
 CLOCK_LEG_S = 3.0          # seconds one gain-distance leg runs before it is re-aimed while the clock refuses (FLEE_S)
 CLOCK_EPISODE_S = 12.0     # seconds a refused action's gain-distance episode runs at most; then the action waits and
                            # the threat branch decides (a judgment: four legs at a run)
+# Plan 37 Task 3 (the disposition, `planner/disposition.py`; the spec `2026-11-12-plan-37-the-disposition-design.md`
+# §§ 3.2 and 3.5; F22, `f_goals_22-20261111-215108`: six melees and six steers of the `many` run in its last 23.9 s as
+# the standing count crossed the run's threshold and back, every send a supersede that reset the reflex's footwork)
+DISPOSITION_DWELL_S = 2.0  # seconds: the least time a disposition holds before the selector changes it (the health
+                           # floor's `break` excepted), and an exit condition's own hold, § 3.2
+STRING_N = 5               # standing zombies within GROUP_ENTRY_R that enter `string` (the walk away that strings
+                           # them out by speed), § 3.2; it leaves at GROUP_LEAVE_N or under (the hysteresis)
+STRING_PIN_S = 3.0         # seconds: `hold` with the reflex's work leaf reading `pinned` this long, the count not
+                           # falling, enters `string`, § 3.2
+BREAK_CORNERED_S = 2.0     # seconds: `string` with no open heading (the map's line nor the ring) this long is `break`
+STRING_RUN_V = 1.6         # tiles a second: a leader faster than this (its own recent speed off the clock's tracks)
+                           # closing on SPRINT_READS reads in a row is `break` (a sprinter cannot be strung): the
+                           # lunge's p90 1.58 (LUNGE_TPS's reading), the Lua's K.STRING_RUN_V, § 3.2
+SPRINT_READS = 3           # decision lines in a row the sprinter's gap shrinks before the `break`, § 3.2
+STRING_TURN_DEG = 120.0    # degrees: the string heading is read this far either side of straight away, § 3.5
+STRING_STEP_DEG = 15.0     # degrees between the string heading's candidates, § 3.5
+STRING_LOOK_R = 10.0       # tiles: the string heading's and the break steer's open line along the map, § 3.5
+RELEASE_WAIT_S = 2.5       # seconds: a release asked and not handed back this long is taken by the Flee anyway (the
+                           # Lua's K.RELEASE_MAX_TICKS 90, 1.5 s at 60 Hz, plus a second's margin), § 3.4
+BREAK_ARC_DEG = 90.0       # degrees: the break steer reads the ring and the map this far either side of straight away
+                           # from the group (the whole circle less the half toward its centroid), § 3.5
 
 
-def room_open_heading(world, heading):
+def room_open_heading(world, heading, arc_deg=ROOM_OPEN_DEG, about=None):
     """Plan 36 Tasks 3 (fix 2) and 4 (the spec's §§ 3.3 and 3.4): `(heading, degrees)` of the room ring's most open
-    heading within ROOM_OPEN_DEG of `heading` (`World.room`: heading i at ROOM_STEP_DEG * i degrees from the world's +x
-    in atan2's convention; the largest clear tiles `h`, a tie to the heading nearest `heading`), else `(heading, None)`:
-    no ring on the frame, or every candidate reading 0.0 tiles clear. The `many` run's steer (`flee.Flee._room_open`)
-    and the clock's gain-distance leg (`clock.ClockGate._clock_heading`) share it, the one ring read."""
+    heading within `arc_deg` of `about` (`heading` when None) (`World.room`: heading i at ROOM_STEP_DEG * i degrees from
+    the world's +x in atan2's convention; the largest clear tiles `h`, a tie to the heading nearest `heading`), else
+    `(heading, None)`: no ring on the frame, or every candidate reading 0.0 tiles clear. The clock's gain-distance leg
+    (`clock.ClockGate._clock_heading`) reads it at its default, ROOM_OPEN_DEG about its own heading; Plan 37 Task 3's
+    break steer (`flee.Flee._room_open`) over BREAK_ARC_DEG about the way away from the group."""
     ring = world.room()
     if ring is None:
         return heading, None
     deg = math.degrees(math.atan2(heading[1], heading[0]))
+    a = heading if about is None else about
+    centre = math.degrees(math.atan2(a[1], a[0]))
     picks = []
     for i, clear in enumerate(ring["h"]):
         at = ROOM_STEP_DEG * i
         off = abs((at - deg + 180.0) % 360.0 - 180.0)
-        if off <= ROOM_OPEN_DEG + 1e-9 and isinstance(clear, (int, float)) and not isinstance(clear, bool):
+        arc = abs((at - centre + 180.0) % 360.0 - 180.0)
+        if arc <= arc_deg + 1e-9 and isinstance(clear, (int, float)) and not isinstance(clear, bool):
             picks.append((-clear, off, i, at))
     if not picks or min(picks)[0] >= 0.0:
         return heading, None

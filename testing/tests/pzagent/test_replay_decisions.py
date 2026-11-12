@@ -279,8 +279,9 @@ def pre_t17(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 33 Task 3 (the group's entry and the drag guard): its
     switches off (`survive.T18_SWITCHES`: GROUP_LEAVE, DRAG_GUARD_FIGHT, SIDE_CLEAR), but those named in `keep`; every
     seam onto an earlier rule reads them off (`pre_t16`). Plan 34 Task 1: the column's switches (`pre_t19`) off with
-    them, so every seam onto an earlier rule reads them off."""
-    for name in S.T18_SWITCHES:
+    them, so every seam onto an earlier rule reads them off. Plan 37 Task 3: GROUP_LEAVE is out of T18_SWITCHES (the
+    disposition selector owns the entry where it runs) and stays `Threat`'s seam, set off here by name."""
+    for name in S.T18_SWITCHES + ("GROUP_LEAVE",):
         if name not in keep:
             setattr(sv, name, False)
     pre_t19(sv)
@@ -303,8 +304,18 @@ def pre_t19(sv, keep=()):
 def pre_t21(sv, keep=()):
     """The replay's mutate seam onto the rules before Plan 36 Task 4 (the action clock): its switch off
     (`survive.T21_SWITCHES`: ACTION_CLOCK), but those named in `keep`; every seam onto an earlier rule reads it off
-    (`pre_t19`)."""
+    (`pre_t19`). Plan 37 Task 3: the disposition's switch (`pre_t22`) off with it."""
     for name in S.T21_SWITCHES:
+        if name not in keep:
+            setattr(sv, name, False)
+    pre_t22(sv)
+
+
+def pre_t22(sv, keep=()):
+    """The replay's mutate seam onto the rules before Plan 37 Task 3 (the disposition): its switch off
+    (`survive.T22_SWITCHES`: DISPOSITION), but those named in `keep`; every seam onto an earlier rule reads it off
+    (`pre_t21`). No golden's hello announces `melee`, so the selector never runs on one."""
+    for name in S.T22_SWITCHES:
         if name not in keep:
             setattr(sv, name, False)
 

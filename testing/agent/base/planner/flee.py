@@ -106,8 +106,9 @@ constants and record unchanged; the constants stay in `policies.py`).
 import math
 import time
 
-from agent.base.planner.policies import (AHEAD_CONE, AHEAD_R, DANGER_R, DISENGAGE_R, DOOR_CLEAR_R, DOOR_WALK_S,
-                                         FLEE_GAIT, FLEE_HEAD_R, FLEE_S, NEAR_R, PREEMPTED,
+from agent.base.planner.policies import (AHEAD_CONE, AHEAD_R, BREAK_ARC_DEG, DANGER_R, DISENGAGE_R, DOOR_CLEAR_R,
+                                         DOOR_WALK_S, FLEE_GAIT, FLEE_HEAD_R, FLEE_S, NEAR_R, PREEMPTED, STRING_LOOK_R,
+                                         STRING_STEP_DEG,
                                          SHELTER_FLEE_R, STEER_PROBE, STEER_TURNS, STEP_PROBE, STUCK_MOVE,
                                          STUCK_NEAR_R, STUCK_SKIP_DEG,
                                          WALK_STALL_S, WIDE_TURNS, WINDOW_STALL_S, Policy, _night, _rotate,
@@ -169,8 +170,8 @@ class Flee(Policy):
         self.second_exit = None  # Survive sets it each tick: True on the leave's ticks under LEAVE_DOOR_RACE, so the
                                  # pick reads `one_exit` as the leave's leg did (`door_verdicts`), else None
         self._shelter_note = None  # DOOR_INSIDE: the dropped plan's {shelter, step, ...}, till the choose logs it
-        self.open_run = False    # Survive sets it each tick (Plan 36 Task 3): the `many` run above RETREAT_MAX_N, whose
-                                 # steer takes the room ring's most open heading near its own (`_room_open`)
+        self.open_run = False    # Survive sets it each tick (Plan 37 Task 3): a `break` steer off a room square, whose
+                                 # heading reads the map's open line and the ring's open half (`_room_open`)
 
     @property
     def sheltered(self):
@@ -955,7 +956,7 @@ class Flee(Policy):
                 probe = reaches[0]
                 break
         heading = _rotate(v, turn) if turn is not None else (_rotate(v, STEER_TURNS[1]) if h0 is not None else v)
-        heading, opened = self._room_open(heading) if self.open_run else (heading, None)
+        heading, opened = self._room_open(heading, v) if self.open_run else (heading, None)
         near = min(zdist(self.world, z) for z in ts)
         self._aimed = frozenset(self._ids(self._ahead(heading, far)))
         self.why = {"centroid": [cx, cy], "nearest": near, "turn": turn, "probe": probe, "stuck": stuck,
@@ -970,11 +971,26 @@ class Flee(Policy):
             self.why["room_open"] = opened   # Plan 36 Task 3: the ring's heading the run took, degrees
         return Steer(heading[0], heading[1], FLEE_S, self.gait)   # P24-O: a run, never a sprint (P25-C: a walk)
 
-    def _room_open(self, heading):
-        """Plan 36 Task 3 (the spec's § 3.3; fix 2, on the ring as Task 1 landed it): `(heading, degrees)` of the room
-        ring's most open heading within ROOM_OPEN_DEG of the run's `heading`, else `(heading, None)`: the one ring read,
-        `policies.room_open_heading`, which the clock's gain-distance leg shares (Plan 36 Task 4)."""
-        return room_open_heading(self.world, heading)
+    def _room_open(self, heading, away):
+        """Plan 37 Task 3 (the break steer, the spec's § 3.5; Plan 36 Task 3's ring read widened): `(heading, degrees)`:
+        of the headings every STRING_STEP_DEG within BREAK_ARC_DEG of `away` (the way away from the threats), the
+        longest open line over STRING_LOOK_R (`World.open_line`; ties to the nearest the steer's own `heading`), then
+        the room ring's most open heading within BREAK_ARC_DEG of `away` (`policies.room_open_heading`, its ties to the
+        nearest the map's pick), `degrees` that ring heading's; with no ring (or every candidate reading 0.0 clear) the
+        map's pick, `degrees` None."""
+        a = math.degrees(math.atan2(away[1], away[0]))
+        h = math.degrees(math.atan2(heading[1], heading[0]))
+        k_max = int(round(BREAK_ARC_DEG / STRING_STEP_DEG))
+        best = None
+        for k in range(-k_max, k_max + 1):
+            deg = a + k * STRING_STEP_DEG
+            off = abs((deg - h + 180.0) % 360.0 - 180.0)
+            rank = (-self.world.open_line(deg, STRING_LOOK_R), off, k)
+            if best is None or rank < best:
+                best = rank
+        r = math.radians(a + best[2] * STRING_STEP_DEG)
+        pick = (math.cos(r), math.sin(r))
+        return room_open_heading(self.world, pick, arc_deg=BREAK_ARC_DEG, about=away)
 
     def sent(self, cmd, action):
         if cmd.TYPE == "walkTo" and self._chosen in ("step", "exit"):

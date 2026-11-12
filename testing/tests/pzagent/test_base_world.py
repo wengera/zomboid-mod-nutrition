@@ -1189,3 +1189,28 @@ def test_a_malformed_ring_is_not_kept():
     w = World()
     w.apply(frame(1000, me=dict(DEFAULT_FRAME["me"], room={"h": [1.0], "stop": ["wall"], "tick": 1})))
     assert w.room() is None
+
+
+# ---------------------------------------------------------------- Plan 37 Task 3: the open line (`World.open_line`)
+def test_open_line_stops_at_a_wall_three_tiles_off():
+    """A blocked west edge on (3, 0), 3 tiles east of the player at (0.0, 0.5): the line east reads 2.5 tiles clear
+    (the last clear 0.5-tile step), the line west (unknown squares) the whole 10."""
+    w = _world(_grid(0, 0, 5, 0, over={(3, 0): {"blockW": True}}), me=(0.0, 0.5))
+    assert w.open_line(0.0, 10.0) == 2.5
+    assert w.open_line(180.0, 10.0) == 10.0
+
+
+def test_open_line_reads_unknown_squares_open():
+    w = _world(_grid(0, 0, 1, 0), me=(0.5, 0.5))
+    assert w.open_line(0.0, 6.0) == 6.0 and w.open_line(90.0, 6.0) == 6.0
+
+
+def test_open_line_stops_at_a_blocked_edge_and_a_solid_square():
+    """A north edge on (0, 2) crossed going +y stops the line at 1.0 (the player at (0.5, 0.9)); a solid square at
+    (2, 0) stops the +x line at 1.0 (the player at (0.5, 0.5)); a diagonal through a solid corner stops at once."""
+    w = _world(_grid(0, 0, 0, 4, over={(0, 2): {"blockN": True}}), me=(0.5, 0.9))
+    assert w.open_line(90.0, 5.0) == 1.0
+    w = _world(_grid(0, 0, 4, 0, over={(2, 0): {"solid": True}}), me=(0.5, 0.5))
+    assert w.open_line(0.0, 5.0) == 1.0
+    w = _world(_grid(0, 0, 1, 1, over={(1, 0): {"solid": True}, (0, 1): {"solid": True}}), me=(0.9, 0.9))
+    assert w.open_line(45.0, 3.0) == 0.0

@@ -13,7 +13,10 @@ tests on the fake mod.
 
 Plan 35 Task 8 (the deletion; the reflex owns contact) deleted DRAG_GUARD_FIGHT (the guard's shove in its run's place),
 SIDE_CLEAR (the run steer turned off a standing zombie), the leave's first-line shove and the retreat's back legs, with
-their tests (named in the task report).
+their tests (named in the task report). Plan 37 Task 3 deleted fix 4's `run` leg above RETREAT_MAX_N with the
+constant and its two tests (named in the task report), took GROUP_LEAVE out of T18_SWITCHES (the disposition selector
+owns the entry where it runs; GROUP_LEAVE stays `Threat`'s seam, `T17` here naming it) and pins F18's replay, whose
+hello announces `melee`, with DISPOSITION off (a named change: the leave is the row where the selector does not run).
 """
 import functools
 import json
@@ -33,7 +36,7 @@ from .test_policies import Rig, square, zombie
 from .test_survive import make, threat_why, tick
 
 F18 = os.path.join(R.ARTIFACTS, "f_goals_18-20261108-235005")
-T17 = S.T18_SWITCHES
+T17 = S.T18_SWITCHES + ("GROUP_LEAVE",)   # Plan 37 Task 3: the leave's seam, out of T18_SWITCHES
 
 
 @functools.lru_cache(maxsize=8)
@@ -67,16 +70,17 @@ def action(row):
 
 
 def test_the_t17_switches_and_constants():
-    """`survive.T18_SWITCHES`, GROUP_LEAVE on by default (Plan 35 Task 8 deleted DRAG_GUARD_FIGHT and SIDE_CLEAR with
-    their constants), and the constants at `policies.py`'s end."""
-    assert T17 == ("GROUP_LEAVE",)
+    """`survive.T18_SWITCHES`, empty since Plan 37 Task 3 (Plan 35 Task 8 deleted DRAG_GUARD_FIGHT and SIDE_CLEAR with
+    their constants; Plan 37 Task 3 took GROUP_LEAVE out, on by default as `Threat`'s seam, and deleted RETREAT_MAX_N),
+    and the constants at `policies.py`'s end."""
+    assert S.T18_SWITCHES == () and T17 == ("GROUP_LEAVE",)
     assert all(getattr(S.Survive, k) is True for k in T17)
     assert not any(hasattr(S.Survive, k) for k in ("DRAG_GUARD_FIGHT", "SIDE_CLEAR"))
     assert P.WALL_R == 1.5
     assert not any(hasattr(P, k) for k in ("STUCK_FRAMES", "SIDE_R", "SIDE_LOOK", "STUCK_FREE_R",
                                            "DRAG_SHOVES_PER_EPISODE", "RETREAT_RESEND_DEG"))
     assert not hasattr(P, "LEAVE_R") and not hasattr(P, "LEAVE_S")   # fix 4: unused since fix 3, deleted
-    assert P.RETREAT_MAX_N == 4   # fix 4
+    assert not hasattr(P, "RETREAT_MAX_N")   # fix 4's, deleted at Plan 37 Task 3
     assert P.GROUP_ENTRY_R == P.DANGER_R == 6.0   # fix 1: DANGER_R's value, its own constant
 
 
@@ -267,8 +271,9 @@ def test_f18_s_first_leave_is_the_retreat_at_line_358():
     leave line sends a steer or a run. Pinned with LEAVE_ENTRY off (a named change, Task 3b, ruling P34-G:
     the rule enters line 174's leave against the wall and the leave with three already on the character), and with
     SPENT_LEAVE off (a named change, Task 3c, ruling P34-I: the meet reads spent at line 358, so the rule's leg there
-    is the run)."""
-    rows = f18(**only("GROUP_LEAVE"), LEAVE_ENTRY=False, SPENT_LEAVE=False)
+    is the run; Plan 37 Task 3 deleted SPENT_LEAVE with the run). Pinned with DISPOSITION off (a named change, Plan 37
+    Task 3: F18's hello announces `melee`, so the selector owns the entry there)."""
+    rows = f18(**only("GROUP_LEAVE"), LEAVE_ENTRY=False, DISPOSITION=False)
     gl = {k: threat(r)["group_leave"] for k, r in enumerate(rows, 1) if "group_leave" in threat(r)}
     assert sorted(gl) == [174, 358, 359, 360, 361, 362]
     assert gl[174]["withheld"] == "cover" and gl[174]["closing"] == [13652, 13649, 13651]
@@ -281,7 +286,7 @@ def test_f18_s_first_leave_is_the_retreat_at_line_358():
     assert all(threat(r).get("flee") != "leave" for r in rows)
 
 
-# ================================================================ fix 4: the retreat retargets, always sends its leg, the run above RETREAT_MAX_N
+# ================================================================ fix 4: the retreat retargets and always sends its leg
 # Plan 33 round three (P31-T trials, not evidence): street-1, `x_trial-ladder-20261109-042558`, lines 98 to 100 held the
 # pin 99 at 4.40 tiles while 117 closed to 0.96, its retreat lines sent nothing under hit reactions while the standing
 # count rose to eight and the character died; the agent fixture, `x_trial-ladder-20261109-040825`, lines 209 to 212 held
@@ -408,43 +413,6 @@ def band(tmp_path, n, off=()):
     r.frame(x=100.5, y=200.5, zombies=pair(FIVE_NEAR[:n]))
     tick(r, sv)
     return r, sv
-
-
-def test_five_closing_take_the_many_run_and_four_the_retreat(tmp_path):
-    """Fix 4 (c): five standing closing within GROUP_ENTRY_R (more than RETREAT_MAX_N 4) are left by the `many` run
-    (`group_leave` {closing, leg "run", n 5}, the threat plan's `flee` "many", a run steer); four by the retreat."""
-    assert P.RETREAT_MAX_N == 4
-    r, sv = band(tmp_path, 5)
-    why = threat_why(tmp_path)
-    assert why["group_leave"]["leg"] == "run" and why["group_leave"]["n"] == 5 and len(why["group_leave"]["closing"]) == 5
-    assert why["flee"] == "many" and sv.mode == "flee" and "group_retreat" not in why and sv.retreat is None
-    assert r.cmd()[0] == "steer" and r.cmd()[1]["gait"] == "run"
-    (tmp_path / "four").mkdir()
-    r2, sv2 = band(tmp_path / "four", 4)
-    why = threat_why(tmp_path / "four")
-    assert why["group_leave"]["leg"] == "retreat" and why["fight"] is True and sv2.mode == "fight"
-    assert r2.cmd()[0] == "aim"
-
-
-def test_the_retreat_resumes_when_the_count_falls_to_retreat_max_n_and_ends_strung_under_three(tmp_path):
-    """Fix 4 (c): the run's leave held while five stand; the line reading four within GROUP_ENTRY_R resumes the retreat
-    (the Fight, `group_leave` {n 4, leg "retreat"}); the line reading two ends it `strung`. Pinned with Plan 34's
-    STRUNG_HOLD off (a named change: the rule holds the leave STRUNG_LINES lines), and with RUN_HOLD off (a named
-    change, Plan 34 Task 3c amendment 1: the rule keeps the run at four)."""
-    r, sv = band(tmp_path, 5, off=("STRUNG_HOLD", "RUN_HOLD"))
-    assert threat_why(tmp_path)["group_leave"]["leg"] == "run"
-    r.advance(0.5)
-    four = FIVE_NEAR[:2] + ((100.5, 207.5),) + FIVE_NEAR[3:]   # 3 beyond GROUP_ENTRY_R
-    r.frame(x=100.5, y=200.5, zombies=pair(four))
-    tick(r, sv)
-    why = threat_why(tmp_path)
-    assert why["group_leave"] == {"n": 4, "leg": "retreat"} and why["fight"] is True and sv.mode == "fight"
-    r.advance(0.5)
-    two = FIVE_NEAR[:2] + ((100.5, 207.5), (94.0, 201.4), (94.0, 199.3))
-    r.frame(x=100.5, y=200.5, zombies=pair(two))
-    tick(r, sv)
-    why = threat_why(tmp_path)
-    assert sv.leave is None and why["group_leave"] == {"end": "strung", "n": 2}
 
 
 def test_a_drag_guard_line_logs_no_stale_group_retreat(tmp_path):

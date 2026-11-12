@@ -627,8 +627,10 @@ def test_a_kill_on_a_melee_the_ladder_s_send_replaced_is_read_too(tmp_path):
 def test_the_survive_tick_logs_the_maneuver_s_step_while_it_holds_and_a_flee_hand_over_supersedes_it(tmp_path):
     """Survive's threat branch: the standing fight's melee sent; a progress line read, the holding tick logs
     `maneuver` {.., step, d} from it; at health 15 (under FLEE_HEALTH_FLOOR, no low fight) the flee's leg goes at once,
-    superseding it."""
+    superseding it. Pinned with DISPOSITION off (a named change, Plan 37 Task 3: the selector's `break` at the floor
+    keeps the Fight until the reflex's `floor` hand-back, `test_disposition.py`)."""
     r, sv = make(tmp_path, caps=MELEE_CAPS)
+    sv.DISPOSITION = False
     fr(r, [z(9, 102.0)])
     a = tick(r, sv)
     assert a.type == "melee" and threat_why(tmp_path)["maneuver"]["mode"] == "strike"

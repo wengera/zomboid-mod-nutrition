@@ -10,9 +10,14 @@
   sends the vector away from the bisector of the two bearings, until it stands inside the cone (CONE_HALF_DEG);
 - the leave at GROUP_LEAVE_N is the pull: F21's shape (`f_goals_21-20261111-150552`, decision lines 364 to 412: three
   and four standing with the meet spent, `engage_hold` {rule "leave"} on the leave's run) sends the melee with the
-  withdraw, no hold; above RETREAT_MAX_N the `many` run takes the room ring's open heading (`World.room_open`, Task
-  1's read, through a getattr until it merges);
+  withdraw, no hold;
 - logged `engage_pull` {why, spread, n, heading[, flank]} on the threat why.
+
+Named change, Plan 37 Task 3 (unit tests of an earlier rule whose fixtures the disposition selector reaches, pinned
+with its switch off): DISPOSITION off in `survive` and `kitchen_survive`, the picker as Plan 36 sent it (`hunt` sends
+no withdraw, `hold` the pull read always; `test_disposition.py`). Plan 37 Task 3 deleted the leave's `run` above
+RETREAT_MAX_N, SPENT_LEAVE's run read over by the engaged melee and fix 1b's retreat hysteresis with their tests (named
+in the task report); the ring read's 45 degrees is `policies.room_open_heading`'s default (the clock's).
 
 Every fixture is synthetic (the shapes of F21 and the spec's § 3.3, never a replay), the fake mod announcing
 PZA/1.13 with the `melee` cap."""
@@ -28,7 +33,7 @@ from agent.base.planner import threat as T
 
 from .test_survive import threat_why, tick
 from .test_survive_an import accept
-from .test_survive_ar import FIVE, FOUR, GROUP, heading, rig, work_of
+from .test_survive_ar import GROUP, heading, rig, work_of
 from .test_survive_q import z
 
 ME = (100.0, 200.0)   # the frame's default position
@@ -45,6 +50,7 @@ def survive(tmp_path, first, leave=False):
     r = rig(tmp_path)
     sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
     sv.GROUP_LEAVE = leave
+    sv.DISPOSITION = False   # Plan 37 Task 3: the picker as Plan 36 sent it
     r.frame(zombies=[first])
     tick(r, sv)
     a = r.acts.history[-1]
@@ -205,23 +211,6 @@ def test_a_flanker_beyond_cone_trigger_r_or_inside_the_cone_sends_none(tmp_path)
 
 
 # ================================================================ the leave is the pull (F21's shape)
-@pytest.mark.parametrize("zs, n, gap", [(GROUP, 3, 180.0), (FOUR, 4, 45.0)])
-def test_f21_s_spent_leave_sends_the_melee_with_the_withdraw_and_no_hold(tmp_path, zs, n, gap):
-    """F21's lines 364 to 412 shape: GROUP_LEAVE on, three (and four) standing within GROUP_ENTRY_R round the engaged
-    melee with the meet spent (the arms' pain 15, over STRAIN_SOFT: SPENT_LEAVE's run at GROUP_LEAVE_N), the nearest at
-    1.8 beyond the reach: the leave's leg reads the retreat over the run (`group_leave` {leg "retreat", over {leg
-    "run", n, spent true}}), the melee re-sent with the pull's withdraw into the widest gap, no `engage_hold` {rule
-    "leave"} (Plan 35's hold, deleted), no flee."""
-    r, sv, a = survive(tmp_path, z(1, 101.8), leave=True)
-    why, b = line(tmp_path, r, sv, zs, wounds={"armPain": 15.0})
-    gl = why["group_leave"]
-    assert gl["leg"] == "retreat" and gl["over"] == {"leg": "run", "n": n, "spent": True}
-    assert why.get("engage_hold") != {"rule": "leave"} and why.get("fight") is True and "flee" not in why
-    assert b.type == "melee" and b.args["targetId"] == 1 and withdraw(b) == pytest.approx(heading(gap), abs=1e-9)
-    assert why["engage_pull"]["why"] == "spread" and why["engage_pull"]["n"] == n
-    assert sv.leave is not None and not sv.leave.get("run")   # no RUN_HOLD from a run that never went
-
-
 def test_the_leave_s_retreat_is_the_pull_when_the_trio_stands_in_a_line(tmp_path):
     """GROUP_LEAVE on, three standing within GROUP_ENTRY_R at bearings -10, 0 and +10 (a line already, the spread 20):
     the leave's retreat holds (the Fight), and its melee carries no withdraw (the reflex stands)."""
@@ -231,7 +220,7 @@ def test_the_leave_s_retreat_is_the_pull_when_the_trio_stands_in_a_line(tmp_path
     assert r.acts.history[-1].type == "melee" and "withdrawX" not in r.acts.history[-1].args
 
 
-# ================================================================ above RETREAT_MAX_N: the run on the ring's heading
+# ================================================================ the ring's open heading (`room_open_heading`)
 def ring(h):
     """A room ring as `World.room` returns it (Plan 36 Task 1): the eight headings' clear tiles `h`, each stop a wall."""
     return {"h": list(h), "stop": ["wall"] * 8, "tick": 1}
@@ -245,13 +234,12 @@ def ring(h):
     ((3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0), (1.0, 0.0), 0.0),     # the run's own heading the most open
 ])
 def test_room_open_takes_the_most_open_ring_heading_within_45_degrees(h, run, out):
-    """Fix 2 (`flee.Flee._room_open` on `World.room`, the ring Task 1 landed): of the ring headings within
-    ROOM_OPEN_DEG of the run's, the largest clear tiles, a tie to the nearest the run's heading (then the first);
-    every candidate at 0.0 keeps the run's heading."""
+    """Fix 2 (`policies.room_open_heading` on `World.room`, the ring Task 1 landed, at its default arc: the clock's
+    gain-distance read since Plan 37 Task 3 widened the break steer's): of the ring headings within ROOM_OPEN_DEG of the
+    run's, the largest clear tiles, a tie to the nearest the run's heading (then the first); every candidate at 0.0
+    keeps the run's heading."""
     from types import SimpleNamespace
-    from agent.base.planner.flee import Flee
-    fake = SimpleNamespace(world=SimpleNamespace(room=lambda: ring(h)))
-    v, deg = Flee._room_open(fake, run)
+    v, deg = P.room_open_heading(SimpleNamespace(room=lambda: ring(h)), run)
     if out is None:
         assert (v, deg) == (run, None)
     else:
@@ -261,45 +249,7 @@ def test_room_open_takes_the_most_open_ring_heading_within_45_degrees(h, run, ou
 def test_room_open_with_no_ring_keeps_the_heading():
     """No ring on the frame (`World.room` None): the run's heading kept."""
     from types import SimpleNamespace
-    from agent.base.planner.flee import Flee
-    fake = SimpleNamespace(world=SimpleNamespace(room=lambda: None))
-    assert Flee._room_open(fake, (0.6, 0.8)) == ((0.6, 0.8), None)
-
-
-def five_run(tmp_path, h):
-    """`survive`'s engaged melee with GROUP_LEAVE on, the World's `room` read replaced by a ring of `h` (None: no
-    ring); then five standing (above RETREAT_MAX_N): the leave's run, the `many` flee's steer. Returns (the threat
-    why, the steer)."""
-    tmp_path.mkdir(parents=True, exist_ok=True)
-    r, sv, a = survive(tmp_path, z(1, 101.8), leave=True)
-    if h is not None:
-        r.world.room = lambda: ring(h)
-    why, s = line(tmp_path, r, sv, FIVE)
-    assert why["group_leave"]["leg"] == "run" and why.get("flee") == "many" and s.type == "steer"
-    return why, s
-
-
-def test_the_many_run_takes_the_room_ring_s_open_heading(tmp_path):
-    """Five standing: the run's steer takes the most open ring heading within 45 degrees of its own (the ring open 3.0
-    only at the heading nearest it, every other 0.0), logged `room_open` with its degrees; `engage_yield` {rule
-    "many"} as Plan 35's lapse."""
-    base, s0 = five_run(tmp_path / "base", None)
-    deg = math.degrees(math.atan2(s0.args["vy"], s0.args["vx"])) % 360.0
-    i = int(math.floor((deg + 22.5) / 45.0)) % 8
-    h = [0.0] * 8
-    h[i] = 3.0
-    why, s = five_run(tmp_path / "ring", h)
-    assert why["room_open"] == pytest.approx(45.0 * i)
-    assert (s.args["vx"], s.args["vy"]) == pytest.approx(heading(45.0 * i), abs=1e-6)
-    assert why.get("engage_yield") == {"rule": "many"}
-
-
-@pytest.mark.parametrize("h", [None, [0.0] * 8])
-def test_the_many_run_keeps_its_heading_with_no_ring_or_no_open_heading(tmp_path, h):
-    """No ring on the frame, or a ring walled all round: the run's steer is the one with no ring, no `room_open`."""
-    base, s0 = five_run(tmp_path / "base", None)
-    why, s = five_run(tmp_path / "read", h)
-    assert "room_open" not in why and (s.args["vx"], s.args["vy"]) == (s0.args["vx"], s0.args["vy"])
+    assert P.room_open_heading(SimpleNamespace(room=lambda: None), (0.6, 0.8)) == ((0.6, 0.8), None)
 
 
 def test_work_of_a_pulled_melee_keeps_the_five_work_fields(tmp_path):
@@ -338,23 +288,6 @@ def test_two_closing_in_a_column_send_none(tmp_path):
     assert "engage_pull" not in why and b is a
 
 
-def test_the_retreat_holds_while_three_stand_within_the_hold_radius_and_drops_under_three(tmp_path):
-    """Fix 1b (the hysteresis): the column closing arms the retreat; the next line, the same three at flat distances
-    (none closing), keeps it, logged {why "retreat", held true}, no re-send (the same withdraw); a line with only two
-    within GROUP_ENTRY_R + RETREAT_HOLD_R (the third at 8 tiles) drops it, the melee re-sent without the withdraw."""
-    assert P.RETREAT_HOLD_R == 1.0
-    r, sv, a = survive(tmp_path, zp(1, 0.0, 2.3))
-    line(tmp_path, r, sv, column(2.1, 5.5, 5.5))
-    why, b = line(tmp_path, r, sv, column(1.9, 5.0, 5.0))
-    assert why["engage_pull"]["why"] == "retreat" and "held" not in why["engage_pull"]
-    accept(r, b, "face")
-    why, c = line(tmp_path, r, sv, column(1.9, 5.0, 5.0))
-    assert why["engage_pull"]["why"] == "retreat" and why["engage_pull"]["held"] is True
-    assert why["engage_pull"]["n"] == 3 and c is b and sv.pull == pytest.approx((-1.0, 0.0), abs=1e-9)
-    why, d = line(tmp_path, r, sv, column(1.9, 5.0, 8.0))
-    assert "engage_pull" not in why and d is not b and d.type == "melee" and "withdrawX" not in d.args
-
-
 # ================================================================ fix 3: the corner Fight's pull along the ring
 def kitchen_survive(tmp_path, h):
     """`survive` on room squares (a kitchen round ME), GROUP_LEAVE off, the World's `room` read a ring of `h` (None:
@@ -369,6 +302,7 @@ def kitchen_survive(tmp_path, h):
         r.world.room = lambda: ring(h)
     sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
     sv.GROUP_LEAVE = False
+    sv.DISPOSITION = False   # Plan 37 Task 3: the picker as Plan 36 sent it
     r.frame(zombies=[z(1, 101.8)])
     tick(r, sv)
     a = r.acts.history[-1]

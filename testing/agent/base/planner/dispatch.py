@@ -65,6 +65,9 @@ command at its pin. Its state is the Fight's own (`_init_dispatch`), and `fight.
   ladder's, no mark); any end but `floor` with a standing zombie (not a crawler) within KEEP_R is followed by the melee
   at the pin, no ladder choose and no backoff (`_contact_rule`, the one rule: fixes 8 and 8b, Task 8 fix 1; a `lost`
   end's zombie marked and left out of P27-N's pin, `_stalled`), logged `engage_dispatch` {from: the end}.
+- Plan 37 Task 3 (the disposition, `disposition.Disposer`): the work carries the Fight's `disposition` and `release`
+  (Survive sets both each tick, as the withdraw); the hand-back why `released` (PZA/1.16: the release the planner
+  asked) gives the next choose to the ladder as `floor` does, in contact too (the Flee takes it next).
 """
 from agent.base.planner.crawler import is_crawler
 from agent.base.planner.maneuvers import Melee
@@ -84,8 +87,10 @@ LOST_UNREACHABLE = {"out of reach": SEEK_SKIP_S, "no progress": UNREACHABLE_S}  
 OFF_ENDS = ("not loaded", "bad args", "unknown type")    # ... that end the melee for the rest of the Fight
 BACKOFF_ENDS = ("interrupted", "timeout", "no target")   # ... that leave its target to the ladder for
                                                          # MELEE_BACKOFF_TICKS (fix 1, review-t7b m2)
-WORK_ENDS = ("floor", "clear")   # Plan 35: a `handback`'s whys under `work` that give the next choose to the ladder,
-                                 # no re-pin (the body at the floor; nothing left to meet, as `lost` out of range)
+WORK_ENDS = ("floor", "clear", "released")   # Plan 35: a `handback`'s whys under `work` that give the next choose to
+                                             # the ladder, no re-pin (the body at the floor; nothing left to meet, as
+                                             # `lost` out of range; Plan 37 Task 3: the release the planner asked)
+HANDED_BACK = ("floor", "released")   # ... and those that do so in contact too (`_contact_rule`): the Flee's next
 
 # The maneuver registry (Plan 31 Task 8): every maneuver by its logged name, the one table a decider (a variant, the
 # ladder's care branch) reads to start one; the Fight's dispatch above starts its Melee directly.
@@ -116,6 +121,9 @@ class FightDispatch:
                                             # vector (`group.ThreatGroup._pull`), the melee's withdraw bias, else None
         self.backswing = False              # Survive sets it each tick (Plan 36 Task 2a addendum: threat.Threat's
                                             # BACKSWING, T21_SWITCHES): the work's backswing; a bare Fight sends none
+        self.disposition = None             # Survive sets it each tick (Plan 37 Task 3, `disposition.Disposer`): the
+                                            # work's disposition (hunt, hold, string), else None (absent)
+        self.release = False                # Survive sets it each tick (Plan 37 Task 3): the hand-back asked
 
     def _retire_maneuver(self):
         """The running maneuver is dropped, its sends' ends still read (`_spent_m`)."""
@@ -169,13 +177,14 @@ class FightDispatch:
         """The one rule after a melee end (Plan 35 fixes 8 and 8b; Task 8 fix 1, review-t8 A: a `head_stall` handback
         and a `refused` lost at a pin 0.4 tiles off handed the ladder a raw aim leg): with a standing zombie (not a
         crawler) within KEEP_R (`contact`), no end gives the next choose to the ladder but the body at the floor (a
-        handback why `floor`: the health flee is the ladder's) and `no weapon` (fix 1b: the ladder's bare-hand shove
+        handback why `floor`: the health flee is the ladder's), the release the planner asked (Plan 37 Task 3: why
+        `released`, HANDED_BACK, the Flee next) and `no weapon` (fix 1b: the ladder's bare-hand shove
         and stomp, not a melee re-sent every choose); the next choose dispatches the melee with `work` at the
         Fight's pin (`_m_kept`, `fight.Fight._choose`), logged `engage_dispatch` {from: the end}, the end's own marks
         written as before (a `lost` end's `_lost_end`, a crowd handback's re-pin); an end in contact sets no backoff.
         With nobody standing within KEEP_R (`clear`, an `out of range` with the zombie gone, any end at range) the
         ladder takes the ends it took before (`ladder`)."""
-        if contact and not (end == "handback" and why == "floor") and end != "no weapon":
+        if contact and not (end == "handback" and why in HANDED_BACK) and end != "no weapon":
             self._m_kept = end
             return
         if ladder:
@@ -341,11 +350,12 @@ class FightDispatch:
 
     def _work_inputs(self):
         """Plan 35: the send's `WorkInputs` (the module docstring): the withdraw bias the engagement picker's vector
-        (Plan 36 Task 3, `withdraw`), else none; Plan 36 Task 2a addendum: backswing the Fight's `backswing`."""
+        (Plan 36 Task 3, `withdraw`), else none; Plan 36 Task 2a addendum: backswing the Fight's `backswing`; Plan 37
+        Task 3: the Fight's `disposition` and `release`."""
         w = self.withdraw
         withdraw = None if w is None else (float(w[0]), float(w[1]))
         return WorkInputs(WORK_R, WORK_CRAWLER_R, WORK_BAND_LO, withdraw, FLEE_HEALTH, True,
-                          backswing=bool(self.backswing))
+                          backswing=bool(self.backswing), disposition=self.disposition, release=bool(self.release))
 
     def _melee_dispatch(self, cmd):
         """The ladder's `cmd`, or at the dispatch point the running maneuver's next command (a new `Melee` where none

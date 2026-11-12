@@ -25,11 +25,12 @@ CARE_SENDS = ("stop", "rip", "unwear", "bandage")
 
 def test_the_t19_switches():
     """`survive.T19_SWITCHES`, each a `threat.Threat` attribute on by default (Task 2's two after LEAVE_CARE; Task 3b
-    LEAVE_ENTRY, ruling P34-G; Task 3c SPENT_LEAVE, ruling P34-I, and RUN_HOLD, its amendment 1). Plan 35 Task 8
-    deleted RETREAT_GAP, RETREAT_MELEE, STRUNG_HOLD, CRAWLER_CLEAR, RETREAT_REGAIN and DRAG_DEFER (the rules that
-    fought in contact beside the reflex) and SHOVE_CLEAR (its one Python reader the drag guard's shove; the Lua's wait
-    has no switch)."""
-    assert T19 == ("LEAVE_CARE", "DOOR_INSIDE", "LEAVE_DOOR_RACE", "LEAVE_ENTRY", "SPENT_LEAVE", "RUN_HOLD")
+    LEAVE_ENTRY, ruling P34-G). Plan 35 Task 8 deleted RETREAT_GAP, RETREAT_MELEE, STRUNG_HOLD, CRAWLER_CLEAR,
+    RETREAT_REGAIN and DRAG_DEFER (the rules that fought in contact beside the reflex) and SHOVE_CLEAR (its one Python
+    reader the drag guard's shove; the Lua's wait has no switch); Plan 37 Task 3 Task 3c's SPENT_LEAVE (ruling P34-I)
+    and its amendment's RUN_HOLD with the leave's `run`."""
+    assert T19 == ("LEAVE_CARE", "DOOR_INSIDE", "LEAVE_DOOR_RACE", "LEAVE_ENTRY")
+    assert not any(hasattr(T.Threat, k) for k in ("SPENT_LEAVE", "RUN_HOLD"))
     assert all(getattr(T.Threat, k) is True for k in T19) and all(getattr(S.Survive, k) is True for k in T19)
     assert "T19_SWITCHES" in S.__all__
     assert (P.GROUP_LEAVE_N, P.GROUP_ENTRY_R) == (3, 6.0)

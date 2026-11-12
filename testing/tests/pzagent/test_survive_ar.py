@@ -497,12 +497,15 @@ GROUP = [z(1, 101.8), z(2, 100.0, 202.3), z(3, 100.0, 197.4)]   # the target 1.8
 def engaged(tmp_path, mod="1.13", leave=False, scan=None, **frame):
     """A Survive (GROUP_LEAVE `leave`, off as `test_survive.make` sets it) on a `rig` announcing `mod`, `scan` squares
     scanned: its first line fights the one zombie 1.8 tiles east with the melee (accepted, its last
-    step `face`); the line after reads `frame`."""
+    step `face`); the line after reads `frame`. Named change, Plan 37 Task 3 (a unit test of an earlier rule whose
+    fixture the disposition selector reaches, pinned with its switch off): DISPOSITION off here, so the threat rows the
+    engagement holds (`engage_hold` {rule}) are read as Plan 35 left them; `test_disposition.py` reads the selector."""
     r = rig(tmp_path, mod)
     if scan:
         r.scan(scan)
     sv = S.Survive(r.world, r.acts, str(tmp_path / "decision.log"), r.clock)
     sv.GROUP_LEAVE = leave
+    sv.DISPOSITION = False
     r.frame(zombies=[z(1, 101.8)])
     tick(r, sv)
     a = r.acts.history[-1]
@@ -624,23 +627,6 @@ def test_with_no_bleed_the_care_s_commitment_at_the_engaged_melee_is_held(tmp_pa
     why = threat_why(tmp_path)
     assert "engage_yield" not in why
     assert r.acts.history[-1] is a and why["engage_hold"] == {"rule": "care"} and "care_commit" not in why
-
-
-FIVE = [z(1, 101.8), z(2, 100.0, 202.3), z(3, 100.0, 197.4), z(4, 98.0, 200.0), z(5, 102.0, 202.5)]   # five standing
-
-
-FOUR = FIVE[:4]
-
-
-def test_above_retreat_max_n_the_leave_s_run_lapses_the_hold(tmp_path):
-    """Plan 35 fix 3: GROUP_LEAVE on, five standing within GROUP_ENTRY_R (above RETREAT_MAX_N, the `run` leg's own
-    count), the nearest the melee's target at 1.8: the hold lapses and the leave's run goes as before Plan 35 (the
-    `many` flee), logged `engage_yield` {rule "many"}; with ENGAGE_HOLD off, the same run (Plan 33 Task 3 fix 4's
-    answer, the pin), no `engage_yield`."""
-    r, sv, a = engaged(tmp_path, leave=True, zombies=FIVE)
-    why = threat_why(tmp_path)
-    assert why["group_leave"]["leg"] == "run" and why.get("flee") == "many" and r.acts.history[-1] is not a
-    assert "engage_hold" not in why and why.get("engage_yield") == {"rule": "many"}
 
 
 def test_the_leave_strung_out_at_the_engaged_melee_keeps_the_pull_until_the_spread_closes(tmp_path):

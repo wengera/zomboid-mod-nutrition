@@ -27,10 +27,11 @@ WALL = [square(101, 200, blockW=True)]   # the W edge of square (101, 200): 0.5 
 
 
 def test_the_switch():
-    """LEAVE_ENTRY on `threat.Threat`, on by default, in `survive.T19_SWITCHES` before SPENT_LEAVE (Plan 35 Task 8
-    deleted CRAWLER_CLEAR, which it followed, and RETREAT_REGAIN)."""
+    """LEAVE_ENTRY on `threat.Threat`, on by default, the last of `survive.T19_SWITCHES` (Plan 35 Task 8 deleted
+    CRAWLER_CLEAR, which it followed, and RETREAT_REGAIN; Plan 37 Task 3 SPENT_LEAVE and RUN_HOLD, which followed
+    it)."""
     t19 = S.T19_SWITCHES
-    assert t19[t19.index("LEAVE_ENTRY") + 1] == "SPENT_LEAVE"
+    assert t19[-1] == "LEAVE_ENTRY"
     assert T.Threat.LEAVE_ENTRY is True and S.Survive.LEAVE_ENTRY is True
 
 

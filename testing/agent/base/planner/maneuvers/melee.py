@@ -38,6 +38,9 @@ before each `step`; a decider variant may start one wherever it fights.
   re-send follows, the withdraw heading by its WITHDRAW_RESEND_DEG sector (a turn inside the sector re-sends nothing),
   and the `done` hand-backs' whys `floor` (the body's health at the floor) and `clear` (the reflex read nothing left to
   meet) land in `end_why` as every why does.
+- PZA/1.16 (Plan 37 Task 3, the disposition): `WorkInputs.disposition` (hunt, hold, string; None absent on the wire,
+  the Lua's hunt) and `release` (the hand-back asked) are work fields the behaviour reads, so a change of either is a
+  re-send; the `done` hand-back's why `released` lands in `end_why` and its `safe` in `end_safe`.
 """
 import dataclasses
 import math
@@ -83,18 +86,22 @@ class WorkInputs:
     backswing: bool = False                    # backswing (PZA/1.15, Plan 36 Task 2a addendum: threat.Threat's
                                                # BACKSWING): the press held on the reflex's back step; false on the
                                                # wire is absent (pza1.Melee's default)
+    disposition: Optional[str] = None          # disposition (PZA/1.16, Plan 37 Task 3: the selector's, hunt, hold or
+                                               # string); None is absent on the wire (the Lua reads hunt)
+    release: bool = False                      # release (PZA/1.16): the hand-back asked; false on the wire is absent
 
     def behaviour(self):
         """The work as the reflex runs it, the withdraw heading by its sector (`withdraw_sector`)."""
         return (float(self.work_r), float(self.crawler_r), float(self.band_lo), withdraw_sector(self.withdraw),
-                float(self.floor_health), bool(self.pile), bool(self.backswing))
+                float(self.floor_health), bool(self.pile), bool(self.backswing), self.disposition, bool(self.release))
 
     def args(self):
         """The `pza1.Melee` keyword arguments (the raw withdraw vector on the wire)."""
         w = self.withdraw
         return {"workR": float(self.work_r), "crawlerR": float(self.crawler_r), "bandLo": float(self.band_lo),
                 "withdrawX": None if w is None else float(w[0]), "withdrawY": None if w is None else float(w[1]),
-                "floorHealth": float(self.floor_health), "pile": bool(self.pile), "backswing": bool(self.backswing)}
+                "floorHealth": float(self.floor_health), "pile": bool(self.pile), "backswing": bool(self.backswing),
+                "disposition": self.disposition, "release": bool(self.release)}
 
 
 @dataclasses.dataclass(frozen=True)
@@ -134,7 +141,8 @@ class Melee(Maneuver):
         self.resend = None      # the last step's re-send: "inputs", or None for the first send
         self.handback = None    # a `handback` end's other zombie {id, d}
         self.end_why = None     # a `done` end's why (out of range, out of reach, no progress; crowd, standing;
-                                # PZA/1.13's floor and clear)
+                                # PZA/1.13's floor and clear; PZA/1.16's released)
+        self.end_safe = None    # a `released` hand-back's `safe` (PZA/1.16: true at a safe frame, false at the bound)
         self.work = None        # the last send's `WorkInputs` (PZA/1.13), None when it carried no `work`
         self.press = None       # the last press leaf a line carried
         self.d = None           # the last progress line's distance to the target
@@ -196,6 +204,7 @@ class Melee(Maneuver):
             self._span = (strikes, hp1 < hp0 if _number(hp0) and _number(hp1) else None)
             self.span_id = res["target"] if _zid(res.get("target")) else self.target   # Task 15a: the re-pinned one
             self.end_why = res.get("why")
+            self.end_safe = res.get("safe")
             if res.get("end") == "handback":   # Task 15a: a crowd's count and distances beside the nearest other
                 self.handback = {"id": res.get("id"), "d": res.get("d")}
                 self.handback.update({k: res[k] for k in ("n", "ds") if k in res})

@@ -211,8 +211,10 @@ def test_with_the_switch_off_the_column_withholds_the_care_and_the_flee_steers(t
     """ACTION_CLOCK off, the rules before it (Plan 34's LEAVE_CARE over Plan 32 Task 5 (c)): with three or more standing
     within GROUP_ENTRY_R the care is withheld (`care_withheld` {why "group"}) and the `many` flee steers (F21's line
     437); and with LEAVE_CARE off as well the commitment yields at 4.0 tiles (beyond CARE_HOLD_R) and the Dress's stop
-    goes at once (F21's line 431), the stop the clock now refuses."""
+    goes at once (F21's line 431), the stop the clock now refuses. Pinned with DISPOSITION off (a named change, Plan 37
+    Task 3: the selector's `hunt` fights the four where the `many` flee steered)."""
     r, sv = survive(tmp_path, clock=False)
+    sv.DISPOSITION = False
     line = step(tmp_path, r, sv, four_west(4.0))
     assert line["branch"] == "threat" and line["action"]["type"] == "steer"
     assert threat_why(tmp_path)["care_withheld"]["why"] == "group" and threat_why(tmp_path)["flee"] == "many"
@@ -340,8 +342,11 @@ def test_the_goal_s_loot_and_scan_ask_the_clock(tmp_path, cmd, kind):
 def test_a_refused_episode_re_aims_its_leg_then_spent_hands_the_tick_to_the_threat(tmp_path):
     """The leg that ended while the clock still refuses is re-aimed (the episode's second leg, `waited` counting from
     its first refusal); past CLOCK_EPISODE_S the episode is spent: the commitment withholds the yield (`care_commit`
-    {phase "spent"} on the threat's why) and the threat branch decides (here the `many` flee), no care step sent."""
+    {phase "spent"} on the threat's why) and the threat branch decides (here the `many` flee), no care step sent. Pinned
+    with DISPOSITION off (a named change, Plan 37 Task 3: the selector's `hunt` fights the four where the flee
+    steered)."""
     r, sv = survive(tmp_path)
+    sv.DISPOSITION = False
     step(tmp_path, r, sv, four_west(4.0))
     accept(r, r.acts.history[-1])
     r.fake.act(r.acts.history[-1].aid, "done", "steer", result={})

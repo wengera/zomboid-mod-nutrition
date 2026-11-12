@@ -3,10 +3,8 @@ in `testing/trials/trials.md`): three trials, three deaths, `x_trial-ladder-2026
 `x_trial-ladder-20261109-142025` and `x_trial-ladder-20261109-142418`.
 
 - RETREAT_REGAIN's press held: Plan 35 Task 8 deleted RETREAT_REGAIN and its tests (named in the task report).
-- SPENT_LEAVE's read (`group.ThreatGroup._spent_meet`): the second trial's lines 119 and 120 read `strain` 47.2 and the
-  maneuver's `spent` true (the Lua's spent meet: `PZAgent_StanceMelee.lua`'s `spentOf`, the arms' pain over
-  K.MELEE_SPENT_PAIN 10) with `group_leave` {leg "retreat", n 4}: the read took only the holds and the shove-and-stomp
-  Fight, never the arms' pain. It now also reads the pain over STRAIN_SOFT (the Lua's threshold).
+- SPENT_LEAVE's read (`group.ThreatGroup._spent_meet`): Plan 37 Task 3 deleted SPENT_LEAVE with the leave's `run` and
+  this fix's two tests (named in the task report): the spent and the many are the disposition's (`string`).
 - POINT_BLANK_FIGHT's radius over a flee (`threat.Threat._point_blank`): the third trial's line 343 pinned 8836 at 2.455
   tiles over the `health` flee and line 358 8847 at 2.18, and the first trial's line 392 pinned 13837 at 2.24 over
   `many`; under `many` or `health` the rule now fights only within POINT_BLANK_OVER_R (1.5).
@@ -19,36 +17,11 @@ from agent.base.planner import threat as T
 
 from .test_policies import zombie
 from .test_survive import make, threat_why, tick
-from .test_survive_ak import closing
 
 
 def test_the_constant():
     """POINT_BLANK_OVER_R 1.5, inside KEEP_R."""
     assert P.POINT_BLANK_OVER_R == 1.5 and P.POINT_BLANK_OVER_R < P.KEEP_R
-
-
-# ================================================================ (B) the spent read is the Lua's
-STIFF = {"l": 5.7, "r": 5.7}   # the second trial's line 119: under STIFF_HARD, no arms' hold
-
-
-@pytest.mark.parametrize("pain, leg", [(47.2, "run"), (15.0, "run"), (9.0, "retreat")])
-def test_the_arms_pain_alone_makes_the_meet_spent(tmp_path, pain, leg):
-    """The second trial's lines 119 and 120: three closing within GROUP_ENTRY_R, `body.armPain` 47.2 with no hold (the
-    stiffness 5.7): the meet is spent (the Lua's `spentOf`: the pain over K.MELEE_SPENT_PAIN 10, STRAIN_SOFT), so the
-    leg is the `run`, `group_leave` {leg "run", n 3, spent true}; at 15 (over the Lua's threshold, under STRAIN_HARD)
-    the same; at 9 the retreat."""
-    closing(tmp_path, wounds={"armPain": pain, "strain": STIFF})
-    gl = threat_why(tmp_path)["group_leave"]
-    assert gl["leg"] == leg and gl.get("spent", False) is (leg == "run")
-    if leg == "run":
-        assert gl["n"] == 3
-
-
-def test_with_spent_leave_off_the_pain_leaves_the_retreat(tmp_path):
-    """A pin (SPENT_LEAVE off): the pain 47.2, the retreat."""
-    closing(tmp_path, off=("SPENT_LEAVE",), wounds={"armPain": 47.2, "strain": STIFF})
-    gl = threat_why(tmp_path)["group_leave"]
-    assert gl["leg"] == "retreat" and "spent" not in gl
 
 
 # ================================================================ (C) point blank over a flee: POINT_BLANK_OVER_R

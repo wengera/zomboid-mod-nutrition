@@ -358,8 +358,8 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     `crawler_tries`); `T17_SWITCHES` (CRAWLER_FIRST).
     Plan 33 Task 3 (the group's entry and the drag guard; F18, `f_goals_18-20261108-235005`: three standing zombies
     walked in while the finish stalled and the drag-down guard sent five run steers under hit reactions into a zombie at
-    the side, the character unmoving for 116 frames): GROUP_LEAVE (`planner/group.py`'s docstring the record);
-    `T18_SWITCHES` (Plan 35 Task 8 deleted DRAG_GUARD_FIGHT and SIDE_CLEAR).
+    the side, the character unmoving for 116 frames): the leave (`planner/group.py`'s docstring the record);
+    `T18_SWITCHES` empty (Plan 35 Task 8 deleted DRAG_GUARD_FIGHT and SIDE_CLEAR, Plan 37 Task 3 GROUP_LEAVE).
     Plan 34 (the column; F19, `f_goals_19-20261109-060929`: under a column of five to eight standing zombies the leave's
     `run` alternated with the care, 21 of 55 lines from game minute 770 to 777 the care's, 8 stops, an unwear and 5 rips,
     none done, each rip superseded as the column closed back to 1.78-2.47 tiles): LEAVE_CARE, no care action but the
@@ -368,13 +368,10 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     threat's why; DOOR_INSIDE and LEAVE_DOOR_RACE (the spec's § 3.2, Task 2); LEAVE_ENTRY (Task 3b, ruling P34-G; the trial `x_trial-ladder-20261109-123231`: a wall at the back withheld
     the leave from a closing trio, and three standing at 0.4 to 0.9 tiles, jittering rather than closing, were fought
     with no leave until the drag-down): the leave entered with a wall at the back and with GROUP_LEAVE_N standing within
-    GROUP_ENTRY_R, the nearest within KEEP_R (`group.ThreatGroup._leave_entry`); Task 3c (ruling P34-I; the trial
-    `x_trial-ladder-20261109-132439`): SPENT_LEAVE, with the meet spent the `run` at GROUP_LEAVE_N
-    (`group.ThreatGroup._leave_leg`); RUN_HOLD (amendment 1; the trial `x_trial-ladder-20261109-134527`: the leg
-    flicked between the run at five and the retreat at four, the character never running clear), a leave whose leg read
-    `run` keeps it until the leave ends, logged `group_leave` {held}; `T19_SWITCHES` (Plan 35 Task 8 deleted
-    RETREAT_GAP, RETREAT_MELEE, STRUNG_HOLD, CRAWLER_CLEAR, RETREAT_REGAIN and DRAG_DEFER, and SHOVE_CLEAR, whose one
-    Python reader was the drag guard's shove: the Lua's shove and stomp wait for a reaction's end with no switch).
+    GROUP_ENTRY_R, the nearest within KEEP_R (`group.ThreatGroup._leave_entry`); `T19_SWITCHES` (Plan 35 Task 8
+    deleted RETREAT_GAP, RETREAT_MELEE, STRUNG_HOLD, CRAWLER_CLEAR, RETREAT_REGAIN and DRAG_DEFER, and SHOVE_CLEAR,
+    whose one Python reader was the drag guard's shove; Plan 37 Task 3 deleted SPENT_LEAVE and RUN_HOLD with the
+    leave's `run` leg).
     Plan 35 (the footwork, PZA/1.13; the spec's §§ 3.2 and 3.3: the deaths' hits land in held contact while a 2 Hz leg
     superseded the melee reflex whose press is the defence; no switch since Task 8, the deletion): the melee always
     carries its `work` arguments (the reflex's footwork, the pile met, the floor and clear hand-backs); the running melee
@@ -390,6 +387,13 @@ The thresholds and the threat hysteresis are Plan 21b's (`testing/agent/policy.p
     exceeds its duration plus ACTION_MARGIN_S; refused, the gain-distance leg first; a running one is held by the threat
     branch while the clock holds and cut only under the margin, into the melee (`clock.py`'s docstring the record;
     `ACTION_CLOCK`, `T21_SWITCHES`; logged `clock`). The care's commitment is the clock's (`CareYield._clock_commit`).
+    Plan 37 Task 3 (the disposition; the spec `2026-11-12-plan-37-the-disposition-design.md` §§ 3.2, 3.4, 3.5; F22,
+    `f_goals_22-20261111-215108`, its last 23.9 s: six melees and six steers as the count crossed RETREAT_MAX_N and
+    back): the threat branch picks `hunt`, `hold`, `string` or `break` on events with a dwell and a hysteresis, the
+    melee carries the disposition, its withdraw and the release by re-send, the Flee takes contact only through the
+    reflex's `released` or `floor` hand-back; deleted: the leave's `run` above RETREAT_MAX_N, SPENT_LEAVE, RUN_HOLD,
+    GROUP_LEAVE's switch and the `many` lapse (`planner/disposition.py`'s docstring the record; `DISPOSITION`,
+    `T22_SWITCHES`; logged `disposition`, `string_heading`, `release`).
 - `need` (Plan 23 Task 11, P23-7): Plan 22's character never ate or drank, its thresholds 0.5, which vanilla reaches
   in 17 to 20 game hours; the needs now fire at the game's first moodle, THIRST_T 0.12 (#0509) and HUNGER_T 0.15
   (#0508). While its own `Consume` is current the branch holds, before any threshold is read (a frame that already
@@ -549,22 +553,20 @@ T16_SWITCHES = ("POINT_BLANK_FIGHT", "PAIR_NEAREST", "CARE_COMMIT", "STRAIN_BOUN
 T17_SWITCHES = ("CRAWLER_FIRST",)
 # Plan 33 Task 2 (the crawler first, F18's death) on `Survive`: CRAWLER_FIRST, the Fight's `crawler_first` rule
 # (`crawler.FightCrawler`), added to the Fight's rules by `Survive._fight_rules`
-T18_SWITCHES = ("GROUP_LEAVE",)
-# Plan 33 Task 3 (the group's entry and the drag guard; F18, `f_goals_18-20261108-235005`), all on `threat.Threat`
-# (`planner/group.py`): GROUP_LEAVE, a closing trio left in the open for a known door within LEAVE_DOOR_R, else the
-# fighting retreat, else above RETREAT_MAX_N the `many` run (`ThreatGroup._group_leave`); Plan 35 Task 8 deleted
-# DRAG_GUARD_FIGHT and SIDE_CLEAR
-T19_SWITCHES = ("LEAVE_CARE", "DOOR_INSIDE", "LEAVE_DOOR_RACE", "LEAVE_ENTRY", "SPENT_LEAVE", "RUN_HOLD")
+T18_SWITCHES = ()
+# Plan 33 Task 3 (the group's entry and the drag guard; F18, `f_goals_18-20261108-235005`), on `threat.Threat`
+# (`planner/group.py`): Plan 35 Task 8 deleted DRAG_GUARD_FIGHT and SIDE_CLEAR, Plan 37 Task 3 GROUP_LEAVE (the leave's
+# entry is the disposition selector's where it runs, the leave's door and retreat its row where it does not)
+T19_SWITCHES = ("LEAVE_CARE", "DOOR_INSIDE", "LEAVE_DOOR_RACE", "LEAVE_ENTRY")
 # Plan 34 (the column; F19, `f_goals_19-20261109-060929`; the spec's § 3), all on `threat.Threat`: LEAVE_CARE, the care
 # barred under a column of GROUP_LEAVE_N standing within GROUP_ENTRY_R but the ride (`care_yield.CareYield._care_commit`,
 # `_care_yields`); DOOR_INSIDE, the shelter plan's enter read inside and its close sent from inside; LEAVE_DOOR_RACE,
 # the leave's door only with the nearest standing beyond DOOR_RACE_R, a second exit, dropped at DOOR_ABORT_R; Task 3b
-# (ruling P34-G) LEAVE_ENTRY, the leave's entry with no cover exemption and with the group already on the character;
-# Task 3c (ruling P34-I) SPENT_LEAVE, the
-# `run` at GROUP_LEAVE_N with the meet spent; amendment 1 RUN_HOLD, a leave whose leg read `run` keeps the run until it
-# ends. Plan 35 Task 8 deleted RETREAT_GAP, RETREAT_MELEE, STRUNG_HOLD, CRAWLER_CLEAR, RETREAT_REGAIN, DRAG_DEFER and
-# SHOVE_CLEAR (its one Python reader the drag guard's shove), and Plan 35 Task 2's T20_SWITCHES (FOOTWORK, ENGAGE_HOLD,
-# WITHDRAW: the engagement is the only behaviour)
+# (ruling P34-G) LEAVE_ENTRY, the leave's entry with no cover exemption and with the group already on the character.
+# Plan 37 Task 3 deleted Task 3c's SPENT_LEAVE and its amendment's RUN_HOLD with the leave's `run`. Plan 35 Task 8
+# deleted RETREAT_GAP, RETREAT_MELEE, STRUNG_HOLD, CRAWLER_CLEAR, RETREAT_REGAIN, DRAG_DEFER and SHOVE_CLEAR (its one
+# Python reader the drag guard's shove), and Plan 35 Task 2's T20_SWITCHES (FOOTWORK, ENGAGE_HOLD, WITHDRAW: the
+# engagement is the only behaviour)
 T21_SWITCHES = ("ACTION_CLOCK", "BACKSWING")
 # Plan 36 Task 4 (the action clock; the spec `2026-11-11-plan-36-the-engagement-design.md` § 3.4; F21,
 # `f_goals_21-20261111-150552`) on `clock.ClockGate`, the mixin `care_yield.CareYield` derives from: ACTION_CLOCK,
@@ -575,6 +577,12 @@ T21_SWITCHES = ("ACTION_CLOCK", "BACKSWING")
 # sent with work carries backswing true (the Fight's `backswing`, set each tick; `dispatch.FightDispatch._work_inputs`),
 # so a press launched while the reflex's step walks keeps the walk held through it; off, the walk stopped on the
 # press's tick as before. The probe's off arm is the head before this switch, its on arm the head with it
+T22_SWITCHES = ("DISPOSITION",)
+# Plan 37 Task 3 (the disposition; the spec `2026-11-12-plan-37-the-disposition-design.md` §§ 3.2, 3.4 and 3.5; F22,
+# `f_goals_22-20261111-215108`) on `disposition.Disposer`, the mixin `threat.Threat` derives from: DISPOSITION, the
+# selector picks hunt, hold, string or break on events with a dwell and owns the open-ground rows in contact, the melee
+# carrying the disposition, its withdraw and the release; off, the Plan 36 branch (the leave's row, the picker's pull,
+# no disposition on the wire)
 KIT_WANTS = ("bandage",)   # the need marks the goals' loot takes first (`goals.Kit.wants`; ruling P24-AB)
 FAILED_COOLDOWN_TICKS = 10   # planner ticks a failed command is not chosen again with the same type and args
 FAILED = ("failed", "timeout", "rejected")
@@ -597,7 +605,7 @@ __all__ = ["Survive", "Decision", "BRANCHES", "STEPS", "DANGER_R", "DISENGAGE_R"
            "SOURCE_FAILS", "DOOR_FAILS", "DOOR_NEAR_R", "KIT_WANTS", "LISTED_R", "T3_SWITCHES",
            "T4_SWITCHES", "T5_SWITCHES", "T6_SWITCHES", "T7_SWITCHES", "T8_SWITCHES", "T9_SWITCHES", "T10_SWITCHES",
            "T11_SWITCHES", "T12_SWITCHES", "T13_SWITCHES", "T14_SWITCHES", "T15_SWITCHES",
-           "T16_SWITCHES", "T17_SWITCHES", "T18_SWITCHES", "T19_SWITCHES", "T21_SWITCHES"]
+           "T16_SWITCHES", "T17_SWITCHES", "T18_SWITCHES", "T19_SWITCHES", "T21_SWITCHES", "T22_SWITCHES"]
 
 
 @dataclass
@@ -739,11 +747,11 @@ class Survive(SneakGait, Threat):
                                         # Task 5 (a), `Threat._point_blank`), else None
         self.strain_bound = None  # this tick: {endurance, standing} when a `strain` flee was withheld (Plan 32 Task 5
                                   # (d), `Threat._strain_flees`), else None
-        self.leave = None         # the running leave {since, closing} (Plan 33 Task 3, GROUP_LEAVE), else None
-        self.retreat = None       # this tick: GROUP_LEAVE's retreat heading (unit away from the group), else None
-        self.group_retreat = None   # this tick: GROUP_LEAVE's retreat why {leg, closing, centroid_away}, else None
-        self.leave_leg = None     # this tick: the leave's leg, door | retreat | run
-        self.group_leave = None   # this tick: GROUP_LEAVE's why (a leave taken, held, ended or withheld), else None
+        self.leave = None         # the running leave {since, closing} (Plan 33 Task 3, `group.py`), else None
+        self.retreat = None       # this tick: the leave's retreat heading (unit away from the group), else None
+        self.group_retreat = None   # this tick: the leave's retreat why {leg, closing, centroid_away}, else None
+        self.leave_leg = None     # this tick: the leave's leg, door | retreat
+        self.group_leave = None   # this tick: the leave's why (a leave taken, held, ended or withheld), else None
         self._group_prev = {}     # standing zombie id -> tiles on the last tick, within DISENGAGE_R (the closing read)
         self._group_closing = []  # this tick: (id, zombie, tiles) of the standing within GROUP_NEAR_R nearer than before
         self.group_n = 0          # this tick: the standing zombies within GROUP_ENTRY_R (Plan 34, `_group_read`)
@@ -755,8 +763,8 @@ class Survive(SneakGait, Threat):
         self.engage_hold = None   # this tick: {rule} of the first threat row held off the Fight's engaged melee
                                   # (Plan 35 Task 2, `Threat._engage_holds`), else None
         self.engage_yield = None  # this tick: {rule "bleed"} when the engagement yielded to the bleed's care (Plan 35
-                                  # Task 2 fix 2, `CareYield._care_engage_holds`), {rule "many"} above
-                                  # RETREAT_MAX_N (fixes 3 and 4, `Threat._group_lapse`), else None
+                                  # Task 2 fix 2, `CareYield._care_engage_holds`), else None
+        self._init_disposition()  # Plan 37 Task 3: the disposition selector's state (`disposition.Disposer`)
         self.engage_dispatch = None   # this tick: {from "unreachable", target} when the `unreachable` flee was withheld
                                       # in contact (Plan 35 Task 2 fix 8b, `Threat._contact_lift`), else None
         self.care_leg = None      # the care's one distance leg (Plan 32 Task 5 (c), `care_yield.CareLeg`), else None
