@@ -2311,3 +2311,44 @@ def test_after_a_shove_s_knock_down_the_step_out_goes_away_from_the_fallen_one(l
     run(lua, p, w, 12, stop=lambda: work_of(lua, "pileState") == "step")
     assert w["presses"] and w["presses"][0]["shove"] is True and work_of(lua, "pileWhy") == "shove"
     assert work_of(lua, "outHx") < -0.5 and work_of(lua, "outHy") < 0
+
+
+# ---- Plan 37 Task 2 fix 4: the string's release radius holds for the whole send (x_trial-ladder-20261112-065221's a2:
+# the read showed rule 3 at 8.0, the done line's gap 7.99 the tick before; these pin it) ------------------------------
+
+def _ended_why(lua, fs):
+    a = last(lua, fs)
+    return a["state"], (a.get("result") or {}).get("why")
+
+
+def test_under_string_the_running_melee_reads_8_0_tick_by_tick_and_across_a_leader_re_pin(lua, fs):
+    """The target 7 at 6.6 tiles on a tick: the melee runs on; moved to 7.9 it runs on; to 8.1 it ends lost out of
+    range. A re-pin to a leader (20 at 3.0) keeps st.releaseR 8.0."""
+    p, z, w, recs = group_world(lua, 16.0, [(10.0, 23.0)])
+    gow(lua, p, disposition="string")
+    grun(lua, p, w, recs, lua.eval("PZA.skills.WORK_TICKS") + 2)
+    assert lua.eval("PZA.skills.cur.st.id") == 20 and lua.eval("PZA.skills.cur.st.releaseR") == 8.0
+    p2, z2, w2, recs2 = group_world(lua, 10.0 + 6.6, [])
+    gow(lua, p2, aid="m2", disposition="string")
+    lua.execute("PZA.skills.cur.st.work.sinceChoose = -1000")   # no walk: the player holds still, the target placed
+    for dx in (6.6, 7.9):
+        w2["zx"], w2["px"] = 10.0 + dx, 10.0
+        recs2()
+        run(lua, p2, w2, 1)
+        assert lua.eval("PZA.skills.cur") is not None and lua.eval("PZA.skills.cur.st.releaseR") == 8.0
+    w2["zx"], w2["px"] = 18.1, 10.0
+    recs2()
+    run(lua, p2, w2, 1)
+    assert _ended_why(lua, fs) == ("done", "out of range")
+
+
+def test_under_hold_the_sent_release_r_ends_the_melee_at_2_8(lua, fs):
+    p, z, w = world(lua, zx=12.7, **LOOK_OFF)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p, disposition="hold")
+    run(lua, p, w, 1)
+    assert lua.eval("PZA.skills.cur.st.releaseR") == 2.75
+    w["zx"] = w["px"] + 2.8
+    records(lua, [target_rec(w)], {7: z})
+    run(lua, p, w, 1)
+    assert _ended_why(lua, fs) == ("done", "out of range")
