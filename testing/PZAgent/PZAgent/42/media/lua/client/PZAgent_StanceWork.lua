@@ -55,6 +55,12 @@
 --      the meet presses (cornered). (c) The chosen knock-down: one standing inside point blank and two or more within
 --      the reach (the target counted): the nearest re-pinned to, then shoved (shove_for knockdown on the line),
 --      then (a). The crowd hand-back is kept for pile false.
+--   Plan 37 Task 2 fix 3 (the horde8 trial x_trial-ladder-20261112-065221, a trial reading: a zombie the shove knocked
+--   down bit the leg from the floor at 0.85 tiles, CrawlerBiteLEFT, and the drag-down followed): to the reflex a
+--   fallen zombie (the frame's onFloor record read live: not dead, isOnFloor; never the finish's target) inside
+--   K.CRAWLER_BITE_R is a crawler (K.crawlersNear: the buffer step, the probe veto, no clear), the stomp first only
+--   for a real crawler; one within K.CRAWLER_BUFFER_R repels the heading at K.WORK_CRAWLER_W; and the step out after
+--   a shove that knocked its target down is repelled by it at that weight (outHeading's weighted centroid).
 --   2. the crawler buffer (crawlerTick below; Plan 36 Task 2b item 7, replacing Plan 35 fix 5's stomp-first): a
 --      crawler within K.CRAWLER_BUFFER_R with the target standing ends the standing position: one step perpendicular
 --      to the crawler's bearing toward the ring's more open side (bufferHeading) for K.WORK_STEP_TICKS ticks before
@@ -291,8 +297,10 @@ def.tick = function(p, st)
     return a, b, c
 end
 
--- the crawlers within r of the player other than the target ({id, d, o, x, y} each, nearest first), or nil: the last
--- frame's records reading crawler within r + K.MELEE_CROWD_SLACK, each read live (dead, its position) through S.zobj
+-- the crawlers within r of the player other than the target ({id, d, o, x, y[, fallen]} each, nearest first), or nil:
+-- the last frame's records reading crawler within r + K.MELEE_CROWD_SLACK, each read live (dead, its position) through
+-- S.zobj; Plan 37 Task 2 fix 3: and the fallen (a record reading onFloor, not crawler, isOnFloor read live) within
+-- the lesser of r and K.CRAWLER_BITE_R, marked fallen
 function K.crawlersNear(p, st, r)
     local S = PZA.sense
     local f = S ~= nil and S.last or nil
@@ -302,16 +310,20 @@ function K.crawlersNear(p, st, r)
     local out = nil
     for i = 1, #recs do
         local rec = recs[i]
-        if rec.crawler == true and rec.id ~= st.id and type(rec.dist) == "number" and rec.dist < r + K.MELEE_CROWD_SLACK then
+        local crawl = rec.crawler == true
+        local lim = r
+        if not crawl and lim > K.CRAWLER_BITE_R then lim = K.CRAWLER_BITE_R end   -- fix 3: a fallen one at the feet
+        if (crawl or rec.onFloor == true) and rec.id ~= st.id and type(rec.dist) == "number"
+           and rec.dist < lim + K.MELEE_CROWD_SLACK then
             local o = objs[rec.id]
-            if o ~= nil and not K.zombieDead(o) then
+            if o ~= nil and not K.zombieDead(o) and (crawl or K.onFloor(o)) then
                 local x, y = posOf(o)
                 if x ~= nil and y ~= nil then
                     local ex, ey = x - st.px, y - st.py
                     local d = math.sqrt(ex * ex + ey * ey)
-                    if d < r then
+                    if d < lim then
                         out = out or {}
-                        out[#out + 1] = { id = rec.id, d = d, o = o, x = x, y = y }
+                        out[#out + 1] = { id = rec.id, d = d, o = o, x = x, y = y, fallen = not crawl }
                     end
                 end
             end
@@ -417,6 +429,23 @@ local function turnClear(p, st, bx, by, cs, fl)
     end
 end
 
+-- Plan 37 Task 2 fix 3: the fallen zombie of record rec (its object o) repels the sum s at K.WORK_CRAWLER_W within
+-- K.CRAWLER_BUFFER_R, read live (not dead, isOnFloor, its position); not when the crawlers cs already hold it
+local function repelFallen(s, st, rec, o, cs)
+    if o == nil or rec.dist >= K.CRAWLER_BUFFER_R + K.MELEE_CROWD_SLACK then return end
+    if cs ~= nil then
+        for i = 1, #cs do
+            if cs[i].id == rec.id then return end
+        end
+    end
+    if K.zombieDead(o) or not K.onFloor(o) then return end
+    local x, y = posOf(o)
+    if x == nil or y == nil then return end
+    local ex, ey = x - st.px, y - st.py
+    if ex * ex + ey * ey >= K.CRAWLER_BUFFER_R * K.CRAWLER_BUFFER_R then return end
+    repel(s, st.px, st.py, x, y, K.WORK_CRAWLER_W)
+end
+
 -- the heading chosen (the header's rule) into w: hx, hy, heading, turn, clear, n, crawlerD
 local function choose(p, st, fallen)
     local w = st.work
@@ -434,6 +463,7 @@ local function choose(p, st, fallen)
     local f = S ~= nil and S.last or nil
     local objs = S ~= nil and S.zobj or nil
     local recs = f ~= nil and f.zombies or nil
+    local cs = w.crawlers   -- fix 5: this tick's read (K.workTick), crawlerR x 2, the leaf's crawler refreshed there
     if recs ~= nil and objs ~= nil then
         for i = 1, #recs do
             local rec = recs[i]
@@ -442,6 +472,7 @@ local function choose(p, st, fallen)
                     if type(rec.x) == "number" and type(rec.y) == "number" and rec.dist < w.workR + K.MELEE_CROWD_SLACK then
                         fl[#fl + 1] = { x = rec.x, y = rec.y }
                     end
+                    repelFallen(s, st, rec, objs[rec.id], cs)   -- Plan 37 Task 2 fix 3
                 elseif rec.dist < w.workR + K.MELEE_CROWD_SLACK then
                     local o = objs[rec.id]
                     local x, y = nil, nil
@@ -454,7 +485,6 @@ local function choose(p, st, fallen)
             end
         end
     end
-    local cs = w.crawlers   -- fix 5: this tick's read (K.workTick), crawlerR x 2, the leaf's crawler refreshed there
     if cs ~= nil then
         for i = 1, #cs do repel(s, px, py, cs[i].x, cs[i].y, K.WORK_CRAWLER_W) end
     end
@@ -585,13 +615,15 @@ local function standingWithin(st, d, standing, r)
 end
 
 -- the step out's heading (7b): the ring's most open within 90 degrees of the way away from the centroid of zs (each
--- {x, y} or {o}); nil with none, or with nothing to step from
+-- {x, y} or {o}, and since Plan 37 Task 2 fix 3 its weight wt, 1 when absent); nil with none, or with nothing to step
+-- from
 local function outHeading(p, st, zs)
     local cx, cy, n = 0, 0, 0
     for i = 1, #zs do
         local x, y = zs[i].x, zs[i].y
         if x == nil and zs[i].o ~= nil then x, y = posOf(zs[i].o) end
-        if x ~= nil and y ~= nil then cx, cy, n = cx + x, cy + y, n + 1 end
+        local wt = zs[i].wt or 1
+        if x ~= nil and y ~= nil then cx, cy, n = cx + x * wt, cy + y * wt, n + wt end
     end
     if n == 0 then return nil end
     local ax, ay = st.px - cx / n, st.py - cy / n
@@ -625,7 +657,11 @@ local function pileTick(p, st, d, fallen, standing)
     if st.shoves ~= w.shoveMark then w.shoveMark, why = st.shoves, "shove" end   -- (a): a shove's result
     if why == nil and #pb >= 2 then why = "pile_out" end                       -- (b): two at point blank
     if why ~= nil then
-        local zs = pb
+        local zs = {}
+        for i = 1, #pb do zs[i] = pb[i] end
+        if why == "shove" and not standing then   -- fix 3: the one the shove knocked down repels too
+            zs[#zs + 1] = { x = st.zx, y = st.zy, wt = K.WORK_CRAWLER_W }
+        end
         if #zs == 0 then zs = { { x = st.zx, y = st.zy } } end
         w.outHx, w.outHy = outHeading(p, st, zs)
         if w.outHx == nil then return nil end   -- no way out: the meet presses (cornered)
@@ -746,7 +782,8 @@ local function crawlerTick(p, st, standing, g)
         return cs, nil
     end
     local c = cs[1]
-    if c.d < K.CRAWLER_BITE_R and (g == nil or g >= K.MELEE_CROWD_R) then   -- inside its bite, nothing standing near
+    if c.d < K.CRAWLER_BITE_R and not c.fallen and (g == nil or g >= K.MELEE_CROWD_R) then   -- inside its bite, nothing
+        -- standing near (fix 3: a fallen zombie takes the buffer step, never the stomp first: it stands again)
         local step = M.repin(p, st, c)
         w.pinId, w.nearId, w.sinceChoose, w.crawlTicks = c.id, nil, K.WORK_TICKS, 0
         return cs, step

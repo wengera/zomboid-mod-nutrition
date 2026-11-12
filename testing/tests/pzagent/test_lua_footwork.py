@@ -272,11 +272,13 @@ def test_without_the_crawler_the_heading_holds(lua, fs):
 
 
 def test_the_heading_turns_off_a_fallen_zombie(lua, fs):
-    """A fallen zombie's record at (9.2, 20.0): within K.WORK_FALLEN_R of both probe points west."""
+    """A fallen zombie's record at (8.6, 20.0): within K.WORK_FALLEN_R of the 1.0 probe point west. Re-pinned under
+    Plan 37 Task 2 fix 3 (was (9.2, 20.0) at 0.8 tiles, which is now a crawler to the reflex, the buffer step's): at
+    1.4 tiles straight west its repulsion (K.WORK_CRAWLER_W) leaves the sum west, so the veto still turns it."""
     p, z, w = world(lua, zx=BAND_X, **LOOK_OFF)
-    f = make_zombie(9, 9.2, 20.0)
+    f = make_zombie(9, 8.6, 20.0)
     f.isOnFloor = lambda s: True
-    records(lua, [target_rec(w), {"id": 9, "dist": 0.8, "onFloor": True, "x": 9.2, "y": 20.0}], {7: z, 9: f})
+    records(lua, [target_rec(w), {"id": 9, "dist": 1.4, "onFloor": True, "x": 8.6, "y": 20.0}], {7: z, 9: f})
     gow(lua, p)
     run(lua, p, w, 2)
     assert work_of(lua, "turn") != 0 and work_of(lua, "clear") is True
@@ -2221,3 +2223,91 @@ def test_under_string_the_step_out_runs_then_the_walk_resumes(lua, fs):
     run(lua, p, w, lua.eval("PZA.skills.WORK_STEP_TICKS") + 12)
     assert [x for x in w["presses"] if x["shove"]] == []
     assert work_of(lua, "stepFor") == "string" and work_of(lua, "pileState") != "step"
+
+
+# ---- Plan 37 Task 2 fix 3: a fallen zombie at the feet is a crawler to the reflex (x_trial-ladder-20261112-065221) ----
+
+def fallen_zombie(zid, x, y):
+    """A fallen (knocked down, not crawling) zombie: isOnFloor true, isCrawling false; the frame's record onFloor."""
+    o = make_zombie(zid, x, y)
+    o.isOnFloor = lambda s: True
+    return o
+
+
+def fallen_world(lua, tx, fx, fy, **kw):
+    """The standing target 7 at (tx, 20.0) and the fallen 30 at (fx, fy)."""
+    p, z, w = world(lua, zx=tx, attack_ticks=6, **kw)
+    o = fallen_zombie(30, fx, fy)
+    records(lua, [target_rec(w), {"id": 30, "dist": math.hypot(fx - 10.0, fy - 20.0), "onFloor": True, "x": fx,
+                                  "y": fy}], {7: z, 30: o})
+    return p, z, w
+
+
+def test_a_fallen_zombie_at_the_feet_takes_the_buffer_step_before_the_next_press(lua, fs):
+    """The standing target at 1.2 east, a fallen zombie at 0.7 north (inside K.CRAWLER_BITE_R): the buffer step
+    (step_for crawler_buffer), no re-pin to it and no press first."""
+    p, z, w = fallen_world(lua, 11.2, 10.0, 20.7)
+    gow(lua, p)
+    run(lua, p, w, 2)
+    assert work_of(lua, "stepFor") == "crawler_buffer" and lua.eval("PZA.skills.cur.st.id") == 7
+    assert w["presses"] == [] and abs(w["walk"][0]) > 0.99
+
+
+@pytest.mark.parametrize("disp", ["hunt", "hold", "string"])
+def test_the_fallen_buffer_runs_under_every_disposition(lua, fs, disp):
+    p, z, w = fallen_world(lua, 11.2, 10.0, 20.7)
+    gow(lua, p, disposition=disp)
+    run(lua, p, w, 2)
+    assert work_of(lua, "stepFor") == "crawler_buffer"
+
+
+def test_a_dead_or_standing_up_zombie_at_the_feet_is_no_crawler(lua, fs):
+    p, z, w = fallen_world(lua, 11.2, 10.0, 20.7, **LOOK_OFF)
+    lua.execute("PZA.sense.last.zombies[2].onFloor = true")
+    zobj = lua.eval("PZA.sense.zobj")
+    zobj[30].isOnFloor = lambda s: False                         # standing up: the live read says so
+    gow(lua, p)
+    run(lua, p, w, 2)
+    assert work_of(lua, "stepFor") != "crawler_buffer"
+
+
+def test_the_heading_turns_off_a_fallen_zombie_within_the_buffer_radius(lua, fs):
+    """The target at 0.95 east (the step west), a fallen zombie at 1.5 west-north-west (beyond the probe veto): its
+    repulsion at K.WORK_CRAWLER_W turns the step south of west."""
+    p, z, w = fallen_world(lua, BAND_X, 8.7, 20.75, **LOOK_OFF)
+    gow(lua, p)
+    run(lua, p, w, 3)
+    assert work_of(lua, "stepFor") == "gap" and w["walk"][0] < 0 and w["walk"][1] < -0.3
+
+
+def test_a_fallen_zombie_beyond_the_buffer_radius_changes_nothing(lua, fs):
+    p, z, w = fallen_world(lua, BAND_X, 7.7, 21.25, **LOOK_OFF)   # 2.6 tiles off
+    gow(lua, p)
+    run(lua, p, w, 3)
+    assert work_of(lua, "heading") == pytest.approx(180.0) and work_of(lua, "turn") == 0
+
+
+def test_after_a_shove_s_knock_down_the_step_out_goes_away_from_the_fallen_one(lua, fs):
+    """The target at 0.55 east and 20 at 1.0 north: the chosen knock-down shoves the target and knocks it down, 20
+    lunges in to 0.8; the step out (rule (a)) is repelled by the knocked-down target at K.WORK_CRAWLER_W as well as by
+    20: south-west, not due south."""
+    p, z, w = world(lua, zx=10.55, attack_ticks=6)
+    pos = {"x": 10.0, "y": 21.0}
+    o = make_zombie(20, 10.0, 21.0)
+    o.getX, o.getY = (lambda s: pos["x"]), (lambda s: pos["y"])
+    sense(lua, [z, o])
+
+    def recs():
+        records(lua, [target_rec(w), {"id": 20, "dist": math.hypot(pos["x"] - w["px"], pos["y"] - w["py"]),
+                                      "x": pos["x"], "y": pos["y"]}], {7: z, 20: o})
+    recs()
+
+    def knock(wd, shove):
+        wd["knocked"] = True
+        pos["y"] = 20.8
+        recs()
+    w["on_attack"] = knock
+    gow(lua, p, pile=True)
+    run(lua, p, w, 12, stop=lambda: work_of(lua, "pileState") == "step")
+    assert w["presses"] and w["presses"][0]["shove"] is True and work_of(lua, "pileWhy") == "shove"
+    assert work_of(lua, "outHx") < -0.5 and work_of(lua, "outHy") < 0
