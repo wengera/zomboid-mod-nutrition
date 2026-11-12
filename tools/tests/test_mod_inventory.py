@@ -344,7 +344,10 @@ def test_installed_long_term_preservation_declares_a_different_id():
 
 @unittest.skipUnless(os.path.isdir(SRJ), "Skill Recovery Journal 3782784855 not installed")
 def test_installed_skill_recovery_journal_has_no_resolvable_id():
-    assert mod_inventory.scan_mod(SRJ)["mod_id"] == ""
+    """Re-pinned 2026-11-12 (the corpus-drift rule): the workshop updated 3782784855 at 08:20 that day and the folder
+    gained `42.20.1/mod.info` with `id=SkillRecoveryJournal`; the empty id of the 2026-09-10 scan stays in the committed
+    dataset (`test_committed_dataset_carries_resolved_ids_and_the_new_fields`)."""
+    assert mod_inventory.scan_mod(SRJ)["mod_id"] == "SkillRecoveryJournal"
 
 
 @unittest.skipUnless(os.path.isfile(DATASET), "data/mod-inventory.json not generated")

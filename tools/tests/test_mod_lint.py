@@ -272,8 +272,11 @@ def test_installed_keen_perception_is_clean():
 
 @unittest.skipUnless(os.path.isdir(SRJ), "Skill Recovery Journal 3782784855 not installed")
 def test_installed_skill_recovery_journal_has_no_mod_info():
-    """The one corpus folder `mods.workshop_index()` cannot see (229 ids for 230 folders)."""
-    assert {f.rule for f in mod_lint.lint([SRJ])} == {"mod-info", "id"}
+    """Re-pinned 2026-11-12 (the corpus-drift rule): the workshop updated 3782784855 at 08:20 that day and the folder
+    gained its `mod.info` files (the root's and `42.20.1/mod.info`, `id=SkillRecoveryJournal`), so the one corpus
+    folder `mods.workshop_index()` could not see at the 2026-09-10 scan (229 ids for 230 folders) now reads only the
+    informational `folder-id` (the folder name differs from the id); the committed dataset keeps the 2026-09-10 reading."""
+    assert {f.rule for f in mod_lint.lint([SRJ])} == {"folder-id"}
 
 
 @unittest.skipUnless(os.path.isdir(SD_CC), "SD_CC_TEST 3774052732 not installed")
