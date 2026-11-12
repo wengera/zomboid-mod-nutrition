@@ -1170,10 +1170,8 @@ CLOCK_EPISODE_S = 12.0     # seconds a refused action's gain-distance episode ru
 # the standing count crossed the run's threshold and back, every send a supersede that reset the reflex's footwork)
 DISPOSITION_DWELL_S = 2.0  # seconds: the least time a disposition holds before the selector changes it (the health
                            # floor's `break` excepted), and an exit condition's own hold, § 3.2
-STRING_N = 5               # standing zombies within GROUP_ENTRY_R that enter `string` (the walk away that strings
+STRING_N = 5               # standing zombies within STRING_ENTRY_R that enter `string` (the walk away that strings
                            # them out by speed), § 3.2; it leaves at GROUP_LEAVE_N or under (the hysteresis)
-STRING_PIN_S = 3.0         # seconds: `hold` with the reflex's work leaf reading `pinned` this long, the count not
-                           # falling, enters `string`, § 3.2
 BREAK_CORNERED_S = 2.0     # seconds: `string` with no open heading (the map's line nor the ring) this long is `break`
 STRING_RUN_V = 1.0         # tiles a second: the string's walk turns to a run for a leader faster than this (Task 3
                            # fix 2, the string probe `x_trial-ladder-20261112-055128`: a walk at 2.1 outpaces only the
@@ -1181,10 +1179,9 @@ STRING_RUN_V = 1.0         # tiles a second: the string's walk turns to a run fo
 SPRINTER_V = 1.6           # tiles a second: a leader faster than this (its own recent speed off the clock's tracks)
                            # closing on SPRINT_READS reads in a row is `break` (a sprinter cannot be strung): the
                            # lunge's p90 1.58 (LUNGE_TPS's reading), STRING_RUN_V's value before fix 2, § 3.2
-STRING_ENTRY_R = 10.0      # tiles: fix 2, the string's count entry reads the standing zombies closing this near (the
-                           # group read coming, not arrived; within DISENGAGE_R, whose distances the closing read keeps)
-STRING_MIN_GAP = 1.5       # tiles: fix 2, no string is entered with the nearest standing zombie this near (inside the
-                           # clump the answer is `hold`); a string whose nearest stays inside it STRING_PIN_S is `hold`
+STRING_ENTRY_R = 10.0      # tiles: `string` while STRING_N or more standing zombies (not crawlers, not fallen) stand
+                           # this near (the group read coming, not arrived), left once at most GROUP_LEAVE_N do for
+                           # DISPOSITION_DWELL_S (Task 3 fixes 2, 5 and 9)
 HOLD_ENTRY_R = KEEP_R + 1.0   # tiles: fix 8 (the horde8 trial `x_trial-ladder-20261112-072340`: `hold` entered on
                               # three closing within 6 with only the leader in reach), the `hold` disposition's count:
                               # GROUP_LEAVE_N standing within this (Angus's "three on you"), closing or on; under it

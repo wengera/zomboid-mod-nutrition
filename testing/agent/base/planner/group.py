@@ -49,8 +49,8 @@ from agent.base.planner.crawler import is_crawler
 from agent.base.planner.policies import (ATTACK_MARGIN, CONE_HALF_DEG, CONE_OFF_DEG, CONE_TRIGGER_R, DANGER_R,
                                          DISENGAGE_R, DOOR_ABORT_R, DOOR_RACE_R, FIGHT_REACH, FLEE_HEALTH_FLOOR,
                                          GROUP_ENTRY_R, GROUP_LEAVE_N, KEEP_R, LEAVE_DOOR_R, PULL_ROOM_NEED,
-                                         PULL_ROOM_TURN_DEG, PULL_SPREAD_DEG, PULL_STOP_DEG, RETREAT_HOLD_R,
-                                         STRING_ENTRY_R, WALL_R, blocked, on_floor, zdist)
+                                         PULL_ROOM_TURN_DEG, PULL_SPREAD_DEG, PULL_STOP_DEG, RETREAT_HOLD_R, WALL_R,
+                                         blocked, on_floor, zdist)
 from agent.base.world import ROOM_STEP_DEG, me_floor, me_xy
 
 __all__ = ["ThreatGroup", "LEAVE_PLAN", "back_cover", "spread_gap"]
@@ -165,8 +165,6 @@ class ThreatGroup:
         prev = self._group_prev
         self._group_closing = [(zid, z, d) for zid, z, d in near
                                if d <= GROUP_ENTRY_R and zid in prev and d < prev[zid]]
-        self._string_closing = [(zid, z, d) for zid, z, d in near   # Plan 37 Task 3 fix 2: the string's count entry
-                                if d <= STRING_ENTRY_R and zid in prev and d < prev[zid]]   # (within DISENGAGE_R)
         self._group_prev = {zid: d for zid, _, d in near}
 
     # ------------------------------------------------------------------------------------------------ the leave

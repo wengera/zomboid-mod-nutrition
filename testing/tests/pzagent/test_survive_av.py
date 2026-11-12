@@ -176,14 +176,6 @@ def test_the_trial_s_contact_lines_send_no_steer():
     assert ticks[152][1] != "steer" and ticks[156][1] != "steer"
 
 
-def test_the_trial_s_clump_enters_the_string():
-    """Fix 3 (1): the hold inside the clump (the nearest never beyond STRING_MIN_GAP) enters `string` on the window,
-    why `crowd` or `pinned`."""
-    rows, _ = trial()
-    ds = [threat(r)["disposition"] for k, r in enumerate(rows, 1) if 140 <= k <= 201 and "disposition" in threat(r)]
-    assert any(d["to"] == "string" and d["why"] in ("crowd", "pinned") for d in ds), ds
-
-
 def test_the_trial_s_bleed_finds_nothing_to_rip_and_says_so():
     """Fix 3 (3), the reading: from the line the scratch first bleeds (176, game minute 601) every cotton garment the
     character holds is worn (the mini skirt, the boob tube; an unwear stops on a walk), so nothing can ride the engaged
@@ -233,11 +225,13 @@ def trial_6():
 
 
 def test_the_string_holds_through_the_bleed_with_no_care_supersede():
-    """Fix 6: lines 36 to 46: the string entered at 36 is kept, and nothing but melees (or nothing) is sent: no steer,
+    """Fix 6: lines 36 to 46: the string (entered at 36 at fix 6, at the group's first sight since fix 9) is kept,
+    and nothing but melees (or nothing) is sent: no steer,
     stop or unwear; the bleed's lines log `care_hold` (the clock refusing the unwear at the group's distance)."""
     rows, ticks = trial_6()
     ds = {k: threat(r)["disposition"] for k, r in enumerate(rows, 1) if "disposition" in threat(r)}
-    assert ds[36]["to"] == "string" and all(d["from"] != "string" for k, d in ds.items() if 36 < k <= 46), ds
+    entry = max(k for k, d in ds.items() if k <= 36 and d["to"] == "string")   # fix 9: from the first sight
+    assert all(d["from"] != "string" for k, d in ds.items() if entry < k <= 46), ds
     assert all(ticks[k - 1][1] in (None, "melee") for k in range(36, 47)), [ticks[k - 1][1] for k in range(36, 47)]
     assert any("care_hold" in threat(rows[k - 1]) for k in range(41, 47))
 
@@ -263,3 +257,24 @@ def test_the_strung_group_s_leader_is_hunted_and_no_hold_melee_goes_beyond_reach
     assert ds and all(d["to"] != "hold" for d in ds) and any(d["from"] == "string" and d["to"] == "hunt" for d in ds)
     melees = [ticks[k - 1][2] for k in range(21, 32) if ticks[k - 1][1] == "melee"]
     assert all(m.args.get("disposition") != "hold" for m in melees)
+
+
+# ================================================================ Task 3 fix 9: round one's fifth horde8 trial
+# `x_trial-ladder-20261112-073956` (P31-T, not evidence; at cf4f2b74): replayed from this machine's run folder as above
+# (skipped where absent), open loop to line 43 (the controller's 0-based 7 to 42).
+TRIAL_9 = "x_trial-ladder-20261112-073956"
+
+
+@functools.lru_cache(maxsize=1)
+def trial_9():
+    return trial_replay(TRIAL_9, 43)
+
+
+def test_the_trial_s_group_reads_one_entry_into_string_and_no_exit():
+    """Fix 9: lines 8 to 43, where the record changed its disposition seven times in 15 s: one entry into `string`
+    (why count) and no change after it."""
+    rows, _ = trial_9()
+    ds = [(k, threat(r)["disposition"]) for k, r in enumerate(rows, 1) if 8 <= k <= 43 and "disposition" in threat(r)]
+    into = [k for k, d in ds if d["to"] == "string"]
+    assert len(into) == 1 and ds[[k for k, _ in ds].index(into[0])][1]["why"] == "count"
+    assert all(k <= into[0] for k, d in ds), ds

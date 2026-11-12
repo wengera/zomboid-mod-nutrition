@@ -20,7 +20,7 @@ from .test_base_world import _grid
 from .test_survive import threat_why, tick
 from .test_survive_an import accept
 from .test_survive_ar import rig
-from .test_survive_as import ME, line, zp
+from .test_survive_as import line, zp
 from .test_survive_q import z
 
 
@@ -67,9 +67,10 @@ def group(n, d):
 def test_the_constants_and_the_switch():
     """The spec's §§ 3.2 and 3.5 values, the switch on by default in T22_SWITCHES, the deleted names gone (GROUP_LEAVE
     kept as `Threat`'s seam onto the rules before Plan 33, out of T18_SWITCHES)."""
-    assert (P.DISPOSITION_DWELL_S, P.STRING_N, P.STRING_PIN_S, P.BREAK_CORNERED_S, P.STRING_RUN_V) == (
-        2.0, 5, 3.0, 2.0, 1.0)   # fix 2: the run from 1.0 tiles a second
-    assert (P.STRING_ENTRY_R, P.STRING_MIN_GAP, P.STRING_RELEASE_R, P.SPRINTER_V) == (10.0, 1.5, 8.0, 1.6)
+    assert (P.DISPOSITION_DWELL_S, P.STRING_N, P.BREAK_CORNERED_S, P.STRING_RUN_V) == (
+        2.0, 5, 2.0, 1.0)   # fix 2: the run from 1.0 tiles a second
+    assert (P.STRING_ENTRY_R, P.STRING_RELEASE_R, P.SPRINTER_V, P.HOLD_ENTRY_R) == (10.0, 8.0, 1.6, 3.5)
+    assert not any(hasattr(P, n) for n in ("STRING_MIN_GAP", "STRING_PIN_S"))   # fix 9: the gap rules deleted
     assert (P.STRING_TURN_DEG, P.STRING_STEP_DEG, P.STRING_LOOK_R, P.RELEASE_WAIT_S, P.SPRINT_READS) == (
         120.0, 15.0, 10.0, 2.5, 3)
     assert S.T22_SWITCHES == ("DISPOSITION", "ENGAGED_RIDE") and "T22_SWITCHES" in S.__all__   # fix 3's ride
@@ -223,27 +224,6 @@ def test_string_holds_at_four_and_leaves_to_hold_after_the_dwell_at_three(tmp_pa
     assert tos[:4] == [None] * 4 and tos[4] == "hunt" and sv.disposition == "hunt"
 
 
-def test_hold_pinned_for_three_seconds_strings(tmp_path):
-    """In `hold` (three standing, under STRING_N), the engaged melee's work leaf reading `pinned` for STRING_PIN_S
-    with the count not falling: `string` (why pinned); unpinned, the hold stays."""
-    r, sv = hold_rig(tmp_path)
-    zs = closing_three(4)
-    for k in range(8):
-        m = melee_of(r)
-        r.fake.act(m.aid, "progress", "melee", result={"step": "work", "work": {"pinned": True, "n": 3}})
-        r.pump()
-        why, _ = line(tmp_path, r, sv, zs)
-        if sv.disposition == "string":
-            break
-    assert sv.disposition == "string" and why["disposition"]["why"] == "pinned" and k == 6
-
-
-def test_hold_unpinned_stays(tmp_path):
-    r, sv = hold_rig(tmp_path)
-    lines(tmp_path, r, sv, [closing_three(4)] * 8)
-    assert sv.disposition == "hold"
-
-
 # ================================================================ break
 def test_break_at_the_health_floor_takes_the_flee_only_after_the_floor_hand_back(tmp_path):
     """In `hold`, the health falls to 35 (under FLEE_HEALTH): `break` at once (why health, no dwell), the release asked
@@ -338,75 +318,21 @@ def test_eight_coming_enter_the_string_at_once_from_hunt_with_its_heading(tmp_pa
     """Fix 2 (the string probe `x_trial-ladder-20261112-055128`: the string entered after the dwell with four already
     within 1.6 tiles): one zombie met at 2.4 tiles (`hunt`, the melee); then eight standing listed at 9 to 10.5 tiles
     east and the first stepped back to 7; the next line all eight closing to 8 to 10 tiles (within STRING_ENTRY_R, none within
-    GROUP_ENTRY_R): `string` at once, 1.0 s into `hunt` (no dwell on the count's jump, why "coming"), the melee sent
+    GROUP_ENTRY_R): `string` at once (fix 9: STRING_N standing within STRING_ENTRY_R, no dwell), the melee sent
     at the pin 7 tiles off (within STRING_RELEASE_R) with `disposition` string and the string heading (west)."""
     r, sv, a = survive(tmp_path, zp(1, 0.0, 2.4))
     assert sv.disposition == "hunt"
     fan = (0.0, 20.0, -20.0, 35.0, -35.0, 10.0, -10.0, 45.0)
-    line(tmp_path, r, sv, [zp(1, 0.0, 7.0)] + [zp(10 + i, b, 10.5 - 0.2 * i) for i, b in enumerate(fan)])
+    w1, _ = line(tmp_path, r, sv, [zp(1, 0.0, 7.0)] + [zp(10 + i, b, 10.5 - 0.2 * i) for i, b in enumerate(fan)])
     why, b = line(tmp_path, r, sv, [zp(1, 0.0, 7.0)] + [zp(10 + i, b, 10.0 - 0.25 * i) for i, b in enumerate(fan)])
-    assert why["disposition"] == {"from": "hunt", "to": "string", "why": "coming", "dwell": 1.0}
+    d = w1.get("disposition") or why.get("disposition")   # fix 9: five of the eight already within 10 on the first
+    assert d["to"] == "string" and d["why"] == "count" and d["dwell"] < P.DISPOSITION_DWELL_S   # no dwell
     assert sv.group_n == 0 and why["string_heading"]["deg"] == pytest.approx(180.0, abs=20.0)
     assert b.type == "melee" and b.args["disposition"] == "string" and b.args["withdrawX"] < -0.9
 
 
-def test_five_within_six_with_the_nearest_at_1_2_hold_and_never_string(tmp_path):
-    """Fix 2: five standing within GROUP_ENTRY_R with the nearest at 1.2 tiles (inside STRING_MIN_GAP, the clump): no
-    `string` entered at range on any line; `hold` after the dwell (why entry). (Fix 3's clump entry comes once `hold`
-    has held its dwell: `test_a_hold_inside_a_crowd_strings_after_string_pin_s`.)"""
-    r, sv, a = survive(tmp_path, zp(1, 0.0, 1.2))
-    out = lines(tmp_path, r, sv, [[zp(1, 0.0, 1.2)] + group(4, 4.0)] * 6)
-    tos = [w.get("disposition", {}).get("to") for w, _ in out]
-    assert "string" not in tos and sv.disposition == "hold"
-    assert next(w["disposition"] for w, _ in out if "disposition" in w)["why"] == "clump"   # fix 8: 1 alone in 3.5
-
-
-def test_a_string_whose_nearest_stays_inside_the_gap_goes_to_hold(tmp_path):
-    """Fix 2: in `string`, the nearest standing at 1.0 tiles (inside STRING_MIN_GAP) for STRING_PIN_S: the string
-    leaves, why "clump" (fix 8: to `hunt`, the one at 1.0 alone within HOLD_ENTRY_R); the lines under it keep it."""
-    r, sv = string_rig(tmp_path)
-    out = lines(tmp_path, r, sv, [[zp(1, 0.0, 1.0)] + group(5, 4.0)[1:]] * 8)
-    tos = [w.get("disposition", {}).get("to") for w, _ in out]
-    k = tos.index("hunt")
-    assert out[k][0]["disposition"]["why"] == "clump" and k == 6 and all(t is None for t in tos[:k])
-
-
-# ================================================================ fix 3: the clump entry, the contract, the ride
-from agent.base.pza1 import Rip  # noqa: E402
-
+# ================================================================ fix 3: the contract, the ride
 from .test_survive_g import part  # noqa: E402
-
-CLUMP = [zp(1, 0.0, 1.0), zp(2, 60.0, 1.1), zp(3, -60.0, 1.2), zp(4, 120.0, 1.3), zp(5, -120.0, 1.4)]
-
-
-def test_a_hold_inside_a_crowd_strings_after_string_pin_s(tmp_path):
-    """Fix 3 (the horde8 trial `x_trial-ladder-20261112-061307`: six game minutes of `hold` inside four to seven at
-    0.5 to 0.9 tiles, the string barred by STRING_MIN_GAP): five standing within GROUP_ENTRY_R, the nearest at 1.0
-    (inside the gap): `hold` first (no string at range), then, once STRING_N have stood STRING_PIN_S and the hold its
-    dwell, `string` (why crowd) whatever the gap, its melee carrying `disposition` string."""
-    r, sv, a = survive(tmp_path, zp(1, 0.0, 1.0))
-    out = lines(tmp_path, r, sv, [CLUMP] * 12)
-    ds = [w["disposition"] for w, _ in out if "disposition" in w]
-    assert [d["to"] for d in ds] == ["hold", "string"] and ds[1]["why"] == "crowd"
-    k = next(i for i, (w, _) in enumerate(out) if w.get("disposition", {}).get("to") == "string")
-    assert out[k][1].type == "melee" and out[k][1].args["disposition"] == "string"
-    assert all(w.get("disposition", {}).get("to") != "hold" for w, _ in out[k + 1:])   # no clump exit for it
-
-
-def test_a_pinned_hold_strings_whatever_the_gap(tmp_path):
-    """Fix 3: three standing (under STRING_N), the nearest at 1.0, the leaf `pinned` for STRING_PIN_S: `string`, why
-    pinned (fix 2's gap no longer bars the entries from inside the clump)."""
-    r, sv, a = survive(tmp_path, zp(1, 0.0, 1.0))
-    zs = CLUMP[:3]
-    for k in range(14):
-        m = melee_of(r)
-        r.fake.act(m.aid, "progress", "melee", result={"step": "work", "work": {"pinned": True, "n": 3}})
-        r.pump()
-        why, _ = line(tmp_path, r, sv, zs)
-        if sv.disposition == "string":
-            break
-    assert sv.disposition == "string" and why["disposition"]["why"] == "pinned"
-
 
 def test_a_flee_row_in_contact_under_a_fight_disposition_is_the_melee_at_the_nearest(tmp_path):
     """Fix 3 (the same trial, lines 153 and 157: the melee ended in contact and the drag guard, reading no engaged
@@ -495,7 +421,6 @@ def test_a_bleed_with_only_a_worn_garment_waits_logged_worn(tmp_path):
     """Fix 3: the trial's own inventory (the cotton garments all worn: an unwear stops on a walk): no command over
     the engaged melee, logged `care_ride` {under hold, cmd null, why worn}."""
     r, sv = ride_rig(tmp_path, worn=True)
-    m = melee_of(r)
     why, a = line(tmp_path, r, sv, closing_three(4), wounds=BLEED)
     assert a.type == "melee" and why["care_ride"] == {"under": "hold", "cmd": None, "why": "worn"}
 
@@ -651,3 +576,51 @@ def test_a_hold_line_with_the_nearest_at_6_6_sends_the_approach_not_a_melee(tmp_
     sent = r.acts.history[n:]
     assert not any(a.type == "melee" for a in sent), [(a.type, a.args) for a in sent]
     assert sv.fight.m is None or not sv.fight._engaged()
+
+
+# ================================================================ fix 9: the string by the count within STRING_ENTRY_R
+def eight(inside=4):
+    """Eight standing east within STRING_ENTRY_R: `inside` of them within 1.5 tiles, the rest at 5 to 9."""
+    near = [zp(40 + i, b, 0.9 + 0.15 * i) for i, b in enumerate((0.0, 70.0, -70.0, 140.0)[:inside])]
+    far = [zp(50 + i, b, 5.0 + 0.8 * i) for i, b in enumerate((10.0, -10.0, 30.0, -30.0)[:8 - inside])]
+    return near + far
+
+
+def test_eight_within_ten_with_four_inside_1_5_read_string_and_keep_it(tmp_path):
+    """Fix 9 (the horde8 trial `x_trial-ladder-20261112-073956`: seven disposition changes in 15 s, the gap rules
+    pulling the string back into the clump): eight standing within STRING_ENTRY_R, four inside 1.5 tiles: `string`
+    on the line that reads them (why count) and no other change over 10 s of the same counts."""
+    r, sv, a = survive(tmp_path, zp(1, 0.0, 2.4))
+    out = lines(tmp_path, r, sv, [eight() + [zp(1, 0.0, 9.5)]] * 21)
+    ds = [w["disposition"] for w, _ in out if "disposition" in w]
+    assert [d["to"] for d in ds] == ["string"] and ds[0]["why"] == "count" and sv.disposition == "string"
+
+
+def test_the_count_falling_to_three_within_ten_leaves_the_string_by_the_hold_s_count(tmp_path):
+    """Fix 9: in `string`, three standing within STRING_ENTRY_R for DISPOSITION_DWELL_S: the string leaves on the
+    dwell's line, to `hold` with the three within HOLD_ENTRY_R, to `hunt` with them beyond it."""
+    for near, want in ((True, "hold"), (False, "hunt")):
+        d = tmp_path / want
+        d.mkdir()
+        r, sv, a = survive(d, zp(1, 0.0, 2.4))
+        lines(d, r, sv, [eight() + [zp(1, 0.0, 9.5)]] * 2)
+        assert sv.disposition == "string"
+        three = [zp(60 + i, b, (1.2 if near else 5.0) + 0.3 * i) for i, b in enumerate((0.0, 60.0, -60.0))]
+        gone = [dict(z, x=z["x"] + 20.0) for z in eight() + [zp(1, 0.0, 9.5)]]   # still listed, 20 tiles east
+        out = lines(d, r, sv, [three + gone] * 6)
+        tos = [w.get("disposition", {}).get("to") for w, _ in out]
+        k = next(i for i, t in enumerate(tos) if t is not None)
+        assert tos[k] == want and out[k][0]["disposition"]["why"] == "count" and k == 4, (want, tos)
+
+
+def test_a_count_flickering_4_5_within_ten_keeps_the_string(tmp_path):
+    """Fix 9: in `string`, the count within STRING_ENTRY_R reads 4, 5, 4, 5, ... (each line under the dwell): the
+    string holds (its exit needs at most GROUP_LEAVE_N for DISPOSITION_DWELL_S)."""
+    r, sv, a = survive(tmp_path, zp(1, 0.0, 2.4))
+    lines(tmp_path, r, sv, [eight() + [zp(1, 0.0, 9.5)]] * 2)
+    assert sv.disposition == "string"
+    gone = [dict(z, x=z["x"] + 20.0) for z in eight() + [zp(1, 0.0, 9.5)]]
+    four = [zp(70 + i, b, 4.0 + 0.5 * i) for i, b in enumerate((0.0, 40.0, -40.0, 80.0))]
+    five = four + [zp(74, -80.0, 6.0)]
+    out = lines(tmp_path, r, sv, [gone + (four if k % 2 == 0 else five) for k in range(10)])
+    assert all("disposition" not in w for w, _ in out) and sv.disposition == "string"

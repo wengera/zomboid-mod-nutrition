@@ -8,71 +8,38 @@ the leave row, the engagement picker's pull, no `disposition` on the wire).
 
 - The gate (`_disposing`): DISPOSITION on, the melee can go (MELEE, the build announcing `melee`), the character armed
   and not sheltered. Where it reads False the selector holds no disposition and the rows decide as before.
-- The read (`_disposition_read`, each tick in `Threat._threat_read` after the held list): the facts (the standing count
-  within GROUP_ENTRY_R, `group_n`, and within GROUP_ENTRY_R + RETREAT_HOLD_R; the leave's entry, GROUP_LEAVE_N or more
-  standing closing within GROUP_ENTRY_R or on the character with the nearest within KEEP_R; the health; the room ring;
-  the engaged melee's last work leaf, `pinned`; the leader, the nearest standing, its own recent speed off the action
-  clock's tracks, `clock.ActionClock`), the condition clocks, the release's hand-back, then `select`.
+- The read (`_disposition_read`, each tick in `Threat._threat_read` after the held list): the facts (`n_on`, the
+  standing zombies, not crawlers, within HOLD_ENTRY_R; `n_hold`, within HOLD_ENTRY_R + RETREAT_HOLD_R; `n_range`,
+  within STRING_ENTRY_R; the hold's entry, GROUP_LEAVE_N closing within HOLD_ENTRY_R or there with the nearest within
+  KEEP_R; the health; the leader, the nearest standing within GROUP_ENTRY_R, and its own recent speed off the action
+  clock's tracks), the condition clocks, the releases' hand-backs, then `select`.
 - The table (`select`, `_want`; every threshold a `policies.py` constant):
-  from none: STRING_N or more standing `string`; the leave's entry with a leave door `break` (`leave`); the entry
-  `hold`; else `hunt`.
-  `hunt`: STRING_N `string`; the entry with a leave door `break` `leave`; the entry `hold`.
-  `hold`: STRING_N `string`; the leaf `pinned` for STRING_PIN_S with the count not falling `string` (`pinned`); the
-  ring reading the withdraw heading and both its neighbours under PULL_ROOM_NEED `string` (`walled`); the leave's entry
-  with a leave door `break` `leave`; under GROUP_LEAVE_N standing within GROUP_ENTRY_R + RETREAT_HOLD_R for
-  DISPOSITION_DWELL_S `hunt`.
-  `string`: no open heading (the ring closed round the string heading, or its open line under PULL_ROOM_NEED) for
-  BREAK_CORNERED_S `break` (`cornered`); the leader above STRING_RUN_V with its gap shrinking on SPRINT_READS reads in a
-  row `break` (`sprinter`); at most GROUP_LEAVE_N standing within GROUP_ENTRY_R for DISPOSITION_DWELL_S `hold`.
-  `break`: at most GROUP_LEAVE_N standing with the health above FLEE_HEALTH for DISPOSITION_DWELL_S, `hold` at
-  GROUP_LEAVE_N, else `hunt`.
-  Any: the health at or under FLEE_HEALTH (the reflex's `floor`) `break` (`health`), the one change the dwell never
-  holds. Every other change waits until the running disposition has held DISPOSITION_DWELL_S. A change is logged
+  `string` whenever STRING_N or more stand within STRING_ENTRY_R, entered at once from none, `hunt` or `hold` (why
+  `count`, no dwell: the count's jump is an event); left only to `hold` (GROUP_LEAVE_N or more within HOLD_ENTRY_R)
+  or `hunt` once at most GROUP_LEAVE_N have stood within STRING_ENTRY_R for DISPOSITION_DWELL_S, or to `break` on
+  the health floor, `cornered` (no open heading, the ring closed round the string heading or its open line under
+  PULL_ROOM_NEED, for BREAK_CORNERED_S) or `sprinter` (the leader above SPRINTER_V with its gap shrinking on
+  SPRINT_READS reads in a row).
+  Below STRING_N: `hold` on the hold's entry (three on you), left to `hunt` under GROUP_LEAVE_N within HOLD_ENTRY_R +
+  RETREAT_HOLD_R for the dwell; `hunt` otherwise; the hold's entry with a leave door read `break` (`leave`).
+  `break`: at most GROUP_LEAVE_N within GROUP_ENTRY_R with the health above FLEE_HEALTH for the dwell, then `hold` or
+  `hunt` by the hold's count.
+  Any: the health at or under FLEE_HEALTH (the reflex's `floor`) `break` (`health`), no dwell. Every other change
+  but the string's entry waits until the running disposition has held DISPOSITION_DWELL_S. A change is logged
   `disposition` {from, to, why, dwell} on the threat why of its line only.
-  Fix 2 (the string probe `x_trial-ladder-20261112-055128`: the string entered after the dwell, inside the clump, and
-  the character dragged down 21 s in): the string's count entry also reads the standing zombies closing within
-  STRING_ENTRY_R (`coming`, the group read coming), and either count's jump to STRING_N takes no dwell; no string is
-  entered with the nearest standing inside STRING_MIN_GAP (five there go to `hold`, why `clump`); a running string
-  whose nearest stays inside STRING_MIN_GAP, or whose leaf reads `pinned`, for STRING_PIN_S goes to `hold` (`clump`);
-  its exit to `hold` on the count reads the standing group (fix 5: at most GROUP_LEAVE_N standing, not crawlers, within
-  STRING_ENTRY_R for DISPOSITION_DWELL_S, whatever stands within GROUP_ENTRY_R: a strung-out group is the string
-  working; never the closing count, which a lunging or idling zombie leaves);
-  the sprinter's break reads SPRINTER_V (STRING_RUN_V, now 1.0, is the walk's run latch); under `string` the melee is
-  sent at a pin within STRING_RELEASE_R (`dispatch.FightDispatch._release_r`, `_contact_r`) and the row answers with
-  nobody yet within GROUP_ENTRY_R, the heading read off the standing within STRING_ENTRY_R.
-  Fix 3 (the horde8 trial `x_trial-ladder-20261112-061307`: six game minutes of `hold` inside a clump of four to
-  seven, the string barred by STRING_MIN_GAP; two `many` steers in contact; a scratch bled 98 to 42 undressed under
-  the engaged melee): `hold` with STRING_N within GROUP_ENTRY_R for STRING_PIN_S (`crowd`), or the leaf `pinned` for
-  STRING_PIN_S (`pinned`), enters `string` whatever the gap (STRING_MIN_GAP bars only the entries at range), and such
-  a string takes no clump exit; the contract (`_contract`, `Threat._threat_plan`): under `hunt`, `hold` or `string`
-  off a room square no `flee` plan goes with a standing zombie within KEEP_R, the Fight at the nearest such in its
-  place (`engage_dispatch` {from, target}), and a melee that ended `lost` or `too far` in contact re-pins the nearest
-  (`dispatch.FightDispatch._pin_nearest`); the ride (`_engaged_ride`, ENGAGED_RIDE): a bleeding part under `hold` or
-  `string` with the melee engaged sends the rip of a held unworn cotton garment with keepMoving over the melee (the
-  side slot, `policies.rides_on` reading the melee as its leg, no melee re-send and no clock hold while it rides), or
-  under GROUP_LEAVE_N the riding bandage of a part above the legs, logged `care_ride` {under, cmd[, why]} (why `worn`,
-  `nothing`, `stop` or `count` when nothing goes). Fix 4 (Task 2 Lua fix 2: while a rip rides the melee the reflex
-  presses nothing, `SwipeStatePlayer.enter` stopping the action queue, and the string's run is suppressed): the
-  riding rip asks the action clock as a start, with no ride exemption: it goes only when the smallest time to contact
-  exceeds the rip's duration plus ACTION_MARGIN_S (`ActionClock.allows`), logged `clock` {action rip, ride "melee"[,
-  refused true]}, else `care_ride` {why "clock"}.
-  Fix 6 (the horde8 trial `x_trial-ladder-20261112-070655`: Plan 35 fix 2's bleed yield took the care chain over the
-  string, a clock steer, a stop, an unwear, a rip and four refused bandages with seven to ten standing within 6 tiles):
-  under a fight disposition (`_fight_disposed`) no care supersedes the engaged melee and no care leg goes: the care
-  commitment, its yields and the bleed's engage exemption are not read (`Threat._threat`, `care_yield`), the clock's
-  refused-action steer is not sent (`ClockGate._clock_gate`); the care's next action starts only when the clock allows
-  it as a start, the melee released first (`_care_gate`, `care_pending`), logged `care_start` {under, action,
-  released} or `care_hold` {why "clock" | "release", action}, the Dress sending no stop (`care.Care.no_stop`).
-  Fix 7 (the controller's ruling on fix 6): ENGAGED_RIDE on by default again: the clock-allowed rip rides the
-  engaged melee with keepMoving, no release (`_engaged_ride`, `care_start` {under, action rip, ride "melee"}); the
-  unwear and the bandage, which cannot ride, start through the release.
-  Fix 8 (the horde8 trial `x_trial-ladder-20261112-072340`: `hold` entered on three closing within 6 tiles with only
-  the leader in reach, and a `hold` melee re-sent at a pin 6.6 tiles off): `hold`'s count reads the standing within
-  HOLD_ENTRY_R 3.5 (entering at GROUP_LEAVE_N there closing, or there with the nearest within KEEP_R; leaving under
-  GROUP_LEAVE_N within HOLD_ENTRY_R + RETREAT_HOLD_R for the dwell), `hunt` under it whatever stands farther; the
-  string's and the break's exits go to `hold` or `hunt` by that count; the Fight's pin is the nearest standing within
-  KEEP_R (STRING_RELEASE_R under `string`) whenever its own stands beyond it (`_pin_in_reach`), and no `hunt` or
-  `hold` melee runs at a pin beyond MELEE_RELEASE_R (`dispatch.FightDispatch._beyond_release`): the approach goes.
+- The contract (`_contract`, `Threat._threat_plan`): under `hunt`, `hold` or `string` off a room square no `flee` plan
+  goes with a standing zombie within KEEP_R: the Fight at the nearest such zombie in its place (`engage_dispatch`
+  {from, target}); a melee that ended `lost` or `too far` in contact re-pins the nearest standing within the
+  disposition's reach (`dispatch.FightDispatch._pin_nearest`); the pin is the nearest standing within KEEP_R
+  (STRING_RELEASE_R under `string`) whenever its own stands beyond it (`_pin_in_reach`), and no `hunt` or `hold`
+  melee runs at a pin beyond MELEE_RELEASE_R (`dispatch.FightDispatch._beyond_release`): the approach goes.
+- The care under a fight disposition (`_fight_disposed`): no care supersedes the engaged melee and no care leg goes
+  (the care commitment, its yields and Plan 35 fix 2's bleed exemption are not read; the clock's refused-action
+  steer is not sent). The rip the clock allows as a start rides the engaged melee with keepMoving (`_engaged_ride`,
+  ENGAGED_RIDE; PZA/1.16's `K.RIDES.melee`), logged `care_ride` {under, cmd[, why]} and `care_start` {under, action
+  rip, ride "melee"}; the unwear and the bandage the clock allows start after the melee's release (`_care_gate`,
+  `care_pending`), logged `care_start` {under, action, released}; a refused action is held, logged `care_hold`
+  {why "clock" | "release" | "ride", action}; the Dress sends no stop (`care.Care.no_stop`).
 - The row (`_disposition_plan`, `Threat._threat_plan`'s open-ground row in contact: off a room square, a standing
   zombie within GROUP_ENTRY_R): `hunt`, `hold`, `string` are the Fight (`("fight", None)`), whatever the flee reasons
   read; `break` keeps the Fight while the release it asked is pending, then the Flee (`cornered` and `sprinter` reason
@@ -98,16 +65,15 @@ from agent.base.planner.crawler import is_crawler
 from agent.base.planner.policies import (BREAK_CORNERED_S, DISPOSITION_DWELL_S, FLEE_HEALTH, GROUP_ENTRY_R,
                                          GROUP_LEAVE_N, HOLD_ENTRY_R, KEEP_R, PULL_ROOM_NEED, RELEASE_WAIT_S,
                                          RETREAT_HOLD_R, SPRINT_READS, SPRINTER_V, STRING_ENTRY_R, STRING_LOOK_R,
-                                         STRING_MIN_GAP, STRING_N, STRING_PIN_S, STRING_RELEASE_R, STRING_STEP_DEG,
-                                         STRING_TURN_DEG, target_id_ok, zdist)
+                                         STRING_N, STRING_RELEASE_R, STRING_STEP_DEG, STRING_TURN_DEG, target_id_ok,
+                                         zdist)
 from agent.base.pza1 import Rip
-from agent.base.world import ROOM_HEADINGS, ROOM_STEP_DEG, me_xy
+from agent.base.world import me_xy
 
 __all__ = ["Disposer", "DISPOSITIONS", "WIRE", "BREAK_FLEE"]
 
 DISPOSITIONS = ("hunt", "hold", "string", "break")   # the selector's names (`break` is the Flee's, never on the wire)
 WIRE = ("hunt", "hold", "string")                     # the melee's `disposition` enum (pza1.MELEE_DISPOSITIONS)
-CLUMP_ENTRIES = ("crowd", "pinned")   # fix 3: the string's entries inside the clump, which take no clump exit
 BREAK_FLEE = {"cornered": "many", "sprinter": "many", "leave": "leave"}   # a break's reason -> the Flee's reason
                                                                           # (`health` decided by the rows below)
 
@@ -137,10 +103,7 @@ class Disposer:
         self._string_read = None         # this tick: `_string_heading`'s (vector or None, why), else None
         self._disp_facts = None          # this tick: the facts `select` read
         self._disp_since = {}            # condition name -> the wall it first read true (the condition clocks)
-        self._pin_n = None               # the standing count when the leaf first read `pinned`, else None
         self._sprint = (None, None, 0)   # (the leader's id, its tiles on the last read, the shrinking reads in a row)
-        self._hold_heading = None        # the hold's last withdraw heading, degrees, else None
-        self._string_from = None         # fix 3: the running string's entry why (CLUMP_ENTRIES keep no clump exit)
         self.care_ride = None            # fix 3: this tick's ride over the engaged melee {under, cmd}, else None
         self.care_pending = None         # fix 6: the care start's release {asked, kind, end, waited}, else None
         self.care_start = None           # fix 6: this tick's care start {under, action, released}, else None
@@ -162,7 +125,7 @@ class Disposer:
         """The threat ended (no held zombie) or the gate closed: no disposition, its clocks cleared."""
         self.disposition, self.disposition_since, self.break_reason, self.release_pending = None, None, None, None
         self.care_pending = None
-        self._disp_since, self._pin_n, self._sprint, self._hold_heading = {}, None, (None, None, 0), None
+        self._disp_since, self._sprint = {}, (None, None, 0)
 
     # ---------------------------------------------------------------------------------------------------- the read
     def _disposition_read(self, held):
@@ -181,29 +144,19 @@ class Disposer:
             self.care_pending = None
 
     def _facts(self):
-        standing = [(zid, z, d) for zid, z, d in self._group_standing(GROUP_ENTRY_R + RETREAT_HOLD_R)
-                    if not is_crawler(z)]
-        n = self.group_n
+        standing = [(zid, z, d) for zid, z, d in self._group_standing(STRING_ENTRY_R) if not is_crawler(z)]
         near = [e for e in standing if e[2] <= GROUP_ENTRY_R]
         on = [e for e in standing if e[2] <= HOLD_ENTRY_R]   # fix 8: the hold's count, "three on you"
         closing = [e for e in self._group_closing if not is_crawler(e[1]) and e[2] <= HOLD_ENTRY_R]
-        coming = sum(1 for e in self._string_closing if not is_crawler(e[1]))   # fix 2: within STRING_ENTRY_R
-        ranged = [d for _, z, d in self._group_standing(STRING_ENTRY_R) if not is_crawler(z)]   # standing, not fallen
-        nearest = min(ranged, default=None)
-        entry = (len(closing) >= GROUP_LEAVE_N
-                 or (len(on) >= GROUP_LEAVE_N and on[0][2] <= KEEP_R))
-        f = self.fight
-        m = f.m if f is not None and f._engaged() else None
-        leaf = (m._progress.get("work") if m is not None else None) or {}
+        entry = len(closing) >= GROUP_LEAVE_N or (len(on) >= GROUP_LEAVE_N and on[0][2] <= KEEP_R)
         leader = near[0] if near else None
         speed = None
         clock = getattr(self, "action_clock", None)
         if leader is not None and clock is not None:
             speed = _own_speed(clock.tracks.get(leader[0]))
-        n_hold = sum(1 for e in standing if e[2] <= HOLD_ENTRY_R + RETREAT_HOLD_R)
-        return {"n": n, "n_on": len(on), "n_hold": n_hold, "entry": entry, "health": self._health(), "ring": self.world.room(),
-                "pinned": leaf.get("pinned") is True, "leader": leader, "speed": speed, "coming": coming,
-                "nearest": nearest, "clump": nearest is not None and nearest < STRING_MIN_GAP, "n_range": len(ranged)}
+        return {"n": self.group_n, "n_on": len(on), "entry": entry, "health": self._health(), "leader": leader,
+                "speed": speed, "n_range": len(standing),
+                "n_hold": sum(1 for e in standing if e[2] <= HOLD_ENTRY_R + RETREAT_HOLD_R)}
 
     def _for(self, key, cond):
         """Seconds condition `key` has read true without a break (0.0 when false, the clock cleared)."""
@@ -214,10 +167,6 @@ class Disposer:
 
     def _clocks(self, f):
         """The condition clocks, read every tick whatever the disposition (so a condition's time is its own)."""
-        if f["pinned"]:
-            self._pin_n = f["n"] if self._pin_n is None else self._pin_n
-        else:
-            self._pin_n = None
         lead, speed = f["leader"], f["speed"]
         zid, d0, k = self._sprint
         if lead is None:
@@ -230,12 +179,9 @@ class Disposer:
             self._string_read = self._string_heading()
             why = self._string_read[1]
             cornered = why is None or why.get("room") == "closed" or why.get("open", 0.0) < PULL_ROOM_NEED
-        return {"pinned": self._for("pinned", self._pin_n is not None and f["n"] >= self._pin_n),
-                "hold_low": self._for("hold_low", f["n_hold"] < GROUP_LEAVE_N),
-                "string_low": self._for("string_low", f["n_range"] <= GROUP_LEAVE_N),   # fix 5: the strung-out group
+        return {"hold_low": self._for("hold_low", f["n_hold"] < GROUP_LEAVE_N),
+                "string_low": self._for("string_low", f["n_range"] <= GROUP_LEAVE_N),
                 "cornered": self._for("cornered", cornered),
-                "clump": self._for("clump", self.disposition == "string" and f["clump"]),
-                "crowd": self._for("crowd", f["n"] >= STRING_N),
                 "calm": self._for("calm", f["n"] <= GROUP_LEAVE_N and f["health"] > FLEE_HEALTH)}
 
     # ---------------------------------------------------------------------------------------------------- the table
@@ -250,7 +196,7 @@ class Disposer:
             return cur
         now = self.clock()
         dwell = None if cur is None else now - self.disposition_since
-        jump = want == "string" and why in ("coming", "count")   # fix 2: the count's jump to STRING_N, no dwell
+        jump = want == "string"   # the count's jump to STRING_N within STRING_ENTRY_R: an event, no dwell
         if dwell is not None and why != "health" and not jump and dwell < DISPOSITION_DWELL_S:
             return cur
         self._change(cur, want, why, dwell, now)
@@ -260,51 +206,24 @@ class Disposer:
         """`(disposition, why)` the table reads this tick, else `(None, None)` (no change wanted)."""
         if f["health"] <= FLEE_HEALTH:
             return (None, None) if cur == "break" else ("break", "health")
-        n = f["n"]
+        below = "hold" if f["n_on"] >= GROUP_LEAVE_N else "hunt"   # fix 8: the hold's count below STRING_N
         if cur == "break":
-            if t["calm"] >= DISPOSITION_DWELL_S:
-                return ("hold" if f["n_on"] >= GROUP_LEAVE_N else "hunt"), "calm"
-            return None, None
+            return (below, "calm") if t["calm"] >= DISPOSITION_DWELL_S else (None, None)
         if cur == "string":
-            back = "hold" if f["n_on"] >= GROUP_LEAVE_N else "hunt"   # fix 8: the exits by the hold's count
             if t["cornered"] >= BREAK_CORNERED_S:
                 return "break", "cornered"
             if self._sprint[2] >= SPRINT_READS:
                 return "break", "sprinter"
-            if self._string_from not in CLUMP_ENTRIES and (t["clump"] >= STRING_PIN_S or t["pinned"] >= STRING_PIN_S):
-                return back, "clump"   # fix 2: a string entered at range whose nearest stays inside STRING_MIN_GAP
-            if t["string_low"] >= DISPOSITION_DWELL_S:
-                return back, "count"
-            return None, None
-        if cur == "hold" and t["crowd"] >= STRING_PIN_S:
-            return "string", "crowd"   # fix 3: STRING_N within GROUP_ENTRY_R held STRING_PIN_S, whatever the gap
-        if cur == "hold" and t["pinned"] >= STRING_PIN_S:
-            return "string", "pinned"   # fix 3: whatever the gap (the pinned leaf is the clump itself)
-        if not f["clump"]:   # fix 2: no string entered at range inside the clump (the answer there is `hold`, below)
-            if f["coming"] >= STRING_N:
-                return "string", "coming"   # fix 2: the group read coming, no dwell (`select`)
-            if n >= STRING_N:
-                return "string", "count"
-            if cur == "hold" and self._walled(f["ring"]):
-                return "string", "walled"
+            return (below, "count") if t["string_low"] >= DISPOSITION_DWELL_S else (None, None)
+        if f["n_range"] >= STRING_N:
+            return "string", "count"
         if f["entry"] and self._leave_door_open():
             return "break", "leave"
         if cur == "hold":
             return ("hunt", "count") if t["hold_low"] >= DISPOSITION_DWELL_S else (None, None)
-        if f["entry"] or (f["clump"] and n >= STRING_N):
-            return "hold", "entry" if f["entry"] else "clump"
+        if f["entry"]:
+            return "hold", "entry"
         return (None, None) if cur == "hunt" else ("hunt", "count")
-
-    def _walled(self, ring):
-        """The ring reads the hold's withdraw heading and both its neighbours under PULL_ROOM_NEED tiles clear."""
-        if ring is None or self._hold_heading is None:
-            return False
-        h = ring.get("h") or ()
-        if len(h) != ROOM_HEADINGS:
-            return False
-        i = int(math.floor((self._hold_heading % 360.0 + ROOM_STEP_DEG / 2.0) / ROOM_STEP_DEG)) % ROOM_HEADINGS
-        return all(isinstance(c, (int, float)) and not isinstance(c, bool) and c < PULL_ROOM_NEED
-                   for c in (h[(i - 1) % ROOM_HEADINGS], h[i], h[(i + 1) % ROOM_HEADINGS]))
 
     def _leave_door_open(self):
         """The leave's door reads (`ThreatGroup._leave_door`: a known door within LEAVE_DOOR_R the Flee reads `ok`, the
@@ -316,7 +235,6 @@ class Disposer:
         self.disposition_why = {"from": cur, "to": want, "why": why,
                                 "dwell": None if dwell is None else round(dwell, 3)}
         self.disposition, self.disposition_since = want, now
-        self._string_from = why if want == "string" else None
         if want != "break":
             self.break_reason, self.release_pending = None, None
             return
@@ -456,8 +374,6 @@ class Disposer:
         self._pin_in_reach(policy, d)
         if d == "hold":
             policy.withdraw = self._pull(policy, "hold")
-            self._hold_heading = (None if policy.withdraw is None
-                                  else math.degrees(math.atan2(policy.withdraw[1], policy.withdraw[0])) % 360.0)
         elif d == "string":
             vec, why = self._string_read if self._string_read is not None else self._string_heading()
             self.string_why, policy.withdraw = why, vec
@@ -547,7 +463,7 @@ class Disposer:
         ring's clamped degrees, None with no ring, "closed" with no open ring heading: then no vector); `(None, None)`
         with no standing zombie within GROUP_ENTRY_R."""
         p = me_xy(self.world)
-        group = [z for _, z, _ in self._group_standing(STRING_ENTRY_R) if not is_crawler(z)]   # fix 2: the group coming
+        group = [z for _, z, _ in self._group_standing(STRING_ENTRY_R) if not is_crawler(z)]   # the string's group
         if not group:
             return None, None
         cx = sum(z["x"] for z in group) / len(group)
