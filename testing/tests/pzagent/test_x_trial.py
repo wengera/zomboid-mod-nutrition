@@ -92,7 +92,7 @@ def test_the_driver_refuses_arguments_before_main():
 def test_the_refusal_names_why():
     r = XT.parse_argv(["--variant", "ladder", "--fixture", "agent", "--make-fixture", "a", "--waves", "lone"], ME)
     assert r.startswith("x_trial.py takes only --variant <name> --fixture <name> [--minutes N] [--no-llm] "
-                        "[--goals scripted|hold] [--waves crawler|flank|lone|none|pair|street|trio] [--teleport X,Y] "
+                        "[--goals scripted|hold] [--waves crawler|flank|horde10|horde8|lone|none|pair|pocket|street|town|trio] [--teleport X,Y] "
                         "[--make-fixture <name>] [--detached]; refused: ")
     assert "spawned zombies into the fixture" in r
     assert "(missing --fixture)" in XT.parse_argv(["--variant", "ladder"], ME)
@@ -244,7 +244,7 @@ def test_the_none_plan_runs_the_evidence_fixture_with_the_model_and_refuses_an_u
                               "detached": False}
     assert XT.parse_argv(base + ["--no-llm", "--make-fixture", "agent-x", "--minutes", "1"], ME) is None
     r = XT.parse_argv(["--variant", "ladder", "--fixture", "agent", "--waves", "nope"], ME)
-    assert r.startswith("x_trial.py takes only ") and r.endswith("(--waves takes one of crawler, flank, lone, none, pair, street, trio)")
+    assert r.startswith("x_trial.py takes only ") and r.endswith("(--waves takes one of crawler, flank, horde10, horde8, lone, none, pair, pocket, street, town, trio)")
     assert os.path.isfile(os.path.join(REPO, "testing", "fixtures", "agent", "fixture.json"))   # the evidence fixture
 
 
@@ -1331,3 +1331,48 @@ def test_the_new_waves_parse_and_the_unknown_one_is_still_refused():
         assert XT.parse_argv(["--variant", "ladder", "--fixture", "agent", "--waves", name], ME) is None
     r = XT.parse_argv(["--variant", "ladder", "--fixture", "agent", "--make-fixture", "a", "--waves", "flank"], ME)
     assert "spawned zombies into the fixture" in r
+
+
+# ---------------------------------------------------------------- Plan 37 Task 1a: the crowd waves and the radius element
+def test_the_crowd_waves_are_named_with_their_radius_two_spawns():
+    assert TR.WAVE_PLANS["horde8"] == {"period_s": None, "spawns": ((8, 10.0, 0.0, 0.0, False, 2),)}
+    assert TR.WAVE_PLANS["horde10"] == {"period_s": None, "spawns": ((10, 10.0, 0.0, 0.0, False, 2),)}
+    assert TR.WAVE_PLANS["town"] == {"period_s": None, "spawns": (
+        (3, 8.0, 0.0), (4, 10.0, 90.0, 10.0, False, 2), (4, 10.0, 200.0, 20.0, False, 2))}
+    assert TR.WAVE_PLANS["pocket"] == {"period_s": None, "spawns": (
+        (5, 10.0, 110.0, 0.0, False, 2), (5, 10.0, 250.0, 5.0, False, 2))}
+
+
+def test_a_six_element_spawn_reaches_radius_two_and_a_five_element_one_reads_radius_one(monkeypatch):
+    monkeypatch.setitem(TR.WAVE_PLANS, "t37", {"period_s": None, "spawns": ((2, 8.0, 0.0), (3, 8.0, 0.0, 0.0, True),
+                                                                              (4, 8.0, 0.0, 0.0, False, 2))})
+    w, sent = _waves("t37")
+    w.begin(0.0)
+    rows = w.step(0.0)
+    assert [c for c, _ in sent] == ["createhorde2 -x 108 -y 200 -z 0 -count 2 -radius 1",
+                                    "createhorde2 -x 108 -y 200 -z 0 -count 3 -radius 1 -crawler true",
+                                    "createhorde2 -x 108 -y 200 -z 0 -count 4 -radius 2"]
+    assert ["radius" in r for r in rows] == [False, False, True] and rows[2]["radius"] == 2
+
+
+def test_horde8_fires_once_and_never_again_and_starts_its_thread():
+    w, sent = _waves("horde8")
+    w.begin(0.0)
+    assert len(w.step(0.0)) == 1 and w.step(0.0) == [] and w.step(1e6) == []
+    assert sent == [("createhorde2 -x 110 -y 200 -z 0 -count 8 -radius 2", "wave_0_0")]
+    w2, _ = _waves("horde8")
+    w2.start()
+    try:
+        assert w2._thread is not None
+    finally:
+        w2.stop()
+
+
+def test_town_sends_its_delayed_spawns_once_each():
+    w, sent = _waves("town")
+    w.begin(0.0)
+    assert len(w.step(0.0)) == 1 and w.step(9.9) == []
+    assert len(w.step(10.0)) == 1 and len(w.step(20.0)) == 1 and w.step(1e6) == []
+    assert [c for c, _ in sent] == ["createhorde2 -x 108 -y 200 -z 0 -count 3 -radius 1",
+                                    "createhorde2 -x 100 -y 210 -z 0 -count 4 -radius 2",
+                                    "createhorde2 -x 90 -y 196 -z 0 -count 4 -radius 2"]

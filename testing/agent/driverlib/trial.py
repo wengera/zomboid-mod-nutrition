@@ -170,9 +170,10 @@ CRAWLER_ARG = " -crawler true"
 WAVE_RADIUS = 1
 
 # ---------------------------------------------------------------- the wave plans
-# spawns: (count, distance in tiles, bearing in degrees from the world's +x axis toward +y[, delay_s[, crawler]]); the
-# first wave fires at the loop's first frame, then one every period_s; delay_s (default 0.0) is the spawn's send that
-# many seconds after its wave's first send, crawler (default False) adds CRAWLER_ARG to its command
+# spawns: (count, distance in tiles, bearing in degrees from the world's +x axis toward +y[, delay_s[, crawler[,
+# radius]]]); the first wave fires at the loop's first frame, then one every period_s (None: that one wave only);
+# delay_s (default 0.0) is the spawn's send that many seconds after its wave's first send, crawler (default False)
+# adds CRAWLER_ARG to its command, radius (default WAVE_RADIUS) is the command's -radius
 WAVE_PLANS = {
     "lone": {"period_s": 60.0, "spawns": ((1, 8.0, 0.0),)},
     "pair": {"period_s": 90.0, "spawns": ((1, 8.0, -35.0), (1, 8.0, 35.0))},     # 70 degrees apart
@@ -184,7 +185,24 @@ WAVE_PLANS = {
     # Plan 33 Task 4: no spawns, the fixture's own zombies (the evidence fixture `agent` with the model: the trial
     # on the fixture where the evidence session ran); `Waves.start` starts no thread without spawns
     "none": {"period_s": None, "spawns": ()},
+    # Plan 37 Task 1a: the crowd waves, one wave each (period_s None), the crowd on a radius-2 square
+    "horde8": {"period_s": None, "spawns": ((8, 10.0, 0.0, 0.0, False, 2),)},         # spec 3.6: eight at once
+    "horde10": {"period_s": None, "spawns": ((10, 10.0, 0.0, 0.0, False, 2),)},       # spec 3.6: ten at once
+    # F22's shape: a group that grows while the fight is on (three, then four at 10 s and four at 20 s)
+    "town": {"period_s": None, "spawns": ((3, 8.0, 0.0), (4, 10.0, 90.0, 10.0, False, 2),
+                                          (4, 10.0, 200.0, 20.0, False, 2))},
+    # the two open ends of F22's death lane: the ring at seq 8235 reads headings 90 to 135 and 225 to 270 open, every
+    # other closed (testing/artifacts/f_goals_22-20261111-215108/state.log)
+    "pocket": {"period_s": None, "spawns": ((5, 10.0, 110.0, 0.0, False, 2), (5, 10.0, 250.0, 5.0, False, 2))},
 }
+
+
+def spawn_fields(spawn):
+    """A spawn tuple's (count, dist, bearing, delay_s, crawler, radius), the optional elements at their defaults."""
+    count, dist, bearing = spawn[:3]
+    return (count, dist, bearing, spawn[3] if len(spawn) > 3 else 0.0, bool(spawn[4]) if len(spawn) > 4 else False,
+            spawn[5] if len(spawn) > 5 else WAVE_RADIUS)
+
 DEFAULT_WAVES = "street"
 GOALS = ("scripted", "hold")         # --goals: the goal source's name under --no-llm
 DEFAULT_GOALS = "scripted"
@@ -556,15 +574,16 @@ class Waves:
     def step(self, now):
         """Confirm the sends that are due, re-sending a short spawn's missing count once, then fire the wave due at
         `now`, if any; the rows added."""
-        if self.t0 is None or not self.spawns or self.period_s is None:
+        if self.t0 is None or not self.spawns:
             return []
         with self._lock:                                  # two callers would each re-send the one due confirmation
             added = self.send_delayed(now) + self.confirm(now)
-            k = int((now - self.t0) // self.period_s)        # the latest wave boundary at or before now
+            # a period_s None plan is its one wave: wave 0 now, and no boundary after it
+            k = 0 if self.period_s is None else int((now - self.t0) // self.period_s)    # the latest boundary at or before now
             if k < self.next_i:
                 return added
             missed, self.next_i = k - self.next_i, k + 1
-            return added + self.fire(k, now, now - (self.t0 + k * self.period_s), missed)
+            return added + self.fire(k, now, now - (self.t0 + k * (self.period_s or 0.0)), missed)
 
     def _near(self, seen, p):
         """The ids of `seen` first listed after the send `p` (not in its `before`) within `confirm_r` tiles of its
@@ -615,9 +634,7 @@ class Waves:
         added = []
         w = self.by_wave.setdefault(i, {"wave": i, "sent": 0, "resent": 0, "listed_ids": [], "confirmed": False})
         for j, spawn in enumerate(self.spawns):
-            count, dist, bearing = spawn[:3]
-            delay_s = spawn[3] if len(spawn) > 3 else 0.0
-            crawler = bool(spawn[4]) if len(spawn) > 4 else False
+            count, dist, bearing, delay_s, crawler, radius = spawn_fields(spawn)
             if only is not None and j != only:
                 continue
             if resend is not None:
@@ -634,6 +651,8 @@ class Waves:
                 row["delayS"] = delay_s
             if crawler:
                 row["crawler"] = True
+            if radius != WAVE_RADIUS:
+                row["radius"] = radius
             if resend is not None:
                 row["resend_of"] = i
             if pos is None:
@@ -642,7 +661,7 @@ class Waves:
                 x, y = wave_square(pos, dist, bearing)
                 z = int(pos[2]) if len(pos) > 2 and DS._num(pos[2]) is not None else 0     # the character's floor
                 row["at"] = [x, y, z]
-                row["cmd"] = CREATEHORDE2_CMD.format(x=x, y=y, z=z, count=int(count), radius=WAVE_RADIUS) + (
+                row["cmd"] = CREATEHORDE2_CMD.format(x=x, y=y, z=z, count=int(count), radius=radius) + (
                     CRAWLER_ARG if crawler else "")
                 row["ack"] = self.rcon(row["cmd"], "wave_%d_%d%s" % (i, j, "" if resend is None else "_resend"))
                 w["resent" if resend is not None else "sent"] += int(count)
