@@ -66,6 +66,13 @@ the leave row, the engagement picker's pull, no `disposition` on the wire).
   Fix 7 (the controller's ruling on fix 6): ENGAGED_RIDE on by default again: the clock-allowed rip rides the
   engaged melee with keepMoving, no release (`_engaged_ride`, `care_start` {under, action rip, ride "melee"}); the
   unwear and the bandage, which cannot ride, start through the release.
+  Fix 8 (the horde8 trial `x_trial-ladder-20261112-072340`: `hold` entered on three closing within 6 tiles with only
+  the leader in reach, and a `hold` melee re-sent at a pin 6.6 tiles off): `hold`'s count reads the standing within
+  HOLD_ENTRY_R 3.5 (entering at GROUP_LEAVE_N there closing, or there with the nearest within KEEP_R; leaving under
+  GROUP_LEAVE_N within HOLD_ENTRY_R + RETREAT_HOLD_R for the dwell), `hunt` under it whatever stands farther; the
+  string's and the break's exits go to `hold` or `hunt` by that count; the Fight's pin is the nearest standing within
+  KEEP_R (STRING_RELEASE_R under `string`) whenever its own stands beyond it (`_pin_in_reach`), and no `hunt` or
+  `hold` melee runs at a pin beyond MELEE_RELEASE_R (`dispatch.FightDispatch._beyond_release`): the approach goes.
 - The row (`_disposition_plan`, `Threat._threat_plan`'s open-ground row in contact: off a room square, a standing
   zombie within GROUP_ENTRY_R): `hunt`, `hold`, `string` are the Fight (`("fight", None)`), whatever the flee reasons
   read; `break` keeps the Fight while the release it asked is pending, then the Flee (`cornered` and `sprinter` reason
@@ -89,9 +96,10 @@ from agent.base.planner import care as C
 from agent.base.planner.clock import _own_speed
 from agent.base.planner.crawler import is_crawler
 from agent.base.planner.policies import (BREAK_CORNERED_S, DISPOSITION_DWELL_S, FLEE_HEALTH, GROUP_ENTRY_R,
-                                         GROUP_LEAVE_N, KEEP_R, PULL_ROOM_NEED, RELEASE_WAIT_S, RETREAT_HOLD_R,
-                                         SPRINT_READS, SPRINTER_V, STRING_ENTRY_R, STRING_LOOK_R, STRING_MIN_GAP,
-                                         STRING_N, STRING_PIN_S, STRING_STEP_DEG, STRING_TURN_DEG, target_id_ok)
+                                         GROUP_LEAVE_N, HOLD_ENTRY_R, KEEP_R, PULL_ROOM_NEED, RELEASE_WAIT_S,
+                                         RETREAT_HOLD_R, SPRINT_READS, SPRINTER_V, STRING_ENTRY_R, STRING_LOOK_R,
+                                         STRING_MIN_GAP, STRING_N, STRING_PIN_S, STRING_RELEASE_R, STRING_STEP_DEG,
+                                         STRING_TURN_DEG, target_id_ok, zdist)
 from agent.base.pza1 import Rip
 from agent.base.world import ROOM_HEADINGS, ROOM_STEP_DEG, me_xy
 
@@ -177,12 +185,13 @@ class Disposer:
                     if not is_crawler(z)]
         n = self.group_n
         near = [e for e in standing if e[2] <= GROUP_ENTRY_R]
-        closing = [e for e in self._group_closing if not is_crawler(e[1])]
+        on = [e for e in standing if e[2] <= HOLD_ENTRY_R]   # fix 8: the hold's count, "three on you"
+        closing = [e for e in self._group_closing if not is_crawler(e[1]) and e[2] <= HOLD_ENTRY_R]
         coming = sum(1 for e in self._string_closing if not is_crawler(e[1]))   # fix 2: within STRING_ENTRY_R
         ranged = [d for _, z, d in self._group_standing(STRING_ENTRY_R) if not is_crawler(z)]   # standing, not fallen
         nearest = min(ranged, default=None)
         entry = (len(closing) >= GROUP_LEAVE_N
-                 or (len(near) >= GROUP_LEAVE_N and near[0][2] <= KEEP_R))
+                 or (len(on) >= GROUP_LEAVE_N and on[0][2] <= KEEP_R))
         f = self.fight
         m = f.m if f is not None and f._engaged() else None
         leaf = (m._progress.get("work") if m is not None else None) or {}
@@ -191,7 +200,8 @@ class Disposer:
         clock = getattr(self, "action_clock", None)
         if leader is not None and clock is not None:
             speed = _own_speed(clock.tracks.get(leader[0]))
-        return {"n": n, "n_hold": len(standing), "entry": entry, "health": self._health(), "ring": self.world.room(),
+        n_hold = sum(1 for e in standing if e[2] <= HOLD_ENTRY_R + RETREAT_HOLD_R)
+        return {"n": n, "n_on": len(on), "n_hold": n_hold, "entry": entry, "health": self._health(), "ring": self.world.room(),
                 "pinned": leaf.get("pinned") is True, "leader": leader, "speed": speed, "coming": coming,
                 "nearest": nearest, "clump": nearest is not None and nearest < STRING_MIN_GAP, "n_range": len(ranged)}
 
@@ -253,17 +263,18 @@ class Disposer:
         n = f["n"]
         if cur == "break":
             if t["calm"] >= DISPOSITION_DWELL_S:
-                return ("hold" if n >= GROUP_LEAVE_N else "hunt"), "calm"
+                return ("hold" if f["n_on"] >= GROUP_LEAVE_N else "hunt"), "calm"
             return None, None
         if cur == "string":
+            back = "hold" if f["n_on"] >= GROUP_LEAVE_N else "hunt"   # fix 8: the exits by the hold's count
             if t["cornered"] >= BREAK_CORNERED_S:
                 return "break", "cornered"
             if self._sprint[2] >= SPRINT_READS:
                 return "break", "sprinter"
             if self._string_from not in CLUMP_ENTRIES and (t["clump"] >= STRING_PIN_S or t["pinned"] >= STRING_PIN_S):
-                return "hold", "clump"   # fix 2: a string entered at range whose nearest stays inside STRING_MIN_GAP
+                return back, "clump"   # fix 2: a string entered at range whose nearest stays inside STRING_MIN_GAP
             if t["string_low"] >= DISPOSITION_DWELL_S:
-                return "hold", "count"
+                return back, "count"
             return None, None
         if cur == "hold" and t["crowd"] >= STRING_PIN_S:
             return "string", "crowd"   # fix 3: STRING_N within GROUP_ENTRY_R held STRING_PIN_S, whatever the gap
@@ -442,6 +453,7 @@ class Disposer:
         if self.care_pending is not None and self.care_pending["end"] is None:
             policy.release = True   # fix 6: the care's start asked the hand-back
         policy.disposition = d
+        self._pin_in_reach(policy, d)
         if d == "hold":
             policy.withdraw = self._pull(policy, "hold")
             self._hold_heading = (None if policy.withdraw is None
@@ -512,6 +524,22 @@ class Disposer:
             return None
         self.care_start = {"under": self.disposition, "action": "rip", "ride": "melee"}
         return care, cmd
+
+    def _pin_in_reach(self, policy, d):
+        """Fix 8 (the same trial, lines 24 and 25: a `hold` melee re-sent at a pin 6.6 tiles off ended `too far` and an
+        aim went): the Fight's pin under a fight disposition is the nearest standing zombie (not a crawler, one the Fight
+        may target) within the disposition's reach, KEEP_R under `hunt` and `hold`, STRING_RELEASE_R under `string`,
+        whenever its pin stands beyond it; with none within it the pin stays and the Fight's approach goes (the
+        dispatch sends no `hunt` or `hold` melee beyond MELEE_RELEASE_R: `dispatch.FightDispatch._melee_holds`)."""
+        r = STRING_RELEASE_R if d == "string" else KEEP_R
+        t = self.world.zombies.get(policy.target) if policy.target is not None else None
+        if t is not None and t.get("x") is not None and zdist(self.world, t) <= r:
+            return
+        blocked = policy.blocked()
+        near = [(dd, repr(zid), zid) for zid, z, dd in self._group_standing(r) if not is_crawler(z)
+                and target_id_ok(zid) and zid not in blocked]
+        if near:
+            policy.target, policy.repositioned = min(near)[2], False
 
     # ---------------------------------------------------------------------------------------------------- the string
     def _string_heading(self):

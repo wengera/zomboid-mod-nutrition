@@ -1185,6 +1185,10 @@ STRING_ENTRY_R = 10.0      # tiles: fix 2, the string's count entry reads the st
                            # group read coming, not arrived; within DISENGAGE_R, whose distances the closing read keeps)
 STRING_MIN_GAP = 1.5       # tiles: fix 2, no string is entered with the nearest standing zombie this near (inside the
                            # clump the answer is `hold`); a string whose nearest stays inside it STRING_PIN_S is `hold`
+HOLD_ENTRY_R = KEEP_R + 1.0   # tiles: fix 8 (the horde8 trial `x_trial-ladder-20261112-072340`: `hold` entered on
+                              # three closing within 6 with only the leader in reach), the `hold` disposition's count:
+                              # GROUP_LEAVE_N standing within this (Angus's "three on you"), closing or on; under it
+                              # `hunt` whatever stands farther; its exit under GROUP_LEAVE_N within it + RETREAT_HOLD_R
 STRING_RELEASE_R = 8.0     # tiles: under `string` the melee is sent at a pin this near (the Lua's K.STRING_RELEASE_R,
                            # its release radius under the string), so the walk away starts before contact
 SPRINT_READS = 3           # decision lines in a row the sprinter's gap shrinks before the `break`, § 3.2

@@ -114,8 +114,9 @@ def test_the_first_line_logs_the_entry(tmp_path):
 
 # ================================================================ hold
 def closing_three(k):
-    """Line k's three standing closing: 1 east, 2 and 3 at bearings -70 and +70, each a quarter tile nearer a line."""
-    return [zp(1, 0.0, 2.4 - 0.1 * k), zp(2, -70.0, 5.5 - 0.25 * k), zp(3, 70.0, 5.5 - 0.25 * k)]
+    """Line k's three standing closing: 1 east, 2 and 3 at bearings -70 and +70, each a fifth of a tile nearer a line
+    (fix 8: within HOLD_ENTRY_R 3.5 from the second line on, 3.0 at the fourth)."""
+    return [zp(1, 0.0, 2.4 - 0.1 * k), zp(2, -70.0, 3.8 - 0.2 * k), zp(3, 70.0, 3.8 - 0.2 * k)]
 
 
 def test_hold_is_entered_at_three_closing_after_the_dwell(tmp_path):
@@ -167,7 +168,7 @@ def test_a_pair_closing_at_a_wide_spread_is_pulled_to_a_line_under_hunt(tmp_path
 
 def column_three(k):
     """Line k's column east of ME: 1 at bearing 0, 2 and 3 at bearings +5 and -5, each nearer a line."""
-    return [zp(1, 0.0, 2.4 - 0.1 * k), zp(2, 5.0, 5.5 - 0.25 * k), zp(3, -5.0, 5.5 - 0.25 * k)]
+    return [zp(1, 0.0, 2.4 - 0.1 * k), zp(2, 5.0, 3.8 - 0.2 * k), zp(3, -5.0, 3.8 - 0.2 * k)]   # fix 8: within 3.5
 
 
 def test_a_column_of_three_gets_no_retreat_under_hunt_and_the_retreat_under_hold(tmp_path):
@@ -212,13 +213,14 @@ def string_rig(tmp_path):
 
 def test_string_holds_at_four_and_leaves_to_hold_after_the_dwell_at_three(tmp_path):
     """In `string`: four standing (inside the hysteresis band) hold it whatever the time; three for under
-    DISPOSITION_DWELL_S hold it; three for the dwell leave to `hold` (why count)."""
+    DISPOSITION_DWELL_S hold it; three for the dwell leave the string (why count), to `hunt` (fix 8: under three
+    within HOLD_ENTRY_R, the first line's 1 at 2.4 alone there)."""
     r, sv = string_rig(tmp_path)
     lines(tmp_path, r, sv, [group(3, 4.0)] * 6)   # with the first line's 1, still listed at 2.4 tiles: four
     assert sv.disposition == "string" and sv.group_n == 4
     out = lines(tmp_path, r, sv, [group(2, 4.0)] * 5)
     tos = [w.get("disposition", {}).get("to") for w, _ in out]
-    assert tos[:4] == [None] * 4 and tos[4] == "hold" and sv.disposition == "hold"
+    assert tos[:4] == [None] * 4 and tos[4] == "hunt" and sv.disposition == "hunt"
 
 
 def test_hold_pinned_for_three_seconds_strings(tmp_path):
@@ -356,16 +358,16 @@ def test_five_within_six_with_the_nearest_at_1_2_hold_and_never_string(tmp_path)
     out = lines(tmp_path, r, sv, [[zp(1, 0.0, 1.2)] + group(4, 4.0)] * 6)
     tos = [w.get("disposition", {}).get("to") for w, _ in out]
     assert "string" not in tos and sv.disposition == "hold"
-    assert next(w["disposition"] for w, _ in out if "disposition" in w)["why"] == "entry"
+    assert next(w["disposition"] for w, _ in out if "disposition" in w)["why"] == "clump"   # fix 8: 1 alone in 3.5
 
 
 def test_a_string_whose_nearest_stays_inside_the_gap_goes_to_hold(tmp_path):
-    """Fix 2: in `string`, the nearest standing at 1.0 tiles (inside STRING_MIN_GAP) for STRING_PIN_S: `hold`, why
-    "clump"; the lines under it keep the string."""
+    """Fix 2: in `string`, the nearest standing at 1.0 tiles (inside STRING_MIN_GAP) for STRING_PIN_S: the string
+    leaves, why "clump" (fix 8: to `hunt`, the one at 1.0 alone within HOLD_ENTRY_R); the lines under it keep it."""
     r, sv = string_rig(tmp_path)
     out = lines(tmp_path, r, sv, [[zp(1, 0.0, 1.0)] + group(5, 4.0)[1:]] * 8)
     tos = [w.get("disposition", {}).get("to") for w, _ in out]
-    k = tos.index("hold")
+    k = tos.index("hunt")
     assert out[k][0]["disposition"]["why"] == "clump" and k == 6 and all(t is None for t in tos[:k])
 
 
@@ -519,11 +521,12 @@ def test_a_strung_out_group_keeps_the_string_past_the_dwell(tmp_path):
 
 def test_three_within_string_entry_r_leave_the_string_to_hold(tmp_path):
     """Fix 5: in `string`, three standing within STRING_ENTRY_R (one within 6, two beyond) and the rest gone beyond
-    12 tiles: `hold` (why count) once they have read so for DISPOSITION_DWELL_S."""
+    12 tiles: the string leaves (why count) once they have read so for DISPOSITION_DWELL_S, to `hunt` (fix 8: none
+    within HOLD_ENTRY_R)."""
     r, sv = string_rig(tmp_path)
     out = lines(tmp_path, r, sv, [strung(1, 1)] * 6)   # 1 at 9.8, one at 4, one at 7: three within STRING_ENTRY_R
     tos = [w.get("disposition", {}).get("to") for w, _ in out]
-    k = tos.index("hold")
+    k = tos.index("hunt")
     assert out[k][0]["disposition"]["why"] == "count" and k == 4 and all(t is None for t in tos[:k])
 
 
@@ -603,3 +606,48 @@ def test_under_string_a_bleed_the_clock_refuses_holds_the_care(tmp_path):
     assert why["care_hold"] == {"why": "clock", "action": "rip"}
     assert not any(a.type in ("stop", "steer", "rip", "unwear", "bandage") for a in r.acts.history)
     assert not any(a.type == "melee" and a.args.get("release") for a in r.acts.history)
+
+
+# ================================================================ fix 8: hold at three within HOLD_ENTRY_R
+def test_the_leader_in_reach_with_two_closing_farther_reads_hunt(tmp_path):
+    """Fix 8 (the horde8 trial `x_trial-ladder-20261112-072340`: `hold` entered on three closing within 6 tiles with
+    only the leader in reach): the leader at 1.2 tiles and two more closing at 4 and 5 (beyond HOLD_ENTRY_R 3.5):
+    `hunt` holds past the dwell (the leader met with the kill, no retreat)."""
+    r, sv, a = survive(tmp_path, zp(1, 0.0, 1.2))
+    out = lines(tmp_path, r, sv, [[zp(1, 0.0, 1.2), zp(2, 60.0, 4.6 - 0.1 * k), zp(3, -60.0, 5.6 - 0.1 * k)]
+                                  for k in range(1, 7)])
+    assert all("disposition" not in w for w, _ in out) and sv.disposition == "hunt"
+
+
+def test_three_closing_within_3_tiles_read_hold(tmp_path):
+    """Fix 8: three standing closing within 3.0 tiles (inside HOLD_ENTRY_R): `hold` after the dwell (why entry)."""
+    r, sv, a = survive(tmp_path, zp(1, 0.0, 2.4))
+    out = lines(tmp_path, r, sv, [[zp(1, 0.0, 2.4 - 0.1 * k), zp(2, 60.0, 3.3 - 0.1 * k), zp(3, -60.0, 3.3 - 0.1 * k)]
+                                  for k in range(1, 6)])
+    ds = [w["disposition"] for w, _ in out if "disposition" in w]
+    assert [d["to"] for d in ds] == ["hold"] and ds[0]["why"] == "entry" and sv.disposition == "hold"
+
+
+def test_the_string_s_exit_with_two_within_3_5_and_one_at_6_reads_hunt(tmp_path):
+    """Fix 8: in `string`, two standing within HOLD_ENTRY_R and one at 6 tiles (the rest gone beyond 12): the string
+    leaves after the dwell to `hunt` (under three within 3.5)."""
+    r, sv = string_rig(tmp_path)
+    zs = ([zp(1, 0.0, 2.0), zp(10, 40.0, 3.0), zp(11, -40.0, 6.0)]
+          + [zp(12 + i, 180.0, 14.0) for i in range(6)])
+    out = lines(tmp_path, r, sv, [zs] * 6)
+    ds = [w["disposition"] for w, _ in out if "disposition" in w]
+    assert ds and ds[0]["from"] == "string" and ds[0]["to"] == "hunt"
+
+
+def test_a_hold_line_with_the_nearest_at_6_6_sends_the_approach_not_a_melee(tmp_path):
+    """Fix 8 (the same trial, lines 24 and 25: a `hold` melee re-sent at a pin 6.6 tiles off, refused `too far`):
+    in `hold` with the engaged melee, every zombie steps back to 6.6 tiles and more: the running melee is retired, no
+    melee is sent at 6.6 (beyond MELEE_RELEASE_R); the Fight's approach leg (an `aim` or a walk) goes, or nothing."""
+    r, sv = hold_rig(tmp_path)
+    accept(r, melee_of(r), "work")
+    n = len(r.acts.history)
+    why, b = line(tmp_path, r, sv, [zp(1, 0.0, 6.6), zp(2, -70.0, 6.9), zp(3, 70.0, 7.1)])
+    assert sv.disposition == "hold"
+    sent = r.acts.history[n:]
+    assert not any(a.type == "melee" for a in sent), [(a.type, a.args) for a in sent]
+    assert sv.fight.m is None or not sv.fight._engaged()

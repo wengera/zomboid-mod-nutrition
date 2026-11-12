@@ -240,3 +240,26 @@ def test_the_string_holds_through_the_bleed_with_no_care_supersede():
     assert ds[36]["to"] == "string" and all(d["from"] != "string" for k, d in ds.items() if 36 < k <= 46), ds
     assert all(ticks[k - 1][1] in (None, "melee") for k in range(36, 47)), [ticks[k - 1][1] for k in range(36, 47)]
     assert any("care_hold" in threat(rows[k - 1]) for k in range(41, 47))
+
+
+# ================================================================ Task 3 fix 8: round one's fourth horde8 trial
+# `x_trial-ladder-20261112-072340` (P31-T, not evidence; at 66c93fe8): replayed from this machine's run folder as above
+# (skipped where absent), open loop to line 34. The record's 1-based lines (the controller's trace one lower): 24
+# `string -> hold why count` with only the leader near, 25 the `hold` melee at a pin 6.6 tiles off, 26 the `aim` after
+# its `too far` end.
+TRIAL_8 = "x_trial-ladder-20261112-072340"
+
+
+@functools.lru_cache(maxsize=1)
+def trial_8():
+    return trial_replay(TRIAL_8, 34)
+
+
+def test_the_strung_group_s_leader_is_hunted_and_no_hold_melee_goes_beyond_reach():
+    """Fix 8: lines 21 to 31: the string leaves to `hunt` (under three within HOLD_ENTRY_R), never `hold`; no melee
+    goes under `hold`, and none at a pin beyond MELEE_RELEASE_R (the approach's aim or nothing in their place)."""
+    rows, ticks = trial_8()
+    ds = [threat(r)["disposition"] for k, r in enumerate(rows, 1) if 21 <= k <= 31 and "disposition" in threat(r)]
+    assert ds and all(d["to"] != "hold" for d in ds) and any(d["from"] == "string" and d["to"] == "hunt" for d in ds)
+    melees = [ticks[k - 1][2] for k in range(21, 32) if ticks[k - 1][1] == "melee"]
+    assert all(m.args.get("disposition") != "hold" for m in melees)

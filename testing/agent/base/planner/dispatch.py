@@ -325,7 +325,21 @@ class FightDispatch:
             return False
         if self.actions.current is not m.action:
             return True   # Plan 37 Task 3 fix 3: a keepMoving rip or bandage rides it: no re-send ends the ride
+        if self._beyond_release(m):
+            self._retire_maneuver()   # fix 8: no `hunt` or `hold` melee re-sent at a pin beyond its release radius
+            return False
         return not m.resend_due()
+
+    def _beyond_release(self, m):
+        """Plan 37 Task 3 fix 8 (the horde8 trial `x_trial-ladder-20261112-072340`, lines 24 and 25: the string's melee
+        re-sent as `hold` at a pin 6.6 tiles off, refused `too far`): under `hunt` or `hold` the running melee's target
+        (its last progress line's re-pinned `target`, else its own) stands beyond MELEE_RELEASE_R."""
+        if self.disposition not in ("hunt", "hold"):
+            return False
+        t = m._progress.get("target")
+        zid = t if isinstance(t, int) and not isinstance(t, bool) else m.target
+        z = self.world.zombies.get(zid)
+        return z is not None and z.get("x") is not None and zdist(self.world, z) > MELEE_RELEASE_R
 
     def _melee_mode(self, cmd):
         """The melee's mode where the ladder's `cmd` is at the dispatch point (the module docstring), else None. Plan 35
