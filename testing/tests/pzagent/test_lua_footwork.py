@@ -1956,9 +1956,10 @@ def test_the_dispositions_table_is_the_schema_s_enum_and_names_its_flags(lua, fs
                         "return table.concat(t, ',') end)()").split(","))
     assert keys == set(defs["meleeDisposition"]["enum"]) == {"hunt", "hold", "string"}
     assert lua.eval("PZA.schema.meleeDispositions.string") is True
-    flags = {k: (lua.eval("PZA.skills.DISPOSITIONS.%s.retreat" % k), lua.eval("PZA.skills.DISPOSITIONS.%s.staggerIn" % k),
-                 lua.eval("PZA.skills.DISPOSITIONS.%s.string" % k)) for k in keys}
-    assert flags == {"hunt": ("given", True, False), "hold": ("always", True, False), "string": ("never", False, True)}
+    flags = {k: tuple(lua.eval("PZA.skills.DISPOSITIONS.%s.%s" % (k, f)) for f in ("retreat", "staggerIn", "knockdown",
+                                                                                 "string")) for k in keys}
+    assert flags == {"hunt": ("given", True, True, False), "hold": ("always", True, True, False),
+                     "string": ("never", False, False, True)}   # fix 1: knockdown
 
 
 def test_the_generated_melee_carries_disposition_and_release_and_checks_the_enum():
@@ -2039,13 +2040,13 @@ def test_under_string_the_leader_at_the_reach_with_the_second_near_keeps_walking
 
 
 def test_under_string_a_leader_closing_at_1_8_latches_the_run(lua, fs):
-    """The leader 7 at 5.0 closing at 1.8 tiles a second (above K.STRING_RUN_V 1.6): the run wanted on the walk; the
-    falsifier, closing at 1.0: the walk."""
+    """The leader 7 at 5.0 closing at 1.8 tiles a second (above K.STRING_RUN_V, 1.0 since fix 1): the run wanted on
+    the walk; the falsifier, closing at 0.7: the walk."""
     p, z, w, recs = group_world(lua, 15.0, [], zspeed=1.8)
     gow(lua, p, disposition="string")
     grun(lua, p, w, recs, 10)
     assert work_of(lua, "stepFor") == "string" and lua.eval("PZA.motor.wantRun") is True
-    p2, z2, w2, recs2 = group_world(lua, 15.0, [], zspeed=1.0)
+    p2, z2, w2, recs2 = group_world(lua, 15.0, [], zspeed=0.7)
     gow(lua, p2, aid="m2", disposition="string")
     grun(lua, p2, w2, recs2, 10)
     assert work_of(lua, "stepFor") == "string" and lua.eval("PZA.motor.wantRun") is False
@@ -2180,3 +2181,43 @@ def test_the_string_steps_on_the_kahlua_host(lua, fs):
     run(lua, p, w, 3)
     _no_raise(lua, fs)
     assert work_of(lua, "stepFor") == "string" and w["walk"][0] < 0 and w["walk"][1] < 0
+
+
+# ---- Plan 37 Task 2 fix 1: no chosen knock-down under string (the string probe x_trial-ladder-20261112-055128) ---------
+
+def test_the_string_run_v_is_1_0(lua, fs):
+    world(lua, zx=11.0)
+    assert lua.eval("PZA.skills.STRING_RUN_V") == 1.0
+
+
+def test_under_string_no_chosen_knock_down_the_walk_goes(lua, fs):
+    """One standing at 0.8 (the target, inside point blank and the shove range) and a second within the reach (1.2
+    north), pile true: under string no shove is sent and the tick is the string's walk."""
+    p, z, w = pile_world(lua, (1.2,), tx=10.8)
+    gow(lua, p, pile=True, disposition="string")
+    run(lua, p, w, 6)
+    assert [x for x in w["presses"] if x["shove"]] == []
+    pr = progress(lua, fs)
+    assert pr[0]["result"]["step"] == "work" and pr[0]["result"]["work"]["step_for"] == "string"
+    assert all(a["result"]["work"].get("shove_for") is None for a in pr)
+
+
+def test_under_hold_the_same_geometry_shoves_as_before(lua, fs):
+    p, z, w = pile_world(lua, (1.2,), tx=10.8)
+    gow(lua, p, pile=True, disposition="hold")
+    run(lua, p, w, 6)
+    pr = progress(lua, fs)
+    assert pr[0]["result"]["step"] == "shove" and w["presses"][0]["shove"] is True
+    assert pr[0]["result"]["work"].get("shove_for") == "knockdown"
+
+
+def test_under_string_the_step_out_runs_then_the_walk_resumes(lua, fs):
+    """Two at point blank (0.5 east and 0.5 north), pile true, under string: the step out first (rule (b), step_for
+    pile_out), no shove, and after its K.WORK_STEP_TICKS the string's walk."""
+    p, z, w = pile_world(lua, (0.5,), tx=10.5, attackers=0)
+    gow(lua, p, pile=True, disposition="string")
+    run(lua, p, w, 1)
+    assert progress(lua, fs)[0]["result"]["work"]["step_for"] == "pile_out"
+    run(lua, p, w, lua.eval("PZA.skills.WORK_STEP_TICKS") + 12)
+    assert [x for x in w["presses"] if x["shove"]] == []
+    assert work_of(lua, "stepFor") == "string" and work_of(lua, "pileState") != "step"

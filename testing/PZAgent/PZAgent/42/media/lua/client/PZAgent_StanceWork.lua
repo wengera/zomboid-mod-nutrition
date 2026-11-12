@@ -155,8 +155,10 @@ K.STRING_GAP = 2.5           -- tiles: the string turns to press the leader only
                              -- beyond this (the spec's section 3.2: the second well behind)
 K.STRING_TURN_R = 0.5        -- tiles beyond the reach within which the leader's distance at the next landing turns the
                              -- walk (the spec's section 3.3: the turn lands the press as the leader arrives)
-K.STRING_RUN_V = 1.6         -- tiles a second: the leader closing faster takes the run (the lunge's 90th percentile,
-                             -- 1.58, the design read above; the walk's 2.09 outpaces every slower zombie)
+K.STRING_RUN_V = 1.0         -- tiles a second: the leader closing faster takes the run (Plan 37 Task 2 fix 1, the
+                             -- string probe x_trial-ladder-20261112-055128, a trial reading: its leaders walked at
+                             -- about 1.4 and the gap never grew at a walk; the walk's 2.09 outpaces only the slow
+                             -- shambler's 0.55, the design read above, so anything faster takes the run; was 1.6)
 K.STRING_RELEASE_R = 8.0     -- tiles: the melee's release radius under string (the planner sends it at a leader five
                              -- tiles off; the spec's section 3.2)
 K.RELEASE_SAFE_R = 1.3       -- tiles: the release hands back safe with the nearest standing beyond this (K.WORK_PILE_R's
@@ -166,13 +168,15 @@ K.RELEASE_MAX_TICKS = 90     -- ticks after the first that read release before i
                              -- CombatSpeed 1.0, #4668)
 -- the dispositions (the spec's section 3.2): each the flags the tick reads, never a copy of the tick. retreat: given
 -- (the fighting retreat with a withdraw vector given, the Plan 36 rule), always (with none, along the repulsion sum)
--- or never; staggerIn the step in on a staggered target; string the string's walk and turn (K.workString); releaseR
+-- or never; staggerIn the step in on a staggered target; knockdown the pile's chosen knock-down (rule (c): off under
+-- string, fix 1: the probe's shoves cost the walk its gain; the step out, (a) and (b), runs under every disposition and
+-- the string's walk resumes after it); string the string's walk and turn (K.workString); releaseR
 -- the release radius the check sends in place of the planner's. The crawler buffer and the nearest attacker's facing
 -- read no flag: on under every disposition (test_lua_footwork.py)
 K.DISPOSITIONS = {
-    hunt = { retreat = "given", staggerIn = true, string = false },
-    hold = { retreat = "always", staggerIn = true, string = false },
-    string = { retreat = "never", staggerIn = false, string = true, releaseR = K.STRING_RELEASE_R },
+    hunt = { retreat = "given", staggerIn = true, knockdown = true, string = false },
+    hold = { retreat = "always", staggerIn = true, knockdown = true, string = false },
+    string = { retreat = "never", staggerIn = false, knockdown = false, string = true, releaseR = K.STRING_RELEASE_R },
 }
 
 local WORK_NUMS = { "workR", "crawlerR", "bandLo", "floorHealth" }
@@ -629,6 +633,7 @@ local function pileTick(p, st, d, fallen, standing)
         return pileTick(p, st, d, fallen, standing)
     end
     if fallen or not standing or #pb ~= 1 or pb[1].d > st.shoveR then return nil end
+    if not K.DISPOSITIONS[w.disposition].knockdown then return nil end   -- Plan 37 Task 2 fix 1: off under string
     local inReach = standingWithin(st, d, standing, M.reachOf(p, st))   -- a Lua table
     if #inReach < 2 then return nil end   -- (c): against several only
     if pb[1].id ~= st.id then
