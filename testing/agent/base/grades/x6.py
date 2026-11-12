@@ -34,8 +34,13 @@ loop's stop (`x1.clip`):
   clock       the Task 4 clock's why (`clock {action, ttc, need[, waited][, running][, cut]}`) on any branch, each
               read once ({read: False} with none): `lines`; `allowed` (a line that sent: the scorecard's `ok`),
               `held` (no send), `cut` (`cut` true); `by_action` {action: {allowed, held, cut}}; `waited` the sum;
-              `under` the allowed clocks with `ttc` strictly under `need` (an action started inside the margin: the
-              criterion reads 0), `under_lines` their indices; the scorecard's `clock_gate`, copied, and beside it
+              `starts` the allowed clocks whose line sent the clock's own action (`action_kind` of the sent type and
+              args equal to `action`, the clock's `ride` not true: a refusal's gain-distance leg, a hold's or cut's
+              command and a riding rip, sent under the margin by design, are no start), `rides` the allowed clocks
+              reading `ride` true; `under` the starts with `ttc` strictly under `need` (an action started inside the
+              margin: the criterion reads 0), `under_lines` their indices (the pre-run edit after the scorecard's
+              `clock <0` was found counting every sent line, 14 against 1 on x_trial-ladder-20261111-205858); the
+              scorecard's `clock_gate` otherwise, copied, and beside it
               `steer_cuts` the care and loot actions (CARE_KINDS) ending `failed superseded` whose superseding send
               (the last sent decision line at or before the failed line, after the action's own send) is a steer (the
               criterion reads 0), `superseded_by` {type: n} over those actions; `durations` {kind: {n, median}} the
@@ -101,6 +106,8 @@ ROOM_CLOSED = "closed"     # planner/group.py:374 (Task 3 fix 3): room "closed",
 ROOM_FROM = "from"         # planner/group.py:378: room {from: <raw heading>}, the heading clamped
 CONE_DEG = 90.0            # degrees: tools/trial_score.py:828 CONE_DEG (Plan 36 Task 5b, at 3f1e86b5), a copy
 CLOCK = "clock"            # planner/clock.py's why key (Plan 36 Task 4)
+RIDE = "ride"              # the clock why's ride flag (Task 4's follow-up, after this branch's base: a rip sent riding
+                           # the walk, under the margin by design; as logged on x_trial-ladder-20261111-205858)
 TIMED = ("rip", "unwear", "bandage", "loot", "door", "scan")   # planner/clock.py:56 TIMED (at 3f1e86b5), a copy
 CARE_KINDS = ("rip", "unwear", "bandage", "loot")   # the brief's "a care or loot act": TIMED less door and scan
 STEER = "steer"            # schema actionType: the leg a care must never be cut by
@@ -364,7 +371,7 @@ def e_clock(rows, lines):
     with the steer cuts and the durations."""
     if rows is None:
         return {"read": False}
-    n = ok = held = cut = under = 0
+    n = ok = held = cut = under = starts = rides = 0
     waited, idx, by = 0.0, [], {}
     for i, r in enumerate(E._l(rows)):
         for c in branch_whys(r, CLOCK):
@@ -377,6 +384,13 @@ def e_clock(rows, lines):
             elif r.get("sent") is True:
                 ok += 1
                 a["allowed"] += 1
+                if c.get(RIDE) is True:
+                    rides += 1
+                    continue
+                act_ = E._d(r.get("action"))
+                if action_kind(act_.get("type"), E._d(act_.get("args"))) != c.get("action"):
+                    continue
+                starts += 1
                 ttc, need = E._n(c.get("ttc")), E._n(c.get("need"))
                 if ttc is not None and need is not None and ttc < need:
                     under += 1
@@ -408,7 +422,7 @@ def e_clock(rows, lines):
             steer += 1 if typ == STEER else 0
     durations = {k: {"n": len(durs[k]), "median": _median(durs[k])} for k in TIMED if k in durs}
     return {"read": True, "lines": n, "allowed": ok, "held": held, "cut": cut, "by_action": by, "waited": waited,
-            "under": under, "under_lines": idx, "steer_cuts": steer, "superseded_by": by_type,
+            "starts": starts, "rides": rides, "under": under, "under_lines": idx, "steer_cuts": steer, "superseded_by": by_type,
             "durations": durations}
 
 
@@ -559,10 +573,12 @@ def lines_x6(g):
                "%s" % (CONE_DEG, cb.get("outside"), cb.get("bites"), [(r["seq"], _r(r["angle"], 1))
                                                                        for r in E._l(cb.get("rows"))])
                if cb.get("read") else GX1._unread("cone bites"))
-    out.append("clock (%s) [reading]: %s lines, %s allowed, %s held, %s cut, by action %s, waited %s s, %s started "
-               "under the need, %s cares cut by a steer (superseded by %s), durations %s" % (
+    out.append("clock (%s) [reading]: %s lines, %s allowed, %s held, %s cut, by action %s, waited %s s, %s starts "
+               "of the clock's own action (%s rides), %s started under the need, %s cares cut by a steer (superseded "
+               "by %s), durations %s" % (
                    CLOCK, ck.get("lines"), ck.get("allowed"), ck.get("held"), ck.get("cut"), ck.get("by_action"),
-                   _r(ck.get("waited")), ck.get("under"), ck.get("steer_cuts"), ck.get("superseded_by"),
+                   _r(ck.get("waited")), ck.get("starts"), ck.get("rides"), ck.get("under"), ck.get("steer_cuts"),
+                   ck.get("superseded_by"),
                    {k: (v["n"], _r(v["median"], 3)) for k, v in E._d(ck.get("durations")).items()})
                if ck.get("read") else GX1._unread("clock"))
     out.append("crawler (a living crawler within %s tiles while pressing at a standing target) [reading]: %s frames, "

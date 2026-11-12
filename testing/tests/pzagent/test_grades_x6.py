@@ -289,7 +289,8 @@ def _clock():
 def test_clock_reads_its_lines_by_action_the_steer_cuts_and_the_durations():
     c = _clock()
     durs = c.pop("durations")
-    assert c == {"read": True, "lines": 5, "allowed": 2, "held": 2, "cut": 1, "waited": 1.5, "under": 0,
+    assert c == {"read": True, "lines": 5, "allowed": 2, "held": 2, "cut": 1, "waited": 1.5, "starts": 2,
+                 "rides": 0, "under": 0,
                  "under_lines": [], "steer_cuts": 1, "superseded_by": {"aim": 1, "steer": 1},
                  "by_action": {"loot": {"allowed": 1, "held": 1, "cut": 1}, "rip": {"allowed": 1, "held": 0, "cut": 0},
                                "bandage": {"allowed": 0, "held": 1, "cut": 0}}}
@@ -304,13 +305,36 @@ def test_clock_reads_an_allowed_start_under_the_need():
     assert (c["under"], c["under_lines"]) == (1, [0])
 
 
+def under_case():
+    """The pre-run edit's fixture (the scorecard's `clock <0` counted 14 against 1 on x_trial-ladder-20261111-205858):
+    a refused bandage whose line sent the gain-distance leg under the margin (a steer: no start), a riding rip sent under
+    the margin (`ride` true: no start), and a loot sent under the margin (its own action: the one start under)."""
+    rows = [gl(1.0, ck("bandage", 2.0, 6.0, refused=True, leg="sent"), "steer", branch="care", vx=1.0, vy=0.0),
+            gl(2.0, ck("rip", 1.0, 5.0, ride=True), "rip", branch="care", itemId=5, keepMoving=True),
+            gl(3.0, ck("loot", 2.0, 3.0), "interact", branch="goal", kind="loot", x=1, y=1)]
+    return rec(), rows, []
+
+
+UNDER_WANT = (3, 1, 1, 1, [2])   # allowed, starts, rides, under, under_lines
+
+
+def _under():
+    c = G.readings_x6(*under_case())["clock"]
+    return (c["allowed"], c["starts"], c["rides"], c["under"], c["under_lines"])
+
+
+def test_clock_under_the_margin_counts_only_the_clock_s_own_action_and_no_ride():
+    """A leg line under the margin counts 0, a riding rip 0, a loot sent under the margin 1."""
+    assert _under() == UNDER_WANT
+
+
 def test_clock_is_unread_without_a_clock_and_agrees_with_the_scorecard():
     assert G.readings_x6(rec(), [gl(1.0, {}, "steer")], [])["clock"] == {"read": False}
     assert G.readings_x6(rec(), None, [])["clock"] == {"read": False}
     live = _ts().clock_gate(clock_case()[1])
     c = _clock()
-    assert (live["lines"], live["ok"], live["held"], live["cut"], live["waited"], live["under"]) == (
-        c["lines"], c["allowed"], c["held"], c["cut"], c["waited"], c["under"])
+    assert (live["lines"], live["ok"], live["held"], live["cut"], live["waited"]) == (
+        c["lines"], c["allowed"], c["held"], c["cut"], c["waited"])   # `under` is no longer the scorecard's (the edit)
 
 
 # ================================================================ crawler
@@ -556,6 +580,10 @@ MUTANTS = [
     # clock: a clock line with ttc == need read as started under the need
     ("e_clock", lambda b: b.replace("ttc < need", "ttc <= need"),
      test_clock_reads_its_lines_by_action_the_steer_cuts_and_the_durations),
+    # clock (the pre-run edit): a leg line under the margin read as a start (any sent line)
+    ("e_clock", lambda b: b.replace("!= c.get(\"action\"):", "is None and False:"), holds(_under, UNDER_WANT)),
+    # clock (the pre-run edit): a riding rip read as a start
+    ("e_clock", lambda b: b.replace("if c.get(RIDE) is True:", "if False:"), holds(_under, UNDER_WANT)),
     # clock: a cut read as allowed
     ("e_clock", lambda b: b.replace("if c.get(\"cut\"):", "if False:"),
      test_clock_reads_its_lines_by_action_the_steer_cuts_and_the_durations),
