@@ -25,7 +25,9 @@ WORK = {"workR": 3.5, "crawlerR": 1.2, "bandLo": 0.4, "floorHealth": 0.0, "reach
 # (the smoke x_trial-ladder-20261110-084643 sent 1.475): the band, reach - bandLo, 1.075; the step goes in [0.9, 1.075)
 BAND_X = 10.95   # the target 0.95 tiles east: inside the band, beyond K.WORK_POINT_BLANK_R
 WORK_LEAF = {"heading", "turn", "clear", "gap", "n", "crawler", "held", "pile", "step_for", "retreat", "stall_held", "repin_for",
-             "nan_heading", "shove_for"}   # Plan 36 Task 1 fix 1: nan_heading; Task 2b: shove_for   # fix 2: held; fix 3: pile; fix 5: step_for
+             "nan_heading", "shove_for", "disposition", "pinned",
+             "turn_for"}   # Plan 36 Task 1 fix 1: nan_heading; Task 2b: shove_for   # fix 2: held; fix 3: pile; fix 5: step_for
+# Plan 37 Task 2 (PZA/1.16): disposition, pinned and turn_for
 LOOK_OFF = {"look": math.pi, "turn": 0.0, "snap": False}   # the look held away: the meet never presses
 
 
@@ -788,8 +790,8 @@ def test_the_generated_melee_carries_the_work_fields_and_leaves_them_off_the_wir
         3.5, 1.2, 0.4, 0.0, 1.0, 40.0, True)
 
 
-def test_the_core_announces_1_15(lua, fs):
-    assert lua.eval("PZA.VERSION") == "1.15"   # Plan 36 Task 2a: PZA/1.15, backswing, moving_back and air
+def test_the_core_announces_1_16(lua, fs):
+    assert lua.eval("PZA.VERSION") == "1.16"   # Plan 37 Task 2: PZA/1.16, disposition and release
 
 
 # ---- the re-send ------------------------------------------------------------------------------------------------------
@@ -807,15 +809,33 @@ def test_a_same_target_resend_keeps_the_footwork_state_and_takes_the_new_work_fi
     assert p.aim["force"] is True
 
 
-def test_another_target_s_resend_starts_a_fresh_footwork(lua, fs):
+def _nullifies(p):
+    return len([c for c in p.aim["calls"] if c[0] == "nullifyAiming"])
+
+
+def test_another_target_s_work_resend_keeps_the_footwork_state_but_not_the_per_target_reads(lua, fs):
+    """Plan 37 Task 2 (the spec's section 3.1, replacing Plan 35's fresh footwork on another target): a re-send at
+    another target while a work melee runs keeps the heading, the cadence (the marks re-based on the new act's press
+    counts, the armed ticks) and the clear count; the per-target reads (pinId, the closing history) start fresh."""
     p, z, w = world(lua, zx=BAND_X, **LOOK_OFF)
     z8 = make_zombie(8, 10.0, 21.0)
     sense(lua, [z, z8])
     records(lua, [target_rec(w), {"id": 8, "dist": 1.0, "x": 10.0, "y": 21.0}], {7: z, 8: z8})
     gow(lua, p, aid="m1")
     run(lua, p, w, 3)
+    heading = work_of(lua, "heading")
+    assert heading is not None
+    lua.execute("local st = PZA.skills.cur.st; local w = st.work; st.swings = 3; w.pressMark, w.rideMark = 2, 3; "
+                "w.stepTicks, w.rideTicks, w.clearTicks, w.pinId = 11, 4, 5, 7")
+    assert p.aim["force"] is True
+    n0 = _nullifies(p)
     gow(lua, p, aid="m2", targetId=8)
-    assert work_of(lua, "heading") is None
+    assert ("m2", "accepted", "") in states(acts(lua, fs))
+    assert work_of(lua, "heading") == heading and work_of(lua, "clearTicks") == 5
+    assert (work_of(lua, "stepTicks"), work_of(lua, "rideTicks")) == (11, 4)
+    assert (work_of(lua, "pressMark"), work_of(lua, "rideMark")) == (-1, 0)   # one press unread, none since the ride
+    assert work_of(lua, "pinId") is None and lua.eval("#PZA.skills.cur.st.hist") == 0
+    assert p.aim["force"] is True and _nullifies(p) == n0   # the stance kept
 
 
 # ---- work absent: the melee as before, byte for byte -----------------------------------------------------------------
@@ -1866,3 +1886,297 @@ def test_a_crawler_buffer_with_no_open_side_beyond_the_bite_yields(lua, fs):
     _no_raise(lua, fs)
     assert lua.eval("PZA.skills.cur.st.id") == 7
     assert "crawler_buffer" not in [(a["result"].get("work") or {}).get("step_for") for a in progress(lua, fs)]
+
+# ---- Plan 37 Task 2 (PZA/1.16): the disposition, the string, the safe release ------------------------------------------
+# The spec `2026-11-12-plan-37-the-disposition-design.md` sections 3.1 to 3.3: the melee's work takes a disposition
+# (hunt, hold or string; absent reads hunt, the Plan 36 footwork) and release; the string walks away from the group,
+# turns and presses the leader when the second-nearest is well behind, and walks again.
+
+EIGHT = [(16.5, 21.0), (17.0, 19.0), (18.0, 20.5), (18.5, 18.5), (19.0, 21.5), (19.5, 19.5), (20.0, 20.0)]
+
+
+def group_world(lua, tx, others, zspeed=0.0, **kw):
+    """The target 7 at (tx, 20.0) (closing at zspeed) and standing zombies 20, 21, ... at the (x, y) of others; recs()
+    rebuilds the frame's records off the live positions (the player walks)."""
+    p, z, w = world(lua, zx=tx, zspeed=zspeed, attack_ticks=6, **kw)
+    objs = {7: z}
+    for i, (x, y) in enumerate(others):
+        objs[20 + i] = make_zombie(20 + i, x, y)
+    sense(lua, list(objs.values()))
+
+    def recs():
+        rs = [target_rec(w)]
+        for i, (x, y) in enumerate(others):
+            rs.append({"id": 20 + i, "dist": math.hypot(x - w["px"], y - w["py"]), "x": x, "y": y})
+        records(lua, rs, objs)
+    recs()
+    return p, z, w, recs
+
+
+def grun(lua, p, w, recs, n, stop=None):
+    for _ in range(n):
+        run(lua, p, w, 1)
+        recs()
+        if stop is not None and stop():
+            return
+
+
+def leaves_of(lua, fs, aid="m1"):
+    return [a["result"].get("work") or {} for a in progress(lua, fs, aid)]
+
+
+@pytest.mark.parametrize("over", [{"disposition": "flee"}, {"disposition": 3}, {"release": "yes"},
+                                  {"release": 1}])
+def test_a_bad_disposition_or_release_is_bad_args(lua, fs, over):
+    p, z, w = world(lua, zx=11.0)
+    gow(lua, p, **over)
+    assert states(acts(lua, fs)) == [("m1", "rejected", "bad args")]
+
+
+@pytest.mark.parametrize("over", [{"disposition": "hold"}, {"release": True}])
+def test_disposition_and_release_are_work_arguments_needing_work_r(lua, fs, over):
+    p, z, w = world(lua, zx=11.0)
+    go(lua, p, **over)
+    assert states(acts(lua, fs)) == [("m1", "rejected", "bad args")]
+
+
+def test_disposition_absent_reads_hunt_and_release_false(lua, fs):
+    p, z, w = world(lua, zx=11.0)
+    gow(lua, p)
+    assert work_of(lua, "disposition") == "hunt" and work_of(lua, "release") is False
+    gow(lua, p, aid="m2", disposition="string", release=True)
+    assert work_of(lua, "disposition") == "string" and work_of(lua, "release") is True
+
+
+def test_the_dispositions_table_is_the_schema_s_enum_and_names_its_flags(lua, fs):
+    world(lua, zx=11.0)
+    with open(SCHEMA, encoding="utf-8") as fh:
+        defs = json.load(fh)["$defs"]
+    keys = set(lua.eval("(function() local t = {} for k in pairs(PZA.skills.DISPOSITIONS) do t[#t + 1] = k end "
+                        "return table.concat(t, ',') end)()").split(","))
+    assert keys == set(defs["meleeDisposition"]["enum"]) == {"hunt", "hold", "string"}
+    assert lua.eval("PZA.schema.meleeDispositions.string") is True
+    flags = {k: (lua.eval("PZA.skills.DISPOSITIONS.%s.retreat" % k), lua.eval("PZA.skills.DISPOSITIONS.%s.staggerIn" % k),
+                 lua.eval("PZA.skills.DISPOSITIONS.%s.string" % k)) for k in keys}
+    assert flags == {"hunt": ("given", True, False), "hold": ("always", True, False), "string": ("never", False, True)}
+
+
+def test_the_generated_melee_carries_disposition_and_release_and_checks_the_enum():
+    base = dict(targetId=7, mode="strike", reach=1.25, shoveR=0.9, releaseR=2.75, faceR=3.0, pressAngle=41.0,
+                pressLo=0.0, floorR=1.0, handbackR=2.0, stall=3, workR=3.5, crawlerR=1.2, bandLo=0.4, floorHealth=0.0)
+    a = pza1.Melee(**base).args()
+    assert "disposition" not in a and "release" not in a   # absent on the wire: the Plan 36 line
+    a2 = pza1.Melee(disposition="string", release=True, **base).args()
+    assert (a2["disposition"], a2["release"]) == ("string", True)
+    with pytest.raises(ValueError):
+        pza1.Melee(disposition="flee", **base)
+    assert pza1.MELEE_DISPOSITIONS == ("hunt", "hold", "string")
+
+
+def test_the_new_keys_are_in_the_schema(lua, fs):
+    with open(SCHEMA, encoding="utf-8") as fh:
+        defs = json.load(fh)["$defs"]
+    props = defs["result_melee"]["properties"]
+    assert props["safe"]["type"] == "boolean" and "released" in props["why"]["description"]
+    work = props["work"]["properties"]
+    assert work["pinned"]["type"] == "boolean" and set(work["turn_for"]["properties"]) == {"leader", "gap2"}
+    assert "string" in work["step_for"]["description"] and "string" in work["repin_for"]["description"]
+    args = defs["args_melee"]["properties"]
+    assert args["disposition"]["$ref"] == "#/$defs/meleeDisposition" and args["release"]["default"] is False
+
+
+def test_under_string_eight_standing_far_off_the_walk_goes_away_with_the_stance_released(lua, fs):
+    """Eight standing at 6 to 10 tiles east (the target 7 the nearest at 6.0, sent past the reflex's releaseR 2.75:
+    the string's 8.0 reads it): the walk west along the way away, step `work` with step_for string, the stance
+    released, the gait walk wanted, no press; the walk of kind string."""
+    p, z, w, recs = group_world(lua, 16.0, EIGHT)
+    gow(lua, p, disposition="string")
+    assert states(acts(lua, fs)) == [("m1", "accepted", "")]
+    grun(lua, p, w, recs, 5)
+    pr = progress(lua, fs)
+    assert pr[0]["result"]["step"] == "work"
+    leaf = pr[0]["result"]["work"]
+    assert leaf["step_for"] == "string" and leaf["disposition"] == "string" and leaf["pinned"] is False
+    assert lua.eval("PZA.skills.cur.st.walk") == "string" and w["walk"][0] < -0.9 and w["px"] < 10.0
+    assert lua.eval("PZA.skills.stance.held") is False and lua.eval("PZA.motor.wantRun") is False
+    assert w["presses"] == []
+
+
+def test_under_hunt_the_same_group_takes_no_string_walk(lua, fs):
+    """The falsifier: the same scene under hunt (sent with releaseR 8.0, since hunt reads the sent one): the meet's
+    stance, no walk of kind string."""
+    p, z, w, recs = group_world(lua, 16.0, EIGHT)
+    gow(lua, p, disposition="hunt", releaseR=8.0)
+    grun(lua, p, w, recs, 5)
+    assert "string" not in [lf.get("step_for") for lf in leaves_of(lua, fs)]
+    assert lua.eval("PZA.skills.cur.st.walk") != "string" and lua.eval("PZA.skills.stance.held") is True
+
+
+def test_under_string_the_leader_at_the_turn_with_the_second_far_turns_and_presses(lua, fs):
+    """The reach 1.475: the leader 7 at reach + 0.4 closing at 1.5, the second 20 at 3.0 north: no walk; the meet
+    presses the leader, turn_for {leader 7, gap2 3.0} on the press's line."""
+    p, z, w, recs = group_world(lua, 10.0 + 1.875, [(10.0, 23.0)], zspeed=1.5)
+    gow(lua, p, disposition="string")
+    grun(lua, p, w, recs, 60, stop=lambda: w["presses"])
+    pr = progress(lua, fs)
+    sw = [a for a in pr if a["result"]["step"] == "swing"]
+    assert w["presses"] and sw
+    tf = sw[0]["result"]["work"]["turn_for"]
+    assert tf["leader"] == 7 and tf["gap2"] == pytest.approx(3.0)
+    assert "string" not in [lf.get("step_for") for lf in leaves_of(lua, fs)] and w["px"] == 10.0
+
+
+def test_under_string_the_leader_at_the_reach_with_the_second_near_keeps_walking(lua, fs):
+    """The leader 7 at the reach 1.475 and the second 20 at 1.5 north (inside K.STRING_GAP): the walk goes on, away
+    from the two (south-west), no press, no turn_for."""
+    p, z, w, recs = group_world(lua, 10.0 + 1.475, [(10.0, 21.5)])
+    gow(lua, p, disposition="string")
+    grun(lua, p, w, recs, 5)
+    lv = leaves_of(lua, fs)
+    assert w["presses"] == [] and lv[0].get("step_for") == "string"
+    assert all("turn_for" not in lf for lf in lv)
+    assert w["walk"][0] < 0 and w["walk"][1] < 0
+
+
+def test_under_string_a_leader_closing_at_1_8_latches_the_run(lua, fs):
+    """The leader 7 at 5.0 closing at 1.8 tiles a second (above K.STRING_RUN_V 1.6): the run wanted on the walk; the
+    falsifier, closing at 1.0: the walk."""
+    p, z, w, recs = group_world(lua, 15.0, [], zspeed=1.8)
+    gow(lua, p, disposition="string")
+    grun(lua, p, w, recs, 10)
+    assert work_of(lua, "stepFor") == "string" and lua.eval("PZA.motor.wantRun") is True
+    p2, z2, w2, recs2 = group_world(lua, 15.0, [], zspeed=1.0)
+    gow(lua, p2, aid="m2", disposition="string")
+    grun(lua, p2, w2, recs2, 10)
+    assert work_of(lua, "stepFor") == "string" and lua.eval("PZA.motor.wantRun") is False
+
+
+def test_under_string_the_target_is_re_pinned_to_the_nearest_standing(lua, fs):
+    """The target 7 at 6.0 and 20 at 3.0 north: the reflex re-pins to 20 (repin_for string), then walks."""
+    p, z, w, recs = group_world(lua, 16.0, [(10.0, 23.0)])
+    gow(lua, p, disposition="string")
+    grun(lua, p, w, recs, lua.eval("PZA.skills.WORK_TICKS") + 2)
+    assert lua.eval("PZA.skills.cur.st.id") == 20
+    assert progress(lua, fs)[0]["result"]["step"] == "repin"
+    assert [lf.get("repin_for") for lf in leaves_of(lua, fs)][0] == "string"
+    assert work_of(lua, "stepFor") == "string"
+
+
+def test_under_hold_the_retreat_runs_with_no_withdraw_and_under_hunt_it_does_not(lua, fs):
+    """hold: the fighting retreat on with no withdraw vector (the step along the repulsion sum, the leaf's retreat);
+    hunt, the Plan 36 rule: no withdraw, no retreat (the band step, step_for gap)."""
+    p, z, w = world(lua, zx=BAND_X, **LOOK_OFF)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p, disposition="hold")
+    run(lua, p, w, 3)
+    lv = leaves_of(lua, fs)
+    assert any(lf.get("retreat") for lf in lv) and "retreat" in [lf.get("step_for") for lf in lv]
+    gow(lua, p, aid="m2", disposition="hunt")
+    run(lua, p, w, 3)
+    lv2 = leaves_of(lua, fs, "m2")
+    assert not any(lf.get("retreat") for lf in lv2) and "retreat" not in [lf.get("step_for") for lf in lv2]
+
+
+def test_the_leaf_s_pinned_reads_two_standing_at_point_blank(lua, fs):
+    p, z, w = pile_world(lua, (0.5,), tx=10.5, **LOOK_OFF)
+    gow(lua, p)
+    run(lua, p, w, 2)
+    assert progress(lua, fs)[-1]["result"]["work"]["pinned"] is True
+
+
+def test_the_leaf_s_pinned_is_false_with_one_at_point_blank(lua, fs):
+    p, z, w = pile_world(lua, (), tx=10.5, **LOOK_OFF)
+    gow(lua, p)
+    run(lua, p, w, 2)
+    assert progress(lua, fs)[-1]["result"]["work"]["pinned"] is False
+
+
+def test_release_with_the_nearest_at_2_0_and_no_press_ends_released_safe_on_the_first_tick(lua, fs):
+    p, z, w = world(lua, zx=12.0, **LOOK_OFF)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p, release=True)
+    run(lua, p, w, 1)
+    a = last(lua, fs)
+    assert (a["state"], a["result"]["end"], a["result"]["why"], a["result"]["safe"]) == ("done", "handback",
+                                                                                          "released", True)
+
+
+def test_release_with_the_nearest_at_0_8_holds_through_90_ticks_then_ends_unsafe(lua, fs):
+    p, z, w = world(lua, zx=10.8, **LOOK_OFF)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p, release=True)
+    run(lua, p, w, lua.eval("PZA.skills.RELEASE_MAX_TICKS"))
+    assert not ended_(lua)
+    run(lua, p, w, 1)
+    a = last(lua, fs)
+    assert (a["state"], a["result"]["why"], a["result"]["safe"]) == ("done", "released", False)
+
+
+def test_release_with_the_target_knocked_down_is_safe_whatever_stands_near(lua, fs):
+    p, z, w = world(lua, zx=10.8, **LOOK_OFF)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p, release=True)
+    lua.execute("PZA.skills.cur.st.knocked = true")
+    w["knocked"] = True
+    run(lua, p, w, 1)
+    a = last(lua, fs)
+    assert (a["state"], a["result"]["why"], a["result"]["safe"]) == ("done", "released", True)
+
+
+def test_without_release_the_same_scene_runs_on(lua, fs):
+    p, z, w = world(lua, zx=12.0, **LOOK_OFF)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p)
+    run(lua, p, w, 3)
+    assert not ended_(lua)
+
+
+def ended_(lua):
+    return lua.eval("PZA.skills.cur") is None
+
+
+@pytest.mark.parametrize("disp", [None, "hunt", "hold", "string"])
+def test_the_crawler_buffer_and_the_attacker_s_facing_run_under_every_disposition(lua, fs, disp):
+    """The spec's section 3.2: the two primitives above every table. The crawler at 0.95 north and the standing
+    target at 0.4: the buffer step; 8 at 0.8 reading attack beside the idle target 7 at 0.85: the re-pin to it."""
+    over = {} if disp is None else {"disposition": disp}
+    p, z, w, cpos, recs = crawler_world(lua, 10.4, 10.0, 20.95)
+    gow(lua, p, **over)
+    run(lua, p, w, 3)
+    assert work_of(lua, "stepFor") == "crawler_buffer"
+    p2, z2, w2 = world(lua, zx=10.85, **LOOK_OFF)
+    o8 = make_zombie(8, 10.0, 20.8)
+    o8.getRealState = lambda s: "attack"
+    records(lua, [target_rec(w2), {"id": 8, "dist": 0.8, "x": 10.0, "y": 20.8}], {7: z2, 8: o8}, attackers=1)
+    gow(lua, p2, aid="m2", **over)
+    run(lua, p2, w2, 1)
+    assert lua.eval("PZA.skills.cur.st.id") == 8
+    assert progress(lua, fs, "m2")[-1]["result"]["work"].get("repin_for") == "attacker"
+
+
+def test_a_work_re_send_with_release_keeps_the_release_count(lua, fs):
+    """The planner may re-send the release; the bound counts from the first tick that read it."""
+    p, z, w = world(lua, zx=10.8, **LOOK_OFF)
+    records(lua, [target_rec(w)], {7: z})
+    gow(lua, p, release=True)
+    run(lua, p, w, 50)
+    gow(lua, p, aid="m2", release=True)
+    run(lua, p, w, lua.eval("PZA.skills.RELEASE_MAX_TICKS") - 50 + 1)
+    a = last(lua, fs)
+    assert (a["aid"], a["state"], a["result"]["why"], a["result"]["safe"]) == ("m2", "done", "released", False)
+
+
+def test_the_string_steps_on_the_kahlua_host(lua, fs):
+    """The string's heading off a group south-east (a negative atan2) on the client's truncating arithmetic: the walk
+    goes, no raise."""
+    p, z, w = melee_world(lua, zx=16.0, zy=24.0)
+    load_work_kahlua(lua)
+    grid(lua)
+    p.getZ = lambda s: 0
+    o = make_zombie(20, 12.0, 22.5)
+    sense(lua, [z, o])
+    records(lua, [target_rec(w), {"id": 20, "dist": math.hypot(2.0, 2.5), "x": 12.0, "y": 22.5}], {7: z, 20: o})
+    gow(lua, p, disposition="string")
+    run(lua, p, w, 3)
+    _no_raise(lua, fs)
+    assert work_of(lua, "stepFor") == "string" and w["walk"][0] < 0 and w["walk"][1] < 0

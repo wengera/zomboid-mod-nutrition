@@ -1,5 +1,7 @@
--- PZAgent_StanceMelee.lua — the melee reflex (PZA/1.15, Plan 36 Task 2a: the press on the back step, the leaf's
--- moving_back and air; PZA/1.10, Plan 31 Task 2: the meet, the finish aimed at the head and the
+-- PZAgent_StanceMelee.lua — the melee reflex (PZA/1.16, Plan 37 Task 2: the stance kept across any work re-send, the
+-- release radius and the hand-back released of the footwork's dispositions, PZAgent_StanceWork.lua; PZA/1.15, Plan 36
+-- Task 2a: the press on the back step, the leaf's moving_back and air; PZA/1.10, Plan 31 Task 2: the meet, the finish
+-- aimed at the head and the
 -- spent meet, the spec `2026-11-05-plan-31-the-rebuild-design.md` section 4 items 1, 2 and 2b; first cut PZA/1.8, Plan
 -- 28 Task 7a, the maneuver layer's cut 1). The skill melee owns one zombie to the kill at the client's tick rate: the
 -- facing written from faceR on, the press when the look is on the target and the target's distance at the swing's
@@ -152,7 +154,14 @@
 --   superseded or interrupted (the stop hook's result {the counts[, press]} on the line). The frame's act.step is
 --   K.cur.st.step (K.status).
 -- The stance across re-sends: a melee superseded by a melee of the same target or by an aim keeps it (the stop hook
---   reads K.starting and K.startingCmd, PZAgent_Stance.lua's K.start wrapper); every other end releases it.
+--   reads K.starting and K.startingCmd, PZAgent_Stance.lua's K.start wrapper), and since Plan 37 Task 2 (PZA/1.16, the
+--   spec 2026-11-12-plan-37-the-disposition-design.md section 3.1) a work melee superseded by a melee carrying work
+--   (its workR) whatever the target: the planner changes the disposition and the target by re-send, never by a
+--   restart; every other end releases it.
+-- Plan 37 Task 2 (the footwork's dispositions, PZAgent_StanceWork.lua's header): the release radius st.releaseR is
+--   the check's; under the disposition string the footwork's check sends K.STRING_RELEASE_R (8.0) in its place, so
+--   rule 3's out of range and the check's too far read it. The done line carries safe on a released hand-back
+--   (K.workRelease, read after the floor in the footwork's tick and under a hit reaction, K.meleeWorkFloor).
 -- The facing (Plan 32 Task 4, the facing trials' ruling, testing/trials/facing.md; the jar read's claims 7, 13, 14, 17,
 --   19): every facing write above is the snap, K.FACING at the end of this file. The aimed player's forward direction
 --   is the mouse's after OnPlayerUpdate (#4589), so faceThisObject lost to the cursor under the stance (75 to 88
@@ -842,19 +851,22 @@ local function doneResult(p, st, how, extra)
     K.releaseShove(p)
     extra = extra or {}
     local out = counts(st, { ["end"] = how, kill = how == "kill", why = extra.why, id = extra.id, d = extra.d,
-                             n = extra.n, ds = extra.ds, head_ticks = extra.head_ticks, hp0 = st.hp0, hp1 = healthOf(st.z), dMin = st.dMin,
+                             n = extra.n, ds = extra.ds, head_ticks = extra.head_ticks, safe = extra.safe,   -- safe: PZA/1.16
+                             hp0 = st.hp0, hp1 = healthOf(st.z), dMin = st.dMin,
                              steps = st.steps, refusals = refusalsOf(st, true), press = st.leaf })
     st.leaf = nil
     return out
 end
 
--- a supersede by a melee of the same target (a decider's re-send) or by an aim keeps the stance
+-- a supersede by a melee of the same target (a decider's re-send), by an aim, or (Plan 37 Task 2) of a work melee by a
+-- melee carrying work at any target keeps the stance
 local function keptOnResend(st, reason)
     if reason ~= "superseded" then return false end
     if K.starting == "aim" then return true end
     local c = K.startingCmd
-    return K.starting == "melee" and type(c) == "table" and type(c.args) == "table"
-           and (c.args.targetId == st.id or c.args.targetId == st.argId)   -- Task 15a: the sent or re-pinned target
+    if K.starting ~= "melee" or type(c) ~= "table" or type(c.args) ~= "table" then return false end
+    if c.args.targetId == st.id or c.args.targetId == st.argId then return true end   -- Task 15a: the sent or re-pinned
+    return st.work ~= nil and c.args.workR ~= nil   -- Plan 37 Task 2: a work re-send, whatever the target
 end
 
 K.types.melee = {
@@ -1149,7 +1161,7 @@ function K.meleeHitHandback(p, st, d)
         if not fallen then n = n + 1 end
         if n >= K.MELEE_CROWD_N and (st.work == nil or not st.work.pile) then return crowdOf(p, st, crowd, d, fallen) end
     end
-    if st.work ~= nil then return K.meleeWorkFloor(p, st) end   -- Plan 35 Task 1: the floor; the re-pin after it
+    if st.work ~= nil then return K.meleeWorkFloor(p, st, d) end   -- Plan 35 Task 1: the floor (Plan 37: the release)
     local hb, how, res = standingHandback(p, st)
     if hb == nil then return nil end
     if fallen == nil then fallen = K.onFloor(st.z) end
@@ -1182,7 +1194,8 @@ function K.meleeCrowd(p, st)
     if w == nil then return standingNear(p, st, K.MELEE_CROWD_R) end
     local pileR = 0
     if w.pile then pileR = K.WORK_PILE_R or 0 end   -- Plan 35 Task 1 fix 3: the pile's trigger radius read too
-    local near = standingNear(p, st, math.max(reachOf(p, st), K.MELEE_CROWD_R, K.WORK_CONTACT_R or 0, pileR))
+    local wide = K.workNearR ~= nil and K.workNearR(w) or 0   -- Plan 37 Task 2: the release's and the string's read
+    local near = standingNear(p, st, math.max(reachOf(p, st), K.MELEE_CROWD_R, K.WORK_CONTACT_R or 0, pileR, wide))
     w.near = near
     if near == nil then return nil end
     local crowd = nil
@@ -1218,10 +1231,13 @@ function K.meleeWorkStanding(p, st, near)
     return repin(p, st, near[1])
 end
 
--- the hit step's hand-back with work: the floor (K.workFloor), else nothing
-function K.meleeWorkFloor(p, st)
+-- the hit step's hand-back with work: the floor (K.workFloor), then (Plan 37 Task 2) the release (K.workRelease, d the
+-- target's distance, the near read its own), else nothing
+function K.meleeWorkFloor(p, st, d)
     if K.workFloor == nil then return nil end
-    return K.workFloor(p, st)
+    local a, b, c = K.workFloor(p, st)
+    if a ~= nil or K.workRelease == nil then return a, b, c end
+    return K.workRelease(p, st, d, nil, nil)
 end
 
 -- ---- the stall with work (Plan 35 Task 1 fix 7) ---------------------------------------------------------------------
@@ -1338,3 +1354,8 @@ function K.meleeAirAt(s, leaf)
     if type(s.hp0) ~= "number" or type(leaf.hp1) ~= "number" or leaf.hp1 < s.hp0 then return false end
     return type(s.dFly) == "number" and type(s.reachAt) == "number" and s.dFly > s.reachAt
 end
+
+-- ---- the string's walk (Plan 37 Task 2, PZA/1.16) ----------------------------------------------------------------
+-- The footwork's string (PZAgent_StanceWork.lua's K.workString) walks forward with the stance released (loosen) and
+-- takes the stance and the facing at its turn (holdStance), so both are exported beside the reads above.
+K.meleeWork.loosen, K.meleeWork.holdStance = loosen, holdStance

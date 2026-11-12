@@ -1,5 +1,7 @@
 -- PZAgent_StanceWork.lua — the footwork reflex (PZA/1.13, Plan 35 Task 1; the spec
--- `2026-11-10-plan-35-the-footwork-design.md` section 3.1, the cerebellum's second cut). The melee reflex
+-- `2026-11-10-plan-35-the-footwork-design.md` section 3.1, the cerebellum's second cut; PZA/1.16, Plan 37 Task 2: the
+-- dispositions, the string and the safe release, the spec `2026-11-12-plan-37-the-disposition-design.md` sections 3.1
+-- to 3.3, the block at the end of this file). The melee reflex
 -- (PZAgent_StanceMelee.lua) owns one zombie to the kill at the client's tick rate; this file gives it footwork between
 -- presses behind the melee's optional work arguments, so in contact one reflex owns the press, the facing and the step
 -- together and no 2 Hz leg supersedes it. Loads after PZAgent_StanceMelee.lua (client files load by name,
@@ -9,8 +11,10 @@
 -- argument the melee runs as before, byte for byte (test_lua_footwork.py). Every Java member through PZA.call, every
 -- vanilla constant index-checked; no goto, no integer format of a float, no # on a Java list.
 --
--- melee {..., workR, crawlerR, bandLo, withdrawX, withdrawY, floorHealth, pile[, backswing]} (PZA/1.13; backswing
---   PZA/1.15, Plan 36 Task 2a): workR the standing zombies
+-- melee {..., workR, crawlerR, bandLo, withdrawX, withdrawY, floorHealth, pile[, backswing][, disposition][, release]}
+--   (PZA/1.13; backswing PZA/1.15, Plan 36 Task 2a; disposition and release PZA/1.16, Plan 37 Task 2): disposition
+--   the table of primitives the tick runs (K.DISPOSITIONS: hunt, hold or string; absent reads hunt, the Plan 36
+--   footwork byte for byte), release true to ask the hand-back released (K.workRelease); workR the standing zombies
 --   read for the heading (3.5 tiles), crawlerR a crawler this near repels the heading hard, vetoes a probe point and is
 --   the target with no standing zombie in reach (1.2), bandLo the gap under which the step back goes is the reach less
 --   this (0.4), withdrawX and withdrawY the planner's bias (a vector, absent together), floorHealth the hand-back floor
@@ -19,17 +23,24 @@
 --   setAutoWalkDirection in input space, M.walkAlong, never a position write) leaves the walk held through the press
 --   instead of stopping it on the press's tick (the melee's K.meleePressWalk; the leaf's moving_back). check
 --   (wrapped): any work field given makes workR, crawlerR, bandLo and floorHealth numbers at or above 0, the withdraw
---   pair numbers or absent together, pile and backswing booleans or absent (bad args otherwise); none given leaves
---   st.work nil. A melee re-sent at the same
---   target (its sent or re-pinned id) while one with work runs keeps the footwork's state (the heading, its cadence, the
---   nearest's id, the clear count, the pile's step) and the closing history and takes the new work fields.
--- Each tick with work, after a press in flight and a hit reaction (the melee's rules 1 and 2) and the release read,
+--   pair numbers or absent together, pile, backswing and release booleans or absent, disposition a K.DISPOSITIONS key
+--   or absent (bad args otherwise); none given leaves st.work nil. Under a disposition with its own release radius
+--   (string: K.STRING_RELEASE_R) the melee's check reads it in place of the sent releaseR (too far, and rule 3's out
+--   of range after it). Plan 37 Task 2 (the spec's section 3.1, widening Plan 35's same-target rule): a melee re-sent
+--   carrying work while one with work runs keeps the footwork's state whatever the target (keepState: the heading and
+--   its choice, the nearest's id, the clear count, the pile's step and its heading, the cadence marks re-based on the
+--   new act's press counts, the armed ticks of the band step, the ride, the buffer and the stagger in, the flight time,
+--   the ring, the gait, and the release's count while both ask it) and takes the new work fields; the per-target reads
+--   (the crawler pin, the closing history, the faceR latch) are kept only at the same target (its sent id). The melee
+--   keeps the stance across it (keptOnResend). So the planner changes the disposition and the target by re-send.
+-- Each tick with work, after a press in flight and a hit reaction (the melee's rules 1 and 2) and the release radius,
 -- the tick (K.workTick, before the crowd), in order (Plan 36 Task 2b: the contact cadence and the crawler buffer, the
 -- spec 2026-11-11-plan-36-the-engagement-design.md sections 3.2 and 3.5; the probe's ruling task-2-ruling.md: the
 -- engine starts and lands an attack while the stance walks backward, so the press rides the moving back step):
 --   the floor hand-back (done handback, why floor: the body's health, the last frame's body.health else
 --   getBodyDamage():getOverallBodyHealth(), at or under floorHealth when floorHealth is above 0; read under a hit
---   reaction too); the stall (fix 7); the gap (the nearest standing zombie: the target while it stands, else the
+--   reaction too); the release (Plan 37 Task 2: release true, K.workRelease; read under a hit reaction too); the stall
+--   (fix 7); the gap (the nearest standing zombie: the target while it stands, else the
 --   nearest of K.meleeCrowd's read within the larger of the reach, K.MELEE_CROWD_R and K.WORK_CONTACT_R), a change of
 --   its id re-choosing the heading at once; contact (the tick's nearest standing inside K.WORK_CONTACT_R, counted when
 --   no press is in flight at the tick's end); clear (done handback, why clear: K.WORK_CLEAR_TICKS ticks in a row with
@@ -53,11 +64,16 @@
 --      to the zombie inside it whose getRealState reads attack (read only with the engine's attackers count above 0;
 --      the target first), else to the nearest standing one when it is nearer than the target by
 --      K.MELEE_REPIN_SLACK; repin_for attacker.
---   4. the stagger in (staggerIn; item 4): the standing target the nearest, beyond the reach by under
+--   pinned (Plan 37 Task 2: two or more standing inside K.WORK_POINT_BLANK_R, the target counted, the leaf's);
+--   4. the stagger in (staggerIn; item 4; off under string): the standing target the nearest, beyond the reach by under
 --      K.WORK_STAGGER_R and reading staggerback or hitreaction: one step toward it (the walk kind in, never held
 --      through a press) for K.WORK_STEP_TICKS ticks at most, step_for stagger_in, one a press; the press, then the
 --      step back.
---   5. the retreat (fix 6, retreatTick below; item 4): with a withdraw vector given, the back step along the biased
+--   4b. the string (Plan 37 Task 2, K.workString at the end of this file; under string only): the walk away, or the
+--      turn and the meet's press at the leader; the retreat and the band step do not run under it.
+--   5. the retreat (fix 6, retreatTick below; item 4): on by the disposition's retreat flag (hunt: a withdraw vector
+--      given, the Plan 36 rule; hold: always, along the repulsion sum with no vector; string: never), the back step
+--      along the biased
 --      heading (step_for retreat, the leaf's retreat true) goes only while the predicted distance at the next swing's
 --      landing (K.workLanding: the gap less the target's closing speed and plus the player's own speed away, times the
 --      swing's flight time) stays within the reach less K.WORK_EDGE_SLACK; past it the step is withheld (held reach) and the meet closes or
@@ -83,12 +99,14 @@
 --   K.WORK_FALLEN_R. The ring is the work state's, read again at a choose on a new square or after K.WORK_TICKS (fix
 --   1's budget ruling: at most one ring a re-choose). A heading the ring cannot index (a non-finite sum) reads closed,
 --   and a non-finite sum is no heading at all (cornered, the leaf's nan_heading).
--- The lines: every result line (progress, done, failed) carries contact and the work leaf {heading (degrees, atan2's
+-- The lines: every result line (progress, done, failed) carries contact and the work leaf {disposition, pinned (Plan 37
+--   Task 2), turn_for {leader, gap2} (on a line whose tick the string turned), heading (degrees, atan2's
 --   convention), turn (degrees), clear, gap, n (the standing zombies in the sum), crawler (the nearest crawler's
 --   distance within crawlerR x 2), held (fixes 2 and 4: point_blank or attack; Plan 36 Task 2b: reach; why the step was
 --   last withheld or ended; absent once one goes), pile (Plan 36 Task 2b: pile_out or shove, what started the last
---   step out), step_for (gap, retreat, and since Plan 36 Task 2b pile_out, crawler_buffer or stagger_in; turn and n
---   only for a step along the repulsion heading), repin_for (stall, and since Plan 36 Task 2b attacker), shove_for
+--   step out), step_for (gap, retreat, and since Plan 36 Task 2b pile_out, crawler_buffer or stagger_in, since Plan 37
+--   Task 2 string; turn and n only for a step along a chosen heading), repin_for (stall, and since Plan 36 Task 2b
+--   attacker, since Plan 37 Task 2 string), shove_for
 --   (Plan 36 Task 2b: knockdown, on its press's line)}, a value not read absent; heading, turn, clear, n and step_for
 --   only on a tick that stepped, crawler read every tick; the steps work and cornered in the done line's steps.
 -- The cost (counted in test_lua_footwork.py): K.meleeCrowd's one read replaces the crowd's (3 a candidate: isDead,
@@ -127,10 +145,43 @@ K.WORK_EDGE_SLACK = 0.1      -- tiles: the retreat's back step stops this short 
                              -- between the back step and the meet's close walk beyond the reach, no flapping)
 K.WORK_RIDE_TICKS = 6        -- the retreat's back step after a press's result before the next press window (K.WORK_TICKS'
                              -- 0.1 s, a judgment: the press rides a step already walking)
+-- Plan 37 Task 2 (PZA/1.16, the spec 2026-11-12-plan-37-the-disposition-design.md sections 3.2 and 3.3). The speeds
+-- below are a design read off F21's and F22's committed frames by the controller's scratch (Plan 36 Task 4's method),
+-- not evidence: the character walks at 2.09 tiles a second (median of 1179 consecutive-frame pairs moving and not
+-- aiming), runs at 3.55 (959 pairs running) and backpedals in the stance at 0.98 (882 pairs moving and aiming);
+-- zombies walk at 0.55 median and 1.45 at the 90th percentile, and lunge at 1.34 median and 1.58 at the 90th. So a
+-- walk outpaces every shambler and a run every zombie, and a group strung out by speed meets the character one at a time
+K.STRING_GAP = 2.5           -- tiles: the string turns to press the leader only with the second-nearest standing
+                             -- beyond this (the spec's section 3.2: the second well behind)
+K.STRING_TURN_R = 0.5        -- tiles beyond the reach within which the leader's distance at the next landing turns the
+                             -- walk (the spec's section 3.3: the turn lands the press as the leader arrives)
+K.STRING_RUN_V = 1.6         -- tiles a second: the leader closing faster takes the run (the lunge's 90th percentile,
+                             -- 1.58, the design read above; the walk's 2.09 outpaces every slower zombie)
+K.STRING_RELEASE_R = 8.0     -- tiles: the melee's release radius under string (the planner sends it at a leader five
+                             -- tiles off; the spec's section 3.2)
+K.RELEASE_SAFE_R = 1.3       -- tiles: the release hands back safe with the nearest standing beyond this (K.WORK_PILE_R's
+                             -- radius: beyond the pile's read; the spec's section 3.1)
+K.RELEASE_MAX_TICKS = 90     -- ticks after the first that read release before it hands back whatever the frame (1.5 s
+                             -- at the client's 60 Hz, a judgment: the spec's bound, about a swing's clip and a half at
+                             -- CombatSpeed 1.0, #4668)
+-- the dispositions (the spec's section 3.2): each the flags the tick reads, never a copy of the tick. retreat: given
+-- (the fighting retreat with a withdraw vector given, the Plan 36 rule), always (with none, along the repulsion sum)
+-- or never; staggerIn the step in on a staggered target; string the string's walk and turn (K.workString); releaseR
+-- the release radius the check sends in place of the planner's. The crawler buffer and the nearest attacker's facing
+-- read no flag: on under every disposition (test_lua_footwork.py)
+K.DISPOSITIONS = {
+    hunt = { retreat = "given", staggerIn = true, string = false },
+    hold = { retreat = "always", staggerIn = true, string = false },
+    string = { retreat = "never", staggerIn = false, string = true, releaseR = K.STRING_RELEASE_R },
+}
 
 local WORK_NUMS = { "workR", "crawlerR", "bandLo", "floorHealth" }
-local WORK_KEYS = { "workR", "crawlerR", "bandLo", "floorHealth", "withdrawX", "withdrawY", "pile", "backswing" }
-local KEEP = { "hx", "hy", "heading", "turn", "clear", "n", "gap", "crawlerD", "sinceChoose", "nearId", "clearTicks" }
+local WORK_KEYS = { "workR", "crawlerR", "bandLo", "floorHealth", "withdrawX", "withdrawY", "pile", "backswing",
+                    "disposition", "release" }   -- Plan 37 Task 2: disposition and release
+local KEEP = { "hx", "hy", "heading", "turn", "clear", "n", "gap", "crawlerD", "sinceChoose", "nearId", "clearTicks",
+               "stepTicks", "rideTicks", "crawlTicks", "inTicks", "bufHx", "bufHy", "tc", "walkV", "room", "roomTicks",
+               "stringTicks", "run", "gaitRun" }   -- Plan 37 Task 2: the armed ticks, the ring and the gait too
+local MARKS = { "pressMark", "rideMark", "crawlMark", "inMark", "pileMark", "tcMark" }   -- the press counts they read
 local RAD = math.pi / 180
 local DEG = 180 / math.pi
 
@@ -150,7 +201,13 @@ local function workArgs(args)
     if wx ~= nil and (type(wx) ~= "number" or type(wy) ~= "number") then return nil, true end
     if args.pile ~= nil and type(args.pile) ~= "boolean" then return nil, true end
     if args.backswing ~= nil and type(args.backswing) ~= "boolean" then return nil, true end   -- Plan 36 Task 2a
+    local disp = args.disposition   -- Plan 37 Task 2
+    if disp ~= nil and (type(disp) ~= "string" or K.DISPOSITIONS[disp] == nil) then return nil, true end
+    if args.release ~= nil and type(args.release) ~= "boolean" then return nil, true end
     return { workR = args.workR, crawlerR = args.crawlerR, bandLo = args.bandLo, floorHealth = args.floorHealth,
+             disposition = disp or "hunt", release = args.release == true, releaseTicks = nil,   -- Plan 37 Task 2
+             pinned = false, turnFor = nil, stringing = false, stringWalked = false, stringTicks = K.WORK_TICKS,
+             run = false, gaitRun = false,
              withdrawX = wx or 0, withdrawY = wy or 0, pile = args.pile == true,
              backswing = args.backswing == true,   -- Plan 36 Task 2a: the press held on the back step
              retreat = wx ~= nil and (wx ~= 0 or wy ~= 0), retreating = false,   -- fix 6: a withdraw vector given
@@ -165,21 +222,42 @@ local function workArgs(args)
              room = nil, roomTicks = 0 }
 end
 
--- a re-send at the running melee's target: its footwork state and closing history kept, the new fields taken
+-- a work re-send while a work melee runs (Plan 37 Task 2: whatever the target; the header's): the footwork's state
+-- kept, each press-count mark re-based on the new act's counts (the old mark less the old count: a press result not yet
+-- read stays unread), the release's count while both ask it; at the same target (its sent id) the crawler pin, the
+-- closing history and the faceR latch too; the new fields taken
 local function keepState(work, st, args)
     local cur = K.cur
     if cur == nil or cur.type ~= "melee" or type(cur.st) ~= "table" or cur.st.work == nil then return end
     local o = cur.st
-    if args.targetId ~= o.id and args.targetId ~= o.argId then return end
-    for i = 1, #KEEP do work[KEEP[i]] = o.work[KEEP[i]] end
-    if o.work.pileState == "step" then   -- fix 1 (x_trial-ladder-20261111-202744): the step out's heading kept too
-        work.pileState, work.pileTicks = "step", o.work.pileTicks
-        work.outHx, work.outHy = o.work.outHx, o.work.outHy
+    local ow = o.work
+    for i = 1, #KEEP do work[KEEP[i]] = ow[KEEP[i]] end
+    local pc = o.swings + o.shoves + o.stomps + o.floors   -- the old act's presses (presses(o), defined below)
+    for i = 1, #MARKS do
+        local m = ow[MARKS[i]]
+        if m ~= nil then work[MARKS[i]] = m - pc end
     end
+    work.shoveMark = ow.shoveMark - o.shoves
+    if ow.pileState == "step" then   -- fix 1 (x_trial-ladder-20261111-202744): the step out's heading kept too
+        work.pileState, work.pileTicks = "step", ow.pileTicks
+        work.outHx, work.outHy = ow.outHx, ow.outHy
+    end
+    if work.release and ow.release then work.releaseTicks = ow.releaseTicks end
     if args.targetId == o.id then
-        work.pinId = o.work.pinId
+        work.pinId = ow.pinId
         st.hist, st.near = o.hist, o.near
     end
+end
+
+-- the args the melee's check reads: under a disposition with its own release radius a copy carrying it as releaseR
+-- (a releaseR that is no positive number left for the check's bad args)
+local function sentArgs(args, work)
+    local r = work ~= nil and K.DISPOSITIONS[work.disposition].releaseR or nil
+    if r == nil or type(args.releaseR) ~= "number" or args.releaseR <= 0 then return args end
+    local a = {}
+    for k, v in pairs(args) do a[k] = v end
+    a.releaseR = r
+    return a
 end
 
 local def = K.types.melee
@@ -187,7 +265,7 @@ local baseCheck = def.check
 def.check = function(args, p)
     local work, bad = workArgs(args)
     if bad then return false, "bad args" end
-    local ok, why, st = baseCheck(args, p)
+    local ok, why, st = baseCheck(sentArgs(args, work), p)
     if not ok or work == nil then return ok, why, st end
     keepState(work, st, args)
     st.work = work
@@ -201,8 +279,11 @@ def.tick = function(p, st)
     if w == nil then return baseTick(p, st) end
     if st.startMs == nil and not PZA.field(p, "getZ") then return "failed", "not loaded" end
     w.inContact, w.steppedNow, w.repinFor, w.shoveFor, w.stepNan = false, false, nil, nil, nil
+    w.turnFor, w.stringing, w.stringWalked = nil, false, false   -- Plan 37 Task 2: the string's, this tick's
+    if w.release then w.releaseTicks = (w.releaseTicks or -1) + 1 end   -- 0 on the first tick that reads it
     local a, b, c = baseTick(p, st)
     if w.inContact and st.strike == nil then w.contact = w.contact + 1 end
+    if w.gaitRun and not w.stringWalked then K.workStringGait(p, w, false) end   -- no string walk: the run dropped
     return a, b, c
 end
 
@@ -314,6 +395,24 @@ local function repel(s, px, py, x, y, wt)
     return true
 end
 
+-- the unit (bx, by) turned by K.WORK_TURNS in order to the first clear heading (headingClear, the crawlers cs and the
+-- fallen fl), into w: hx, hy, heading, turn and clear true; w untouched with none clear
+local function turnClear(p, st, bx, by, cs, fl)
+    local w = st.work
+    local _, pz = PZA.call(p, "getZ")
+    local ctx = { px = st.px, py = st.py, ring = K.workRoomFor(p, st, st.px, st.py, pz), crawlers = cs, fallen = fl }
+    for i = 1, #K.WORK_TURNS do
+        local a = K.WORK_TURNS[i] * RAD
+        local c, sn = math.cos(a), math.sin(a)
+        local hx, hy = bx * c - by * sn, bx * sn + by * c
+        if headingClear(ctx, w, hx, hy) then
+            w.hx, w.hy, w.turn, w.clear = hx, hy, K.WORK_TURNS[i], true
+            w.heading = math.atan2(hy, hx) * DEG
+            return
+        end
+    end
+end
+
 -- the heading chosen (the header's rule) into w: hx, hy, heading, turn, clear, n, crawlerD
 local function choose(p, st, fallen)
     local w = st.work
@@ -369,19 +468,7 @@ local function choose(p, st, fallen)
         return
     end
     if len <= 0 then return end
-    local bx, by = s.x / len, s.y / len
-    local _, pz = PZA.call(p, "getZ")
-    local ctx = { px = px, py = py, ring = K.workRoomFor(p, st, px, py, pz), crawlers = cs, fallen = fl }
-    for i = 1, #K.WORK_TURNS do
-        local a = K.WORK_TURNS[i] * RAD
-        local c, sn = math.cos(a), math.sin(a)
-        local hx, hy = bx * c - by * sn, bx * sn + by * c
-        if headingClear(ctx, w, hx, hy) then
-            w.hx, w.hy, w.turn, w.clear = hx, hy, K.WORK_TURNS[i], true
-            w.heading = math.atan2(hy, hx) * DEG
-            return
-        end
-    end
+    turnClear(p, st, s.x / len, s.y / len, cs, fl)
 end
 
 -- the step along the heading (chosen when due): kind, or cornered with none clear (the walk stopped)
@@ -743,10 +830,16 @@ local function retreatSnap(p, st, gid)
     K.FACING.hold(p, st, K.FACING.bearing(st.px, st.py, x, y))
 end
 
+-- whether the disposition runs the retreat (K.DISPOSITIONS' retreat: given, always or never)
+local function retreatOn(w)
+    local mode = K.DISPOSITIONS[w.disposition].retreat
+    return mode == "always" or (mode == "given" and w.retreat)
+end
+
 local function retreatTick(p, st, d, standing, g, gid)
     local w = st.work
     w.retreating, w.reachHold = false, false
-    if not w.retreat or g == nil then return nil end
+    if not retreatOn(w) or g == nil then return nil end
     w.retreating = true
     local pc = presses(st)
     if pc ~= w.rideMark then w.rideMark, w.rideTicks = pc, K.WORK_RIDE_TICKS end   -- a press's result: the step rides
@@ -776,6 +869,11 @@ function K.workTick(p, st, d, crowd, fallen, now)
     w.sinceChoose, w.roomTicks = w.sinceChoose + 1, w.roomTicks + 1
     local fh, fhow, fres = K.workFloor(p, st)
     if fh ~= nil then return fh, fhow, fres end
+    local standing = not fallen and not st.knocked   -- fix 1: a target the press knocked down is no standing zombie
+    if w.release then   -- Plan 37 Task 2: the release, before anything else but the floor
+        local rs, rhow, rres = K.workRelease(p, st, d, standing, w.near)
+        if rs ~= nil then return rs, rhow, rres end
+    end
     if st.nothing >= st.stall then   -- fix 7: the stall re-read every tick (deferred in shove range, K.meleeStall)
         local ss, sh, sr = K.meleeStall(p, st, d)
         if ss ~= nil then return ss, sh, sr end
@@ -783,7 +881,6 @@ function K.workTick(p, st, d, crowd, fallen, now)
         st.stallHeld = false
     end
     local g, gid = nil, nil
-    local standing = not fallen and not st.knocked   -- fix 1: a target the press knocked down is no standing zombie
     if standing then g, gid, w.nearO = d, st.id, st.z end
     local near = w.near
     if near ~= nil and (g == nil or near[1].d < g) then g, gid, w.nearO = near[1].d, near[1].id, near[1].o end
@@ -791,6 +888,8 @@ function K.workTick(p, st, d, crowd, fallen, now)
     w.gap = g
     if gid ~= w.nearId then w.nearId, w.sinceChoose = gid, K.WORK_TICKS end
     w.inContact = g ~= nil and g < K.WORK_CONTACT_R
+    local pb = standingWithin(st, d, standing, K.WORK_POINT_BLANK_R)   -- a Lua table
+    w.pinned = #pb >= 2   -- Plan 37 Task 2: the leaf's pinned
     local clear = false
     if fallen and g == nil and d > w.crawlerR then
         local rec = recordOf(st.id)
@@ -816,8 +915,16 @@ function K.workTick(p, st, d, crowd, fallen, now)
     if cstep ~= nil then return cstep end
     local as = attackerTick(p, st, d, standing, g)   -- 3: the nearest attacker
     if as ~= nil then return as end
-    local ss = staggerIn(p, st, standing, g, gid)   -- 4: the stagger in
-    if ss ~= nil then return ss end
+    local disp = K.DISPOSITIONS[w.disposition]
+    if disp.staggerIn then
+        local ss = staggerIn(p, st, standing, g, gid)   -- 4: the stagger in
+        if ss ~= nil then return ss end
+    end
+    if disp.string then   -- 4b: the string (Plan 37 Task 2)
+        local ws, whow, wres = K.workString(p, st, d, standing, fallen)
+        if ws ~= nil then return ws, whow, wres end
+        if w.stringing then return nil end   -- the turn (or no clear heading): the meet presses
+    end
     local rs, rhow, rres = retreatTick(p, st, d, standing, g, gid)   -- 5: the fighting retreat
     if rs ~= nil then return rs, rhow, rres end
     if w.retreating then return nil end   -- the press due, or the step withheld: the meet's
@@ -828,6 +935,11 @@ end
 -- K.workTick's since fix 5)
 function K.footwork(p, st, d, px, py, zx, zy, now)
     local w = st.work
+    if w.stringing then   -- Plan 37 Task 2: the string's turn: no step, the meet's stand or face until its press
+        M.stopWalk(p, st)
+        if st.near then return "face" end
+        return "stand"
+    end
     if w.retreating then   -- fix 6: the meet pressed nothing: the retreat's step (cornered with no clear heading)
         if w.reachHold then   -- Plan 36 Task 2b: the step withheld past the next landing: the hold
             M.stopWalk(p, st)
@@ -855,7 +967,8 @@ end
 function K.workResult(st, out)
     local w = st.work
     out.contact = w.contact
-    local leaf = { gap = w.gap, crawler = w.crawlerD, held = w.held, pile = w.pileWhy }
+    local leaf = { gap = w.gap, crawler = w.crawlerD, held = w.held, pile = w.pileWhy,
+                   disposition = w.disposition, pinned = w.pinned, turn_for = w.turnFor }   -- Plan 37 Task 2
     if w.retreating then leaf.retreat = true end   -- fix 6: the retreat's mode running
     if st.stallHeld then leaf.stall_held = true end   -- fix 7: the stall deferred in shove range
     leaf.repin_for = w.repinFor   -- fix 7b: the stall's re-pin, on its own tick's line
@@ -1109,4 +1222,172 @@ function K.workRoomNow(p)
         return r
     end
     return K.workRoom(p, px, py, pz)
+end
+
+-- ---- the dispositions' string and release (PZA/1.16, Plan 37 Task 2; the spec
+-- `2026-11-12-plan-37-the-disposition-design.md` sections 3.1 to 3.3) ----------------------------------------------
+-- The planner picks the disposition; the reflex executes its table (K.DISPOSITIONS, the flags K.workTick reads) and
+-- never decides. Under string (the tick's 4b, after the pile, the crawler buffer and the nearest attacker's facing,
+-- which run under every disposition, and in place of the stagger in, the retreat and the band step):
+--   the leader: the nearest standing zombie within workR (the target counted while it stands, the rest the melee's
+--     near read, which reads workR under string, K.workNearR), else the standing target; none standing: nil, the
+--     finish or the meet goes on. A leader other than the target is re-pinned to (M.repin, repin_for string) every
+--     K.WORK_TICKS ticks, and at once at a turn, never back to a stalled zombie (fix 7b's stallId).
+--   the gait: the run (MO.want run) while the leader's closing speed (the melee's closingOf over K.MELEE_SAMPLES, the
+--     target's history) exceeds K.STRING_RUN_V, the walk once a read is at or under it, the last read kept while the
+--     history is short (a re-pin restarts it); the run's latch written false on a change to the walk and on any tick
+--     with no string walk (the def.tick wrapper above).
+--   the turn: the leader's distance at the next landing (K.workLanding) within the reach plus K.STRING_TURN_R and
+--     the second-nearest standing within workR beyond K.STRING_GAP, or none: the walk stopped, the walk gait, the
+--     stance taken beyond faceR (M.holdStance; inside faceR the meet's own release and face), turn_for {leader, gap2}
+--     on the tick's line, and nil: the meet presses the leader (K.footwork answers its stand or face, no step) and
+--     after the press's result the tick reads again.
+--   else the walk: along the heading re-chosen every K.WORK_TICKS ticks (at once on a new nearest): the withdraw
+--     vector when given, else the way away from the centroid of the standing within workR (the leader's position with
+--     none), turned by K.WORK_TURNS to the first clear heading as the footwork's choose turns (turnClear: the ring,
+--     the crawlers, the fallen); the stance released (M.loosen), the walk of kind string (M.walkAlong: a forward walk
+--     in input space, the force-aim off), step work, step_for string. With no clear heading the walk stops and the
+--     meet presses (nil, the leaf's clear false).
+-- The release (the tick's first read after the floor, and under a hit reaction through K.meleeWorkFloor): release
+-- true ends done handback {why released, safe true} when no press is in flight and the nearest standing zombie (the
+-- target while it stands, the near read's) stands beyond K.RELEASE_SAFE_R or the target is knocked down, else the
+-- disposition's own tick runs and K.RELEASE_MAX_TICKS ticks after the first that read it (w.releaseTicks, counted in
+-- the def.tick wrapper on every tick, a press's included) it ends {why released, safe false}. The floor stays first.
+-- The cost: no Java call beyond the reads named (the near read's distTo per candidate within its radius; a re-choose's
+-- getZ, the ring when due and two position reads a standing zombie without a frame position; the release's
+-- isOnFloor and its near read only under a hit reaction).
+
+-- the string's gait: the run wanted, or the walk (the run's latch written false when it was the run)
+function K.workStringGait(p, w, run)
+    if run then
+        MO.want("run")
+    else
+        MO.want("walk")
+        if w.gaitRun then PZA.call(p, "setForceRun", false) end
+    end
+    w.gaitRun = run
+end
+
+-- the fallen zombies the string's heading avoids ({x, y} each): the target when fallen, and the frame's records
+-- reading onFloor (not crawler) within workR, as the footwork's choose reads them
+local function fallenNear(st, fallen)
+    local w = st.work
+    local fl = {}
+    if fallen then fl[1] = { x = st.zx, y = st.zy } end
+    local S = PZA.sense
+    local f = S ~= nil and S.last or nil
+    local recs = f ~= nil and f.zombies or nil
+    if recs == nil then return fl end
+    for i = 1, #recs do
+        local rec = recs[i]
+        if rec.id ~= st.id and rec.onFloor == true and rec.crawler ~= true and type(rec.dist) == "number"
+           and rec.dist < w.workR + K.MELEE_CROWD_SLACK and type(rec.x) == "number" and type(rec.y) == "number" then
+            fl[#fl + 1] = { x = rec.x, y = rec.y }
+        end
+    end
+    return fl
+end
+
+-- the string's heading chosen into w (hx, hy, heading, turn, clear, n): the withdraw vector, else away from the
+-- centroid of zs (each {x, y} or {o}), the leader's with none; turned to the first clear (turnClear)
+local function stringChoose(p, st, zs, leader, fallen)
+    local w = st.work
+    w.sinceChoose = 0
+    local ax, ay = 0, 0
+    if w.retreat then
+        ax, ay = w.withdrawX, w.withdrawY
+    else
+        local from = zs
+        if #from == 0 then from = { leader } end
+        local cx, cy, n = 0, 0, 0
+        for i = 1, #from do
+            local x, y = from[i].x, from[i].y
+            if x == nil and from[i].o ~= nil then x, y = posOf(from[i].o) end
+            if x ~= nil and y ~= nil then cx, cy, n = cx + x, cy + y, n + 1 end
+        end
+        if n > 0 then ax, ay = st.px - cx / n, st.py - cy / n end
+    end
+    w.n = #zs
+    w.hx, w.hy, w.heading, w.turn, w.clear, w.nanHeading = nil, nil, nil, nil, false, nil
+    local len = math.sqrt(ax * ax + ay * ay)
+    if len ~= len or len == math.huge then   -- a non-finite way away is no heading (the leaf's nan_heading)
+        w.nanHeading = true
+        return
+    end
+    if len <= 0 then return end
+    turnClear(p, st, ax / len, ay / len, w.crawlers, fallenNear(st, fallen))
+end
+
+-- the string (the block's rule): a step (the walk's work, a re-pin), else nil (the turn, no clear heading, or nothing
+-- standing: w.stringing tells the first two)
+function K.workString(p, st, d, standing, fallen)
+    local w = st.work
+    local zs = standingWithin(st, d, standing, w.workR)
+    local leader = zs[1]
+    if leader == nil and standing then leader = { id = st.id, d = d, o = st.z, x = st.zx, y = st.zy } end
+    if leader == nil then return nil end
+    w.stringing = true
+    w.stringTicks = w.stringTicks + 1
+    local second = zs[2]
+    local turn = K.workLanding(p, st, leader.d, leader.id) <= M.reachOf(p, st) + K.STRING_TURN_R
+                 and (second == nil or second.d > K.STRING_GAP)
+    if leader.id ~= st.id and leader.id ~= w.stallId and (turn or w.stringTicks >= K.WORK_TICKS) then
+        w.stringTicks, w.repinFor = 0, "string"
+        return M.repin(p, st, leader)
+    end
+    if leader.id == st.id then
+        local v = M.closingOf(st, st.px, st.py, st.zx, st.zy, d)
+        if v ~= nil then w.run = v > K.STRING_RUN_V end
+    end
+    if turn then
+        M.stopWalk(p, st)
+        K.workStringGait(p, w, false)
+        if d > st.faceR then M.holdStance(p, st) end
+        local gap2 = nil
+        if second ~= nil then gap2 = second.d end
+        w.turnFor = { leader = leader.id, gap2 = gap2 }
+        return nil
+    end
+    if w.sinceChoose >= K.WORK_TICKS then stringChoose(p, st, zs, leader, fallen) end
+    w.steppedNow, w.stepFor, w.held = true, "string", nil
+    w.lh, w.lt, w.lc, w.ln = w.heading, w.turn, w.clear, w.n
+    if not w.clear then   -- no clear heading: the walk stopped, the meet presses
+        M.stopWalk(p, st)
+        K.workStringGait(p, w, false)
+        return nil
+    end
+    M.loosen(p, st)
+    K.workStringGait(p, w, w.run)
+    w.stringWalked = true
+    M.walkAlong(p, st, "string", w.hx, w.hy)
+    return "work"
+end
+
+-- the release (the block's rule): done handback released {safe}, else nil. standing and near the tick's reads (the
+-- target standing, the melee's near read); standing nil (under a hit reaction): both read here
+function K.workRelease(p, st, d, standing, near)
+    local w = st.work
+    if w == nil or not w.release then return nil end
+    if standing == nil then
+        standing = not K.onFloor(st.z) and not st.knocked
+        near = M.standingNear(p, st, K.RELEASE_SAFE_R)
+    end
+    local nd = nil
+    if standing then nd = d end
+    if near ~= nil and near[1] ~= nil and (nd == nil or near[1].d < nd) then nd = near[1].d end
+    local flying = st.strike ~= nil and not st.strike.ended
+    if not flying and (st.knocked or nd == nil or nd > K.RELEASE_SAFE_R) then
+        return "done", "handback", { why = "released", safe = true }
+    end
+    if (w.releaseTicks or 0) >= K.RELEASE_MAX_TICKS then return "done", "handback", { why = "released", safe = false } end
+    return nil
+end
+
+-- the radius the melee's near read (K.meleeCrowd) widens to: K.RELEASE_SAFE_R while the release is asked, workR under
+-- string; 0 otherwise (the Plan 36 read)
+function K.workNearR(w)
+    local r = 0
+    if w.release then r = K.RELEASE_SAFE_R end
+    if K.DISPOSITIONS[w.disposition].string and w.workR > r then r = w.workR end
+    return r
 end

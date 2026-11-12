@@ -928,6 +928,37 @@ def test_another_target_or_another_skill_releases_the_stance(lua, fs):
     assert calls(p)[-1] == "nullifyAiming" and p.aim["force"] is False
 
 
+def test_another_target_s_work_re_send_keeps_the_stance(lua, fs):
+    """Plan 37 Task 2 (the spec's section 3.1): a melee re-sent at another target carrying work while one with work
+    runs keeps the stance (the planner changes the disposition and the target by re-send, never by a restart); the
+    falsifier is test_another_target_or_another_skill_releases_the_stance, the same re-send without work."""
+    from .test_lua_footwork import WORK, world as work_world
+    p, z, w = work_world(lua, **STANCE)
+    z8 = make_zombie(8, 13.4, 21.0)
+    sense(lua, [z, z8])
+    go(lua, p, aid="m1", **dict(WORK, releaseR=4.0))
+    run(lua, p, w, 2)
+    assert p.aim["force"] is True
+    n0 = calls(p).count("nullifyAiming")
+    go(lua, p, aid="m2", **dict(WORK, targetId=8, releaseR=4.0, disposition="hold"))
+    assert ("m2", "accepted", "") in states(acts(lua, fs))
+    assert calls(p).count("nullifyAiming") == n0 and p.aim["force"] is True
+
+
+@pytest.mark.parametrize("disp, dx, why", [("string", 8.1, "too far"), ("string", 7.9, ""), ("hold", 2.8, "too far"),
+                                           ("hold", 2.7, "")])
+def test_check_reads_too_far_against_8_0_under_string_and_the_sent_release_r_otherwise(lua, fs, disp, dx, why):
+    """The string's release radius K.STRING_RELEASE_R 8.0 (the planner sends the melee at a leader five tiles off);
+    every other disposition reads the sent releaseR (2.75)."""
+    from .test_lua_footwork import WORK, world as work_world
+    p, z, w = work_world(lua, zx=10.0 + dx)
+    go(lua, p, **dict(WORK, disposition=disp))
+    st = states(acts(lua, fs))[0]
+    assert st == (("m1", "rejected", why) if why else ("m1", "accepted", ""))
+    if not why:
+        assert lua.eval("PZA.skills.cur.st.releaseR") == (8.0 if disp == "string" else ARGS["releaseR"])
+
+
 def test_a_melee_superseded_by_an_aim_keeps_the_stance(lua, fs):
     p, z, w = world(lua, **STANCE)
     go(lua, p, releaseR=4.0)

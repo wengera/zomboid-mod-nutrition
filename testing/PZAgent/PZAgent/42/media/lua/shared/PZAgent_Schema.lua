@@ -63,7 +63,7 @@ PZA.schema = {
         unwear = { "itemId" },
         shove = { "targetId" },
         stomp = { "targetId" },
-        melee = { "targetId", "mode", "reach", "shoveR", "releaseR", "faceR", "pressAngle", "pressLo", "floorR", "handbackR", "stall", "floorSwing", "headAim", "workR", "crawlerR", "bandLo", "withdrawX", "withdrawY", "floorHealth", "pile", "backswing" },
+        melee = { "targetId", "mode", "reach", "shoveR", "releaseR", "faceR", "pressAngle", "pressLo", "floorR", "handbackR", "stall", "floorSwing", "headAim", "workR", "crawlerR", "bandLo", "withdrawX", "withdrawY", "floorHealth", "pile", "backswing", "disposition", "release" },
         sneak = { "on" },
         probe = { "mode", "targetId", "x", "y", "ticks", "k", "vx", "vy" },
     },
@@ -72,6 +72,7 @@ PZA.schema = {
     filters = { food = true, water = true, weapon = true, bandage = true, container = true, all = true, clothing = true },
     meleeModes = { strike = true, shove = true, finish = true },
     probeModes = { read = true, snap_aimed = true, unaimed_face = true, unaimed_snap = true, block_aim = true, ignore_aim = true, turn_k = true },
+    meleeDispositions = { hunt = true, hold = true, string = true },
     states = { accepted = true, rejected = true, progress = true, done = true, failed = true },
     mapModes = { full = true, delta = true },
     events = {

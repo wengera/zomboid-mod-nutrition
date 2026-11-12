@@ -601,6 +601,20 @@
           "type": "boolean",
           "description": "PZA/1.15 (Plan 36 Task 2a): true to press on the back step: a press launched while the footwork's step walks (the band step, the retreat's step under the withdraw, the pile's and the crawler's steps: the auto-walk along the heading) leaves the walk held through the press (the leaf's moving_back), instead of stopping it on the press's own tick (false, the default: today's order); a work argument, needed with workR.",
           "default": false
+        },
+        "disposition": {
+          "type": "string",
+          "enum": [
+            "hunt",
+            "hold",
+            "string"
+          ],
+          "description": "PZA/1.16 (Plan 37 Task 2): the table of primitives the footwork runs (meleeDisposition: hunt, hold or string); absent reads hunt, the Plan 36 footwork byte for byte; a work argument, needed with workR. A re-send carrying work while a work melee runs keeps the footwork's state whatever the target, so the planner changes the disposition by re-send."
+        },
+        "release": {
+          "type": "boolean",
+          "description": "PZA/1.16 (Plan 37 Task 2): true asks the hand-back: the melee ends done handback, why released, at the first safe frame (no press in flight and the nearest standing zombie beyond 1.3 tiles, K.RELEASE_SAFE_R, or the target knocked down: safe true), else 90 ticks after the first tick that read it (K.RELEASE_MAX_TICKS: safe false), the disposition's own tick running meanwhile; false, the default, asks none; a work argument, needed with workR.",
+          "default": false
         }
       },
       "required": [

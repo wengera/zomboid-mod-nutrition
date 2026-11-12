@@ -977,8 +977,9 @@ def test_the_melee_s_pza1_10_args_and_result():
                                                  "pressAngle", "pressLo", "floorR", "handbackR", "stall", "floorSwing",
                                                  "headAim", "workR", "crawlerR", "bandLo", "withdrawX", "withdrawY",
                                                  "floorHealth", "pile",
-                                                 "backswing")   # PZA/1.13 (Plan 35 Task 1): the work; PZA/1.15 (Plan
-    # 36 Task 2a): backswing
+                                                 "backswing", "disposition",
+                                                 "release")   # PZA/1.13 (Plan 35 Task 1): the work; PZA/1.15 (Plan
+    # 36 Task 2a): backswing; PZA/1.16 (Plan 37 Task 2): disposition and release
     assert pza1.ACTION_ARGS["melee"]["stall"] == "int"
     assert d["args_melee"]["additionalProperties"] is False
     leaf = {"d_press", "d_collide_pred", "d_min", "look_off", "hp0", "hp1", "knock", "cut_by",

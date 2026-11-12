@@ -34,8 +34,8 @@ def lua_schema(lua):
 
 
 def test_the_hello_s_mod_reads_1_11_or_later(lua):
-    """PZA/1.11 stays in the description; the mod reads 1.15 since Plan 36 Task 2a (1.12 was never stamped)."""
-    assert lua.eval("PZA.VERSION") == "1.15"
+    """PZA/1.11 stays in the description; the mod reads 1.16 since Plan 37 Task 2 (1.12 was never stamped)."""
+    assert lua.eval("PZA.VERSION") == "1.16"
     assert "PZA/1.11" in json.load(open(SCHEMA, encoding="utf-8"))["description"]
 
 

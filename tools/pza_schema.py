@@ -35,7 +35,8 @@ ARG_TYPES = {"integer": "int", "number": "float", "string": "str", "boolean": "b
 # the $defs enums an argument may refer to, each with its Python constant and its Lua set's key (meleeMode: Plan 28 Task 7a
 # fix 1 residual, review-t7a minor 1): the generated class checks the value, tools.json carries the enum, PZA.schema the set
 ARG_ENUMS = {"gait": ("GAITS", "gaits"), "ikind": ("IKINDS", "ikinds"), "filter": ("FILTERS", "filters"),
-             "meleeMode": ("MELEE_MODES", "meleeModes"), "probeMode": ("PROBE_MODES", "probeModes")}   # probeMode: PZA/1.11
+             "meleeMode": ("MELEE_MODES", "meleeModes"), "probeMode": ("PROBE_MODES", "probeModes"),   # probeMode: PZA/1.11
+             "meleeDisposition": ("MELEE_DISPOSITIONS", "meleeDispositions")}   # PZA/1.16 (Plan 37 Task 2)
 LUA_KEYWORDS = frozenset("and break do else elseif end false for function if in local nil not or repeat return then "
                          "true until while".split())
 
@@ -194,8 +195,9 @@ def load(path=SCHEMA):
                 kind = ARG_TYPES[prop["type"]]
             has_default = "default" in prop
             _need(has_default != (name in req), "args_%s.%s: required exactly when it has no default" % (t, name))
-            if has_default and ref is not None:
-                _need(prop["default"] in enum(ref), "args_%s.%s: the default is not in %s" % (t, name, ref))
+            if has_default and ref is not None:   # PZA/1.16: an enum field may default to null (absent on the wire)
+                _need(prop["default"] is None or prop["default"] in enum(ref),
+                      "args_%s.%s: the default is not in %s" % (t, name, ref))
             args.append({"name": name, "kind": kind, "default": prop.get("default"), "has_default": has_default,
                          "prop": prop})
         names = [a["name"] for a in args]
@@ -598,7 +600,8 @@ class _Cmd:
     def __post_init__(self):
         for f in dataclasses.fields(self):
             allowed = _ENUMS.get(ACTION_ARGS[self.TYPE][f.name])
-            if allowed is not None and getattr(self, f.name) not in allowed:
+            value = getattr(self, f.name)
+            if allowed is not None and value is not None and value not in allowed:   # None: a null default (PZA/1.16)
                 raise ValueError("PZA/1 %s.%s: %r not in %s" % (self.TYPE, f.name, getattr(self, f.name), allowed))
 
     def args(self):

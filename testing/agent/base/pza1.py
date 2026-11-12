@@ -96,7 +96,7 @@ ACTION_ARGS = {
     "unwear": {"itemId": "int"},
     "shove": {"targetId": "int"},
     "stomp": {"targetId": "int"},
-    "melee": {"targetId": "int", "mode": "meleeMode", "reach": "float", "shoveR": "float", "releaseR": "float", "faceR": "float", "pressAngle": "float", "pressLo": "float", "floorR": "float", "handbackR": "float", "stall": "int", "floorSwing": "bool", "headAim": "bool", "workR": "float", "crawlerR": "float", "bandLo": "float", "withdrawX": "float", "withdrawY": "float", "floorHealth": "float", "pile": "bool", "backswing": "bool"},
+    "melee": {"targetId": "int", "mode": "meleeMode", "reach": "float", "shoveR": "float", "releaseR": "float", "faceR": "float", "pressAngle": "float", "pressLo": "float", "floorR": "float", "handbackR": "float", "stall": "int", "floorSwing": "bool", "headAim": "bool", "workR": "float", "crawlerR": "float", "bandLo": "float", "withdrawX": "float", "withdrawY": "float", "floorHealth": "float", "pile": "bool", "backswing": "bool", "disposition": "meleeDisposition", "release": "bool"},
     "sneak": {"on": "bool"},
     "probe": {"mode": "probeMode", "targetId": "int", "x": "float", "y": "float", "ticks": "int", "k": "float", "vx": "float", "vy": "float"},
 }
@@ -105,6 +105,7 @@ IKINDS = ("open", "close", "loot")
 FILTERS = ("food", "water", "weapon", "bandage", "container", "all", "clothing")
 MELEE_MODES = ("strike", "shove", "finish")
 PROBE_MODES = ("read", "snap_aimed", "unaimed_face", "unaimed_snap", "block_aim", "ignore_aim", "turn_k")
+MELEE_DISPOSITIONS = ("hunt", "hold", "string")
 ITEM_USES = ("food", "water", "weapon", "bandage", "other", "container", "clothing")
 ACT_STATES = ("accepted", "rejected", "progress", "done", "failed")
 MAP_MODES = ("full", "delta")
@@ -284,7 +285,7 @@ def merge_delta(frame, base):
     return out
 
 
-_ENUMS = {"gait": GAITS, "ikind": IKINDS, "filter": FILTERS, "meleeMode": MELEE_MODES, "probeMode": PROBE_MODES}
+_ENUMS = {"gait": GAITS, "ikind": IKINDS, "filter": FILTERS, "meleeMode": MELEE_MODES, "probeMode": PROBE_MODES, "meleeDisposition": MELEE_DISPOSITIONS}
 
 
 class _Cmd:
@@ -294,7 +295,8 @@ class _Cmd:
     def __post_init__(self):
         for f in dataclasses.fields(self):
             allowed = _ENUMS.get(ACTION_ARGS[self.TYPE][f.name])
-            if allowed is not None and getattr(self, f.name) not in allowed:
+            value = getattr(self, f.name)
+            if allowed is not None and value is not None and value not in allowed:   # None: a null default (PZA/1.16)
                 raise ValueError("PZA/1 %s.%s: %r not in %s" % (self.TYPE, f.name, getattr(self, f.name), allowed))
 
     def args(self):
@@ -507,6 +509,8 @@ class Melee(_Cmd):
     floorHealth: Optional[float] = None  # PZA/1.13: the body's health (0 to 100) at or under which the melee ends handback, why floor; 0 for none; needed with workR.
     pile: bool = False  # PZA/1.13: true to meet three standing zombies within 0.9 tiles in the reflex (the shove at the nearest, its knock_p on the leaf, the step along the heading at once, the next press) instead of the crowd hand-back.
     backswing: bool = False  # PZA/1.15 (Plan 36 Task 2a): true to press on the back step: a press launched while the footwork's step walks (the band step, the retreat's step under the withdraw, the pile's and the crawler's steps: the auto-walk along the heading) leaves the walk held through the press (the leaf's moving_back), instead of stopping it on the press's own tick (false, the default: today's order); a work argument, needed with workR.
+    disposition: Optional[str] = None  # PZA/1.16 (Plan 37 Task 2): the table of primitives the footwork runs (meleeDisposition: hunt, hold or string); absent reads hunt, the Plan 36 footwork byte for byte; a work argument, needed with workR. A re-send carrying work while a work melee runs keeps the footwork's state whatever the target, so the planner changes the disposition by re-send.
+    release: bool = False  # PZA/1.16 (Plan 37 Task 2): true asks the hand-back: the melee ends done handback, why released, at the first safe frame (no press in flight and the nearest standing zombie beyond 1.3 tiles, K.RELEASE_SAFE_R, or the target knocked down: safe true), else 90 ticks after the first tick that read it (K.RELEASE_MAX_TICKS: safe false), the disposition's own tick running meanwhile; false, the default, asks none; a work argument, needed with workR.
 
 
 @dataclasses.dataclass(frozen=True)
