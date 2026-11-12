@@ -202,7 +202,7 @@ local WORK_KEYS = { "workR", "crawlerR", "bandLo", "floorHealth", "withdrawX", "
 local KEEP = { "hx", "hy", "heading", "turn", "clear", "n", "gap", "crawlerD", "sinceChoose", "nearId", "clearTicks",
                "stepTicks", "rideTicks", "crawlTicks", "inTicks", "bufHx", "bufHy", "tc", "walkV", "room", "roomTicks",
                "stringTicks", "run", "gaitRun" }   -- Plan 37 Task 2: the armed ticks, the ring and the gait too
-local MARKS = { "pressMark", "rideMark", "crawlMark", "inMark", "pileMark", "tcMark" }   -- the press counts they read
+local MARKS = { "pressMark", "rideMark", "crawlMark", "inMark", "pileMark", "tcMark", "pileOutMark" }   -- the press counts they read
 local RAD = math.pi / 180
 local DEG = 180 / math.pi
 
@@ -643,6 +643,30 @@ local function outHeading(p, st, zs)
     return openToward(p, st, ax / len, ay / len)
 end
 
+-- the chosen knock-down of the standing zombie c at point blank (rule (c), and fix 7's after a step out): the re-pin
+-- to it first when it is not the target (never to the stalled one), else the shove (shove_for knockdown); nil to go on
+local function knockDown(p, st, d, c)
+    local w = st.work
+    if c.id ~= st.id then
+        if c.id == w.stallId then return nil end
+        return M.repin(p, st, c)
+    end
+    local off = M.lookOff(p, st.px, st.py, st.zx, st.zy)
+    local step, pwhy = M.press(p, st, "shove", d, d, off, "face", d)
+    if step == "shove" then w.shoveFor = "knockdown" end
+    return step, pwhy
+end
+
+-- Plan 37 Task 2 fix 7 (the horde8 trial x_trial-ladder-20261112-072340, a trial reading: in a clump the step out
+-- looped, two inside point blank again at each step's end, the swing never coming): one step out per press window.
+-- w.pileOutMark is the presses' count at the last step out's start (rule (a) or (b)); rule (b) goes only once a press
+-- has come since, and in its place, with the disposition's knockdown on (fix 1's flag; the string's walk keeps it
+-- off), the chosen knock-down of the nearest at point blank; a rule (b) step out that ends with two or more still
+-- inside point blank is followed by that knock-down at once, and after the shove's result rule (a)'s step out goes
+local function knockOn(w)
+    return (w.dispT or K.DISPOSITIONS[w.disposition]).knockdown
+end
+
 -- the pile (the header's tick, 1): the step out, then the meet's press; a step or a press, else nil to go on
 local function pileTick(p, st, d, fallen, standing)
     local w = st.work
@@ -655,6 +679,14 @@ local function pileTick(p, st, d, fallen, standing)
             if step ~= nil then return step end
             w.pileTicks = K.WORK_STEP_TICKS   -- fix 1: no finite heading: the step ends into the press window
         end
+        if w.pileWhy == "pile_out" and knockOn(w) then   -- fix 7: still two at point blank: the knock-down at once
+            local pb = standingWithin(st, d, standing, K.WORK_POINT_BLANK_R)
+            if #pb >= 2 then
+                w.pileState = nil
+                local ks, kwhy = knockDown(p, st, d, pb[1])
+                if ks ~= nil then return ks, kwhy end
+            end
+        end
         w.pileState, w.pileMark, w.pileWait = "press", presses(st), 0
         return nil
     end
@@ -666,7 +698,10 @@ local function pileTick(p, st, d, fallen, standing)
     local pb = standingWithin(st, d, standing, K.WORK_POINT_BLANK_R)
     local why = nil
     if st.shoves ~= w.shoveMark then w.shoveMark, why = st.shoves, "shove" end   -- (a): a shove's result
-    if why == nil and #pb >= 2 then why = "pile_out" end                       -- (b): two at point blank
+    if why == nil and #pb >= 2 then                                             -- (b): two at point blank
+        if w.pileOutMark == presses(st) and knockOn(w) then return knockDown(p, st, d, pb[1]) end   -- fix 7
+        why = "pile_out"
+    end
     if why ~= nil then
         local zs = {}
         for i = 1, #pb do zs[i] = pb[i] end
@@ -677,20 +712,14 @@ local function pileTick(p, st, d, fallen, standing)
         w.outHx, w.outHy = outHeading(p, st, zs)
         if w.outHx == nil then return nil end   -- no way out: the meet presses (cornered)
         w.pileState, w.pileTicks, w.piles, w.pileWhy = "step", 0, w.piles + 1, why
+        w.pileOutMark = presses(st)   -- fix 7: one step out per press window
         return pileTick(p, st, d, fallen, standing)
     end
     if fallen or not standing or #pb ~= 1 or pb[1].d > st.shoveR then return nil end
-    if not (w.dispT or K.DISPOSITIONS[w.disposition]).knockdown then return nil end   -- fix 1: off in the string's walk
+    if not knockOn(w) then return nil end   -- fix 1: off in the string's walk
     local inReach = standingWithin(st, d, standing, M.reachOf(p, st))   -- a Lua table
     if #inReach < 2 then return nil end   -- (c): against several only
-    if pb[1].id ~= st.id then
-        if pb[1].id == w.stallId then return nil end
-        return M.repin(p, st, pb[1])
-    end
-    local off = M.lookOff(p, st.px, st.py, st.zx, st.zy)
-    local step, pwhy = M.press(p, st, "shove", d, d, off, "face", d)
-    if step == "shove" then w.shoveFor = "knockdown" end
-    return step, pwhy
+    return knockDown(p, st, d, pb[1])
 end
 
 -- fix 1 (the smokes x_trial-ladder-20261110-081250 and -081935: inside the band the meet pressed swing after swing

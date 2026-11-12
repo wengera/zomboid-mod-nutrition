@@ -2441,3 +2441,54 @@ def test_under_string_the_walk_resumes_once_the_nearest_passes_the_contact_radiu
     recs()
     grun(lua, p, w, recs, 2)
     assert lua.eval("PZA.skills.cur.st.work.stringContact") is False and work_of(lua, "stepFor") == "string"
+
+
+# ---- Plan 37 Task 2 fix 7: one step out per press window, then the knock-down (x_trial-ladder-20261112-072340) -------
+
+def clump_world(lua, **kw):
+    """The target 7 at 0.45 east and 20 at 0.6 north, the player held where it stands (its auto-walk recorded, never
+    walked: the clump on it as it steps, or a wall at its back), pile true under hold."""
+    p, z, w = pile_world(lua, (0.6,), tx=10.45, **kw)
+    p.setAutoWalkDirection = lambda s, v: p.sets.append(("setAutoWalkDirection", v))
+    return p, z, w
+
+
+def test_two_at_point_blank_after_the_step_out_take_the_knock_down_not_a_second_step(lua, fs):
+    p, z, w = clump_world(lua)
+    gow(lua, p, pile=True, disposition="hold")
+    run(lua, p, w, 1)
+    assert progress(lua, fs)[0]["result"]["work"]["step_for"] == "pile_out" and work_of(lua, "piles") == 1
+    run(lua, p, w, lua.eval("PZA.skills.WORK_STEP_TICKS") + 1, stop=lambda: w["presses"])
+    assert w["presses"] and w["presses"][0]["shove"] is True and work_of(lua, "piles") == 1
+    pr = progress(lua, fs)
+    assert [a for a in pr if a["result"]["step"] == "shove"][0]["result"]["work"].get("shove_for") == "knockdown"
+
+
+def test_after_the_knock_down_s_result_the_step_out_goes_again(lua, fs):
+    p, z, w = clump_world(lua)
+    gow(lua, p, pile=True, disposition="hold")
+    run(lua, p, w, lua.eval("PZA.skills.WORK_STEP_TICKS") + 2, stop=lambda: w["presses"])
+    assert w["presses"]
+    run(lua, p, w, 12, stop=lambda: work_of(lua, "piles") == 2)
+    assert work_of(lua, "piles") == 2 and work_of(lua, "pileWhy") == "shove"
+
+
+def test_no_second_step_out_before_a_press_under_hunt_either(lua, fs):
+    """Under hunt (absent disposition), the look held off, two kept inside point blank for four step lengths: every
+    step out after the first follows a press (one step out per press window)."""
+    p, z, w = clump_world(lua, **LOOK_OFF)
+    gow(lua, p, pile=True)
+    seen = []
+    for _ in range(4 * lua.eval("PZA.skills.WORK_STEP_TICKS")):
+        run(lua, p, w, 1)
+        if lua.eval("PZA.skills.cur") is None:
+            break
+        seen.append((work_of(lua, "piles"), len(w["presses"])))
+    starts = [seen[i] for i in range(1, len(seen)) if seen[i][0] > seen[i - 1][0]]
+    assert starts and all(presses >= piles - 1 for piles, presses in starts)
+
+
+def test_under_the_string_s_walk_state_the_knock_down_stays_off(lua, fs):
+    world(lua, zx=11.0)
+    assert lua.eval("PZA.skills.DISPOSITIONS.string.knockdown") is False
+    assert lua.eval("PZA.skills.DISPOSITIONS[PZA.skills.DISPOSITIONS.string.contact].knockdown") is True
