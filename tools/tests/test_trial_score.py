@@ -130,7 +130,7 @@ def test_f15_the_row_reads_every_cell_in_the_logs_column_order(f15):
     cs = TS.cells(f15, "seen one / two")
     assert len(cs) == len(TS.COLUMNS)
     assert cs == ["f_goals_16-20261105-164332", "-", "-", "-", "142", "0", "6 / 8", "-", "-", "-", "-", "0",
-                  "24.9", "0", "-", "-", "-", "-", "0 (0.0 s)", "-", "-", "-", "39.3 / 138.5 (away 41.1)",
+                  "24.9", "0", "-", "-", "-", "-", "0 (0.0 s)", "-", "-", "-", "-", "-", "-", "-", "39.3 / 138.5 (away 41.1)",
                   "17.3 / 138.5", "0 / 6", "1 / 26 (19 superseded)", "death@702", "0", "seen one / two"]
 
 
@@ -468,7 +468,7 @@ def test_a_run_folder_scores_from_its_client_tree_and_its_trial_json(tmp_path):
     run = _write_run(str(tmp_path / "x_trial-20261106-101010"), kill=True)
     cs = TS.cells(TS.score(run))
     assert cs == ["x_trial-20261106-101010", "ladder", "abcdef01", "arena-east", "5", "1 (matched 0)", "0 / 0",
-                  "0.00", "-", "-", "-", "0", "0.0", "0", "-", "-", "-", "-", "0 (0.0 s)", "-", "-", "-", "3.0 / 3.0 (away 0.0)", "0.0 / 3.0", "0 / 0", "0 / 0 (0 superseded)", "cap",
+                  "0.00", "-", "-", "-", "0", "0.0", "0", "-", "-", "-", "-", "0 (0.0 s)", "-", "-", "-", "-", "-", "-", "-", "3.0 / 3.0 (away 0.0)", "0.0 / 3.0", "0 / 0", "0 / 0 (0 superseded)", "cap",
                   "90", ""]
 
 
@@ -735,9 +735,9 @@ def test_rescore_all_keeps_a_trailing_section_and_a_folder_with_no_row_is_left_o
 
 # ================================================================ Plan 32 Task 4: the body columns
 def test_the_body_columns_follow_hits_per_kill():
-    """Named change, Plan 36 Task 5b: the row is 29 cells with the eight engagement cells (21 before them)."""
+    """Named change, Plan 37 Task 1b: the row is 33 cells with the four crowd cells (29 before them, Plan 36 Task 5b)."""
     i = TS.COLUMNS.index("hits per kill")
-    assert TS.COLUMNS[i + 1:i + 3] == ("body med", "body p90") and len(TS.COLUMNS) == 29
+    assert TS.COLUMNS[i + 1:i + 3] == ("body med", "body p90") and len(TS.COLUMNS) == 33
 
 
 def test_the_body_columns_read_grade_x2_s_presses(tmp_path):
@@ -773,7 +773,7 @@ def test_rescore_all_widens_the_header_and_a_gone_folders_row_by_the_two_body_ce
     h, rows, t = TS.read_log_parts(p)
     assert TS.parse_row(h[-2]) == list(TS.COLUMNS) and h[-1] == "|" + "---|" * len(TS.COLUMNS)
     assert h[:-2] == head[:-2] and t == ["", "## After", ""]
-    assert TS.parse_row(rows[0]) == gone[:8] + ["-"] * 14 + gone[8:]
+    assert TS.parse_row(rows[0]) == gone[:8] + ["-"] * 18 + gone[8:]
 
 
 def test_a_scored_run_widens_an_old_log_s_header_and_keeps_its_old_rows_seen(tmp_path):
@@ -825,7 +825,7 @@ def test_rescore_all_widens_a_body_era_log_by_the_head_ticks_cell(tmp_path):
     h, rows, t = TS.read_log_parts(p)
     assert TS.parse_row(h[-2]) == list(TS.COLUMNS) and h[-1] == "|" + "---|" * len(TS.COLUMNS)
     assert h[:-2] == head[:-2] and t == ["", "## After", ""]
-    assert TS.parse_row(rows[0]) == gone[:10] + ["-"] * 12 + gone[10:]
+    assert TS.parse_row(rows[0]) == gone[:10] + ["-"] * 16 + gone[10:]
 
 
 # ================================================================ Plan 34 Task 5: the care@3+ column
@@ -887,7 +887,7 @@ def test_rescore_all_widens_a_head_era_log_by_the_care_cell(tmp_path):
     h, rows, t = TS.read_log_parts(p)
     assert TS.parse_row(h[-2]) == list(TS.COLUMNS) and h[-1] == "|" + "---|" * len(TS.COLUMNS)
     assert h[:-2] == head[:-2] and t == ["", "## After", ""]
-    assert TS.parse_row(rows[0]) == gone[:11] + ["-"] * 11 + gone[11:]
+    assert TS.parse_row(rows[0]) == gone[:11] + ["-"] * 15 + gone[11:]
 
 
 def test_widen_takes_a_row_of_each_earlier_width_to_the_full_row():
@@ -912,7 +912,7 @@ def _cf(seq, nearest=0.8, step=None, reaction="", zombies=None):
 def test_the_contact_columns_follow_care_and_precede_min_fleeing():
     i = TS.COLUMNS.index("care@3+")
     assert TS.COLUMNS[i + 1:i + 3] == ("contact s", "engagements") and TS.COLUMNS[i + 3] == "air %"
-    assert TS.CONTACT_COLUMNS == ("contact s", "engagements") and len(TS.COLUMNS) == 29
+    assert TS.CONTACT_COLUMNS == ("contact s", "engagements") and len(TS.COLUMNS) == 33
 
 
 def test_contact_seconds_sum_the_frames_inside_a_tile_with_no_press_in_flight_and_no_hit_reaction():
@@ -971,7 +971,7 @@ def test_the_round_summary_reads_the_arms_rows_from_the_stamp_on_and_appends_onc
                  ["", "## After", ""])
     want = ("> round: foot agent since 20261110-000000: 3 trials, 2 deaths (67 %), kills median 6, "
             "contact s median 4.0, hits per kill median 0.25, air % median -, cone bites median -, "
-            "clock <0 median -")
+            "clock <0 median -, restarts sum -, disp changes/min median -")
     assert TS.main(["--round", "foot", "agent", "20261110-000000", "--log", p]) == 0
     assert want in capsys.readouterr().out
     h, r, t = TS.read_log_parts(p)
@@ -1004,7 +1004,7 @@ def test_rescore_all_widens_a_care_era_log_by_the_two_contact_cells(tmp_path):
     h, rows, _ = TS.read_log_parts(p)
     assert TS.parse_row(h[-2]) == list(TS.COLUMNS)
     i = TS.COLUMNS.index("contact s")
-    assert TS.parse_row(rows[0]) == gone[:i] + ["-"] * 10 + gone[i:]
+    assert TS.parse_row(rows[0]) == gone[:i] + ["-"] * 14 + gone[i:]
 
 
 # ================================================================ Plan 36 Task 5b: the engagement's cells
@@ -1024,7 +1024,7 @@ def test_the_engagement_columns_follow_engagements_and_precede_min_fleeing():
     i = TS.COLUMNS.index("engagements")
     assert TS.COLUMNS[i + 1:i + 9] == TS.ENGAGE_COLUMNS == ("air %", "back %", "cone bites", "clock <0", "crawler@1",
                                                             "pull", "room", "steps")
-    assert TS.COLUMNS[i + 9] == "min fleeing" and len(TS.COLUMNS) == 29 and len(TS.CONTACT_ERA_COLUMNS) == 21
+    assert TS.COLUMNS[i + 13] == "min fleeing" and len(TS.COLUMNS) == 33 and len(TS.CONTACT_ERA_COLUMNS) == 21
 
 
 def test_rescore_all_widens_a_contact_era_log_by_the_eight_engagement_cells(tmp_path):
@@ -1039,7 +1039,7 @@ def test_rescore_all_widens_a_contact_era_log_by_the_eight_engagement_cells(tmp_
     h, rows, _ = TS.read_log_parts(p)
     assert TS.parse_row(h[-2]) == list(TS.COLUMNS)
     i = TS.COLUMNS.index("air %")
-    assert TS.parse_row(rows[0]) == gone[:i] + ["-"] * 8 + gone[i:]
+    assert TS.parse_row(rows[0]) == gone[:i] + ["-"] * 8 + ["-"] * 4 + gone[i:]
 
 
 def test_air_and_back_count_each_press_leaf_once_though_the_heartbeat_re_reads_it():
@@ -1239,7 +1239,8 @@ def _blank_score():
     """A score's engagement readings all unread, frames present."""
     return {"presses": {"read": False}, "cone": {"read": False}, "clock_gate": TS.clock_gate([]),
             "crawler": {"frames": 0, "seconds": 0.0}, "pulls": TS.pull_counts([]), "room": TS.room_readings([]),
-            "steps": TS.step_reasons([]), "frames": 1}
+            "steps": TS.step_reasons([]), "frames": 1, "restarts": TS.restart_readings([]),
+            "disp": TS.disp_readings([]), "string": TS.string_readings([]), "release": TS.release_readings([], [])}
 
 
 def test_a_run_without_any_engagement_key_reads_dashes_in_all_but_the_crawler_and_cone_cells(tmp_path):
@@ -1271,3 +1272,182 @@ def test_the_round_summary_carries_the_air_cone_and_clock_medians(tmp_path, caps
     out = capsys.readouterr().out
     assert "air % median 20, cone bites median 2, clock <0 median 0" in out
     assert "4 trials, 0 deaths (0 %), kills median 5" in out
+
+
+# ================================================================ Plan 37 Task 1b: the crowd cells (restarts, disp, string, release)
+def _xl(aid, typ, state, wall, result=None, reason=""):
+    """An act line of any type."""
+    return {"kind": "act", "type": typ, "aid": aid, "state": state, "wallMs": wall, "result": result or {},
+            "reason": reason}
+
+
+def _melee(aid, t0, gap, end, t1, work=None, result=None):
+    """A work melee: accepted at t0, one progress line carrying a work leaf with `gap`, its terminal line at t1."""
+    leaf = dict({"gap": gap}, **(work or {}))
+    out = [_al(aid, "accepted", t0), _al(aid, "progress", t0 + 100, {"work": leaf})]
+    term = _al(aid, end, t1, result)
+    if end == "failed":
+        term["reason"] = "superseded"
+    return out + [term]
+
+
+def test_the_crowd_columns_follow_steps_and_each_era_widens_to_the_full_row():
+    i = TS.COLUMNS.index("steps")
+    assert TS.COLUMNS[i + 1:i + 5] == TS.CROWD_COLUMNS == ("restarts", "disp", "string", "release")
+    assert TS.COLUMNS[i + 5] == "min fleeing" and len(TS.COLUMNS) == 33 and len(TS.ENGAGE_ERA_COLUMNS) == 29
+    assert TS.ERA_COLUMNS[-1] == TS.ENGAGE_ERA_COLUMNS and len(TS.ERA_COLUMNS) == 6
+    p36 = ["c%d" % k for k in range(29)]                    # a Plan 36 Task 5b row, one before the crowd cells
+    assert TS.widen(p36) == p36[:i + 1] + ["-"] * 4 + p36[i + 1:]
+
+
+def test_restarts_count_a_work_melee_superseded_inside_keep_r_by_a_non_melee_within_a_second():
+    """Mutations caught: counting a supersede by a melee (the re-send keeps the footwork's state), a gap of KEEP_R or
+    more, a next act later than 1.0 s, a melee with no work leaf, counting no restart as 0."""
+    lines = (_melee("a1", 1000, 1.5, "failed", 2000) + [_xl("a2", "steer", "accepted", 2300)]
+             + _melee("a3", 3000, 1.0, "failed", 4000) + [_al("a4", "accepted", 4000)]           # by a melee: no
+             + _melee("a5", 5000, 2.5, "failed", 6000) + [_xl("a6", "steer", "accepted", 6100)]  # gap at KEEP_R: no
+             + _melee("a7", 7000, 1.0, "failed", 8000) + [_xl("a8", "walkTo", "accepted", 9500)]  # past 1 s: no
+             + [_al("a9", "accepted", 10000), _al("a9", "progress", 10100, {}), _al("a9", "failed", 11000),
+                _xl("a10", "steer", "accepted", 11100)]                                          # no work leaf: no
+             + _melee("a11", 12000, 0.5, "done", 13000) + [_xl("a12", "steer", "accepted", 13100)])  # done: no
+    r = TS.restart_readings(lines)
+    assert r["read"] is True and r["n"] == 1 and r["aids"] == ["a1"]
+    s = dict(_blank_score(), restarts=r, contact={"seconds": 60.0})
+    assert TS.crowd_cells(s)[0] == "1 (1.0/min)"
+    assert TS.crowd_cells(dict(s, contact={"seconds": 0.0}))[0] == "1 (-/min)"
+
+
+def test_restarts_read_zero_when_every_supersede_is_by_a_melee_and_dash_without_a_work_melee():
+    lines = (_melee("a1", 1000, 1.0, "failed", 2000) + [_al("a2", "accepted", 2000)]
+             + _melee("a3", 3000, 1.0, "failed", 4000) + [_al("a4", "accepted", 4050)])
+    r = TS.restart_readings(lines)
+    assert r["n"] == 0 and TS.crowd_cells(dict(_blank_score(), restarts=r, contact={"seconds": 30.0}))[0] == "0 (0.0/min)"
+    q = TS.restart_readings([_xl("a1", "steer", "accepted", 1), _xl("a1", "steer", "failed", 2)])
+    assert q["read"] is False and TS.crowd_cells(dict(_blank_score(), restarts=q))[0] == "-"
+
+
+def test_restarts_read_a_melee_whose_act_line_args_carry_workr():
+    """The contract names the melee command's `workR`: an act line carrying args with it makes a work melee even
+    where no progress line carries the work leaf."""
+    a = _al("a1", "accepted", 1000)
+    a["args"] = {"workR": 3.5}
+    lines = [a, _al("a1", "progress", 1100, {"work": {"gap": 1.0}}), _al("a1", "failed", 2000),
+             _xl("a2", "aim", "accepted", 2100)]
+    lines[2]["reason"] = "superseded"
+    assert TS.restart_readings(lines)["n"] == 1
+
+
+def _dl(wall, disp=None, action=None, sent=True, **kw):
+    """A decision line whose threat why carries `disposition` (a transition's line) and whose action is `action`."""
+    th = {"disposition": disp} if disp is not None else {}
+    r = {"wall": wall, "action": action, "sent": sent, "inputs": {"branches": {"threat": th}}}
+    r.update(kw)
+    return r
+
+
+def test_disp_counts_the_transition_lines_their_dwell_median_and_the_to_names_in_a_fixed_order():
+    """Mutations caught: counting a line without a disposition, the order of the names, the dwell read off `from`,
+    a per-minute rate over a zero contact."""
+    rows = [_dl(1.0, {"from": None, "to": "hunt", "why": "first", "dwell": 0.0}),
+            _dl(2.0), _dl(3.0, {"from": "hunt", "to": "string", "why": "three", "dwell": 4.0}),
+            _dl(4.0, {"from": "string", "to": "break", "why": "pocket", "dwell": 2.0}),
+            _dl(5.0, {"from": "break", "to": "string", "why": "gap", "dwell": 3.0}),
+            _dl(6.0, {"from": "string", "to": "hold", "why": "two", "dwell": 8.0})]
+    d = TS.disp_readings(rows)
+    assert d["read"] is True and d["changes"] == 5 and d["dwells"] == [0.0, 4.0, 2.0, 3.0, 8.0]
+    assert d["by"] == {"hunt": 1, "string": 2, "break": 1, "hold": 1}
+    assert TS.crowd_cells(dict(_blank_score(), disp=d, contact={"seconds": 150.0}))[1] == \
+        "5 (2.0/min, dwell 3.0 s) hunt 1 hold 1 string 2 break 1"
+    assert TS.crowd_cells(dict(_blank_score(), disp=d, contact={"seconds": 0.0}))[1] == \
+        "5 (-/min, dwell 3.0 s) hunt 1 hold 1 string 2 break 1"
+    z = TS.disp_readings([_dl(1.0), _dl(2.0)])
+    assert z["read"] is False and TS.crowd_cells(dict(_blank_score(), disp=z))[1] == "-"
+
+
+def _sw(aid, state, wall, **leaf):
+    """A melee act line whose work leaf carries `leaf`."""
+    return _al(aid, state, wall, {"work": leaf})
+
+
+def test_string_counts_episodes_turns_the_wide_turns_the_gap2_median_and_the_string_kills():
+    """Mutations caught: counting the heartbeat's re-read of one turn twice, an episode per line, a gap2 of exactly
+    STRING_GAP read as narrow, a kill of a melee whose last leaf is not string, a press-only line ending an episode."""
+    turn = {"leader": 7, "gap2": 3.0}
+    lines = [_sw("a1", "progress", 1, disposition="string", gap=1.5),
+             _sw("a1", "progress", 2, disposition="string", gap=1.5, turn_for=turn),
+             _sw("a1", "progress", 3, disposition="string", gap=1.5, turn_for=turn),          # the same turn re-read
+             _al("a1", "progress", 4, {"press": {"d_press": 1.0}}),                          # no work leaf: no break
+             _sw("a1", "progress", 5, disposition="string", turn_for={"leader": 8, "gap2": 2.5}),
+             _sw("a1", "progress", 6, disposition="hold"),                                   # the episode ends
+             _sw("a1", "progress", 7, disposition="string", turn_for={"leader": 9, "gap2": 1.0}),  # a second episode
+             _al("a1", "done", 8, {"kill": True, "work": {"disposition": "string"}}),
+             _sw("a2", "progress", 9, disposition="hold"),
+             _al("a2", "done", 10, {"kill": True, "work": {"disposition": "hold"}}),
+             _sw("a3", "progress", 11, disposition="string"),
+             _al("a3", "done", 12, {"kill": False, "work": {"disposition": "string"}})]
+    r = TS.string_readings(lines)
+    assert r["read"] is True and (r["episodes"], r["turns"], r["wide"], r["kills"]) == (3, 3, 2, 1)
+    assert r["gap2"] == [3.0, 2.5, 1.0]
+    assert TS.crowd_cells(dict(_blank_score(), string=r))[2] == "3 ep, 3 turns (g>=2.5: 2), gap2 med 2.5, kills 1"
+    z = TS.string_readings([_sw("a1", "progress", 1, disposition="hunt"), _sw("a1", "progress", 2, gap=1.0)])
+    assert z["read"] is True and (z["episodes"], z["turns"], z["kills"]) == (0, 0, 0)
+    assert TS.crowd_cells(dict(_blank_score(), string=z))[2] == "0 ep, 0 turns (g>=2.5: 0), gap2 med -, kills 0"
+    n = TS.string_readings([_sw("a1", "progress", 1, gap=1.0), _al("a1", "done", 2, {"kill": True})])
+    assert n["read"] is False and TS.crowd_cells(dict(_blank_score(), string=n))[2] == "-"
+
+
+def _ml(wall, release=None, typ="melee", sent=True):
+    args = {"workR": 3.5}
+    if release is not None:
+        args["release"] = release
+    return _dl(wall, action={"type": typ, "args": args}, sent=sent)
+
+
+def test_release_counts_asked_safe_bound_and_the_early_breaks():
+    """Mutations caught: a send with release false counted asked, `safe` read off the wrong value, an early command
+    after the hand-back (or past 1.0 s, or an unsent one) counted, an early command with no hand-back not counted."""
+    rows = [_ml(10.0, True), _ml(20.0, False), _ml(30.0, True), _ml(40.0, True), _ml(50.0, True),
+            _dl(50.5, action={"type": "steer", "args": {}}),               # asked, then a steer inside 1 s, no hand-back
+            _dl(40.5, action={"type": "steer", "args": {}}),                # after a hand-back at 40.2: no
+            _dl(30.4, action={"type": "steer", "args": {}}, sent=False),    # nothing sent: no
+            _dl(10.0 + 1.5, action={"type": "steer", "args": {}})]         # past 1.0 s: no
+    rows.sort(key=lambda r: r["wall"])
+    lines = [_al("m1", "accepted", 10010), _al("m1", "done", 10800, {"end": "handback", "why": "released", "safe": True}),
+             _al("m3", "accepted", 30010), _al("m3", "done", 30900, {"end": "handback", "why": "released", "safe": False}),
+             _al("m4", "accepted", 40010), _al("m4", "done", 40200, {"end": "handback", "why": "floor"}),
+             _al("m5", "accepted", 50010)]
+    r = TS.release_readings(rows, lines)
+    assert r["read"] is True and (r["asked"], r["safe"], r["bound"], r["early"]) == (4, 1, 1, 1)
+    assert TS.crowd_cells(dict(_blank_score(), release=r))[3] == "asked 4, safe 1, bound 1, early 1"
+    q = TS.release_readings([_ml(1.0, False), _ml(2.0)], [])
+    assert q["read"] is True and TS.crowd_cells(dict(_blank_score(), release=q))[3] == "asked 0, safe 0, bound 0, early 0"
+    n = TS.release_readings([_ml(1.0)], [_al("m", "done", 5, {"end": "handback", "why": "clear"})])
+    assert n["read"] is False and TS.crowd_cells(dict(_blank_score(), release=n))[3] == "-"
+
+
+def test_a_scored_run_carries_the_four_crowd_cells(tmp_path):
+    s = TS.score(_care_run(str(tmp_path / "x_trial-20261112-101010"), 1))
+    cs = TS.cells(s)
+    i = TS.COLUMNS.index("restarts")
+    assert len(cs) == len(TS.COLUMNS) and cs[i + 1:i + 4] == ["-", "-", "-"]
+    d = "\n".join(TS.detail(s))
+    assert "restarts (restart_readings)" in d and "release (release_readings)" in d
+
+
+def test_the_round_summary_carries_the_restarts_sum_and_the_disp_changes_per_minute_median(tmp_path, capsys):
+    """Mutations caught: the sum read as a median, a `-` cell counted as 0, the disp rate read as its change count."""
+    def row(tid, restarts, disp):
+        cs = ["-"] * len(TS.COLUMNS)
+        for k, v in (("trial", tid), ("variant", "disp"), ("fixture", "agent"), ("kills", "5"), ("end", "cap"),
+                     ("restarts", restarts), ("disp", disp), ("seen", "")):
+            cs[TS.COLUMNS.index(k)] = v
+        return TS.format_row(cs)
+
+    p = str(tmp_path / "trials.md")
+    rows = [row("x_trial-disp-20261112-100000", "3 (1.5/min)", "4 (2.0/min, dwell 3.0 s) hunt 1 hold 1 string 2 break 0"),
+            row("x_trial-disp-20261112-110000", "2 (0.4/min)", "6 (6.0/min, dwell 1.0 s) hunt 1 hold 1 string 2 break 2"),
+            row("x_trial-disp-20261112-120000", "-", "-"),
+            row("x_trial-disp-20261112-130000", "0 (0.0/min)", "1 (1.0/min, dwell 2.0 s) hunt 1 hold 0 string 0 break 0")]
+    TS.write_log(p, ["# T", "", TS.format_row(TS.COLUMNS), "|" + "---|" * len(TS.COLUMNS)], rows, [""])
+    assert TS.main(["--round", "disp", "agent", "20261112-000000", "--log", p, "--dry"]) == 0
+    assert "restarts sum 5, disp changes/min median 2" in capsys.readouterr().out

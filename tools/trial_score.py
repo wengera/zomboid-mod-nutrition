@@ -116,6 +116,17 @@ and `steps` (`step_reasons`, the work leaf's reasons as runs: read defensively, 
 `--round` adds the medians of `air %`, `cone bites` and `clock <0` (the cells' leading numbers). A log written before
 them is widened the same way (`widen` takes a row of the CONTACT_ERA_COLUMNS width).
 
+The crowd (Plan 37 Task 1b, a named change of the row: four cells after `steps`, CROWD_COLUMNS, each `-` where the
+run's logs lack the key it reads; the keys are the spec's, written by the Lua and the planner of Plan 37 Tasks 2 and 3):
+`restarts` (`restart_readings`: the work melees superseded with the nearest standing inside KEEP_R and restarted by a
+non-melee act within a second, as `n (n/min)` of contact), `disp` (`disp_readings`: the threat why's `disposition`
+changes, per minute of contact, the dwell median and the `to` names in the order hunt, hold, string, break),
+`string` (`string_readings`: the episodes of the work leaf's `disposition` string, the turns carrying `turn_for`, those
+with `gap2` of STRING_GAP or more, the `gap2` median and the string kills) and `release` (`release_readings`: the
+melee sends asking `release`, the `released` hand-backs safe and bound, and the early breaks of the contract).
+`--round` adds the sum of `restarts` and the median of `disp`'s changes per minute. A log written before them is widened
+the same way (`widen` takes a row of the ENGAGE_ERA_COLUMNS width).
+
 The clocks: a decision line's game minute is its `inputs.hour` x 60 (a float; the line's `gameMin` is whole minutes,
 too coarse for a 2 Hz line), a frame's its `me.hour` x 60, each unwrapped past midnight; a line stands from its own
 wall to the next line's (the log's last line stands for nothing). Stdlib plus the agent base; read-only over the run.
@@ -151,19 +162,18 @@ TRIAL_JSON = "trial.json"
 DECISION_LOG = "decision.log"
 COLUMNS = ("trial", "variant", "commit", "fixture", "min", "kills", "hits (runs / union)", "hits per kill",
            "body med", "body p90", "head_ticks max", "care@3+", "contact s", "engagements", "air %", "back %", "cone bites",
-           "clock <0", "crawler@1", "pull", "room", "steps", "min fleeing", "min toward target", "dressed <1 min", "melees superseded", "end",
+           "clock <0", "crawler@1", "pull", "room", "steps", "restarts", "disp", "string", "release", "min fleeing", "min toward target", "dressed <1 min", "melees superseded", "end",
            "health", "seen")
 BODY_COLUMNS = ("body med", "body p90")   # Plan 32 Task 4's named change: the two cells a row before it lacks
 HEAD_COLUMNS = ("head_ticks max",)        # Plan 33 Task 4's named change: the cell a row before it lacks
 CARE_COLUMNS = ("care@3+",)               # Plan 34 Task 5's named change: the cell a row before it lacks
 CONTACT_COLUMNS = ("contact s", "engagements")   # Plan 35 Task 3's named change: the two cells a row before it lacks
 ENGAGE_COLUMNS = ("air %", "back %", "cone bites", "clock <0", "crawler@1", "pull", "room", "steps")   # Plan 36 Task 5b
-OLD_COLUMNS = tuple(c for c in COLUMNS if c not in BODY_COLUMNS + HEAD_COLUMNS + CARE_COLUMNS + CONTACT_COLUMNS
-                    + ENGAGE_COLUMNS)   # before Plan 32 Task 4
-BODY_ERA_COLUMNS = tuple(c for c in COLUMNS if c not in HEAD_COLUMNS + CARE_COLUMNS + CONTACT_COLUMNS + ENGAGE_COLUMNS)    # a row of Plan 32 Task 4 on
-HEAD_ERA_COLUMNS = tuple(c for c in COLUMNS if c not in CARE_COLUMNS + CONTACT_COLUMNS + ENGAGE_COLUMNS)                  # a row of Plan 33 Task 4 on
-CARE_ERA_COLUMNS = tuple(c for c in COLUMNS if c not in CONTACT_COLUMNS + ENGAGE_COLUMNS)   # a row of Plan 34 Task 5 on
-CONTACT_ERA_COLUMNS = tuple(c for c in COLUMNS if c not in ENGAGE_COLUMNS)   # a row of Plan 35 Task 3 on
+CROWD_COLUMNS = ("restarts", "disp", "string", "release")   # Plan 37 Task 1b's named change: the four cells after `steps`
+CHANGES = (BODY_COLUMNS, HEAD_COLUMNS, CARE_COLUMNS, CONTACT_COLUMNS, ENGAGE_COLUMNS, CROWD_COLUMNS)   # oldest first
+# the columns a row had before change k: COLUMNS less that change's cells and every later one's
+ERA_COLUMNS = tuple(tuple(c for c in COLUMNS if c not in sum(CHANGES[k:], ())) for k in range(len(CHANGES)))
+(OLD_COLUMNS, BODY_ERA_COLUMNS, HEAD_ERA_COLUMNS, CARE_ERA_COLUMNS, CONTACT_ERA_COLUMNS, ENGAGE_ERA_COLUMNS) = ERA_COLUMNS
 DASH = "-"
 SEEN_JOIN = " / "
 # The readings' own numbers.
@@ -1041,6 +1051,198 @@ def engage_cells(s):
     return [air, back, cone, clock, craw, pull, room, steps]
 
 
+# ---------------------------------------------------------------- the crowd cells (Plan 37 Task 1b)
+KEEP_R = 2.5          # tiles: the planner's KEEP_R (`planner/policies.py`): a nearest standing zombie inside it is a restart's gap
+STRING_GAP = 2.5      # tiles: the second-nearest standing at a string turn this far or more is the spec's wide turn (spec 3.2)
+RESTART_S = 1.0       # seconds: the non-melee act that starts this soon after a superseded work melee is its restart
+EARLY_S = 1.0         # seconds: a non-melee command sent this soon after an asked release, before the hand-back, breaks it
+DISP_ORDER = ("hunt", "hold", "string", "break")   # the cell's order of the `to` names
+
+
+def _work_leaf(ln):
+    """The act line's work leaf (`result.work`) when it is a non-empty dict, else {}."""
+    w = E._d(E._d(ln.get("result")).get("work"))
+    return w if w else {}
+
+
+def _threat_whys(rows):
+    """[(row, the line's threat why dict)] of the decision lines carrying one."""
+    out = []
+    for r in rows:
+        th = E._d(E._d(E._d(r.get("inputs")).get("branches")).get("threat"))
+        out.append((r, th))
+    return out
+
+
+def restart_readings(lines):
+    """{read, n, aids}: the work melees superseded close in and restarted by something that is not a melee. A work melee
+    is a melee span whose first progress line carries a work leaf (`engagements`' rule) or one of whose act lines
+    carries `args.workR`; a restart is one whose terminal act line reads `failed` with reason `superseded`, whose last
+    progress line's work leaf `gap` is a number under KEEP_R, and whose next act (the earliest `accepted` line of
+    another aid at or after the terminal line, within RESTART_S of it) is not a melee: a steer, a walkTo, an aim, a
+    shove. A melee superseded by a melee is no restart (the re-send keeps the footwork's state), and a supersede with
+    no act after it inside RESTART_S is none. `read` False with no work melee in the log."""
+    lines = [ln for ln in E._l(lines) if isinstance(ln, dict)]
+    acts = [(E._n(ln.get("wallMs")), i, ln) for i, ln in enumerate(lines) if ln.get("kind") == "act"
+            and ln.get("state") == "accepted" and E._n(ln.get("wallMs")) is not None]
+    workR = {ln.get("aid") for ln in lines if ln.get("kind") == "act" and ln.get("type") == "melee"
+             and "workR" in E._d(ln.get("args"))}
+    n, aids, work = 0, [], 0
+    for s in G19._spans(lines):
+        if not (s["aid"] in workR or (s["progress"] and "work" in s["progress"][0][1])):
+            continue
+        work += 1
+        t = E._d(s["terminal"])
+        if t.get("state") != "failed" or t.get("reason") != SUPERSEDED or s["end"] is None:
+            continue
+        gap = E._n(E._d(E._d(s["progress"][-1][1]).get("work")).get("gap")) if s["progress"] else None
+        if gap is None or gap >= KEEP_R:
+            continue
+        nxt = [(w, i, ln) for w, i, ln in acts if ln.get("aid") != s["aid"] and s["end"] <= w <= s["end"] + RESTART_S * 1000.0]
+        if nxt and min(nxt, key=lambda x: (x[0], x[1]))[2].get("type") != "melee":
+            n += 1
+            aids.append(s["aid"])
+    return {"read": work > 0, "n": n, "aids": aids}
+
+
+def disp_readings(rows):
+    """{read, changes, dwells, by}: the decision lines whose threat why carries `disposition` {from, to, why, dwell}
+    (a transition's line only), each one a change, their `dwell` values in log order and the `to` names counted. Not
+    the disposition the character is in: the lines of the changes. `read` False with no such line."""
+    changes, dwells, by = 0, [], {}
+    for _, th in _threat_whys(rows):
+        d = th.get("disposition")
+        if not isinstance(d, dict):
+            continue
+        changes += 1
+        v = E._n(d.get("dwell"))
+        if v is not None:
+            dwells.append(v)
+        by[str(d.get("to"))] = by.get(str(d.get("to")), 0) + 1
+    return {"read": changes > 0, "changes": changes, "dwells": dwells, "by": by}
+
+
+def string_readings(lines):
+    """{read, episodes, turns, wide, gap2, kills}: the melees' work leaves (`result.work`, the lines that carry a
+    non-empty one) reading `disposition`. An episode is a run of one melee's work leaves reading `string` (a leaf
+    reading another disposition ends it, a line with no work leaf does not); a turn is a leaf carrying `turn_for`
+    {leader, gap2}, counted once while the heartbeat re-reads the same value; `wide` the turns whose `gap2` is
+    STRING_GAP or more and `gap2` their values; `kills` the done lines reading `kill` true of the melees whose last
+    work leaf (the done line's included) read `string`. `read` False with no leaf reading `disposition`."""
+    episodes = turns = wide = kills = 0
+    gap2, seen = [], False
+    for lns in GX1._melee_lines(lines).values():
+        run, prev, last = False, None, None
+        for ln in lns:
+            w = _work_leaf(ln)
+            if not w:
+                continue
+            d = w.get("disposition")
+            if d is not None:
+                seen = True
+                if d == "string" and not run:
+                    episodes += 1
+                run = d == "string"
+            last = d if d is not None else last
+            t = w.get("turn_for")
+            if isinstance(t, dict) and t != prev:
+                turns += 1
+                g = E._n(t.get("gap2"))
+                if g is not None:
+                    gap2.append(g)
+                    wide += 1 if g >= STRING_GAP else 0
+            prev = t if isinstance(t, dict) else None
+        done = [ln for ln in lns if ln.get("state") == "done" and E._d(ln.get("result")).get("kill") is True]
+        kills += len(done) if last == "string" else 0
+    return {"read": seen, "episodes": episodes, "turns": turns, "wide": wide, "gap2": gap2, "kills": kills}
+
+
+def release_readings(rows, lines):
+    """{read, asked, safe, bound, early}: the melee sends (decision lines whose action is a melee, `sent`) whose args
+    read `release` true (`asked`); the melee done lines reading `end` handback and `why` released with `safe` true
+    (`safe`) and false (`bound`); and the contract breaks (`early`): a non-melee command sent within EARLY_S after an
+    asked line, before the hand-back (a `released` or `floor` done line) of the melee that line started (the first
+    melee accepted at or after the asked line's wall); a melee not handed back by then, or found none, is early.
+    `read` False with no melee send carrying `release` and no released hand-back."""
+    lines = [ln for ln in E._l(lines) if isinstance(ln, dict)]
+    asked, keyed, early = [], False, 0
+    for r in rows:
+        act = E._d(r.get("action"))
+        if act.get("type") != "melee" or r.get("sent") is not True:
+            continue
+        rel = E._d(act.get("args")).get("release")
+        keyed = keyed or isinstance(rel, bool)
+        if rel is True and E._n(r.get("wall")) is not None:
+            asked.append(E._n(r.get("wall")))
+    safe = bound = 0
+    back = {}
+    first = {}
+    for ln in lines:
+        if ln.get("kind") != "act" or ln.get("type") != "melee":
+            continue
+        w = E._n(ln.get("wallMs"))
+        if ln.get("state") == "accepted" and w is not None:
+            first.setdefault(ln.get("aid"), w / 1000.0)
+        res = E._d(ln.get("result"))
+        if ln.get("state") == "done" and res.get("end") == "handback" and res.get("why") in ("released", "floor"):
+            if w is not None:
+                back.setdefault(ln.get("aid"), w / 1000.0)
+            if res.get("why") == "released":
+                keyed = True
+                safe += 1 if res.get("safe") is True else 0
+                bound += 1 if res.get("safe") is False else 0
+    for t in asked:
+        aid = min(((w, a) for a, w in first.items() if w >= t), default=(None, None))[1]
+        for r in rows:
+            w = E._n(r.get("wall"))
+            act = E._d(r.get("action"))
+            if (w is not None and r.get("sent") is True and act.get("type") not in (None, "melee")
+                    and t < w <= t + EARLY_S and (aid not in back or back[aid] > w)):
+                early += 1
+                break
+    return {"read": keyed, "asked": len(asked), "safe": safe, "bound": bound, "early": early}
+
+
+def _per_min(n, contact_s):
+    """`n` per minute of contact, `-` over none."""
+    return "%.1f" % (n / (contact_s / 60.0)) if contact_s else DASH
+
+
+def crowd_cells(s):
+    """The four crowd cells in CROWD_COLUMNS order, `-` for a reading the run's logs do not carry. `restarts`
+    `n (n/min)` over the contact seconds; `disp` `c (c/min, dwell d.d s) hunt a hold b string c break d` (a `to` name
+    outside the four follows them); `string` `e ep, t turns (g>=2.5: k), gap2 med g.g, kills n`; `release` `asked a,
+    safe s, bound b, early e`."""
+    rs, dp, st, rl = s["restarts"], s["disp"], s["string"], s["release"]
+    cs = E._n(E._d(s.get("contact")).get("seconds")) or 0.0
+    restarts = "%d (%s/min)" % (rs["n"], _per_min(rs["n"], cs)) if rs["read"] else DASH
+    names = list(DISP_ORDER) + sorted(k for k in dp["by"] if k not in DISP_ORDER)
+    disp = "%d (%s/min, dwell %s s) %s" % (dp["changes"], _per_min(dp["changes"], cs), _median_text(dp["dwells"], "%.1f"),
+                                           " ".join("%s %d" % (k, dp["by"].get(k, 0)) for k in names)) \
+        if dp["read"] else DASH
+    string = "%d ep, %d turns (g>=%.1f: %d), gap2 med %s, kills %d" % (
+        st["episodes"], st["turns"], STRING_GAP, st["wide"], _median_text(st["gap2"], "%.1f"), st["kills"]) \
+        if st["read"] else DASH
+    release = "asked %d, safe %d, bound %d, early %d" % (rl["asked"], rl["safe"], rl["bound"], rl["early"]) \
+        if rl["read"] else DASH
+    return [restarts, disp, string, release]
+
+
+def crowd_detail(s):
+    """The detail's lines for the crowd readings (`restart_readings`, `disp_readings`, `string_readings`,
+    `release_readings`)."""
+    rs, dp, st, rl = s["restarts"], s["disp"], s["string"], s["release"]
+    return [
+        "restarts (restart_readings): %d work melees superseded inside %.1f tiles and restarted by a non-melee act "
+        "within %.1f s: %s" % (rs["n"], KEEP_R, RESTART_S, rs["aids"]),
+        "disp (disp_readings): %d disposition changes, dwell values %s, by `to` %s" % (dp["changes"], dp["dwells"], dp["by"]),
+        "string (string_readings): %d episodes, %d turns (%d with gap2 of %.1f or more), gap2 %s, %d kills of melees "
+        "last reading string" % (st["episodes"], st["turns"], st["wide"], STRING_GAP, st["gap2"], st["kills"]),
+        "release (release_readings): %d asked, %d released safe, %d released bound, %d early breaks (a non-melee command "
+        "within %.1f s of an asked line before its hand-back)" % (rl["asked"], rl["safe"], rl["bound"], rl["early"], EARLY_S),
+    ]
+
+
 # ---------------------------------------------------------------- the score
 def end_cell(out):
     """`death@<game minute>` off the record's `stop`, `cap` on the day cap, `crash` on a crash stop (CRASH_STOPS) or a
@@ -1087,7 +1289,8 @@ def score(run, clipped=True):
             "contact": contact_seconds(frames, lines), "engaged": engagements(lines),
             "presses": press_readings(lines), "cone": cone_bites(frames), "clock_gate": clock_gate(rows),
             "crawler": crawler_close(frames, lines), "pulls": pull_counts(rows), "room": room_readings(frames),
-            "steps": step_reasons(lines),
+            "steps": step_reasons(lines), "restarts": restart_readings(lines), "disp": disp_readings(rows),
+            "string": string_readings(lines), "release": release_readings(rows, lines),
             "flee": flee_minutes(rows), "away": away_minutes(L), "legs": leg_minutes(rows), "gap": retreat_gap(rows),
             "labels": label_histogram(rows), "toward": toward_minutes(L), "dressed": dressed(frames),
             "melees": melees_superseded(out, lines), "goal_wait": G21.e_goal_wait(L if rows else None),
@@ -1148,7 +1351,7 @@ def cells(s, seen=""):
             hits, per, _num(body.get("median")), _num(body.get("p90")), _num(head.get("max")),
             _num(care.get("lines") if care.get("read") else None),
             "%.1f" % ct["seconds"] if s["frames"] else DASH, str(en["count"]) if s["frames"] else DASH,
-            *engage_cells(s),
+            *engage_cells(s), *crowd_cells(s),
             "%.1f / %.1f (away %s)" % (fl["minutes"], fl["total_minutes"], away) if rows else DASH,
             "%.1f / %.1f" % (tw["minutes"], tw["total_minutes"]) if rows else DASH,
             "%s / %s" % (dr["dressed"], dr["wounds"]) if s["frames"] else DASH, sup, s["end"],
@@ -1204,7 +1407,7 @@ def detail(s):
         head_line(s.get("head_ticks")),
         care_line(s.get("care_at_group")),
         contact_line(s["contact"], s["engaged"]),
-    ] + engage_detail(s) + [
+    ] + engage_detail(s) + crowd_detail(s) + [
         gap_line(s.get("gap")),
     ] + ([clock_line(s["clock"])] if s.get("clock") else [])
 
@@ -1336,32 +1539,15 @@ def write_log(path, head, rows, tail=None):
         fh.write("\n".join(head + rows + tail) if tail is not None else "\n".join(head + rows) + "\n")
 
 
-ERA_COLUMNS = (OLD_COLUMNS, BODY_ERA_COLUMNS, HEAD_ERA_COLUMNS, CARE_ERA_COLUMNS, CONTACT_ERA_COLUMNS)   # the earlier rows' columns, oldest first
-
-
 def widen(cells):
-    """A row's cells in COLUMNS order: a row written before Plan 32 Task 4 (OLD_COLUMNS' count) gets the two body
-    cells as `-` after `hits per kill`, it or a row written before Plan 33 Task 4 (BODY_ERA_COLUMNS' count) the
-    head_ticks cell as `-` after `body p90`, and any of them or a row written before Plan 34 Task 5 (HEAD_ERA_COLUMNS'
-    count) the care@3+ cell as `-` after `head_ticks max`, and any of them or a row written before Plan 35 Task 3
-    (CARE_ERA_COLUMNS' count) the two contact cells as `-` after `care@3+`, and any of them or a row written before Plan 36
-    Task 5b (CONTACT_ERA_COLUMNS' count) the eight engagement cells as `-` after `engagements`; any other row as it
-    stands."""
-    if len(cells) == len(OLD_COLUMNS):
-        i = COLUMNS.index(BODY_COLUMNS[0])
-        cells = cells[:i] + [DASH] * len(BODY_COLUMNS) + cells[i:]
-    if len(cells) == len(BODY_ERA_COLUMNS):
-        i = COLUMNS.index(HEAD_COLUMNS[0])
-        cells = cells[:i] + [DASH] * len(HEAD_COLUMNS) + cells[i:]
-    if len(cells) == len(HEAD_ERA_COLUMNS):
-        i = COLUMNS.index(CARE_COLUMNS[0])
-        cells = cells[:i] + [DASH] * len(CARE_COLUMNS) + cells[i:]
-    if len(cells) == len(CARE_ERA_COLUMNS):
-        i = COLUMNS.index(CONTACT_COLUMNS[0])
-        cells = cells[:i] + [DASH] * len(CONTACT_COLUMNS) + cells[i:]
-    if len(cells) == len(CONTACT_ERA_COLUMNS):
-        i = COLUMNS.index(ENGAGE_COLUMNS[0])
-        cells = cells[:i] + [DASH] * len(ENGAGE_COLUMNS) + cells[i:]
+    """A row's cells in COLUMNS order: a row written before a change (ERA_COLUMNS, oldest first: the body cells of
+    Plan 32 Task 4, head_ticks of Plan 33 Task 4, care@3+ of Plan 34 Task 5, the two contact cells of Plan 35 Task 3,
+    the eight engagement cells of Plan 36 Task 5b, the four crowd cells of Plan 37 Task 1b) gets that change's cells as
+    `-` where the change put them, and so on through every later change; any other row as it stands."""
+    for era, change in zip(ERA_COLUMNS, CHANGES):
+        if len(cells) == len(era):
+            i = COLUMNS.index(change[0])
+            cells = cells[:i] + [DASH] * len(change) + cells[i:]
     return cells
 
 
@@ -1432,6 +1618,7 @@ def rescore_all(log, runs, dry=False):
 
 # ---------------------------------------------------------------- the round
 ROUND_PREFIX = "> round: "
+DISP_RATE = re.compile(r"^\d+ \((\d+(?:\.\d+)?)/min")      # the `disp` cell's changes per minute of contact
 STAMP = re.compile(r"-(\d{8}-\d{6})$")
 
 
@@ -1457,7 +1644,7 @@ def round_summary(log, variant, fixture, since):
     stamp) on: the rows whose run id ends in a stamp at or after it, whose variant cell's first word (before any ` [`)
     is `variant` and whose fixture cell (before any ` / `) is `fixture`; a death is an `end` cell opening `death`."""
     ix = {c: COLUMNS.index(c) for c in ("variant", "fixture", "kills", "hits per kill", "contact s", "end", "air %",
-                                        "cone bites", "clock <0")}
+                                        "cone bites", "clock <0", "restarts", "disp")}
     rs = []
     for ln in widen_rows(read_log_parts(log)[1]):
         p = parse_row(ln)
@@ -1468,10 +1655,12 @@ def round_summary(log, variant, fixture, since):
     deaths = sum(1 for p in rs if p[ix["end"]].startswith("death"))
     num = lambda k: [v for v in (_lead_number(p[ix[k]]) for p in rs) if v is not None]
     return "%s%s %s since %s: %d trials, %d deaths (%s %%), kills median %s, contact s median %s, hits per kill " \
-           "median %s, air %% median %s, cone bites median %s, clock <0 median %s" % (
+           "median %s, air %% median %s, cone bites median %s, clock <0 median %s, restarts sum %s, disp changes/min median %s" % (
                ROUND_PREFIX, variant, fixture, since, len(rs), deaths, "%.0f" % (100.0 * deaths / len(rs)) if rs else DASH,
                _median_text(num("kills")), _median_text(num("contact s"), "%.1f"), _median_text(num("hits per kill")),
-               _median_text(num("air %")), _median_text(num("cone bites")), _median_text(num("clock <0")))
+               _median_text(num("air %")), _median_text(num("cone bites")), _median_text(num("clock <0")),
+               _median_text([sum(num("restarts"))]) if num("restarts") else DASH,
+               _median_text([float(m.group(1)) for m in (DISP_RATE.search(p[ix["disp"]]) for p in rs) if m]))
 
 
 def put_round(path, line):
